@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState, useEffect } from "react";
 import type { WorkflowNode, NodeDefinition } from "./types";
 import { parseValue } from "./intelligenceTypes";
@@ -47,7 +48,7 @@ export function ConditionBuilder({
       <legend>Condition group</legend>
       <label>
         Match
-        <select
+        <NativeSelect
           aria-label={`Condition join level ${depth}`}
           value={value.join}
           onChange={(e) =>
@@ -56,7 +57,7 @@ export function ConditionBuilder({
         >
           <option value="and">All rules (AND)</option>
           <option value="or">Any rule (OR)</option>
-        </select>
+        </NativeSelect>
       </label>
       {value.rules.map((rule, i) => (
         <div key={i}>
@@ -78,7 +79,7 @@ export function ConditionBuilder({
           ) : (
             <div className="ai-rule">
               {fieldOptions ? (
-                <select
+                <NativeSelect
                   aria-label={`Rule ${i + 1} field`}
                   value={String(rule.left)}
                   onChange={(e) =>
@@ -100,7 +101,7 @@ export function ConditionBuilder({
                       {f.label}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               ) : (
                 <input
                   aria-label={`Rule ${i + 1} left`}
@@ -121,7 +122,7 @@ export function ConditionBuilder({
                   }
                 />
               )}
-              <select
+              <NativeSelect
                 aria-label={`Rule ${i + 1} operator`}
                 value={rule.operator}
                 onChange={(e) =>
@@ -138,7 +139,7 @@ export function ConditionBuilder({
                     {op.replace(/_/g, " ")}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               <input
                 aria-label={`Rule ${i + 1} right`}
                 value={
@@ -352,7 +353,7 @@ export function LoopConfigurationEditor({
       <legend>Bounded iteration design</legend>
       <label>
         Mode
-        <select
+        <NativeSelect
           aria-label="Loop mode"
           value={String(node.config.mode || "sequential")}
           onChange={(e) =>
@@ -364,7 +365,7 @@ export function LoopConfigurationEditor({
         >
           <option value="sequential">Sequential</option>
           <option value="bounded_parallel">Bounded parallel</option>
-        </select>
+        </NativeSelect>
       </label>
       {["max_iterations", "concurrency"].map((key) => (
         <label key={key}>
@@ -439,7 +440,7 @@ export function MergeConfigurationEditor({
       <legend>Join semantics</legend>
       <label>
         Merge strategy
-        <select
+        <NativeSelect
           aria-label="Merge strategy"
           value={String(node.config.strategy || "all")}
           onChange={(e) =>
@@ -466,7 +467,7 @@ export function MergeConfigurationEditor({
               </option>
             ),
           )}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         Keys, in incoming connection order

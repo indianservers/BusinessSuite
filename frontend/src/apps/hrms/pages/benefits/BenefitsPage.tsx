@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Gift, HeartPulse, PiggyBank, Plus, RefreshCw, ShieldCheck } from "lucide-react";
@@ -159,9 +160,9 @@ export default function BenefitsPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Type</Label>
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={planForm.plan_type} onChange={(e) => setPlanForm({ ...planForm, plan_type: e.target.value })}>
+              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={planForm.plan_type} onChange={(e) => setPlanForm({ ...planForm, plan_type: e.target.value })}>
                 {["Group Health", "NPS", "Insurance", "Flexi", "Wellness"].map((type) => <option key={type}>{type}</option>)}
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-1.5">
               <Label>Provider</Label>

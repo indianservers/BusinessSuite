@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import { fieldLabels, type Action } from "./integrationApi";
 export default function ActionFields({
@@ -39,7 +40,7 @@ export default function ActionFields({
               ) : schema.type === "boolean" ? (
                 <input type="checkbox" aria-label={label} disabled={disabled} checked={raw === true} onChange={(e) => edit(e.target.checked)} />
               ) : schema.enum ? (
-                <select
+                <NativeSelect
                   disabled={disabled}
                   aria-label={label}
                   value={String(raw)}
@@ -48,7 +49,7 @@ export default function ActionFields({
                   {schema.enum.map((v) => (
                     <option key={v}>{v}</option>
                   ))}
-                </select>
+                </NativeSelect>
               ) : (
                 <textarea
                   rows={key === "prompt" || key === "text" ? 4 : 1}

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
@@ -332,7 +333,7 @@ export default function InternTaskProgramsPanel({
         </Button>
       </div>
       <Field label="Program PMS project">
-        <select
+        <NativeSelect
           className={inputClass}
           value={project}
           onChange={(e) => setProject(e.target.value)}
@@ -345,7 +346,7 @@ export default function InternTaskProgramsPanel({
                 {p.name}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </Field>
       <div
         className="flex flex-wrap gap-2"
@@ -825,7 +826,7 @@ export default function InternTaskProgramsPanel({
                 <h3 className="font-semibold">Assign a task pack to a batch</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Saved task pack">
-                    <select
+                    <NativeSelect loading={packs.isFetching} error={packs.isError}
                       className={inputClass}
                       value={packId}
                       onChange={(e) => setPackId(e.target.value)}
@@ -838,10 +839,10 @@ export default function InternTaskProgramsPanel({
                             {p.name} · v{p.version}
                           </option>
                         ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                   <Field label="Task pack batch">
-                    <select
+                    <NativeSelect
                       className={inputClass}
                       value={batchId}
                       onChange={(e) => setBatchId(e.target.value)}
@@ -852,7 +853,7 @@ export default function InternTaskProgramsPanel({
                           {b.name}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                   <Field label="Pack start date">
                     <Input
@@ -863,7 +864,7 @@ export default function InternTaskProgramsPanel({
                     />
                   </Field>
                   <Field label="Pack reviewer">
-                    <select
+                    <NativeSelect
                       className={inputClass}
                       value={reviewer}
                       onChange={(e) => setReviewer(e.target.value)}
@@ -874,7 +875,7 @@ export default function InternTaskProgramsPanel({
                           {s.name}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                 </div>
                 {roster.isError && (
@@ -926,7 +927,7 @@ export default function InternTaskProgramsPanel({
                           <span>
                             {person.name} · {person.code}
                           </span>
-                          <select
+                          <NativeSelect
                             aria-label={`Skill level for ${person.name}`}
                             className={`${inputClass} max-w-[200px]`}
                             value={selection[person.id] || ""}
@@ -946,7 +947,7 @@ export default function InternTaskProgramsPanel({
                                 {l[0].toUpperCase() + l.slice(1)}
                               </option>
                             ))}
-                          </select>
+                          </NativeSelect>
                         </div>
                       ))}
                     </div>
@@ -1087,7 +1088,7 @@ export default function InternTaskProgramsPanel({
                   deadlines change. Completed and cancelled work is excluded.
                 </p>
                 <Field label="Deadline batch filter">
-                  <select
+                  <NativeSelect
                     className={inputClass}
                     value={batchId}
                     onChange={(e) => setBatchId(e.target.value)}
@@ -1100,7 +1101,7 @@ export default function InternTaskProgramsPanel({
                         {b.name}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </Field>
                 {assignments.isError && (
                   <p role="alert">

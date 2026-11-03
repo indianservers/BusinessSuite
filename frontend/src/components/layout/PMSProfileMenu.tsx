@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
@@ -473,7 +474,7 @@ export default function PMSProfileMenu({
                 </label>
                 <label>
                   Self-set availability
-                  <select
+                  <NativeSelect
                     value={availability}
                     onChange={(e) =>
                       setAvailability(e.target.value as "available")
@@ -482,11 +483,11 @@ export default function PMSProfileMenu({
                     <option value="available">Available</option>
                     <option value="away">Away</option>
                     <option value="busy">Do not disturb</option>
-                  </select>
+                  </NativeSelect>
                 </label>
                 <label>
                   Clear after
-                  <select
+                  <NativeSelect
                     value={expires}
                     onChange={(e) => setExpires(e.target.value)}
                   >
@@ -494,7 +495,7 @@ export default function PMSProfileMenu({
                     <option value="240">4 hours</option>
                     <option value="1440">24 hours</option>
                     <option value="0">Do not clear</option>
-                  </select>
+                  </NativeSelect>
                 </label>
                 <small>
                   This is a personal label, not live online presence. Use Mute

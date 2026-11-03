@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useRef, useState } from "react";
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type NodeViewProps } from "@tiptap/react";
@@ -79,8 +80,8 @@ export default function NoteEditor({ AttachmentView, value, onChange, onSelectio
     {!readOnly && <div role="toolbar" aria-label="Note content formatting" className="note-icon-toolbar">
       {tool("Undo (Ctrl+Z)",Undo2,()=>{editor.chain().focus().undo().run();},false,!editor.can().undo())}{tool("Redo (Ctrl+Y)",Redo2,()=>{editor.chain().focus().redo().run();},false,!editor.can().redo())}
       <i/>
-      <select aria-label="Paragraph style" value={editor.isActive("heading")?String(editor.getAttributes("heading").level):"p"} onChange={e=>e.target.value==="p"?editor.chain().focus().setParagraph().run():editor.chain().focus().setHeading({level:Number(e.target.value) as 1|2|3|4|5|6}).run()}><option value="p">Paragraph</option>{[1,2,3,4,5,6].map(level=><option key={level} value={level}>Heading {level}</option>)}</select>
-      <select aria-label="Font size" value={editor.getAttributes("textStyle").fontSize||"14px"} onChange={e=>editor.chain().focus().setFontSize(e.target.value).run()}>{fontSizes.map(size=><option key={size} value={size}>{parseInt(size)}</option>)}</select><i/>
+      <NativeSelect aria-label="Paragraph style" value={editor.isActive("heading")?String(editor.getAttributes("heading").level):"p"} onChange={e=>e.target.value==="p"?editor.chain().focus().setParagraph().run():editor.chain().focus().setHeading({level:Number(e.target.value) as 1|2|3|4|5|6}).run()}><option value="p">Paragraph</option>{[1,2,3,4,5,6].map(level=><option key={level} value={level}>Heading {level}</option>)}</NativeSelect>
+      <NativeSelect aria-label="Font size" value={editor.getAttributes("textStyle").fontSize||"14px"} onChange={e=>editor.chain().focus().setFontSize(e.target.value).run()}>{fontSizes.map(size=><option key={size} value={size}>{parseInt(size)}</option>)}</NativeSelect><i/>
       {tool("Bold (Ctrl+B)",Bold,()=>{editor.chain().focus().toggleBold().run();},editor.isActive("bold"))}{tool("Italic (Ctrl+I)",Italic,()=>{editor.chain().focus().toggleItalic().run();},editor.isActive("italic"))}{tool("Underline (Ctrl+U)",Underline,()=>{editor.chain().focus().toggleUnderline().run();},editor.isActive("underline"))}{tool("Strikethrough",Strikethrough,()=>{editor.chain().focus().toggleStrike().run();},editor.isActive("strike"))}
       <label title="Text color" className="note-color"><span>A</span><input type="color" aria-label="Text color" onChange={e=>editor.chain().focus().setColor(e.target.value).run()}/></label>
       <label title="Highlight color" className="note-color"><Highlighter size={16}/><input type="color" aria-label="Highlight color" defaultValue="#fff0a6" onChange={e=>editor.chain().focus().setHighlight({color:e.target.value}).run()}/></label><i/>

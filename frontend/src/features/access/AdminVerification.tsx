@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/services/api";
 
@@ -28,9 +29,9 @@ export default function AdminVerification({ value, onChange }: { value: string; 
   const selected = provider || (value.startsWith("provider:") ? value.slice(9) : "password");
   return <div className="space-y-2">
     {provider ? <p>Continue to verify your {provider === "google" ? "Google" : "Microsoft"} account.</p> : <label className="block space-y-1 text-sm">Verify using
-      <select className="block h-10 w-full rounded-md border bg-background px-3" aria-label="Administrator verification method" value={selected} onChange={event => onChange(event.target.value === "password" ? "" : `provider:${event.target.value}`)}>
+      <NativeSelect className="block h-10 w-full rounded-md border bg-background px-3" aria-label="Administrator verification method" value={selected} onChange={event => onChange(event.target.value === "password" ? "" : `provider:${event.target.value}`)}>
         <option value="password">Password</option><option value="google">Google</option><option value="microsoft">Microsoft</option>
-      </select>
+      </NativeSelect>
     </label>}
     {selected === "password" && <label className="block space-y-1 text-sm">Current administrator password<input className="block w-full rounded border p-2" type="password" autoComplete="current-password" required value={value} onChange={event => onChange(event.target.value)} /></label>}
   </div>;

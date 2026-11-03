@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
@@ -313,17 +314,17 @@ export default function GanttPage() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" />Dependencies</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <CompactForm onSubmit={event => { event.preventDefault(); void createDependency(); }}><fieldset disabled={readOnly || saving} className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
-              <select aria-label="Source task" value={sourceTaskId} onChange={(event) => { setSourceTaskId(event.target.value); setTargetTaskId(""); }} className="h-11 rounded-md border bg-background px-3 text-sm">
+              <NativeSelect aria-label="Source task" value={sourceTaskId} onChange={(event) => { setSourceTaskId(event.target.value); setTargetTaskId(""); }} className="h-11 rounded-md border bg-background px-3 text-sm">
                 <option value="">Source task</option>
                 {tasks.filter(task => canEditProject(task.project_id)).map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
-              </select>
-              <select aria-label="Target task" value={targetTaskId} onChange={(event) => setTargetTaskId(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm">
+              </NativeSelect>
+              <NativeSelect aria-label="Target task" value={targetTaskId} onChange={(event) => setTargetTaskId(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm">
                 <option value="">Target task</option>
                 {tasks.filter(task => canEditProject(task.project_id) && task.id !== Number(sourceTaskId) && task.project_id === tasks.find(source => source.id === Number(sourceTaskId))?.project_id).map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
-              </select>
-              <select aria-label="Dependency type" value={dependencyType} onChange={(event) => setDependencyType(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm">
+              </NativeSelect>
+              <NativeSelect aria-label="Dependency type" value={dependencyType} onChange={(event) => setDependencyType(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm">
                 {dependencyTypes.map((item) => <option key={item}>{item}</option>)}
-              </select>
+              </NativeSelect>
               <input aria-label="Lag days" type="number" step="1" value={lagDays} onChange={(event) => setLagDays(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm" placeholder="Lag" />
               <Button type="submit" disabled={saving || !sourceTaskId || !targetTaskId}>Add dependency</Button>
             </fieldset></CompactForm>{readOnly && <p className="text-sm text-muted-foreground">You have read-only access to this timeline.</p>}
@@ -403,9 +404,9 @@ function SelectFilter({ label, value, onChange, children }: { label: string; val
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-md border bg-background px-3 text-sm">
+      <NativeSelect value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-md border bg-background px-3 text-sm">
         {children}
-      </select>
+      </NativeSelect>
     </label>
   );
 }

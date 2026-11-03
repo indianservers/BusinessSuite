@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import TaskExecutionPanel from "../components/TaskExecutionPanel";
 import { ManagePersonButton } from "../components/people/PersonIdentity";
@@ -841,14 +842,14 @@ export default function TaskDetail() {
                   {!tags.length ? <EmptyLine>No tags yet.</EmptyLine> : null}
                 </div>
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <select
+                  <NativeSelect
                     value=""
                     onChange={(event) => attachExistingTag(Number(event.target.value))}
                     className="h-10 rounded-md border bg-background px-3 text-sm"
                   >
                     <option value="">Select existing tag</option>
                     {availableTags.filter((tag) => !tags.some((item) => item.id === tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <CompactForm onSubmit={addTag} className="flex gap-2">
                   <Input value={newTag} onChange={(event) => setNewTag(event.target.value)} placeholder="Create and add tag" />
@@ -882,9 +883,9 @@ export default function TaskDetail() {
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
                   <Input aria-label="Search subtasks" placeholder="Search subtasks" value={subtaskSearch} onChange={e => setSubtaskSearch(e.target.value)} />
-                  <select aria-label="Filter subtasks" value={subtaskFilter} onChange={e => setSubtaskFilter(e.target.value)} className="rounded-md border bg-background p-2">
+                  <NativeSelect aria-label="Filter subtasks" value={subtaskFilter} onChange={e => setSubtaskFilter(e.target.value)} className="rounded-md border bg-background p-2">
                     <option value="all">All subtasks</option><option value="open">Open</option><option value="done">Completed</option>
-                  </select>
+                  </NativeSelect>
                 </div>
                 {subtasks.filter(item => `${item.title} ${item.task_key}`.toLowerCase().includes(subtaskSearch.toLowerCase()) && (subtaskFilter === "all" || (subtaskFilter === "done" ? item.status === "Done" : item.status !== "Done"))).map((item) => (
                   <SubtaskRow
@@ -916,9 +917,9 @@ export default function TaskDetail() {
               <CompactForm onSubmit={addSubtask} className="rounded-md border p-3">
                 <div className="grid gap-2 md:grid-cols-2">
                   <Input aria-label="Subtask title" maxLength={220} required id="add-subtask" value={newSubtask} onChange={(event) => setNewSubtask(event.target.value)} placeholder="Add sub-task title" />
-                  <select aria-label="Subtask priority" value={newSubtaskPriority} onChange={(event) => setNewSubtaskPriority(event.target.value as TaskPriority)} className="h-10 rounded-md border bg-background px-3 text-sm">
+                  <NativeSelect aria-label="Subtask priority" value={newSubtaskPriority} onChange={(event) => setNewSubtaskPriority(event.target.value as TaskPriority)} className="h-10 rounded-md border bg-background px-3 text-sm">
                     {priorities.map((item) => <option key={item}>{item}</option>)}
-                  </select>
+                  </NativeSelect>
                   <Input aria-label="Subtask due date" type="date" value={newSubtaskDueDate} onChange={(event) => setNewSubtaskDueDate(event.target.value)} />
                   <Input aria-label="Subtask story points" type="number" min="0" step="1" value={newSubtaskStoryPoints} onChange={(event) => setNewSubtaskStoryPoints(event.target.value)} placeholder="Pts" />
                   <Button aria-label="Add subtask" disabled={subtaskSaving} type="submit" size="sm"><Plus className="h-4 w-4" />{subtaskSaving ? "Adding..." : "Add"}</Button>
@@ -1026,7 +1027,7 @@ export default function TaskDetail() {
             <CardHeader><CardTitle>Properties</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <Field label="Status">
-                <select
+                <NativeSelect
                   value={task.status}
                   onChange={(event) => {
                     const nextStatus = event.target.value as TaskStatus;
@@ -1039,22 +1040,22 @@ export default function TaskDetail() {
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                 >
                   {taskStatuses.map((item) => <option key={item}>{item}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Priority">
                 <PriorityPicker value={task.priority} disabled={saving} onChange={priority => updateTask({ priority })} />
               </Field>
               <Field label="Sprint">
-                <select value={task.sprint_id || ""} onChange={(event) => updateTask({ sprint_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <NativeSelect value={task.sprint_id || ""} onChange={(event) => updateTask({ sprint_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   <option value="">No sprint</option>
                   {sprints.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Epic">
-                <select value={task.epic_id || ""} onChange={(event) => updateTask({ epic_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <NativeSelect value={task.epic_id || ""} onChange={(event) => updateTask({ epic_id: event.target.value ? Number(event.target.value) : null } as any)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   <option value="">No epic</option>
                   {epics.map((item) => <option key={item.id} value={item.id}>{item.epic_key} - {item.name}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Due date"><Input type="date" value={task.due_date || ""} onChange={(event) => updateTask({ due_date: event.target.value || null } as any)} /></Field>
               <Field label="Start date"><Input type="date" value={task.start_date || ""} onChange={(event) => updateTask({ start_date: event.target.value || null } as any)} /></Field>
@@ -1160,12 +1161,12 @@ function SubtaskRow({
       <div className="rounded-md border bg-muted/20 p-3 text-sm">
         <div className="grid gap-2 md:grid-cols-2">
           <Input value={draft.title || ""} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
-          <select value={draft.status || task.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })} className="h-10 rounded-md border bg-background px-3 text-sm">
+          <NativeSelect value={draft.status || task.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })} className="h-10 rounded-md border bg-background px-3 text-sm">
             {taskStatuses.map((item) => <option key={item}>{item}</option>)}
-          </select>
-          <select value={draft.priority || task.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })} className="h-10 rounded-md border bg-background px-3 text-sm">
+          </NativeSelect>
+          <NativeSelect value={draft.priority || task.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })} className="h-10 rounded-md border bg-background px-3 text-sm">
             {priorities.map((item) => <option key={item}>{item}</option>)}
-          </select>
+          </NativeSelect>
           <Input type="date" value={draft.due_date || ""} onChange={(event) => setDraft({ ...draft, due_date: event.target.value || (null as any) })} />
           <Input type="number" min="0" step="1" value={draft.story_points ?? ""} onChange={(event) => setDraft({ ...draft, story_points: event.target.value === "" ? undefined : Number(event.target.value) })} />
         </div>
@@ -1351,10 +1352,10 @@ function ActivityList({ items, filter, setFilter, sort, setSort }: { items: PMSA
             </Button>
           ))}
         </div>
-        <select value={sort} onChange={(event) => setSort(event.target.value as ActivitySort)} className="h-9 rounded-md border bg-background px-3 text-sm">
+        <NativeSelect value={sort} onChange={(event) => setSort(event.target.value as ActivitySort)} className="h-9 rounded-md border bg-background px-3 text-sm">
           <option value="desc">Newest first</option>
           <option value="asc">Oldest first</option>
-        </select>
+        </NativeSelect>
       </div>
       <div className="space-y-3">
         {visibleItems.map((item) => <ActivityTimelineItem key={item.id} item={item} />)}

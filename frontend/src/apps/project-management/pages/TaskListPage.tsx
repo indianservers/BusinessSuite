@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { CustomFieldCell, useCustomFieldRecords, type CustomField } from "../components/CustomFields";
@@ -127,9 +128,9 @@ function SelectField({
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+      <NativeSelect value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
         {children}
-      </select>
+      </NativeSelect>
     </label>
   );
 }
@@ -553,12 +554,12 @@ export default function TaskListPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/pms/trash" className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><Trash2 className="h-4 w-4" />Trash</Link>
-          <select value={selectedViewId} onChange={(event) => handleViewSelect(event.target.value)} className="h-10 min-w-52 rounded-md border bg-background px-3 text-sm">
+          <NativeSelect value={selectedViewId} onChange={(event) => handleViewSelect(event.target.value)} className="h-10 min-w-52 rounded-md border bg-background px-3 text-sm">
             <option value="">Unsaved task view</option>
             {savedViews.map((view) => (
               <option key={view.id} value={view.id}>{view.is_default ? "* " : ""}{view.name}</option>
             ))}
-          </select>
+          </NativeSelect>
           <Button variant="outline" onClick={() => {
             const current = savedViews.find((view) => view.id === Number(selectedViewId));
             setViewName(current?.name || "");
@@ -707,14 +708,14 @@ export default function TaskListPage() {
           <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="text-sm font-medium">{selectedTaskIds.length} task{selectedTaskIds.length === 1 ? "" : "s"} selected</div>
             <div className="grid gap-2 sm:grid-cols-[180px_180px_auto_auto]">
-              <select value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+              <NativeSelect value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                 <option value="">Keep status</option>
                 {taskStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
-              </select>
-              <select value={bulkPriority} onChange={(event) => setBulkPriority(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+              </NativeSelect>
+              <NativeSelect value={bulkPriority} onChange={(event) => setBulkPriority(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                 <option value="">Keep priority</option>
                 {["Urgent", "High", "Medium", "Low"].map((priority) => <option key={priority} value={priority}>{priority}</option>)}
-              </select>
+              </NativeSelect>
               <Button onClick={applyBulkUpdate} disabled={bulkSaving || (!bulkStatus && !bulkPriority)}>
                 {bulkSaving ? "Saving..." : "Apply"}
               </Button>
@@ -825,9 +826,9 @@ export default function TaskListPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Rows</span>
-          <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="h-9 rounded-md border bg-background px-2">
+          <NativeSelect value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="h-9 rounded-md border bg-background px-2">
             {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
-          </select>
+          </NativeSelect>
         </div>
         <div className="flex items-center justify-end gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>

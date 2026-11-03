@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
 import { Layers, Search } from "lucide-react";
@@ -46,9 +47,9 @@ export default function TemplateLibrary<T extends Template>({ templates, project
     </div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]">
       <div className="relative"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" /><Input aria-label="Search templates" placeholder="Search names, descriptions or tasks…" value={search} onChange={event => setSearch(event.target.value)} className="h-11 pl-9" /></div>
-      <select aria-label="Filter templates by project" className={selectClass} value={project} onChange={event => setProject(event.target.value)}><option value="">All projects</option>{projects.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-      <select aria-label="Filter templates by task count" className={selectClass} value={size} onChange={event => setSize(event.target.value)}><option value="">Any task count</option><option value="small">Up to 5 tasks</option><option value="large">6 or more tasks</option></select>
-      <select aria-label="Template availability" className={selectClass} value={availability} onChange={event => setAvailability(event.target.value)}><option value="active">Active templates</option><option value="all">Include paused</option></select>
+      <NativeSelect aria-label="Filter templates by project" className={selectClass} value={project} onChange={event => setProject(event.target.value)}><option value="">All projects</option>{projects.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect>
+      <NativeSelect aria-label="Filter templates by task count" className={selectClass} value={size} onChange={event => setSize(event.target.value)}><option value="">Any task count</option><option value="small">Up to 5 tasks</option><option value="large">6 or more tasks</option></NativeSelect>
+      <NativeSelect aria-label="Template availability" className={selectClass} value={availability} onChange={event => setAvailability(event.target.value)}><option value="active">Active templates</option><option value="all">Include paused</option></NativeSelect>
     </div>
     <p role="status" className="text-sm text-muted-foreground">{visible.length} of {templates.length} workspace templates</p>
     {!visible.length && <div className="rounded-xl border border-dashed p-8 text-center"><h3 className="font-semibold">{templates.length ? "No matching templates" : "Your template library starts here"}</h3><p className="mt-2 text-sm text-muted-foreground">{templates.length ? "Try another search or clear the filters." : "Owners and admins can save a reusable set of tasks using Create template."}</p>{!!templates.length && <Button className="mt-4" variant="outline" onClick={() => { setSearch(""); setProject(""); setSize(""); setAvailability("all"); }}>Clear filters</Button>}</div>}

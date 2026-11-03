@@ -1,0 +1,49 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { useEffect,useRef,useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link,useSearchParams } from 'react-router-dom';
+import { api } from '@/services/api';
+import { Button } from '@/components/ui/button';
+import { communicationApi } from '../api';
+import { richTextPlainText } from '@/components/rich-text/LazyRichText';
+import { RecordPicker,QuickReplies,useCenterScope,errorText,type PickedRecord } from './shared';
+type Draft={record:PickedRecord|null;to:string;subject:string;body:string;variables:Record<string,string>};
+const blank:Draft={record:null,to:'',subject:'',body:'',variables:{}};
+export default function EmailComposer(){
+  const scope=useCenterScope(),[params]=useSearchParams(),key=`communication-email-draft:${scope}`;
+  const [draft,setDraft]=useState<Draft>(()=>{try{return {...blank,...JSON.parse(sessionStorage.getItem(key)||'{}')};}catch{return blank;}});
+  const [review,setReview]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState(''),[savedAt,setSavedAt]=useState(''),[uncertain,setUncertain]=useState(()=>sessionStorage.getItem(key+':uncertain')==='true');
+  const inFlight=useRef(false);const {record,to,subject,body,variables}=draft;
+  const templates=useQuery({queryKey:['communication-templates',scope],queryFn:communicationApi.templates});
+  const eligibility=useQuery({queryKey:['communication-center',scope,'email-eligibility',to],enabled:/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to),queryFn:async()=>(await api.get<{blocked:boolean;reason:string}>('/communication/engagement/email-eligibility',{params:{email:to}})).data});
+  const initialRecord=useQuery({queryKey:['center-email-record',scope,params.get('recordType'),params.get('recordId')],enabled:['lead','contact','company'].includes(params.get('recordType')||'')&&/^\d+$/.test(params.get('recordId')||''),queryFn:async()=>{const entity=params.get('recordType')!;const {data}=await api.get(`/crm/${entity==='company'?'companies':entity+'s'}/${params.get('recordId')}`);return {id:data.id,entity,name:data.fullName||data.name||`${entity} #${data.id}`,email:data.email,phone:data.phone} as PickedRecord;}});
+  useEffect(()=>{if(initialRecord.data){const record=initialRecord.data;setDraft(d=>({...d,record,to:record.email||'',variables:{...d.variables,name:record.name,email:record.email||''}}));setReview(false);}},[initialRecord.data]);
+  useEffect(()=>{const timer=setTimeout(()=>{try{if(record||to||subject||body){sessionStorage.setItem(key,JSON.stringify(draft));setSavedAt(new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));}}catch{setSavedAt('');}},650);return()=>clearTimeout(timer);},[draft,key]);
+  function change(update:Partial<Draft>){setDraft(d=>({...d,...update}));setReview(false);setNotice('');setError('');}
+  const names=[...new Set(((subject+' '+body).match(/\{\{\s*[^{}]+\s*\}\}/g)||[]).map(v=>v.replace(/[{}]/g,'').trim()))];
+  const missing=names.filter(name=>!variables[name]?.trim());
+  const render=(text:string)=>text.replace(/\{\{\s*([^{}]+)\s*\}\}/g,(all,name)=>variables[name.trim()]||all);
+  const blocked=eligibility.data?.blocked;
+  const reasons=[...(!record?['Choose a CRM customer record.']:[]),...(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)?['Enter a valid recipient email.']:[]),...(!subject.trim()?['Add a subject.']:[]),...(!body.trim()?['Write your message.']:[]),...(missing.length?[`Fill template fields: ${missing.join(', ')}.`]:[]),...(blocked?['This recipient has opted out. Review their consent before sending.']:[]),...(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)&&!eligibility.data?['Recipient eligibility is still being checked.']:[]),...(eligibility.isError?['Recipient eligibility could not be checked. Refresh before sending.']:[]),...(uncertain?['The previous send outcome is uncertain. Check delivery records before creating another send.']:[])];
+  async function save(serverDraft=false){
+    if(!record||inFlight.current)return;
+    inFlight.current=true;setBusy(true);setError('');
+    if(!serverDraft)sessionStorage.setItem(key+':uncertain','true');
+    try{
+      const payload={related_record_type:record.entity,related_record_id:record.id,to_email:to,subject:render(subject),body:render(body)};
+      const result=await (serverDraft?communicationApi.draftEmail(payload):communicationApi.sendEmail(payload));
+      setReview(false);
+      if(serverDraft)setNotice('Draft saved to the server.');
+      else{
+        sessionStorage.removeItem(key+':uncertain');setUncertain(false);
+        if(['failed','blocked'].includes(String(result.status)))setNotice(`Email ${result.status}. Your draft is retained; inspect delivery logs before another send.`);
+        else{setNotice(`Email ${String(result.status||'submitted')}. Provider acceptance is not confirmed recipient delivery.`);sessionStorage.removeItem(key);setDraft(blank);setSavedAt('');}
+      }
+    }catch(e){
+      setError(errorText(e));
+      if(!serverDraft){const validation=(e as {response?:{status?:number}}).response?.status===422;setUncertain(!validation);if(validation)sessionStorage.removeItem(key+':uncertain');}
+    }finally{setBusy(false);inFlight.current=false;}
+  }
+
+  return <section><div className="cc-section-title"><div><h2>Compose email</h2><p>Choose a customer, personalize the message, then review the exact recipient and content.</p></div><span className="cc-save-status" role="status">{savedAt?`Draft autosaved in this tab · ${savedAt}`:'Drafts stay in this browser tab'}</span></div><div className="cc-editor-layout"><div className="cc-form"><RecordPicker value={record} types={['lead','contact','company']} onChange={record=>change({record,to:record?.email||'',variables:{...variables,name:record?.name||'',email:record?.email||''}})} label="Find email recipient"/>{initialRecord.isError&&<p role="alert">Linked record could not be loaded: {errorText(initialRecord.error)}</p>}<label>Recipient email<input type="email" value={to} disabled={busy||uncertain} onChange={e=>change({to:e.target.value})}/></label><label>Use email template<NativeSelect loading={templates.isFetching} error={templates.isError} defaultValue="" disabled={busy||uncertain} onChange={e=>{const template=templates.data?.items.find(t=>String(t.id)===e.target.value);if(template)change({subject:String(template.subject||''),body:String(template.body_text||richTextPlainText(String(template.body_html||'')))});}}><option value="">Write without a template</option>{templates.data?.items.filter(t=>t.active!==false).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</NativeSelect></label><label>Subject<input maxLength={240} value={subject} disabled={busy||uncertain} onChange={e=>change({subject:e.target.value})}/></label><label>Message<textarea maxLength={50000} rows={8} value={body} disabled={busy||uncertain} onChange={e=>change({body:e.target.value})} onKeyDown={e=>{if(e.key==='/'&&!body){e.preventDefault();document.querySelector<HTMLElement>('.cc-email-quick summary')?.click();}}}/></label><div className="cc-email-quick"><QuickReplies disabled={busy||uncertain} onInsert={text=>change({body:body?body+'\n\n'+text:text})}/></div>{names.map(name=><label key={name}>Template field: {name}<input value={variables[name]||''} disabled={busy||uncertain} onChange={e=>change({variables:{...variables,[name]:e.target.value}})}/></label>)}<p className="cc-help">Document attachments are sent through quotation and invoice delivery actions so the correct document version is used.</p>{reasons.length>0&&<div className="cc-form-warning" id="email-send-reasons"><strong>Before you send</strong><ul>{reasons.map(reason=><li key={reason}>{reason}</li>)}</ul>{blocked&&<Link to="/crm/consents">Review consent records</Link>}</div>}{error&&<p role="alert">{error} Your draft is retained.</p>}{notice&&<p role="status">{notice}</p>}<div className="cc-toolbar"><Button variant="outline" disabled={busy||!record||!to||!subject.trim()||missing.length>0} onClick={()=>void save(true)}>Save server draft</Button><Button disabled={busy||reasons.length>0} aria-describedby={reasons.length?'email-send-reasons':undefined} onClick={()=>setReview(true)}>Review email</Button><Button variant="ghost" disabled={busy} onClick={()=>{sessionStorage.removeItem(key);sessionStorage.removeItem(key+':uncertain');setDraft(blank);setUncertain(false);setReview(false);setError('');setSavedAt('');}}>Clear draft</Button></div>{review&&<div className="cc-review"><h3>Review before sending</h3><p>Customer: {record?.name} · {record?.entity} #{record?.id}</p><p><strong>To:</strong> {to}</p><p><strong>Subject:</strong> {render(subject)}</p><p className="whitespace-pre-wrap">{render(body)}</p><div className="cc-toolbar"><Button disabled={busy||reasons.length>0} onClick={()=>void save()}>Confirm send email</Button><Button variant="outline" onClick={()=>setReview(false)}>Keep editing</Button></div></div>}</div><aside className="cc-editor-aside"><section><h3>Customer context</h3>{record?<><p>{record.name}</p><p>{record.email||'No email on record'}</p><p>{record.phone||'No phone on record'}</p><Link to={`/crm/${record.entity==='company'?'companies':record.entity+'s'}/${record.id}`}>Open CRM record</Link></>:<p>Choose a CRM record to see customer details.</p>}</section><section><h3>Email preview</h3><strong>{render(subject)||'Your subject'}</strong><pre>{render(body)||'Your message preview appears as you type.'}</pre><p className="cc-help">Preview only. Nothing is sent until you confirm.</p></section><section><h3>Delivery guidance</h3><p>Provider acceptance is separate from recipient delivery. Check the recorded result before retrying an uncertain send.</p><Link to="/crm/delivery-logs">Open delivery logs</Link></section></aside></div></section>;
+}

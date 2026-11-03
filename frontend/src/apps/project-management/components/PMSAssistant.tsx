@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -750,7 +751,7 @@ function Assistant() {
               <div className="pms-ai-details">
                 <label>
                   Action
-                  <select
+                  <NativeSelect
                     value={intent.tool}
                     onChange={(e) =>
                       setIntent({ ...intent, tool: e.target.value })
@@ -765,7 +766,7 @@ function Assistant() {
                     ].map((t) => (
                       <option key={t}>{t}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </label>
                 {[
                   "project_id",
@@ -977,7 +978,7 @@ function Assistant() {
               >
                 <Plus size={13} /> Action details <ChevronDown size={12} />
               </button>
-              <select
+              <NativeSelect
                 aria-label="Assistant model provider"
                 value={provider}
                 onChange={(e) => setProvider(e.target.value)}
@@ -986,7 +987,7 @@ function Assistant() {
                 <option value="openai">Configured OpenAI</option>
                 <option value="gemini">Configured Gemini</option>
                 <option value="claude">Configured Claude</option>
-              </select>
+              </NativeSelect>
             </div>
           </footer>
         </section>

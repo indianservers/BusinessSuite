@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import type {CRMApiRecord} from "../api";
@@ -11,7 +12,7 @@ export default function DealPlanningFields({tab, planning, update, amount, curre
     {tab === 0 && <label className="grid gap-1 text-sm sm:col-span-2">Product or service interest<Input value={String(planning.interest || "")} onChange={event => update({...planning, interest: event.target.value})}/></label>}
     {tab === 1 && <>
       {fields("financial", ["one_time_revenue", "recurring_revenue", "estimated_cost", "tax_rate", "contract_months"], "number")}
-      <label className="grid gap-1 text-sm">Billing frequency<select className="rounded-md border bg-background p-2" value={String(section("financial").billing_frequency || "")} onChange={e => patch("financial", "billing_frequency", e.target.value)}><option value="">Choose frequency</option>{["One-time", "Monthly", "Quarterly", "Annual"].map(item => <option key={item}>{item}</option>)}</select></label>
+      <label className="grid gap-1 text-sm">Billing frequency<NativeSelect className="rounded-md border bg-background p-2" value={String(section("financial").billing_frequency || "")} onChange={e => patch("financial", "billing_frequency", e.target.value)}><option value="">Choose frequency</option>{["One-time", "Monthly", "Quarterly", "Annual"].map(item => <option key={item}>{item}</option>)}</NativeSelect></label>
       {fields("financial", ["payment_terms"])}
       <div className="rounded-lg border bg-primary/5 p-3 text-sm"><p>Estimated gross margin: {dealMoney(amount - Number(section("financial").estimated_cost || 0), currency)}</p><p>Tax estimate: {dealMoney(amount * Number(section("financial").tax_rate || 0) / 100, currency)}</p><p className="mt-1 text-xs text-muted-foreground">Deal value is net of line discounts and excludes estimated tax. All values use {currency}; quotation tax calculations remain authoritative for billing.</p></div>
     </>}

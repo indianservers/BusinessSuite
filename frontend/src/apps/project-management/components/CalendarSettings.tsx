@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link } from "react-router-dom";
@@ -92,7 +93,7 @@ export default function CalendarSettings({
         <strong>{label}</strong>
         <small>{description}</small>
       </span>
-      <select
+      <NativeSelect
         aria-label={label}
         value={String(draft[key] ?? "")}
         onChange={(e) =>
@@ -110,7 +111,7 @@ export default function CalendarSettings({
             {n}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   );
   function move(from: number, to: number) {
@@ -400,7 +401,7 @@ export default function CalendarSettings({
                             })
                           }
                         />
-                        <select
+                        <NativeSelect
                           aria-label={`Section filter ${i + 1}`}
                           value={s.filter}
                           onChange={(e) =>
@@ -427,7 +428,7 @@ export default function CalendarSettings({
                           ].map((v) => (
                             <option key={v}>{v}</option>
                           ))}
-                        </select>
+                        </NativeSelect>
                         <button
                           aria-label={`Move ${s.title} up`}
                           onClick={() => move(i, i - 1)}

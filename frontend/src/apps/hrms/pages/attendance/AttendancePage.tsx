@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useHRSession} from "../../workbench/useHRSession";
 import {useSearchParams} from "react-router-dom";
@@ -385,7 +386,7 @@ export default function AttendancePage() {
               <CardDescription>HR can manually enter and bulk save attendance for payroll.</CardDescription>
             </div>
             <div className="grid gap-2 sm:grid-cols-[150px_220px_auto]">
-              <select aria-label="Filter attendance status" value={registerStatus} onChange={e=>setRegisterStatus(e.target.value)} className="rounded border bg-background px-3 py-2 text-sm"><option value="">All attendance statuses</option>{[...REGISTER_STATUSES,"Not marked","On Leave"].map(status=><option key={status}>{status}</option>)}</select>
+              <NativeSelect aria-label="Filter attendance status" value={registerStatus} onChange={e=>setRegisterStatus(e.target.value)} className="rounded border bg-background px-3 py-2 text-sm"><option value="">All attendance statuses</option>{[...REGISTER_STATUSES,"Not marked","On Leave"].map(status=><option key={status}>{status}</option>)}</NativeSelect>
               <Input type="date" value={registerDate} onChange={(event) => setRegisterDate(event.target.value)} />
               <Input value={registerSearch} onChange={(event) => setRegisterSearch(event.target.value)} placeholder="Search employee" />
               <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["attendance-register"] })}>
@@ -416,9 +417,9 @@ export default function AttendancePage() {
 
           <div className="ui-toolbar">
             <label className="sr-only" htmlFor="bulk-attendance-status">Bulk attendance status</label>
-            <select id="bulk-attendance-status" value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <NativeSelect id="bulk-attendance-status" value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
               {REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-            </select>
+            </NativeSelect>
             <Button variant="outline" onClick={applyBulkStatus}>Apply to selected</Button>
             <Button onClick={() => saveRegisterRows(true)} disabled={saveRegisterMutation.isPending || !selectedRegisterIds.length}>
               Save Selected
@@ -456,9 +457,9 @@ export default function AttendancePage() {
                       <td className="text-muted-foreground">{row.branch || "-"}</td>
                       <td>{registerDate}</td>
                       <td>
-                        <select aria-label={`Status for ${row.employee_name}`} value={edit.status} onChange={(event) => updateRegisterRow(row.employee_id, { status: event.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                        <NativeSelect aria-label={`Status for ${row.employee_name}`} value={edit.status} onChange={(event) => updateRegisterRow(row.employee_id, { status: event.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
                           {edit.status === "Not marked" && <option value="Not marked" disabled>Not marked</option>}{REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                        </select>
+                        </NativeSelect>
                       </td>
                       <td>
                         <Input aria-label={`Hours worked for ${row.employee_name}`} className="h-9 w-24" type="number" min="0" step="0.5" value={edit.hours_worked} onChange={(event) => updateRegisterRow(row.employee_id, { hours_worked: event.target.value })} />

@@ -5,6 +5,7 @@ import PMSAssistant from "@/apps/project-management/components/PMSAssistant";
 import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import MobileModuleDock from "./MobileModuleDock";
 import Topbar from "./Topbar";
 import BackToTop from "@/components/app/BackToTop";
 import Breadcrumbs from "@/components/app/Breadcrumbs";
@@ -13,6 +14,7 @@ import SessionTimeoutWarning from "@/components/app/SessionTimeoutWarning";
 import WorkspaceEnhancements from "@/components/app/WorkspaceEnhancements";
 import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
+import "./mobile-workspaces.css";
 
 export default function AppLayout() {
   const location = useLocation();
@@ -35,11 +37,11 @@ export default function AppLayout() {
   }
 
   if (location.pathname === "/pms/tasks" || location.pathname === "/pms/tasks/new" || /^\/pms\/tasks\/\d+\/edit$/.test(location.pathname)) {
-    return <><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /></>;
+    return <div className="mobile-dock-fullscreen mobile-dock-tasks"><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
   if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /></div>;
+    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /><MobileModuleDock /></div>;
   }
 
   return (
@@ -74,10 +76,11 @@ export default function AppLayout() {
       <SessionTimeoutWarning />
       {!isPeopleDirectory && <PMSAssistant />}
 
+      <MobileModuleDock />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}

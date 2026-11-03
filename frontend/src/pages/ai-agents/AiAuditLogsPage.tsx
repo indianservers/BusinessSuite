@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useMemo, useState } from "react";
 import AuditLogTable from "@/components/ai-agents/AuditLogTable";
 import { aiAgentsApi, type AiAuditLog, type AiModule } from "@/services/aiAgentsApi";
@@ -44,9 +45,9 @@ export default function AiAuditLogsPage() {
             {item === "ALL" ? "All modules" : item}
           </button>
         ))}
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-8 rounded-full border bg-background px-3 text-xs">
+        <NativeSelect value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-8 rounded-full border bg-background px-3 text-xs">
           {statuses.map((status) => <option key={status} value={status}>{status === "ALL" ? "All statuses" : status}</option>)}
-        </select>
+        </NativeSelect>
       </div>
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
       {loading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">AI logs loading...</div> : <AuditLogTable logs={visibleLogs} />}

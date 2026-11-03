@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { api } from "@/services/api";
 import { type FieldRecord, fieldPath } from "../components/CustomFields";
@@ -113,15 +114,15 @@ export default function CreateProjectPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="project-status">Status</Label>
-                <select id="project-status" value={status} onChange={(event) => setStatus(event.target.value as ProjectStatus)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <NativeSelect id="project-status" value={status} onChange={(event) => setStatus(event.target.value as ProjectStatus)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   {["Draft", "Planned", "Active", "On Hold", "Completed", "Cancelled", "Archived"].map((item) => <option key={item}>{item}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="project-priority">Priority</Label>
-                <select id="project-priority" value={priority} onChange={(event) => setPriority(event.target.value as ProjectPriority)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <NativeSelect id="project-priority" value={priority} onChange={(event) => setPriority(event.target.value as ProjectPriority)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   {["Low", "Medium", "High", "Critical"].map((item) => <option key={item}>{item}</option>)}
-                </select>
+                </NativeSelect>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">

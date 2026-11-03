@@ -1,3 +1,7 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import MobileFollowUpQueue from "@/components/mobile/MobileFollowUpQueue";
+import { useMobileSessionState } from "@/components/mobile/useMobileSessionState";
+import { MobileFilters } from "@/components/mobile/MobilePrimitives";
 import CompactForm from "@/components/forms/CompactForm";
 import FollowUpGrid from "./FollowUpGrid";
 import { useState } from "react";
@@ -62,10 +66,10 @@ export default function FollowUpsPage() {
         ? "directory"
         : "dashboard";
   const cache = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [assigned, setAssigned] = useState("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useMobileSessionState(`${base}:search`, "");
+  const [status, setStatus] = useMobileSessionState(`${base}:status`, "");
+  const [assigned, setAssigned] = useMobileSessionState(`${base}:assigned`, "");
+  const [page, setPage] = useMobileSessionState(`${base}:page`, 1);
   const [creating, setCreating] = useState(
     new URLSearchParams(location.search).has("new"),
   );
@@ -299,7 +303,7 @@ export default function FollowUpsPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs">
               Customer
-              <select
+              <NativeSelect loading={options.isFetching} error={options.isError}
                 required
                 className="block w-full rounded border bg-background p-2"
                 value={customer}
@@ -311,7 +315,7 @@ export default function FollowUpsPage() {
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-xs">
               Purpose / next action
@@ -327,7 +331,7 @@ export default function FollowUpsPage() {
               Link a lead, contact, deal or quotation
             </summary>
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
-              <select
+              <NativeSelect
                 aria-label="Linked record type"
                 className="rounded border bg-background p-2"
                 value={sourceType}
@@ -339,14 +343,14 @@ export default function FollowUpsPage() {
                 {["leads", "contacts", "deals", "quotations"].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
-              </select>
+              </NativeSelect>
               <Input
                 aria-label="Search linked record"
                 placeholder="Search permitted records"
                 value={sourceSearch}
                 onChange={(e) => setSourceSearch(e.target.value)}
               />
-              <select
+              <NativeSelect loading={linkedOptions.isFetching} error={linkedOptions.isError}
                 aria-label="Linked record"
                 className="rounded border bg-background p-2"
                 value={sourceId}
@@ -358,7 +362,7 @@ export default function FollowUpsPage() {
                     {r.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           </details>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -368,7 +372,7 @@ export default function FollowUpsPage() {
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
             />
-            <select
+            <NativeSelect loading={products.isFetching} error={products.isError}
               aria-label="Linked product or service"
               className="rounded border bg-background p-2 text-sm"
               value={productId}
@@ -392,7 +396,7 @@ export default function FollowUpsPage() {
                   </option>
                 ),
               )}
-            </select>
+            </NativeSelect>
           </div>
           <ScheduleFields
             value={schedule}
@@ -594,6 +598,7 @@ export default function FollowUpsPage() {
           ))}
         </section>
       )}
+      {view === "dashboard" && <MobileFollowUpQueue base={base}/>}
       {view === "dashboard" && (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -634,6 +639,7 @@ export default function FollowUpsPage() {
       {view !== "detail" && (
         <>
           {view !== "directory" && (
+            <MobileFilters chips={[search,status,assigned&&`Employee ${assigned}`].filter(Boolean)} onClear={()=>{setSearch("");setStatus("");setAssigned("");setPage(1);}}>
             <div className="flex flex-wrap gap-2 rounded-xl border bg-card p-3">
               <Input
                 className="max-w-xs"
@@ -645,7 +651,7 @@ export default function FollowUpsPage() {
                   setPage(1);
                 }}
               />
-              <select
+              <NativeSelect
                 className="rounded border bg-background px-2 text-sm"
                 aria-label="Follow-up status"
                 value={status}
@@ -666,8 +672,8 @@ export default function FollowUpsPage() {
                 ].map((s) => (
                   <option key={s}>{s}</option>
                 ))}
-              </select>
-              <select
+              </NativeSelect>
+              <NativeSelect loading={options.isFetching} error={options.isError}
                 className="rounded border bg-background px-2 text-sm"
                 aria-label="Employee filter"
                 value={assigned}
@@ -682,8 +688,8 @@ export default function FollowUpsPage() {
                     {u.name}
                   </option>
                 ))}
-              </select>
-              <select
+              </NativeSelect>
+              <NativeSelect
                 aria-label="Sort by"
                 className="rounded border bg-background px-2 text-sm"
                 value={sort}
@@ -700,8 +706,8 @@ export default function FollowUpsPage() {
                     {s.replace(/_/g, " ")}
                   </option>
                 ))}
-              </select>
-              <select
+              </NativeSelect>
+              <NativeSelect
                 aria-label="Group by"
                 className="rounded border bg-background px-2 text-sm"
                 value={group}
@@ -710,7 +716,7 @@ export default function FollowUpsPage() {
                 <option value="">No grouping</option>
                 <option value="status">Group by status</option>
                 <option value="assigned_to">Group by employee</option>
-              </select>
+              </NativeSelect>
               <Button variant="outline" onClick={exportRows}>
                 <Download className="mr-2 h-4 w-4" />
                 Export page
@@ -744,11 +750,12 @@ export default function FollowUpsPage() {
                 Restore view
               </Button>
             </div>
+            </MobileFilters>
           )}
           {selected.length > 0 && (
             <div className="flex gap-2">
               <span>{selected.length} selected</span>
-              <select
+              <NativeSelect loading={options.isFetching} error={options.isError}
                 aria-label="Bulk assign employee"
                 className="rounded border bg-background"
                 defaultValue=""
@@ -770,7 +777,7 @@ export default function FollowUpsPage() {
                     {u.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           )}
           {view === "calendar" && (

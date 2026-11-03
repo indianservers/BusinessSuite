@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -257,7 +258,7 @@ export default function TimesheetsPage() {
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label>Project</Label>
-                  <select
+                  <NativeSelect
                     value={sheetForm.project_id}
                     onChange={(e) => setSheetForm({ ...sheetForm, project_id: e.target.value })}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -266,7 +267,7 @@ export default function TimesheetsPage() {
                     {(projects as Project[]).map((project) => (
                       <option key={project.id} value={project.id}>{project.code} - {project.name}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">

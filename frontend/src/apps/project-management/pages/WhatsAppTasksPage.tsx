@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -302,7 +303,7 @@ export default function WhatsAppTasksPage() {
           >
             All
           </button>
-          <select
+          <NativeSelect loading={query.isFetching} error={query.isError}
             aria-label="Filter status"
             value={status}
             onChange={(e) => {
@@ -314,7 +315,7 @@ export default function WhatsAppTasksPage() {
             {query.data?.filters.statuses.map((s) => (
               <option key={s}>{s}</option>
             ))}
-          </select>
+          </NativeSelect>
           {view === "starred" && <small>Starred on this browser</small>}
         </div>
         <div className="wa-task-scroll">
@@ -920,7 +921,7 @@ function Conversation({
             </div>
           )}
           <div className="wa-composer-tools">
-            <select
+            <NativeSelect
               aria-label="Message type"
               value={kind}
               onChange={(e) => {
@@ -932,7 +933,7 @@ function Conversation({
               <option value="update">Progress update</option>
               <option value="followup">Follow-up</option>
               <option value="blocker">Blocker</option>
-            </select>
+            </NativeSelect>
             {kind !== "discussion" && (
               <>
                 <input
@@ -1065,7 +1066,7 @@ function Conversation({
                 <div className="wa-detail-grid">
                   <label>
                     Status
-                    <select
+                    <NativeSelect
                       aria-label="Task status"
                       disabled={busy || !canPost || data.source_managed}
                       value={task.status}
@@ -1092,7 +1093,7 @@ function Conversation({
                       ].map((s) => (
                         <option key={s}>{s}</option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </label>
                   <label>
                     Priority

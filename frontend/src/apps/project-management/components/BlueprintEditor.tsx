@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -41,7 +42,7 @@ export default function BlueprintEditor({ initial, saved, projects, busy, canEdi
       <CompactForm className="mt-5 space-y-5" onSubmit={event => { event.preventDefault(); setAttempted(true); if (!invalid) onUse(clean()); }}>
         <fieldset disabled={busy || !canEdit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Blueprint name<Input required maxLength={120} aria-label="Blueprint name" value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} /></label>
-            <label className="text-sm font-medium">Destination project<select required aria-label="Blueprint destination project" disabled={saved} className="mt-1 min-h-11 w-full rounded-md border bg-background px-3 text-sm" value={draft.project_id || ""} onChange={event => setDraft({ ...draft, project_id: Number(event.target.value) })}><option value="" disabled>Choose a project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label></div>
+            <label className="text-sm font-medium">Destination project<NativeSelect required aria-label="Blueprint destination project" disabled={saved} className="mt-1 min-h-11 w-full rounded-md border bg-background px-3 text-sm" value={draft.project_id || ""} onChange={event => setDraft({ ...draft, project_id: Number(event.target.value) })}><option value="" disabled>Choose a project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</NativeSelect></label></div>
           {!projects.length && <p className="text-sm text-muted-foreground">Create a project in this workspace before saving or using a blueprint.</p>}
           <label className="block text-sm font-medium">Instructions and definition of done<RichTextField aria-label="Blueprint instructions" maxLength={4000} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} /></label>
           <div className="flex items-center justify-between gap-2"><h3 className="font-semibold">Task checklist</h3><span className="text-sm text-muted-foreground">{draft.task_titles.length} / 20 tasks</span></div>

@@ -96,21 +96,22 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex min-w-0 flex-1"><GlobalSearch compact /></div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <BranchSwitcher />
-        <Link to="/settings" className="rounded-md border px-3 py-2 text-sm font-medium" aria-label="Main settings">Settings</Link>
-        <span className="hidden sm:contents">{location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}<RefreshPagesCatalog /></span>
+        <div className="hidden xl:block"><BranchSwitcher /></div>
+        <Link to="/settings" className="hidden rounded-md border px-3 py-2 text-sm font-medium lg:inline-flex" aria-label="Main settings">Settings</Link>
+        <span className="hidden lg:contents">{location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}<RefreshPagesCatalog /></span>
         <ModuleNewMenu />
-        <Button className="hidden xl:inline-flex" variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span>AI operator</span></Button>
-        <div className="hidden max-w-48 truncate rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground xl:block">
+        <Button className="hidden 2xl:inline-flex" variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span>AI operator</span></Button>
+        <div className="hidden max-w-48 truncate rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground min-[1800px]:block">
           {BUSINESS_SUITE_DISPLAY_NAME} / {getProductDisplayName(product)}
         </div>
         <SuiteNotificationBell />
-        <span className="hidden xl:contents"><KeyboardShortcuts /><DensityControl /></span>
+        <span className="hidden min-[1800px]:contents"><KeyboardShortcuts /><DensityControl /></span>
 
         {/* Theme toggle */}
         <Button
           variant="ghost"
           size="icon"
+          className="hidden lg:inline-flex"
           onClick={toggleTheme}
           aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
           title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
@@ -123,17 +124,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </Button>
 
         <Dialog.Root open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        {!location.pathname.startsWith("/pms") && <Button className="hidden sm:inline-flex" variant="ghost" size="sm" onClick={() => void handleLogout()}><LogOut className="h-4 w-4" /><span>Logout</span></Button>}
+        {!location.pathname.startsWith("/pms") && <Button className="hidden min-[1800px]:inline-flex" variant="ghost" size="sm" onClick={() => void handleLogout()}><LogOut className="h-4 w-4" /><span>Logout</span></Button>}
         {location.pathname.startsWith("/pms") ? <PMSProfileMenu onChangePassword={() => setPasswordDialogOpen(true)} /> : <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button aria-label="Account menu" className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 {initials}
               </div>
-              <span className="hidden max-w-32 truncate text-sm font-medium md:block">
+              <span className="hidden max-w-32 truncate text-sm font-medium 2xl:block">
                 {user?.email?.split("@")[0]}
               </span>
-              <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground xl:block">
+              <span className="hidden rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground min-[1800px]:block">
                 {roleLabel}
               </span>
             </button>
@@ -156,6 +157,10 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               <DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent" onSelect={() => setPasswordDialogOpen(true)}>
                 <KeyRound className="h-4 w-4" />
                 Change Password
+              </DropdownMenu.Item>
+              <DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent" onSelect={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === "dark" ? "Use light theme" : "Use dark theme"}
               </DropdownMenu.Item>
               <DropdownMenu.Separator className="my-1 h-px bg-border" />
               <DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-red-600 outline-none hover:bg-red-50" onSelect={handleLogout}>
@@ -215,6 +220,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </Dialog.Portal>
         </Dialog.Root>
       </div>
+      <div className="mobile-module-branch-row flex w-full items-center justify-between gap-2 xl:hidden"><BranchSwitcher /><Link to="/settings" className="shrink-0 rounded-md border px-3 py-2 text-xs">Settings</Link></div>
     </header>
   );
 }

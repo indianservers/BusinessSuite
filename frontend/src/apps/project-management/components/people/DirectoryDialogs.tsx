@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -224,7 +225,7 @@ export function TeamEditor({
           <div className="pd-form-grid">
             <label>
               Workspace
-              <select
+              <NativeSelect
                 required
                 disabled={!!teamId}
                 value={wid || ""}
@@ -243,7 +244,7 @@ export function TeamEditor({
                       {w.name}
                     </option>
                   ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Team name
@@ -278,14 +279,14 @@ export function TeamEditor({
             </label>
             <label>
               Visibility
-              <select
+              <NativeSelect
                 aria-label="Team visibility"
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value)}
               >
                 <option value="workspace">Workspace</option>
                 <option value="members">Members and administrators</option>
-              </select>
+              </NativeSelect>
             </label>
           </div>
           <label>
@@ -372,7 +373,7 @@ export function TeamEditor({
           />
           <label>
             Team lead
-            <select
+            <NativeSelect
               aria-label="Team lead"
               value={lead}
               onChange={(e) => setLead(e.target.value)}
@@ -386,7 +387,7 @@ export function TeamEditor({
                   {known[id]?.name || `Member #${id}`}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <div className="pd-dialog-actions">
             <button type="button" className="pd-button" onClick={onClose}>

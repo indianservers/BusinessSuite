@@ -1,3 +1,5 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { useMobile } from "@/components/mobile/useMobile";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -103,6 +105,7 @@ interface UserOption {
 
 export default function LeavePage() {
   usePageTitle("Leave");
+  const mobile=useMobile();
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
@@ -227,6 +230,7 @@ export default function LeavePage() {
       leaveApi.approve(id, { status, review_remarks: remarks }),
     onSuccess: (_, { status }) => {
       toast({ title: `Leave ${status.toLowerCase()}` });
+      void qc.invalidateQueries({queryKey:["mobile-action-badges"]});
       setReviewRemarks({});
       qc.invalidateQueries({ queryKey: ["leave-balance"] });
       qc.invalidateQueries({ queryKey: ["my-leave-requests"] });
@@ -444,7 +448,7 @@ export default function LeavePage() {
             <CompactForm onSubmit={handleSubmit((data) => applyMutation.mutate(data))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Leave Type *</Label>
-                <select
+                <NativeSelect
                   {...register("leave_type_id", { required: "Required" })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
@@ -452,19 +456,19 @@ export default function LeavePage() {
                   {applyLeaveTypes.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
-                </select>
+                </NativeSelect>
                 {errors.leave_type_id && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.leave_type_id.message}/></div>}
               </div>
 
               <div className="space-y-1.5">
                 <Label>Mode</Label>
-                <select
+                <NativeSelect
                   {...register("leave_mode")}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="Full-day">Full Day</option>
                   <option value="Half-day">Half Day</option>
-                </select>
+                </NativeSelect>
               </div>
 
               <div className="space-y-1.5">
@@ -479,7 +483,7 @@ export default function LeavePage() {
                 {errors.to_date && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.to_date.message}/></div>}
               </div>
 
-              <div className="rounded border bg-muted/30 p-3 text-sm sm:col-span-2" role="status"><p>Estimated request: {requestedDays} day(s) · Available: {selectedBalance?Number(selectedBalance.available).toFixed(1):"Select leave type"} · Estimated balance after request: {selectedBalance?(Number(selectedBalance.available)-requestedDays).toFixed(1):"—"}</p><p className="mt-1 text-xs">Current leave policy counts all calendar days in the inclusive date range, including weekends and holidays. Half-day requests count as 0.5 day. The server validates overlap and available balance before saving.</p></div>
+              <div className={`rounded border bg-muted/30 p-3 text-sm sm:col-span-2 ${mobile ? "mobile-leave-balance" : ""}`} role="status"><p>Estimated request: {requestedDays} day(s) · Available: {selectedBalance?Number(selectedBalance.available).toFixed(1):"Select leave type"} · Estimated balance after request: {selectedBalance?(Number(selectedBalance.available)-requestedDays).toFixed(1):"—"}</p><p className="mt-1 text-xs">Current leave policy counts all calendar days in the inclusive date range, including weekends and holidays. Half-day requests count as 0.5 day. The server validates overlap and available balance before saving.</p></div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Reason *</Label>
                 <textarea
@@ -512,7 +516,7 @@ export default function LeavePage() {
           <CardContent className="space-y-4">
             <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
               <Input value={accountEmployeeSearch} onChange={(event) => setAccountEmployeeSearch(event.target.value)} placeholder="Search employee code or name" />
-              <select value={accountEmployeeId} onChange={(event) => {
+              <NativeSelect value={accountEmployeeId} onChange={(event) => {
                 const employeeId = event.target.value;
                 setAccountEmployeeId(employeeId);
                 const employee = employees.find((item) => String(item.id) === employeeId);
@@ -524,7 +528,7 @@ export default function LeavePage() {
                     {employee.employee_id} - {employee.first_name} {employee.last_name} {employee.user_id ? "(linked)" : ""}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["leave-account-employees"] })}>
                 Refresh Employees
               </Button>
@@ -532,14 +536,14 @@ export default function LeavePage() {
 
             <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
               <Input value={accountUserSearch} onChange={(event) => setAccountUserSearch(event.target.value)} placeholder="Search existing user email" />
-              <select value={accountUserId} onChange={(event) => setAccountUserId(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <NativeSelect value={accountUserId} onChange={(event) => setAccountUserId(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
                 <option value="">Select unlinked user</option>
                 {(userOptions || []).map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.email} {user.employee_code ? `(${user.employee_code})` : ""}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               <Button disabled={!accountEmployeeId || !accountUserId || linkEmployeeUserMutation.isPending} onClick={() => linkEmployeeUserMutation.mutate()}>
                 Link Existing User
               </Button>
@@ -571,7 +575,7 @@ export default function LeavePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_1.4fr_auto]">
-            <select
+            <NativeSelect
               value={encashLeaveTypeId}
               onChange={(event) => setEncashLeaveTypeId(event.target.value)}
               className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -580,7 +584,7 @@ export default function LeavePage() {
               {leaveTypes?.map((type) => (
                 <option key={type.id} value={type.id}>{type.name}</option>
               ))}
-            </select>
+            </NativeSelect>
             <Input value={encashDays} onChange={(event) => setEncashDays(event.target.value)} placeholder="Days" type="number" min="0" step="0.5" />
             <Input value={encashRemarks} onChange={(event) => setEncashRemarks(event.target.value)} placeholder="Remarks" />
             <Button
@@ -766,7 +770,7 @@ export default function LeavePage() {
                 <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => moveMonth(1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <select
+                <NativeSelect
                   value={calendarScope}
                   onChange={(event) => setCalendarScope(event.target.value as "mine" | "team" | "all")}
                   className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
@@ -774,7 +778,7 @@ export default function LeavePage() {
                   <option value="mine">My leave</option>
                   {canApproveLeave && <option value="team">Team leave</option>}
                   {["admin", "hr"].includes(roleKey) && <option value="all">All employees</option>}
-                </select>
+                </NativeSelect>
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => qc.invalidateQueries({ queryKey: ["leave-calendar"] })}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -853,7 +857,7 @@ export default function LeavePage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {mobile ? <div className="p-3">{pendingApprovals.length ? pendingApprovals.map(r=><article key={r.id} className="mobile-approval-card"><header><strong>{r.employee ? `${r.employee.first_name} ${r.employee.last_name}` : `Employee #${r.employee_id}`}</strong><span>{r.days_count} day(s)</span></header><p>{r.leave_type?.name} · {formatDate(r.from_date)} – {formatDate(r.to_date)}</p><p>{r.reason || "No reason provided"}</p><label className="text-sm">Review reason<textarea className="block w-full rounded-lg border p-2 bg-background" value={reviewRemarks[r.id]||""} onChange={e=>setReviewRemarks(v=>({...v,[r.id]:e.target.value}))}/></label><footer><Button disabled={approveMutation.isPending} onClick={()=>submitDecision(r.id,"Approved")}>Approve</Button><Button variant="outline" disabled={approveMutation.isPending} onClick={()=>submitDecision(r.id,"Rejected")}>Reject</Button></footer></article>):<p>No pending approvals</p>}</div> : <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
@@ -929,7 +933,7 @@ export default function LeavePage() {
                   )}
                 </tbody>
               </table>
-            </div>
+            </div>}
           </CardContent>
         </Card>
       )}

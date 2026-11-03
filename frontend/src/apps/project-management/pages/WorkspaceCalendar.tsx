@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CalendarTaskChip from "../components/CalendarTaskChip";
 import { useState } from "react";
 import {
@@ -311,7 +312,7 @@ export default function WorkspaceCalendar({
           value={anchor}
           onChange={(e) => e.target.value && setAnchor(e.target.value)}
         />
-        <select
+        <NativeSelect
           aria-label="Calendar view"
           value={mode}
           onChange={(e) => setMode(e.target.value)}
@@ -321,7 +322,7 @@ export default function WorkspaceCalendar({
               {v[0].toUpperCase() + v.slice(1)}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <button aria-expanded={sidebar} onClick={() => setSidebar(!sidebar)}>
           Task list
         </button>
@@ -336,7 +337,7 @@ export default function WorkspaceCalendar({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select
+        <NativeSelect
           aria-label="Calendar project"
           value={project}
           onChange={(e) => setProject(e.target.value)}
@@ -347,8 +348,8 @@ export default function WorkspaceCalendar({
               {p.name}
             </option>
           ))}
-        </select>
-        <select
+        </NativeSelect>
+        <NativeSelect
           aria-label="Calendar assignee"
           value={assignee}
           onChange={(e) => setAssignee(e.target.value)}
@@ -360,8 +361,8 @@ export default function WorkspaceCalendar({
               {personName(m.email)}
             </option>
           ))}
-        </select>
-        <select
+        </NativeSelect>
+        <NativeSelect
           aria-label="Calendar status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -372,8 +373,8 @@ export default function WorkspaceCalendar({
             .map((s) => (
               <option key={s}>{s}</option>
             ))}
-        </select>
-        <select
+        </NativeSelect>
+        <NativeSelect
           aria-label="Calendar priority"
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
@@ -384,7 +385,7 @@ export default function WorkspaceCalendar({
             .map((s) => (
               <option key={s}>{s}</option>
             ))}
-        </select>
+        </NativeSelect>
         <button
           onClick={() => {
             setProject("");
@@ -419,7 +420,7 @@ export default function WorkspaceCalendar({
           ))}
           <label>
             Color by
-            <select
+            <NativeSelect
               aria-label="Color tasks by"
               value={prefs.color}
               onChange={(e) => preference("color", e.target.value)}
@@ -427,7 +428,7 @@ export default function WorkspaceCalendar({
               <option value="project">Project</option>
               <option value="status">Status</option>
               <option value="priority">Priority</option>
-            </select>
+            </NativeSelect>
           </label>
           <button onClick={() => exportFile("csv")}>Export CSV</button>
           <button onClick={() => exportFile("ics")}>Export iCalendar</button>

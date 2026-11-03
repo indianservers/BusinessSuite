@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -176,7 +177,7 @@ function LeadCard({
         )}
       </div>
       {canMove && (
-        <select
+        <NativeSelect
           aria-label={`Move ${lead.full_name}`}
           value=""
           disabled={busy}
@@ -188,7 +189,7 @@ function LeadCard({
               {o.title}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       )}
     </article>
   );
@@ -278,7 +279,7 @@ export function LeadWorkflowBoard({
       <div className="lm-board-toolbar">
         <label>
           Group board by{" "}
-          <select
+          <NativeSelect
             aria-label="Group board by"
             value={mode}
             onChange={(e) => setMode(e.target.value)}
@@ -286,7 +287,7 @@ export function LeadWorkflowBoard({
             <option value="stage">Current status</option>
             <option value="owner">Team member</option>
             <option value="follow">Follow-up date</option>
-          </select>
+          </NativeSelect>
         </label>
         <p>
           {canMove
@@ -485,7 +486,7 @@ export function FollowUpDialog({
           {!!activityId&&<label className="lm-work-field">Reason for rescheduling<input required minLength={3} value={rescheduleReason} onChange={e=>setRescheduleReason(e.target.value)}/></label>}
           <label className="lm-work-field">
             Follow-up action
-            <select
+            <NativeSelect
               aria-label="Follow-up action"
               value={activityId}
               onChange={(e) => {
@@ -522,7 +523,7 @@ export function FollowUpDialog({
                     Reschedule: {a.subject}
                   </option>
                 ))}
-            </select>
+            </NativeSelect>
           </label>
           <label className="lm-work-field">
             Next step
@@ -564,7 +565,7 @@ export function FollowUpDialog({
           </label>
           <label className="lm-work-field">
             Type
-            <select
+            <NativeSelect
               aria-label="Follow-up type"
               value={type}
               onChange={(e) => setType(e.target.value)}
@@ -572,11 +573,11 @@ export function FollowUpDialog({
               {["call", "email", "meeting", "task"].map((t) => (
                 <option key={t}>{t}</option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <label className="lm-work-field">
             Responsible teammate
-            <select
+            <NativeSelect
               aria-label="Follow-up assignee"
               value={owner}
               disabled={!canAssign}
@@ -587,7 +588,7 @@ export function FollowUpDialog({
                   {o.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <p className="lm-help">
             Times use your device timezone. Scheduling creates a CRM task;

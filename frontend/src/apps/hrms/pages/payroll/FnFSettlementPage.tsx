@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useSearchParams,Link} from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
@@ -195,18 +196,18 @@ export default function FnFSettlementPage() {
             <CardContent className="space-y-3">
               <div className="space-y-2">
                 <Label>Employee</Label>
-                <select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect loading={employees.isFetching} error={employees.isError} value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select employee</option>
                   {employees.data?.map((employee: any) => (
                     <option key={employee.id} value={employee.id}>
                       {employee.first_name} {employee.last_name} {employee.employee_id ? `(${employee.employee_id})` : ""}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label>Exit record</Label>
-                <select value={exitId} onChange={(event) => setExitId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect loading={exits.isFetching} error={exits.isError} value={exitId} onChange={(event) => setExitId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Use employee's current exit or create one</option>
                   {exits.data
                     ?.filter((record: any) => !employeeId || Number(record.employee_id) === Number(employeeId))
@@ -215,7 +216,7 @@ export default function FnFSettlementPage() {
                         Exit #{record.id} - LWD {formatDate(record.last_working_date)}
                       </option>
                     ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label>Last working date</Label>
@@ -351,10 +352,10 @@ export default function FnFSettlementPage() {
                         {components.map((component, index) => (
                           <tr {...recordPreviewProps(component)} key={`${component.id ?? "new"}-${index}`} className="border-t">
                             <td className="px-3 py-2">
-                              <select value={component.component_type} onChange={(event) => updateComponent(index, { component_type: event.target.value as FnFComponent["component_type"] })} className="h-9 rounded-md border bg-background px-2">
+                              <NativeSelect value={component.component_type} onChange={(event) => updateComponent(index, { component_type: event.target.value as FnFComponent["component_type"] })} className="h-9 rounded-md border bg-background px-2">
                                 <option value="earning">Earning</option>
                                 <option value="deduction">Deduction</option>
-                              </select>
+                              </NativeSelect>
                             </td>
                             <td className="px-3 py-2"><Input value={component.name} onChange={(event) => updateComponent(index, { name: event.target.value })} /></td>
                             <td className="px-3 py-2"><Input value={component.source_module ?? ""} onChange={(event) => updateComponent(index, { source_module: event.target.value })} /></td>

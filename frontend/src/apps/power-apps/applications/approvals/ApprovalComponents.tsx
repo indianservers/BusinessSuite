@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
@@ -56,7 +57,7 @@ export function ApproverPicker({
   return (
     <label>
       {label}
-      <select
+      <NativeSelect
         multiple
         value={value.map(String)}
         onChange={(e) =>
@@ -70,7 +71,7 @@ export function ApproverPicker({
             {p.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <small>Choose independent eligible company identities.</small>
     </label>
   );
@@ -197,7 +198,7 @@ export function ApprovalInbox({
       <div className="ap-actions" style={{ marginBottom: 12 }}>
         <label>
           Sort requests
-          <select
+          <NativeSelect
             aria-label="Sort requests"
             value={sort}
             onChange={(e) => {
@@ -208,11 +209,11 @@ export function ApprovalInbox({
             <option value="created">Newest first</option>
             <option value="due">Due date</option>
             <option value="priority">Priority</option>
-          </select>
+          </NativeSelect>
         </label>
         <label>
           Priority
-          <select
+          <NativeSelect
             aria-label="Filter priority"
             value={priority}
             onChange={(e) => {
@@ -224,7 +225,7 @@ export function ApprovalInbox({
             {["Low", "Normal", "High", "Urgent"].map((p) => (
               <option key={p}>{p}</option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       </div>
       <div className="ap-search">
@@ -752,7 +753,7 @@ export function ApprovalForm({
       )}
       <label>
         Approval process
-        <select
+        <NativeSelect
           required
           value={policyId}
           onChange={(e) => {
@@ -768,7 +769,7 @@ export function ApprovalForm({
                 {p.name}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         Title
@@ -791,7 +792,7 @@ export function ApprovalForm({
           {f.label}
           {f.required ? " *" : ""}
           {f.kind === "select" ? (
-            <select
+            <NativeSelect
               required={f.required}
               value={String(fields[f.key] ?? "")}
               onChange={(e) =>
@@ -802,7 +803,7 @@ export function ApprovalForm({
               {f.options?.map((o) => (
                 <option key={o}>{o}</option>
               ))}
-            </select>
+            </NativeSelect>
           ) : (
             <input
               required={f.required}

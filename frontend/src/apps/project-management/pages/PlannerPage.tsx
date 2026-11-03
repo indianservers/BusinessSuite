@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -1112,7 +1113,7 @@ export default function PlannerPage() {
           <div className="planner-filters">
             <label>
               Project
-              <select
+              <NativeSelect
                 aria-label="Planner project"
                 value={project}
                 onChange={(e) => change("project", e.target.value)}
@@ -1123,11 +1124,11 @@ export default function PlannerPage() {
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Assignee
-              <select
+              <NativeSelect
                 aria-label="Planner assignee"
                 value={assignee}
                 onChange={(e) => change("person", e.target.value)}
@@ -1138,11 +1139,11 @@ export default function PlannerPage() {
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Item type
-              <select
+              <NativeSelect
                 aria-label="Planner item type"
                 value={itemType}
                 onChange={(e) => setItemType(e.target.value)}
@@ -1152,7 +1153,7 @@ export default function PlannerPage() {
                 <option value="milestone">Milestones</option>
                 <option value="project">Project deadlines</option>
                 <option value="event">Events / focus</option>
-              </select>
+              </NativeSelect>
             </label>
             <label className="planner-checkbox">
               <input

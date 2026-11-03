@@ -1,3 +1,5 @@
+import HomepageBannerSettings from "./settings/HomepageBannerSettings";
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import CentralSettingsEditor, { centralEditorKeys } from "./settings/CentralSettingsEditor";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -20,6 +22,8 @@ const masterKeys = new Set(["departments", "designations", "shifts", "holidays",
 const errorMessage = (e: any) => typeof e?.response?.data?.detail === "string" ? e.response.data.detail : "Could not load settings. Please try again.";
 
 export function SettingsHomeEntry() {
+  const { isAuthenticated, isHydrated } = useAuthStore();
+  if (!isHydrated || !isAuthenticated) return null;
   return <Link to="/settings" className="settings-home-entry"><span><Settings size={24}/></span><div><strong>Settings</strong><small>Company details, branches, users and permissions</small></div><ArrowRight size={20}/></Link>;
 }
 
@@ -51,7 +55,7 @@ export default function SettingsHubPage() {
       </>}
       {section && option && selected.isPending && <p role="status">Checking access…</p>}
       {section && option && selected.isSuccess && <>
-        {["company-profile","business-defaults"].includes(section) ? <CompanyProfile key={`${catalog.data?.companyId}-${section}`} defaultsOnly={section==="business-defaults"}/> : section==="branches" ? <Suspense fallback={<p role="status">Loading branches�</p>}><BranchSettings/></Suspense> : section==="users" ? <Suspense fallback={<p role="status">Loading users�</p>}><UsersAccess embedded/></Suspense> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : centralEditorKeys.has(section) ? <CentralSettingsEditor key={section} section={section}/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></section>}
+        {section === "appearance" ? <HomepageBannerSettings key={String(company)}/> : ["company-profile","business-defaults"].includes(section) ? <CompanyProfile key={`${catalog.data?.companyId}-${section}`} defaultsOnly={section==="business-defaults"}/> : section==="branches" ? <Suspense fallback={<p role="status">Loading branches�</p>}><BranchSettings/></Suspense> : section==="users" ? <Suspense fallback={<p role="status">Loading users�</p>}><UsersAccess embedded/></Suspense> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : centralEditorKeys.has(section) ? <CentralSettingsEditor key={section} section={section}/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></section>}
       </>}
     </main>
   </div>;
@@ -81,5 +85,5 @@ function AccountSettings() {
 
 function Preferences() {
   const {theme,setTheme,density,setDensity}=useThemeStore();
-  return <section className="settings-panel"><h2>Appearance</h2><p>Your display preferences apply across the apps on this browser.</p><div className="settings-form-grid"><label>Theme<select value={theme} onChange={e=>setTheme(e.target.value as "light"|"dark"|"system")}><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></label><label>Display density<select value={density} onChange={e=>setDensity(e.target.value as "comfortable"|"compact")}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label></div></section>;
+  return <section className="settings-panel"><h2>Appearance</h2><p>Your display preferences apply across the apps on this browser.</p><div className="settings-form-grid"><label>Theme<NativeSelect value={theme} onChange={e=>setTheme(e.target.value as "light"|"dark"|"system")}><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></NativeSelect></label><label>Display density<NativeSelect value={density} onChange={e=>setDensity(e.target.value as "comfortable"|"compact")}><option value="comfortable">Comfortable</option><option value="compact">Compact</option></NativeSelect></label></div></section>;
 }

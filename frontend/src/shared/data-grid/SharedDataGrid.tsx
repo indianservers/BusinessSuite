@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
   useCallback,
@@ -191,7 +192,7 @@ export function GroupingPanel({
       {!query.grouping.length && (
         <small>Drag a column here to group the full dataset</small>
       )}
-      <select
+      <NativeSelect
         aria-label="Add grouping column"
         value=""
         onChange={(e) => {
@@ -217,7 +218,7 @@ export function GroupingPanel({
               {c.title}
             </option>
           ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 }
@@ -1230,13 +1231,13 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       return (
         <div className="udg-cell-editor">
           {definition.editor === "select" ? (
-            <select {...editorProps}>
+            <NativeSelect {...editorProps}>
               {definition.options?.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           ) : (
             <input {...editorProps} type={definition.editor || "text"} />
           )}
@@ -1717,7 +1718,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                               </span>
                               <b>{node.group.count.toLocaleString()}</b>
                             </button>
-                            <select
+                            <NativeSelect
                               aria-label={`Aggregation for ${node.group.label}`}
                               value={layout.summary}
                               onChange={(e) =>
@@ -1733,7 +1734,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                                   <option key={key}>{key}</option>
                                 ),
                               )}
-                            </select>
+                            </NativeSelect>
                             {node.group.aggregates.map((a) => (
                               <span
                                 className="udg-group-total"
@@ -2006,7 +2007,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       <footer className="udg-pagination">
         <label>
           Rows per page
-          <select
+          <NativeSelect
             aria-label="Rows per page"
             value={query.pageSize}
             onChange={(e) =>
@@ -2020,7 +2021,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
             {[25, 50, 100, 200].map((size) => (
               <option key={size}>{size}</option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <span>
           {query.grouping.length ? "Group page" : "Page"} {query.page} of{" "}

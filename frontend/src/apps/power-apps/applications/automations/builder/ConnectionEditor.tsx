@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import type { NodeDefinition, WorkflowEdge, WorkflowGraph } from "./types";
 import { connectionError, nodeDefinition } from "./graph";
@@ -42,7 +43,7 @@ export function ConnectionEditor({
         <div key={side}>
           <label className="as-basic-field">
             {side === "source" ? "Connection source" : "Connection target"}
-            <select
+            <NativeSelect
               aria-label={`Connection ${side}`}
               disabled={readOnly}
               value={draft[side]}
@@ -69,11 +70,11 @@ export function ConnectionEditor({
                     {n.label}
                   </option>
                 ))}
-            </select>
+            </NativeSelect>
           </label>
           <label className="as-basic-field">
             {side} port
-            <select
+            <NativeSelect
               aria-label={`Connection ${side} port`}
               disabled={readOnly}
               value={draft[`${side}_port`]}
@@ -88,13 +89,13 @@ export function ConnectionEditor({
                   </option>
                 ),
               )}
-            </select>
+            </NativeSelect>
           </label>
         </div>
       ))}
       <label className="as-basic-field">
         Connection style
-        <select
+        <NativeSelect
           aria-label="Connection style"
           disabled={readOnly}
           value={draft.style || "bezier"}
@@ -107,7 +108,7 @@ export function ConnectionEditor({
         >
           <option value="bezier">Smooth Bezier</option>
           <option value="orthogonal">Orthogonal</option>
-        </select>
+        </NativeSelect>
       </label>
       {error && (
         <p role="alert" className="as-field-error">

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp } from "./AdminVerification";
@@ -367,7 +368,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
       {section !== "dashboard" && (
         <label className="cc-company">
           Company
-          <select
+          <NativeSelect
             aria-label="Company"
             value={company}
             onChange={(e) => {
@@ -383,7 +384,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                 {c.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       )}
       {error && (
@@ -897,7 +898,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                     {field("City / Location", "city")}
                     <label>
                       Branch manager
-                      <select
+                      <NativeSelect
                         value={values.manager_employee_id || ""}
                         onChange={(e) =>
                           setValues({
@@ -912,14 +913,14 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                             {e.name}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </label>
                   </>
                 ) : (
                   <>
                     <label>
                       Branch
-                      <select
+                      <NativeSelect
                         required
                         value={values.branch_id || ""}
                         onChange={(e) =>
@@ -932,11 +933,11 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                             {b.name}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </label>
                     <label>
                       Department head
-                      <select
+                      <NativeSelect
                         value={values.head_employee_id || ""}
                         onChange={(e) =>
                           setValues({
@@ -951,7 +952,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                             {e.name}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </label>
                   </>
                 )}

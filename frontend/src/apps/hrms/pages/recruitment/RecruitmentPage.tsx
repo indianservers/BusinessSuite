@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import MoveBoard from "@/components/interaction/MoveBoard";
@@ -195,14 +196,14 @@ export default function RecruitmentPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Employment Type</Label>
-                <select
+                <NativeSelect
                   {...registerJob("employment_type")}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   {["Full-time", "Part-time", "Contract", "Internship"].map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-1.5">
                 <Label>Openings</Label>
@@ -284,7 +285,7 @@ export default function RecruitmentPage() {
       {activeTab === "candidates" && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3">
-            <select
+            <NativeSelect
               value={selectedJob}
               onChange={(e) => setSelectedJob(e.target.value ? Number(e.target.value) : "")}
               className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -293,15 +294,15 @@ export default function RecruitmentPage() {
               {(jobs as Job[])?.map((j) => (
                 <option key={j.id} value={j.id}>{j.title}</option>
               ))}
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">All Statuses</option>
               {CANDIDATE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            </NativeSelect>
             <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => refetchCandidates()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -370,7 +371,7 @@ export default function RecruitmentPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap items-center gap-2">
-                              <select
+                              <NativeSelect
                                 value={c.status}
                                 onChange={(e) => updateStatusMutation.mutate({ id: c.id, status: e.target.value })}
                                 className="text-xs h-7 rounded border border-input bg-background px-2"
@@ -378,7 +379,7 @@ export default function RecruitmentPage() {
                                 {CANDIDATE_STATUSES.map((s) => (
                                   <option key={s} value={s}>{s}</option>
                                 ))}
-                              </select>
+                              </NativeSelect>
                               <Button
                                 size="sm"
                                 variant="outline"

@@ -16,11 +16,11 @@ ALL_COMMUNICATION_PERMISSIONS = [
 ]
 
 
-def communication_headers(client, db, email: str = "communication-admin@example.com", permissions: list[str] | None = None, company_id: int = 1):
+def communication_headers(client, db, email: str = "communication-admin@example.com", permissions: list[str] | None = None, company_id: int = 1, crm_access: bool = False):
     role = Role(name=f"role-{email}", description="Communication test role", is_system=False)
     db.add(role)
     db.flush()
-    for name in (ALL_COMMUNICATION_PERMISSIONS if permissions is None else permissions):
+    for name in [*(ALL_COMMUNICATION_PERMISSIONS if permissions is None else permissions), *(['crm_view'] if crm_access else [])]:
         permission = db.query(Permission).filter(Permission.name == name).first()
         if not permission:
             permission = Permission(name=name, description=name, module="communication")
@@ -39,6 +39,8 @@ def communication_headers(client, db, email: str = "communication-admin@example.
     grants = {'communication': {'enabled': True, 'role': 'admin', 'scope': 'organization',
         'permissions': ALL_COMMUNICATION_PERMISSIONS if permissions is None else permissions,
         'actions': ['view', 'create', 'edit', 'delete', 'approve']}}
+    if crm_access:
+        grants['crm']={'enabled':True,'role':'viewer','scope':'organization','permissions':['crm_view'],'actions':['view']}
     if policy:
         policy.grants = grants
     else:
@@ -60,4 +62,17 @@ def create_template(client, headers):
     )
     assert response.status_code == 201, response.text
     return response.json()
+
+
+def campaign_lead(db, **values):
+    """Campaign fixtures use explicit company/branch ownership, like imported CRM data."""
+    from app.apps.crm.models import CRMLead
+    from app.models.company import Branch
+    from app.branches.models import BranchOwnership
+    branch=db.query(Branch).filter_by(company_id=1).first()
+    row=CRMLead(organization_id=1,branch_id=branch.id,**values)
+    db.add(row);db.flush()
+    db.add(BranchOwnership(resource_table='crm_leads',resource_key=str(row.id),company_id=1,branch_id=branch.id,source='test'))
+    db.commit()
+    return row
 

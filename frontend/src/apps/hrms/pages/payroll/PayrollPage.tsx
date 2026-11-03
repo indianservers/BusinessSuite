@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useHRSession} from "../../workbench/useHRSession";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -1279,14 +1280,14 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                 <Input value={slipEmployeeSearch} onChange={(event) => setSlipEmployeeSearch(event.target.value)} placeholder="Search employee code or name" />
-                <select value={slipEmployeeId} onChange={(event) => setSlipEmployeeId(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect value={slipEmployeeId} onChange={(event) => setSlipEmployeeId(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select employee</option>
                   {payslipEmployees.map((employee) => (
                     <option key={employee.id} value={employee.id}>
                       {employee.employee_id} - {employee.first_name} {employee.last_name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
                 <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["payslip"] })}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Load Payslip
@@ -1456,7 +1457,7 @@ export default function PayrollPage() {
               <div className="flex flex-wrap items-end gap-4">
                 <div className="space-y-1.5">
                   <Label>Month</Label>
-                  <select
+                  <NativeSelect
                     value={runMonth}
                     onChange={(e) => setRunMonth(Number(e.target.value))}
                     className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -1464,7 +1465,7 @@ export default function PayrollPage() {
                     {MONTHS.map((m, i) => (
                       <option key={i} value={i + 1}>{m}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Year</Label>
@@ -2154,7 +2155,7 @@ export default function PayrollPage() {
                 <div className="flex flex-wrap items-end gap-2">
                   <div className="space-y-1.5">
                     <Label>Period</Label>
-                    <select
+                    <NativeSelect
                       className="h-10 rounded-md border bg-background px-3 text-sm"
                       value={inputPeriodId || selectedInputPeriod || ""}
                       onChange={(event) => setInputPeriodId(event.target.value)}
@@ -2164,7 +2165,7 @@ export default function PayrollPage() {
                           {MONTHS[period.month - 1]} {period.year} - {period.status}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </div>
                   <Button onClick={() => reconcileMutation.mutate()} disabled={!selectedInputPeriod || reconcileMutation.isPending}>
                     <RefreshCw className="h-4 w-4 mr-2" />
@@ -2650,9 +2651,9 @@ export default function PayrollPage() {
                     <div className="space-y-1.5"><Label>Code</Label><Input value={componentCode} onChange={(event) => setComponentCode(event.target.value.toUpperCase())} /></div>
                     <div className="space-y-1.5">
                       <Label>Type</Label>
-                      <select className="h-10 rounded-md border bg-background px-3 text-sm" value={componentType} onChange={(event) => setComponentType(event.target.value)}>
+                      <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={componentType} onChange={(event) => setComponentType(event.target.value)}>
                         {["Earning", "Deduction", "Statutory", "Reimbursement"].map((type) => <option key={type}>{type}</option>)}
-                      </select>
+                      </NativeSelect>
                     </div>
                     <div className="space-y-1.5"><Label>Monthly amount</Label><Input value={componentAmount} onChange={(event) => setComponentAmount(event.target.value)} /></div>
                   </div>

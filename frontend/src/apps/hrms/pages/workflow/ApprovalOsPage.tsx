@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Clock3, FileCheck2, History, Inbox, RefreshCw, Smartphone, Sparkles, XCircle } from "lucide-react";
@@ -136,9 +137,9 @@ export default function ApprovalOsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => (setStatus(event.target.value),setPage(1))}>
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => (setStatus(event.target.value),setPage(1))}>
                 {["Pending", "Approved", "Rejected", ""].map((item) => <option key={item} value={item}>{item || "Any status"}</option>)}
-              </select>
+              </NativeSelect>
               <Input value={module} onChange={(event) => (setModule(event.target.value),setPage(1))} placeholder="Module: crm, pms, hrms" />
             </div>
             <div className="space-y-2">

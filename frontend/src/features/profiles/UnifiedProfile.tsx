@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "../../components/forms/CompactForm";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { PhoneInput } from "../../lib/validation/PhoneInput";
@@ -360,7 +361,7 @@ function ConnectDialog({
         <>
           <label>
             Matching employee
-            <select
+            <NativeSelect
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
             >
@@ -370,7 +371,7 @@ function ConnectDialog({
                   {item.linked ? " · already connected" : ""}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <button
             className="up-button up-primary"

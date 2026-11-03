@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CourseCurriculum from "./CourseCurriculum";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -190,9 +191,9 @@ export default function LMSPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Delivery</Label>
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={courseForm.delivery_mode} onChange={(e) => setCourseForm({ ...courseForm, delivery_mode: e.target.value })}>
+              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={courseForm.delivery_mode} onChange={(e) => setCourseForm({ ...courseForm, delivery_mode: e.target.value })}>
                 {["Online", "Classroom", "Blended", "External"].map((mode) => <option key={mode}>{mode}</option>)}
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-1.5">
               <Label>Hours</Label>
@@ -200,9 +201,9 @@ export default function LMSPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Standard</Label>
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={courseForm.content_standard} onChange={(e) => setCourseForm({ ...courseForm, content_standard: e.target.value })}>
+              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={courseForm.content_standard} onChange={(e) => setCourseForm({ ...courseForm, content_standard: e.target.value })}>
                 {["Internal", "SCORM", "xAPI", "External"].map((standard) => <option key={standard}>{standard}</option>)}
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-1.5">
               <Label>External Launch URL</Label>

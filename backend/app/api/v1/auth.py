@@ -422,6 +422,18 @@ def login(request_data: LoginRequest, request: Request, db: Session = Depends(ge
     return token_response
 
 
+@router.get("/homepage-banner")
+def public_homepage_banner(db: Session = Depends(get_db)):
+    from app.access.homepage_banner import read_banner
+    return read_banner(db)
+
+
+@router.get("/homepage-banner/assets/{reference}")
+def public_homepage_banner_asset(reference: str, db: Session = Depends(get_db)):
+    from app.access.homepage_banner import published_asset
+    return published_asset(db, reference)
+
+
 @router.get("/branding")
 def login_branding(db: Session = Depends(get_db)):
     """Public display name only, from the installation's configured master company."""

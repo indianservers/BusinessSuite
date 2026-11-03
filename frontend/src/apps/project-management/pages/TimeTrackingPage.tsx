@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -175,16 +176,16 @@ export default function TimeTrackingPage() {
           <CompactForm onSubmit={submit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Field label="Project">
-                <select value={form.projectId} onChange={(event) => updateForm({ projectId: event.target.value, taskId: "" })} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <NativeSelect value={form.projectId} onChange={(event) => updateForm({ projectId: event.target.value, taskId: "" })} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   <option value="">Select project</option>
                   {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Task">
-                <select value={form.taskId} onChange={(event) => updateForm({ taskId: event.target.value })} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                <NativeSelect value={form.taskId} onChange={(event) => updateForm({ taskId: event.target.value })} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                   <option value="">Project-level time</option>
                   {tasks.map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Date"><Input type="date" value={form.logDate} onChange={(event) => updateForm({ logDate: event.target.value })} required /></Field>
               <Field label="Duration (minutes or 3h 20m)"><Input type="text" placeholder="60 or 1h 30m" value={form.minutes} onChange={(event) => updateForm({ minutes: event.target.value })} required /></Field>

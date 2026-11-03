@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import TemplateSteps from "./TemplateSteps";
 import { FormEvent, useState } from "react";
@@ -93,17 +94,17 @@ export default function OnboardingPage() {
             <CardContent className="space-y-3">
               <div className="space-y-2">
                 <Label>Employee</Label>
-                <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect loading={employees.isFetching} error={employees.isError} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select employee</option>
                   {employees.data?.map((e: any) => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label>Template</Label>
-                <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect loading={templates.isFetching} error={templates.isError} value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">No template</option>
                   {templates.data?.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2"><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
               <Button onClick={() => start.mutate()} disabled={!employeeId || start.isPending}>Start</Button>

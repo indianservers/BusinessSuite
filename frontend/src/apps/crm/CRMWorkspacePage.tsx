@@ -1,3 +1,6 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { useMobileSessionState } from "@/components/mobile/useMobileSessionState";
+import { useMobile } from "@/components/mobile/useMobile";
 import { FormSectionTabs } from "@/components/forms/CompactForm";
 import MergeWizardModal from "./MergeWizardModal";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -1162,7 +1165,7 @@ function CRMDashboard() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="sr-only" htmlFor="crm-dashboard-range">Dashboard range</label>
-            <select
+            <NativeSelect
               id="crm-dashboard-range"
               className="h-8 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
               value={dateRange}
@@ -1171,7 +1174,7 @@ function CRMDashboard() {
               <option value="month">This month</option>
               <option value="quarter">This quarter</option>
               <option value="all">All open data</option>
-            </select>
+            </NativeSelect>
             <Button size="sm" variant="outline" className="h-8 border-border bg-card px-3 text-xs text-foreground hover:bg-accent" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-3.5 w-3.5" />Reports</Button>
             <Button size="sm" variant="outline" className="h-8 border-border bg-card px-3 text-xs text-foreground hover:bg-accent" onClick={() => navigate("/crm/forecasting")}><Target className="h-3.5 w-3.5" />Forecast</Button>
             <Button size="sm" className="h-8 bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90" onClick={() => setShowQuickCreate(true)}><Plus className="h-3.5 w-3.5" />Create</Button>
@@ -1899,6 +1902,8 @@ function pluralize(label: string, count: number) {
 }
 
 function PipelinePage() {
+  const mobile=useMobile();
+  const [mobileStage,setMobileStage]=useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
@@ -2104,9 +2109,9 @@ function PipelinePage() {
                 ) : (
                   <label className="min-w-64 space-y-1 text-sm">
                     <span className="font-medium text-slate-700">Active pipeline</span>
-                    <select className="h-10 w-full rounded-md border bg-background px-3" value={activePipelineId || ""} onChange={(event) => setSelectedPipelineId(Number(event.target.value))}>
+                    <NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={activePipelineId || ""} onChange={(event) => setSelectedPipelineId(Number(event.target.value))}>
                       {pipelineState.data.map((pipeline) => <option key={String(pipeline.id)} value={Number(pipeline.id)}>{String(pipeline.name)}</option>)}
-                    </select>
+                    </NativeSelect>
                   </label>
                 )}
                 <div className="w-full lg:max-w-xl">
@@ -2123,13 +2128,16 @@ function PipelinePage() {
                 <TemplatePreviewBoard template={selectedTemplate} onApply={applyTemplate} applying={applyingTemplate} />
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                  <div className="grid auto-cols-[18rem] grid-flow-col gap-4 overflow-x-auto pb-4">
-                    {pipelineStages.map((stageRecord) => {
+                  <div>
+                  {mobile && <nav className="mobile-stepper" aria-label="Pipeline stages">{pipelineStages.map(stage => <button type="button" key={String(stage.id)} aria-pressed={String(stage.id) === (mobileStage || String(pipelineStages[0]?.id))} onClick={() => setMobileStage(String(stage.id))}>{String(stage.name)} ({visibleDeals.filter(deal=>deal.stageId===Number(stage.id)||deal.stage===String(stage.name)).length})</button>)}</nav>}
+                  <div className={mobile ? "grid grid-cols-1 gap-4" : "grid auto-cols-[18rem] grid-flow-col gap-4 overflow-x-auto pb-4"}>
+                    {pipelineStages.filter(stage => !mobile || String(stage.id) === (pipelineStages.some(stage=>String(stage.id)===mobileStage) ? mobileStage : String(pipelineStages[0]?.id))).map((stageRecord) => {
                       const stage = String(stageRecord.name);
                       const stageDeals = visibleDeals.filter((deal) => deal.stageId === Number(stageRecord.id) || deal.stage === stage);
                       return <PipelineColumn key={stageRecord.id as string | number} stage={stage} stageRecord={stageRecord} deals={stageDeals} stages={pipelineStages} transitioningDealId={transitioningDealId} onTransition={transitionDealToStage} />;
                     })}
                     {!pipelineStages.length ? <TemplatePreviewBoard template={selectedTemplate} onApply={applyTemplate} applying={applyingTemplate} /> : null}
+                  </div>
                   </div>
                   <DragOverlay>{activeDeal ? <DealCard deal={activeDeal} overlay /> : null}</DragOverlay>
                 </DndContext>
@@ -2482,10 +2490,10 @@ function CustomFieldsSettingsPageLegacy() {
         <CardHeader><CardTitle>Custom Fields</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <label className="space-y-1 text-sm"><span className="font-medium">Entity</span><select className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.entity || "leads")} onChange={(event) => setDraft((current) => ({ ...current, entity: event.target.value }))}><option value="leads">Leads</option><option value="contacts">Contacts</option><option value="companies">Accounts</option><option value="deals">Deals</option><option value="quotations">Quotations</option><option value="tasks">Tasks</option></select></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Entity</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.entity || "leads")} onChange={(event) => setDraft((current) => ({ ...current, entity: event.target.value }))}><option value="leads">Leads</option><option value="contacts">Contacts</option><option value="companies">Accounts</option><option value="deals">Deals</option><option value="quotations">Quotations</option><option value="tasks">Tasks</option></NativeSelect></label>
             <label className="space-y-1 text-sm"><span className="font-medium">Field key</span><Input value={String(draft.fieldKey || "")} onChange={(event) => setDraft((current) => ({ ...current, fieldKey: event.target.value }))} /></label>
             <label className="space-y-1 text-sm"><span className="font-medium">Label</span><Input value={String(draft.label || "")} onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))} /></label>
-            <label className="space-y-1 text-sm"><span className="font-medium">Type</span><select className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.fieldType || "text")} onChange={(event) => setDraft((current) => ({ ...current, fieldType: event.target.value }))}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="boolean">Boolean</option><option value="select">Select</option></select></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Type</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.fieldType || "text")} onChange={(event) => setDraft((current) => ({ ...current, fieldType: event.target.value }))}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="boolean">Boolean</option><option value="select">Select</option></NativeSelect></label>
           </div>
           <div className="overflow-hidden rounded-md border">
             <table className="crm-desktop-table">
@@ -2652,10 +2660,10 @@ function PipelineStageSettingsRow({ stage, stages, dealCount, onUpdate, onDelete
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(stage.is_won)} onChange={(event) => onUpdate(stage, { is_won: event.target.checked, is_lost: event.target.checked ? false : Boolean(stage.is_lost) })} />Won</label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(stage.is_lost)} onChange={(event) => onUpdate(stage, { is_lost: event.target.checked, is_won: event.target.checked ? false : Boolean(stage.is_won) })} />Lost</label>
       {dealCount ? (
-        <select className="h-10 rounded-md border bg-background px-2 text-sm" value={remapStageId} onChange={(event) => setRemapStageId(event.target.value)}>
+        <NativeSelect className="h-10 rounded-md border bg-background px-2 text-sm" value={remapStageId} onChange={(event) => setRemapStageId(event.target.value)}>
           <option value="">Remap {dealCount}</option>
           {stages.filter((item) => Number(item.id) !== Number(stage.id)).map((item) => <option key={String(item.id)} value={Number(item.id)}>{String(item.name)}</option>)}
-        </select>
+        </NativeSelect>
       ) : <span className="text-sm text-muted-foreground">No deals</span>}
       <Button variant="outline" size="sm" onClick={() => onDelete(stage, remapStageId ? Number(remapStageId) : undefined)}>Delete</Button>
     </div>
@@ -2738,10 +2746,10 @@ export function CustomFieldsSettingsPage() {
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <Card>
         <CardContent className="grid gap-3 p-4 lg:grid-cols-[12rem_1fr_10rem_1.2fr_7rem_6rem_6rem_6rem_auto] lg:items-end">
-          <Field label="Entity"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={entity} onChange={(event) => setEntity(event.target.value)}>{customFieldEntities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
+          <Field label="Entity"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={entity} onChange={(event) => setEntity(event.target.value)}>{customFieldEntities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</NativeSelect></Field>
           <Field label="Field name"><Input value={String(draft.fieldName || "")} onChange={(event) => patchDraft("fieldName", event.target.value)} onBlur={() => !draft.fieldKey && patchDraft("fieldKey", slugifyKey(String(draft.fieldName || "")))} /></Field>
           <Field label="Field key"><Input value={String(draft.fieldKey || "")} onChange={(event) => patchDraft("fieldKey", slugifyKey(event.target.value))} /></Field>
-          <Field label="Type"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.fieldType || "text")} onChange={(event) => patchDraft("fieldType", event.target.value)}>{customFieldTypes.map((type) => <option key={type} value={type}>{labelFor(type)}</option>)}</select></Field>
+          <Field label="Type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.fieldType || "text")} onChange={(event) => patchDraft("fieldType", event.target.value)}>{customFieldTypes.map((type) => <option key={type} value={type}>{labelFor(type)}</option>)}</NativeSelect></Field>
           <Field label="Required"><ToggleBox checked={Boolean(draft.isRequired)} onChange={(checked) => patchDraft("isRequired", checked)} /></Field>
           <Field label="Unique"><ToggleBox checked={Boolean(draft.isUnique)} onChange={(checked) => patchDraft("isUnique", checked)} /></Field>
           <Field label="Visible"><ToggleBox checked={Boolean(draft.isVisible ?? true)} onChange={(checked) => patchDraft("isVisible", checked)} /></Field>
@@ -2759,7 +2767,7 @@ export function CustomFieldsSettingsPage() {
               <div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => moveField(field, -1)}><ChevronLeft className="h-4 w-4" /></Button><Button variant="ghost" size="sm" onClick={() => moveField(field, 1)}><ChevronRight className="h-4 w-4" /></Button></div>
               <Input value={String(field.fieldName || field.label || "")} onChange={(event) => updateField(field, { fieldName: event.target.value })} />
               <Input value={String(field.fieldKey || field.field_key || "")} onChange={(event) => updateField(field, { fieldKey: slugifyKey(event.target.value) })} />
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={String(field.fieldType || field.field_type || "text")} onChange={(event) => updateField(field, { fieldType: event.target.value })}>{customFieldTypes.map((type) => <option key={type} value={type}>{labelFor(type)}</option>)}</select>
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(field.fieldType || field.field_type || "text")} onChange={(event) => updateField(field, { fieldType: event.target.value })}>{customFieldTypes.map((type) => <option key={type} value={type}>{labelFor(type)}</option>)}</NativeSelect>
               <Input value={optionsText(field.options ?? field.options_json)} onChange={(event) => updateField(field, { options: event.target.value })} placeholder="Options" />
               <ToggleBox checked={Boolean(field.isRequired ?? field.is_required)} onChange={(checked) => updateField(field, { isRequired: checked })} />
               <ToggleBox checked={Boolean(field.isUnique ?? field.is_unique)} onChange={(checked) => updateField(field, { isUnique: checked })} />
@@ -2868,9 +2876,9 @@ function LeadScoringSettingsPage() {
 
 function RuleOperatorSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
-    <select className="h-10 rounded-md border bg-background px-2 text-sm" value={value} onChange={(event) => onChange(event.target.value)}>
+    <NativeSelect className="h-10 rounded-md border bg-background px-2 text-sm" value={value} onChange={(event) => onChange(event.target.value)}>
       {["exists", "not_exists", "equals", "not_equals", "contains", "gt", "gte", "lt", "lte", "older_than_days"].map((operator) => <option key={operator} value={operator}>{operator}</option>)}
-    </select>
+    </NativeSelect>
   );
 }
 
@@ -3294,7 +3302,7 @@ function CalendarCreateDialog({ date, onClose, onCreated }: { date: Date; onClos
         <CardContent className="space-y-4">
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="space-y-1 text-sm"><span className="font-medium">Type</span><select className="h-10 w-full rounded-md border bg-background px-3" value={kind} onChange={(event) => setKind(event.target.value as "tasks" | "meetings")}><option value="tasks">Task</option><option value="meetings">Meeting</option></select></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Type</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={kind} onChange={(event) => setKind(event.target.value as "tasks" | "meetings")}><option value="tasks">Task</option><option value="meetings">Meeting</option></NativeSelect></label>
             <label className="space-y-1 text-sm"><span className="font-medium">Time</span><Input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></label>
           </div>
           <label className="space-y-1 text-sm"><span className="font-medium">Title</span><Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Follow up with customer" /></label>
@@ -3643,15 +3651,15 @@ function LeadFilterPanel({ filters, owners, territories, statuses, ratings, sour
       <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
       <LeadSelect label="Rating" value={filters.rating} values={ratings} onChange={(rating) => patch({ rating })} />
       <LeadSelect label="Source" value={filters.source} values={sources} onChange={(source) => patch({ source })} />
-      <label className="space-y-1 text-xs text-muted-foreground">Owner<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-      <label className="space-y-1 text-xs text-muted-foreground">Territory<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Owner<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Territory<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</NativeSelect></label>
       <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-muted-foreground hover:bg-accent" onClick={onClear}>Clear all</Button></div>
     </div>
   );
 }
 
 function LeadSelect({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (value: string) => void }) {
-  return <label className="space-y-1 text-xs text-muted-foreground">{label}<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>;
+  return <label className="space-y-1 text-xs text-muted-foreground">{label}<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{values.map((item) => <option key={item} value={item}>{item}</option>)}</NativeSelect></label>;
 }
 
 function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, ownerNames, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMLead[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; ownerNames: Map<number, string>; onSort: (sort: SortState) => void; onSelect: (lead: CRMLead) => void; onEdit: (lead: CRMLead) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (lead: CRMLead, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
@@ -3706,7 +3714,7 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
       <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} leads</span>
         <div className="flex flex-wrap items-center gap-2">
-          <select className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <NativeSelect className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</NativeSelect>
           <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
           <Badge variant="outline" className="h-9 border-border px-3 text-foreground">{page || 1} / {Math.max(1, pages || 1)}</Badge>
           <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
@@ -3809,8 +3817,8 @@ function LeadFormModal({ mode, lead, saving, error, owners, territories, statuse
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
             <LeadFormField label="Status" required><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
             <LeadFormField label="Rating"><LeadFormSelect value={valueText(draft.rating)} values={ratings} onChange={(value) => patch("rating", value)} /></LeadFormField>
-            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
-            <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Owner"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></LeadFormField>
+            <LeadFormField label="Territory"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</NativeSelect></LeadFormField>
             <LeadFormField label="Estimated value" error={fieldErrors.value}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.value)} onChange={(event) => patch("value", event.target.value)} /></LeadFormField>
           </LeadFormSection>)},{id:"section-2",label:"Follow-up",content:(<LeadFormSection title="Follow-up">
             <LeadFormField label="Next follow-up date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
@@ -3896,7 +3904,7 @@ function LeadFormField({ label, required, error, wide, children }: { label: stri
 }
 
 function LeadFormSelect({ value, values, onChange }: { value: string; values: string[]; onChange: (value: string) => void }) {
-  return <select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item} value={item}>{item}</option>)}</select>;
+  return <NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item} value={item}>{item}</option>)}</NativeSelect>;
 }
 
 function leadFormInitial(lead: CRMLead | null): CRMApiRecord {
@@ -4063,10 +4071,10 @@ const contactSortableColumns: Record<string, string> = {
 export function CRMContactsPage() {
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useMobileSessionState("crm:contacts:search", "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [view, setView] = useState<ContactViewKey>("all");
-  const [filters, setFilters] = useState<ContactFilters>(emptyContactFilters);
+  const [filters, setFilters] = useMobileSessionState<ContactFilters>("crm:contacts:filters", emptyContactFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [showColumns, setShowColumns] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -4314,8 +4322,8 @@ export function CRMContactsPage() {
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} contact{selectedRows.length === 1 ? "" : "s"} selected</div>
               <div className="flex flex-wrap gap-2">
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-card">{stage}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-card">{stage}</option>)}</NativeSelect></label>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
                 {selectedRows.length > 1 && <Button size="sm" disabled={preparingMerge || bulkSaving} onClick={() => void prepareMerge()}><GitMerge className="h-3.5 w-3.5"/>{preparingMerge ? "Loading records…" : `Merge selected (${selectedRows.length})`}</Button>}
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-contacts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
@@ -4410,11 +4418,11 @@ function ContactFilterPanel({ filters, owners, companies, statuses, stages, sour
   const patch = (update: Partial<ContactFilters>) => onChange({ ...filters, ...update });
   return (
     <div className="grid gap-3 border-b border-border bg-white/[0.025] p-3 md:grid-cols-3 xl:grid-cols-6">
-      <label className="space-y-1 text-xs text-muted-foreground">Company<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.companyId} onChange={(event) => patch({ companyId: event.target.value })}><option value="all">All companies</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Company<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.companyId} onChange={(event) => patch({ companyId: event.target.value })}><option value="all">All companies</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</NativeSelect></label>
       <LeadSelect label="Lifecycle stage" value={filters.stage} values={stages} onChange={(stage) => patch({ stage })} />
       <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
       <LeadSelect label="Source" value={filters.source} values={sources} onChange={(source) => patch({ source })} />
-      <label className="space-y-1 text-xs text-muted-foreground">Owner<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Owner<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
       <div className="flex items-end"><Button size="sm" variant="ghost" className="h-9 text-muted-foreground hover:bg-accent" onClick={onClear}>Clear all</Button></div>
     </div>
   );
@@ -4469,7 +4477,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
       <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} contacts</span>
         <div className="flex flex-wrap items-center gap-2">
-          <select className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <NativeSelect className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</NativeSelect>
           <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
           <Badge variant="outline" className="h-9 border-border px-3 text-foreground">{page || 1} / {Math.max(1, pages || 1)}</Badge>
           <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
@@ -4569,11 +4577,11 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
         </div>
         <div className="suite-dialog-body space-y-4 px-5 py-4">{error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
           <FormSectionTabs label="contact form sections" active={contactTab} onChange={setContactTab} sections={[{id:"basic",label:"Basic details",content:(<LeadFormSection title="Basic details"><LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField><LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField></LeadFormSection>)},{id:"contact",label:"Contact info",content:(<LeadFormSection title="Contact info"><LeadFormField label="Email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email" /></LeadFormField><LeadFormField label="Phone" error={fieldErrors.phone}><PhoneInput label="Phone" value={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch("phone",value)} onCountryCodeChange={value=>patch("phone_country_code",value)} error={fieldErrors.phone} /></LeadFormField></LeadFormSection>)},{id:"company",label:"Company & ownership",content:(<LeadFormSection title="Relationship">
-            <LeadFormField label="Company"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company linked</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Company"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company linked</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</NativeSelect></LeadFormField>
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
             <LeadFormField label="Lifecycle stage"><LeadFormSelect value={valueText(draft.stage)} values={stages} onChange={(value) => patch("stage", value)} /></LeadFormField>
             <LeadFormField label="Status"><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
-            <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
+            <LeadFormField label="Owner"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></LeadFormField>
           </LeadFormSection>)},{id:"additional",label:"Additional",content:(<LeadFormSection title="Follow-up">
             <LeadFormField label="Next follow-up date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUpDate)} onChange={(event) => patch("nextFollowUpDate", event.target.value)} /></LeadFormField>
             <LeadFormField label="Next follow-up time"><Input className="border-border bg-card text-foreground" type="time" value={valueText(draft.nextFollowUpTime)} onChange={(event) => patch("nextFollowUpTime", event.target.value)} /></LeadFormField>
@@ -4758,10 +4766,10 @@ const accountSortableColumns: Record<string, string> = {
 function CRMAccountsPage() {
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useMobileSessionState("crm:companies:search", "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [view, setView] = useState<AccountViewKey>("all");
-  const [filters, setFilters] = useState<AccountFilters>(emptyAccountFilters);
+  const [filters, setFilters] = useMobileSessionState<AccountFilters>("crm:companies:filters", emptyAccountFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [showColumns, setShowColumns] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({ industry: true, type: true, status: true, revenue: true, owner: true, city: true, updatedAt: true });
@@ -4991,9 +4999,9 @@ function CRMAccountsPage() {
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} account{selectedRows.length === 1 ? "" : "s"} selected</div>
               <div className="flex flex-wrap gap-2">
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><TagIcon /><span className="sr-only">Change account type</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ account_type: event.target.value }, "Account type changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change type</option>{typeOptions.map((type) => <option key={type} value={type} className="bg-card">{type}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Activity className="h-3.5 w-3.5" /><span className="sr-only">Change status</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ status: event.target.value }, "Account status changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change status</option>{statusOptions.map((status) => <option key={status} value={status} className="bg-card">{status}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><TagIcon /><span className="sr-only">Change account type</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ account_type: event.target.value }, "Account type changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change type</option>{typeOptions.map((type) => <option key={type} value={type} className="bg-card">{type}</option>)}</NativeSelect></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Activity className="h-3.5 w-3.5" /><span className="sr-only">Change status</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ status: event.target.value }, "Account status changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change status</option>{statusOptions.map((status) => <option key={status} value={status} className="bg-card">{status}</option>)}</NativeSelect></label>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-accounts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
                 <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
@@ -5064,8 +5072,8 @@ function AccountFilterPanel({ filters, owners, territories, industries, types, s
       <LeadSelect label="Industry" value={filters.industry} values={industries} onChange={(industry) => patch({ industry })} />
       <LeadSelect label="Type" value={filters.type} values={types} onChange={(type) => patch({ type })} />
       <LeadSelect label="Status" value={filters.status} values={statuses} onChange={(status) => patch({ status })} />
-      <label className="space-y-1 text-xs text-muted-foreground">Owner<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-      <label className="space-y-1 text-xs text-muted-foreground">Territory<select className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Owner<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.ownerId} onChange={(event) => patch({ ownerId: event.target.value })}><option value="all">All owners</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
+      <label className="space-y-1 text-xs text-muted-foreground">Territory<NativeSelect className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" value={filters.territoryId} onChange={(event) => patch({ territoryId: event.target.value })}><option value="all">All territories</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</NativeSelect></label>
       <LeadSelect label="City" value={filters.city} values={cities} onChange={(city) => patch({ city })} />
       <label className="space-y-1 text-xs text-muted-foreground">Min revenue<input className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" type="number" value={filters.minRevenue} onChange={(event) => patch({ minRevenue: event.target.value })} /></label>
       <label className="space-y-1 text-xs text-muted-foreground">Max revenue<input className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground" type="number" value={filters.maxRevenue} onChange={(event) => patch({ maxRevenue: event.target.value })} /></label>
@@ -5119,7 +5127,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
       <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} accounts</span>
         <div className="flex flex-wrap items-center gap-2">
-          <select className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</select>
+          <NativeSelect className="h-9 rounded-md border border-border bg-card px-2 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))} aria-label="Rows per page">{[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}</NativeSelect>
           <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page <= 1} onClick={() => onPage(Math.max(1, page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
           <Badge variant="outline" className="h-9 border-border px-3 text-foreground">{page || 1} / {Math.max(1, pages || 1)}</Badge>
           <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground" disabled={page >= Math.max(1, pages || 1)} onClick={() => onPage(Math.min(Math.max(1, pages || 1), page + 1))}><ChevronRight className="h-4 w-4" /></Button>
@@ -5243,8 +5251,8 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
               <LeadFormField label="Status" required><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
             </LeadFormSection>)},{id:"section-1",label:"Financial & ownership",content:(<LeadFormSection title="Financial & ownership">
               <LeadFormField label="Annual revenue" error={fieldErrors.revenue}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.revenue)} onChange={(event) => patch("revenue", event.target.value)} placeholder="Enter annual revenue" /></LeadFormField>
-              <LeadFormField label="Owner" required><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>
-              <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Owner" required><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></LeadFormField>
+              <LeadFormField label="Territory"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="City"><Input className="border-border bg-card text-foreground" value={valueText(draft.city)} onChange={(event) => patch("city", event.target.value)} placeholder="Search city" /></LeadFormField>
             </LeadFormSection>)},{id:"section-2",label:"Contact",content:(<LeadFormSection title="Contact">
             <LeadFormField label="Company email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
@@ -5380,10 +5388,10 @@ const dealSortableColumns: Record<string, string> = { name: "name", amount: "amo
 function CRMDealsPage() {
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useMobileSessionState("crm:deals:search", "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [view, setView] = useState<DealViewKey>("all");
-  const [filters, setFilters] = useState<DealFilters>(emptyDealFilters);
+  const [filters, setFilters] = useMobileSessionState<DealFilters>("crm:deals:filters", emptyDealFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [showColumns, setShowColumns] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({ company: true, contact: true, stage: true, amount: true, probability: true, weighted: true, owner: true, closeDate: true, nextActivity: true, updatedAt: true });
@@ -5574,8 +5582,8 @@ function CRMDealsPage() {
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} deal{selectedRows.length === 1 ? "" : "s"} selected</div>
               <div className="flex flex-wrap gap-2">
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><GitMerge className="h-3.5 w-3.5" /><span className="sr-only">Change stage</span><select className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { const stage = stages.find((item) => String(item.id) === event.target.value); if (stage) bulkPatch({ pipeline_id: Number(stage.pipelineId || stage.pipeline_id || 0), stage_id: Number(stage.id), probability: Number(stage.probability || 0), status: inferDealStatusFromStage(stage) }, "Deal stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stages.map((stage) => <option key={String(stage.id)} value={String(stage.id)} className="bg-card">{String(stage.name || stage.stageName || stage.id)}</option>)}</select></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><GitMerge className="h-3.5 w-3.5" /><span className="sr-only">Change stage</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { const stage = stages.find((item) => String(item.id) === event.target.value); if (stage) bulkPatch({ pipeline_id: Number(stage.pipelineId || stage.pipeline_id || 0), stage_id: Number(stage.id), probability: Number(stage.probability || 0), status: inferDealStatusFromStage(stage) }, "Deal stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stages.map((stage) => <option key={String(stage.id)} value={String(stage.id)} className="bg-card">{String(stage.name || stage.stageName || stage.id)}</option>)}</NativeSelect></label>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-deals.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export</Button>
                 <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
@@ -5643,7 +5651,7 @@ function DealFilterPanel({ filters, owners, companies, contacts, territories, st
 }
 
 function DealFilterSelect({ label, value, options, onChange }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
-  return <LeadFormField label={label}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></LeadFormField>;
+  return <LeadFormField label={label}><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={value} onChange={(event) => onChange(event.target.value)}><option value="all">All</option>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</NativeSelect></LeadFormField>;
 }
 
 function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMDealRow[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (deal: CRMDealRow) => void; onEdit: (deal: CRMDealRow) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (deal: CRMDealRow, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
@@ -5695,7 +5703,7 @@ function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected,
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} deals</span>
-        <div className="flex items-center gap-2"><select className="h-9 rounded-md border border-border bg-card px-3 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))}><option value={10}>10 rows</option><option value={25}>25 rows</option><option value={50}>50 rows</option></select><Button size="icon" variant="outline" className="h-9 w-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button><span className="rounded-md bg-emerald-500 px-3 py-2 font-semibold text-white">{page}</span><Button size="icon" variant="outline" className="h-9 w-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button></div>
+        <div className="flex items-center gap-2"><NativeSelect className="h-9 rounded-md border border-border bg-card px-3 text-foreground" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))}><option value={10}>10 rows</option><option value={25}>25 rows</option><option value={50}>50 rows</option></NativeSelect><Button size="icon" variant="outline" className="h-9 w-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft className="h-4 w-4" /></Button><span className="rounded-md bg-emerald-500 px-3 py-2 font-semibold text-white">{page}</span><Button size="icon" variant="outline" className="h-9 w-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight className="h-4 w-4" /></Button></div>
       </div>
     </div>
   );
@@ -5894,12 +5902,12 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
               <LeadFormField label="Company"><DealRecordSelect resource="companies" name="Company" value={valueText(draft.companyId)} onChange={value => setDraft(v => ({...v, companyId: value, contactId: ""}))} initial={[...companies, ...addedCompanies]}/><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("companies");}}><Plus size={14}/>Add company</Button></LeadFormField>
               <LeadFormField label="Contact"><DealRecordSelect resource="contacts" name="Contact" value={valueText(draft.contactId)} onChange={value => patch("contactId", value)} initial={visibleContacts}/><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("contacts");}}><Plus size={14}/>Add contact</Button></LeadFormField>
               <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
-              <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><select aria-label="Pipeline" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.pipelineId)} onChange={event => setDraft(v => ({...v, pipelineId: event.target.value, stageId: "", status: "Open"}))}><option value="">Select pipeline</option>{pipelines.map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.name)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><NativeSelect aria-label="Pipeline" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.pipelineId)} onChange={event => setDraft(v => ({...v, pipelineId: event.target.value, stageId: "", status: "Open"}))}><option value="">Select pipeline</option>{pipelines.map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.name)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Currency"><Input maxLength={3} value={valueText(draft.currency || "INR")} onChange={e => patch("currency", e.target.value.toUpperCase())}/></LeadFormField>
-              <LeadFormField label="Deal owner"><select aria-label="Deal owner" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.ownerId)} onChange={e => patch("ownerId", e.target.value)}><option value="">Assign to me</option>{owners.map(owner => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.full_name || owner.email)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Deal owner"><NativeSelect aria-label="Deal owner" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.ownerId)} onChange={e => patch("ownerId", e.target.value)}><option value="">Assign to me</option>{owners.map(owner => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.full_name || owner.email)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Priority"><LeadFormSelect value={valueText(draft.priority || "Medium")} values={["Low", "Medium", "High", "Critical"]} onChange={value => patch("priority", value)}/></LeadFormField>
               <LeadFormField label="Lead source"><Input value={valueText(draft.source)} onChange={e => patch("source", e.target.value)}/></LeadFormField>
-              <LeadFormField label="Stage" required error={fieldErrors.stageId}><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</select></LeadFormField>
+              <LeadFormField label="Stage" required error={fieldErrors.stageId}><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.stageId)} onChange={(event) => setStage(event.target.value)}><option value="">Select stage...</option>{pipelineStages.map((stage) => <option key={String(stage.id)} value={String(stage.id)}>{String(stage.name || stage.stageName || stage.id)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Amount" error={fieldErrors.amount}><Input className="border-border bg-card text-foreground" type="number" value={valueText(draft.amount)} onChange={(event) => patch("amount", event.target.value)} placeholder="Enter amount..." /></LeadFormField>
               <LeadFormField label="Closing date"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.expectedCloseDate)} onChange={(event) => patch("expectedCloseDate", event.target.value)} /></LeadFormField>
               <LeadFormField label="Description" wide>{formTab === "simple" ? <textarea rows={2} className="w-full rounded-md border bg-background p-3" value={valueText(draft.description)} onChange={event => patch("description", event.target.value)} placeholder="Short description..."/> : <RichTextField className="min-h-16 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.description)} onChange={(event) => patch("description", event.target.value)} placeholder="Add description, context, or key notes..." />}</LeadFormField>
@@ -5908,8 +5916,8 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
             {formTab === "advanced" && [1, 2, 3].includes(advancedTab) ? (
               <LeadFormSection title="Advanced deal controls">
                 {advancedTab === 1 && <LeadFormField label="Probability" error={fieldErrors.probability}><Input disabled={!canManualProbability} title={canManualProbability ? "Authorized manual override" : "Probability follows the selected stage; a manager can override it"} className="border-border bg-card text-foreground" type="number" min={0} max={100} value={valueText(draft.probability)} onChange={(event) => patch("probability", event.target.value)} /></LeadFormField>}
-                {advancedTab === 2 && <LeadFormField label="Owner"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</select></LeadFormField>}
-                {advancedTab === 2 && <LeadFormField label="Territory"><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</select></LeadFormField>}
+                {advancedTab === 2 && <LeadFormField label="Owner"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></LeadFormField>}
+                {advancedTab === 2 && <LeadFormField label="Territory"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</NativeSelect></LeadFormField>}
 
                 {advancedTab === 3 && <LeadFormField label="Next follow-up"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>}
                 {advancedTab === 1 && <><LeadFormField label="Estimated deal value"><Input type="number" min={0} step="0.01" value={valueText(draft.amount)} onChange={e => patch("amount", e.target.value)}/></LeadFormField><LeadFormField label="Deal currency"><Input maxLength={3} value={valueText(draft.currency || "INR")} onChange={e => patch("currency", e.target.value.toUpperCase())}/></LeadFormField><LeadFormField label="Expected revenue"><p>{currencyMoney(effectiveAmount * Number(draft.probability || 0) / 100)}</p></LeadFormField></>}
@@ -5925,8 +5933,8 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
               </LeadFormSection>
             ) : null}
             {((formTab === "simple" && quickSection === "products") || (formTab === "advanced" && advancedTab === 1)) && <LeadFormSection title="Products & services"><div className="md:col-span-2"><CatalogLinesEditor currency={String(draft.currency || "INR")} disabled={saving} value={lines.filter(line => line.productId).map(line => ({kind: line.productId.split(":")[0] as "product" | "service", item_id: Number(line.productId.split(":")[1]), name: line.name, item: line.catalogItem, pricing_id: line.pricingId, quantity: Number(line.quantity), unit_price: Number(line.unitPrice), discount: Number(line.discount), currency: String(draft.currency || "INR")}))} onChange={selected => setLines(selected.map((line, index) => ({key: `${line.kind}:${line.item_id}:${index}`, productId: `${line.kind}:${line.item_id}`, name: line.name, catalogItem: line.item, pricingId: line.pricing_id, quantity: String(line.quantity), unitPrice: String(line.unit_price), discount: String(line.discount)})))}/></div></LeadFormSection>}
-            {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Sales team"><LeadFormField label="Assigned sales team"><select className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.assigned_team_id)} onChange={e => patch("assigned_team_id", e.target.value)}><option value="">No team assigned</option>{teams.map(team => <option key={String(team.id)} value={String(team.id)}>{String(team.name)}</option>)}</select></LeadFormField><p className="text-sm text-muted-foreground">Secondary owners, lead originators, collaborators, and watchers are managed in the saved deal's Contacts tab, where their record access can be verified.</p></LeadFormSection>}
-            {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Related contacts & decision roles"><div className="space-y-3 sm:col-span-2">{visibleContacts.map(person => {const links = (draft.related_contacts || []) as CRMApiRecord[];const selected = links.find(link => Number(link.contactId) === Number(person.id));return <div className="flex flex-wrap items-center gap-3" key={String(person.id)}><label className="flex min-w-0 flex-1 items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(selected)} onChange={e => patch("related_contacts", e.target.checked ? [...links, {contactId: Number(person.id), role: "Stakeholder", isPrimary: false}] : links.filter(link => Number(link.contactId) !== Number(person.id)))}/>{String(person.name || person.full_name || person.email)}</label>{selected && <select aria-label={`Role for ${person.name || person.full_name}`} className="rounded border bg-background p-2 text-sm" value={String(selected.role)} onChange={e => patch("related_contacts", links.map(link => link === selected ? {...link, role: e.target.value} : link))}>{["Stakeholder", "Decision Maker", "Influencer", "Technical Contact", "Procurement", "Finance", "Champion", "Economic Buyer"].map(role => <option key={role}>{role}</option>)}</select>}</div>;})}</div></LeadFormSection>}
+            {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Sales team"><LeadFormField label="Assigned sales team"><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.assigned_team_id)} onChange={e => patch("assigned_team_id", e.target.value)}><option value="">No team assigned</option>{teams.map(team => <option key={String(team.id)} value={String(team.id)}>{String(team.name)}</option>)}</NativeSelect></LeadFormField><p className="text-sm text-muted-foreground">Secondary owners, lead originators, collaborators, and watchers are managed in the saved deal's Contacts tab, where their record access can be verified.</p></LeadFormSection>}
+            {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Related contacts & decision roles"><div className="space-y-3 sm:col-span-2">{visibleContacts.map(person => {const links = (draft.related_contacts || []) as CRMApiRecord[];const selected = links.find(link => Number(link.contactId) === Number(person.id));return <div className="flex flex-wrap items-center gap-3" key={String(person.id)}><label className="flex min-w-0 flex-1 items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(selected)} onChange={e => patch("related_contacts", e.target.checked ? [...links, {contactId: Number(person.id), role: "Stakeholder", isPrimary: false}] : links.filter(link => Number(link.contactId) !== Number(person.id)))}/>{String(person.name || person.full_name || person.email)}</label>{selected && <NativeSelect aria-label={`Role for ${person.name || person.full_name}`} className="rounded border bg-background p-2 text-sm" value={String(selected.role)} onChange={e => patch("related_contacts", links.map(link => link === selected ? {...link, role: e.target.value} : link))}>{["Stakeholder", "Decision Maker", "Influencer", "Technical Contact", "Procurement", "Finance", "Champion", "Economic Buyer"].map(role => <option key={role}>{role}</option>)}</NativeSelect>}</div>;})}</div></LeadFormSection>}
             {formTab === "advanced" && <DealPlanningFields tab={advancedTab} planning={(draft.planning || {}) as CRMApiRecord} update={value => patch("planning", value)} amount={effectiveAmount} currency={String(draft.currency || "INR")}/>}
           </div>
           <aside className="space-y-3 bg-white/[0.018] px-4 py-4">
@@ -5958,7 +5966,7 @@ function DealCustomFieldInput({ field, value, onChange }: { field: CRMRecord; va
     return <PhoneInput label={String(field.label || field.name || 'Phone')} value={String(pair?.national_number ?? value ?? '')} countryCode={String(pair?.country_code ?? (value ? '' : '+91'))} onChange={number=>onChange({national_number:number,country_code:pair?.country_code ?? (value ? '' : '+91')})} onCountryCodeChange={code=>onChange({national_number:pair?.national_number ?? value ?? '',country_code:code})} />;
   }
   const inputClass = "h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400";
-  if (type === "dropdown") return <select className={inputClass} value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
+  if (type === "dropdown") return <NativeSelect className={inputClass} value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</NativeSelect>;
   if (type === "multi_select") return <Input className="border-border bg-card text-foreground" value={Array.isArray(value) ? value.join(", ") : String(value || "")} onChange={(event) => onChange(parseOptions(event.target.value))} placeholder={options.length ? options.join(", ") : "Comma separated values"} />;
   if (type === "checkbox") return <label className="flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-foreground"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />Yes</label>;
   const inputType = type === "number" || type === "currency" || type === "user" || type === "owner" ? "number" : type === "date" ? "date" : type === "datetime" ? "datetime-local" : type === "email" ? "email" : type === "url" ? "url" : "text";
@@ -6621,7 +6629,7 @@ function PackageIcon({ large = false }: { large?: boolean }) {
 }
 
 function quoteIdFromPath() {
-  const match = window.location.pathname.match(/\/crm\/quotes\/(\d+)/);
+  const match = window.location.pathname.match(/\/(?:crm|srm)\/quotes\/(\d+)/);
   return Number(match?.[1] || 1);
 }
 
@@ -6813,11 +6821,11 @@ function ApprovalWorkflowDialog({ onClose, onCreated }: { onClose: () => void; o
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1 text-sm"><span className="font-medium">Name</span><Input value={draft.name} onChange={(event) => patch("name", event.target.value)} /></label>
-            <label className="space-y-1 text-sm"><span className="font-medium">Entity</span><select className="h-10 w-full rounded-md border bg-background px-3" value={draft.entityType} onChange={(event) => patch("entityType", event.target.value)}><option value="deal">Deal</option><option value="quotation">Quotation</option></select></label>
-            <label className="space-y-1 text-sm"><span className="font-medium">Trigger</span><select className="h-10 w-full rounded-md border bg-background px-3" value={draft.triggerType} onChange={(event) => patch("triggerType", event.target.value)}><option value="manual">Manual submit</option><option value="discount">Discount approval</option><option value="stage">Stage approval</option><option value="high-value">High-value deal</option><option value="contract-price">Contract/price approval</option></select></label>
-            <label className="space-y-1 text-sm"><span className="font-medium">Approver type</span><select className="h-10 w-full rounded-md border bg-background px-3" value={draft.approverType} onChange={(event) => patch("approverType", event.target.value)}><option value="user">User</option><option value="role">Role</option><option value="manager">Manager</option></select></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Entity</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={draft.entityType} onChange={(event) => patch("entityType", event.target.value)}><option value="deal">Deal</option><option value="quotation">Quotation</option></NativeSelect></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Trigger</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={draft.triggerType} onChange={(event) => patch("triggerType", event.target.value)}><option value="manual">Manual submit</option><option value="discount">Discount approval</option><option value="stage">Stage approval</option><option value="high-value">High-value deal</option><option value="contract-price">Contract/price approval</option></NativeSelect></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Approver type</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={draft.approverType} onChange={(event) => patch("approverType", event.target.value)}><option value="user">User</option><option value="role">Role</option><option value="manager">Manager</option></NativeSelect></label>
             <label className="space-y-1 text-sm"><span className="font-medium">Approver ID</span><Input type="number" value={draft.approverId} disabled={draft.approverType === "manager"} onChange={(event) => patch("approverId", event.target.value)} /></label>
-            <label className="space-y-1 text-sm"><span className="font-medium">Reject action</span><select className="h-10 w-full rounded-md border bg-background px-3" value={draft.actionOnReject} onChange={(event) => patch("actionOnReject", event.target.value)}><option value="stop">Stop</option><option value="send_back">Send back</option></select></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Reject action</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={draft.actionOnReject} onChange={(event) => patch("actionOnReject", event.target.value)}><option value="stop">Stop</option><option value="send_back">Send back</option></NativeSelect></label>
           </div>
           <label className="space-y-1 text-sm"><span className="font-medium">Conditions JSON</span><textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" value={draft.conditions} onChange={(event) => patch("conditions", event.target.value)} /></label>
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving}>{saving ? "Creating..." : "Create"}</Button></div>
@@ -7254,16 +7262,16 @@ function TerritorySettingsPage() {
             <Field label="City"><Input value={draft.city} onChange={(event) => setDraft((current) => ({ ...current, city: event.target.value }))} /></Field>
             <Field label="Industry"><Input value={draft.industry} onChange={(event) => setDraft((current) => ({ ...current, industry: event.target.value }))} /></Field>
             <Field label="Company size">
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.companySize} onChange={(event) => setDraft((current) => ({ ...current, companySize: event.target.value }))}>
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.companySize} onChange={(event) => setDraft((current) => ({ ...current, companySize: event.target.value }))}>
                 <option value="">Any size</option><option value="small">Small</option><option value="mid_market">Mid market</option><option value="enterprise">Enterprise</option><option value="strategic">Strategic</option>
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Priority"><Input type="number" value={draft.priority} onChange={(event) => setDraft((current) => ({ ...current, priority: event.target.value }))} /></Field>
             <Field label="Assigned user">
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.userId} onChange={(event) => setDraft((current) => ({ ...current, userId: event.target.value }))}>
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.userId} onChange={(event) => setDraft((current) => ({ ...current, userId: event.target.value }))}>
                 <option value="">No default user</option>
                 {users.map((user) => <option key={String(user.id)} value={String(user.id)}>{String(user.displayName || user.email || user.id)}</option>)}
-              </select>
+              </NativeSelect>
             </Field>
             <Button className="w-full" onClick={create}><Plus className="h-4 w-4" />Create territory</Button>
             <Button className="w-full" variant="outline" onClick={() => autoAssign(true)}>Reassign including manual overrides</Button>
@@ -7359,17 +7367,17 @@ function CRMReports() {
           </div>
           <div className="space-y-1">
             <Label>Owner</Label>
-            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filters.ownerId} onChange={(event) => setFilters((current) => ({ ...current, ownerId: event.target.value }))}>
+            <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filters.ownerId} onChange={(event) => setFilters((current) => ({ ...current, ownerId: event.target.value }))}>
               <option value="all">All owners</option>
               {ownerOptions.map((owner) => <option key={owner.id} value={owner.id}>{owner.label}</option>)}
-            </select>
+            </NativeSelect>
           </div>
           <div className="space-y-1">
             <Label>Pipeline</Label>
-            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filters.pipelineId} onChange={(event) => setFilters((current) => ({ ...current, pipelineId: event.target.value }))}>
+            <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filters.pipelineId} onChange={(event) => setFilters((current) => ({ ...current, pipelineId: event.target.value }))}>
               <option value="all">All pipelines</option>
               {pipelineState.data.map((pipeline) => <option key={String(pipeline.id)} value={String(pipeline.id)}>{String(pipeline.name || `Pipeline ${pipeline.id}`)}</option>)}
-            </select>
+            </NativeSelect>
           </div>
           <Button variant="outline" onClick={exportData} disabled={!report}><Download className="h-4 w-4" />CSV</Button>
         </CardContent>
@@ -7717,10 +7725,10 @@ function SalesTargetsPage() {
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-3 xl:grid-cols-[8rem_9rem_9rem_10rem_8rem_10rem_6rem] xl:items-end">
-          <Field label="Period"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.periodType)} onChange={(event) => patchDraft("periodType", event.target.value)}>{["monthly", "quarterly", "yearly"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</select></Field>
+          <Field label="Period"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.periodType)} onChange={(event) => patchDraft("periodType", event.target.value)}>{["monthly", "quarterly", "yearly"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
           <Field label="Start"><Input type="date" value={String(draft.periodStart || "")} onChange={(event) => patchDraft("periodStart", event.target.value)} /></Field>
           <Field label="End"><Input type="date" value={String(draft.periodEnd || "")} onChange={(event) => patchDraft("periodEnd", event.target.value)} /></Field>
-          <Field label="Owner type"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.targetOwnerType)} onChange={(event) => patchDraft("targetOwnerType", event.target.value)}>{["user", "team", "territory", "company"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</select></Field>
+          <Field label="Owner type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.targetOwnerType)} onChange={(event) => patchDraft("targetOwnerType", event.target.value)}>{["user", "team", "territory", "company"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
           <Field label="Owner ID"><Input type="number" value={Number(draft.targetOwnerId || 0)} onChange={(event) => patchDraft("targetOwnerId", Number(event.target.value))} /></Field>
           <Field label="Target"><Input type="number" value={Number(draft.targetAmount || 0)} onChange={(event) => patchDraft("targetAmount", Number(event.target.value))} /></Field>
           <Button onClick={create}>Save</Button>
@@ -7918,28 +7926,28 @@ function FilterPanel({
     <Card>
       <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_1fr_1fr_auto] md:items-end">
         <Field label="Owner">
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.owner} onChange={(event) => patch({ owner: event.target.value })}>
+          <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.owner} onChange={(event) => patch({ owner: event.target.value })}>
             <option value="all">All owners</option>
             {owners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}
-          </select>
+          </NativeSelect>
         </Field>
         <Field label="Status">
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.status} onChange={(event) => patch({ status: event.target.value })}>
+          <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.status} onChange={(event) => patch({ status: event.target.value })}>
             <option value="all">All statuses</option>
             {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
-          </select>
+          </NativeSelect>
         </Field>
         <Field label="Type">
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.type} onChange={(event) => patch({ type: event.target.value })}>
+          <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.type} onChange={(event) => patch({ type: event.target.value })}>
             <option value="all">All types</option>
             {types.map((type) => <option key={type} value={type}>{type}</option>)}
-          </select>
+          </NativeSelect>
         </Field>
         <Field label="Territory">
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.territory} onChange={(event) => patch({ territory: event.target.value })}>
+          <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.territory} onChange={(event) => patch({ territory: event.target.value })}>
             <option value="all">All territories</option>
             {territories.map((territory) => <option key={territory} value={territory}>Territory {territory}</option>)}
-          </select>
+          </NativeSelect>
         </Field>
         <Button variant="outline" onClick={onClear}>Clear</Button>
       </CardContent>
@@ -8127,9 +8135,9 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
             Showing {visibleRows.length ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, visibleRows.length)} of {visibleRows.length}
           </span>
           <div className="flex flex-wrap items-center gap-2">
-            <select className="h-9 rounded-md border bg-background px-2" value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} aria-label="Rows per page">
+            <NativeSelect className="h-9 rounded-md border bg-background px-2" value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} aria-label="Rows per page">
               {[10, 25, 50, 100].map((size) => <option key={size} value={size}>{size} rows</option>)}
-            </select>
+            </NativeSelect>
             <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1}>Previous</Button>
             <Badge variant="outline" className="h-9 rounded-md px-3">Page {page} / {pageCount}</Badge>
             <Button variant="outline" size="sm" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={page >= pageCount}>Next</Button>
@@ -8198,9 +8206,9 @@ function InlineEditor({ config, value, autoFocus, onChange, onCommit, onCancel }
   };
   if (config.type === "select") {
     return (
-      <select className="h-9 w-full rounded-md border bg-background px-2 text-sm" {...common}>
+      <NativeSelect className="h-9 w-full rounded-md border bg-background px-2 text-sm" {...common}>
         {(config.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
+      </NativeSelect>
     );
   }
   return <Input className="h-9" type={config.type === "number" ? "number" : config.type === "date" ? "date" : "text"} {...common} />;
@@ -8521,9 +8529,9 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
                     <Input value={String(draft.owner || "")} onChange={(event) => patchDraft("owner", event.target.value)} placeholder="Sales owner" />
                   </DealField>
                   <DealField label="Source">
-                    <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(draft.source || "")} onChange={(event) => patchDraft("source", event.target.value)}>
+                    <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(draft.source || "")} onChange={(event) => patchDraft("source", event.target.value)}>
                       {["Manual Entry", "Website", "Referral", "Partner", "Event", "Outbound"].map((source) => <option key={source}>{source}</option>)}
-                    </select>
+                    </NativeSelect>
                   </DealField>
                   <DealField label="Probability">
                     <Input type="number" value={String(draft.probability || 0)} onChange={(event) => patchDraft("probability", event.target.value)} />
@@ -8685,7 +8693,7 @@ function CustomFieldInput({ field, value, onChange }: { field: CRMApiRecord; val
     return <PhoneInput label={String(field.label || field.name || 'Phone')} value={String(pair?.national_number ?? value ?? '')} countryCode={String(pair?.country_code ?? (value ? '' : '+91'))} onChange={number=>onChange({national_number:number,country_code:pair?.country_code ?? (value ? '' : '+91')})} onCountryCodeChange={code=>onChange({national_number:pair?.national_number ?? value ?? '',country_code:code})} />;
   }
   if (type === "dropdown") {
-    return <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>;
+    return <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</NativeSelect>;
   }
   if (type === "multi_select") {
     return <Input value={Array.isArray(value) ? value.join(", ") : String(value || "")} onChange={(event) => onChange(parseOptions(event.target.value))} placeholder={options.length ? options.join(", ") : "Comma separated values"} />;
@@ -8720,10 +8728,10 @@ function QuickFormInput({
   if(phoneFields.has(field.key))return <PhoneInput label={field.label} value={value} countryCode={String(draft[field.key+'_country_code'] ?? (draft.id ? '' : '+91'))} onChange={next=>{updateValue(next);if(draft[field.key+'_country_code']==null&&!draft.id)patchDraft(field.key+'_country_code','+91');}} onCountryCodeChange={code=>patchDraft(field.key+'_country_code',code)} />;
   if (field.type === "select") {
     return (
-      <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => updateValue(event.target.value)}>
+      <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => updateValue(event.target.value)}>
         <option value="">{field.placeholder || "Select"}</option>
         {(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
+      </NativeSelect>
     );
   }
 
@@ -8875,10 +8883,10 @@ function FilterSelect({ label, value, values, allLabel, onChange }: { label: str
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium">{label}</span>
-      <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => onChange(event.target.value)}>
+      <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="all">{allLabel}</option>
         {values.map((item) => <option key={item} value={item}>{item.replace("_", " ")}</option>)}
-      </select>
+      </NativeSelect>
     </label>
   );
 }

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
 import type React from "react";
@@ -132,7 +133,7 @@ export default function AdminLogsPage() {
               placeholder="Employee ID"
               className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
-            <select
+            <NativeSelect
               value={fieldName}
               onChange={(event) => setFieldName(event.target.value)}
               className="h-9 rounded-md border bg-background px-3 text-sm"
@@ -141,7 +142,7 @@ export default function AdminLogsPage() {
               {["ctc", "basic", "hra", "account_number", "ifsc_code", "pan_number", "aadhaar_number", "reporting_manager_id", "designation_id", "department_id", "work_location", "status"].map((field) => (
                 <option key={field} value={field}>{field}</option>
               ))}
-            </select>
+            </NativeSelect>
             <Button variant="outline" onClick={() => fieldAudit.refetch()}>Refresh Field Audit</Button>
           </div>
           <div className="overflow-x-auto rounded-md border">

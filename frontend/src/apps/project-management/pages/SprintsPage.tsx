@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import SprintMoveBoard from "../components/SprintMoveBoard";
 import { usePageRefresh } from "@/lib/page-refresh";
@@ -211,7 +212,7 @@ export default function SprintsPage() {
         <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
         <CardContent>
           <CompactForm onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_8rem_11rem_11rem_auto] md:items-end">
-            <Field label="Project"><select value={projectId} onChange={(event) => switchProject(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></Field>
+            <Field label="Project"><NativeSelect value={projectId} onChange={(event) => switchProject(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</NativeSelect></Field>
             <Field label="Sprint name"><Input value={name} onChange={(event) => setName(event.target.value)} /></Field>
             <Field label="Goal"><Input value={goal} onChange={(event) => setGoal(event.target.value)} /></Field>
             <Field label="Capacity"><Input type="number" value={capacityHours} onChange={(event) => setCapacityHours(event.target.value)} /></Field>
@@ -306,19 +307,19 @@ export default function SprintsPage() {
                 <TaskSummary title="Incomplete tasks" tasks={incompleteTasks} empty="No incomplete tasks." />
                 {completeTarget.status !== "Completed" ? (
                   <Field label="Incomplete task handling">
-                    <select value={completeDraft.incompleteAction} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, incompleteAction: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                    <NativeSelect value={completeDraft.incompleteAction} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, incompleteAction: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                       <option value="move_to_backlog">Move to backlog</option>
                       <option value="move_to_next_sprint">Move to next sprint</option>
                       <option value="keep_in_sprint">Keep in current sprint</option>
-                    </select>
+                    </NativeSelect>
                   </Field>
                 ) : null}
                 {completeDraft.incompleteAction === "move_to_next_sprint" && completeTarget.status !== "Completed" ? (
                   <Field label="Next sprint">
-                    <select value={completeDraft.carryForwardSprintId} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, carryForwardSprintId: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                    <NativeSelect value={completeDraft.carryForwardSprintId} onChange={(event) => setCompleteDraft((draft) => ({ ...draft, carryForwardSprintId: event.target.value }))} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                       <option value="">Select sprint</option>
                       {sprints.filter((sprint) => sprint.id !== completeTarget.id && sprint.status === "Planned").map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
-                    </select>
+                    </NativeSelect>
                   </Field>
                 ) : null}
               </div>

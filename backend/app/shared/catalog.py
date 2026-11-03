@@ -20,6 +20,7 @@ from app.apps.crm.models import CRMProduct, CRMService
 from app.apps.srm.models import SRMProduct
 from app.apps.srm.services.commercial import tenant
 from app.shared.catalog_models import CatalogDetails, CatalogLink
+from app.shared.catalog_branches import availability_clause, selected_branch, assert_available, is_available, set_availability
 
 router = APIRouter(prefix="/catalog", tags=["Shared products & services"])
 Kind = Literal["product", "service"]
@@ -147,6 +148,8 @@ def item_record(db, user, source, kind, ident, write=False, archived=True):
     row = db.query(model).filter(model.id == ident, func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None)).with_for_update().first() if write else db.query(model).filter(model.id == ident, func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None)).first()
     if not row or ("service" if row.product_type == "service" else "product") != kind:
         raise HTTPException(404, "Catalog item not found")
+    if write and not is_available(row, selected_branch(user)):
+        raise HTTPException(403, "This offering cannot be edited from a branch where it is unavailable")
     if source == "crm":
         from app.apps.crm.api.router import _assert_record_visible
         _assert_record_visible(db, catalog_resource(), ident, tenant(user), user)
@@ -154,6 +157,8 @@ def item_record(db, user, source, kind, ident, write=False, archived=True):
     workspace_access(db, user, detail.workspace_id if detail else None, write)
     if not archived and not row.active:
         raise HTTPException(422, "Archived items cannot be added to records")
+    if not archived:
+        assert_available(row, user)
     return row, detail
 
 
@@ -178,6 +183,9 @@ def save_item(db, user, source, data, ident=None):
             raise HTTPException(409, "This item changed. Reload it before saving.")
     else:
         row, detail = model(organization_id=tenant(user), created_by=user.id, product_type="service" if data.kind == "service" else "stock", track_inventory=data.kind != "service"), None
+        branch = selected_branch(user)
+        if branch:
+            row.metadata_json = {"catalog_branches": {"default": False, "overrides": {str(branch): True}}}
         db.add(row)
     row.item_name, row.category_name, row.description = data.name, data.category, data.description
     row.gst_rate, row.active = data.tax, data.status == "Active"
@@ -315,6 +323,7 @@ def list_items(source: Source = "crm", kind: Kind | None = None, search: str = Q
         code = model.sku
         query = select(literal(selected).label("kind"), model.id.label("id"), model.item_name.label("name"), price.label("price"), model.category_name.label("category"), code.label("code")).outerjoin(CatalogDetails, getattr(CatalogDetails, selected + "_id") == model.id).where(func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None))
         query = query.where(model.product_type == "service" if selected == "service" else func.coalesce(model.product_type, "stock") != "service")
+        query = query.where(availability_clause(model, selected_branch(user)))
         if not user.is_superuser and not organization_admin(user):
             visible = select(PMSWorkspaceMember.workspace_id).join(PMSWorkspace, PMSWorkspace.id == PMSWorkspaceMember.workspace_id).where(PMSWorkspaceMember.user_id == user.id, func.coalesce(PMSWorkspace.organization_id, 1) == tenant(user))
             query = query.where(or_(CatalogDetails.workspace_id.is_(None), CatalogDetails.workspace_id.in_(visible)))
@@ -342,6 +351,89 @@ def list_items(source: Source = "crm", kind: Kind | None = None, search: str = Q
         items.extend(output(row, selected, details.get(row.id)) for row in db.query(model).filter(model.id.in_(ids)).all())
     indexed = {(v["kind"], v["id"]): v for v in items}
     return {"items": [indexed[(r["kind"], r["id"])] for r in rows], "total": total, "pages": (total + per_page - 1) // per_page, "permissions": permissions}
+
+
+class ReuseItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Kind
+    id: int = Field(gt=0)
+    version: int = Field(ge=0)
+
+
+class BranchReuseInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    operation: Literal["share", "copy", "move"]
+    items: list[ReuseItem] = Field(min_length=1, max_length=100)
+    branch_ids: list[int] = Field(min_length=1, max_length=50)
+
+
+@router.post("/branches/reuse")
+def reuse_in_branches(data: BranchReuseInput, source: Source = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.branches.service import access, audit
+    from app.access.service import check_background_access, policy_for, resolved_grants, effective_objects
+    from app.branches.roles import effective_grants
+    origin = selected_branch(user)
+    _, writable, _, _ = access(db, user, tenant(user))
+    destinations = set(data.branch_ids)
+    if not origin or origin not in writable or not destinations.issubset(writable):
+        raise HTTPException(403, "Writable source and destination branches are required")
+    if origin in destinations:
+        raise HTTPException(422, "Choose a destination different from the source branch")
+    if data.operation == "move" and len(destinations) != 1:
+        raise HTTPException(422, "Move to one destination branch at a time")
+    if len({(item.kind, item.id) for item in data.items}) != len(data.items):
+        raise HTTPException(422, "Select each offering only once")
+    module = "project_management" if source == "pms" else source
+    check_background_access(db, user, module, "create" if data.operation == "copy" else "edit", branch_id=origin)
+    for branch in sorted(destinations):
+        check_background_access(db, user, module, "create" if data.operation == "copy" else "edit", branch_id=branch)
+        if not user.is_superuser:
+            policy = policy_for(db, user, tenant(user))
+            grants = effective_grants(db, user, tenant(user), branch, resolved_grants(db, policy) if policy else None)
+            previous = getattr(user, "_suite_grants", None), getattr(user, "_suite_permission_objects", None)
+            try:
+                user._suite_grants = grants
+                if grants is not None:
+                    user._suite_permission_objects = effective_objects(db, grants, module)
+                for kind in {item.kind for item in data.items}:
+                    authorize(user, source, kind, True, db=db)
+            finally:
+                user._suite_grants, user._suite_permission_objects = previous
+    # Lock and validate the entire selection before changing any offering.
+    records = []
+    for item in sorted(data.items, key=lambda item: item.id):
+        row, detail = item_record(db, user, source, item.kind, item.id, True)
+        if item.version != (detail.version if detail else 0):
+            raise HTTPException(409, "An offering changed. Refresh the catalog and try again.")
+        if not is_available(row, origin):
+            raise HTTPException(422, "An offering is unavailable in the source branch")
+        if detail and detail.workspace_id and data.operation != "copy":
+            raise HTTPException(422, "Workspace offerings must be copied to another branch; the copy uses the organization catalog")
+        records.append((item, row, detail))
+    results = []
+    for item, row, detail in records:
+        if data.operation == "copy":
+            for branch in sorted(destinations):
+                values = output(row, item.kind, detail)
+                values.pop("id"); values.pop("version")
+                values.update(code=values["code"][:60] + "-" + uuid4().hex[:12], barcode=None, workspace_id=None)
+                result = save_item(db, user, source, ItemInput.model_validate(values))
+                copied = db.get(SRMProduct, result["id"])
+                copied.metadata_json = {**(copied.metadata_json or {}), "catalog_branches": {"default": False, "overrides": {str(branch): True}}}
+                results.append({"id": copied.id, "kind": item.kind, "branch_id": branch, "code": copied.sku})
+        else:
+            for branch in destinations:
+                set_availability(row, branch, True)
+            if data.operation == "move":
+                set_availability(row, origin, False)
+            if detail is None:
+                detail = CatalogDetails(organization_id=tenant(user), **{item.kind + "_id": row.id}, version=0)
+                db.add(detail)
+            detail.version += 1
+            results.append({"id": row.id, "kind": item.kind, "branch_ids": sorted(destinations)})
+    audit(db, user, tenant(user), "catalog.branch." + data.operation, "Reuse products and services across branches", {"source_branch_id": origin, "destination_branch_ids": sorted(destinations), "items": [item.model_dump() for item in data.items], "results": results})
+    commit(db)
+    return {"operation": data.operation, "processed": len(records), "results": results}
 
 
 @router.post("/items", status_code=201)

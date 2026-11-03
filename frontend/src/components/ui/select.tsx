@@ -1,16 +1,21 @@
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const Select = SelectPrimitive.Root;
+const ChoiceContext = React.createContext({ loading: false, error: false });
+function Select({ loading = false, error = false, ...props }: React.ComponentProps<typeof SelectPrimitive.Root> & { loading?: boolean; error?: boolean }) {
+  return <ChoiceContext.Provider value={{ loading, error }}><SelectPrimitive.Root {...props} /></ChoiceContext.Provider>;
+}
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => {
+  const { loading } = React.useContext(ChoiceContext);
+  return (
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
@@ -18,13 +23,14 @@ const SelectTrigger = React.forwardRef<
       className
     )}
     {...props}
+    aria-busy={loading || undefined}
   >
-    {children}
+    <span className="min-w-0 flex-1 truncate text-left">{children}</span>
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50" />
+      {loading ? <Loader2 aria-label="Loading choices" className="ml-2 h-4 w-4 shrink-0 motion-safe:animate-spin" /> : <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
-));
+); });
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
 const SelectScrollUpButton = React.forwardRef<
@@ -50,7 +56,13 @@ SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayNam
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+>(({ className, children, position = "popper", ...props }, ref) => {
+  const { loading, error } = React.useContext(ChoiceContext);
+  const hasItems = (nodes: React.ReactNode): boolean => React.Children.toArray(nodes).some(node => {
+    if (!React.isValidElement<{ children?: React.ReactNode }>(node)) return false;
+    return node.type === SelectItem || hasItems(node.props.children);
+  });
+  return (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
@@ -65,11 +77,15 @@ const SelectContent = React.forwardRef<
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport className={cn("p-1", position === "popper" && "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]")}>
         {children}
+        {(loading || error || !hasItems(children)) && <div role={error ? "alert" : "status"} className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
+          {loading && <Loader2 aria-hidden="true" className="h-3 w-3 shrink-0 motion-safe:animate-spin" />}
+          {loading ? "Loading choices…" : error ? "Could not load choices" : "No data found"}
+        </div>}
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
-));
+); });
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectLabel = React.forwardRef<

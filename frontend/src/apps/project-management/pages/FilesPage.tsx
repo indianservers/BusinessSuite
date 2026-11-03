@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
 import { Upload, FolderPlus, Download } from "lucide-react";
@@ -110,7 +111,7 @@ export default function FilesPage() {
       <div className="flex flex-wrap items-center gap-3">
         <label>
           Project{" "}
-          <select
+          <NativeSelect
             className="input"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
@@ -121,11 +122,11 @@ export default function FilesPage() {
                 {p.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <label>
           Upload folder{" "}
-          <select
+          <NativeSelect
             className="input"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
@@ -137,7 +138,7 @@ export default function FilesPage() {
                 {f.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       </div>
       {error && (

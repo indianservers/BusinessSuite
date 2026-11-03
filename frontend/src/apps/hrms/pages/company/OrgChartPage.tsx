@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { api } from "@/services/api";
 import { useMemo, useRef, useState } from "react";
@@ -167,18 +168,18 @@ export default function OrgChartPage() {
 
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-3">
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+          <NativeSelect loading={departments.isFetching} error={departments.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
             <option value="">All departments</option>
             {departments.data?.map((item: { id: number; name: string }) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+          </NativeSelect>
+          <NativeSelect loading={locations.isFetching} error={locations.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
             <option value="">All locations</option>
             {locations.data?.map((item: { id: number; name: string }) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={gradeBandId} onChange={(e) => setGradeBandId(e.target.value)}>
+          </NativeSelect>
+          <NativeSelect loading={gradeBands.isFetching} error={gradeBands.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={gradeBandId} onChange={(e) => setGradeBandId(e.target.value)}>
             <option value="">All grade bands</option>
             {gradeBands.data?.map((item: { id: number; name: string }) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
+          </NativeSelect>
         </CardContent>
       </Card>
 

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -485,7 +486,7 @@ export default function FormsPage() {
                       remain in this form; this does not modify CRM or other
                       records.
                     </p>
-                    <select
+                    <NativeSelect
                       aria-label="Add global field"
                       defaultValue=""
                       onChange={(e) => {
@@ -512,7 +513,7 @@ export default function FormsPage() {
                           {f.module_name} · {f.label}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                     <Link to={`${base}/custom-fields`}>
                       View custom field reference →
                     </Link>
@@ -536,7 +537,7 @@ export default function FormsPage() {
                     </label>
                     <label>
                       Font
-                      <select
+                      <NativeSelect
                         value={settings.font}
                         onChange={(e) =>
                           configure({
@@ -547,7 +548,7 @@ export default function FormsPage() {
                         <option value="system">System</option>
                         <option value="serif">Serif</option>
                         <option value="monospace">Monospace</option>
-                      </select>
+                      </NativeSelect>
                     </label>
                     <label>
                       Button corners
@@ -563,7 +564,7 @@ export default function FormsPage() {
                     </label>
                     <label>
                       Layout
-                      <select
+                      <NativeSelect
                         value={settings.layout}
                         onChange={(e) =>
                           configure({
@@ -577,7 +578,7 @@ export default function FormsPage() {
                         <option value="pages">
                           Multiple pages (add page breaks)
                         </option>
-                      </select>
+                      </NativeSelect>
                     </label>
                     <label>
                       Submit button
@@ -636,7 +637,7 @@ export default function FormsPage() {
                         <>
                           <label>
                             Project
-                            <select
+                            <NativeSelect
                               value={draft.workflow.project_id ?? ""}
                               onChange={(e) =>
                                 edit({
@@ -654,11 +655,11 @@ export default function FormsPage() {
                                   {p.name}
                                 </option>
                               ))}
-                            </select>
+                            </NativeSelect>
                           </label>
                           <label>
                             Task title question
-                            <select
+                            <NativeSelect
                               value={draft.workflow.title_field}
                               onChange={(e) =>
                                 edit({
@@ -682,7 +683,7 @@ export default function FormsPage() {
                                     {f.label}
                                   </option>
                                 ))}
-                            </select>
+                            </NativeSelect>
                           </label>
                           <p>
                             The title must be a required, unconditional
@@ -758,7 +759,7 @@ export default function FormsPage() {
                     </p>
                     <label>
                       Spam protection
-                      <select
+                      <NativeSelect
                         value={settings.captcha}
                         onChange={(e) =>
                           configure({
@@ -772,7 +773,7 @@ export default function FormsPage() {
                         <option value="turnstile">
                           Cloudflare Turnstile (requires server keys)
                         </option>
-                      </select>
+                      </NativeSelect>
                     </label>
                     <p>
                       All public forms also have a honeypot, server rate limits,
@@ -979,7 +980,7 @@ export default function FormsPage() {
                           )}
                           <label>
                             Review status
-                            <select
+                            <NativeSelect
                               value={activeReply.status}
                               onChange={async (e) => {
                                 try {
@@ -997,7 +998,7 @@ export default function FormsPage() {
                               {["new", "reviewed", "archived"].map((s) => (
                                 <option key={s}>{s}</option>
                               ))}
-                            </select>
+                            </NativeSelect>
                           </label>
                           <dl>
                             {Object.entries(activeReply.answers).map(

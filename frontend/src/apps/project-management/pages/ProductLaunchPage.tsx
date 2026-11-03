@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import GanttPage from "./GanttPage";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -242,18 +243,18 @@ function LaunchRow({ item, onUpdate }: { item: LaunchItem; onUpdate: (id: number
         <span className="font-medium text-slate-500">{item.key}</span>
         <Input value={item.summary} onChange={(event) => onUpdate(item.id, { summary: event.target.value })} className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0" />
       </div>
-      <select value={item.status} onChange={(event) => onUpdate(item.id, { status: event.target.value as LaunchStatus })} className="w-32 rounded border bg-white px-2 py-1 text-xs font-semibold text-blue-700">
+      <NativeSelect value={item.status} onChange={(event) => onUpdate(item.id, { status: event.target.value as LaunchStatus })} className="w-32 rounded border bg-white px-2 py-1 text-xs font-semibold text-blue-700">
         {statuses.map((status) => <option key={status}>{status}</option>)}
-      </select>
+      </NativeSelect>
       <div className="flex items-center gap-2">
         <Avatar name={item.assignee} />
-        <select value={item.assignee} onChange={(event) => onUpdate(item.id, { assignee: event.target.value })} className="w-32 rounded border bg-white px-2 py-1 text-xs text-slate-600">
+        <NativeSelect value={item.assignee} onChange={(event) => onUpdate(item.id, { assignee: event.target.value })} className="w-32 rounded border bg-white px-2 py-1 text-xs text-slate-600">
           {people.map((person) => <option key={person}>{person}</option>)}
-        </select>
+        </NativeSelect>
       </div>
-      <select value={item.category} onChange={(event) => onUpdate(item.id, { category: event.target.value as LaunchCategory })} className={`w-32 rounded border px-2 py-1 text-xs font-semibold ${categoryColor(item.category)}`}>
+      <NativeSelect value={item.category} onChange={(event) => onUpdate(item.id, { category: event.target.value as LaunchCategory })} className={`w-32 rounded border px-2 py-1 text-xs font-semibold ${categoryColor(item.category)}`}>
         {categories.map((category) => <option key={category}>{category}</option>)}
-      </select>
+      </NativeSelect>
     </div>
   );
 }

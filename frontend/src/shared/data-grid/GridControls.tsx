@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as Context from "@radix-ui/react-context-menu";
@@ -161,7 +162,7 @@ export function ColumnManager<T>({
                 >
                   <ArrowRight size={13} />
                 </button>
-                <select
+                <NativeSelect
                   aria-label={`Pin ${column.title}`}
                   value={
                     layout.pinning.left?.includes(id)
@@ -185,7 +186,7 @@ export function ColumnManager<T>({
                   <option value="none">Unpinned</option>
                   <option value="left">Left</option>
                   <option value="right">Right</option>
-                </select>
+                </NativeSelect>
               </div>
             );
           })}
@@ -310,7 +311,7 @@ export function GridExportMenu({
           </header>
           <label>
             Rows
-            <select
+            <NativeSelect
               aria-label="Export rows"
               value={scope}
               onChange={(e) => setScope(e.target.value as typeof scope)}
@@ -322,7 +323,7 @@ export function GridExportMenu({
                 Selected rows ({selectedCount})
               </option>
               <option value="filtered">All filtered rows</option>
-            </select>
+            </NativeSelect>
           </label>
           <details>
             <summary>Export columns ({selectedColumns.length})</summary>
@@ -457,7 +458,7 @@ export function GridToolbar({
             <strong>Display & layout</strong>
             <label>
               Density
-              <select
+              <NativeSelect
                 aria-label="Grid density"
                 value={layout.density}
                 onChange={(e) =>
@@ -470,7 +471,7 @@ export function GridToolbar({
               >
                 <option value="compact">Compact</option>
                 <option value="comfortable">Comfortable</option>
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Row height: {layout.rowHeight}px
@@ -488,7 +489,7 @@ export function GridToolbar({
             {views.length > 1 && (
               <label>
                 View
-                <select
+                <NativeSelect
                   aria-label="Grid view"
                   value={layout.view}
                   onChange={(e) =>
@@ -503,7 +504,7 @@ export function GridToolbar({
                       {v}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
             )}
             <button className="udg-control" onClick={reset}>

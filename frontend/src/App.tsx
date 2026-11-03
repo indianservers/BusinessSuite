@@ -41,6 +41,7 @@ const IntegrationsPage = React.lazy(() => import("@/apps/power-apps/applications
 const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
 const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
 const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
+const PublicCustomerForm = React.lazy(() => import("@/apps/communication/center/PublicCustomerForm"));
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
 const WorkspaceInvitationPage = React.lazy(() => import("@/pages/auth/WorkspaceInvitationPage"));
 const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
@@ -236,6 +237,7 @@ export default function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/f/:slug" element={<PublicFormPage />} />
+          <Route path="/forms/communication/:slug" element={<PublicCustomerForm />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<ModuleDashboardPage />} />
           <Route path="/settings/:section?" element={<SettingsHubPage />} />

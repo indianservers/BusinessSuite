@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Filter, Plus, Trash2, X } from "lucide-react";
@@ -39,7 +40,7 @@ export default function FilterBuilder<T>({
       <section className="udg-filter-group">
         <header>
           <span>Match</span>
-          <select
+          <NativeSelect
             aria-label={`Filter logic level ${depth + 1}`}
             value={group.logic}
             onChange={(e) =>
@@ -48,7 +49,7 @@ export default function FilterBuilder<T>({
           >
             <option value="and">All conditions (AND)</option>
             <option value="or">Any condition (OR)</option>
-          </select>
+          </NativeSelect>
         </header>
         {group.rules.map((rule, index) => (
           <div
@@ -67,7 +68,7 @@ export default function FilterBuilder<T>({
               )
             ) : (
               <>
-                <select
+                <NativeSelect
                   aria-label={`Filter column ${index + 1}`}
                   value={rule.field}
                   onChange={(e) =>
@@ -90,8 +91,8 @@ export default function FilterBuilder<T>({
                       {column.title}
                     </option>
                   ))}
-                </select>
-                <select
+                </NativeSelect>
+                <NativeSelect
                   aria-label={`Filter operator ${index + 1}`}
                   value={rule.operator}
                   onChange={(e) =>
@@ -125,7 +126,7 @@ export default function FilterBuilder<T>({
                   {rule.operator === "in" && (
                     <option value="in">Is one of</option>
                   )}
-                </select>
+                </NativeSelect>
                 {!["empty", "not_empty"].includes(rule.operator) && (
                   <input
                     aria-label={`Filter value ${index + 1}`}

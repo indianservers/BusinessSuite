@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -349,7 +350,7 @@ export default function ImportWizard({
                       {table.sheets.length > 1 && (
                         <label>
                           Worksheet
-                          <select
+                          <NativeSelect
                             disabled={busy}
                             value={table.sheet}
                             onChange={(e) =>
@@ -360,12 +361,12 @@ export default function ImportWizard({
                             {table.sheets.map((s) => (
                               <option key={s}>{s}</option>
                             ))}
-                          </select>
+                          </NativeSelect>
                         </label>
                       )}
                       <label>
                         Header row
-                        <select
+                        <NativeSelect
                           disabled={busy}
                           value={table.headerRow}
                           onChange={(e) =>
@@ -378,7 +379,7 @@ export default function ImportWizard({
                               {i + 1}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </label>
                       <span>
                         {table.total.toLocaleString()} rows ·{" "}
@@ -391,7 +392,7 @@ export default function ImportWizard({
                       {availableSheets.length > 1 && (
                         <label>
                           Worksheet
-                          <select
+                          <NativeSelect
                             aria-label="Choose worksheet"
                             defaultValue=""
                             onChange={(e) => void read(file, e.target.value)}
@@ -402,12 +403,12 @@ export default function ImportWizard({
                             {availableSheets.map((s) => (
                               <option key={s}>{s}</option>
                             ))}
-                          </select>
+                          </NativeSelect>
                         </label>
                       )}
                       <label>
                         Headers below a title? Start at row{" "}
-                        <select
+                        <NativeSelect
                           aria-label="Retry header row"
                           defaultValue="1"
                           onChange={(e) =>
@@ -419,7 +420,7 @@ export default function ImportWizard({
                               {i + 1}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </label>
                     </>
                   )}
@@ -458,7 +459,7 @@ export default function ImportWizard({
                                 {field.hint || field.type || "Text"}
                               </small>
                             </label>
-                            <select
+                            <NativeSelect
                               id={`dt-map-${field.key}`}
                               value={mapping[field.key] || ""}
                               onChange={(e) =>
@@ -482,7 +483,7 @@ export default function ImportWizard({
                                   {h}
                                 </option>
                               ))}
-                            </select>
+                            </NativeSelect>
                             <span className="dt-sample">
                               {mapping[field.key]
                                 ? String(

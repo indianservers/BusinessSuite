@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import WorkspaceCalendar from "./WorkspaceCalendar";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -14,7 +15,7 @@ export default function WorkspacePlanning({ view, tasks, members, projects, onOp
   const days = Array.from({ length: 42 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
   if (view === "calendar" && onCreate && onUpdate) return <WorkspaceCalendar tasks={tasks} members={members} projects={projects} onOpen={onOpen} canEdit={canEdit} onCreate={onCreate} onUpdate={onUpdate} onRefresh={onRefresh} />;
   return <section className="ws-planning" aria-label={view === "calendar" ? "Workspace calendar" : "Workspace workload"}>
-    <header><h2>{view === "calendar" ? "Calendar" : "Team workload"}</h2><select aria-label="Planning project" value={project} onChange={e => setProject(e.target.value)}><option value="">All workspace projects</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></header>
+    <header><h2>{view === "calendar" ? "Calendar" : "Team workload"}</h2><NativeSelect aria-label="Planning project" value={project} onChange={e => setProject(e.target.value)}><option value="">All workspace projects</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</NativeSelect></header>
     {view === "calendar" ? <>
       <div className="ws-calendar-controls"><button aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>←</button><strong>{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</strong><button aria-label="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>→</button><button onClick={() => setMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>Today</button></div>
       <p>Tasks appear on their due date, or start date when no due date is set. Open a task to change its schedule.</p>

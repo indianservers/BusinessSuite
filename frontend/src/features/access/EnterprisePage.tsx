@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp } from "./AdminVerification";
 import { assetUrl } from "@/lib/utils";
@@ -213,7 +214,7 @@ function Field({
     return (
       <label>
         {name}
-        <select
+        <NativeSelect
           aria-label={name}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -223,7 +224,7 @@ function Field({
               {v}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
     );
   return (
@@ -537,7 +538,7 @@ export default function EnterprisePage() {
           </p>
         </div>
         <div className="ec-toolbar">
-          <select
+          <NativeSelect
             aria-label="Company"
             value={company}
             onChange={(e) => setCompany(Number(e.target.value))}
@@ -547,7 +548,7 @@ export default function EnterprisePage() {
                 {c.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <Button variant="outline" size="sm" onClick={load} disabled={busy}>
             <RefreshCw size={14} />
             Refresh
@@ -662,7 +663,7 @@ export default function EnterprisePage() {
           <div className="ec-filter">
             <label>
               Source
-              <select
+              <NativeSelect
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
               >
@@ -671,7 +672,7 @@ export default function EnterprisePage() {
                     {label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               From
@@ -691,7 +692,7 @@ export default function EnterprisePage() {
             </label>
             <label>
               Branch
-              <select
+              <NativeSelect
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
               >
@@ -701,11 +702,11 @@ export default function EnterprisePage() {
                     {b.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Department
-              <select
+              <NativeSelect
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
               >
@@ -715,7 +716,7 @@ export default function EnterprisePage() {
                     {d.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <Button
               variant="outline"

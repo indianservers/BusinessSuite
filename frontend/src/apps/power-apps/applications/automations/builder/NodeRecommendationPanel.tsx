@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { connectionError, createNode, nodeDefinition } from "./graph";
 import type { WorkflowGraph, WorkflowNode, NodeDefinition } from "./types";
@@ -71,7 +72,7 @@ export function NodeRecommendationPanel({
       <h3>Suggested next steps</h3>
       <label>
         Output
-        <select
+        <NativeSelect
           aria-label="Recommendation output port"
           value={port}
           onChange={(e) => setPort(e.target.value)}
@@ -83,7 +84,7 @@ export function NodeRecommendationPanel({
                 {p.label}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </label>
       <p>
         Based on compatible ports, declared outputs and the allowed catalog.

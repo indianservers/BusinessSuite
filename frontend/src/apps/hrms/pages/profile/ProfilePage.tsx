@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -518,13 +519,13 @@ export default function ProfilePage() {
             <CompactForm onSubmit={submitDocument} className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Document type</Label>
-                <select
+                <NativeSelect
                   className="h-10 rounded-md border bg-background px-3 text-sm"
                   value={documentDraft.document_type}
                   onChange={(e) => setDocumentDraft((current) => ({ ...current, document_type: e.target.value }))}
                 >
                   {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-1.5"><Label>Document name</Label><Input value={documentDraft.document_name} onChange={(e) => setDocumentDraft((current) => ({ ...current, document_name: e.target.value }))} placeholder="Class X marksheet, PAN card..." /></div>
               <div className="space-y-1.5"><Label>Document number</Label><Input value={documentDraft.document_number} onChange={(e) => setDocumentDraft((current) => ({ ...current, document_number: e.target.value }))} /></div>

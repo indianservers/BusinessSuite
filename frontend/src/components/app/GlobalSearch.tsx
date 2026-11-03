@@ -734,11 +734,11 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
                       </span>
                     </button>
                   ))
-                ) : (
+                ) : !recordSearch.isFetching ? (
                   <div className="p-8 text-center text-sm text-muted-foreground">
                     No results found
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </Dialog.Content>

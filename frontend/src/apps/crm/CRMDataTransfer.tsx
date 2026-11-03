@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useSearchParams } from "react-router-dom";
 import { refreshPageData } from "@/lib/page-refresh";
 import { useState } from "react";
@@ -123,7 +124,7 @@ export function CRMTransferHub() {
       <section className="rounded-xl border bg-card p-6 space-y-5">
         <label className="block text-sm font-medium">
           What data are you working with?
-          <select
+          <NativeSelect
             className="mt-2 block w-full max-w-md rounded-md border bg-background p-3"
             value={entity}
             onChange={(e) => setEntity(e.target.value)}
@@ -141,7 +142,7 @@ export function CRMTransferHub() {
                 {name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <div key={`${entity}:${revision}`} className="flex flex-wrap gap-3">
           {entity === "leads" ? (

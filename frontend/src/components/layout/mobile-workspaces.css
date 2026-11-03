@@ -1,0 +1,46 @@
+/* Shared constraints for the SRM, CRM and PMS application shells. */
+:is(.product-srm,.product-crm,.product-pms) .kf-main { min-width:0; }
+body:has([role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]) :is(.workspace-team-trigger,.workspace-back-to-top,.pms-ai-launcher,.pms-ai-panel) { visibility:hidden; pointer-events:none; }
+.pms-ai-launcher { z-index:30; }
+@media(max-width:1279px) {
+  body:has(.srm-pos) .workspace-team-trigger { position:static; display:flex; width:max-content; min-height:44px; margin:0 12px 12px auto; }
+  .kf-topbar.suite-app-bar { flex-wrap:wrap; }
+  .kf-topbar.suite-app-bar .mobile-module-branch-row { flex-basis:100%; }
+}
+@media(max-width:1023px) {
+  :is(.product-srm,.product-crm,.product-pms) .kf-main .grid>* { min-width:0; }
+  body:has(.srm-pos) :is(.workspace-back-to-top,.pms-ai-launcher) { bottom:calc(100px + env(safe-area-inset-bottom)); }
+}
+
+@media(max-width:767px) {
+  .kf-topbar.suite-app-bar { gap:8px; padding:8px 12px; }
+  .kf-topbar.suite-app-bar>div.ml-auto { flex-wrap:nowrap; gap:6px; }
+  .kf-topbar.suite-app-bar>div:first-of-type { flex:1; min-width:0; }
+  .kf-topbar.suite-app-bar .mobile-module-branch-row { flex-basis:100%; padding-top:6px; border-top:1px solid hsl(var(--border)); }
+  .mobile-module-branch-row .suite-branch-control { flex:1; min-width:0; }
+  .mobile-module-branch-row .suite-branch-field { max-width:100%; }
+  .mobile-module-branch-row .suite-branch-select { min-width:0; max-width:145px; }
+  .kf-topbar [aria-label="Account menu"] { padding:3px; }
+  .suite-sidebar[aria-modal="true"] { width:min(290px,88vw); padding-bottom:env(safe-area-inset-bottom); }
+  :is(.product-srm,.product-crm,.product-pms) .kf-main { padding:12px 12px calc(96px + env(safe-area-inset-bottom)); }
+  .product-srm .kf-main:has(>.srm-pos) { padding:12px 0 0; background:#f1f5fb; }
+  :is(.product-srm,.product-crm,.product-pms) .kf-main :is(h1,h2,h3,p) { overflow-wrap:anywhere; }
+  :is(.product-srm,.product-crm,.product-pms) .kf-main :is(input,select,textarea) { max-width:100%; font-size:16px; }
+  :is(.product-srm,.product-crm,.product-pms) .kf-main .kf-button { max-width:100%; min-height:40px; white-space:normal; height:auto; }
+  :is(.product-srm,.product-crm,.product-pms) .kf-main :is(.space-y-4,.space-y-5,.space-y-6)>:is(header,.flex.items-center.justify-between) { flex-wrap:wrap; gap:12px; }
+  .workspace-team-trigger { position:static; display:flex; width:max-content; margin:0 0 12px auto; max-width:100%; min-height:44px; }
+  .workspace-back-to-top { right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); }
+  .pms-ai-launcher { left:12px; bottom:calc(12px + env(safe-area-inset-bottom)); width:48px; height:48px; }
+  body:has(.srm-pos) .pms-ai-launcher { bottom:calc(90px + env(safe-area-inset-bottom)); }
+  body:has(.srm-pos) .workspace-team-trigger { bottom:calc(90px + env(safe-area-inset-bottom)); }
+  body:has(.srm-pos) .workspace-back-to-top { bottom:calc(146px + env(safe-area-inset-bottom)); }
+  [role="dialog"][data-state="open"] { max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overscroll-behavior:contain; }
+  [role="dialog"] :is(input,select,textarea) { max-width:100%; min-width:0; }
+  [role="dialog"] :is(form,fieldset,.grid)>* { min-width:0; }
+  :is(.product-srm,.product-crm,.product-pms) fieldset { min-width:0; max-width:100%; }
+  .pms-operator-page label:not(:has(input[type="checkbox"])) { display:flex; flex-direction:column; align-items:stretch; gap:6px; width:100%; }
+  .pms-operator-page label> :is(input,select) { margin-left:0; width:100%; }
+  .pms-operator-page .flex { flex-wrap:wrap; }
+  [role="dialog"] :is(h2,h3) { overflow-wrap:anywhere; }
+  [role="menu"],[data-radix-popper-content-wrapper] { max-width:calc(100vw - 16px); }
+}

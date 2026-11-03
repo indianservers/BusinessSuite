@@ -17,7 +17,7 @@ export default function BackToTop() {
       aria-label="Back to top"
       title="Back to top"
       size="icon"
-      className="fixed bottom-5 right-5 z-40 h-10 w-10 rounded-full shadow-lg"
+      className="workspace-back-to-top fixed bottom-20 right-5 z-30 h-10 w-10 rounded-full shadow-lg"
       onClick={() => document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" })}
     >
       <ArrowUp className="h-4 w-4" />

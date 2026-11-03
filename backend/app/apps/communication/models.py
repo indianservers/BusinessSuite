@@ -3,6 +3,7 @@ from sqlalchemy.sql import func
 
 from app.db.base_class import Base
 from . import customer_models  # noqa: F401 - register customer journey tables
+from . import engagement_models  # noqa: F401 - customer work queue metadata
 
 
 class CommunicationEmailTemplate(Base):
@@ -44,6 +45,7 @@ class CommunicationEmailMessage(Base):
 
 class CommunicationEmailAttachment(Base):
     __tablename__ = "communication_email_attachments"
+    organization_id = Column(Integer, ForeignKey('companies.id'), nullable=True, index=True)
 
     id = Column(Integer, primary_key=True, index=True)
     message_id = Column(Integer, ForeignKey("communication_email_messages.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -111,6 +113,7 @@ class CommunicationAutoResponseRule(Base):
 
 class CommunicationCampaign(Base):
     __tablename__ = "communication_campaigns"
+    organization_id = Column(Integer, ForeignKey('companies.id'), nullable=True, index=True)
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(180), nullable=False, index=True)
@@ -128,6 +131,7 @@ class CommunicationCampaign(Base):
 
 class CommunicationCampaignMember(Base):
     __tablename__ = "communication_campaign_members"
+    organization_id = Column(Integer, ForeignKey('companies.id'), nullable=True, index=True)
     __table_args__ = (UniqueConstraint("campaign_id", "record_type", "record_id", name="uq_communication_campaign_member_record"),)
 
     id = Column(Integer, primary_key=True, index=True)
@@ -141,6 +145,7 @@ class CommunicationCampaignMember(Base):
 
 class CommunicationCampaignSend(Base):
     __tablename__ = "communication_campaign_sends"
+    organization_id = Column(Integer, ForeignKey('companies.id'), nullable=True, index=True)
 
     id = Column(Integer, primary_key=True, index=True)
     campaign_id = Column(Integer, ForeignKey("communication_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)

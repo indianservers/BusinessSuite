@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { NativeSelect } from "@/components/ui/native-select";
+import { useEffect,useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { RecordPicker,type PickedRecord } from "./center/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -114,7 +117,9 @@ function Field({
 }
 
 export default function CustomerCommunications() {
-  const [tab, setTab] = useState("overview");
+  const [queryParams]=useSearchParams();
+  const [tab, setTab] = useState(queryParams.get("customerTab")||"overview");
+  useEffect(()=>{if(queryParams.get("customerTab"))setTab(queryParams.get("customerTab")!);},[queryParams.get("customerTab")]);
   const [recipient, setRecipient] = useState<Row>(initialRecipient);
   const [recipientEdit, setRecipientEdit] = useState<number | null>(null);
   const [rule, setRule] = useState<Row>(initialRule);
@@ -124,8 +129,7 @@ export default function CustomerCommunications() {
   const [daysBefore, setDaysBefore] = useState(0);
   const [waTemplate, setWaTemplate] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
-  const [sourceType, setSourceType] = useState("order");
-  const [sourceId, setSourceId] = useState("");
+  const [boundRecord,setBoundRecord]=useState<PickedRecord|null>(null);
   const [note, setNote] = useState("");
   const [followUp, setFollowUp] = useState("");
   const [assignee, setAssignee] = useState("");
@@ -343,7 +347,7 @@ export default function CustomerCommunications() {
                     </Field>
                   ))}
                   <Field title="Contact role">
-                    <select
+                    <NativeSelect
                       className={selectClass}
                       value={recipient.role}
                       onChange={(e) =>
@@ -355,10 +359,10 @@ export default function CustomerCommunications() {
                           <option key={v}>{v}</option>
                         ),
                       )}
-                    </select>
+                    </NativeSelect>
                   </Field>
                   <Field title="Preferred channel">
-                    <select
+                    <NativeSelect
                       className={selectClass}
                       value={recipient.preferred_channel}
                       onChange={(e) =>
@@ -370,7 +374,7 @@ export default function CustomerCommunications() {
                     >
                       <option>email</option>
                       <option>whatsapp</option>
-                    </select>
+                    </NativeSelect>
                   </Field>
                   {["birthday", "anniversary"].map((key) => (
                     <Field key={key} title={label(key)}>
@@ -506,51 +510,8 @@ export default function CustomerCommunications() {
                     connected. Open WhatsApp in the Communication Hub to reply
                     there.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    <select
-                      aria-label="Business record type"
-                      className={selectClass + " max-w-40"}
-                      value={sourceType}
-                      onChange={(e) => setSourceType(e.target.value)}
-                    >
-                      {[
-                        "order",
-                        "invoice",
-                        "service",
-                        "follow_up",
-                        "contract",
-                        "lead",
-                        "meeting",
-                        "quotation",
-                        "shipment",
-                        "contact",
-                      ].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                    <Input
-                      className="max-w-36"
-                      aria-label="Business record ID"
-                      type="number"
-                      min="1"
-                      placeholder="Record ID"
-                      value={sourceId}
-                      onChange={(e) => setSourceId(e.target.value)}
-                    />
-                    <Button
-                      disabled={!sourceId || action.isPending}
-                      onClick={() =>
-                        run(() =>
-                          save(`/recipients/${selected}/bindings`, {
-                            source_type: sourceType,
-                            source_id: Number(sourceId),
-                          }),
-                        )
-                      }
-                    >
-                      Link record
-                    </Button>
-                  </div>
+                  <RecordPicker label="Find a business record to link" value={boundRecord} onChange={setBoundRecord} types={['order','invoice','service','follow_up','contract','lead','meeting','quotation','shipment','contact']}/>
+                  <Button disabled={!boundRecord||action.isPending} onClick={()=>boundRecord&&run(()=>save(`/recipients/${selected}/bindings`,{source_type:boundRecord.entity,source_id:boundRecord.id}))}>Link selected business record</Button>
                   {bindings.data?.items.map((b: Row) => (
                     <div
                       key={b.id}
@@ -777,7 +738,7 @@ export default function CustomerCommunications() {
                     ["status", ["draft", "active", "paused"]],
                   ].map(([key, options]) => (
                     <Field key={String(key)} title={label(String(key))}>
-                      <select
+                      <NativeSelect
                         className={selectClass}
                         value={rule[String(key)]}
                         onChange={(e) =>
@@ -789,7 +750,7 @@ export default function CustomerCommunications() {
                             {label(v)}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </Field>
                   ))}
                 </div>
@@ -1131,7 +1092,7 @@ export default function CustomerCommunications() {
                   </Field>
                 ))}
                 <Field title="Shipment status">
-                  <select
+                  <NativeSelect
                     className={selectClass}
                     value={shipment.status}
                     onChange={(e) =>
@@ -1150,7 +1111,7 @@ export default function CustomerCommunications() {
                     ].map((v) => (
                       <option key={v}>{v}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </Field>
                 <Button disabled={action.isPending}>Save shipment</Button>
               </form>

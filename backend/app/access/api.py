@@ -31,6 +31,8 @@ from app.common.services.identity import SharedIdentityService
 router = APIRouter(prefix="/access", tags=["Master Suite Users & Access"])
 from app.access.settings_hub import router as settings_router
 router.include_router(settings_router)
+from app.access.homepage_banner import router as homepage_banner_router
+router.include_router(homepage_banner_router)
 
 
 class Strict(BaseModel):

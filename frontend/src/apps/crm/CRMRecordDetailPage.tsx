@@ -1,3 +1,5 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { MobileContactActions } from "@/components/mobile/MobilePrimitives";
 import CompactForm from "@/components/forms/CompactForm";
 import CustomerFollowUps from "@/shared/follow-ups/CustomerFollowUps";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -368,6 +370,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
 
       {!loading && record ? (
         <>
+          <MobileContactActions phone={record.phone ? `${record.phone_country_code || ""}${record.phone}` : undefined} email={record.email} onNote={!finalActionBlocked ? ()=>setAction("note") : undefined}/>
           <header className="rounded-lg border bg-card p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
@@ -654,9 +657,9 @@ function DetailInlineEditor({ config, value, onChange, onCommit, onCancel }: { c
   };
   if (config.type === "select") {
     return (
-      <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...common}>
+      <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...common}>
         {(config.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
+      </NativeSelect>
     );
   }
   const type = config.type === "number" ? "number" : config.type === "date" ? "date" : config.type === "datetime" ? "datetime-local" : "text";
@@ -884,11 +887,11 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
           <div className="grid gap-3 md:grid-cols-[14rem_1fr]">
             <Field label="Provider">
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={provider} onChange={(event) => setProvider(event.target.value)}>
+              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={provider} onChange={(event) => setProvider(event.target.value)}>
                 <option value="manual">Manual enrichment</option>
                 <option value="csv_import">CSV/import enrichment</option>
                 <option value="third_party">Future third-party provider</option>
-              </select>
+              </NativeSelect>
             </Field>
             <div className="grid gap-3 md:grid-cols-3">
               {enrichmentInputFields.map(([key, label]) => (
@@ -1107,10 +1110,10 @@ export function EmailComposeModal({ kind, record, disabled = false, approvalStat
           {disabled ? <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">Final send is disabled while approval is {approvalStatus}.</div> : null}
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="Template">
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" onChange={(event) => applyTemplate(event.target.value)} defaultValue="">
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" onChange={(event) => applyTemplate(event.target.value)} defaultValue="">
                 <option value="">Select template</option>
                 {templates.map((template) => <option key={String(template.id)} value={String(template.id)}>{valueText(template.name)}</option>)}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Insert CRM Field">
               <div className="flex flex-wrap gap-2">
@@ -1212,20 +1215,20 @@ function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKi
           {statusMessage ? <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{statusMessage}</div> : null}
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="Channel">
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={channel} onChange={(event) => { patch("channel", event.target.value); patch("templateId", ""); }}>
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={channel} onChange={(event) => { patch("channel", event.target.value); patch("templateId", ""); }}>
                 <option value="sms">SMS</option>
                 <option value="whatsapp">WhatsApp</option>
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="To">
               <PhoneInput label="Recipient phone" value={valueText(draft.to)} countryCode={valueText(draft.country_code)} onChange={value=>patch("to",value)} onCountryCodeChange={value=>patch("country_code",value)} required />
             </Field>
           </div>
           <Field label="Template">
-            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={valueText(draft.templateId)} onChange={(event) => applyTemplate(event.target.value)}>
+            <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={valueText(draft.templateId)} onChange={(event) => applyTemplate(event.target.value)}>
               <option value="">Select template</option>
               {templates.map((template) => <option key={String(template.id)} value={String(template.id)}>{valueText(template.name)}</option>)}
-            </select>
+            </NativeSelect>
           </Field>
           <Field label="Message">
             <textarea value={body} onChange={(event) => patch("body", event.target.value)} rows={7} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />

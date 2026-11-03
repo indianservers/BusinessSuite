@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building2 } from "lucide-react";
@@ -22,7 +23,7 @@ export default function CompanySwitcher() {
     <label className="suite-company">
       <Building2 size={17} />
       <span className="sr-only">Current company</span>
-      <select
+      <NativeSelect loading={busy}
         aria-label="Current company"
         disabled={busy || organizations.length < 2}
         value={access.companyId}
@@ -48,7 +49,7 @@ export default function CompanySwitcher() {
             {org.id === access.companyId ? " (active)" : ""}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {busy && <span role="status">Switching…</span>}
     </label>
   );

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { ChevronDown, Plus, Search, X, Star } from "lucide-react";
 import { NodeIcon } from "./NodeIcon";
@@ -109,7 +110,7 @@ export function NodeLibrary({
         />
       </label>
       <label className="as-category-select">
-        <select
+        <NativeSelect
           aria-label="Node category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -120,7 +121,7 @@ export function NodeLibrary({
           {groups.map((c) => (
             <option key={c}>{c}</option>
           ))}
-        </select>
+        </NativeSelect>
         <ChevronDown size={14} />
       </label>
       <p className="as-library-count">{items.length} editor-ready nodes</p>

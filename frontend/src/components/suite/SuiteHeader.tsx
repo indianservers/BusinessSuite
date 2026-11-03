@@ -6,11 +6,13 @@ import SuiteNotificationBell from "./SuiteNotificationBell";
 import GlobalSearch from "@/components/app/GlobalSearch";
 import CompanySwitcher from "./CompanySwitcher";
 import BranchSwitcher from "./BranchSwitcher";
+import MobileLauncherMenu from "./MobileLauncherMenu";
 
 export default function SuiteHeader() {
   const authenticated = useAuthStore((s) => s.isAuthenticated);
   return (
     <header className="suite-app-bar suite-header">
+      <MobileLauncherMenu />
       <SuiteBrand
         to={authenticated ? "/dashboard" : "/"}
         subtitle={

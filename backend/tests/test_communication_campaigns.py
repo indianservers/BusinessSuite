@@ -1,15 +1,17 @@
-from tests.communication_test_utils import communication_headers, create_template
+from tests.communication_test_utils import communication_headers, create_template, campaign_lead
 from app.apps.crm.models import CRMLead
 from app.core.config import settings
 
 
 def test_campaign_preview_and_send_tracks_counts(client, db, monkeypatch):
     monkeypatch.setattr(settings, "COMMUNICATION_EMAIL_PROVIDER", "stub")
-    headers = communication_headers(client, db)
-    db.add(CRMLead(first_name="Cam", last_name="Lead", full_name="Cam Lead", email="campaign@example.com", status="New"))
+    headers = communication_headers(client, db, crm_access=True)
+    campaign_lead(db, first_name="Cam", last_name="Lead", full_name="Cam Lead", email="campaign@example.com", status="New")
     db.commit()
     template = create_template(client, headers)
-    campaign = client.post("/api/v1/communication/campaigns", headers=headers, json={"name": "June Campaign", "type": "email", "template_id": template["id"], "segment_json": {"source": "lead", "status": "New", "limit": 10}}).json()
+    response = client.post("/api/v1/communication/campaigns", headers=headers, json={"name": "June Campaign", "type": "email", "template_id": template["id"], "segment_json": {"source": "lead", "status": "New", "limit": 10}})
+    assert response.status_code == 201, response.text
+    campaign = response.json()
 
     preview = client.post(f"/api/v1/communication/campaigns/{campaign['id']}/preview", headers=headers)
     assert preview.status_code == 200
@@ -19,4 +21,6 @@ def test_campaign_preview_and_send_tracks_counts(client, db, monkeypatch):
     assert sent.status_code == 200
     assert sent.json()["status"] == "completed"
     assert sent.json()["sent_count"] >= 1
+    repeated = client.post(f"/api/v1/communication/campaigns/{campaign['id']}/send", headers=headers)
+    assert repeated.status_code == 409
 

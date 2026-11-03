@@ -12,7 +12,7 @@ export const communicationApi = {
   createTemplate: (data: unknown) => create("/communication/email-templates", data),
   draftEmail: (data: unknown) => create("/communication/emails/draft", data),
   sendEmail: (data: unknown) => create("/communication/emails/send", data),
-  timeline: (recordType = "lead", recordId = 1) => list(`/communication/timeline/${recordType}/${recordId}`),
+  timeline: (recordType: string, recordId: number) => list(`/communication/timeline/${recordType}/${recordId}`),
   webforms: () => list("/communication/webforms"),
   createWebform: (data: unknown) => create("/communication/webforms", data),
   publicWebform: (slug: string) => api.get(`/public/webforms/${slug}`).then((res) => res.data),

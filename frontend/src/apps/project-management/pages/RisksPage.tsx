@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -221,10 +222,10 @@ export default function RisksPage() {
           <CardContent>
             <CompactForm className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
               <Field label="Project">
-                <select className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
+                <NativeSelect className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
                   <option value="">Select project</option>
                   {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Title">
                 <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
@@ -233,36 +234,36 @@ export default function RisksPage() {
                 <Input value={form.category || ""} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} placeholder="Delivery, Scope, Budget, Vendor" />
               </Field>
               <Field label="Owner">
-                <select className="input" value={form.owner_user_id || ""} onChange={(event) => setForm((current) => ({ ...current, owner_user_id: event.target.value ? Number(event.target.value) : null }))}>
+                <NativeSelect className="input" value={form.owner_user_id || ""} onChange={(event) => setForm((current) => ({ ...current, owner_user_id: event.target.value ? Number(event.target.value) : null }))}>
                   <option value="">Unassigned</option>
                   {users.map((user) => <option key={user.id} value={user.id}>{user.name || user.email}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Probability">
-                <select className="input" value={form.probability || 3} onChange={(event) => setForm((current) => ({ ...current, probability: Number(event.target.value) }))}>
+                <NativeSelect className="input" value={form.probability || 3} onChange={(event) => setForm((current) => ({ ...current, probability: Number(event.target.value) }))}>
                   {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Impact">
-                <select className="input" value={form.impact || 3} onChange={(event) => setForm((current) => ({ ...current, impact: Number(event.target.value) }))}>
+                <NativeSelect className="input" value={form.impact || 3} onChange={(event) => setForm((current) => ({ ...current, impact: Number(event.target.value) }))}>
                   {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Status">
-                <select className="input" value={form.status || "open"} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}>
+                <NativeSelect className="input" value={form.status || "open"} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}>
                   <option value="open">Open</option>
                   <option value="mitigating">Mitigating</option>
                   <option value="closed">Closed</option>
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Due date">
                 <Input type="date" value={form.due_date || ""} onChange={(event) => setForm((current) => ({ ...current, due_date: event.target.value }))} />
               </Field>
               <Field label="Linked task">
-                <select className="input" value={form.linked_task_id || ""} onChange={(event) => setForm((current) => ({ ...current, linked_task_id: event.target.value ? Number(event.target.value) : null }))}>
+                <NativeSelect className="input" value={form.linked_task_id || ""} onChange={(event) => setForm((current) => ({ ...current, linked_task_id: event.target.value ? Number(event.target.value) : null }))}>
                   <option value="">No linked task</option>
                   {tasks.map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label={`Score ${(form.probability || 0) * (form.impact || 0)}`}>
                 <div className={cn("rounded-md border px-3 py-2 text-sm font-medium", severityTone((form.probability || 0) * (form.impact || 0)))}>
@@ -367,7 +368,7 @@ function Filter({ label, value, onChange, children }: { label: string; value: st
   return (
     <label className="space-y-1 text-sm">
       <span className="text-xs font-medium uppercase text-muted-foreground">{label}</span>
-      <select className="input" value={value} onChange={(event) => onChange(event.target.value)}>{children}</select>
+      <NativeSelect className="input" value={value} onChange={(event) => onChange(event.target.value)}>{children}</NativeSelect>
     </label>
   );
 }

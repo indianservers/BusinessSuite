@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -82,7 +83,7 @@ export default function SuiteNotificationsPage() {
       <div className="suite-toolbar">
         <label>
           Application{" "}
-          <select
+          <NativeSelect
             aria-label="Filter notifications by application"
             value={app}
             onChange={(e) => {
@@ -100,7 +101,7 @@ export default function SuiteNotificationsPage() {
                   {m.name}
                 </option>
               ))}
-          </select>
+          </NativeSelect>
         </label>
         <label>
           <input

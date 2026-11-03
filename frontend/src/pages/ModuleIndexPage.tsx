@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, BarChart3, BriefcaseBusiness, Check, ChevronDown, CircleHelp, FileText, Landmark, LogIn, Package, Search, Users, X } from "lucide-react";
@@ -27,7 +28,7 @@ export default function ModuleIndexPage() {
   return <div className="suite-launcher">
     <header className="suite-topbar"><div className="suite-topbar-inner">
       <Link to="/" className="suite-brand"><SuiteMark/><strong>{BUSINESS_SUITE_NAME}</strong><span className="suite-version">v{BUSINESS_SUITE_VERSION}</span></Link>
-      <label className="suite-workspace-picker"><BriefcaseBusiness size={18}/><select aria-label="Choose application" value="" onChange={event=>{if(event.target.value)navigate(event.target.value);}}><option value="">My Workspace</option>{accessibleModules.map(module=><option key={module.key} value={destination(module)}>{module.name}</option>)}</select><ChevronDown size={15}/></label>
+      <label className="suite-workspace-picker"><BriefcaseBusiness size={18}/><NativeSelect aria-label="Choose application" value="" onChange={event=>{if(event.target.value)navigate(event.target.value);}}><option value="">My Workspace</option>{accessibleModules.map(module=><option key={module.key} value={destination(module)}>{module.name}</option>)}</NativeSelect><ChevronDown size={15}/></label>
       <label className="suite-search"><Search size={19}/><input ref={search} aria-label="Search applications" placeholder="Search applications, help, or anything..." value={query} onChange={event=>setQuery(event.target.value)}/>{query ? <button aria-label="Clear search" onClick={()=>setQuery("")}><X size={16}/></button> : <kbd>Ctrl K</kbd>}</label>
       <button className="suite-help" onClick={()=>setHelp("Help")}><CircleHelp size={19}/><span>Help</span></button>
       <Link to="/login" className="suite-general-login"><LogIn size={18}/>General login</Link>

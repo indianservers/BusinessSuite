@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useState } from "react";
@@ -183,7 +184,7 @@ export default function CalendarEventEditor({
               <div className="cal-event-grid">
                 <label>
                   Type
-                  <select
+                  <NativeSelect
                     value={draft.kind}
                     onChange={(e) =>
                       setDraft({ ...draft, kind: e.target.value })
@@ -191,11 +192,11 @@ export default function CalendarEventEditor({
                   >
                     <option value="meeting">Meeting</option>
                     <option value="focus">Focus time</option>
-                  </select>
+                  </NativeSelect>
                 </label>
                 <label>
                   Visibility
-                  <select
+                  <NativeSelect
                     value={draft.visibility}
                     onChange={(e) =>
                       setDraft({ ...draft, visibility: e.target.value })
@@ -203,13 +204,13 @@ export default function CalendarEventEditor({
                   >
                     <option value="private">Private</option>
                     <option value="workspace">Workspace</option>
-                  </select>
+                  </NativeSelect>
                 </label>
               </div>
               {draft.visibility === "workspace" && (
                 <label>
                   Workspace
-                  <select
+                  <NativeSelect loading={spaces.isFetching} error={spaces.isError}
                     required
                     value={draft.workspace_id}
                     onChange={(e) =>
@@ -224,7 +225,7 @@ export default function CalendarEventEditor({
                           {w.name}
                         </option>
                       ))}
-                  </select>
+                  </NativeSelect>
                 </label>
               )}
               <div className="cal-event-grid">
@@ -255,7 +256,7 @@ export default function CalendarEventEditor({
               </div>
               <label>
                 Link task
-                <select
+                <NativeSelect
                   value={draft.task_id}
                   onChange={(e) => {
                     const t = tasks.find(
@@ -277,7 +278,7 @@ export default function CalendarEventEditor({
                       {t.title}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
               <label>
                 Meeting URL

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { api } from "@/services/api";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -86,28 +87,28 @@ export default function WorkloadPage() {
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Filters</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
           <Field label="Project">
-            <select className="input" value={filters.projectId} onChange={(event) => setFilter("projectId", event.target.value)}>
+            <NativeSelect className="input" value={filters.projectId} onChange={(event) => setFilter("projectId", event.target.value)}>
               <option value="">All projects</option>
               {data?.projects.map((project) => <option key={project.id} value={project.id}>{project.project_key ? `${project.project_key} - ${project.name}` : project.name}</option>)}
-            </select>
+            </NativeSelect>
           </Field>
           <Field label="Sprint">
-            <select className="input" value={filters.sprintId} onChange={(event) => setFilter("sprintId", event.target.value)}>
+            <NativeSelect className="input" value={filters.sprintId} onChange={(event) => setFilter("sprintId", event.target.value)}>
               <option value="">All sprints</option>
               {visibleSprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
-            </select>
+            </NativeSelect>
           </Field>
           <Field label="Team">
-            <select className="input" value={filters.teamId} onChange={(event) => setFilter("teamId", event.target.value)}>
+            <NativeSelect className="input" value={filters.teamId} onChange={(event) => setFilter("teamId", event.target.value)}>
               <option value="">All teams</option>
-            </select>
+            </NativeSelect>
           </Field>
           <Field label="Basis">
-            <select className="input" value={filters.basis} onChange={(event) => setFilter("basis", event.target.value as WorkloadBasis)}>
+            <NativeSelect className="input" value={filters.basis} onChange={(event) => setFilter("basis", event.target.value as WorkloadBasis)}>
               <option value="hours">Hours</option>
               <option value="story_points">Story points</option>
               <option value="task_count">Task count</option>
-            </select>
+            </NativeSelect>
           </Field>
           <Field label="From"><Input type="date" value={filters.from} onChange={(event) => setFilter("from", event.target.value)} /></Field>
           <Field label="To"><Input type="date" value={filters.to} onChange={(event) => setFilter("to", event.target.value)} /></Field>

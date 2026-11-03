@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, CheckCircle2, Clock3, FileCheck2, GitBranch, History, Inbox, Plus, ReceiptText, Save, ShieldCheck, Trash2, UserCheck } from "lucide-react";
@@ -273,9 +274,9 @@ export default function WorkflowInboxPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Module</Label>
-                  <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={definitionForm.module} onChange={(e) => setDefinitionForm({ ...definitionForm, module: e.target.value })}>
+                  <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={definitionForm.module} onChange={(e) => setDefinitionForm({ ...definitionForm, module: e.target.value })}>
                     {["leave", "payroll", "attendance", "documents", "onboarding", "helpdesk", "reimbursement"].map((module) => <option key={module}>{module}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Trigger Event</Label>
@@ -301,9 +302,9 @@ export default function WorkflowInboxPage() {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label>Approver Type</Label>
-                        <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={step.approver_type} onChange={(e) => updateStep(index, { approver_type: e.target.value })}>
+                        <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={step.approver_type} onChange={(e) => updateStep(index, { approver_type: e.target.value })}>
                           {["Role", "User"].map((type) => <option key={type}>{type}</option>)}
-                        </select>
+                        </NativeSelect>
                       </div>
                       <div className="space-y-1.5">
                         <Label>Approver Value</Label>

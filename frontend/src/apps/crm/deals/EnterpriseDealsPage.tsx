@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CRMDataTransfer from "../CRMDataTransfer";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import DealsDataGrid, { dealGridSource } from "./DealsDataGrid";
@@ -673,7 +674,7 @@ export default function EnterpriseDealsPage() {
             ].map(([key, title, choices]) => (
               <label key={String(key)}>
                 {String(title)}
-                <select
+                <NativeSelect
                   aria-label={String(title)}
                   value={String(filters[key as keyof Filters])}
                   onChange={(event) => {
@@ -687,7 +688,7 @@ export default function EnterpriseDealsPage() {
                       {item.name || item.full_name || item.email}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
             ))}
             {[
@@ -724,7 +725,7 @@ export default function EnterpriseDealsPage() {
             ].map(([key, choices]) => (
               <label key={String(key)}>
                 {label(String(key))}
-                <select
+                <NativeSelect
                   aria-label={label(String(key))}
                   value={String(filters[key as keyof Filters])}
                   onChange={(e) => change(key as keyof Filters, e.target.value)}
@@ -733,7 +734,7 @@ export default function EnterpriseDealsPage() {
                   {(choices as string[]).map((item) => (
                     <option key={item}>{item}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
             ))}
             {["industry", "source"].map((key) => (
@@ -749,7 +750,7 @@ export default function EnterpriseDealsPage() {
             ))}
             <label>
               Sales team
-              <select
+              <NativeSelect
                 aria-label="Sales team"
                 value={filters.team_id}
                 onChange={(e) => change("team_id", e.target.value)}
@@ -760,7 +761,7 @@ export default function EnterpriseDealsPage() {
                     {team.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Closing from
@@ -830,7 +831,7 @@ export default function EnterpriseDealsPage() {
         )}
         {mode !== "grid" && (
           <div className="ed-view-tools">
-            <select
+            <NativeSelect
               aria-label="Saved deal views"
               onChange={(e) => {
                 const view = views[Number(e.target.value)];
@@ -848,7 +849,7 @@ export default function EnterpriseDealsPage() {
                   {view.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <Input
               aria-label="View name"
               placeholder="Name this view"
@@ -878,7 +879,7 @@ export default function EnterpriseDealsPage() {
         <div className="ed-bulk">
           <strong>{selected.length} selected</strong>
           {data?.can_assign && (
-            <select
+            <NativeSelect
               aria-label="Bulk reassign deals"
               disabled={busy}
               defaultValue=""
@@ -890,13 +891,13 @@ export default function EnterpriseDealsPage() {
                   {item.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           )}
           <Button size="sm" variant="outline" onClick={() => setSelected([])}>
             Clear selection
           </Button>
           {data?.can_manage && (
-            <select
+            <NativeSelect
               aria-label="Bulk update deal stage"
               disabled={busy}
               value=""
@@ -908,7 +909,7 @@ export default function EnterpriseDealsPage() {
                   {item.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           )}
           {data?.can_archive && (
             <Button
@@ -1088,7 +1089,7 @@ export default function EnterpriseDealsPage() {
           {mode === "forecast" && (
             <section className="ed-forecast">
               <h2>Revenue forecast</h2>
-              <select
+              <NativeSelect
                 className="my-3 rounded border bg-background p-2 text-sm"
                 aria-label="Forecast grouping"
                 value={forecastGroup}
@@ -1101,7 +1102,7 @@ export default function EnterpriseDealsPage() {
                     </option>
                   ),
                 )}
-              </select>
+              </NativeSelect>
               <p className="ed-muted">
                 All filtered open deals, grouped by the selected period or sales
                 dimension, with currencies kept separate. Select a group to

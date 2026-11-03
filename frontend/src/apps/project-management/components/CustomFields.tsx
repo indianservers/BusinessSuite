@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect, usePageRefresh } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,7 +17,7 @@ export function FieldInput({field,value,onChange,disabled=false}:{field:CustomFi
  const raw=value?.value ?? "";
  const set=(v:string|boolean)=>onChange({ ...value,value:typeof v === "string" && v === "" ? null : numericFieldTypes.includes(field.field_type)?Number(v):v });
  const cls="h-10 w-full rounded-lg border bg-background px-3 text-sm";
- if(field.field_type==="dropdown")return <select aria-label={field.name} className={cls} disabled={disabled} value={String(raw)} onChange={e=>set(e.target.value)}><option value="">Not set</option>{field.options.map(o=><option key={o}>{o}</option>)}</select>;
+ if(field.field_type==="dropdown")return <NativeSelect aria-label={field.name} className={cls} disabled={disabled} value={String(raw)} onChange={e=>set(e.target.value)}><option value="">Not set</option>{field.options.map(o=><option key={o}>{o}</option>)}</NativeSelect>;
  if(field.field_type==="checkbox")return <label className="flex h-10 items-center gap-2 text-sm"><input aria-label={field.name} type="checkbox" disabled={disabled} checked={raw===true} onChange={e=>set(e.target.checked)}/>{raw===true?"Yes":"No"}</label>;
  if(field.field_type==="phone")return <PhoneInput label={field.name} value={String(raw)} countryCode={value?.country_code ?? "+91"} disabled={disabled} onChange={v=>onChange({...value,value:v||null,country_code:value?.country_code ?? "+91"})} onCountryCodeChange={v=>onChange({...value,country_code:v})}/>;
  if(field.field_type==="long_text")return <textarea aria-label={field.name} className="min-h-20 w-full rounded-lg border bg-background p-3 text-sm" disabled={disabled} maxLength={20000} value={String(raw)} onChange={e=>set(e.target.value)}/>;

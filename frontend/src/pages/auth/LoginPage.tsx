@@ -287,7 +287,7 @@ export default function LoginPage() {
       const code = (err as { code?: string }).code;
       setError(
         code === "auth/popup-closed-by-user"
-          ? "The sign-in popup closed before sign-in completed. For Google, try the same-tab option below."
+          ? "The sign-in popup closed before sign-in completed. Please try again."
           : code === "auth/popup-blocked"
             ? "Allow the sign-in popup, then try again."
             : errorMessage(

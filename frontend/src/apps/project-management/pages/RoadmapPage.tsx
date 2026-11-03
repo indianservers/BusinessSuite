@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -341,9 +342,9 @@ function SelectField({ label, value, onChange, children }: { label: string; valu
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+      <NativeSelect value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
         {children}
-      </select>
+      </NativeSelect>
     </label>
   );
 }

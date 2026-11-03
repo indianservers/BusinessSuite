@@ -14,6 +14,7 @@ router = APIRouter(prefix="/settings", tags=["Shared Settings"])
 
 # id, label, group, description, destination, module, any required permission, org scope
 OPTIONS = [
+    ("appearance", "Homepage Banner", "Appearance", "Banner image, crop, positioning and overlay for your company homepage.", None, None, (), True),
     ("account", "My account & security", "Personal", "Your account details and password.", None, None, (), False),
     ("preferences", "Display preferences", "Personal", "Your theme and display density on this browser.", None, None, (), False),
     ("company-profile", "Company name & details", "Company & access", "Company identity, branding, contacts and shared defaults.", None, None, (), False),
@@ -59,7 +60,7 @@ OPTIONS += [
     ("tax-settings", "GST & tax settings", "Finance", "GST defaults and statutory configuration.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
     ("roles", "Roles & permission templates", "Company & access", "Custom module roles and reusable permission templates.", None, None, (), True),
 ]
-ADMIN_ONLY = {"roles", "users", "security", "audit", "modules", "connections", "communication", "global"}
+ADMIN_ONLY = {"appearance", "roles", "users", "security", "audit", "modules", "connections", "communication", "global"}
 GLOBAL_ONLY = {"api-credentials", "webhooks", "security", "connections", "communication", "global", "ai"}
 HR_SECTIONS = {"branches", "departments", "designations", "shifts", "holidays", "leaveTypes", "salaryComponents"}
 

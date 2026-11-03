@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState, useDeferredValue, useRef } from "react";
 import { Link } from "react-router-dom";
@@ -48,7 +49,7 @@ function DecisionFields({ decision, setDecision, options, prefix, approval = tru
     {approval && <>
       <div>
         <Label htmlFor={`${prefix}-branch`}>Branch *</Label>
-        <select
+        <NativeSelect
           id={`${prefix}-branch`}
           required
           className={selectClass}
@@ -68,13 +69,13 @@ function DecisionFields({ decision, setDecision, options, prefix, approval = tru
               {b.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor={`${prefix}-department`}>
           Department *
         </Label>
-        <select
+        <NativeSelect
           id={`${prefix}-department`}
           required
           className={selectClass}
@@ -97,13 +98,13 @@ function DecisionFields({ decision, setDecision, options, prefix, approval = tru
                 {d.name}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor={`${prefix}-designation`}>
           Designation *
         </Label>
-        <select
+        <NativeSelect
           id={`${prefix}-designation`}
           required
           className={selectClass}
@@ -127,13 +128,13 @@ function DecisionFields({ decision, setDecision, options, prefix, approval = tru
                 {d.name}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor={`${prefix}-manager`}>
           Reporting Manager *
         </Label>
-        <select
+        <NativeSelect
           id={`${prefix}-manager`}
           required
           className={selectClass}
@@ -151,7 +152,7 @@ function DecisionFields({ decision, setDecision, options, prefix, approval = tru
               {m.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor={`${prefix}-date`}>Joining Date *</Label>

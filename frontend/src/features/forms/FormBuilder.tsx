@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useRef, useState, type ReactNode } from "react";
 import {
   DndContext,
@@ -380,9 +381,9 @@ export default function FormBuilder({
             <>
               <label>
                 Field width
-                <select value={field.width || "auto"} onChange={e => patch(field.id, {width: e.target.value as "auto" | "full"})}>
+                <NativeSelect value={field.width || "auto"} onChange={e => patch(field.id, {width: e.target.value as "auto" | "full"})}>
                   <option value="auto">Fit grid column</option><option value="full">Full row</option>
-                </select>
+                </NativeSelect>
               </label>
               <label>
                 Label
@@ -457,7 +458,7 @@ export default function FormBuilder({
               <h3>Conditional logic</h3>
               <label>
                 Show this question
-                <select
+                <NativeSelect
                   value={field.condition?.field || ""}
                   onChange={(e) =>
                     patch(field.id, {
@@ -482,11 +483,11 @@ export default function FormBuilder({
                         When: {f.label}
                       </option>
                     ))}
-                </select>
+                </NativeSelect>
               </label>
               {field.condition && (
                 <>
-                  <select
+                  <NativeSelect
                     aria-label="Condition operator"
                     value={field.condition.operator}
                     onChange={(e) =>
@@ -508,7 +509,7 @@ export default function FormBuilder({
                         {l}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                   {field.condition.operator !== "not_empty" && (
                     <input
                       aria-label="Condition value"

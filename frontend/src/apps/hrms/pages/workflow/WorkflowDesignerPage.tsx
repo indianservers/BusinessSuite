@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import OrderedList from "@/components/interaction/OrderedList";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -520,7 +521,7 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 function Select({ value, options, onChange }: { value: string; options: string[]; onChange: (value: string) => void }) {
-  return <select value={value || options[0]} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{options.map((option) => <option key={option} value={option}>{option.replace(/_/g, " ")}</option>)}</select>;
+  return <NativeSelect value={value || options[0]} onChange={(e) => onChange(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">{options.map((option) => <option key={option} value={option}>{option.replace(/_/g, " ")}</option>)}</NativeSelect>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

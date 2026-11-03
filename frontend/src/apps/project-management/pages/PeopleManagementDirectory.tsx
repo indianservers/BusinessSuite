@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { DataExportButton } from "@/shared/data-transfer";
 import DirectoryDestinations, { type DestinationRequest } from "../components/people/DirectoryDestinations";
@@ -83,7 +84,7 @@ function GroupFilter({
           setPage(1);
         }}
       />
-      <select
+      <NativeSelect loading={groups.isFetching} error={groups.isError}
         aria-label={`Filter ${kind}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -99,7 +100,7 @@ function GroupFilter({
             {g.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {groups.isError && (
         <span role="alert">
           Could not load groups.{" "}
@@ -508,7 +509,7 @@ export default function PeopleManagementDirectory() {
               <Filter size={15} />
               Filters{countFilters > 0 && <i>{countFilters}</i>}
             </button>
-            <select
+            <NativeSelect loading={views.isFetching} error={views.isError}
               aria-label="Saved people views"
               value=""
               onChange={(e) => {
@@ -528,7 +529,7 @@ export default function PeopleManagementDirectory() {
                 </option>
               ))}
               <option value="save">+ Save current view</option>
-            </select>
+            </NativeSelect>
             <div className="pd-view-toggle">
               <button
                 aria-label="Card view"
@@ -548,7 +549,7 @@ export default function PeopleManagementDirectory() {
               </button>
             </div>
           </div>
-          <div className="pd-command-bar"><label>Density <select aria-label="Card density" value={params.get("density") || "comfortable"} onChange={e=>change("density",e.target.value)}>{["comfortable","compact","detailed"].map(v=><option key={v}>{v}</option>)}</select></label><button className="pd-button" onClick={()=>change("panel",params.get("panel") === "hidden" ? "" : "hidden")}>{params.get("panel") === "hidden" ? "Show destinations" : "Hide destinations"}</button><button className="pd-button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.href);setNotice("Directory link copied with filters and layout.");}catch{setNotice("Copy this page URL from the address bar.");}}}>Copy filtered link</button><span role="status">{notice}</span></div>
+          <div className="pd-command-bar"><label>Density <NativeSelect aria-label="Card density" value={params.get("density") || "comfortable"} onChange={e=>change("density",e.target.value)}>{["comfortable","compact","detailed"].map(v=><option key={v}>{v}</option>)}</NativeSelect></label><button className="pd-button" onClick={()=>change("panel",params.get("panel") === "hidden" ? "" : "hidden")}>{params.get("panel") === "hidden" ? "Show destinations" : "Hide destinations"}</button><button className="pd-button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.href);setNotice("Directory link copied with filters and layout.");}catch{setNotice("Copy this page URL from the address bar.");}}}>Copy filtered link</button><span role="status">{notice}</span></div>
           <div className="pd-quick-filters">
             {[
               ["all", "All people"],
@@ -573,7 +574,7 @@ export default function PeopleManagementDirectory() {
               <Users size={12} />
               By team
             </button>
-            <select
+            <NativeSelect
               aria-label="Filter role"
               value={params.get("role") || ""}
               onChange={(e) => change("role", e.target.value)}
@@ -583,8 +584,8 @@ export default function PeopleManagementDirectory() {
               {ref?.roles.map((role) => (
                 <option key={role}>{role}</option>
               ))}
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               aria-label="Filter status"
               value={params.get("status") || ""}
               onChange={(e) => change("status", e.target.value)}
@@ -597,7 +598,7 @@ export default function PeopleManagementDirectory() {
                   </option>
                 ),
               )}
-            </select>
+            </NativeSelect>
             <button onClick={() => setFiltersOpen((v) => !v)}>
               More filters
               <Filter size={11} />
@@ -617,7 +618,7 @@ export default function PeopleManagementDirectory() {
               />
               <label>
                 Workspace
-                <select
+                <NativeSelect
                   aria-label="Filter workspace"
                   value={params.get("workspace_id") || ""}
                   onChange={(e) => change("workspace_id", e.target.value)}
@@ -628,11 +629,11 @@ export default function PeopleManagementDirectory() {
                       {w.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
               <label>
                 Department
-                <select
+                <NativeSelect
                   aria-label="Filter department"
                   value={params.get("department_id") || ""}
                   onChange={(e) => change("department_id", e.target.value)}
@@ -643,7 +644,7 @@ export default function PeopleManagementDirectory() {
                       {d.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
               <label>
                 Skills
@@ -674,7 +675,7 @@ export default function PeopleManagementDirectory() {
               </label>
               <label>
                 Membership
-                <select
+                <NativeSelect
                   aria-label="Filter membership"
                   value={params.get("membership") || ""}
                   onChange={(e) => change("membership", e.target.value)}
@@ -686,11 +687,11 @@ export default function PeopleManagementDirectory() {
                   <option value="unassigned">
                     No membership in accessible workspaces
                   </option>
-                </select>
+                </NativeSelect>
               </label>
               <label>
                 Sort
-                <select
+                <NativeSelect
                   aria-label="Sort people"
                   value={params.get("sort") || "name"}
                   onChange={(e) => change("sort", e.target.value)}
@@ -709,7 +710,7 @@ export default function PeopleManagementDirectory() {
                       {label}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
               <button
                 className="pd-button"

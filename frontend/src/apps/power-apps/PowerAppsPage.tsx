@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { ProductivityReference } from "./shared/ProductivityReference";
 import { productivityReferences } from "@/shared/productivity/references";
 import ModuleNavigation from "@/components/layout/ModuleNavigation";
@@ -174,7 +175,7 @@ export default function PowerAppsPage() {
           </label>
           <label className="pa-environment">
             <span className="pa-dot" />
-            <select
+            <NativeSelect
               aria-label="Power Apps environment"
               value={environments.includes(environment) ? environment : ""}
               disabled={busy || !environments.length}
@@ -191,7 +192,7 @@ export default function PowerAppsPage() {
                   {env[0].toUpperCase() + env.slice(1)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           {can("create") && environments.length > 0 && (
             <details className="pa-create-menu">

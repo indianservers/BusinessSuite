@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
 import React, { useEffect, useState, useRef } from "react";
@@ -115,7 +116,7 @@ export default function AiSecurityPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <select
+          <NativeSelect
             aria-label="Security company"
             value={company}
             onChange={(e) => {
@@ -128,7 +129,7 @@ export default function AiSecurityPage() {
                 {c.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <Button variant="outline" onClick={load}>
             <RefreshCw size={14} />
             Refresh

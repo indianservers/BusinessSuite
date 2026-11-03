@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -286,7 +287,7 @@ export default function OrgChartPage() {
         </div>
         <label>
           Workspace
-          <select
+          <NativeSelect
             aria-label="Organization workspace"
             disabled={busy}
             value={wid}
@@ -297,7 +298,7 @@ export default function OrgChartPage() {
                 {w.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       </header>
       <nav className="org-navigation">
@@ -380,7 +381,7 @@ export default function OrgChartPage() {
               </div>
             )}
           </div>
-          <select
+          <NativeSelect
             aria-label="Filter chart by team"
             value={team}
             onChange={(e) => {
@@ -394,7 +395,7 @@ export default function OrgChartPage() {
                 {t.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <details
             className="org-export"
             onClick={(e) => {
@@ -709,7 +710,7 @@ export default function OrgChartPage() {
                     </label>
                     <label>
                       Reports to
-                      <select
+                      <NativeSelect
                         aria-label="Reports to"
                         value={draft.manager_id}
                         onChange={(e) =>
@@ -724,7 +725,7 @@ export default function OrgChartPage() {
                               {p.name} · {p.email}
                             </option>
                           ))}
-                      </select>
+                      </NativeSelect>
                     </label>
                   </fieldset>
                   <p className="org-direct-reports">

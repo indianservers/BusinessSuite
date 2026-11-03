@@ -1,3 +1,5 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, FileText, Printer } from "lucide-react";
@@ -83,9 +85,9 @@ export default function MyPayslipsPage() {
           <CardTitle className="text-base">Payslip Period</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-[160px_140px_auto]">
-          <select value={month} onChange={(event) => setMonth(Number(event.target.value))} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <NativeSelect value={month} onChange={(event) => setMonth(Number(event.target.value))} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
             {MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
-          </select>
+          </NativeSelect>
           <Input type="number" value={year} onChange={(event) => setYear(Number(event.target.value))} min={2020} max={2100} />
           <Button variant="outline" onClick={() => payslipQuery.refetch()}>Load Payslip</Button>
         </CardContent>
@@ -122,6 +124,8 @@ export default function MyPayslipsPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="mobile-only-panel mobile-net-pay"><p className="text-sm text-muted-foreground">Net pay · {MONTHS[month - 1]} {year}</p><strong>{formatCurrency(Number(payslip.net_salary || 0))}</strong></div>
+            <MobileDisclosure title="Earnings, deductions & employee details">
             {payslip.employee ? (
               <div className="grid gap-3 rounded-lg bg-muted/30 p-4 text-sm md:grid-cols-4">
                 <div>
@@ -167,6 +171,7 @@ export default function MyPayslipsPage() {
                 </div>
               </div>
             ) : null}
+          </MobileDisclosure>
           </CardContent>
         </Card>
       )}

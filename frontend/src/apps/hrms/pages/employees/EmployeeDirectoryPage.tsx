@@ -1,3 +1,5 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { MobileContactActions, MobileSheet } from "@/components/mobile/MobilePrimitives";
 import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
 import FullDetailsExport from "../../components/FullDetailsExport";
 import { useEffect, useMemo, useState } from "react";
@@ -216,13 +218,13 @@ export default function EmployeeDirectoryPage() {
       </div>
       <div className="grid gap-3 md:grid-cols-4">
         <Input value={skills} onChange={(e) => { setSkills(e.target.value); setPage(1); }} placeholder="Skill tag" />
-        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           {sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+        </NativeSelect>
+        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
           <option value="asc">Ascending</option>
           <option value="desc">Descending</option>
-        </select>
+        </NativeSelect>
         <label className="flex h-10 items-center gap-2 rounded-md border px-3 text-sm">
           <input type="checkbox" checked={teamOnly} onChange={(e) => { setTeamOnly(e.target.checked); setPage(1); }} />
           My team only
@@ -248,7 +250,7 @@ export default function EmployeeDirectoryPage() {
     <ProfileListCard key={employee.id} name={employee.full_name} photoUrl={employee.profile_photo_url}
       location={employee.branch || employee.work_location} onOpen={() => setSelectedId(employee.id)}
       subtitle={<><strong>{employee.designation || employee.employee_id}</strong>{employee.department && ` · ${employee.department}`}</>}
-      tags={[...(employee.is_direct_report ? ["Direct report"] : []), ...(employee.contact_masked ? ["Privacy protected"] : []),
+      tags={[...(employee.reporting_manager ? [`Manager: ${employee.reporting_manager}`] : []), ...(employee.is_direct_report ? ["Direct report"] : []), ...(employee.contact_masked ? ["Privacy protected"] : []),
         ...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,3)]}
       actions={<>
         <ProfileAction onClick={() => setSelectedId(employee.id)}>View profile</ProfileAction>
@@ -317,14 +319,8 @@ export default function EmployeeDirectoryPage() {
 
       <Card className="hidden md:block"><CardContent className="p-4">{filterPanel}</CardContent></Card>
 
-      {filtersOpen && (
-        <div className="fixed inset-0 z-40 bg-background/80 p-4 md:hidden">
-          <Card className="h-full overflow-auto">
-            <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Filters</CardTitle><Button variant="ghost" size="icon" onClick={() => setFiltersOpen(false)}><X className="h-4 w-4" /></Button></CardHeader>
-            <CardContent>{filterPanel}</CardContent>
-          </Card>
-        </div>
-      )}
+      <MobileSheet open={filtersOpen} onClose={()=>setFiltersOpen(false)} title="Employee filters"><div className="mobile-filter-fields">{filterPanel}</div><button type="button" className="mobile-primary-action" onClick={()=>setFiltersOpen(false)}>Show employees</button></MobileSheet>
+      <div className="mobile-only-panel"><div className="mobile-filter-chips">{[departmentId&&`Department ${departmentId}`,branchId&&`Branch ${branchId}`,skills].filter(Boolean).map(chip=><span key={chip}>{chip}</span>)}</div></div>
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -347,6 +343,7 @@ export default function EmployeeDirectoryPage() {
           <Card className="w-full max-w-lg">
             <CardHeader className="flex flex-row items-center justify-between"><CardTitle>{profileCard.full_name}</CardTitle><Button variant="ghost" size="icon" onClick={() => setSelectedId(null)}><X className="h-4 w-4" /></Button></CardHeader>
             <CardContent className="space-y-3 text-sm">
+              <MobileContactActions phone={profileCard.phone_number && !profileCard.contact_masked && profileCard.phone_number !== "Hidden by privacy setting" ? `${profileCard.phone_number_country_code || ""}${profileCard.phone_number}` : undefined} email={profileCard.email && !profileCard.contact_masked && profileCard.email !== "Hidden by privacy setting" ? profileCard.email : undefined}/>
               <p className="text-muted-foreground">{profileCard.designation || "No designation"}{profileCard.department ? `, ${profileCard.department}` : ""}</p>
               <p>Employee ID: {profileCard.employee_id}</p>
               {profileCard.reporting_manager && <p>Manager: {profileCard.reporting_manager}</p>}

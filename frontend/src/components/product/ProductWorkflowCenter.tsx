@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import {
@@ -247,12 +248,12 @@ export function ProductWorkflowCenter({ product }: { product: ProductKey }) {
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search workflows..." className="h-6 border-0 p-0 shadow-none focus-visible:ring-0" />
             </div>
-            <select className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
+            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
               <option value="all">All statuses</option>
               <option value="Live">Live</option>
               <option value="Ready">Ready</option>
               <option value="Configured">Configured</option>
-            </select>
+            </NativeSelect>
           </div>
         </CardHeader>
         <CardContent className="p-0">

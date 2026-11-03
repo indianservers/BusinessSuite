@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -144,7 +145,7 @@ function PrivacyOps() {
         <CardHeader><CardTitle className="text-base">Privacy Request</CardTitle><CardDescription>Exports use masked sensitive identifiers. Delete requests are blocked by active legal holds and retention.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <Field label="Employee ID"><Input value={draft.employee_id} onChange={(e) => setDraft({ ...draft, employee_id: e.target.value })} /></Field>
-          <Field label="Request Type"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.request_type} onChange={(e) => setDraft({ ...draft, request_type: e.target.value })}><option value="export">Export</option><option value="anonymize">Anonymize/Delete</option></select></Field>
+          <Field label="Request Type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.request_type} onChange={(e) => setDraft({ ...draft, request_type: e.target.value })}><option value="export">Export</option><option value="anonymize">Anonymize/Delete</option></NativeSelect></Field>
           <Field label="Requester Email"><Input value={draft.requested_by_email} onChange={(e) => setDraft({ ...draft, requested_by_email: e.target.value })} /></Field>
           <Button onClick={() => create.mutate()} disabled={!draft.employee_id || create.isPending}>Create Request</Button>
           <div className="flex gap-2 border-t pt-4">
@@ -187,7 +188,7 @@ function IpPolicies() {
         <CardHeader><CardTitle className="text-base">{draft.id ? "Edit" : "Add"} IP Policy</CardTitle><CardDescription>Blocklist entries always win. If any allowlist entry is active, unmatched IPs are rejected.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <Field label="CIDR"><Input placeholder="203.0.113.0/24" value={draft.cidr} onChange={(e) => setDraft({ ...draft, cidr: e.target.value })} /></Field>
-          <Field label="Action"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.action} onChange={(e) => setDraft({ ...draft, action: e.target.value as "allow" | "block" })}><option value="allow">Allow</option><option value="block">Block</option></select></Field>
+          <Field label="Action"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.action} onChange={(e) => setDraft({ ...draft, action: e.target.value as "allow" | "block" })}><option value="allow">Allow</option><option value="block">Block</option></NativeSelect></Field>
           <Field label="Description"><Input value={draft.description || ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.is_active} onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })} />Active</label>
           <Button onClick={() => save.mutate()} disabled={!draft.cidr || save.isPending}>Save Policy</Button>
@@ -289,7 +290,7 @@ function ProviderDialog({ provider, onClose, onSave }: { provider: SsoProvider; 
         <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">{draft.id ? "Edit" : "Add"} SSO Provider</h2><Button variant="ghost" onClick={onClose}>Close</Button></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Name"><Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} /></Field>
-          <Field label="Provider Type"><select className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.provider_type} onChange={(e) => patch({ provider_type: e.target.value, button_icon: e.target.value })}>{["google", "microsoft", "okta", "azure_ad", "custom_oidc", "saml"].map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Provider Type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.provider_type} onChange={(e) => patch({ provider_type: e.target.value, button_icon: e.target.value })}>{["google", "microsoft", "okta", "azure_ad", "custom_oidc", "saml"].map((item) => <option key={item}>{item}</option>)}</NativeSelect></Field>
           <Field label="Button Label"><Input value={draft.button_label || ""} onChange={(e) => patch({ button_label: e.target.value })} /></Field>
           <Field label="Domain Hint"><Input value={draft.domain_hint || ""} onChange={(e) => patch({ domain_hint: e.target.value })} /></Field>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.is_default} onChange={(e) => patch({ is_default: e.target.checked })} />Is Default</label>

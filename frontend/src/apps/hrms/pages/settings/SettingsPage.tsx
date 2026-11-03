@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -450,10 +451,10 @@ function renderFields(type: SettingKey, form: Entity, setForm: (v: Entity) => vo
   );
   const select = (key: string, label: string, options: Entity[]) => (
     <Field key={key} label={label}>
-      <select value={form[key] || ""} onChange={(e) => update(key, e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+      <NativeSelect value={form[key] || ""} onChange={(e) => update(key, e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
         <option value="">Select</option>
         {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
+      </NativeSelect>
     </Field>
   );
 
@@ -475,8 +476,8 @@ function renderFields(type: SettingKey, form: Entity, setForm: (v: Entity) => vo
   if (type === "salaryComponents") return [
     text("name", "Component name *"),
     text("code", "Code *"),
-    <Field key="component_type" label="Type"><select value={form.component_type || "Earning"} onChange={(e) => update("component_type", e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option>Earning</option><option>Deduction</option><option>Benefit</option></select></Field>,
-    <Field key="calculation_type" label="Calculation"><select value={form.calculation_type || "Fixed"} onChange={(e) => update("calculation_type", e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option>Fixed</option><option>Percentage</option><option>Formula</option></select></Field>,
+    <Field key="component_type" label="Type"><NativeSelect value={form.component_type || "Earning"} onChange={(e) => update("component_type", e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option>Earning</option><option>Deduction</option><option>Benefit</option></NativeSelect></Field>,
+    <Field key="calculation_type" label="Calculation"><NativeSelect value={form.calculation_type || "Fixed"} onChange={(e) => update("calculation_type", e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option>Fixed</option><option>Percentage</option><option>Formula</option></NativeSelect></Field>,
     text("amount", "Default amount", { type: "number", step: "0.01" }),
     text("percentage_of", "Percentage of"),
     <Field key="is_taxable" label="Taxable"><input type="checkbox" checked={!!form.is_taxable} onChange={(e) => update("is_taxable", e.target.checked)} className="h-4 w-4" /></Field>,

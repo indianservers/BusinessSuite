@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Link } from "react-router-dom";
@@ -109,16 +110,16 @@ export default function SettingsPage() {
           <CompactForm className="grid gap-3 lg:grid-cols-6" onSubmit={submitIntegration}>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Provider</span>
-              <select className="input" value={provider} onChange={(event) => setProvider(event.target.value as "github" | "gitlab")}>
+              <NativeSelect className="input" value={provider} onChange={(event) => setProvider(event.target.value as "github" | "gitlab")}>
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
-              </select>
+              </NativeSelect>
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Project</span>
-              <select className="input" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
+              <NativeSelect className="input" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
                 {projects.map((project) => <option key={project.id} value={project.id}>{project.project_key} - {project.name}</option>)}
-              </select>
+              </NativeSelect>
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Owner / group</span>

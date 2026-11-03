@@ -1,3 +1,8 @@
+import { api } from "@/services/api";
+import { useMobile } from "@/components/mobile/useMobile";
+import { useQuery } from "@tanstack/react-query";
+import { milestonesAPI } from "../services/api";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import CatalogAssociations from "@/shared/catalog/CatalogLinesEditor";
 import AddExistingPeopleDialog from "../components/people/AddExistingPeopleDialog";
 import { usePageRefresh } from "@/lib/page-refresh";
@@ -21,6 +26,10 @@ import type { DashboardData, PMSTask } from "../types";
 export default function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = Number(projectId || 0);
+  const mobile=useMobile();
+  const mobileMembers=useQuery({queryKey:["mobile-project-members",id],queryFn:()=>api.get<{user_id:number;name?:string;email?:string}[]>(`/project-management/projects/${id}/members`).then(r=>r.data),enabled:mobile&&!!id});
+  const mobileMilestones=useQuery({queryKey:["mobile-project-milestones",id],queryFn:()=>milestonesAPI.list(id),enabled:mobile&&!!id});
+  const nextMilestone=mobileMilestones.data?.filter(m=>!["Completed","Done","Cancelled"].includes(m.status)).sort((a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"))[0];
   const { selectedProject, setSelectedProject } = useProjectStore();
   const { tasks, setTasks } = useTaskStore();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -81,6 +90,8 @@ export default function ProjectDashboard() {
         </div>
       </div>
 
+      <section className="mobile-only-panel rounded-2xl border bg-card p-4 space-y-3"><h2 className="font-semibold">Project at a glance</h2><div className="flex items-center justify-between"><strong>{project.progress_percent}% complete</strong><span className="text-sm">{project.health}</span></div><progress className="w-full" value={project.progress_percent} max={100}/><div className="flex justify-between text-sm"><span>Blockers: {dashboard?.status_counts?.Blocked ?? 0}</span><span>Overdue: {dashboard?.metrics.overdue_tasks ?? 0}</span></div><Link className="mobile-filter-trigger" to={`/pms/projects/${id}/milestones`}>{nextMilestone ? `${nextMilestone.name} · ${nextMilestone.due_date || "No due date"}` : "View milestones"}</Link><Link className="mobile-filter-trigger" to={`/pms/projects/${id}/members`}>Owner: {project.manager_user_id ? (mobileMembers.data?.find(member=>member.user_id===project.manager_user_id)?.name || "Assigned") : "Unassigned"} · View team</Link></section>
+      <MobileDisclosure title="Project metrics">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Metric icon={ListChecks} label="Total tasks" value={dashboard?.metrics.total_tasks ?? "Unavailable"} />
         <Metric icon={CheckCircle2} label="Completed" value={dashboard?.metrics.completed_tasks ?? "Unavailable"} />
@@ -89,6 +100,7 @@ export default function ProjectDashboard() {
         <Metric icon={Timer} label="Progress" value={`${project.progress_percent}%`} />
       </div>
 
+      </MobileDisclosure>
       <p className="text-xs text-muted-foreground">Unique live task records, including subtasks. {dashboard?.assignment_count} individual assignments. The status chart includes the full permitted project; task previews below may be paginated.</p>
       <CatalogAssociations source="pms" target="project" id={id}/>
       <RecordCustomFields entity="project" id={id}/>

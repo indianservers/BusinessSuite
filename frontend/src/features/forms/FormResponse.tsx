@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { useState, type CSSProperties, type ReactNode } from "react";
@@ -135,7 +136,7 @@ export default function FormResponse({
                     onChange={(e) => set(f.id, e.target.value)}
                   />
                 ) : f.type === "select" ? (
-                  <select
+                  <NativeSelect
                     id={f.id}
                     required={f.required}
                     value={String(answers[f.id] || "")}
@@ -145,7 +146,7 @@ export default function FormResponse({
                     {f.options.map((o) => (
                       <option key={o}>{o}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 ) : ["radio", "multiselect"].includes(f.type) ? (
                   <fieldset aria-label={f.label}>
                     {f.options.map((o) => (
@@ -199,7 +200,7 @@ export default function FormResponse({
                     I agree
                   </label>
                 ) : f.type==='phone' ? <PhoneInput id={f.id} label={f.label} required={f.required} value={String(answers[f.id] ?? '')} countryCode={String(answers[f.id+'_country_code'] ?? '+91')} onChange={value=>setAnswers(current=>({...current,[f.id]:value,[f.id+'_country_code']:current[f.id+'_country_code'] ?? '+91'}))} onCountryCodeChange={value=>set(f.id+'_country_code',value)} /> : f.type === "rating" ? (
-                  <select
+                  <NativeSelect
                     id={f.id}
                     required={f.required}
                     value={String(answers[f.id] || "")}
@@ -211,7 +212,7 @@ export default function FormResponse({
                         {"★".repeat(n)}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 ) : (
                   <input
                     id={f.id}

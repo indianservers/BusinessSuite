@@ -1228,6 +1228,8 @@ def list_srm_products(search: str | None = None, page: int | None = None, per_pa
     query = db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.deleted_at.is_(None))
     from app.shared.catalog import restrict_workspaces
     query = restrict_workspaces(query, SRMProduct, db, current_user)
+    from app.shared.catalog_branches import availability_clause, selected_branch
+    query = query.filter(availability_clause(SRMProduct, selected_branch(current_user)))
     if search:
         normalized = f"%{search.lower()}%"
         query = query.filter(
@@ -1254,6 +1256,12 @@ def create_srm_product(data: SRMProductCreate, db: Session = Depends(get_db), cu
     if data.barcode and db.query(SRMProduct).filter(SRMProduct.organization_id == org_id, SRMProduct.barcode == data.barcode, SRMProduct.deleted_at.is_(None)).first():
         raise HTTPException(status_code=409, detail="SRM product barcode already exists")
     row = SRMProduct(organization_id=org_id, created_by=current_user.id, **data.model_dump())
+    from app.shared.catalog_branches import selected_branch
+    branch = selected_branch(current_user)
+    attributes = {key: value for key, value in (row.metadata_json or {}).items() if key != "catalog_branches"}
+    if branch:
+        attributes["catalog_branches"] = {"default": False, "overrides": {str(branch): True}}
+    row.metadata_json = attributes
     if not row.mrp:
         row.mrp = row.sales_rate
     db.add(row)
@@ -1280,6 +1288,9 @@ def get_srm_product(product_id: int, db: Session = Depends(get_db), current_user
 def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     org_id = _org(current_user)
     product = _product_or_404(db, org_id, product_id)
+    from app.shared.catalog_branches import is_available, selected_branch
+    if not is_available(product, selected_branch(current_user)):
+        raise HTTPException(403, "This offering cannot be edited from a branch where it is unavailable")
     before = _product_payload(product)
     from app.shared.catalog import metadata, workspace_access
     kind = "service" if product.product_type == "service" else "product"
@@ -1288,6 +1299,8 @@ def update_srm_product(product_id: int, data: SRMProductUpdate, db: Session = De
     if data.product_type is not None and (data.product_type == "service") != (kind == "service") and detail:
         raise HTTPException(422, "An item's catalog type cannot be changed")
     for key, value in data.model_dump(exclude_unset=True).items():
+        if key == "metadata_json":
+            value = {name: entry for name, entry in (value or {}).items() if name != "catalog_branches"}
         setattr(product, key, {**(product.metadata_json or {}), **(value or {})} if key == "metadata_json" else value)
     if detail:
         detail.version += 1
@@ -2195,6 +2208,10 @@ def create_sales_order(data: SRMSalesOrderCreate, db: Session = Depends(get_db),
             if (data.metadata_json or {}).get('source') == 'pos' and (existing.metadata_json or {}).get('pos_sale_id') == (data.metadata_json or {}).get('pos_sale_id') and existing.created_by == current_user.id:
                 return _serialize(existing) | {"lines": [_serialize(line) for line in existing.lines]}
             raise HTTPException(status_code=409, detail="Sales order number already exists")
+    from app.shared.catalog_branches import assert_available
+    for selected_line in data.lines:
+        if selected_line.product_id:
+            assert_available(_product_or_404(db, org_id, selected_line.product_id), current_user)
     _validate_pos_stock_available(db, data, org_id)
     item = SRMSalesOrder(
         organization_id=org_id,
@@ -2302,6 +2319,9 @@ def add_sales_order_line(sales_order_id: int, data: SRMSalesOrderLineInput, db: 
     order = get_sales_order_for_user(db, sales_order_id, current_user)
     if order.status not in {"draft", "pending_approval"}:
         raise HTTPException(status_code=400, detail="Sales order lines can only be changed before confirmation")
+    if data.product_id:
+        from app.shared.catalog_branches import assert_available
+        assert_available(_product_or_404(db, _org(current_user), data.product_id), current_user)
     line_total = data.line_total if data.line_total is not None else (_decimal(data.quantity) * _decimal(data.unit_price) - _decimal(data.discount_amount) + _decimal(data.tax_amount))
     line = SRMSalesOrderLine(sales_order_id=order.id, line_total=line_total, **data.model_dump(exclude={"line_total"}))
     db.add(line)
@@ -2321,6 +2341,9 @@ def update_sales_order_line(sales_order_id: int, line_id: int, data: SRMSalesOrd
     if not line:
         raise HTTPException(status_code=404, detail="Sales order line not found")
     before = _serialize(line)
+    if data.product_id and data.product_id != line.product_id:
+        from app.shared.catalog_branches import assert_available
+        assert_available(_product_or_404(db, _org(current_user), data.product_id), current_user)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(line, key, value)
     if data.line_total is None:

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
 import {HR,errorText} from "../../workbench/shared";
@@ -215,17 +216,17 @@ export default function ShiftRosterPage() {
           </div>
           <div className="space-y-1">
             <Label>Department</Label>
-            <select className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
+            <NativeSelect loading={departments.isFetching} error={departments.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
               <option value="">All departments</option>
               {(departments.data || []).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-            </select>
+            </NativeSelect>
           </div>
           <div className="space-y-1">
             <Label>Bulk shift</Label>
-            <select aria-label="Bulk shift" className="h-10 rounded-md border bg-background px-3 text-sm" value={bulkShiftId} onChange={(event) => setBulkShiftId(event.target.value)}>
+            <NativeSelect loading={shifts.isFetching} error={shifts.isError} aria-label="Bulk shift" className="h-10 rounded-md border bg-background px-3 text-sm" value={bulkShiftId} onChange={(event) => setBulkShiftId(event.target.value)}>
               <option value="">Select shift</option>
               {(shifts.data || []).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}
-            </select>
+            </NativeSelect>
           </div>
         </div>
       </div>
@@ -272,18 +273,18 @@ export default function ShiftRosterPage() {
           <CardContent className="space-y-3">
             <div className="space-y-1">
               <Label>Shift</Label>
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffShiftId} onChange={(event) => setWeeklyOffShiftId(event.target.value)}>
+              <NativeSelect loading={shifts.isFetching} error={shifts.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffShiftId} onChange={(event) => setWeeklyOffShiftId(event.target.value)}>
                 <option value="">Select shift</option>
                 {(shifts.data || []).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-1">
               <Label>Weekly off day</Label>
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffDay} onChange={(event) => setWeeklyOffDay(event.target.value)}>
+              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffDay} onChange={(event) => setWeeklyOffDay(event.target.value)}>
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((label, index) => (
                   <option key={label} value={index}>{label}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
             <Button className="w-full" variant="outline" onClick={() => createWeeklyOff.mutate()} disabled={!weeklyOffShiftId || createWeeklyOff.isPending}>
               Save Weekly Off

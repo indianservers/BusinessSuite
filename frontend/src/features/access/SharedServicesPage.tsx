@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp } from "./AdminVerification";
@@ -393,7 +394,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
       </nav>
       <label className="cc-company">
         Company
-        <select
+        <NativeSelect
           value={company}
           aria-label="Shared service company"
           onChange={(e) => {
@@ -412,7 +413,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
               {o.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       {error && (
         <p role="alert" className="cc-error">
@@ -502,7 +503,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
       {section === "workflows" && (
         <>
           <div className="cc-actions">
-            <select
+            <NativeSelect
               aria-label="Select workflow"
               value={definition?.id || ""}
               onChange={(e) =>
@@ -521,7 +522,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                       : ""}
                   </option>
                 ))}
-            </select>
+            </NativeSelect>
             <Button variant="outline" onClick={() => openWorkflow()}>
               New
             </Button>
@@ -601,7 +602,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
             </label>
             <label>
               Module
-              <select
+              <NativeSelect
                 disabled={!!definition}
                 value={module}
                 onChange={(e) => {
@@ -616,7 +617,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                       {m.label}
                     </option>
                   ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Entity
@@ -631,7 +632,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
             </label>
             <label>
               Event
-              <select
+              <NativeSelect
                 disabled={!!definition}
                 value={event}
                 onChange={(e) => {
@@ -656,11 +657,11 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                 ].map((v) => (
                   <option key={v}>{v}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Execution identity
-              <select
+              <NativeSelect
                 aria-label="Execution identity"
                 value={identity}
                 onChange={(e) => {
@@ -678,7 +679,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                       {u.name} · {u.email}
                     </option>
                   ))}
-              </select>
+              </NativeSelect>
             </label>
           </div>
           <div className="ss-editor">
@@ -845,7 +846,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                     <>
                       <label className="cc-field">
                         Approved action
-                        <select
+                        <NativeSelect
                           value={selectedNode.config.tool || ""}
                           onChange={(e) =>
                             editGraph({
@@ -870,7 +871,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                               {t.name}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </label>
                       {configField(
                         "recordId",
@@ -931,7 +932,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                       edge.source === selected && (
                         <label className="cc-field" key={i}>
                           {edge.target}
-                          <select
+                          <NativeSelect
                             value={edge.when || ""}
                             onChange={(e) =>
                               editGraph({
@@ -950,7 +951,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                             <option value="">Always</option>
                             <option value="true">True</option>
                             <option value="false">False</option>
-                          </select>
+                          </NativeSelect>
                         </label>
                       ),
                   )}
@@ -1204,7 +1205,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
             <div className="cc-form-grid">
               <label className="cc-field">
                 Module
-                <select
+                <NativeSelect
                   value={module}
                   onChange={(e) => setModule(e.target.value)}
                 >
@@ -1215,7 +1216,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                         {m.label}
                       </option>
                     ))}
-                </select>
+                </NativeSelect>
               </label>
               <label className="cc-field">
                 Entity
@@ -1332,7 +1333,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
       {data && section === "settings" && (
         <div className="cc-charts">
           <section className="cc-card">
-            <h2>Shared configuration overrides</h2><label className="cc-field">Configuration level<select value={settingsScope} onChange={e=>setSettingsScope(e.target.value)}>{actor?.is_superuser&&<option value="platform">Platform policy</option>}<option value="company">Company configuration</option><option value="module">Module configuration</option></select></label>{settingsScope==="module"&&<label className="cc-field">Module<select value={settingsModule} onChange={e=>setSettingsModule(e.target.value)}>{catalog?.modules.filter((m:any)=>m.installed).map((m:any)=><option key={m.key} value={m.key}>{m.label}</option>)}</select></label>}
+            <h2>Shared configuration overrides</h2><label className="cc-field">Configuration level<NativeSelect value={settingsScope} onChange={e=>setSettingsScope(e.target.value)}>{actor?.is_superuser&&<option value="platform">Platform policy</option>}<option value="company">Company configuration</option><option value="module">Module configuration</option></NativeSelect></label>{settingsScope==="module"&&<label className="cc-field">Module<NativeSelect value={settingsModule} onChange={e=>setSettingsModule(e.target.value)}>{catalog?.modules.filter((m:any)=>m.installed).map((m:any)=><option key={m.key} value={m.key}>{m.label}</option>)}</NativeSelect></label>}
             <label className="cc-field">
               Validated shared settings
               <textarea

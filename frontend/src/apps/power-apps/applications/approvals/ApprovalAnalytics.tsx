@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useState } from "react";
 import {
@@ -99,7 +100,7 @@ export function ApprovalAnalytics({
         </label>
         <label>
           Approval process
-          <select
+          <NativeSelect
             value={filters.policy_id}
             onChange={(e) =>
               setFilters({ ...filters, policy_id: e.target.value })
@@ -111,11 +112,11 @@ export function ApprovalAnalytics({
                 {p.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <label>
           Status
-          <select
+          <NativeSelect
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
@@ -132,7 +133,7 @@ export function ApprovalAnalytics({
             ].map((s) => (
               <option key={s}>{s}</option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
         <button className="ap-primary">Apply filters</button>
       </CompactForm>

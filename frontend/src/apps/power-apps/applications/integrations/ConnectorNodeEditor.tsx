@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import "./integrations.css";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -80,7 +81,7 @@ export default function ConnectorNodeEditor({
       {onOpenSettings && <button type="button" className="ic-module-test" onClick={onOpenSettings}>Module settings / add connection</button>}
       <label className="as-basic-field">
         Connection
-        <select
+        <NativeSelect
           disabled={readOnly}
           aria-label="Integration connection"
           value={node.credential_reference || ""}
@@ -96,7 +97,7 @@ export default function ConnectorNodeEditor({
                 {c.name} - {c.health}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </label>
       <Link
         target="_blank"
@@ -120,7 +121,7 @@ export default function ConnectorNodeEditor({
         <>
           <label className="as-basic-field">
             Action
-            <select
+            <NativeSelect
               disabled={readOnly}
               aria-label="Integration action"
               value={action?.id || ""}
@@ -141,7 +142,7 @@ export default function ConnectorNodeEditor({
                   {a.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           {action && (
             <ActionFields

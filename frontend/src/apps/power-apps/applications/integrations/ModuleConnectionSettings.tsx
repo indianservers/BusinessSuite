@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { KeyRound, ShieldCheck, Loader2 } from "lucide-react";
 import ActionFields from "./ActionFields";
@@ -74,9 +75,9 @@ export default function ModuleConnectionSettings({ connector, connection, enviro
       {!readOnly && <>
         <label className="as-basic-field">Connection name<input aria-label="Module connection name" maxLength={180} value={name} disabled={busy} onChange={(e) => setName(e.target.value)} /></label>
         {connector.authentication.length > 1 ? <label className="as-basic-field">Authentication
-          <select aria-label="Module authentication" value={auth} disabled={busy} onChange={(e) => { setAuth(e.target.value); setSecrets({}); setAuthorizationUrl(""); }}>
+          <NativeSelect aria-label="Module authentication" value={auth} disabled={busy} onChange={(e) => { setAuth(e.target.value); setSecrets({}); setAuthorizationUrl(""); }}>
             {connector.authentication.map((method) => <option key={method} value={method} disabled={method === "oauth2" && !connector.oauth_ready}>{authLabels[method] || method}{method === "oauth2" && !connector.oauth_ready ? " — administrator setup required" : ""}</option>)}
-          </select>
+          </NativeSelect>
         </label> : <p>{authLabels[auth] || auth}</p>}
         {Object.entries(fields).map(([key, label]) => <label className="as-basic-field" key={auth + key}>{label}
           {key === "service_account" ? <textarea aria-label={label} autoComplete="off" spellCheck={false} rows={4} value={secrets[key] || ""} disabled={busy} onChange={(e) => setSecrets({ ...secrets, [key]: e.target.value })} /> :

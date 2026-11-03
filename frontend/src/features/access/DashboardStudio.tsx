@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import React, { useEffect, useState } from "react";
 import { api } from "@/services/api";
@@ -267,7 +268,7 @@ export default function DashboardStudio({
         <span>{dirty ? "Unsaved changes" : "Saved / new layout"}</span>
       </div>
       <div className="ec-toolbar">
-        <select
+        <NativeSelect
           aria-label="Saved dashboard"
           value={selected?.id || ""}
           onChange={(e) => choose(e.target.value)}
@@ -278,7 +279,7 @@ export default function DashboardStudio({
               {d.values_json.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <input
           aria-label="Dashboard name"
           value={name}
@@ -358,7 +359,7 @@ export default function DashboardStudio({
               </button>
             </div>
             <div className="ec-toolbar">
-              <select
+              <NativeSelect
                 aria-label={`Widget ${index + 1} source`}
                 value={widget.source}
                 onChange={(e) =>
@@ -374,8 +375,8 @@ export default function DashboardStudio({
                     {label}
                   </option>
                 ))}
-              </select>
-              <select
+              </NativeSelect>
+              <NativeSelect
                 aria-label={`Widget ${index + 1} chart`}
                 value={widget.type}
                 onChange={(e) =>
@@ -391,8 +392,8 @@ export default function DashboardStudio({
                     {k}
                   </option>
                 ))}
-              </select>
-              <select
+              </NativeSelect>
+              <NativeSelect
                 aria-label={`Widget ${index + 1} width`}
                 value={widget.width}
                 onChange={(e) =>
@@ -408,7 +409,7 @@ export default function DashboardStudio({
                     {w} columns
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
             <Widget widget={widget} company={company} />
           </article>

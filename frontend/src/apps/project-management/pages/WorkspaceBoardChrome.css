@@ -36,5 +36,14 @@
 
 /* Keep category labels readable in the shared workspace navigation. */
 .wb-reference:not(.kf-workspace-collapsed) .ws-sidebar { width: 256px!important; min-width: 256px!important; flex-basis: 256px; }
+@media(max-width:1279px) {
+  html .ws-app.wb-reference .ws-topbar { flex-wrap:wrap; height:auto; min-height:64px; padding:10px 12px; gap:8px; }
+  html .ws-app.wb-reference .ws-topbar>.suite-branch-control { order:10; flex-basis:100%; padding-top:6px; border-top:1px solid var(--wb-line); }
+  .wb-reference .ws-topbar>.suite-branch-control .suite-branch-field { flex:1; min-width:0; }
+  .wb-reference .ws-topbar>.suite-branch-control select { width:100%; max-width:none; min-width:0; }
+  .wb-reference .wb-workspace-trigger { flex:1; max-width:calc(100vw - 160px); min-width:0; }
+  .wb-reference .ws-topbar>.wb-module-menu,.wb-reference .ws-topbar>.ws-connection { display:none; }
+  .wb-reference .ws-content { padding-bottom:calc(90px + env(safe-area-inset-bottom)); }
+}
 .wb-reference .module-menu-toolbar { white-space: nowrap; letter-spacing: .025em; }
 .wb-reference .module-menu-heading .module-menu-chevron { width: 14px; height: 14px; }

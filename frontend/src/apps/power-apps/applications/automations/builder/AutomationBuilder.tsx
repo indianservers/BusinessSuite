@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import {
   lazy,
@@ -1885,7 +1886,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                   </label>
                   <label>
                     Default connections
-                    <select
+                    <NativeSelect
                       aria-label="Default connection style"
                       disabled={readonly}
                       value={graph.editor?.connection_style || "bezier"}
@@ -1903,7 +1904,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                     >
                       <option value="bezier">Bezier</option>
                       <option value="orthogonal">Orthogonal</option>
-                    </select>
+                    </NativeSelect>
                   </label>
                   <button
                     disabled={
@@ -2563,7 +2564,7 @@ function CanvasInspector({
         >
           <label className="as-basic-field">
             From node
-            <select
+            <NativeSelect
               aria-label="From node"
               disabled={readOnly}
               value={source}
@@ -2587,11 +2588,11 @@ function CanvasInspector({
                     {n.label}
                   </option>
                 ))}
-            </select>
+            </NativeSelect>
           </label>
           <label className="as-basic-field">
             Output port
-            <select
+            <NativeSelect
               aria-label="Output port"
               disabled={readOnly}
               value={sourcePort}
@@ -2602,11 +2603,11 @@ function CanvasInspector({
                   {port.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <label className="as-basic-field">
             To node
-            <select
+            <NativeSelect
               aria-label="To node"
               disabled={readOnly}
               value={target}
@@ -2622,7 +2623,7 @@ function CanvasInspector({
                     {n.label}
                   </option>
                 ))}
-            </select>
+            </NativeSelect>
           </label>
           <button
             className="as-button-outline"

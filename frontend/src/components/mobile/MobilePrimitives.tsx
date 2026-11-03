@@ -1,0 +1,29 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Filter, Mail, MessageCircle, Phone, StickyNote } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useMobile } from "./useMobile";
+import "./mobile-experience.css";
+
+export function MobileSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const start = useRef<number | null>(null);
+  const mobile=useMobile();
+  if(!mobile)return null;
+  return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}><DialogContent className="mobile-experience-sheet"><button type="button" className="mobile-sheet-handle" aria-label="Drag down or tap to close" onClick={onClose} onPointerDown={event => { start.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerUp={event => { if (start.current !== null && event.clientY - start.current > 65) onClose(); start.current = null; }}><span /></button><DialogTitle className="text-xl font-semibold pr-7">{title}</DialogTitle>{children}</DialogContent></Dialog>;
+}
+export function MobileFilters({ children, chips = [], onClear, label = "Filters" }: { children: ReactNode; chips?: string[]; onClear?: () => void; label?: string }) {
+  const mobile = useMobile(); const [open, setOpen] = useState(false);
+  useEffect(()=>{if(!mobile)setOpen(false);},[mobile]);
+  if (!mobile) return <>{children}</>;
+  return <div className="mobile-filter-control"><button type="button" className="mobile-filter-trigger" aria-label={label} title={chips.length ? `${chips.length} active filters` : label} onClick={() => setOpen(true)}><Filter size={16}/>{label}{chips.length > 0 && <b>{chips.length}</b>}</button><div className="mobile-filter-chips">{chips.map(chip => <span key={chip}>{chip}</span>)}{chips.length > 0 && onClear && <button type="button" onClick={onClear}>Clear</button>}</div><MobileSheet open={open} onClose={() => setOpen(false)} title={label}><div className="mobile-filter-fields">{children}</div><button type="button" className="mobile-primary-action" onClick={() => setOpen(false)}>Show results</button></MobileSheet></div>;
+}
+export function MobileContactActions({ phone, email, onNote }: { phone?: string | null; email?: string | null; onNote?: () => void }) {
+  const mobile = useMobile(); if (!mobile || (!phone && !email && !onNote)) return null;
+  const clean = phone?.replace(/[^\d+]/g, ""); const digits = clean?.replace(/\D/g, "");
+  return <nav className="mobile-contact-strip" aria-label="Contact actions">{clean && <a href={`tel:${clean}`}><Phone size={18}/>Call</a>}{digits && <a href={`https://wa.me/${digits}`} target="_blank" rel="noreferrer"><MessageCircle size={18}/>WhatsApp</a>}{email && <a href={`mailto:${email}`}><Mail size={18}/>Email</a>}{onNote && <button type="button" onClick={onNote}><StickyNote size={18}/>Add note</button>}</nav>;
+}
+export function MobileDisclosure({ title, children }: { title: string; children: ReactNode }) {
+  const mobile = useMobile(); return mobile ? <details className="mobile-disclosure"><summary>{title}</summary><div>{children}</div></details> : <>{children}</>;
+}
+export function MobileSteps({ steps, current, onChange }: { steps: string[]; current: number; onChange: (index: number) => void }) {
+  return <nav className="mobile-stepper" aria-label="Progress">{steps.map((label, index) => <button type="button" key={label} aria-current={index === current ? "step" : undefined} onClick={() => onChange(index)}><span>{index + 1}</span>{label}</button>)}</nav>;
+}

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import {
   RichTextField,
@@ -136,7 +137,7 @@ export default function WorkReviewPanel({
       {!submissionId && (
         <label className="block text-sm">
           Submission version
-          <select
+          <NativeSelect
             className="mt-2 w-full rounded-md border bg-background p-2"
             value={item.id}
             onChange={(e) => setSelected(Number(e.target.value))}
@@ -148,7 +149,7 @@ export default function WorkReviewPanel({
                 {i.status}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -240,7 +241,7 @@ export default function WorkReviewPanel({
         >
           <Label>
             Decision
-            <select
+            <NativeSelect
               className="mt-2 w-full rounded-md border bg-background p-2"
               value={decision}
               onChange={(e) => setDecision(e.target.value)}
@@ -248,7 +249,7 @@ export default function WorkReviewPanel({
               {["Approved", "Needs Revision", "Rejected"].map((s) => (
                 <option key={s}>{s}</option>
               ))}
-            </select>
+            </NativeSelect>
           </Label>
           <Label>
             Score (maximum {item.maximum_score || 100})

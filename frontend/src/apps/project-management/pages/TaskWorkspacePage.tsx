@@ -1,3 +1,6 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { useMobile } from "@/components/mobile/useMobile";
+import MobileTaskQuickEdit from "@/components/mobile/MobileTaskQuickEdit";
 import { useEffect, useRef, useState } from "react";
 import {
   Link,
@@ -100,6 +103,7 @@ export type Workspace = {
 };
 const base = "/project-management/task-workspace";
 const tabs = [
+  ["conversation", "Conversation", MessageSquare],
   ["updates", "Updates & Work Logs", FileText],
   ["discussion", "Discussion", MessageSquare],
   ["followups", "Follow-ups", Clock3],
@@ -119,6 +123,7 @@ const readDraft = (key: string) => {
   }
 };
 export default function TaskWorkspacePage() {
+  const mobile=useMobile();
   const { taskId } = useParams();
   const id = Number(taskId);
   const qc = useQueryClient();
@@ -131,7 +136,7 @@ export default function TaskWorkspacePage() {
     user?.access?.grants,
   ]);
   const connected = useRealtimeStore((s) => s.connected);
-  const tab = params.get("tab") || "updates";
+  const tab = params.get("tab") || (mobile ? "conversation" : "updates");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -179,12 +184,12 @@ export default function TaskWorkspacePage() {
         })
         .then((r) => r.data),
     enabled:
-      !!data && (tab === "updates" || tab === "review" || tab === "followups"),
+      !!data && (tab === "updates" || tab === "review" || tab === "followups" || tab === "conversation"),
   });
   const comments = useQuery({
     queryKey: ["task-workspace-comments", id, page, contextKey],
     queryFn: () => commentsAPI.listForTask(id, (page - 1) * 30, 30),
-    enabled: !!data && tab === "discussion",
+    enabled: !!data && (tab === "discussion" || tab === "conversation"),
   });
   useEffect(() => {
     if (tab === "discussion" && comments.data && data?.unread_comments)
@@ -210,7 +215,7 @@ export default function TaskWorkspacePage() {
   const attachments = useQuery({
     queryKey: ["task-workspace-files", id, contextKey],
     queryFn: () => tasksAPI.listAttachments(id),
-    enabled: !!data && (tab === "files" || tab === "updates"),
+    enabled: !!data && (tab === "files" || tab === "updates" || tab === "conversation"),
   });
   const history = useQuery({
     queryKey: ["task-workspace-history", id, page, contextKey],
@@ -226,7 +231,7 @@ export default function TaskWorkspacePage() {
           pages: number;
         }>(`${base}/tasks/${id}/history`, { params: { page } })
         .then((r) => r.data),
-    enabled: !!data && tab === "history",
+    enabled: !!data && (tab === "history" || tab === "conversation"),
   });
   const project = useQuery({
     queryKey: ["task-workspace-project", task?.project_id, contextKey],
@@ -234,6 +239,7 @@ export default function TaskWorkspacePage() {
     enabled: !!task && timer,
   });
   const refresh = () => {
+    void qc.invalidateQueries({queryKey:["mobile-action-badges"]});
     void qc.invalidateQueries({
       predicate: (q) =>
         String(q.queryKey[0]).startsWith("task-workspace") &&
@@ -609,6 +615,7 @@ export default function TaskWorkspacePage() {
           </button>
         </p>
       )}
+      {mobile && <MobileTaskQuickEdit key={task.id} task={task} canManage={data.can_manage && !data.source_managed} canWork={data.can_work} canReview={data.can_review} version={data.version} onSaved={refresh} onAssign={()=>setAssign(true)}/>}
       <div className="tw-facts">
         <div>
           <small>Assignees</small>
@@ -731,7 +738,7 @@ export default function TaskWorkspacePage() {
       <div className="tw-layout">
         <section className="tw-main">
           <nav className="tw-tabs" aria-label="Task workspace sections">
-            {tabs.map(([key, label, Icon]) => (
+            {tabs.filter(([key])=>mobile || key !== "conversation").map(([key, label, Icon]) => (
               <button
                 key={key}
                 aria-pressed={tab === key}
@@ -745,6 +752,10 @@ export default function TaskWorkspacePage() {
               </button>
             ))}
           </nav>
+          {tab === "conversation" && <section className="tw-box"><h2>Conversation & activity</h2><p className="tw-muted">Recent updates, comments and activity, newest first.</p>{(updates.isPending||comments.isPending||history.isPending)&&<p role="status">Loading conversation…</p>}{(updates.isError||comments.isError||history.isError)&&<p role="alert">Some activity is unavailable. <button onClick={refresh}>Retry</button></p>}
+            <div className="mobile-contact-strip"><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","discussion");return n;})}>Write comment</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Attachments ({attachments.data?.length ?? 0})</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","updates");return n;})}>Post update</button></div>
+            {[...(updates.data?.items||[]).map(entry=>({key:`update-${entry.id}`,date:entry.created_at,node:renderEntry(entry)})),...(comments.data||[]).map(c=>({key:`comment-${c.id}`,date:c.created_at,node:<article className="tw-comment"><strong>{c.author?.name||"Team member"}</strong><RichTextContent value={c.body} legacyFormat={c.body_format === "markdown" ? "markdown" : "plain"}/><small>{stamp(c.created_at)}</small></article>})),...(attachments.data||[]).map(file=>({key:`file-${file.id}`,date:file.created_at,node:<article className="tw-history"><strong>Attachment: {file.original_name || file.file_name}</strong><small>{file.uploaded_by_name || "Team member"} · {stamp(file.created_at)}</small><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Open attachment</button></article>})),...(history.data?.items||[]).map(h=>({key:`history-${h.id}`,date:h.created_at,node:<article className="tw-history"><strong>{h.summary}</strong><small>{h.actor.name} · {stamp(h.created_at)}</small></article>}))].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).map(event=><div key={event.key}>{event.node}</div>)}
+          </section>}
           {(tab === "updates" || tab === "followups") && (
             <>
               <section className="tw-box" ref={composer}>
@@ -765,7 +776,7 @@ export default function TaskWorkspacePage() {
                   <div className="tw-template">
                     <label>
                       Template{" "}
-                      <select
+                      <NativeSelect
                         aria-label="Update template"
                         defaultValue=""
                         onChange={(e) => {
@@ -780,7 +791,7 @@ export default function TaskWorkspacePage() {
                         <option value="">Blank update</option>
                         <option value="daily">Daily work note</option>
                         <option value="qa">QA test report</option>
-                      </select>
+                      </NativeSelect>
                     </label>
                   </div>
                   <MentionMarkdownTextarea
@@ -845,7 +856,7 @@ export default function TaskWorkspacePage() {
                       )}
                       <label>
                         Category
-                        <select
+                        <NativeSelect
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
                         >
@@ -858,22 +869,22 @@ export default function TaskWorkspacePage() {
                           ].map((s) => (
                             <option key={s}>{s}</option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </label>
                       <label>
                         Severity
-                        <select
+                        <NativeSelect
                           value={severity}
                           onChange={(e) => setSeverity(e.target.value)}
                         >
                           {["Low", "Medium", "High", "Critical"].map((s) => (
                             <option key={s}>{s}</option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </label>
                       <label>
                         Responsible person
-                        <select
+                        <NativeSelect
                           aria-label="Blocker responsible person"
                           value={responsible}
                           onChange={(e) => setResponsible(e.target.value)}
@@ -891,7 +902,7 @@ export default function TaskWorkspacePage() {
                               {p.name}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </label>
                       <label>
                         Assistance required
@@ -1378,7 +1389,7 @@ export default function TaskWorkspacePage() {
         <aside className="tw-sidebar">
           <section className="tw-box">
             <h2>Task Status & Actions</h2>
-            <select
+            <NativeSelect
               className="tw-status-select"
               aria-label="Task status"
               value={task.status}
@@ -1412,7 +1423,7 @@ export default function TaskWorkspacePage() {
                   {status === "Done" ? "Completed" : status}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             {["To Do", "In Progress", "In Review", "Done"].map((s) => (
               <div
                 className={`tw-step ${task.status === s ? "active" : ""}`}

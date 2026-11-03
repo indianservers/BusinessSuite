@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { ApprovalAnalytics } from "./ApprovalAnalytics";
 export { ApprovalAnalytics } from "./ApprovalAnalytics";
 import { useCallback, useEffect, useState } from "react";
@@ -259,7 +260,7 @@ export default function ApprovalsPage() {
           <span>
             WORKSPACE <ChevronRight size={12} /> APPROVALS
           </span>
-          <select
+          <NativeSelect
             aria-label="Approval environment"
             value={environment}
             onChange={(e) =>
@@ -269,7 +270,7 @@ export default function ApprovalsPage() {
             {["development", "testing", "production"].map((e) => (
               <option key={e}>{e}</option>
             ))}
-          </select>
+          </NativeSelect>
         </header>
         <div className="ap-content">
           <div className="ap-page-title">

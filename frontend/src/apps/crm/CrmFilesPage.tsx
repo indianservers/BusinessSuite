@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -75,7 +76,7 @@ export default function CrmFilesPage() {
       {notice && <p role="status">{notice}</p>}
       <label>
         Upload folder{" "}
-        <select
+        <NativeSelect loading={query.isFetching} error={query.isError}
           className="input max-w-xs"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
@@ -86,7 +87,7 @@ export default function CrmFilesPage() {
               {f.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       <div
         className={`rounded-xl border-2 border-dashed p-8 text-center ${over ? "border-primary bg-primary/5" : "border-border"}`}

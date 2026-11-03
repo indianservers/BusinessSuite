@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,11 +49,11 @@ export default function BranchSwitcher() {
     <label className="suite-branch-field">
       <Building2 size={16} className="suite-branch-icon" aria-hidden="true" />
       <span className="suite-branch-label">Branch</span>
-      <select aria-label="Current branch" className="suite-branch-select" value={context?.selected ?? ""} disabled={busy || !context || !context.branches.length} onChange={e => void switchBranch(e.target.value)}>
+      <NativeSelect loading={busy || current.isFetching} error={current.isError} aria-label="Current branch" className="suite-branch-select" value={context?.selected ?? ""} disabled={busy || !context || !context.branches.length} onChange={e => void switchBranch(e.target.value)}>
         {!context && <option value="">{current.isError ? "Branch unavailable" : "Loading branches…"}</option>}
         {context && context.selected === null && <option value="">No branch access</option>}
         {context?.branches.map(b => <option key={b.id} value={b.id}>{b.name}{b.is_active === false ? " (archived)" : ""}{b.can_write ? "" : " · read only"}</option>)}
-      </select>
+      </NativeSelect>
       <ChevronDown size={14} className="suite-branch-chevron" aria-hidden="true" />
     </label>
     {context?.manage_access && <Link to="/settings/branches" aria-label="Manage branches" title="Manage branches" className="suite-branch-settings"><Settings2 size={16} /></Link>}

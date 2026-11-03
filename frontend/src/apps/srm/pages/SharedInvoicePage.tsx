@@ -1,3 +1,4 @@
+import MobilePdfActions from "@/components/mobile/MobilePdfActions";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { InvoicePaymentForm } from "./ConnectedCollectionsPage";
@@ -80,6 +81,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           Open originating project
         </Link>
       )}
+      <div className="mobile-only-panel"><ol className="mobile-timeline" aria-label="Invoice progress">{[["Document",r.document_status],["Delivery",r.delivery_status],["Payment",r.payment_status]].map(([label,status])=><li key={label}><strong>{label}</strong><small>{String(status||"Not available").replace(/_/g,' ')}</small></li>)}</ol><MobilePdfActions url={`/srm/invoices/${id}/pdf`} filename={`${r.invoice_number}.pdf`}/></div>
       <Card>
         <CardContent className="flex flex-wrap gap-6 p-5">
           <p>Document: {r.document_status}</p>

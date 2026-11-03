@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -109,7 +110,7 @@ export default function CourseCurriculum({ courseId }: { courseId: number }) {
               onChange={(e) => setLesson(e.target.value)}
               placeholder="Lesson title"
             />
-            <select
+            <NativeSelect
               aria-label="Lesson section"
               value={target || sections[0].id}
               onChange={(e) => setTarget(e.target.value)}
@@ -119,7 +120,7 @@ export default function CourseCurriculum({ courseId }: { courseId: number }) {
                   {s.title}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <button
               type="button"
               disabled={!lesson.trim() || saving}

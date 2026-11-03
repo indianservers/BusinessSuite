@@ -1,3 +1,6 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { MobileFilters } from "@/components/mobile/MobilePrimitives";
+import { useMobile } from "@/components/mobile/useMobile";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import MoveBoard from "@/components/interaction/MoveBoard";
@@ -251,6 +254,7 @@ export default function MyWorkPage() {
   const [params, setParams] = useSearchParams();
   const paramsRef = useRef(params);
   paramsRef.current = params;
+  const mobile = useMobile();
   const view = params.get("workView") || "mine";
   const layout = params.get("layout") || "list";
   const [data, setData] = useState<WorkData>();
@@ -408,7 +412,7 @@ export default function MyWorkPage() {
         onChange={(v) => change(key, v)}
       />
     ) : (
-      <select
+      <NativeSelect
         aria-label={label}
         value={params.get(key) || ""}
         onChange={(e) => change(key, e.target.value)}
@@ -419,7 +423,7 @@ export default function MyWorkPage() {
             {v.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     );
   const avatars = (task: WorkTask) => (
     <button
@@ -754,6 +758,8 @@ export default function MyWorkPage() {
           ))}
         </div>
       )}
+      {mobile && <nav className="mobile-stepper" aria-label="My work focus">{["Today", "Overdue", "Upcoming", "Awaiting Review"].map(label => <button type="button" key={label} aria-pressed={params.get("mobileFocus") === label} onClick={() => { const next = new URLSearchParams(params); ["dueFrom","dueTo","overdue","status","page"].forEach(key => next.delete(key)); next.set("mobileFocus",label); if(label === "Today") { next.set("dueFrom",localDate()); next.set("dueTo",localDate()); } if(label === "Overdue")next.set("overdue","true"); if(label === "Upcoming") { const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);next.set("dueFrom",localDate(tomorrow)); } if(label === "Awaiting Review")next.set("status","In Review"); setParams(next); }}>{label}</button>)}</nav>}
+      <MobileFilters chips={activeFilters.map(([key,value]) => `${key}: ${value}`)}>
       <section className="mw-filters" aria-label="Task filters">
         <label className="mw-search">
           <Search size={16} />
@@ -828,6 +834,7 @@ export default function MyWorkPage() {
           <Link to="/pms/reviews">Open approval inbox</Link>
         </section>
       )}
+      </MobileFilters>
       {!!activeFilters.length && (
         <div className="mw-chips">
           {activeFilters.map(([key, value]) => (
@@ -853,7 +860,7 @@ export default function MyWorkPage() {
           <button onClick={() => openAssignment(chosen)}>
             <Users size={16} /> Assign people / groups
           </button>
-          <select
+          <NativeSelect
             aria-label="Bulk field"
             value={bulkField}
             onChange={(e) => {
@@ -865,7 +872,7 @@ export default function MyWorkPage() {
             <option value="priority">Priority</option>
             <option value="due_date">Due date</option>
             <option value="project_id">Move to project</option>
-          </select>
+          </NativeSelect>
           {bulkField === "due_date" ? (
             <input
               aria-label="Bulk due date"
@@ -874,7 +881,7 @@ export default function MyWorkPage() {
               onChange={(e) => setBulkValue(e.target.value)}
             />
           ) : (
-            <select
+            <NativeSelect
               aria-label="Bulk value"
               value={bulkValue}
               onChange={(e) => setBulkValue(e.target.value)}
@@ -893,7 +900,7 @@ export default function MyWorkPage() {
                   {v.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           )}
           <button
             disabled={busy || !bulkValue}
@@ -1298,7 +1305,7 @@ export default function MyWorkPage() {
             {layout === "board" ? " · Board shows this page" : ""}
           </span>
           <div>
-            <select
+            <NativeSelect
               aria-label="Tasks per page"
               value={pageSize}
               onChange={(e) => change("pageSize", e.target.value)}
@@ -1308,7 +1315,7 @@ export default function MyWorkPage() {
                   {n} per page
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <button
               aria-label="Previous page"
               disabled={page <= 1 || loading}

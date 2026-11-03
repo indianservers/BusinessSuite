@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -169,12 +170,12 @@ function CalendarTab() {
         <CardHeader><CardTitle className="text-base">Compliance Calendar</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}>
+            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}>
               <option value="">All types</option>{TYPES.map((type) => <option key={type}>{type}</option>)}
-            </select>
-            <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+            </NativeSelect>
+            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
               <option value="">All statuses</option>{["Pending", "Filed", "Overdue"].map((status) => <option key={status}>{status}</option>)}
-            </select>
+            </NativeSelect>
             <Input value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })} placeholder="Year" />
           </div>
           {calendar.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : (
@@ -532,8 +533,8 @@ function HistoryTab() {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}><option value="">All types</option>{["PF_ECR", "ESI", "PT", "LWF", "TDS_24Q", "TDS_26Q"].map((type) => <option key={type}>{type}</option>)}</select>
-        <select className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.validation_status} onChange={(e) => setFilters({ ...filters, validation_status: e.target.value })}><option value="">All statuses</option>{["valid", "invalid", "submitted"].map((status) => <option key={status}>{status}</option>)}</select>
+        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}><option value="">All types</option>{["PF_ECR", "ESI", "PT", "LWF", "TDS_24Q", "TDS_26Q"].map((type) => <option key={type}>{type}</option>)}</NativeSelect>
+        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.validation_status} onChange={(e) => setFilters({ ...filters, validation_status: e.target.value })}><option value="">All statuses</option>{["valid", "invalid", "submitted"].map((status) => <option key={status}>{status}</option>)}</NativeSelect>
       </div>
       {submissions.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : <HistoryTable rows={submissions.data || []} />}
     </div>

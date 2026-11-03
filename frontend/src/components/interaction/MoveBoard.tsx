@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState, type ReactNode } from "react";
 import {
   DndContext,
@@ -267,7 +268,7 @@ function Card({
             </button>
           </>
         )}
-        <select
+        <NativeSelect
           aria-label={`Move ${item.label} to`}
           disabled={disabled}
           value={item.group}
@@ -278,7 +279,7 @@ function Card({
               {g.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
     </article>
   );

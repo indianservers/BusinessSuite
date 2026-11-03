@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
@@ -81,14 +82,14 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
     <section className="wf-card wf-dialog" aria-label="Find people">
       <div className="wf-filters">
         <label>Search people<input value={filters.search} placeholder="Name, employee ID or email" onChange={e => update({ search: e.target.value })} /></label>
-        <label>People<select value={filters.kind} onChange={e => update({ kind: e.target.value })}><option value="all">All employees & interns</option><option value="intern">Interns</option><option value="employee">Other employees</option></select></label>
-        <label>Department<select value={filters.department_id} onChange={e => update({ department_id: e.target.value })}><option value="">All departments</option>{options?.departments.map((d: Row) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
-        <label>Batch or group<select value={filters.batch_id} onChange={e => update({ batch_id: e.target.value })}><option value="">All groups</option>{options?.batches.map((b: Row) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
-        <label>Supervisor<select value={filters.manager_id} onChange={e => update({ manager_id: e.target.value })}><option value="">All supervisors</option>{managers.filter(m => m.id > 0).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
-        <label>Status<select value={filters.status} onChange={e => update({ status: e.target.value })}><option value="">All statuses</option>{["Active", "Probation", "Inactive", "Suspended", "Completed", "Resigned"].map(s => <option key={s}>{s}</option>)}</select></label>
-        <label>Account<select value={filters.account_status} onChange={e => update({ account_status: e.target.value })}><option value="">All accounts</option><option value="active">Active accounts only</option><option value="missing">Missing or inactive accounts</option></select></label>
-        <label>Action queue<select value={exception} onChange={e => { setException(e.target.value); setPage(1); setSelected([]); setAllFiltered(false); }}>{modes.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select></label>
-        <label>Saved views<select value="" onChange={e => { const view = views[Number(e.target.value)]; if (view) { update(view.filters); setException(""); } }}><option value="">Choose a saved view</option>{views.map((v, i) => <option key={i} value={i}>{v.name}</option>)}</select></label>
+        <label>People<NativeSelect value={filters.kind} onChange={e => update({ kind: e.target.value })}><option value="all">All employees & interns</option><option value="intern">Interns</option><option value="employee">Other employees</option></NativeSelect></label>
+        <label>Department<NativeSelect value={filters.department_id} onChange={e => update({ department_id: e.target.value })}><option value="">All departments</option>{options?.departments.map((d: Row) => <option key={d.id} value={d.id}>{d.name}</option>)}</NativeSelect></label>
+        <label>Batch or group<NativeSelect value={filters.batch_id} onChange={e => update({ batch_id: e.target.value })}><option value="">All groups</option>{options?.batches.map((b: Row) => <option key={b.id} value={b.id}>{b.name}</option>)}</NativeSelect></label>
+        <label>Supervisor<NativeSelect value={filters.manager_id} onChange={e => update({ manager_id: e.target.value })}><option value="">All supervisors</option>{managers.filter(m => m.id > 0).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</NativeSelect></label>
+        <label>Status<NativeSelect value={filters.status} onChange={e => update({ status: e.target.value })}><option value="">All statuses</option>{["Active", "Probation", "Inactive", "Suspended", "Completed", "Resigned"].map(s => <option key={s}>{s}</option>)}</NativeSelect></label>
+        <label>Account<NativeSelect value={filters.account_status} onChange={e => update({ account_status: e.target.value })}><option value="">All accounts</option><option value="active">Active accounts only</option><option value="missing">Missing or inactive accounts</option></NativeSelect></label>
+        <label>Action queue<NativeSelect value={exception} onChange={e => { setException(e.target.value); setPage(1); setSelected([]); setAllFiltered(false); }}>{modes.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</NativeSelect></label>
+        <label>Saved views<NativeSelect value="" onChange={e => { const view = views[Number(e.target.value)]; if (view) { update(view.filters); setException(""); } }}><option value="">Choose a saved view</option>{views.map((v, i) => <option key={i} value={i}>{v.name}</option>)}</NativeSelect></label>
       </div>
       <div className="wf-row"><input aria-label="Saved view name" placeholder="Name this view" maxLength={60} value={viewName} onChange={e => setViewName(e.target.value)} />
         <button disabled={!viewName.trim()} onClick={() => { const next = [...views.filter(v => v.name !== viewName.trim()), { name: viewName.trim(), filters }].slice(-20); setViews(next); localStorage.setItem(viewKey, JSON.stringify(next)); setViewName(""); }}>Save view on this device</button>
@@ -134,10 +135,10 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
         finally { setBusy(false); }
       }}>
         <p><strong>{preview?.total} people</strong> will receive this change. {preview?.sample?.map((p: Row) => p.name).join(", ")}{(preview?.total || 0) > 10 ? ", …" : ""}</p>
-        {modal === "reassign" ? <label>New reporting supervisor<select required value={form.reporting_manager_id} onChange={e => setForm(f => ({ ...f, reporting_manager_id: e.target.value }))}><option value="">Choose a supervisor</option>{managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label> : <>
+        {modal === "reassign" ? <label>New reporting supervisor<NativeSelect required value={form.reporting_manager_id} onChange={e => setForm(f => ({ ...f, reporting_manager_id: e.target.value }))}><option value="">Choose a supervisor</option>{managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</NativeSelect></label> : <>
           <label>Title<input required maxLength={200} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></label>
           <label>Message<textarea required maxLength={3000} placeholder="Explain the issue, expected action and deadline." value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} /></label>
-          <label>Priority<select value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}>{["normal", "important", "urgent"].map(s => <option key={s}>{s}</option>)}</select></label>
+          <label>Priority<NativeSelect value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}>{["normal", "important", "urgent"].map(s => <option key={s}>{s}</option>)}</NativeSelect></label>
           <p>Delivered in the app. Recipients can acknowledge receipt; managers can record a resolution.</p>
         </>}
         {error && <p role="alert" className="wf-error">{error}</p>}

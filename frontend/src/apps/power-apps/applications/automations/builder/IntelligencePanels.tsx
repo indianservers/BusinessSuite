@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState, useId } from "react";
 import { X, Sparkles, Pause, Play, Download } from "lucide-react";
 import type { AuthoringPanelProps } from "./intelligenceTypes";
@@ -177,7 +178,7 @@ export function AIWorkflowDesigner(props: Props) {
       </p>
       <label>
         Task
-        <select
+        <NativeSelect
           aria-label="AI task"
           value={mode}
           onChange={(e) => setMode(e.target.value)}
@@ -192,11 +193,11 @@ export function AIWorkflowDesigner(props: Props) {
           ].map((m) => (
             <option key={m}>{m}</option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       <label>
         Configured provider
-        <select
+        <NativeSelect
           aria-label="AI provider"
           value={provider}
           onChange={(e) => setProvider(e.target.value)}
@@ -204,7 +205,7 @@ export function AIWorkflowDesigner(props: Props) {
           {["gemini", "openai", "claude"].map((p) => (
             <option key={p}>{p}</option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       <JSONEditor
         label="Describe your workflow"
@@ -470,7 +471,7 @@ export function DataMappingStudio(props: Props) {
           )}
           <label>
             Target type
-            <select
+            <NativeSelect
               aria-label="Mapping target type"
               value={mapping.target_type}
               onChange={(e) =>
@@ -492,7 +493,7 @@ export function DataMappingStudio(props: Props) {
               ].map((type) => (
                 <option key={type}>{type}</option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <label>
             <input
@@ -506,7 +507,7 @@ export function DataMappingStudio(props: Props) {
           </label>
           {mapping.operations.map((op, i) => (
             <div className="ai-operation" key={i}>
-              <select
+              <NativeSelect
                 aria-label={`Transformation ${i + 1}`}
                 value={op.op}
                 onChange={(e) =>
@@ -533,7 +534,7 @@ export function DataMappingStudio(props: Props) {
                 ].map((name) => (
                   <option key={name}>{name}</option>
                 ))}
-              </select>
+              </NativeSelect>
               <TransformationArgument
                 label={`Transformation ${i + 1} argument JSON`}
                 key={`${argumentRevision}-${i}`}
@@ -787,7 +788,7 @@ export function TemplateMarketplace(props: Props) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search workflow ideas"
       />
-      <select
+      <NativeSelect
         aria-label="Marketplace category"
         value={category}
         onChange={(e) => setCategory(e.target.value)}
@@ -798,7 +799,7 @@ export function TemplateMarketplace(props: Props) {
             <option key={c}>{c}</option>
           ),
         )}
-      </select>
+      </NativeSelect>
       {error && <p role="alert">{error}</p>}
       <div className="ai-template-grid">
         {items
@@ -1415,7 +1416,7 @@ export function ReusableBlockLibrary(props: Props) {
           <h4>{selected.name}</h4>
           <label>
             Immutable version
-            <select
+            <NativeSelect
               aria-label="Block version"
               value={selectedVersion}
               onChange={(e) => setSelectedVersion(Number(e.target.value))}
@@ -1425,7 +1426,7 @@ export function ReusableBlockLibrary(props: Props) {
                   Version {v.version}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <GraphProposalPreview
             graph={

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -70,7 +71,7 @@ export function ApprovalPolicyEditor({
       </label>
       <label>
         Voting rule
-        <select
+        <NativeSelect
           value={stage.mode}
           onChange={(e) =>
             onChange({ ...stage, mode: e.target.value as Stage["mode"] })
@@ -80,7 +81,7 @@ export function ApprovalPolicyEditor({
           <option value="any">Any one may approve</option>
           <option value="majority">Strict majority</option>
           <option value="quorum">Quorum</option>
-        </select>
+        </NativeSelect>
       </label>
       {stage.mode === "quorum" && (
         <label>
@@ -98,7 +99,7 @@ export function ApprovalPolicyEditor({
       )}
       <label>
         Approver source
-        <select
+        <NativeSelect
           value={stage.selectors[0].kind}
           onChange={(e) =>
             onChange({
@@ -119,7 +120,7 @@ export function ApprovalPolicyEditor({
           ].map((s) => (
             <option key={s}>{s}</option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       {["user", "group", "record_user", "organization_owner"].includes(
         stage.selectors[0].kind,
@@ -247,7 +248,7 @@ export function ApprovalPolicyEditor({
       />
       <label>
         Escalation action
-        <select
+        <NativeSelect
           value={stage.escalation_action || "notify"}
           onChange={(e) =>
             onChange({
@@ -260,7 +261,7 @@ export function ApprovalPolicyEditor({
           <option value="reassign">
             Reassign pending seats to independent alternates
           </option>
-        </select>
+        </NativeSelect>
       </label>
       <label className="ap-check">
         <input
@@ -595,7 +596,7 @@ export function ApprovalDesigner({
             </label>
             <label>
               Weekdays (0 = Monday, 6 = Sunday)
-              <select
+              <NativeSelect
                 multiple
                 value={process.business_calendar.weekdays.map(String)}
                 onChange={(e) =>
@@ -623,7 +624,7 @@ export function ApprovalDesigner({
                     {d}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Opening hour
@@ -724,7 +725,7 @@ export function ApprovalDesigner({
             </label>
             <label>
               Answer type
-              <select
+              <NativeSelect
                 value={field.kind}
                 onChange={(e) =>
                   setProcess({
@@ -739,7 +740,7 @@ export function ApprovalDesigner({
                 <option value="number">Number</option>
                 <option value="date">Date</option>
                 <option value="select">Single choice</option>
-              </select>
+              </NativeSelect>
             </label>
             {field.kind === "select" && (
               <label>

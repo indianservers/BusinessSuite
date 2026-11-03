@@ -1,3 +1,5 @@
+import { MobileFilters } from "@/components/mobile/MobilePrimitives";
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -361,7 +363,7 @@ function DashboardView() {
             <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={groupedMoney("overdue_value")} detail="All time" tone={overdue > 0 ? "danger" : "default"} />
           </div>
 <p className="text-xs text-muted-foreground">{String(data.currency_policy||"Currency units unavailable")}</p>
-<SecondaryDetails title="Revenue events and order pipeline"><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<select className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</select></label><label>Event type<select className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</select></label></div><p className="text-xs">Monthly totals for the selected event type and currency. Different commercial events are not combined into accounting revenue.</p>
+<SecondaryDetails title="Revenue events and order pipeline"><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<NativeSelect className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</NativeSelect></label><label>Event type<NativeSelect className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</NativeSelect></label></div><p className="text-xs">Monthly totals for the selected event type and currency. Different commercial events are not combined into accounting revenue.</p>
           <div className="grid gap-4 xl:grid-cols-12">
             <RevenuePerformanceCard records={revenueTrend} />
             <OrderPipelineCard items={orderPipeline} total={numberValue(data.total_sales_orders)} />
@@ -1021,11 +1023,11 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
           <div className="grid gap-3 md:grid-cols-4">
             <label className="space-y-2 text-sm">
               <span className="font-medium">Template</span>
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.template} onChange={(event) => update("template", event.target.value)}>
+              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.template} onChange={(event) => update("template", event.target.value)}>
                 <option value="services">Services invoice</option>
                 <option value="milestone">Milestone invoice</option>
                 <option value="time_materials">Time and materials</option>
-              </select>
+              </NativeSelect>
             </label>
             <label className="space-y-2 text-sm">
               <span className="font-medium">Shared customer</span>
@@ -1283,6 +1285,7 @@ function ProfitabilityView() {
   return (
     <div className="space-y-5">
       <PageHeader meta={viewMeta.profitability} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      <MobileFilters label="Profitability filters" chips={Object.entries(filters).filter(([,value])=>!!value).map(([key,value])=>`${key.replace(/_/g," ")}: ${value}`)}>
       <Card>
         <CardHeader><CardTitle className="text-base">Profitability Filters</CardTitle></CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-5">
@@ -1291,6 +1294,7 @@ function ProfitabilityView() {
           ))}
         </CardContent>
       </Card>
+      </MobileFilters>
       <div className="grid gap-4 xl:grid-cols-2">
         <RecordList title="Engagement Profitability" records={records} primaryKey="engagement_id" secondaryKey="collection_status" amountKey="gross_margin" />
         <SummaryCard title="Profitability Values" data={profitabilityValues} />
@@ -1611,10 +1615,10 @@ function POSSessionView() {
           <Card>
             <CardHeader><CardTitle className="text-base">Cash movement</CardTitle></CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-[9rem_1fr_1fr_auto]">
-              <select className="h-10 rounded-md border bg-background px-3 text-sm" value={movementType} onChange={(event) => setMovementType(event.target.value)}>
+              <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={movementType} onChange={(event) => setMovementType(event.target.value)}>
                 <option value="cash_in">Cash In</option>
                 <option value="cash_out">Cash Out</option>
-              </select>
+              </NativeSelect>
               <Input value={cashAmount} onChange={(event) => setCashAmount(event.target.value)} placeholder="Amount" />
               <Input value={cashReason} onChange={(event) => setCashReason(event.target.value)} placeholder="Reason" />
               <Button onClick={() => movement.mutate()} disabled={movement.isPending || !activeSession || !amountField(cashAmount)}>Save</Button>

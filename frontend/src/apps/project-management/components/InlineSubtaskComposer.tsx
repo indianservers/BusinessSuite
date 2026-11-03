@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export default function InlineSubtaskComposer({ parent, onCreated, onCancel }: {
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <fieldset disabled={busy} className="grid gap-2 sm:grid-cols-2">
       <Input autoFocus required maxLength={220} aria-label="Inline subtask title" placeholder="Subtask name" value={title} onChange={event => setTitle(event.target.value)} className="sm:col-span-2" />
-      <label className="text-xs">Priority<select aria-label="Inline subtask priority" className="mt-1 h-10 w-full rounded border bg-background px-2 text-sm" value={priority} onChange={event => setPriority(event.target.value as TaskPriority)}>{["Urgent", "High", "Medium", "Low"].map(value => <option key={value}>{value}</option>)}</select></label>
+      <label className="text-xs">Priority<NativeSelect aria-label="Inline subtask priority" className="mt-1 h-10 w-full rounded border bg-background px-2 text-sm" value={priority} onChange={event => setPriority(event.target.value as TaskPriority)}>{["Urgent", "High", "Medium", "Low"].map(value => <option key={value}>{value}</option>)}</NativeSelect></label>
       <label className="text-xs">Due date<Input aria-label="Inline subtask due date" type="date" value={due} onChange={event => setDue(event.target.value)} className="mt-1" /></label>
       <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={inherit} onChange={event => setInherit(event.target.checked)} />Inherit parent assignees</label>
       <div className="flex flex-wrap gap-2 sm:col-span-2"><Button size="sm" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Save subtask"}</Button><Button type="button" size="sm" variant="outline" disabled={busy} onClick={onCancel}>Cancel</Button></div>

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -155,10 +156,10 @@ export default function AdvancedAnalyticsPage() {
             <div key={key} className="space-y-1.5">
               <Label>{label}</Label>
               {key === "tenure_band" ? (
-                <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filters.tenure_band} onChange={(e) => setFilters({ ...filters, tenure_band: e.target.value })}>
+                <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filters.tenure_band} onChange={(e) => setFilters({ ...filters, tenure_band: e.target.value })}>
                   <option value="">All</option>
                   {["0-1", "1-3", "3-5", "5+"].map((value) => <option key={value}>{value}</option>)}
-                </select>
+                </NativeSelect>
               ) : (
                 <Input value={(filters as Record<string, string>)[key]} onChange={(e) => setFilters({ ...filters, [key]: e.target.value })} />
               )}
@@ -234,9 +235,9 @@ export default function AdvancedAnalyticsPage() {
                 <Input type="date" value={incident.incident_date} onChange={(e) => setIncident({ ...incident, incident_date: e.target.value })} />
                 <Input value={incident.incident_type} onChange={(e) => setIncident({ ...incident, incident_type: e.target.value })} placeholder="Incident type" />
                 <Input value={incident.location} onChange={(e) => setIncident({ ...incident, location: e.target.value })} placeholder="Location" />
-                <select className="h-10 rounded-md border bg-background px-3 text-sm" value={incident.severity} onChange={(e) => setIncident({ ...incident, severity: e.target.value })}>
+                <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={incident.severity} onChange={(e) => setIncident({ ...incident, severity: e.target.value })}>
                   {["Low", "Medium", "High", "Critical"].map((item) => <option key={item}>{item}</option>)}
-                </select>
+                </NativeSelect>
                 <Button size="sm" disabled={!manufacturingEnabled || createIncident.isPending} onClick={() => createIncident.mutate()}>Record Incident</Button>
               </div>
               {(safetyIncidents.data || []).slice(0, 5).map((item) => (

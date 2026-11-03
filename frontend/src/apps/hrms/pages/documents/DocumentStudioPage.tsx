@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import OrderedList from "@/components/interaction/OrderedList";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
@@ -442,7 +443,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                   }}
                 >
                   <Field label="Template">
-                    <select
+                    <NativeSelect loading={templates.isFetching} error={templates.isError}
                       aria-label="Template"
                       className={selectClass}
                       required
@@ -457,10 +458,10 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                             {t.name} · v{t.version}
                           </option>
                         ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                   <Field label="Letterhead">
-                    <select
+                    <NativeSelect loading={heads.isFetching} error={heads.isError}
                       aria-label="Letterhead"
                       className={selectClass}
                       required
@@ -475,11 +476,11 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                             {h.name} · v{h.version}
                           </option>
                         ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Recipient source">
-                      <select
+                      <NativeSelect loading={meta.isFetching} error={meta.isError}
                         aria-label="Recipient source"
                         className={selectClass}
                         value={kind}
@@ -502,7 +503,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                             Internship applicant
                           </option>
                         )}
-                      </select>
+                      </NativeSelect>
                     </Field>
                     <Field label="Issue date">
                       <Input
@@ -525,7 +526,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                     />
                   </Field>
                   <Field label="Recipient">
-                    <select
+                    <NativeSelect loading={recipients.isFetching} error={recipients.isError}
                       aria-label="Recipient"
                       required
                       className={selectClass}
@@ -542,7 +543,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                           {r.name} · {r.detail}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                   {recipients.isError && (
                     <p role="alert" className="text-sm text-destructive">
@@ -732,7 +733,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                     </Field>
                     <div className="grid gap-4 sm:grid-cols-3">
                       <Field label="Kind">
-                        <select
+                        <NativeSelect
                           className={selectClass}
                           value={editTemplate.kind}
                           onChange={(e) =>
@@ -744,10 +745,10 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                         >
                           <option value="letter">Letter</option>
                           <option value="certificate">Certificate</option>
-                        </select>
+                        </NativeSelect>
                       </Field>
                       <Field label="Orientation">
-                        <select
+                        <NativeSelect
                           className={selectClass}
                           value={editTemplate.orientation}
                           onChange={(e) =>
@@ -759,10 +760,10 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                         >
                           <option value="portrait">Portrait</option>
                           <option value="landscape">Landscape</option>
-                        </select>
+                        </NativeSelect>
                       </Field>
                       <Field label="Recipients">
-                        <select
+                        <NativeSelect
                           className={selectClass}
                           value={editTemplate.recipient_scope}
                           onChange={(e) =>
@@ -775,7 +776,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                           <option value="both">Employees & applicants</option>
                           <option value="employee">Employees only</option>
                           <option value="application">Applicants only</option>
-                        </select>
+                        </NativeSelect>
                       </Field>
                     </div>
                     <Field label="Document category">
@@ -792,7 +793,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                       />
                     </Field>
                     <Field label="Default letterhead">
-                      <select
+                      <NativeSelect loading={heads.isFetching} error={heads.isError}
                         className={selectClass}
                         value={editTemplate.letterhead_id || ""}
                         onChange={(e) =>
@@ -808,7 +809,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                             {h.name}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </Field>
                     <Field label="Document title (placeholders supported)">
                       <Input
@@ -920,7 +921,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                               />
                             </Field>
                             <Field label="Input type">
-                              <select
+                              <NativeSelect
                                 className={selectClass}
                                 value={field.type}
                                 onChange={(e) =>
@@ -934,7 +935,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                                     <option key={type}>{type}</option>
                                   ),
                                 )}
-                              </select>
+                              </NativeSelect>
                             </Field>
                             <Field label="Default value">
                               <Input

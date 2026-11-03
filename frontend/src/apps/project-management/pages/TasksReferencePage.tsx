@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import Sidebar from "@/components/layout/Sidebar";
 import TaskThemeSwitcher from "../components/TaskThemeSwitcher";
@@ -555,7 +556,7 @@ export default function TasksReferencePage() {
                     </Link>
                   </div>
                   <div className="tr-tools">
-                    <select
+                    <NativeSelect
                       aria-label="Saved views"
                       value=""
                       onChange={(e) => {
@@ -593,7 +594,7 @@ export default function TasksReferencePage() {
                         </option>
                       ))}
                       <option value="save">+ Save current view</option>
-                    </select>
+                    </NativeSelect>
                     <button
                       className={`tr-button ${layout === "gallery" ? "active" : ""}`}
                       aria-label="Cards"
@@ -626,7 +627,7 @@ export default function TasksReferencePage() {
                       onChange={(e) => setSearch(e.target.value)}
                     />
                   </label>
-                  <select
+                  <NativeSelect
                     aria-label="Project"
                     value={params.get("projectId") || ""}
                     onChange={(e) => change("projectId", e.target.value)}
@@ -637,8 +638,8 @@ export default function TasksReferencePage() {
                         {p.name}
                       </option>
                     ))}
-                  </select>
-                  <select
+                  </NativeSelect>
+                  <NativeSelect
                     aria-label="Assignee"
                     value={params.get("assigneeId") || ""}
                     onChange={(e) => change("assigneeId", e.target.value)}
@@ -649,8 +650,8 @@ export default function TasksReferencePage() {
                         {p.name}
                       </option>
                     ))}
-                  </select>
-                  <select
+                  </NativeSelect>
+                  <NativeSelect
                     aria-label="Priority"
                     value={params.get("priority") || ""}
                     onChange={(e) => change("priority", e.target.value)}
@@ -659,8 +660,8 @@ export default function TasksReferencePage() {
                     {["Urgent", "High", "Medium", "Low"].map((s) => (
                       <option key={s}>{s}</option>
                     ))}
-                  </select>
-                  <select
+                  </NativeSelect>
+                  <NativeSelect
                     aria-label="Status"
                     value={params.get("status") || ""}
                     onChange={(e) => change("status", e.target.value)}
@@ -669,7 +670,7 @@ export default function TasksReferencePage() {
                     {statuses.map((s) => (
                       <option key={s}>{s}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                   <button
                     className="tr-button"
                     onClick={() => setExtra(!extra)}
@@ -678,7 +679,7 @@ export default function TasksReferencePage() {
                     Due Date
                     <ChevronDown size={12} />
                   </button>
-                  <select
+                  <NativeSelect
                     aria-label="Sort tasks"
                     value={params.get("sortBy") || "updatedDate"}
                     onChange={(e) => change("sortBy", e.target.value)}
@@ -687,7 +688,7 @@ export default function TasksReferencePage() {
                     <option value="dueDate">Due date</option>
                     <option value="priority">Priority</option>
                     <option value="createdDate">Created</option>
-                  </select>
+                  </NativeSelect>
                   <button
                     className="tr-button tr-filter-button"
                     aria-expanded={extra}
@@ -743,7 +744,7 @@ export default function TasksReferencePage() {
                 {!!selected.length && (
                   <div className="tr-extra">
                     <strong>{selected.length} selected</strong>
-                    <select
+                    <NativeSelect
                       aria-label="Bulk status"
                       disabled={busy}
                       value=""
@@ -753,8 +754,8 @@ export default function TasksReferencePage() {
                       {statuses.map((s) => (
                         <option key={s}>{s}</option>
                       ))}
-                    </select>
-                    <select
+                    </NativeSelect>
+                    <NativeSelect
                       aria-label="Bulk priority"
                       disabled={busy}
                       value=""
@@ -764,7 +765,7 @@ export default function TasksReferencePage() {
                       {["Urgent", "High", "Medium", "Low"].map((s) => (
                         <option key={s}>{s}</option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </div>
                 )}
                 <details className="rounded-lg border bg-white p-3 mb-4"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>
@@ -1024,7 +1025,7 @@ export default function TasksReferencePage() {
                   </span>
                   <label>
                     Rows{" "}
-                    <select
+                    <NativeSelect
                       aria-label="Rows per page"
                       value={pageSize}
                       onChange={(e) => change("pageSize", e.target.value)}
@@ -1032,7 +1033,7 @@ export default function TasksReferencePage() {
                       {[8, 16, 24, 48].map((n) => (
                         <option key={n}>{n}</option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </label>
                   <button
                     className="tr-button"
@@ -1198,7 +1199,7 @@ export default function TasksReferencePage() {
             </Dialog.Description>
             <label>
               Destination project
-              <select
+              <NativeSelect
                 value={importProject}
                 onChange={(e) => setImportProject(e.target.value)}
                 disabled={busy || Object.keys(importResults).length > 0}
@@ -1208,7 +1209,7 @@ export default function TasksReferencePage() {
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Task titles

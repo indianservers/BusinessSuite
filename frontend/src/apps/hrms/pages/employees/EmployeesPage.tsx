@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { ImportWizard, DataExportButton } from "@/shared/data-transfer";
 import { employeeImportFields } from "@/shared/data-transfer/fields";
@@ -304,10 +305,10 @@ export default function EmployeesPage() {
             {filterFields.map(([key, label]) => (
               <label key={key} className="space-y-1 text-xs font-medium">
                 <span>{label}</span>
-                <select aria-label={label} value={filters[key] || ""} onChange={(event) => changeFilter(key, event.target.value)} className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm font-normal">
+                <NativeSelect aria-label={label} value={filters[key] || ""} onChange={(event) => changeFilter(key, event.target.value)} className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm font-normal">
                   <option value="">All {label.toLowerCase()}</option>
                   {(filterOptions?.[key] || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
+                </NativeSelect>
               </label>
             ))}
             {[["joined_from", "Joined from"], ["joined_to", "Joined to"]].map(([key, label]) => (
@@ -316,11 +317,11 @@ export default function EmployeesPage() {
           </div>
         </details>
         <div className="mt-4 flex flex-wrap items-end gap-3 border-t pt-3">
-          <label className="space-y-1 text-xs font-medium"><span>Sort by</span><select aria-label="Sort by" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">
+          <label className="space-y-1 text-xs font-medium"><span>Sort by</span><NativeSelect aria-label="Sort by" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">
             {[["name", "Name"], ["employee_id", "Employee ID"], ["date_of_joining", "Joining date"], ["city", "City"], ["passout_year", "Passout year"], ["status", "Status"], ["employment_type", "Employment type"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select></label>
-          <label className="space-y-1 text-xs font-medium"><span>Order</span><select aria-label="Sort order" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm"><option value="asc">Ascending</option><option value="desc">Descending</option></select></label>
-          <label className="space-y-1 text-xs font-medium"><span>Rows per page</span><select aria-label="Rows per page" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">{[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
+          </NativeSelect></label>
+          <label className="space-y-1 text-xs font-medium"><span>Order</span><NativeSelect aria-label="Sort order" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm"><option value="asc">Ascending</option><option value="desc">Descending</option></NativeSelect></label>
+          <label className="space-y-1 text-xs font-medium"><span>Rows per page</span><NativeSelect aria-label="Rows per page" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">{[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</NativeSelect></label>
           <Button variant="ghost" onClick={() => { setFilters({}); setStatusFilter(""); setSearch(""); setSortBy("name"); setSortOrder("asc"); setPage(1); }}>Clear filters</Button>
           <span className="pb-2 text-sm text-muted-foreground" aria-live="polite">{data?.total ?? 0} matching employees</span>
         </div>

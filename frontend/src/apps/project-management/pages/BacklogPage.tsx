@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { arrangeTask } from "../components/SprintMoveBoard";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -157,9 +158,9 @@ export default function BacklogPage() {
       <Card>
         <CardContent className="grid gap-3 p-4 lg:grid-cols-[16rem_1fr_12rem_auto] lg:items-end">
           <Field label="Project">
-            <select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+            <NativeSelect value={projectId} onChange={(event) => setProjectId(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-            </select>
+            </NativeSelect>
           </Field>
           <Field label="Search">
             <div className="relative">
@@ -168,9 +169,9 @@ export default function BacklogPage() {
             </div>
           </Field>
           <Field label="Sort backlog">
-            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+            <NativeSelect value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
               {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+            </NativeSelect>
           </Field>
           <Button variant="outline" onClick={() => loadBacklog()} disabled={!projectId}>Refresh</Button>
         </CardContent>

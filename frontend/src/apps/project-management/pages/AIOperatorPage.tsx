@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
@@ -168,7 +169,7 @@ export default function AIOperatorPage() {
     recognition.current = rec;
     try { rec.start(); setRecording(true); setError(""); } catch { setError("Microphone could not start. Check browser permission."); }
   }
-  return <div className="max-w-6xl space-y-5">
+  return <div className="pms-operator-page max-w-6xl space-y-5">
     <Link className="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium text-primary" to={`/pms/assistant${projectId?`?project=${projectId}`:''}`}>Open the assistant workspace → Plans, memory, agents and insights</Link>
     <header><h1 className="page-title">AI task operator</h1><p className="page-description">Give a multi-step command by voice or text. Review the exact plan before applying it.</p><Link className="text-primary underline" to={`/pms/settings/ai/openai${project?.workspace_id ? `?workspace=${project.workspace_id}` : ""}`}>Provider settings and API usage</Link></header>
     <LocalBrainPanel key={uid} ref={brain} projectId={projectId} workspaceId={project?.workspace_id} provider={provider}
@@ -177,16 +178,16 @@ export default function AIOperatorPage() {
       onSetup={next=>{setLocalSetup(next);setLocalDialogue(null);}} />
     {error && <p role="alert" className="text-destructive">{error}</p>}
     <fieldset disabled={busy || recording || followUp || !!localDialogue} className="flex flex-wrap gap-4">
-      <label>Project<select aria-label="Operator project" className="ml-2 rounded border bg-background p-2" value={projectId} onChange={e => { setProjectId(Number(e.target.value)); requestRef.current = null; }}><option value={0}>Choose project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-      <label>Model provider<select aria-label="Operator provider" className="ml-2 rounded border bg-background p-2" value={provider} onChange={e => setProvider(e.target.value as OperatorProviderName)}>{([['openai','OpenAI / ChatGPT'],['gemini','Google Gemini'],['claude','Anthropic Claude']] as const).map(([p,l]) => <option key={p} value={p} disabled={!available.includes(p)}>{l}{available.includes(p) ? "" : " · not enabled"}</option>)}</select></label>
-      <label>Execution<select aria-label="Execution mode" className="ml-2 rounded border bg-background p-2" value={executionMode} onChange={e => setExecutionMode(e.target.value as "atomic" | "checkpointed")}><option value="atomic">All-or-nothing</option><option value="checkpointed">Checkpointed · keep completed steps</option></select></label>
+      <label>Project<NativeSelect aria-label="Operator project" className="ml-2 rounded border bg-background p-2" value={projectId} onChange={e => { setProjectId(Number(e.target.value)); requestRef.current = null; }}><option value={0}>Choose project</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</NativeSelect></label>
+      <label>Model provider<NativeSelect aria-label="Operator provider" className="ml-2 rounded border bg-background p-2" value={provider} onChange={e => setProvider(e.target.value as OperatorProviderName)}>{([['openai','OpenAI / ChatGPT'],['gemini','Google Gemini'],['claude','Anthropic Claude']] as const).map(([p,l]) => <option key={p} value={p} disabled={!available.includes(p)}>{l}{available.includes(p) ? "" : " · not enabled"}</option>)}</NativeSelect></label>
+      <label>Execution<NativeSelect aria-label="Execution mode" className="ml-2 rounded border bg-background p-2" value={executionMode} onChange={e => setExecutionMode(e.target.value as "atomic" | "checkpointed")}><option value="atomic">All-or-nothing</option><option value="checkpointed">Checkpointed · keep completed steps</option></NativeSelect></label>
     </fieldset>
     <section className="rounded-lg border p-4 space-y-3"><h2 className="font-semibold">Select tasks · {selection.length} / 25</h2><p className="text-sm text-muted-foreground">Supported actions: assignment, status, priority, checklists, sprints, dates and dependency links. Follow-ups retain the original task selection. Date interpretation uses {timezone}.</p>
       <div className="max-h-64 overflow-auto space-y-2">{tasks.map(t => <label key={t.id} className="flex items-center gap-3"><input aria-label={`Select ${t.task_key}`} type="checkbox" disabled={busy || recording || followUp || !!localDialogue || (!selection.includes(t.id) && selection.length >= 25)} checked={selection.includes(t.id)} onChange={e => setSelection(s => e.target.checked ? [...s, t.id] : s.filter(id => id !== t.id))} /><Link className="text-primary" to={`/pms/tasks/${t.id}`}>{t.task_key}</Link><span>{t.title}</span><span className="text-xs text-muted-foreground">{t.status}</span></label>)}</div>
     </section>
     <section className="space-y-3"><label className="block font-semibold" htmlFor="operator-command">Command</label><textarea id="operator-command" className="min-h-28 w-full rounded border bg-background p-3" disabled={busy || recording} value={command} onChange={e => { setCommand(e.target.value); if (!e.target.value) setMode("text"); }} placeholder="Set these tasks to High priority, assign them to a collaborator's email, add a QA checklist item, and move them to Sprint 4." />
       {followUp && <div role="status">Revising run #{run?.id}. The old pending approval will be invalidated. Review the new plan before execution. <Button variant="outline" onClick={() => { setFollowUp(false); requestRef.current = null; }}>Cancel reply</Button></div>}
-      <label>Command routing<select aria-label="Command routing" className="ml-2 rounded border bg-background p-2" disabled={busy || followUp || !!localDialogue} value={routingMode} onChange={e => setRoutingMode(e.target.value as typeof routingMode)}><option value="auto">Local first · cloud when needed</option><option value="local">Local only · no cloud calls</option><option value="cloud">Always use selected cloud LLM</option></select></label>
+      <label>Command routing<NativeSelect aria-label="Command routing" className="ml-2 rounded border bg-background p-2" disabled={busy || followUp || !!localDialogue} value={routingMode} onChange={e => setRoutingMode(e.target.value as typeof routingMode)}><option value="auto">Local first · cloud when needed</option><option value="local">Local only · no cloud calls</option><option value="cloud">Always use selected cloud LLM</option></NativeSelect></label>
       {routingStatus && <p aria-live="polite" className="text-sm">{routingStatus}</p>}
       <p className="text-sm text-muted-foreground">Local commands: “set priority to high”, “mark tasks done”, “set due date to 2026-11-05”, or “add checklist item &quot;QA review&quot;”. Join up to three actions with “and then”. Sprint numbers are record IDs. Missing details and supported follow-up revisions stay local. Every plan requires review.</p>
       <div className="flex flex-wrap items-center gap-3"><Button disabled={busy || recording || !command.trim() || (routingMode === "cloud" && !available.includes(provider))} onClick={() => void preview()}>{busy ? "Working…" : followUp ? "Preview revised plan" : "Preview plan"}</Button>
@@ -227,5 +228,5 @@ export default function AIOperatorPage() {
 }
 
 function InputLanguage({ value, disabled, onChange }: { value: string; disabled: boolean; onChange: (value: string) => void }) {
-  return <select aria-label="Voice language" className="ml-2 rounded border bg-background p-2" value={value} disabled={disabled} onChange={e => onChange(e.target.value)}><option value="en-IN">English (India)</option><option value="en-US">English (US)</option><option value="hi-IN">Hindi</option><option value="te-IN">Telugu</option></select>;
+  return <NativeSelect aria-label="Voice language" className="ml-2 rounded border bg-background p-2" value={value} disabled={disabled} onChange={e => onChange(e.target.value)}><option value="en-IN">English (India)</option><option value="en-US">English (US)</option><option value="hi-IN">Hindi</option><option value="te-IN">Telugu</option></NativeSelect>;
 }

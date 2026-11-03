@@ -1,12 +1,12 @@
-from tests.communication_test_utils import communication_headers, create_template
+from tests.communication_test_utils import communication_headers, create_template, campaign_lead
 from app.apps.crm.models import CRMLead
 from app.core.config import settings
 
 
 def test_campaign_respects_opt_out(client, db, monkeypatch):
     monkeypatch.setattr(settings, "COMMUNICATION_EMAIL_PROVIDER", "stub")
-    headers = communication_headers(client, db)
-    db.add(CRMLead(first_name="No", last_name="Mail", full_name="No Mail", email="nomail@example.com", status="New"))
+    headers = communication_headers(client, db, crm_access=True)
+    campaign_lead(db, first_name="No", last_name="Mail", full_name="No Mail", email="nomail@example.com", status="New")
     db.commit()
     client.post("/api/v1/communication/opt-out", headers=headers, json={"email": "nomail@example.com", "channel": "email"})
     template = create_template(client, headers)

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import PeopleAction from "../components/people/PeopleAction";
 import AddPeopleMemberships from "../components/people/AddPeopleMemberships";
 import { useMembershipOptions } from "../components/people/peopleMemberships";
@@ -325,7 +326,7 @@ export default function PeopleDirectoryProfile() {
                     {(project.start_date || project.due_date) && <small className="block">{project.start_date ? `Starts ${project.start_date}` : ""}{project.due_date ? ` · Due ${project.due_date}` : ""}</small>}</span>
                 </Link>
               ))}
-            {tab === "tasks" && <label className="mb-3 block">Task status <select aria-label="Filter profile tasks" value={taskFilter} onChange={event=>setParams(previous=>{const next=new URLSearchParams(previous);next.set("task_filter",event.target.value);next.delete("page");return next;})}><option value="all">All assigned tasks</option><option value="pending">Pending</option><option value="completed">Completed</option><option value="overdue">Overdue</option></select></label>}
+            {tab === "tasks" && <label className="mb-3 block">Task status <NativeSelect aria-label="Filter profile tasks" value={taskFilter} onChange={event=>setParams(previous=>{const next=new URLSearchParams(previous);next.set("task_filter",event.target.value);next.delete("page");return next;})}><option value="all">All assigned tasks</option><option value="pending">Pending</option><option value="completed">Completed</option><option value="overdue">Overdue</option></NativeSelect></label>}
             {tab === "tasks" &&
               data.items?.map((task) => (
                 <Link

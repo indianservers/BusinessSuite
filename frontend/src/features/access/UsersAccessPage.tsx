@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useQuery} from "@tanstack/react-query";
@@ -180,7 +181,7 @@ function ModuleEditor({
             <fieldset disabled={disabled || !grant.enabled}>
               <label>
                 Module role
-                <select
+                <NativeSelect
                   aria-label={`Role for ${m.label}`}
                   value={roleValue}
                   onChange={(e) => setRole(m.key, e.target.value)}
@@ -205,11 +206,11 @@ function ModuleEditor({
                       </option>
                     ))}
                   </optgroup>
-                </select>
+                </NativeSelect>
               </label>
               <label>
                 Data scope
-                <select
+                <NativeSelect
                   aria-label={`Scope for ${m.label}`}
                   value={grant.scope}
                   onChange={(e) =>
@@ -219,7 +220,7 @@ function ModuleEditor({
                   {catalog.scopes.map((s) => (
                     <option key={s}>{s}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
               <h4>Actions</h4>
               <div className="ua-check-grid">
@@ -612,7 +613,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
         {actor?.is_superuser && <SuperAdminManager companyId={company} />}
         <label>
           Company
-          <select
+          <NativeSelect
             aria-label="Company"
             value={company}
             onChange={(e) => {
@@ -636,7 +637,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 {c.name}
               </option>
             )) || <option value={company}>Company {company}</option>}
-          </select>
+          </NativeSelect>
         </label>
         <Button variant="outline" onClick={() => setCreateMode("add")}>
           <Plus size={15} />
@@ -716,7 +717,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
       </nav>
       {["Matrix", "User listing"].includes(tab) && (
         <>
-          <div className="ua-filters"><select aria-label="Sort users" value={filters.sort} onChange={e => changeFilter("sort", e.target.value)}>{["name", "email", "role", "status", "lastLogin"].map(k => <option key={k} value={k}>Sort: {k}</option>)}</select><select aria-label="Sort direction" value={filters.descending} onChange={e => changeFilter("descending", e.target.value)}><option value="">Ascending</option><option value="true">Descending</option></select>
+          <div className="ua-filters"><NativeSelect aria-label="Sort users" value={filters.sort} onChange={e => changeFilter("sort", e.target.value)}>{["name", "email", "role", "status", "lastLogin"].map(k => <option key={k} value={k}>Sort: {k}</option>)}</NativeSelect><NativeSelect aria-label="Sort direction" value={filters.descending} onChange={e => changeFilter("descending", e.target.value)}><option value="">Ascending</option><option value="true">Descending</option></NativeSelect>
             <label className="ua-search">
               <Search size={16} />
               <input
@@ -726,7 +727,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 onChange={(e) => changeFilter("search", e.target.value)}
               />
             </label>
-            <select
+            <NativeSelect
               aria-label="Filter module"
               value={filters.module}
               onChange={(e) => changeFilter("module", e.target.value)}
@@ -737,8 +738,8 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                   {m.label}
                 </option>
               ))}
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               aria-label="Filter role"
               value={filters.role}
               onChange={(e) => changeFilter("role", e.target.value)}
@@ -750,8 +751,8 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
               {catalog?.legacyRoles.map((r) => (
                 <option key={r.id}>{r.name}</option>
               ))}
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               aria-label="Filter account status"
               value={filters.status}
               onChange={(e) => changeFilter("status", e.target.value)}
@@ -760,11 +761,11 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
               {["active", "invited", "suspended", "deactivated"].map((s) => (
                 <option key={s}>{s}</option>
               ))}
-            </select>
-            <select aria-label="Filter branch" value={filters.branch} onChange={e=>changeFilter("branch",e.target.value)}>
+            </NativeSelect>
+            <NativeSelect loading={branchChoices.isFetching} error={branchChoices.isError} aria-label="Filter branch" value={filters.branch} onChange={e=>changeFilter("branch",e.target.value)}>
               <option value="">All authorized branches</option>
               {branchChoices.data?.branches.map(branch=><option key={branch.id} value={branch.id}>{branch.name}</option>)}
-            </select>
+            </NativeSelect>
             <input
               aria-label="Filter department ID"
               type="number"
@@ -776,7 +777,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
           </div>
           <div className="ua-bulk">
             <strong>{Object.keys(selected).length} selected</strong>
-            <select
+            <NativeSelect
               aria-label="Bulk operation"
               value={bulkAction}
               onChange={(e) => setBulkAction(e.target.value)}
@@ -791,9 +792,9 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
               ].map((a) => (
                 <option key={a}>{a}</option>
               ))}
-            </select>
+            </NativeSelect>
             {["grant", "revoke", "scope"].includes(bulkAction) && (
-              <select
+              <NativeSelect
                 aria-label="Bulk module"
                 value={bulkModule}
                 onChange={(e) => setBulkModule(e.target.value)}
@@ -804,10 +805,10 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                     {m.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             )}
             {bulkAction === "grant" && (
-              <select
+              <NativeSelect
                 aria-label="Bulk role"
                 value={bulkRole}
                 onChange={(e) => setBulkRole(e.target.value)}
@@ -824,10 +825,10 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                       {r.name}
                     </option>
                   ))}
-              </select>
+              </NativeSelect>
             )}
             {["grant", "scope"].includes(bulkAction) && (
-              <select
+              <NativeSelect
                 aria-label="Bulk scope"
                 value={bulkScope}
                 onChange={(e) => setBulkScope(e.target.value)}
@@ -835,11 +836,11 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                 {catalog?.scopes.map((s) => (
                   <option key={s}>{s}</option>
                 ))}
-              </select>
+              </NativeSelect>
             )}
             {bulkAction === "template" && (
               <>
-                <select
+                <NativeSelect
                   aria-label="Apply template"
                   value={templateId}
                   onChange={(e) => setTemplateId(e.target.value)}
@@ -850,15 +851,15 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                       {t.name} · v{t.version}
                     </option>
                   ))}
-                </select>
-                <select
+                </NativeSelect>
+                <NativeSelect
                   aria-label="Template application mode"
                   value={templateMode}
                   onChange={(e) => setTemplateMode(e.target.value)}
                 >
                   <option value="merge">Merge selected grants</option>
                   <option value="replace">Replace all module grants</option>
-                </select>
+                </NativeSelect>
               </>
             )}
             <Button variant="outline" disabled={busy} onClick={stageBulk}>
@@ -1075,7 +1076,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             <span>
               {data?.total || 0} authorized users · page {page}
             </span>
-            <select
+            <NativeSelect
               aria-label="Users per page"
               value={perPage}
               onChange={(e) => {
@@ -1087,7 +1088,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
               {[50, 100, 200].map((n) => (
                 <option key={n}>{n}</option>
               ))}
-            </select>
+            </NativeSelect>
             <Button
               variant="outline"
               disabled={page === 1}
@@ -1454,7 +1455,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             </div>
             <div className="ua-toolbar">
         {actor?.is_superuser && <SuperAdminManager companyId={company} />}
-              <select
+              <NativeSelect
                 aria-label="Copy access from user"
                 value={cloneFrom}
                 onChange={(e) => setCloneFrom(e.target.value)}
@@ -1467,7 +1468,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                       {u.name}
                     </option>
                   ))}
-              </select>
+              </NativeSelect>
               <Button
                 variant="outline"
                 disabled={!cloneFrom || opened.isSuperuser}
@@ -1836,7 +1837,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             </label>
             <label>
               Module
-              <select
+              <NativeSelect
                 disabled={!!roleEdit.id}
                 value={roleEdit.module}
                 onChange={(e) =>
@@ -1853,7 +1854,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                     {m.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <ModuleEditor
               modules={modules.filter((m) => m.key === roleEdit.module)}
@@ -2070,7 +2071,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             </label>
             <label>
               Company
-              <select
+              <NativeSelect
                 value={membership.companyId}
                 onChange={(e) =>
                   setMembership((v: any) => ({
@@ -2084,7 +2085,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               <input

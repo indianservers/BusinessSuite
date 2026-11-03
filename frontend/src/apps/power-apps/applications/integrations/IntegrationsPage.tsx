@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -288,7 +289,7 @@ export default function IntegrationsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-        <select
+        <NativeSelect
           aria-label="Integration category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -297,7 +298,7 @@ export default function IntegrationsPage() {
           {[...new Set(catalog.map((c) => c.category))].sort().map((c) => (
             <option key={c}>{c}</option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div className="ic-grid">
         {visible.map((c) => (
@@ -490,7 +491,7 @@ export default function IntegrationsPage() {
                 </label>
                 <label className="ic-field">
                   Authentication
-                  <select
+                  <NativeSelect
                     value={auth}
                     onChange={(e) => {
                       setAuth(e.target.value);
@@ -509,7 +510,7 @@ export default function IntegrationsPage() {
                           : ""}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </label>
                 {Object.entries(selected.editor_options?.credentials[auth] || authFields[auth] || {}).map(([key, label]) => (
                   <label className="ic-field" key={key}>
@@ -572,7 +573,7 @@ export default function IntegrationsPage() {
                   </h2>
                   <label className="ic-field">
                     Action
-                    <select
+                    <NativeSelect
                       value={actionId}
                       onChange={(e) => {
                         setActionId(e.target.value);
@@ -587,7 +588,7 @@ export default function IntegrationsPage() {
                           {a.name}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </label>
                   {action && (
                     <ActionFields

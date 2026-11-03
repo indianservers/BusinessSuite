@@ -9,7 +9,7 @@ export function DialogHeader(props: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       {...props}
-      className={cn("mb-4 text-lg font-semibold", props.className)}
+      className={cn("mb-4 pr-8 text-lg font-semibold", props.className)}
     />
   );
 }
@@ -24,7 +24,7 @@ export const DialogContent = React.forwardRef<
       aria-describedby={undefined}
       {...props}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid max-h-[calc(100dvh-2rem)] overflow-y-auto w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-background p-6 shadow-xl",
+        "fixed left-1/2 top-1/2 z-50 grid min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-background p-4 shadow-xl sm:p-6",
         className,
         isEditorDialog(children) && !props.style?.height && "max-h-[min(85dvh,44rem)]",
       )}

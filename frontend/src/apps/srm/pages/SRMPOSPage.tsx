@@ -1,8 +1,11 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { api } from "@/services/api";
 import QuickAddCustomer, { type PosCustomerRecord } from "../components/QuickAddCustomer";
 import { ScheduleFields, defaultSchedule, type Schedule } from "@/shared/follow-ups/ScheduleFields";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import "./srm-pos-mobile.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -313,6 +316,9 @@ export default function SRMPOSPage() {
     toast({ title: "Customer added", description: `${record.name} is selected for this sale and its follow-ups.` });
   }
   const [query, setQuery] = useState("");
+  const [mobileView, setMobileView] = useState<"products" | "cart">("products");
+  const [configurationOpen, setConfigurationOpen] = useState(false);
+  const [sessionDetailsOpen, setSessionDetailsOpen] = useState(false);
   const [category, setCategory] = useState("All");
   const [cart, setCart] = usePersistedState<CartLine[]>("business-suite-srm-pos-cart", []);
   const [localHeldBills, setLocalHeldBills] = usePersistedState<HeldBill[]>("business-suite-srm-pos-held", []);
@@ -660,7 +666,7 @@ export default function SRMPOSPage() {
   }, [categories, category]);
 
   return (
-    <div className="min-h-full bg-[linear-gradient(135deg,#eef7f2_0%,#f7f4ee_48%,#eef2ff_100%)] text-slate-950">
+    <div className={`srm-pos srm-pos-view-${mobileView} min-h-full bg-[linear-gradient(135deg,#eef7f2_0%,#f7f4ee_48%,#eef2ff_100%)] text-slate-950`}>
       <header className="border-b border-white/70 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -672,6 +678,8 @@ export default function SRMPOSPage() {
               <p className="text-sm text-slate-500">{activeStoreProfile.branch} / {activeStoreProfile.register} / Session POS-0001</p>
             </div>
           </div>
+          <button type="button" className="srm-pos-session-toggle" aria-expanded={sessionDetailsOpen} aria-controls="pos-session-details" onClick={() => setSessionDetailsOpen(value => !value)}><Settings size={18} />Session & actions<span aria-hidden="true">{sessionDetailsOpen ? "−" : "+"}</span></button>
+          <div id="pos-session-details" className={`srm-pos-session-details ${sessionDetailsOpen ? "is-open" : ""}`}>
           <div className="grid grid-cols-2 gap-2 text-xs md:flex md:items-center">
             <SessionPill label="Template" value={activeStoreProfile.name} />
             <SessionPill label="Cashier" value="Sales Manager" />
@@ -683,6 +691,7 @@ export default function SRMPOSPage() {
             <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => setActiveModal("profile")}><Settings className="h-4 w-4" />Template</Button>
             <Button variant="outline" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50" onClick={() => window.print()}><Printer className="h-4 w-4" />Print</Button>
             <Button variant="destructive" onClick={() => setActiveModal("close")}><DoorClosed className="h-4 w-4" />Close</Button>
+          </div>
           </div>
         </div>
       </header>
@@ -702,7 +711,7 @@ export default function SRMPOSPage() {
           />
         </div>
         <div className="min-w-0"><div className="flex gap-2">
-          <Select value={String(customerId)} onValueChange={(value) => setCustomerId(Number(value))}>
+          <Select loading={customersQuery.isFetching} error={customersQuery.isError} value={String(customerId)} onValueChange={(value) => setCustomerId(Number(value))}>
             <SelectTrigger aria-label="Sale customer" className="h-11 min-w-0 border-slate-200 bg-white text-slate-950"><SelectValue /></SelectTrigger>
             <SelectContent>{customers.map(item => <SelectItem key={item.id} value={String(item.id)}>{item.name}{item.phone ? ` · ${item.phone}` : ""}</SelectItem>)}</SelectContent>
           </Select>
@@ -711,8 +720,14 @@ export default function SRMPOSPage() {
         <Button className="h-11 bg-[#3157d8] px-6 text-white hover:bg-[#2748b8]" onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />Payment [F7]</Button>
       </section>
 
+      <nav className="srm-pos-mobile-tabs" aria-label="POS workspace">
+        <button type="button" aria-pressed={mobileView === "products"} onClick={() => setMobileView("products")}><LayoutGrid size={18} />Products</button>
+        <button type="button" aria-pressed={mobileView === "cart"} onClick={() => setMobileView("cart")}><ShoppingCart size={18} />Cart ({cart.length})</button>
+      </nav>
       <main className="grid min-h-[calc(100vh-13.5rem)] gap-4 p-4 xl:grid-cols-[15rem_minmax(0,1fr)_28rem]">
-        <aside className="rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm backdrop-blur">
+        <aside className={`srm-pos-configuration ${configurationOpen ? "is-open" : ""} rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm backdrop-blur`}>
+          <button type="button" className="srm-pos-configuration-toggle" aria-expanded={configurationOpen} aria-controls="pos-register-configuration" onClick={() => setConfigurationOpen(value => !value)}><Settings size={18} />Categories & register<span>{configurationOpen ? "−" : "+"}</span></button>
+          <div id="pos-register-configuration">
           <div className="mb-3 flex items-center justify-between px-2">
             <strong className="text-sm">Categories</strong>
             <span className="text-xs text-slate-400">{storeProducts.length} items</span>
@@ -758,8 +773,9 @@ export default function SRMPOSPage() {
             <div className="flex items-center gap-2 font-semibold text-slate-900"><Settings className="h-4 w-4" />Active template</div>
             <div className="mt-2"><RichTextContent legacyFormat="plain" value={activeStoreProfile.description}/></div>
           </div>
+          </div>
         </aside>
-        <section className="min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
+        <section className="srm-pos-catalog min-w-0 space-y-4 overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4 shadow-sm backdrop-blur">
           <div className="grid gap-3 md:grid-cols-3">
             <StatusTile label="Products" value={String(storeProducts.length)} detail={`${filteredProducts.length} visible`} />
             <StatusTile label="Low stock" value={String(lowStockCount)} detail="Reorder watch" />
@@ -781,13 +797,13 @@ export default function SRMPOSPage() {
 
           <div className="flex flex-wrap items-center gap-2" aria-label="Catalogue filters">
             {["All", "Products", "Services", "Packages", "Recently Used"].map(tab => <Button key={tab} variant={catalogTab === tab ? "default" : "outline"} size="sm" onClick={() => setCatalogTab(tab)}>{tab} ({storeProducts.filter(p => tab === "All" || (tab === "Recently Used" ? recentIds.includes(p.id) : p.kind === tab)).length})</Button>)}
-            <select aria-label="Sort catalogue" className="rounded border p-2 text-sm" value={catalogSort} onChange={e => setCatalogSort(e.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option></select>
+            <NativeSelect aria-label="Sort catalogue" className="rounded border p-2 text-sm" value={catalogSort} onChange={e => setCatalogSort(e.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option></NativeSelect>
           </div>
           {productsQuery.isLoading && <div role="status" aria-label="Loading products and services" aria-busy="true"><span className="sr-only">Loading products and services</span><div aria-hidden="true" className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 motion-safe:animate-pulse">{Array.from({length:10},(_,i)=><div key={i} className="overflow-hidden rounded-xl border bg-white"><div className="h-20 bg-slate-100"/><div className="space-y-3 p-3"><div className="h-3 w-4/5 rounded bg-slate-100"/><div className="h-3 w-1/2 rounded bg-slate-100"/><div className="h-4 w-1/3 rounded bg-slate-100"/></div></div>)}</div></div>}
           {productsQuery.isError && <p role="alert">Unable to load the catalog. <button type="button" className="underline" onClick={() => void productsQuery.refetch()}>Retry</button></p>}
           {!productsQuery.isLoading && !productsQuery.isError && !filteredProducts.length && <p className="rounded-lg border border-dashed p-6 text-sm text-slate-600">No active products or services match this view. Add an item in the shared catalog or change your filters.</p>}
           {productView === "details" ? (
-            <div className="overflow-hidden rounded-2xl border border-white bg-white shadow-sm">
+            <div className="srm-pos-product-details overflow-x-auto rounded-2xl border border-white bg-white shadow-sm">
               <div className="grid grid-cols-[2fr_1fr_1fr_0.8fr_0.9fr_8rem] border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase text-slate-500">
                 <span>Product</span>
                 <span>SKU</span>
@@ -823,7 +839,7 @@ export default function SRMPOSPage() {
                 const qty = cart.filter((line) => line.id === product.id).reduce((sum, line) => sum + line.qty, 0);
                 const lowStock = product.trackInventory && product.stock <= product.reorderLevel;
                 return (
-                  <article key={product.id} className={`flex items-center gap-3 rounded-xl border bg-white p-2 shadow-sm transition hover:shadow-md ${qty ? "border-[#3157d8] ring-2 ring-[#3157d8]/10" : "border-white"}`}>
+                  <article key={product.id} className={`srm-pos-product-list-row flex items-center gap-3 rounded-xl border bg-white p-2 shadow-sm transition hover:shadow-md ${qty ? "border-[#3157d8] ring-2 ring-[#3157d8]/10" : "border-white"}`}>
                     <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => addProduct(product)}>
                       <ProductMark product={product} lowStock={lowStock} />
                       <span className="min-w-0 flex-1">
@@ -866,7 +882,7 @@ export default function SRMPOSPage() {
           )}
         </section>
 
-        <aside className="space-y-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur">
+        <aside className="srm-pos-cart space-y-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur">
           <Card className="overflow-hidden border-slate-200 bg-white text-slate-950 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Cart</CardTitle>
@@ -932,7 +948,7 @@ export default function SRMPOSPage() {
         </aside>
       </main>
 
-      <footer className="sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
+      <footer className="srm-pos-checkout sticky bottom-0 grid gap-2 border-t border-slate-200 bg-white p-3 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:grid-cols-[repeat(3,1fr)_auto_auto_auto] md:items-center">
         <FooterMetric label="Items" value={String(cart.length)} />
         <FooterMetric label="Quantity" value={String(totals.qty)} />
         <FooterMetric label="Payable" value={shortCurrency(totals.grandTotal)} />
@@ -947,7 +963,7 @@ export default function SRMPOSPage() {
           <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
             <div className="space-y-4">
               <div className="space-y-3 rounded-lg bg-background p-3 text-foreground">
-                <div className="flex flex-wrap items-end gap-2"><label className="flex-1 text-xs">Customer for this sale & follow-ups<select aria-label="Follow-up customer" className="block w-full rounded border bg-background p-2 text-foreground" value={customerId || ""} onChange={e => setCustomerId(Number(e.target.value))}><option value="">Walk-in — select a customer to schedule</option>{customers.filter(c => c.id).map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}</select></label><Button type="button" variant="outline" onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add customer</Button></div>
+                <div className="flex flex-wrap items-end gap-2"><label className="flex-1 text-xs">Customer for this sale & follow-ups<NativeSelect aria-label="Follow-up customer" className="block w-full rounded border bg-background p-2 text-foreground" value={customerId || ""} onChange={e => setCustomerId(Number(e.target.value))}><option value="">Walk-in — select a customer to schedule</option>{customers.filter(c => c.id).map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}</NativeSelect></label><Button type="button" variant="outline" onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add customer</Button></div>
                 {cart.map(line=><details key={line.lineId}><summary className="cursor-pointer text-sm">{line.name} · {line.followUp?.required?`${line.followUp.interval_days} day follow-up`:"Configure follow-up"}</summary><ScheduleFields template value={line.followUp||defaultSchedule} employees={followUpOptions.data?.employees} teams={followUpOptions.data?.teams} onChange={value=>setCart(current=>current.map(l=>l.lineId===line.lineId?{...l,followUp:value}:l))}/></details>)}
               </div>
               <div className="rounded-lg bg-slate-950 p-4">
@@ -1115,9 +1131,9 @@ function ProductMark({ product, lowStock }: { product: Product; lowStock: boolea
 function QuantityStepper({ qty, onRemove, onAdd }: { qty: number; onRemove: () => void; onAdd: () => void }) {
   return (
     <span className="flex shrink-0 items-center justify-end gap-1">
-      <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-600 hover:bg-slate-100" onClick={onRemove} disabled={!qty}><Minus className="h-3.5 w-3.5" /></Button>
+      <Button size="icon" variant="ghost" aria-label="Decrease quantity" className="h-7 w-7 text-slate-600 hover:bg-slate-100" onClick={onRemove} disabled={!qty}><Minus className="h-3.5 w-3.5" /></Button>
       <strong className="min-w-8 text-center text-sm text-slate-900">{qty}</strong>
-      <Button size="icon" variant="ghost" className="h-7 w-7 text-slate-600 hover:bg-slate-100" onClick={onAdd}><Plus className="h-3.5 w-3.5" /></Button>
+      <Button size="icon" variant="ghost" aria-label="Increase quantity" className="h-7 w-7 text-slate-600 hover:bg-slate-100" onClick={onAdd}><Plus className="h-3.5 w-3.5" /></Button>
     </span>
   );
 }
@@ -1186,15 +1202,16 @@ function FooterMetric({ label, value }: { label: string; value: string }) {
 
 function Overlay({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className={`max-h-[92vh] w-full overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
+    <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal>
+      <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
+      <Dialog.Content aria-describedby={undefined} className={`srm-pos-dialog fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-white/10 bg-slate-900 p-4 text-slate-100 shadow-2xl ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <Button size="icon" variant="ghost" className="text-slate-300 hover:bg-white/10 hover:text-white" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+          <Button size="icon" variant="ghost" aria-label={`Close ${title}`} className="shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
         {children}
-      </div>
-    </div>
+      </Dialog.Content>
+    </Dialog.Portal></Dialog.Root>
   );
 }
 

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { BookOpen, CheckCircle2, Layers, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export default function BlueprintCatalog({ busy, onSelect }: { busy: boolean; on
     </div>
     <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
       <div className="relative"><Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" /><Input className="h-11 pl-9" aria-label="Search blueprint catalog" placeholder="Search onboarding, launch, close, research…" value={search} onChange={event => { setSearch(event.target.value); setLimit(12); }} /></div>
-      <select aria-label="Blueprint category" className="h-11 min-w-0 rounded-md border bg-background px-3 text-sm" value={category} onChange={event => { setCategory(event.target.value); setLimit(12); }}><option value="">All {blueprintCategories.length} categories</option>{blueprintCategories.map(item => <option key={item.name} value={item.name}>{item.name} ({blueprints.filter(blueprint => blueprint.category === item.name).length})</option>)}</select>
+      <NativeSelect aria-label="Blueprint category" className="h-11 min-w-0 rounded-md border bg-background px-3 text-sm" value={category} onChange={event => { setCategory(event.target.value); setLimit(12); }}><option value="">All {blueprintCategories.length} categories</option>{blueprintCategories.map(item => <option key={item.name} value={item.name}>{item.name} ({blueprints.filter(blueprint => blueprint.category === item.name).length})</option>)}</NativeSelect>
     </div>
     {categoryTip && <p className="rounded-lg border bg-muted/30 p-3 text-sm">{categoryTip}</p>}
     <p role="status" className="text-sm text-muted-foreground">{visible.length} matching blueprints · showing {Math.min(limit, visible.length)}</p>

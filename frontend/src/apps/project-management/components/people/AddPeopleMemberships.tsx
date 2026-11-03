@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useState } from "react";
@@ -78,9 +79,9 @@ export default function AddPeopleMemberships({ mode, personIds, onClose, onAdded
           {!!choices?.length && !choices.some(choice => `${choice.name} ${"project_key" in choice ? choice.project_key : ""}`.toLowerCase().includes(search.toLowerCase())) && <p>No matching destinations. <button type="button" onClick={() => setSearch("")}>Clear search</button></p>}
         </div>
         {mode === "workspace" ? <label className="block">Workspace role
-          <select className="mt-1 block w-full rounded border p-2" value={role} onChange={event => setRole(event.target.value)}>
+          <NativeSelect className="mt-1 block w-full rounded border p-2" value={role} onChange={event => setRole(event.target.value)}>
             <option value="Member">Member</option><option value="Guest">Guest</option>
-          </select>
+          </NativeSelect>
         </label> : <p>People are added as project Members. Required workspace membership is added automatically. Existing roles remain unchanged.</p>}
         <label className="block">Reason
           <input className="mt-1 block w-full rounded border p-2" required minLength={3} maxLength={1000} value={reason} onChange={event => setReason(event.target.value)} />

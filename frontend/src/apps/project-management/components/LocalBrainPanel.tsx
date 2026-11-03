@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { Link } from 'react-router-dom';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { api } from '@/services/api';
@@ -121,13 +122,13 @@ export const LocalBrainPanel = forwardRef<LocalBrainHandle,Props>(function Local
     return run(command,inputMode,revision);
   }}));
   const controls=<>
-    <div className="flex flex-wrap gap-3"><label>Model<select aria-label="Browser brain model" disabled={busy} className="ml-2 rounded border bg-background p-2" value={browserModel} onChange={e=>{setBrowserModel(e.target.value);setReady(false);void stopLocalBrain();}}>{BROWSER_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</select></label>
+    <div className="flex flex-wrap gap-3"><label>Model<NativeSelect aria-label="Browser brain model" disabled={busy} className="ml-2 rounded border bg-background p-2" value={browserModel} onChange={e=>{setBrowserModel(e.target.value);setReady(false);void stopLocalBrain();}}>{BROWSER_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</NativeSelect></label>
       <Button variant="outline" disabled={busy} onClick={()=>void connect()}>Load TensorFlow.js model</Button>
       <Button variant="outline" disabled={busy} onClick={()=>{setReady(false);void stopLocalBrain();setStatus('Local model unloaded.');}}>Unload model</Button>
     </div>
     <p className="text-sm text-muted-foreground">The model runs in a browser worker using TensorFlow.js. Pretrained weights load from this PMS server only when you press Load. Allow approximately 540 MB for weights and additional device memory. This small model may need cloud fallback for complex plans.</p>
     <label className="block text-sm"><input type="checkbox" disabled={busy || !props.allowCloud} checked={cloudFallback && props.allowCloud} onChange={e=>setCloudFallback(e.target.checked)} /> Use {props.provider} only when local reasoning is unavailable, unsupported or fails validation</label>
-    <label className="block">Private memory<select aria-label="Local brain conversation" className="ml-2 rounded border bg-background p-2" disabled={busy} value={session?.id || ''} onChange={e=>updateSession(sessions.find(s=>s.id===Number(e.target.value)) || null)}><option value="">New private conversation</option>{[session,...sessions].filter((s,i,all):s is BrainSession=>!!s && all.findIndex(v=>v?.id===s.id)===i).map(s=><option key={s.id} value={s.id}>Conversation #{s.id} · {s.turns.length} remembered turns</option>)}</select></label>
+    <label className="block">Private memory<NativeSelect aria-label="Local brain conversation" className="ml-2 rounded border bg-background p-2" disabled={busy} value={session?.id || ''} onChange={e=>updateSession(sessions.find(s=>s.id===Number(e.target.value)) || null)}><option value="">New private conversation</option>{[session,...sessions].filter((s,i,all):s is BrainSession=>!!s && all.findIndex(v=>v?.id===s.id)===i).map(s=><option key={s.id} value={s.id}>Conversation #{s.id} · {s.turns.length} remembered turns</option>)}</NativeSelect></label>
     <Link className="block text-sm text-primary underline" to={`/ai-agents/operator?module=PMS&project=${props.projectId}${props.workspaceId?`&workspace=${props.workspaceId}`:''}`}>Connected AI agent: calendar planning, playbooks, monitors and recovery</Link>
     <p className="text-sm text-muted-foreground">Memory is stored privately in your PMS account for this project, up to 24 turns. It is supplied to a cloud provider only if cloud fallback is used. Stored drafts are not proof that actions executed.</p>
   </>;

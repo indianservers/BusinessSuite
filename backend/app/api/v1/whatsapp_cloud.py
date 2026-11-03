@@ -371,6 +371,20 @@ def outbound_messages(before: int | None = Query(None,gt=0), limit: int = Query(
     return {'items':items,'nextBefore':rows[-1].id if len(rows)==limit else None}
 
 
+@router.get('/recipient')
+def recipient_lookup(to: str = Query(...,max_length=80), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.shared.whatsapp_models import WhatsAppContact
+    row=db.query(WhatsAppContact).filter_by(organization_id=wa.organization(user),recipient=wa.number(to),erased_at=None).first()
+    if not row: return {'contact':None}
+    wa.contact_access(db,user,row)
+    detail=wa.contact_data(row)
+    if row.entity_id:
+        record=wa.record_access(db,user,row.entity_type,row.entity_id)
+        detail.update(crmName=getattr(record,'full_name',None),crmEmail=getattr(record,'email',None))
+    return {'contact':detail}
+
+
 @router.post('/consent')
 def consent(data: ConsentInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_manage','crm_admin'))):
     from app.services import whatsapp_workspace as wa

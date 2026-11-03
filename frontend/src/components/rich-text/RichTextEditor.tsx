@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import BlockDragHandle from "./BlockDragHandle";
 import "./block-drag.css";
 import { richTextExtensions } from "./extensions";
@@ -105,12 +106,12 @@ export default function RichTextEditor({ value, onChange, onBlur, onSelection, r
     {!readOnly && <div role="toolbar" aria-label={`${label} formatting`} className="suite-rte-toolbar">
       <div className="suite-rte-tools">{tool("Undo (Ctrl+Z)", Undo2, () => { editor.chain().focus().undo().run(); }, undefined, !editor.can().undo())}
         {tool("Redo (Ctrl+Shift+Z)", Redo2, () => { editor.chain().focus().redo().run(); }, undefined, !editor.can().redo())}</div>
-      <select aria-label="Paragraph style" disabled={locked} value={style} onChange={event => {
+      <NativeSelect aria-label="Paragraph style" disabled={locked} value={style} onChange={event => {
         if (event.target.value === "paragraph") editor.chain().focus().setParagraph().run();
         else editor.chain().focus().setHeading({ level: Number(event.target.value) as 1 | 2 | 3 | 4 }).run();
-      }}><option value="paragraph">Normal</option><option value="1">Title</option><option value="2">Heading 1</option><option value="3">Heading 2</option><option value="4">Heading 3</option></select>
-      <select aria-label="Font family" disabled={locked} value={String(editor.getAttributes("textStyle").fontFamily || "Inter").replace(/["']/g, "")} onChange={event => editor.chain().focus().setFontFamily(event.target.value).run()}>{fontFamilies.map(font => <option key={font}>{font}</option>)}</select>
-      <select aria-label="Font size" disabled={locked} value={editor.getAttributes("textStyle").fontSize || "14px"} onChange={event => editor.chain().focus().setFontSize(event.target.value).run()}>{fontSizes.map(size => <option key={size} value={size}>{parseInt(size)}</option>)}</select>
+      }}><option value="paragraph">Normal</option><option value="1">Title</option><option value="2">Heading 1</option><option value="3">Heading 2</option><option value="4">Heading 3</option></NativeSelect>
+      <NativeSelect aria-label="Font family" disabled={locked} value={String(editor.getAttributes("textStyle").fontFamily || "Inter").replace(/["']/g, "")} onChange={event => editor.chain().focus().setFontFamily(event.target.value).run()}>{fontFamilies.map(font => <option key={font}>{font}</option>)}</NativeSelect>
+      <NativeSelect aria-label="Font size" disabled={locked} value={editor.getAttributes("textStyle").fontSize || "14px"} onChange={event => editor.chain().focus().setFontSize(event.target.value).run()}>{fontSizes.map(size => <option key={size} value={size}>{parseInt(size)}</option>)}</NativeSelect>
       <div className="suite-rte-tools">{tool("Bold (Ctrl+B)", Bold, () => { editor.chain().focus().toggleBold().run(); }, editor.isActive("bold"), !editor.can().toggleBold())}
         {tool("Italic (Ctrl+I)", Italic, () => { editor.chain().focus().toggleItalic().run(); }, editor.isActive("italic"), !editor.can().toggleItalic())}
         {tool("Underline (Ctrl+U)", Underline, () => { editor.chain().focus().toggleUnderline().run(); }, editor.isActive("underline"), !editor.can().toggleUnderline())}</div>

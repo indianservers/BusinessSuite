@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -170,7 +171,7 @@ const ProjectManagementHomePage: React.FC = () => {
                 className="h-11 rounded-lg border border-gray-300 px-3 text-sm"
                 placeholder="Project request title"
               />
-              <select
+              <NativeSelect
                 aria-label="Project request priority"
                 value={intakePriority}
                 onChange={(event) => setIntakePriority(event.target.value)}
@@ -180,7 +181,7 @@ const ProjectManagementHomePage: React.FC = () => {
                 <option>Medium</option>
                 <option>High</option>
                 <option>Critical</option>
-              </select>
+              </NativeSelect>
             </div>
             <RichTextField data-legacy-format="markdown"
               aria-label="Project request description"

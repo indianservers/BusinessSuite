@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
@@ -138,7 +139,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
             <CardContent className="grid gap-4 pt-6 sm:grid-cols-2">
               <div>
                 <Label htmlFor="managed-intern">Intern</Label>
-                <select
+                <NativeSelect
                   id="managed-intern"
                   className={inputClass}
                   value={employeeId || ""}
@@ -149,7 +150,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       {i.first_name} {i.last_name} ({i.employee_id})
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               {employee && (
                 <div className="space-y-1 text-sm">
@@ -247,7 +248,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       ))}
                       <div>
                         <Label>Priority</Label>
-                        <select
+                        <NativeSelect
                           className={inputClass}
                           value={task.priority}
                           onChange={(e) =>
@@ -257,7 +258,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                           {["High", "Medium", "Low"].map((p) => (
                             <option key={p}>{p}</option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </div>
                     </div>
                     {[
@@ -376,7 +377,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                         >
                           <div>
                             <Label>Review Status</Label>
-                            <select
+                            <NativeSelect
                               className={inputClass}
                               value={form.status}
                               onChange={(e) => update("status", e.target.value)}
@@ -386,7 +387,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                                   <option key={status}>{status}</option>
                                 ),
                               )}
-                            </select>
+                            </NativeSelect>
                           </div>
                           <div>
                             <Label>Score / 100</Label>
@@ -509,7 +510,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   </Label>
                   <Label>
                     Department
-                    <select
+                    <NativeSelect
                       className={inputClass}
                       value={course.department_id}
                       onChange={(e) =>
@@ -528,7 +529,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                           {name}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Label>
                   <h3 className="font-semibold">Lessons</h3>
                   {course.lessons.map((lesson, index) => (
@@ -649,7 +650,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       ))}
                       <Label>
                         Correct answer
-                        <select
+                        <NativeSelect
                           className={inputClass}
                           value={q.answer}
                           onChange={(e) =>
@@ -668,7 +669,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                               Option {j + 1}: {option}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </Label>
                       <Button
                         type="button"
@@ -741,7 +742,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   </Label>
                   <Label>
                     Type
-                    <select
+                    <NativeSelect
                       className={inputClass}
                       value={certificate.certificate_type}
                       onChange={(e) =>
@@ -759,7 +760,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       ].map((t) => (
                         <option key={t}>{t}</option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Label>
                   <Button disabled={mutation.isPending}>
                     Issue Certificate

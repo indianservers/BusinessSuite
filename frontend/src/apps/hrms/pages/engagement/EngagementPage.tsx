@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent } from "@/components/rich-text/LazyRichText";
 import { FormEvent, useState } from "react";
@@ -144,9 +145,9 @@ export default function EngagementPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Live Poll</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activeSurvey?.id || ""} onChange={(e) => setSelectedSurveyId(Number(e.target.value))}>
+            <NativeSelect loading={surveys.isFetching} error={surveys.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activeSurvey?.id || ""} onChange={(e) => setSelectedSurveyId(Number(e.target.value))}>
               {surveys.data?.map((item: any) => <option key={item.id} value={item.id}>{item.title}</option>)}
-            </select>
+            </NativeSelect>
             <div className="grid gap-2">
               {options.map((option: string) => (
                 <Button key={option} type="button" variant={selectedOption === option ? "default" : "outline"} onClick={() => setSelectedOption(option)}>{option}</Button>
@@ -175,10 +176,10 @@ export default function EngagementPage() {
           <CardHeader><CardTitle className="text-base">Team Shoutout</CardTitle></CardHeader>
           <CardContent>
             <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createRecognition.mutate(); }}>
-              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={recognition.to_employee_id} onChange={(e) => setRecognition({ ...recognition, to_employee_id: e.target.value })} required>
+              <NativeSelect loading={employees.isFetching} error={employees.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={recognition.to_employee_id} onChange={(e) => setRecognition({ ...recognition, to_employee_id: e.target.value })} required>
                 <option value="">Select employee</option>
                 {employees.data?.map((item: any) => <option key={item.id} value={item.id}>{item.first_name} {item.last_name} ({item.employee_id})</option>)}
-              </select>
+              </NativeSelect>
               <Input placeholder="Recognition title" value={recognition.title} onChange={(e) => setRecognition({ ...recognition, title: e.target.value })} required />
               <RichTextField placeholder="Message" value={recognition.message} onChange={(e) => setRecognition({ ...recognition, message: e.target.value })} />
               <Button type="submit" disabled={createRecognition.isPending}><Trophy className="h-4 w-4" />Post shoutout</Button>

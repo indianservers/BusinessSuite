@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { CompactFields } from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { ImportWizard, DataExportButton, csvText } from "@/shared/data-transfer";
@@ -432,9 +433,9 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
       <State label="voucher" isLoading={voucherQuery.isLoading || typesQuery.isLoading || ledgersQuery.isLoading} isError={voucherQuery.isError || typesQuery.isError || ledgersQuery.isError} />
       <div className="grid gap-3 md:grid-cols-4">
         <Field label="Voucher Type">
-          <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(effective.voucher_type_id || 1)} onChange={(event) => patch("voucher_type_id", Number(event.target.value))} disabled={!canEdit}>
+          <NativeSelect loading={typesQuery.isFetching} error={typesQuery.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(effective.voucher_type_id || 1)} onChange={(event) => patch("voucher_type_id", Number(event.target.value))} disabled={!canEdit}>
             {listItems(typesQuery.data).map((type) => <option key={String(type.id)} value={String(type.id)}>{text(type.voucher_type_name)}</option>)}
-          </select>
+          </NativeSelect>
         </Field>
         <Field label="Voucher Date"><Input type="date" value={String(effective.voucher_date || "")} onChange={(event) => patch("voucher_date", event.target.value)} disabled={!canEdit} /></Field>
         <Field label="Reference Number"><Input value={String(effective.reference_number || "")} onChange={(event) => patch("reference_number", event.target.value)} disabled={!canEdit} /></Field>
@@ -449,7 +450,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
               <tbody>
                 {lines.map((line, index) => (
                   <tr {...recordPreviewProps(line)} key={index} className="border-t">
-                    <td className="px-3 py-2"><select className="h-9 w-full rounded-md border bg-background px-2" value={String(line.ledger_id || 1)} onChange={(event) => patchLine(index, "ledger_id", event.target.value)} disabled={!canEdit}>{listItems(ledgersQuery.data).map((ledger) => <option key={String(ledger.id)} value={String(ledger.id)}>{text(ledger.ledger_name)}</option>)}</select></td>
+                    <td className="px-3 py-2"><NativeSelect loading={ledgersQuery.isFetching} error={ledgersQuery.isError} className="h-9 w-full rounded-md border bg-background px-2" value={String(line.ledger_id || 1)} onChange={(event) => patchLine(index, "ledger_id", event.target.value)} disabled={!canEdit}>{listItems(ledgersQuery.data).map((ledger) => <option key={String(ledger.id)} value={String(ledger.id)}>{text(ledger.ledger_name)}</option>)}</NativeSelect></td>
                     <td className="px-3 py-2"><Input type="number" value={String(line.debit_amount || 0)} onChange={(event) => patchLine(index, "debit_amount", event.target.value)} disabled={!canEdit} /></td>
                     <td className="px-3 py-2"><Input type="number" value={String(line.credit_amount || 0)} onChange={(event) => patchLine(index, "credit_amount", event.target.value)} disabled={!canEdit} /></td>
                     <td className="px-3 py-2"><Input value={String(line.cost_center_id || "")} onChange={(event) => patchLine(index, "cost_center_id", event.target.value)} disabled={!canEdit} /></td>
@@ -1077,10 +1078,10 @@ function InventoryDashboardView() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-          <select aria-label="Warehouse filter" className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-64" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+          <NativeSelect aria-label="Warehouse filter" className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-64" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
             <option value="all">All warehouses</option>
             {warehouseRows.map((warehouse) => <option key={String(warehouse.id)} value={String(warehouse.id)}>{text(warehouse.warehouse_name || warehouse.name)}</option>)}
-          </select>
+          </NativeSelect>
           <Button asChild variant="outline" size="sm" className="h-9"><Link to="/srm/inventory/items"><Plus className="h-4 w-4" />Add item</Link></Button>
           <Button asChild size="sm" className="h-9"><Link to="/srm/inventory/stock-transfers"><GitCompareArrows className="h-4 w-4" />Stock transfer</Link></Button>
       </div>

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import MoveBoard from "@/components/interaction/MoveBoard";
@@ -76,7 +77,7 @@ export default function WorkMovementPage({ title }: { title: string }) {
         </Link>
       </div>
       <div className="flex flex-wrap gap-3">
-        <select
+        <NativeSelect
           aria-label="Work project"
           className="h-10 max-w-xs rounded-lg border border-input bg-background px-3 text-sm"
           value={project}
@@ -87,7 +88,7 @@ export default function WorkMovementPage({ title }: { title: string }) {
               {p.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <input
           aria-label="Search work cards"
           className="h-10 max-w-xs rounded-lg border border-input bg-background px-3 text-sm"

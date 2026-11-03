@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
@@ -202,7 +203,7 @@ function Select({
   required?: boolean;
 }) {
   return (
-    <select
+    <NativeSelect
       required={required}
       value={value || ""}
       onChange={(e) => onChange(e.target.value)}
@@ -213,7 +214,7 @@ function Select({
           {o.name || o.code || o.title}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   );
 }
 function Pagination({
@@ -738,7 +739,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
               />
             </Field>
             <Field label="Internship status">
-              <select
+              <NativeSelect
                 value={filter.internship_status}
                 onChange={(e) =>
                   setFilter({ ...filter, internship_status: e.target.value })
@@ -754,7 +755,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 ].map((s) => (
                   <option key={s}>{s}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           </div>
         </details>
@@ -1378,7 +1379,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                     />
                   </Field>
                   <Field label="Priority">
-                    <select
+                    <NativeSelect
                       value={assignment.priority}
                       onChange={(e) =>
                         updateAssignment("priority", e.target.value)
@@ -1387,7 +1388,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                       {["Low", "Medium", "High", "Critical"].map((v) => (
                         <option key={v}>{v}</option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                   <Field label="PMS-authorized Reviewer">
                     <Select
@@ -1421,7 +1422,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                     />
                   </Field>
                   <Field label="Repeat Schedule">
-                    <select
+                    <NativeSelect
                       value={assignment.recurrence}
                       onChange={(e) =>
                         updateAssignment("recurrence", e.target.value)
@@ -1430,7 +1431,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                       <option value="">One assignment</option>
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option><option value="custom">Custom interval</option>
-                    </select>
+                    </NativeSelect>
                   </Field>
                   {assignment.recurrence==="custom"&&<Field label="Repeat every (days)"><Input type="number" min={1} max={365} value={assignment.recurrence_interval||1} onChange={e=>updateAssignment("recurrence_interval",Number(e.target.value))}/></Field>}
                   {assignment.recurrence && (
@@ -2058,7 +2059,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 );
               }}
             >
-              <Field label="Batch Type"><select value={batchDialog.batch_type||"Intern"} onChange={e=>setBatchDialog({...batchDialog,batch_type:e.target.value})}>{["Intern","Employee","Training","Mixed"].map(t=><option key={t}>{t}</option>)}</select></Field>
+              <Field label="Batch Type"><NativeSelect value={batchDialog.batch_type||"Intern"} onChange={e=>setBatchDialog({...batchDialog,batch_type:e.target.value})}>{["Intern","Employee","Training","Mixed"].map(t=><option key={t}>{t}</option>)}</NativeSelect></Field>
               {[
                 ["name", "Batch Name"],
                 ["code", "Unique Batch Code"],
@@ -2098,7 +2099,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 </Field>
               ))}
               <Field label="Additional Mentors">
-                <select
+                <NativeSelect
                   multiple
                   value={(batchDialog.additional_mentors || []).map(String)}
                   onChange={(e) =>
@@ -2115,7 +2116,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                       {u.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               {[
                 ["start_date", "Start Date", "date"],
@@ -2141,7 +2142,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 </Field>
               ))}
               <Field label="Reporting Frequency">
-                <select
+                <NativeSelect
                   value={batchDialog.reporting_frequency}
                   onChange={(e) =>
                     setBatchDialog({
@@ -2152,7 +2153,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                 >
                   <option>Daily</option>
                   <option>Weekly</option>
-                </select>
+                </NativeSelect>
               </Field>
               <div className="im-span-two">
                 <h3>Performance Weights (must sum to 100)</h3>
@@ -2300,7 +2301,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
               />
             </Field>
             <Field label="Action">
-              <select
+              <NativeSelect
                 value={memberForm?.action || "add"}
                 onChange={(e) =>
                   setMembershipDialog({ ...memberForm, action: e.target.value })
@@ -2311,7 +2312,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
                     <option key={v}>{v}</option>
                   ),
                 )}
-              </select>
+              </NativeSelect>
             </Field>
             {memberForm?.action === "transfer" && (
               <Field label="Transfer To">
@@ -2667,7 +2668,7 @@ function BatchTable({
               <button onClick={() => membership({ ...r, action: "add" })}>
                 Members
               </button>
-              <select
+              <NativeSelect
                 aria-label={`Transition ${r.code}`}
                 value=""
                 onChange={(e) => {
@@ -2681,7 +2682,7 @@ function BatchTable({
                 {(next[r.status] || []).map((v: string) => (
                   <option key={v}>{v}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           ),
         ],

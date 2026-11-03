@@ -1,3 +1,5 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { useMobile } from "@/components/mobile/useMobile";
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -31,6 +33,7 @@ function formatValue(value: unknown) {
 }
 
 export default function SRMCommercialDetailPage({ kind }: { kind: DetailKind }) {
+  const mobile=useMobile();
   const { id } = useParams();
   const numericId = Number(id || 0);
   const query = useQuery({
@@ -45,6 +48,7 @@ export default function SRMCommercialDetailPage({ kind }: { kind: DetailKind }) 
         <h1 className="text-2xl font-semibold tracking-tight">{titles[kind]}</h1>
         <p className="text-sm text-muted-foreground">Linked commercial lifecycle record.</p>
       </div>
+      {mobile && kind === "salesOrder" && query.data && <ol className="mobile-timeline" aria-label="Order progress">{[["Order",record.status],["Delivery",record.delivery_status],["Invoicing",record.invoice_status],["Payment",record.payment_status]].map(([label,status])=><li key={String(label)}><strong>{String(label)}</strong><small>{status ? formatValue(status) : "Status not provided"}</small></li>)}</ol>}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -74,7 +78,7 @@ function CommercialConnections({ orderId, engagementId }: { orderId: number; eng
   const save = useMutation({ mutationFn: () => api.put(`/srm/business/sales-orders/${orderId}/team`, { team_id: Number(team) }), onSuccess: () => assigned.refetch() });
   const createProject = useMutation({ mutationFn: async () => (await api.post(`/srm/engagements/${engagementId}/create-pms-project`)).data, onSuccess: () => related.refetch() });
   return <Card><CardHeader><CardTitle>Shared team and projects</CardTitle></CardHeader><CardContent className="space-y-4">
-    {orderId > 0 && <div className="flex flex-wrap gap-2"><select aria-label="Shared sales team" className="h-10 rounded-md border bg-background px-3" value={team || String(assigned.data?.team_id || "")} onChange={e => setTeam(e.target.value)}><option value="">Choose company team</option>{(directory.data || []).map((t: any) => <option key={t.id} value={t.id}>{t.name} ({t.status})</option>)}</select><Button disabled={!team || save.isPending} onClick={() => save.mutate()}>Assign team</Button>{save.isError && <p role="alert">{(save.error as any)?.response?.data?.detail || "Unable to assign team"}</p>}{save.isSuccess && <p role="status">Shared team assigned.</p>}</div>}
+    {orderId > 0 && <div className="flex flex-wrap gap-2"><NativeSelect loading={directory.isFetching} error={directory.isError} aria-label="Shared sales team" className="h-10 rounded-md border bg-background px-3" value={team || String(assigned.data?.team_id || "")} onChange={e => setTeam(e.target.value)}><option value="">Choose company team</option>{(directory.data || []).map((t: any) => <option key={t.id} value={t.id}>{t.name} ({t.status})</option>)}</NativeSelect><Button disabled={!team || save.isPending} onClick={() => save.mutate()}>Assign team</Button>{save.isError && <p role="alert">{(save.error as any)?.response?.data?.detail || "Unable to assign team"}</p>}{save.isSuccess && <p role="status">Shared team assigned.</p>}</div>}
     {related.isError ? <p>Related projects are outside your permitted scope or unavailable.</p> : (related.data || []).map((p: any) => <p key={p.id}><Link className="text-primary underline" to={`/pms/projects/${p.id}`}>{p.name} ↗</Link></p>)}
     {engagementId && <><Button disabled={createProject.isPending} onClick={() => createProject.mutate()}>Create / open linked project</Button>{createProject.isError && <p role="alert">{(createProject.error as any)?.response?.data?.detail || "Project handoff failed"}</p>}{createProject.data?.project && <p><Link className="text-primary underline" to={`/pms/projects/${createProject.data.project.id}`}>{createProject.data.project.name} ↗</Link></p>}</>}
   </CardContent></Card>;

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import EmployeeSearchSelect from "../../components/EmployeeSearchSelect";
 import { Link } from "react-router-dom";
@@ -82,7 +83,7 @@ export default function ExitPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Checklist task</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <select value={checklistRecordId} onChange={(e) => setChecklistRecordId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">Select exit record</option>{records.data?.map((r: any) => <option key={r.id} value={r.id}>Record #{r.id} - Employee #{r.employee_id}</option>)}</select>
+              <NativeSelect loading={records.isFetching} error={records.isError} value={checklistRecordId} onChange={(e) => setChecklistRecordId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">Select exit record</option>{records.data?.map((r: any) => <option key={r.id} value={r.id}>Record #{r.id} - Employee #{r.employee_id}</option>)}</NativeSelect>
               <Input value={taskName} onChange={(e) => setTaskName(e.target.value)} placeholder="Collect laptop / revoke access / final settlement" />
               <Button variant="outline" onClick={() => createTask.mutate()} disabled={!checklistRecordId || !taskName}>Add task</Button>
             </CardContent>

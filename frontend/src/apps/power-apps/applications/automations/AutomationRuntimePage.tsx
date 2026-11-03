@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -411,7 +412,7 @@ export default function AutomationRuntimePage() {
             <div className="rt-filters">
               <label>
                 Status
-                <select
+                <NativeSelect
                   value={filters.status}
                   onChange={(e) => changeFilter("status", e.target.value)}
                 >
@@ -421,7 +422,7 @@ export default function AutomationRuntimePage() {
                       {s.replace(/_/g, " ")}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
               {[
                 ["workflow", "Workflow ID"],
@@ -459,7 +460,7 @@ export default function AutomationRuntimePage() {
               ))}
               <label>
                 Environment
-                <select
+                <NativeSelect
                   value={environment}
                   onChange={(e) =>
                     navigate(
@@ -470,7 +471,7 @@ export default function AutomationRuntimePage() {
                   {["development", "testing", "production"].map((v) => (
                     <option key={v}>{v}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </label>
             </div>
             <div className="rt-table-wrap">
@@ -602,7 +603,7 @@ export default function AutomationRuntimePage() {
                 </label>
                 <label>
                   When capacity is full
-                  <select
+                  <NativeSelect
                     value={policy.overflow}
                     onChange={(e) =>
                       setPolicy({
@@ -616,7 +617,7 @@ export default function AutomationRuntimePage() {
                     <option value="ignore">
                       Ignore duplicate events; reject overflow
                     </option>
-                  </select>
+                  </NativeSelect>
                 </label>
                 <label>
                   Maximum queued
@@ -650,7 +651,7 @@ export default function AutomationRuntimePage() {
                 </label>
                 <label>
                   Execution identity
-                  <select
+                  <NativeSelect
                     value={policy.identity}
                     onChange={(e) =>
                       setPolicy({
@@ -666,7 +667,7 @@ export default function AutomationRuntimePage() {
                     {can("manage_environment") && (
                       <option value="service">Managed service identity</option>
                     )}
-                  </select>
+                  </NativeSelect>
                 </label>
                 {policy.identity === "service" && (
                   <label>
@@ -861,7 +862,7 @@ export default function AutomationRuntimePage() {
                 ))}
                 <label>
                   Trigger type
-                  <select
+                  <NativeSelect
                     value={triggerKind}
                     onChange={(e) => {
                       setTriggerKind(e.target.value);
@@ -899,7 +900,7 @@ export default function AutomationRuntimePage() {
                     <option value="scheduled">Schedule</option>
                     <option value="webhook">Signed webhook</option>
                     <option value="internal">Registered internal event</option>
-                  </select>
+                  </NativeSelect>
                 </label>
                 <p>
                   {triggerKind === "scheduled"

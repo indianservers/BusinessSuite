@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -254,12 +255,12 @@ export default function InvestmentDeclarationPage() {
               {adminMode && (
                 <div className="space-y-2">
                   <Label>Create declaration for employee</Label>
-                  <select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <NativeSelect loading={employees.isFetching} error={employees.isError} value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                     <option value="">Select employee</option>
                     {employees.data?.map((employee: any) => (
                       <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               )}
 
@@ -349,10 +350,10 @@ export default function InvestmentDeclarationPage() {
                           </td>
                           <td className="px-3 py-2">
                             {adminMode ? (
-                              <select value={reviewStatuses[item.id] ?? "approved"} onChange={(event) => setReviewStatuses({ ...reviewStatuses, [item.id]: event.target.value })} className="h-9 rounded-md border bg-background px-2">
+                              <NativeSelect value={reviewStatuses[item.id] ?? "approved"} onChange={(event) => setReviewStatuses({ ...reviewStatuses, [item.id]: event.target.value })} className="h-9 rounded-md border bg-background px-2">
                                 <option value="approved">Approve</option>
                                 <option value="rejected">Reject</option>
-                              </select>
+                              </NativeSelect>
                             ) : <Badge variant={statusTone[item.status] ?? "secondary"}>{item.status}</Badge>}
                           </td>
                           <td className="px-3 py-2">

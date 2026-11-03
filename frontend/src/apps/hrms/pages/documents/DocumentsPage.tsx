@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { ImportWizard } from "@/shared/data-transfer";
 import { certificateImportFields } from "@/shared/data-transfer/fields";
@@ -222,7 +223,7 @@ export default function DocumentsPage() {
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <select
+                      <NativeSelect loading={branches.isFetching} error={branches.isError}
                         value={branchId}
                         onChange={(event) => {
                           setBranchId(event.target.value);
@@ -235,8 +236,8 @@ export default function DocumentsPage() {
                         {branches.data?.map((branch) => (
                           <option key={branch.id} value={branch.id}>{branch.name}</option>
                         ))}
-                      </select>
-                      <select
+                      </NativeSelect>
+                      <NativeSelect loading={departments.isFetching} error={departments.isError}
                         value={departmentId}
                         onChange={(event) => {
                           setDepartmentId(event.target.value);
@@ -248,7 +249,7 @@ export default function DocumentsPage() {
                         {departments.data?.map((department) => (
                           <option key={department.id} value={department.id}>{department.name}</option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </div>
 
                     {selectedEmployee && (
@@ -319,7 +320,7 @@ export default function DocumentsPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Category</Label>
-                  <select
+                  <NativeSelect
                     value={category}
                     onChange={(event) => setCategory(event.target.value)}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -327,7 +328,7 @@ export default function DocumentsPage() {
                     {categories.map((item) => (
                       <option key={item} value={item}>{item}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div className="space-y-2">
                   <Label>Certificate type</Label>

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +43,7 @@ export default function AgentConfigForm({
             Approval required
           </label>
           <div className="flex gap-2">
-            <select
+            <NativeSelect
               value={row.setting.data_access_scope}
               onChange={(event) => patchSetting("data_access_scope", event.target.value)}
               className="h-9 rounded-md border bg-background px-2 text-sm"
@@ -50,7 +51,7 @@ export default function AgentConfigForm({
               <option value="own_records">Own records</option>
               <option value="team">Team</option>
               <option value="company">Company</option>
-            </select>
+            </NativeSelect>
             <Button type="button" size="sm" onClick={() => onSave(row)} disabled={saving}>
               <Save className="h-4 w-4" />
               Save

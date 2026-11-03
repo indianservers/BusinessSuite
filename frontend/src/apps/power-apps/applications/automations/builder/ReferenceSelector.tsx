@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { ChoiceStatus } from "@/components/ui/choice-status";
 import type { ReferenceProvider } from "./types";
 export const ReferenceSelector = forwardRef<
   HTMLInputElement,
@@ -60,6 +61,7 @@ export const ReferenceSelector = forwardRef<
           aria-autocomplete="list"
           aria-expanded={open}
           aria-controls={listId}
+          aria-busy={busy || undefined}
           value={value}
           placeholder={`${kind[0].toUpperCase() + kind.slice(1)} reference or variable`}
           onChange={(event) => {
@@ -86,7 +88,7 @@ export const ReferenceSelector = forwardRef<
       {open && (
         <div id={listId} role="listbox" aria-label={`${kind} references`}>
           {busy ? (
-            <p role="status">Searching authorized references...</p>
+            <ChoiceStatus loading empty={false} loadingText="Searching authorized references…" />
           ) : error ? (
             <p role="alert">{error}</p>
           ) : provider && options.length ? (

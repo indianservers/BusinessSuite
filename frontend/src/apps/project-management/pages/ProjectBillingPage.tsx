@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useAuthStore } from "@/store/authStore";
 import { useState, type ReactNode } from "react";
@@ -47,7 +48,7 @@ export function SharedCustomerSelect({
           setAfter(0);
         }}
       />
-      <select
+      <NativeSelect loading={result.isFetching || selected.isFetching} error={result.isError || selected.isError}
         className="h-10 w-full rounded-md border bg-background px-3"
         aria-label="Shared customer"
         value={value}
@@ -63,7 +64,7 @@ export function SharedCustomerSelect({
             {r.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {result.data?.next && (
         <Button
           type="button"
@@ -164,7 +165,7 @@ export function CommercialIdentityForm({
       </div>
       <div>
         <Label htmlFor="billing-seller">Seller legal entity</Label>
-        <select
+        <NativeSelect loading={sellers.isFetching} error={sellers.isError}
           id="billing-seller"
           required
           className="h-10 w-full rounded-md border bg-background px-3"
@@ -177,11 +178,11 @@ export function CommercialIdentityForm({
               {r.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor="billing-contact">Billing contact</Label>
-        <select
+        <NativeSelect loading={contacts.isFetching} error={contacts.isError}
           id="billing-contact"
           className="h-10 w-full rounded-md border bg-background px-3"
           value={form.contact_id || ""}
@@ -193,11 +194,11 @@ export function CommercialIdentityForm({
               {r.full_name} — {r.email}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor="billing-team">Company team</Label>
-        <select
+        <NativeSelect loading={teams.isFetching} error={teams.isError}
           id="billing-team"
           className="h-10 w-full rounded-md border bg-background px-3"
           value={form.team_id || ""}
@@ -211,7 +212,7 @@ export function CommercialIdentityForm({
                 {r.name}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor="billing-currency">Currency</Label>
@@ -229,7 +230,7 @@ export function CommercialIdentityForm({
         <>
           <div>
             <Label htmlFor="commercial-order">Originating sales order</Label>
-            <select
+            <NativeSelect loading={orders.isFetching} error={orders.isError}
               id="commercial-order"
               className="h-10 w-full rounded-md border bg-background px-3"
               value={form.sales_order_id || ""}
@@ -245,13 +246,13 @@ export function CommercialIdentityForm({
                     {r.order_number} — {r.title}
                   </option>
                 ))}
-            </select>
+            </NativeSelect>
           </div>
           <div>
             <Label htmlFor="commercial-engagement">
               Originating engagement
             </Label>
-            <select
+            <NativeSelect loading={engagements.isFetching} error={engagements.isError}
               id="commercial-engagement"
               className="h-10 w-full rounded-md border bg-background px-3"
               value={form.engagement_id || ""}
@@ -267,7 +268,7 @@ export function CommercialIdentityForm({
                     {r.engagement_number} — {r.name}
                   </option>
                 ))}
-            </select>
+            </NativeSelect>
           </div>
         </>
       )}

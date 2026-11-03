@@ -1,3 +1,8 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/authStore";
+import { useMobile } from "@/components/mobile/useMobile";
+import { MobileFilters } from "@/components/mobile/MobilePrimitives";
+import { Button } from "@/components/ui/button";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +32,8 @@ function isoDate(date: Date) {
 
 export default function MyAttendancePage() {
   usePageTitle("My Attendance");
+  const mobile = useMobile(), user = useAuthStore(state => state.user), cache = useQueryClient();
+  const punch = useMutation({ mutationFn: (direction: "in" | "out") => direction === "in" ? attendanceApi.checkIn({source:"Web"}) : attendanceApi.checkOut({}), onSuccess: () => { for (const key of ["my-attendance-today", "my-attendance", "my-attendance-summary", "attendance-today"]) void cache.invalidateQueries({queryKey:[key]}); } });
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
   const [fromDate, setFromDate] = useState(isoDate(firstDay));
@@ -63,6 +70,7 @@ export default function MyAttendancePage() {
         <p className="text-sm text-muted-foreground">View your attendance, hours, and overtime without register or lock controls.</p>
       </div>
 
+      {mobile && <section className="rounded-2xl border bg-card p-4 space-y-3" aria-label="Attendance home"><h2 className="font-semibold">Today · {isoDate(today)}</h2>{todayQuery.isPending ? <p role="status">Checking attendance…</p> : todayQuery.isError ? <p role="alert">Attendance unavailable. <button onClick={() => todayQuery.refetch()}>Retry</button></p> : <><p>{todayRecord?.check_out ? "Checked out" : todayRecord?.check_in ? "Checked in" : "Not checked in"} · {todayRecord?.hours_worked ?? 0} hours</p><p className="text-sm text-muted-foreground">Last punch: {todayRecord?.check_out || todayRecord?.check_in ? formatDateTime((todayRecord?.check_out || todayRecord?.check_in)!) : "No punch today"}</p>{!!user?.employee_id && !todayRecord?.check_out && <Button className="w-full" disabled={punch.isPending} onClick={() => punch.mutate(todayRecord?.check_in ? "out" : "in")}>{punch.isPending ? "Saving…" : todayRecord?.check_in ? "Check Out" : "Check In"}</Button>}</>}{punch.isError && <p role="alert" className="text-destructive text-sm">{(punch.error as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Unable to save attendance. Try again."}</p>}</section>}
       <div className="grid gap-4 md:grid-cols-4">
         {[
           ["Present", summary.data?.present_days],
@@ -112,10 +120,10 @@ export default function MyAttendancePage() {
             <CalendarDays className="h-4 w-4" />
             Attendance History
           </CardTitle>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <MobileFilters chips={[fromDate,toDate]} label="Attendance period"><div className="grid gap-2 sm:grid-cols-2">
             <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
             <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
-          </div>
+          </div></MobileFilters>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

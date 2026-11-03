@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Braces,
@@ -94,7 +95,7 @@ export default function ConfigurationPanel({
       );
     else if (field.kind === "select")
       control = (
-        <select
+        <NativeSelect
           {...shared}
           value={String(value ?? "")}
           onChange={(e) => update(field.key, e.target.value)}
@@ -103,11 +104,11 @@ export default function ConfigurationPanel({
           {field.options?.map((option) => (
             <option key={option}>{option}</option>
           ))}
-        </select>
+        </NativeSelect>
       );
     else if (field.kind === "multi-select")
       control = (
-        <select
+        <NativeSelect
           {...shared}
           multiple
           value={Array.isArray(value) ? value.map(String) : []}
@@ -121,7 +122,7 @@ export default function ConfigurationPanel({
           {field.options?.map((option) => (
             <option key={option}>{option}</option>
           ))}
-        </select>
+        </NativeSelect>
       );
     else if (field.kind === "json")
       control = (
@@ -478,7 +479,7 @@ export default function ConfigurationPanel({
             </label>
             <label className="as-basic-field">
               On error
-              <select
+              <NativeSelect
                 disabled={readOnly}
                 value={node.advanced.error_strategy}
                 onChange={(e) =>
@@ -495,7 +496,7 @@ export default function ConfigurationPanel({
                 <option value="stop">Stop this path</option>
                 <option value="continue">Continue</option>
                 {definition.outputs.some((port) => port.id === "error") && <option value="branch">Use error branch</option>}
-              </select>
+              </NativeSelect>
             </label>
           </details>
         </section>

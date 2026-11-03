@@ -1,3 +1,5 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { useMobile } from "@/components/mobile/useMobile";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +19,8 @@ export function InvoicePaymentForm({
   invoice: Row;
   onSaved?: () => unknown;
 }) {
+  const mobile = useMobile();
+  const [method,setMethod]=useState("bank_transfer"),[receiptDate,setReceiptDate]=useState(()=>new Date().toISOString().slice(0,10));
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
@@ -28,6 +32,7 @@ export function InvoicePaymentForm({
         request_id: requestId,
         amount,
         reference,
+        ...(mobile ? {payment_method:method,receipt_date:receiptDate} : {}),
       }),
     onSuccess: (response) => {
       setReceipt(response.data.receipt_id);
@@ -68,6 +73,7 @@ export function InvoicePaymentForm({
             id={`payment-amount-${invoice.id}`}
             required
             type="number"
+            inputMode="decimal"
             min="0.01"
             max={invoice.balance_amount}
             step="0.01"
@@ -88,6 +94,7 @@ export function InvoicePaymentForm({
             onChange={(e) => setReference(e.target.value)}
           />
         </div>
+        {mobile && <><label className="block text-sm">Payment method<NativeSelect className="block w-full rounded-lg border bg-background p-3" value={method} disabled={save.isPending} onChange={e=>setMethod(e.target.value)}>{["bank_transfer","upi","cash","card","cheque"].map(m=><option key={m} value={m}>{m.replace(/_/g,' ')}</option>)}</NativeSelect></label><label className="block text-sm">Received on<Input type="date" value={receiptDate} required disabled={save.isPending} onChange={e=>setReceiptDate(e.target.value)}/></label></>}
         <Button type="submit" disabled={save.isPending || !amount}>
           Record received payment
         </Button>

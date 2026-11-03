@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { FormEvent, useEffect, useState } from "react";
@@ -68,7 +69,7 @@ export default function OperatorProviderSettings() {
   }
   return <div className="space-y-6 max-w-6xl">
     <header><h1 className="page-title">AI provider settings</h1><p className="page-description">Configure the PMS operator. Admin access is required. Keys are encrypted on the server and never returned.</p><Link className="text-primary underline" to="/pms/operator">Open AI operator</Link></header>
-    <label className="block">Configuration scope<select aria-label="Provider configuration scope" className="ml-3 rounded border bg-background p-2" disabled={busy} value={workspace || ""} onChange={e => setWorkspace(e.target.value ? Number(e.target.value) : undefined)}><option value="">Company / personal legacy projects</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}</select></label>
+    <label className="block">Configuration scope<NativeSelect aria-label="Provider configuration scope" className="ml-3 rounded border bg-background p-2" disabled={busy} value={workspace || ""} onChange={e => setWorkspace(e.target.value ? Number(e.target.value) : undefined)}><option value="">Company / personal legacy projects</option>{workspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}</NativeSelect></label>
     <p className="text-sm text-muted-foreground">Workspace projects use their workspace configuration. Company settings apply to legacy projects; accounts without a company use private settings.</p>
     <nav className="flex gap-4">{names.map(n => <Link key={n} aria-current={provider === n ? "page" : undefined} className={provider === n ? "font-semibold underline" : "text-primary"} to={`/pms/settings/ai/${n}${workspace ? `?workspace=${workspace}` : ""}`}>{labels[n]}</Link>)}</nav>
     {error && <p role="alert" className="text-destructive">{error}</p>}{notice && <p role="status">{notice}</p>}

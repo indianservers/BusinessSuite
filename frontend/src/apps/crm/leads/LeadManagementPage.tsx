@@ -1,3 +1,6 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { useMobile } from "@/components/mobile/useMobile";
+import { MobileContactActions, MobileFilters } from "@/components/mobile/MobilePrimitives";
 import CompactForm from "@/components/forms/CompactForm";
 import { emailError, phoneError } from "@/lib/validation";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -515,7 +518,8 @@ export default function LeadManagementPage() {
               onChange={(e) => setSearchDraft(e.target.value)}
             />
           </label>
-          <select
+          <MobileFilters chips={[stage,owner ? `Owner ${owner}` : ""].filter(Boolean)} onClear={()=>updateParams({stage:"",owner:"",page:"1"})}>
+          <NativeSelect
             aria-label="Filter stage"
             value={stage}
             onChange={(e) => updateParams({ stage: e.target.value, page: "1" })}
@@ -524,8 +528,8 @@ export default function LeadManagementPage() {
             {bootstrap?.settings.stages.map((s) => (
               <option key={s.name}>{s.name}</option>
             ))}
-          </select>
-          <select
+          </NativeSelect>
+          <NativeSelect
             aria-label="Filter owner"
             value={owner}
             onChange={(e) => updateParams({ owner: e.target.value, page: "1" })}
@@ -536,7 +540,8 @@ export default function LeadManagementPage() {
                 {o.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
+          </MobileFilters>
           <div className="lm-view-toggle">
             {[
               ["table", List],
@@ -566,7 +571,7 @@ export default function LeadManagementPage() {
           </Button>
         </div>
         <div className="lm-view-tools">
-          <select
+          <NativeSelect
             aria-label="Saved views"
             value=""
             onChange={(e) => {
@@ -581,7 +586,7 @@ export default function LeadManagementPage() {
             {savedViews.map((v) => (
               <option key={v.name} value={v.name}>Personal: {v.name}</option>
             ))}{sharedViews.map(v=><option key={`shared:${v.name}`} value={`shared:${v.name}`}>Shared: {v.name}</option>)}
-          </select>
+          </NativeSelect>
           <button onClick={() => setShowViewSave((v) => !v)}>
             Save current view
           </button>
@@ -640,7 +645,7 @@ export default function LeadManagementPage() {
         {!!selected.length && bootstrap?.canManage && (
           <div className="lm-bulk">
             <strong>{selected.length} selected</strong>
-            <select
+            <NativeSelect
               aria-label="Bulk action"
               value={bulkAction}
               onChange={(e) => setBulkAction(e.target.value)}
@@ -664,7 +669,7 @@ export default function LeadManagementPage() {
               </optgroup>
               <option value="archive">Archive with reason</option>
               <option value="restore">Restore from archive</option>
-            </select>
+            </NativeSelect>
             <Button
               size="sm"
               variant="outline"
@@ -809,7 +814,7 @@ export default function LeadManagementPage() {
                     </td>
                     <td>
                       {bootstrap?.canManage && !lead.is_converted ? (
-                        <select
+                        <NativeSelect
                           className="lm-inline"
                           aria-label={`Stage for ${lead.full_name}`}
                           disabled={busy}
@@ -833,7 +838,7 @@ export default function LeadManagementPage() {
                             .map((name) => (
                               <option key={name}>{name}</option>
                             ))}
-                        </select>
+                        </NativeSelect>
                       ) : (
                         <StageBadge stage={lead.status} />
                       )}
@@ -844,7 +849,7 @@ export default function LeadManagementPage() {
                     {columns.includes("owner") && (
                       <td>
                         {bootstrap?.canManage && bootstrap.owners.length > 1 ? (
-                          <select
+                          <NativeSelect
                             className="lm-inline"
                             aria-label={`Owner for ${lead.full_name}`}
                             value={lead.owner_user_id || ""}
@@ -873,7 +878,7 @@ export default function LeadManagementPage() {
                                 {o.name}
                               </option>
                             ))}
-                          </select>
+                          </NativeSelect>
                         ) : (
                           ownerName(lead.owner_user_id)
                         )}
@@ -1064,6 +1069,8 @@ export function CaptureDialog({
   close: () => void;
   saved: (id: number) => void;
 }) {
+  const mobile = useMobile();
+  const [expandedMobileCapture, setExpandedMobileCapture] = useState(false);
   const key = `lead-capture-draft-${bootstrap.userId}`;
   const automaticRouting =
     bootstrap.settings.assignment.mode !== "manual" ||
@@ -1167,14 +1174,16 @@ export function CaptureDialog({
             <p className="lead-create-subtitle">{["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
-              <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><select value={values.source || "Manual"} onChange={e => update("source", e.target.value)}>{[...new Set(["Manual", "Website", "Referral", "Social Media", "Email", "Phone", "Event", ...(values.source ? [values.source] : [])])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</select></span></label>
-              <label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><select value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</select></span></label>
-              <label className="lead-create-field">Priority<span className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><select value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</select></span></label>
-              <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label>
+              {mobile && <label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>}
+              <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><NativeSelect value={values.source || "Manual"} onChange={e => update("source", e.target.value)}>{[...new Set(["Manual", "Website", "Referral", "Social Media", "Email", "Phone", "Event", ...(values.source ? [values.source] : [])])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
+              {mobile && <button type="button" className="mobile-filter-trigger" onClick={() => setExpandedMobileCapture(v => !v)} aria-expanded={expandedMobileCapture}>{expandedMobileCapture ? "Fewer details" : "More details"}</button>}
+              {(!mobile || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
+              <label className="lead-create-field">Priority<span className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>
+              <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label></>}
             </div>}
             {step === 1 && <div className="lead-create-grid">{field("email", "Email", "e.g. john@company.com", "email")}<label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{field("job_title", "Job Title", "e.g. Sales Manager")}</div>}
             {step === 2 && <div className="lead-create-grid">{field("company_name", "Company", "Company name")}{field("industry", "Industry", "e.g. Technology")}{field("city", "City")}{field("country", "Country")}</div>}
-            {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><select value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</select></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}</>}
+            {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><NativeSelect value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</NativeSelect></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}</>}
             {duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
             {step === 4 && <CatalogLinesEditor selectionOnly value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
             {error && <ErrorNotice message={error}/>}
@@ -1375,6 +1384,7 @@ export function LeadDrawer({
                 </Link>
               </div>
             </header>
+            <MobileContactActions phone={lead.phone ? `${lead.phone_country_code || ""}${lead.phone}` : undefined} email={lead.email} onNote={bootstrap.canManage ? () => setLoggingInteraction(true) : undefined}/>
             <nav className="lm-tabs" aria-label="Lead detail sections">
               {[
                 "overview",
@@ -1412,7 +1422,7 @@ export function LeadDrawer({
                 <><CatalogAssociations source="crm" target="lead" id={id}/>
                   <div className="lm-form-grid">
                     <Field label="Current stage">
-                      <select
+                      <NativeSelect
                         value={value("status")}
                         onChange={(e) => setValue("status", e.target.value)}
                         disabled={lead.is_converted}
@@ -1423,11 +1433,11 @@ export function LeadDrawer({
                           .map((s) => (
                             <option key={s}>{s}</option>
                           ))}
-                      </select>
+                      </NativeSelect>
                     </Field>
                     <Field label="Reassignment reason"><input value={details.assignmentReason||""} onChange={e=>setDetail({assignmentReason:e.target.value})} placeholder="Explain ownership changes for the timeline"/></Field><Field label="Customer time zone"><input value={details.customerTimezone||""} onChange={e=>setDetail({customerTimezone:e.target.value})} placeholder="Asia/Kolkata"/></Field>
                     <Field label="Assigned employee">
-                      <select
+                      <NativeSelect
                         value={value("owner_user_id")}
                         onChange={(e) =>
                           setValue("owner_user_id", Number(e.target.value))
@@ -1449,7 +1459,7 @@ export function LeadDrawer({
                             {o.name}
                           </option>
                         ))}
-                      </select>
+                      </NativeSelect>
                     </Field>
                     {[
                       ["full_name", "Name"],
@@ -1525,7 +1535,7 @@ export function LeadDrawer({
                       </p>
                     )}
                     <div className="lm-actions">
-                      <select
+                      <NativeSelect
                         aria-label="Follow-up sequence"
                         value={sequence}
                         onChange={(e) => setSequence(e.target.value)}
@@ -1533,7 +1543,7 @@ export function LeadDrawer({
                         {bootstrap.settings.sequences.map((s) => (
                           <option key={s.name}>{s.name}</option>
                         ))}
-                      </select>
+                      </NativeSelect>
                       <Button
                         variant="outline"
                         size="sm"
@@ -1725,7 +1735,7 @@ export function LeadDrawer({
                   <section className="lm-section">
                     <h3>Loss details</h3>
                     <Field label="Loss reason (required when Lost)">
-                      <select
+                      <NativeSelect
                         value={details.lossReason || ""}
                         onChange={(e) =>
                           setDetail({ lossReason: e.target.value })
@@ -1753,7 +1763,7 @@ export function LeadDrawer({
                           ].includes(details.lossReason) && (
                             <option>{details.lossReason}</option>
                           )}
-                      </select>
+                      </NativeSelect>
                     </Field>
                     <Field label="Competitor">
                       <input
@@ -1796,7 +1806,7 @@ export function LeadDrawer({
                   </p>
                   <div className="lm-form-grid">
                     <Field label="Activity type">
-                      <select
+                      <NativeSelect
                         value={activity.type}
                         onChange={(e) =>
                           setActivity((v) => ({ ...v, type: e.target.value }))
@@ -1807,7 +1817,7 @@ export function LeadDrawer({
                             <option key={type}>{type}</option>
                           ),
                         )}
-                      </select>
+                      </NativeSelect>
                     </Field>
                     <Field label="Next follow-up">
                       <input
@@ -2102,7 +2112,7 @@ export function LeadDrawer({
                   this qualified lead. Existing lead history is retained.
                 </p>
                 <Field label="Contact">
-                  <select
+                  <NativeSelect
                     value={conversionIds.existingContactId}
                     onChange={(e) =>
                       setConversionIds((v) => ({
@@ -2117,10 +2127,10 @@ export function LeadDrawer({
                         Reuse {c.name}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </Field>
                 <Field label="Company">
-                  <select
+                  <NativeSelect
                     value={conversionIds.existingCompanyId}
                     onChange={(e) =>
                       setConversionIds((v) => ({
@@ -2139,7 +2149,7 @@ export function LeadDrawer({
                         Reuse {c.name}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </Field>
                 <Field label="New deal name"><input value={conversionIds.dealName} placeholder={`${lead.full_name} opportunity`} onChange={e=>setConversionIds(v=>({...v,dealName:e.target.value}))}/></Field><label className="lm-check"><input type="checkbox" checked={conversionIds.createDeal} onChange={e=>setConversionIds(v=>({...v,createDeal:e.target.checked}))}/>Create a linked deal</label><div className="rounded border p-3 text-sm"><strong>Survivor / destination preview</strong><p>Contact: {conversionIds.existingContactId?`Reuse #${conversionIds.existingContactId}`:"Create a new contact"}</p><p>Company: {conversionIds.existingCompanyId?`Reuse #${conversionIds.existingCompanyId}`:lead.company_name?`Create or reuse ${lead.company_name}`:"No company"}</p><p>Deal: {conversionIds.createDeal?conversionIds.dealName||`${lead.full_name} opportunity`:"No new deal"}</p><p>Lead ownership, communication history, notes and follow-ups remain linked to the conversion.</p></div>
                 <Button
@@ -2393,7 +2403,7 @@ function WorkflowSettings({
           {tab === "assignment" && (
             <>
               <Field label="Distribution method">
-                <select
+                <NativeSelect
                   value={settings.assignment.mode}
                   onChange={(e) =>
                     setSettings((s) => ({
@@ -2407,7 +2417,7 @@ function WorkflowSettings({
                   </option>
                   <option value="round_robin">Round-robin</option>
                   <option value="workload">Fewest active leads</option>
-                </select>
+                </NativeSelect>
               </Field>
               <h3>Eligible owners</h3>
               {bootstrap.owners.map((owner) => (
@@ -2440,7 +2450,7 @@ function WorkflowSettings({
                 </p>
                 {settings.assignment.rules.map((rule, index) => (
                   <div className="lm-rule-editor" key={index}>
-                    <select
+                    <NativeSelect
                       aria-label="Assignment condition field"
                       value={rule.field}
                       onChange={(e) =>
@@ -2466,7 +2476,7 @@ function WorkflowSettings({
                       ].map((name) => (
                         <option key={name}>{name}</option>
                       ))}
-                    </select>
+                    </NativeSelect>
                     <input
                       aria-label="Assignment match value"
                       placeholder="Equals"
@@ -2485,7 +2495,7 @@ function WorkflowSettings({
                         }))
                       }
                     />
-                    <select
+                    <NativeSelect
                       aria-label="Rule owner"
                       value={rule.ownerId}
                       onChange={(e) =>
@@ -2507,7 +2517,7 @@ function WorkflowSettings({
                           {o.name}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                     <button
                       aria-label="Remove assignment rule"
                       onClick={() =>
@@ -2604,7 +2614,7 @@ function WorkflowSettings({
                         />
                       </Field>
                       <Field label="Task type">
-                        <select
+                        <NativeSelect
                           value={step.type}
                           onChange={(e) =>
                             setSettings((s) => ({
@@ -2627,7 +2637,7 @@ function WorkflowSettings({
                           {["call", "email", "task", "meeting"].map((name) => (
                             <option key={name}>{name}</option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </Field>
                       <Field label="Task title">
                         <input
@@ -2761,17 +2771,17 @@ function WorkflowSettings({
                         />
                       </Field>
                       <Field label="When">
-                        <select
+                        <NativeSelect
                           value={rule.trigger}
                           onChange={(e) => update({ trigger: e.target.value })}
                         >
                           <option value="created">Lead created</option>
                           <option value="stage_changed">Stage changed</option>
                           <option value="responded">Lead responded</option>
-                        </select>
+                        </NativeSelect>
                       </Field>
                       <Field label="Only in stage">
-                        <select
+                        <NativeSelect
                           value={rule.stage}
                           onChange={(e) => update({ stage: e.target.value })}
                         >
@@ -2779,17 +2789,17 @@ function WorkflowSettings({
                           {settings.stages.map((s) => (
                             <option key={s.name}>{s.name}</option>
                           ))}
-                        </select>
+                        </NativeSelect>
                       </Field>
                       <Field label="Then">
-                        <select
+                        <NativeSelect
                           value={rule.action}
                           onChange={(e) => update({ action: e.target.value })}
                         >
                           <option value="task">Create task</option>
                           <option value="notify">Notify owner</option>
                           <option value="assign">Assign owner</option>
-                        </select>
+                        </NativeSelect>
                       </Field>
                       <Field label="Task or notification title">
                         <input
@@ -2799,7 +2809,7 @@ function WorkflowSettings({
                       </Field>
                       {rule.action === "assign" ? (
                         <Field label="Assign to">
-                          <select
+                          <NativeSelect
                             value={rule.ownerId || ""}
                             onChange={(e) =>
                               update({ ownerId: Number(e.target.value) })
@@ -2811,7 +2821,7 @@ function WorkflowSettings({
                                 {o.name}
                               </option>
                             ))}
-                          </select>
+                          </NativeSelect>
                         </Field>
                       ) : (
                         <Field label="Task due after (hours)">
@@ -2883,7 +2893,7 @@ function WorkflowSettings({
                 duplicate prevention.
               </p>
               <Field label="Responsible intake owner">
-                <select
+                <NativeSelect
                   value={captureOwner}
                   onChange={(e) => setCaptureOwner(Number(e.target.value))}
                 >
@@ -2892,7 +2902,7 @@ function WorkflowSettings({
                       {o.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               <p>Form status: {capture?.enabled ? "Active" : "Disabled"}</p>
               <div className="lm-actions">

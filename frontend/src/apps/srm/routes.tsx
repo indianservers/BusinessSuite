@@ -9,6 +9,8 @@ import type { SRMViewKind } from "./types";
 import type { FAMViewKind } from "@/apps/fam/types";
 import { inventorySourceAppPaths } from "@/apps/inventory/sourceCatalog";
 
+const MobileQuotesWorkspace = React.lazy(() => import("@/components/mobile/MobileQuotesWorkspace"));
+const CRMWorkspacePage = React.lazy(() => import("@/apps/crm/CRMWorkspacePage"));
 const SRMWorkspacePage = React.lazy(() => import("./pages/SRMWorkspacePage"));
 const SharedInvoicePage = React.lazy(() => import("./pages/SharedInvoicePage"));
 const SRMCommercialDetailPage = React.lazy(() => import("./pages/SRMCommercialDetailPage"));
@@ -34,6 +36,8 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 });
 
 export const srmRoutes: FrontendRoute[] = [
+ {path:"srm/quotes",element:<MobileQuotesWorkspace/>},
+ {path:"srm/quotes/:id/builder",element:<CRMWorkspacePage kind="quoteBuilder"/>},
  {path:"srm/follow-ups/directory",element:<FollowUpsPage/>},
  {path:"srm/follow-ups/calendar",element:<FollowUpsPage/>},
  {path:"srm/follow-ups/:id",element:<FollowUpsPage/>},

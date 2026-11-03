@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function LeadEmployeeAssignment({
       <label htmlFor={id}>Assigned employee</label>
       {directory?.canManage ? (
         <>
-          <select
+          <NativeSelect
             id={id}
             className="max-w-[260px] rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
             value={selected}
@@ -60,7 +61,7 @@ export default function LeadEmployeeAssignment({
                 {owner.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <Button
             size="sm"
             variant="outline"

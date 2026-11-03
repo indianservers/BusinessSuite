@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -1085,7 +1086,7 @@ export default function TaskStudioPage() {
                   <Folder />
                   <span>
                     Task location
-                    <select
+                    <NativeSelect
                       aria-label="Task location"
                       value={scopeMode}
                       disabled={!!id || !!created.current || scopeBusy}
@@ -1110,11 +1111,11 @@ export default function TaskStudioPage() {
                     >
                       <option value="project">Project task</option>
                       <option value="general">General / workspace task</option>
-                    </select>
+                    </NativeSelect>
                     {scopeMode === "general" ? (
                       <>
                         <span>Workspace *</span>
-                        <select
+                        <NativeSelect
                           aria-label="General task workspace"
                           required
                           disabled={!!id || scopeBusy}
@@ -1129,7 +1130,7 @@ export default function TaskStudioPage() {
                               {w.name}
                             </option>
                           ))}
-                        </select>
+                        </NativeSelect>
                         <small>
                           No project is required. Choose any task type below.
                         </small>
@@ -1137,7 +1138,7 @@ export default function TaskStudioPage() {
                     ) : (
                       <>
                         <span>Project *</span>
-                        <select
+                        <NativeSelect
                           required
                           aria-label="Project"
                           value={draft.projectId || ""}
@@ -1167,7 +1168,7 @@ export default function TaskStudioPage() {
                                 {p.name} {p.project_key}
                               </option>
                             ))}
-                        </select>
+                        </NativeSelect>
                       </>
                     )}
                     <span>Parent task (optional)</span>
@@ -1178,7 +1179,7 @@ export default function TaskStudioPage() {
                       onChange={(e) => setParentSearch(e.target.value)}
                       disabled={!draft.projectId || scopeBusy}
                     />
-                    <select
+                    <NativeSelect
                       aria-label="Parent task"
                       value={draft.parent_task_id || ""}
                       disabled={!draft.projectId || scopeBusy}
@@ -1206,7 +1207,7 @@ export default function TaskStudioPage() {
                           {p.title} ({p.task_key})
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </span>
                 </label>
                 <label className="ts-field">
@@ -1272,7 +1273,7 @@ export default function TaskStudioPage() {
                           </button>
                         );
                       })}
-                    <select
+                    <NativeSelect
                       aria-label="Other work item types"
                       value={
                         [
@@ -1307,7 +1308,7 @@ export default function TaskStudioPage() {
                         .map((type) => (
                           <option key={type}>{type}</option>
                         ))}
-                    </select>{" "}
+                    </NativeSelect>{" "}
                   </div>
                 </div>
               </div>
@@ -1336,7 +1337,7 @@ export default function TaskStudioPage() {
                   <div className="ts-execution-choice">
                     <label>
                       Execution mode
-                      <select
+                      <NativeSelect
                         aria-label="Execution mode"
                         value={draft.execution_mode || "shared"}
                         onChange={(e) =>
@@ -1353,7 +1354,7 @@ export default function TaskStudioPage() {
                           Individual intern assignments: separate progress,
                           submission and review
                         </option>
-                      </select>
+                      </NativeSelect>
                     </label>
                     <p>
                       {draft.execution_mode === "individual"
@@ -1705,7 +1706,7 @@ export default function TaskStudioPage() {
                 </label>
                 <label>
                   Priority
-                  <select
+                  <NativeSelect
                     aria-label="Priority"
                     value={draft.priority}
                     onChange={(e) => set("priority", e.target.value)}
@@ -1713,11 +1714,11 @@ export default function TaskStudioPage() {
                     {["Low", "Medium", "High", "Urgent"].map((v) => (
                       <option key={v}>{v}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </label>
                 <label>
                   Status
-                  <select
+                  <NativeSelect
                     aria-label="Status"
                     value={draft.status}
                     onChange={(e) => set("status", e.target.value)}
@@ -1733,7 +1734,7 @@ export default function TaskStudioPage() {
                     ].map((v) => (
                       <option key={v}>{v}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </label>
                 <label>
                   Story points

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import { modules } from "@/lib/moduleCatalog";
@@ -15,7 +16,7 @@ export default function ModuleSwitcher() {
     <>
       <label className="kf-module-switch">
         <Layers3 size={16} />
-        <select
+        <NativeSelect
           aria-label="Switch business module"
           value={
             allowed.find(
@@ -32,7 +33,7 @@ export default function ModuleSwitcher() {
               {module.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       <CompanySwitcher />
     </>

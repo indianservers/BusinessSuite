@@ -88,7 +88,7 @@ export default function Sidebar({
       role={open ? "dialog" : undefined}
       aria-modal={open ? true : undefined}
       className={cn(
-        "suite-sidebar z-30 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+        "suite-sidebar z-50 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:z-30",
         embedded ? "suite-sidebar-embedded" : "fixed inset-y-0 left-0",
         collapsed ? "w-16" : "w-64",
         open ? "translate-x-0" : "-translate-x-full lg:translate-x-0",

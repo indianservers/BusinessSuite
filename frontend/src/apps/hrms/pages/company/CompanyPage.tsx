@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneFields } from "@/lib/validation";
@@ -427,7 +428,7 @@ function OrgPanel({
           {fields.map((field) => (
             <Field key={field.key} label={field.label}>
               {phoneFields.has(field.key) ? <PhoneInput label={field.label} value={form[field.key] || ""} countryCode={form[field.key+"_country_code"] ?? ""} onChange={value=>onChange(field.key,value)} onCountryCodeChange={value=>onChange(field.key+"_country_code",value)} /> : field.type === "select" ? (
-                <select
+                <NativeSelect
                   value={form[field.key] || ""}
                   onChange={(event) => onChange(field.key, Number(event.target.value))}
                   disabled={!field.options?.length}
@@ -437,7 +438,7 @@ function OrgPanel({
                   {(field.options || []).map((option) => (
                     <option key={option.id} value={option.id}>{option.name}</option>
                   ))}
-                </select>
+                </NativeSelect>
               ) : (
                 <Input
                   type={field.type || "text"}

@@ -386,13 +386,13 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
     created_type = None
     created_id = None
     if webform.target_module == "contact":
-        contact = CRMContact(organization_id=company, first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", created_by_user_id=None)
+        contact = CRMContact(organization_id=company, first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, company_name=str(values.get(mapping.get('company_name','company_name')) or '')[:180] or None, notes=str(values.get(mapping.get('message','message')) or '')[:10000] or None, source="Webform", created_by_user_id=None)
         db.add(contact)
         db.flush()
         created_type = "contact"
         created_id = contact.id
     else:
-        lead = CRMLead(organization_id=company, first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, source="Webform", status="New", created_by_user_id=None)
+        lead = CRMLead(organization_id=company, first_name=first_name, last_name=last_name, full_name=f"{first_name} {last_name}".strip(), email=email or None, phone=phone or None, phone_country_code=phone_country_code, company_name=str(values.get(mapping.get('company_name','company_name')) or '')[:180] or None, notes=str(values.get(mapping.get('message','message')) or '')[:10000] or None, source="Webform", status="New", created_by_user_id=None)
         db.add(lead)
         db.flush()
         created_type = "lead"
@@ -401,6 +401,7 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
     db.add(submission)
     _timeline(db, created_type, created_id, "webform", "submitted", webform.name, "Webform submission created CRM record", None, {"webform_id": webform.id, "duplicate_detected": duplicate}, organization_id=company)
     auto_responses: list[dict[str, Any]] = []
+    merge_values={**values,'name':f'{first_name} {last_name}'.strip(),'first_name':first_name,'last_name':last_name,'email':email,'phone':phone,'company_name':str(values.get(mapping.get('company_name','company_name')) or '')}
     if webform.auto_response_rule_id:
         rule = db.query(CommunicationAutoResponseRule).filter(CommunicationAutoResponseRule.id == webform.auto_response_rule_id, CommunicationAutoResponseRule.organization_id == company, CommunicationAutoResponseRule.active == True).first()
         if rule:
@@ -409,7 +410,7 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
         if template and template.organization_id != company:
             raise HTTPException(404, "Auto-response template not found in this company")
         if template and email:
-            message = CommunicationEmailMessage(organization_id=company, related_record_type=created_type, related_record_id=created_id, to_email=email, subject=merge_template(template.subject, values), body=merge_template(template.body_html or template.body_text or "", values), status="queued")
+            message = CommunicationEmailMessage(organization_id=company, related_record_type=created_type, related_record_id=created_id, to_email=email, subject=merge_template(template.subject, merge_values), body=merge_template(template.body_html or template.body_text or "", merge_values), status="queued")
             db.add(message)
             db.flush()
             deliver_email(db, message, None)
@@ -418,7 +419,7 @@ def submit_public_webform(slug: str, data: WebformSubmitPayload, request: Reques
         if whatsapp_template_id and phone:
             whatsapp_template = db.query(CommunicationWhatsAppTemplate).filter(CommunicationWhatsAppTemplate.id == int(whatsapp_template_id), CommunicationWhatsAppTemplate.organization_id == company, CommunicationWhatsAppTemplate.active == True).first()
             if whatsapp_template:
-                _log_whatsapp_placeholder(db, created_type, created_id, str(phone_country_code)+phone, merge_template(whatsapp_template.body_text, values), whatsapp_template)
+                _log_whatsapp_placeholder(db, created_type, created_id, str(phone_country_code)+phone, merge_template(whatsapp_template.body_text, merge_values), whatsapp_template)
                 auto_responses.append({"channel": "whatsapp", "status": "queued", "template_id": whatsapp_template.id})
     db.commit()
     return {"status": "accepted", "created_record_type": created_type, "created_record_id": created_id, "duplicate_detected": duplicate, "auto_responses": auto_responses}
@@ -482,14 +483,19 @@ def preview_campaign(campaign_id: int, db: Session = Depends(get_db), current_us
     recipients = _recipient_records(db, campaign.segment_json)
     for recipient in recipients:
         recipient["blocked"] = is_opted_out(db, recipient["email"])
+        recipient['exclusion_reason'] = 'Customer opted out of email' if recipient['blocked'] else None
     return {"recipients": recipients, "total": len(recipients), "blocked_count": len([item for item in recipients if item["blocked"]]), "rate_limit": MAX_CAMPAIGN_SENDS_PER_REQUEST}
 
 
 @communication_router.post("/campaigns/{campaign_id}/send")
 def send_campaign(campaign_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_campaigns_send"))):
-    campaign = db.query(CommunicationCampaign).filter(CommunicationCampaign.id == campaign_id).first()
+    campaign = db.query(CommunicationCampaign).filter(CommunicationCampaign.id == campaign_id).with_for_update().first()
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
+    if campaign.status not in {'draft','scheduled'}:
+        raise HTTPException(409,'This campaign has already started or ended; inspect its delivery records before creating another send')
+    if campaign.type!='email':
+        raise HTTPException(409,'Use customer automations to send WhatsApp or mixed-channel journeys')
     template = _require_template(db, campaign.template_id)
     if not template:
         raise HTTPException(status_code=400, detail="Campaign requires an active email template")
@@ -524,6 +530,10 @@ def schedule_campaign(campaign_id: int, data: CampaignSchedulePayload, db: Sessi
     campaign = db.query(CommunicationCampaign).filter(CommunicationCampaign.id == campaign_id).first()
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
+    if data.scheduled_at.tzinfo is None or data.scheduled_at <= datetime.now(timezone.utc):
+        raise HTTPException(422,'Choose a future schedule with an explicit timezone offset')
+    if campaign.status not in {'draft','scheduled'}:
+        raise HTTPException(409,'Only draft or scheduled campaigns can be scheduled')
     campaign.status = "scheduled"
     campaign.scheduled_at = data.scheduled_at
     db.commit()
@@ -547,6 +557,19 @@ def list_consents(db: Session = Depends(get_db), current_user: User = Depends(Re
 
 @communication_router.post("/consents", status_code=201)
 def create_consent(data: ConsentPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("communication_consents_manage"))):
+    if data.consent_type=='whatsapp':
+        from app.services import whatsapp_workspace as wa
+        from app.shared.whatsapp_models import WhatsAppContact
+        if not data.phone or not (data.source or '').strip():
+            raise HTTPException(422,'WhatsApp consent requires a full international number and consent evidence')
+        recipient=wa.number(data.phone)
+        contact=db.query(WhatsAppContact).filter_by(organization_id=wa.organization(current_user),recipient=recipient,erased_at=None).first()
+        if not contact:
+            if not wa.admin(current_user): raise HTTPException(403,'A CRM administrator must create and link this WhatsApp recipient first')
+            contact=wa.contact_for(db,wa.organization(current_user),recipient)
+        wa.contact_access(db,current_user,contact)
+        contact.consent='opted_in' if data.status=='opted_in' else 'opted_out'
+        contact.consent_source,contact.consent_at=data.source.strip(),wa.now()
     item = CommunicationConsent(**data.model_dump())
     if item.email:
         item.email = normalize_email(item.email)
@@ -599,3 +622,5 @@ router.include_router(customer_router)
 router.include_router(customer_public_router)
 from app.apps.communication.customer_inbound import router as customer_inbound_router
 router.include_router(customer_inbound_router)
+from app.apps.communication.engagement_api import router as engagement_router
+router.include_router(engagement_router)

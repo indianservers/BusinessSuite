@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState } from "react";
@@ -212,16 +213,16 @@ export default function TimesheetsPage() {
                   {rows.map((row) => (
                     <tr {...recordPreviewProps(row)} key={row.key} className="border-b">
                       <Td>
-                        <select value={row.projectId} disabled={!editable} onChange={(event) => { updateRow(row.key, { projectId: event.target.value, taskId: "" }); if (event.target.value) loadTasks(Number(event.target.value)); }} className="h-9 w-44 rounded-md border bg-background px-2">
+                        <NativeSelect value={row.projectId} disabled={!editable} onChange={(event) => { updateRow(row.key, { projectId: event.target.value, taskId: "" }); if (event.target.value) loadTasks(Number(event.target.value)); }} className="h-9 w-44 rounded-md border bg-background px-2">
                           <option value="">Project</option>
                           {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                        </select>
+                        </NativeSelect>
                       </Td>
                       <Td>
-                        <select value={row.taskId} disabled={!editable} onChange={(event) => updateRow(row.key, { taskId: event.target.value })} className="h-9 w-56 rounded-md border bg-background px-2">
+                        <NativeSelect value={row.taskId} disabled={!editable} onChange={(event) => updateRow(row.key, { taskId: event.target.value })} className="h-9 w-56 rounded-md border bg-background px-2">
                           <option value="">Project time</option>
                           {(tasksByProject[row.projectId] || []).map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
-                        </select>
+                        </NativeSelect>
                       </Td>
                       <Td><input type="checkbox" disabled={!editable} checked={row.isBillable} onChange={(event) => updateRow(row.key, { isBillable: event.target.checked })} /></Td>
                       {days.map((day) => <Td key={day}><Input disabled={!editable} type="number" min="0" step="0.25" value={row.cells[day] || ""} onChange={(event) => updateCell(row.key, day, event.target.value)} className="w-20" /></Td>)}
@@ -250,18 +251,18 @@ export default function TimesheetsPage() {
             <CardTitle>Manager approvals</CardTitle>
             <div className="grid gap-2 md:grid-cols-3">
               <Field label="Status">
-                <select value={approvalStatus} onChange={(event) => setApprovalStatus(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+                <NativeSelect value={approvalStatus} onChange={(event) => setApprovalStatus(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                   <option value="submitted">Submitted</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
                   <option value="">All</option>
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="User">
-                <select value={approvalUserId} onChange={(event) => setApprovalUserId(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+                <NativeSelect value={approvalUserId} onChange={(event) => setApprovalUserId(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                   <option value="">All accessible users</option>
                   {users.map((user) => <option key={user.id} value={user.id}>{user.email}</option>)}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Week"><Input type="date" value={formatIsoDate(weekStart)} onChange={(event) => setWeekStart(startOfWeek(new Date(`${event.target.value}T00:00:00`)))} /></Field>
             </div>

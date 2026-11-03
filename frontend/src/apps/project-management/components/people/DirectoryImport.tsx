@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { ImportWizard, csvText } from "@/shared/data-transfer";
 import { useEffect, useState } from "react";
 import { Upload, Download } from "lucide-react";
@@ -101,7 +102,7 @@ export default function DirectoryImport({
       <ImportWizard title="Map people to invite" label="Choose spreadsheet" confirmLabel="Prepare invitation preview" maxRows={100} maxBytes={250000} fields={[{key:"email",type:"email",required:true}]} onImport={async({rows:incoming})=>{const parsed=parse(csvText(incoming,["email"]));setRows(parsed);setError("");return {created:parsed.filter(r=>!r.error).length,message:"Emails prepared. Close this dialog, choose a workspace, then send valid invitations."};}}/>
       <label>
         Destination workspace
-        <select
+        <NativeSelect
           aria-label="Import workspace"
           disabled={busy}
           value={wid}
@@ -115,7 +116,7 @@ export default function DirectoryImport({
                 {w.name}
               </option>
             ))}
-        </select>
+        </NativeSelect>
       </label>
       {error && (
         <p role="alert" className="pd-error">

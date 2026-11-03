@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { FormEvent, useEffect, useState } from "react";
@@ -91,9 +92,9 @@ export default function MilestonesPage() {
             </div>
             <div className="space-y-2">
               <Label>Status</Label>
-              <select value={status} onChange={(event) => setStatus(event.target.value as MilestoneStatus)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+              <NativeSelect value={status} onChange={(event) => setStatus(event.target.value as MilestoneStatus)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                 {["Not Started", "In Progress", "At Risk", "Completed", "Delayed"].map((item) => <option key={item}>{item}</option>)}
-              </select>
+              </NativeSelect>
             </div>
             <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Add"}</Button>
           </CompactForm>

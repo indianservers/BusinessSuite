@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,9 +40,9 @@ export default function AiAgentPermissionsPage() {
         <CardContent className="space-y-3">
           {rules.map((rule, index) => (
             <div key={rule.id || index} className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.5fr_1fr_1fr_2fr]">
-              <select className="rounded-md border bg-background px-3 py-2 text-sm" value={rule.agent_id} onChange={(event) => update(index, { agent_id: Number(event.target.value) })}>
+              <NativeSelect className="rounded-md border bg-background px-3 py-2 text-sm" value={rule.agent_id} onChange={(event) => update(index, { agent_id: Number(event.target.value) })}>
                 {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
-              </select>
+              </NativeSelect>
               <Input placeholder="Role ID" value={rule.role_id || ""} onChange={(event) => update(index, { role_id: event.target.value ? Number(event.target.value) : null })} />
               <Input placeholder="User ID" value={rule.user_id || ""} onChange={(event) => update(index, { user_id: event.target.value ? Number(event.target.value) : null })} />
               <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-5">

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useCreateIntent } from "@/hooks/use-create-intent";
@@ -246,16 +247,16 @@ export default function HelpdeskPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Category</Label>
-                <select {...register("category_id")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect {...register("category_id")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select category</option>
                   {(categories as { id: number; name: string }[])?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-1.5">
                 <Label>Priority</Label>
-                <select {...register("priority")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect {...register("priority")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Description *</Label>
@@ -274,10 +275,10 @@ export default function HelpdeskPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-1">
           <div className="flex gap-2">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <NativeSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm">
               <option value="">All</option>
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            </NativeSelect>
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -324,9 +325,9 @@ export default function HelpdeskPage() {
                     <CardTitle className="text-base">{selectedTicket.subject}</CardTitle>
                     <CardDescription>{selectedTicket.ticket_number} - {selectedTicket.category?.name || "Uncategorized"}</CardDescription>
                   </div>
-                  <select value={selectedTicket.status} onChange={(e) => updateStatusMutation.mutate({ id: selectedTicket.id, status: e.target.value })} className="h-8 rounded border border-input bg-background px-2 text-xs">
+                  <NativeSelect value={selectedTicket.status} onChange={(e) => updateStatusMutation.mutate({ id: selectedTicket.id, status: e.target.value })} className="h-8 rounded border border-input bg-background px-2 text-xs">
                     {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">

@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -342,12 +343,12 @@ export default function AddEmployeePage() {
               </div>
               <div className="space-y-2">
                 <Label>Gender</Label>
-                <select {...register("gender")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect {...register("gender")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="employee-date_of_birth">Date of Birth</Label>
@@ -370,12 +371,12 @@ export default function AddEmployeePage() {
               </div>
               <div className="space-y-2">
                 <Label>Employment Type</Label>
-                <select {...register("employment_type")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect {...register("employment_type")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
                   <option value="Contract">Contract</option>
                   <option value="Intern">Intern</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -384,7 +385,7 @@ export default function AddEmployeePage() {
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <select
+                <NativeSelect
                   {...register("branch_id", { onChange: () => { setValue("department_id", null); setValue("designation_id", null); }, setValueAs: (v) => v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
@@ -392,7 +393,7 @@ export default function AddEmployeePage() {
                   {branches?.map((b: { id: number; name: string }) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
-                </select>
+                </NativeSelect>
                 {errors.branch_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.branch_id.message}/></div>}
                 {!branches?.length && <p className="text-xs text-muted-foreground">No branches yet. Add one here or in Settings.</p>}
               </div>
@@ -403,7 +404,7 @@ export default function AddEmployeePage() {
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <select
+                <NativeSelect
                   {...register("department_id", { onChange: () => setValue("designation_id", null), setValueAs: (v) => v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
@@ -411,7 +412,7 @@ export default function AddEmployeePage() {
                   {filteredDepartments?.map((d: { id: number; name: string }) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
-                </select>
+                </NativeSelect>
                 {errors.department_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.department_id.message}/></div>}
               </div>
               <div className="space-y-2">
@@ -421,7 +422,7 @@ export default function AddEmployeePage() {
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <select
+                <NativeSelect
                   {...register("designation_id", { setValueAs: (v) => v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
@@ -429,15 +430,15 @@ export default function AddEmployeePage() {
                   {filteredDesignations?.map((d: { id: number; name: string }) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
-                </select>
+                </NativeSelect>
                 {errors.designation_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.designation_id.message}/></div>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reporting-manager">Reporting Manager / Intern Supervisor</Label>
-                <select id="reporting-manager" {...register("reporting_manager_id", { setValueAs: (v) => v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect id="reporting-manager" {...register("reporting_manager_id", { setValueAs: (v) => v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Unassigned</option>
                   {managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -446,12 +447,12 @@ export default function AddEmployeePage() {
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <select {...register("shift_id", { setValueAs: (v) => v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect {...register("shift_id", { setValueAs: (v) => v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select Shift</option>
                   {shifts?.map((s: { id: number; name: string; start_time: string; end_time: string }) => (
                     <option key={s.id} value={s.id}>{s.name} ({s.start_time}-{s.end_time})</option>
                   ))}
-                </select>
+                </NativeSelect>
                 {errors.shift_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.shift_id.message}/></div>}
               </div>
             </CardContent>
@@ -697,10 +698,10 @@ function QuickCreateModal({
 }) {
   const update = (key: string, value: any) => setForm({ ...form, [key]: value });
   const select = (key: string, options: any[]) => (
-    <select value={form[key] || ""} onChange={(e) => update(key, e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+    <NativeSelect value={form[key] || ""} onChange={(e) => update(key, e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
       <option value="">Select</option>
       {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-    </select>
+    </NativeSelect>
   );
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">

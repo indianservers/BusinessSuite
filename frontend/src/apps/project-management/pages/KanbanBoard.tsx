@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 /**
  * KaryaFlow - Kanban Board with Drag & Drop
@@ -286,19 +287,19 @@ const KanbanBoard: React.FC = () => {
                 </button>
               </div>
               <Button variant="outline" size="sm" onClick={() => navigate("/pms/workspaces")}><Users className="h-4 w-4" />Workspace & members</Button>
-              <select value={epicFilter} onChange={(event) => setEpicFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+              <NativeSelect value={epicFilter} onChange={(event) => setEpicFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                 <option>All epics</option>
                 <option>Client Portal</option>
                 <option>Reliability</option>
                 <option>Operations</option>
-              </select>
-              <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+              </NativeSelect>
+              <NativeSelect value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
                 <option>All priorities</option>
                 <option>Low</option>
                 <option>Medium</option>
                 <option>High</option>
                 <option>Urgent</option>
-              </select>
+              </NativeSelect>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm"><Sparkles className="h-4 w-4" />AI suggest work</Button>

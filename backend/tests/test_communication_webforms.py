@@ -67,3 +67,17 @@ def test_webform_auto_response_can_queue_whatsapp_placeholder(client, db):
     assert db.query(CommunicationDeliveryLog).filter_by(channel="whatsapp", status="queued").count() == 1
     assert db.query(CommunicationTimelineEvent).filter_by(channel="whatsapp", event_type="queued").count() == 1
 
+
+
+def test_custom_field_mapping_personalizes_auto_response(client, db):
+    headers = communication_headers(client, db)
+    template = client.post('/api/v1/communication/whatsapp-templates', headers=headers, json={'name':'Mapped acknowledgement','template_key':'mapped_ack','body_text':'Thanks {{name}} from {{company_name}}.'})
+    assert template.status_code == 201, template.text
+    rule = client.post('/api/v1/communication/auto-response-rules', headers=headers, json={'name':'Mapped reply','condition_json':{'whatsapp_template_id':template.json()['id']}})
+    assert rule.status_code == 201, rule.text
+    form = client.post('/api/v1/communication/webforms', headers=headers, json={'name':'Mapped enquiry','target_module':'lead','public_slug':'mapped-enquiry','mapping_json':{'first_name':'person_name','last_name':'surname','company_name':'business','phone':'mobile'},'auto_response_rule_id':rule.json()['id'],'active':True})
+    assert form.status_code == 201, form.text
+    response = client.post('/api/v1/public/webforms/mapped-enquiry/submit',json={'values':{'person_name':'Asha','surname':'Rao','business':'Demo Ltd','mobile':'9900000042','phone_country_code':'+91'},'anti_spam':''})
+    assert response.status_code == 201, response.text
+    event = db.query(CommunicationDeliveryLog).filter_by(channel='whatsapp',status='queued').one()
+    assert event.request_json['body'] == 'Thanks Asha Rao from Demo Ltd.'

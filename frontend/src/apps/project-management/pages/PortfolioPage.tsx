@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState, type ReactNode } from "react";
@@ -223,7 +224,7 @@ function Filter({ label, value, onChange, children }: { label: string; value: st
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <select className="input" value={value} onChange={(event) => onChange(event.target.value)}>{children}</select>
+      <NativeSelect className="input" value={value} onChange={(event) => onChange(event.target.value)}>{children}</NativeSelect>
     </label>
   );
 }

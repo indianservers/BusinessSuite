@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useCommunicationScope } from "./scope";
 import { ContextualChat } from "./adapters";
@@ -508,7 +509,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
           <h1>Messages</h1>
           <p>{module} · BusinessSuite Communication Engine</p>
         </div>
-        <select
+        <NativeSelect loading={workspaces.isFetching} error={workspaces.isError}
           aria-label="Messaging workspace"
           value={wid}
           onChange={(e) => {
@@ -522,7 +523,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
               {w.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <Link to={`/pms?workspace=${wid}`}>Workspace ↗</Link>
       </header>
       {error && <p role="alert">{error}</p>}
@@ -560,7 +561,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
               />
               This conversation
             </label>
-            <select
+            <NativeSelect loading={people.isFetching} error={people.isError}
               aria-label="Search author"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
@@ -571,7 +572,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                   {p.email}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <input
               aria-label="Search from date (UTC)"
               type="date"
@@ -897,7 +898,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                               </button>
                             </span>
                           ))}
-                          <div className="ce-composer-tools"><details><summary aria-label="Insert emoji">☺</summary><div>{["👍","❤️","🎉","✅","🙏","💡","🚀"].map(emoji => <button type="button" key={emoji} onClick={() => setDrafts(d => ({...d,[context]:appendRichMarkdown(d[context] || "", emoji)}))}>{emoji}</button>)}</div></details><select aria-label="Mention conversation member" value="" onChange={e => { if(e.target.value) setDrafts(d=>({...d,[context]:appendRichMarkdown(d[context] || "", "@" + e.target.value)})); }}><option value="">@ Mention</option>{room.participants.map(p=><option key={p.id} value={p.email}>{p.email}</option>)}</select></div>
+                          <div className="ce-composer-tools"><details><summary aria-label="Insert emoji">☺</summary><div>{["👍","❤️","🎉","✅","🙏","💡","🚀"].map(emoji => <button type="button" key={emoji} onClick={() => setDrafts(d => ({...d,[context]:appendRichMarkdown(d[context] || "", emoji)}))}>{emoji}</button>)}</div></details><NativeSelect aria-label="Mention conversation member" value="" onChange={e => { if(e.target.value) setDrafts(d=>({...d,[context]:appendRichMarkdown(d[context] || "", "@" + e.target.value)})); }}><option value="">@ Mention</option>{room.participants.map(p=><option key={p.id} value={p.email}>{p.email}</option>)}</NativeSelect></div>
                           <footer>
                             {features.files !== false && <label>
                               Attach files
@@ -994,14 +995,14 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
               >
                 <label>
                   Type
-                  <select
+                  <NativeSelect
                     value={kind}
                     onChange={(e) => setKind(e.target.value)}
                   >
                     {features.directMessages !== false && <option value="dm">One-to-one</option>}
                     {features.groupChats !== false && <option value="group">Group</option>}
                     {features.channels !== false && <option value="channel">Channel (workspace admins)</option>}
-                  </select>
+                  </NativeSelect>
                 </label>
                 {kind !== "dm" && (
                   <>
@@ -1027,13 +1028,13 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                 {kind === "channel" && (
                   <label>
                     Visibility
-                    <select
+                    <NativeSelect
                       value={visibility}
                       onChange={(e) => setVisibility(e.target.value)}
                     >
                       <option value="private">Private, invited members</option>
                       <option value="public">Public, workspace only</option>
-                    </select>
+                    </NativeSelect>
                   </label>
                 )}
                 <fieldset>
@@ -1114,7 +1115,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                     {!room.archived && (
                       <label>
                         Add participant
-                        <select
+                        <NativeSelect loading={people.isFetching} error={people.isError}
                           aria-label="Add conversation participant"
                           value=""
                           onChange={(e) =>
@@ -1140,7 +1141,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                                 {p.email}
                               </option>
                             ))}
-                        </select>
+                        </NativeSelect>
                       </label>
                     )}
                     {room.participants
@@ -1198,7 +1199,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                   >
                     <label>
                       Share an existing project file
-                      <select
+                      <NativeSelect
                         aria-label="Choose project file"
                         required
                         value={fileId}
@@ -1214,7 +1215,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                               {f.name} · {Math.ceil(f.size / 1024)} KB
                             </option>
                           ))}
-                      </select>
+                      </NativeSelect>
                     </label>
                     {projectFiles.isPending && <p>Loading project files…</p>}
                     {projectFiles.isError && (

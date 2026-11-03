@@ -11,6 +11,8 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     "suite_branch_record_shares", "suite_branch_lifecycle",
     # Personal reminder configuration is user-scoped by its API, not a branch transaction.
     "service_follow_up_preferences",
+    # Company appearance and shared policy definitions are configuration, not branch transactions.
+    "suite_service_policies",
     # Account authorization is company-level configuration. Conversations,
     # messages and receipts remain private business activity with branch ownership.
     "suite_whatsapp_connections", "suite_whatsapp_onboarding",

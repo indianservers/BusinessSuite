@@ -3295,7 +3295,7 @@ def _validate_deal_catalog(db: Session, data: dict[str, Any], organization_id: i
         if not existing and record and line["kind"] == "product" and record.catalog_items is None:
             existing = db.query(CRMDealProduct).filter_by(deal_id=record.id, product_id=item_id).first()
         from app.shared.catalog import item_record, output as catalog_output
-        item, catalog_details = item_record(db, current_user, "crm", line["kind"], item_id)
+        item, catalog_details = item_record(db, current_user, "crm", line["kind"], item_id, archived=bool(existing))
         catalog_item = catalog_output(item, line["kind"], catalog_details)
         if not existing and (not item.active or str(getattr(item, "status", "Active")).lower() == "inactive"):
             raise HTTPException(422, "Select an active catalog item")

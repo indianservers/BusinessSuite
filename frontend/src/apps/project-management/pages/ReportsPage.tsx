@@ -1,3 +1,5 @@
+import { NativeSelect } from "@/components/ui/native-select";
+import { MobileFilters } from "@/components/mobile/MobilePrimitives";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -149,6 +151,8 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
+
+
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h1 className="page-title">PMS reports</h1><div className="flex gap-4 text-sm text-violet-600"><Link to="/pms/analytics/team">Team analytics</Link><Link to="/pms/analytics/projects">Project analytics</Link></div>
@@ -162,6 +166,8 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {distribution && <section className="mobile-only-panel"><div className="mobile-focus-summary"><div><strong>{distribution.total_tasks}</strong><span>Total tasks</span></div><div><strong>{distribution.by_status.filter(row=>["done","completed","closed"].includes(row.name.toLowerCase())).reduce((sum,row)=>sum+row.tasks,0)}</strong><span>Completed tasks</span></div></div><nav className="mobile-stepper" aria-label="Report date range">{[7,30,90].map(days=><button type="button" key={days} onClick={()=>{const end=new Date(),start=new Date();start.setDate(start.getDate()-days+1);setFrom(start.toISOString().slice(0,10));setTo(end.toISOString().slice(0,10));setActiveTab("Distribution");}}>Last {days} days</button>)}</nav><Link className="mobile-filter-trigger" to="/pms/workload">View team workload</Link><Link className="mobile-filter-trigger" to="/pms/my-work?overdue=true">Overdue work</Link><button type="button" className="mobile-filter-trigger" onClick={()=>setActiveTab("Flow")}>Completion trends</button><div className="space-y-2 mt-3">{distribution.by_status.map(row=><div key={row.name} className="text-xs"><div className="flex justify-between"><span>{row.name}</span><strong>{row.tasks} tasks</strong></div><progress className="w-full" max={Math.max(1,distribution.total_tasks)} value={row.tasks}/></div>)}</div></section>}
+      <MobileFilters chips={[selectedProjectId&&`Project ${selectedProjectId}`,from&&`From ${from}`,to&&`To ${to}`].filter(Boolean)} label="Report filters">
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
           <Select label="Project" value={selectedProjectId} onChange={value => { setSelectedProjectId(value); setSelectedSprintId(""); setAssigneeId(""); }}>
@@ -180,6 +186,7 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
+      </MobileFilters>
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
 
       <p role="status" className="text-sm text-muted-foreground">{loading ? "Loading selected report…" : updatedAt ? `Updated at ${updatedAt}` : "Report unavailable"} · {activeTab === "Distribution" ? "Counts reflect the selected creation dates and assignee." : "Summary counts cover the selected project scope."}{activeTab === "Team" && " Shared tasks count once for each collaborator."}{activeTab === "Health" && " Health is a current snapshot, not historical trend data."}</p>
@@ -282,7 +289,7 @@ function ReportMetric({ label, value, suffix }: { label: string; value: number |
 }
 
 function Select({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: React.ReactNode }) {
-  return <label className="space-y-1 text-sm"><span className="font-medium text-muted-foreground">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-md border bg-background px-3 text-sm">{children}</select></label>;
+  return <label className="space-y-1 text-sm"><span className="font-medium text-muted-foreground">{label}</span><NativeSelect value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-md border bg-background px-3 text-sm">{children}</NativeSelect></label>;
 }
 
 function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {

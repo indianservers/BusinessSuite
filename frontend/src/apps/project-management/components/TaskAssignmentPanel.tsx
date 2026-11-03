@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useAuthStore } from "@/store/authStore";
 import "../pages/MyWorkPage.css";
 import { useEffect, useState } from "react";
@@ -138,7 +139,7 @@ export function PeopleSelector({
           }}
         />
       </label>
-      <select
+      <NativeSelect
         className="mw-person-role"
         aria-label="Filter people by role"
         value={role}
@@ -153,7 +154,7 @@ export function PeopleSelector({
             {r === "superuser" ? "Super Admin" : r}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {error && <p role="alert">{error}</p>}
       {loading && (
         <p role="status" className="mw-muted">

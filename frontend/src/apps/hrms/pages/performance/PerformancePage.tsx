@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { useState } from "react";
@@ -252,7 +253,7 @@ export default function PerformancePage() {
       {/* Cycle selector */}
       <div className="flex items-center gap-3">
         <Label className="text-sm">Review Cycle</Label>
-        <select
+        <NativeSelect
           value={selectedCycle}
           onChange={(e) => setSelectedCycle(e.target.value ? Number(e.target.value) : "")}
           className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -261,7 +262,7 @@ export default function PerformancePage() {
           {(cycles as Cycle[])?.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
       {/* Tabs */}
@@ -324,7 +325,7 @@ export default function PerformancePage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Priority</Label>
-                    <select
+                    <NativeSelect
                       {...regGoal("priority")}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
@@ -332,7 +333,7 @@ export default function PerformancePage() {
                       <option value="High">High</option>
                       <option value="Medium">Medium</option>
                       <option value="Low">Low</option>
-                    </select>
+                    </NativeSelect>
                   </div>
                   <div className="sm:col-span-2 flex gap-3">
                     <Button type="submit" disabled={createGoalMutation.isPending}>

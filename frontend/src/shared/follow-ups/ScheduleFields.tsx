@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { dateInputInZone, dateInputToIso } from "./time";
 import { Input } from "@/components/ui/input";
 export type Schedule = {
@@ -46,7 +47,7 @@ export function ScheduleFields({
   const select = (label: string, key: keyof Schedule, choices: string[]) => (
     <label className="space-y-1 text-xs">
       {label}
-      <select
+      <NativeSelect
         className="block w-full rounded border bg-background p-2 text-sm"
         value={String(value[key] || "")}
         onChange={(e) => patch(key, e.target.value)}
@@ -54,7 +55,7 @@ export function ScheduleFields({
         {choices.map((c) => (
           <option key={c}>{c}</option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   );
   const date = (label: string, key: "reference_at" | "due_at") => (
@@ -157,7 +158,7 @@ export function ScheduleFields({
             ])}
             <label className="text-xs">
               Assigned team
-              <select
+              <NativeSelect
                 className="block w-full rounded border bg-background p-2 text-sm"
                 value={value.assigned_team_id || ""}
                 onChange={(e) =>
@@ -170,11 +171,11 @@ export function ScheduleFields({
                     {t.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-xs">
               Assigned employee
-              <select
+              <NativeSelect
                 aria-label="Assigned employee"
                 className="block w-full rounded border bg-background p-2 text-sm"
                 value={value.assigned_user_id || ""}
@@ -188,7 +189,7 @@ export function ScheduleFields({
                     {u.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-xs">
               Time zone

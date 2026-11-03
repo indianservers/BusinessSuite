@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, CheckCircle2, Download, FileText, RefreshCw, Send, TimerReset, UserX } from "lucide-react";
@@ -220,11 +221,11 @@ export default function ProbationPage() {
                     <div className="space-y-2"><Label>Attendance</Label><Input type="number" min="1" max="5" value={review.attendanceRating} onChange={(event) => setReview({ ...review, attendanceRating: event.target.value })} /></div>
                     <div className="space-y-2">
                       <Label>Recommendation</Label>
-                      <select value={review.recommendation} onChange={(event) => setReview({ ...review, recommendation: event.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <NativeSelect value={review.recommendation} onChange={(event) => setReview({ ...review, recommendation: event.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                         <option value="confirm">Confirm</option>
                         <option value="extend">Extend</option>
                         <option value="terminate">Terminate</option>
-                      </select>
+                      </NativeSelect>
                     </div>
                   </div>
                   <div className="space-y-2"><Label>Comments</Label><Input value={review.comments} onChange={(event) => setReview({ ...review, comments: event.target.value })} /></div>

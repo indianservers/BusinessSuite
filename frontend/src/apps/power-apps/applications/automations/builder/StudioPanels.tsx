@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -271,7 +272,7 @@ export function VersionsPanel({
         <div className="as-version-comparison">
           <label>
             Compare version
-            <select
+            <NativeSelect
               aria-label="Compare version"
               value={left}
               onChange={(e) => setLeft(Number(e.target.value))}
@@ -281,11 +282,11 @@ export function VersionsPanel({
                   Version {v.version}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           <label>
             With version
-            <select
+            <NativeSelect
               aria-label="With version"
               value={right}
               onChange={(e) => setRight(Number(e.target.value))}
@@ -295,7 +296,7 @@ export function VersionsPanel({
                   Version {v.version}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
         </div>
         {diff && (
@@ -453,7 +454,7 @@ export function SettingsPanel({
         </label>
         <label className="as-basic-field">
           Idempotency source
-          <select
+          <NativeSelect
             disabled={readOnly}
             value={settings.idempotency}
             onChange={(e) =>
@@ -465,7 +466,7 @@ export function SettingsPanel({
           >
             <option value="request_id">Request ID</option>
             <option value="event_id">Event ID</option>
-          </select>
+          </NativeSelect>
         </label>
         <label className="as-basic-field">
           Timezone

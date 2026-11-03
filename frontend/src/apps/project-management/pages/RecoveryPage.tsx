@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -210,7 +211,7 @@ export default function RecoveryPage() {
       )}
       <label className="block text-sm font-medium">
         Workspace
-        <select
+        <NativeSelect
           aria-label="Recovery workspace"
           className="mt-2 block w-full rounded-md border bg-background p-3"
           value={selected}
@@ -226,7 +227,7 @@ export default function RecoveryPage() {
               {row.name} · {row.role}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       {workspace && workspace.role !== "Guest" && (
         <section className="space-y-3 rounded-xl border bg-card p-5">

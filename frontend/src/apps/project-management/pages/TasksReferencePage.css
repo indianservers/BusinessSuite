@@ -1468,3 +1468,21 @@
   .pms-task-reference .tr-mobile { display: block; }
   .pms-task-reference .tr-scrim { position: fixed; inset: 0; background: #21183566; z-index: 34; }
 }
+@media(max-width:1279px) {
+  .pms-task-reference .tr-viewbar { flex-wrap:wrap; gap:10px; }
+  .pms-task-reference .tr-tabs { max-width:100%; min-width:0; overflow-x:auto; }
+  .pms-task-reference .tr-tools { margin-left:auto; max-width:100%; flex-wrap:wrap; }
+  .pms-task-reference .tr-topbar { flex-wrap:wrap; height:auto; gap:8px; }
+  .pms-task-reference .tr-topbar .tr-header-actions { display:contents; }
+  .pms-task-reference .tr-topbar>.tr-mobile { display:grid; place-items:center; width:40px; height:40px; }
+  .pms-task-reference .tr-topbar>button[aria-label="Open command palette"] { width:40px; min-width:40px; flex:1; }
+  .pms-task-reference .tr-topbar .suite-branch-control { order:10; width:100%; padding-top:6px; border-top:1px solid var(--tr-line); }
+  .pms-task-reference .tr-topbar .suite-branch-field { flex:1; min-width:0; }
+  .pms-task-reference .tr-topbar .suite-branch-select { width:100%; max-width:none; min-width:0; }
+  .pms-task-reference .tr-topbar .task-theme-switch { order:11; width:100%; justify-content:center; }
+  .pms-task-reference .tr-topbar .tr-button,.pms-task-reference .tr-topbar .tr-suite { display:none; }
+  .pms-task-reference .tr-metric { min-width:0; }
+  .pms-task-reference .tr-metric>div { min-width:0; }
+  .pms-task-reference .tr-metric strong { overflow-wrap:anywhere; }
+  .pms-task-reference .tr-metric small,.pms-task-reference .tr-metric>div>span { white-space:normal; overflow-wrap:anywhere; }
+}

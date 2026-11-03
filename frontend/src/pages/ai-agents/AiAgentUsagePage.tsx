@@ -1,3 +1,4 @@
+import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,13 +46,13 @@ export default function AiAgentUsagePage() {
         <CardContent className="space-y-3">
           {limits.map((limit, index) => (
             <div key={limit.id || index} className="grid gap-3 rounded-md border p-3 md:grid-cols-6">
-              <select className="rounded-md border bg-background px-3 py-2 text-sm" value={limit.limit_type} onChange={(event) => update(index, { limit_type: event.target.value as AiUsageLimit["limit_type"] })}>
+              <NativeSelect className="rounded-md border bg-background px-3 py-2 text-sm" value={limit.limit_type} onChange={(event) => update(index, { limit_type: event.target.value as AiUsageLimit["limit_type"] })}>
                 <option value="per_user">Per user</option><option value="per_agent">Per agent</option><option value="per_company">Per company</option><option value="per_module">Per module</option>
-              </select>
+              </NativeSelect>
               <Input type="number" value={limit.max_requests} onChange={(event) => update(index, { max_requests: Number(event.target.value) })} />
-              <select className="rounded-md border bg-background px-3 py-2 text-sm" value={limit.period} onChange={(event) => update(index, { period: event.target.value as AiUsageLimit["period"] })}>
+              <NativeSelect className="rounded-md border bg-background px-3 py-2 text-sm" value={limit.period} onChange={(event) => update(index, { period: event.target.value as AiUsageLimit["period"] })}>
                 <option value="hourly">Hourly</option><option value="daily">Daily</option><option value="monthly">Monthly</option>
-              </select>
+              </NativeSelect>
               <Input placeholder="Module" value={limit.module || ""} onChange={(event) => update(index, { module: event.target.value as any || null })} />
               <Input placeholder="Agent ID" value={limit.agent_id || ""} onChange={(event) => update(index, { agent_id: event.target.value ? Number(event.target.value) : null })} />
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={limit.is_active} onChange={(event) => update(index, { is_active: event.target.checked })} /> Active</label>
