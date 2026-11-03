@@ -289,12 +289,21 @@ def reviews(f=Depends(filters),status:str="",project_id:int|None=None,page:int=Q
     if status:q=q.filter(PMSWorkSubmission.status==status)
     if project_id:q=q.filter(PMSTask.project_id==project_id)
     # Listing requires existing PMS project visibility; decisions still require approve.
-    q=q.filter(PMSTask.project_id.in_([p.id for p in accessible_project_query(db,user) if can_access_project(db,p,user,"approve")]))
+    # Workspace membership controls approval consistently across its projects.
+    # Resolve it once per workspace, keeping project-specific checks for roots.
+    approval_scope={}
+    reviewable=set()
+    for project in accessible_project_query(db,user):
+        key=("workspace",project.workspace_id,project.organization_id) if project.workspace_id else ("project",project.id)
+        if key not in approval_scope:
+            approval_scope[key]=can_access_project(db,project,user,"approve")
+        if approval_scope[key]:reviewable.add(project.id)
+    q=q.filter(PMSTask.project_id.in_(reviewable))
     if f.get("date_from"):q=q.filter(func.date(PMSWorkSubmission.created_at)>=f["date_from"])
     if f.get("date_to"):q=q.filter(func.date(PMSWorkSubmission.created_at)<=f["date_to"])
     items=q.order_by(PMSWorkSubmission.id.desc()).offset((page-1)*per_page).limit(per_page).all()
     tasks={t.id:t for t in db.query(PMSTask).filter(PMSTask.id.in_([s.task_id for s in items]))};people={e.user_id:e for e in employee_query(db,user).filter(Employee.user_id.in_([s.user_id for s in items]))}
-    return {"items":[{**r,"employee_id":people[r["user_id"]].id,"intern":f'{people[r["user_id"]].first_name} {people[r["user_id"]].last_name}',"task":tasks[r["task_id"]].title,"project_id":tasks[r["task_id"]].project_id,"can_review":can_access_project(db,db.get(PMSProject,tasks[r["task_id"]].project_id),user,"approve")} for r in work.payload(db,items)],"total":q.count()}
+    return {"items":[{**r,"employee_id":people[r["user_id"]].id,"intern":f'{people[r["user_id"]].first_name} {people[r["user_id"]].last_name}',"task":tasks[r["task_id"]].title,"project_id":tasks[r["task_id"]].project_id,"can_review":tasks[r["task_id"]].project_id in reviewable} for r in work.payload(db,items)],"total":q.count()}
 
 
 @router.get("/reports")

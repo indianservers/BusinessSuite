@@ -21,7 +21,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from difflib import SequenceMatcher
 from email.message import EmailMessage
 from math import ceil
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -98,10 +98,13 @@ from app.core.deps import RequirePermission, get_db
 from app.models.company import Branch, Company
 from app.models.employee import Employee
 from app.models.audit import AuditLog
+from app.db.base_class import Base
 from app.models.notification import Notification
 from app.models.user import User
 
 router = APIRouter(prefix="/crm", tags=["CRM"])
+from app.apps.crm.contact_directory import router as contact_directory_router
+router.include_router(contact_directory_router)
 from app.apps.crm.lead_management import router as lead_management_router
 router.include_router(lead_management_router)
 from app.apps.crm.productivity import router as productivity_router
@@ -118,6 +121,7 @@ class CRMRecordPayload(BaseModel):
 
 
 class CRMLeadConvertPayload(BaseModel):
+    customerType: Literal["Individual", "Business"] | None = None
     createContact: bool = True
     createCompany: bool = True
     createDeal: bool = True
@@ -4545,6 +4549,29 @@ def _merge_related_records(db: Session, organization_id: int, resource_name: str
             update_count(label, move_related(db.query(model).filter(model.organization_id == organization_id, model.entity_type == entity_type, model.entity_id.in_(loser_ids)), model, {"entity_id": winner_id}))
         update_count("timeline", move_related(db.query(CRMTimelineEvent).filter(CRMTimelineEvent.organization_id == organization_id, CRMTimelineEvent.record_type == entity_type, CRMTimelineEvent.record_id.in_(loser_ids)), CRMTimelineEvent, {"record_id": winner_id}))
     if resource_name == "contacts":
+        from app.apps.crm.contact_identity import ContactIdentityLink, add_tags, tags as contact_tags
+        from app.shared.master_data_merge import merge_contact_extensions
+        master_extensions = merge_contact_extensions(db, winner_id, loser_ids)
+        from sqlalchemy import inspect as inspect_connection
+        if inspect_connection(db.connection()).has_table(ContactIdentityLink.__tablename__):
+            links = db.query(ContactIdentityLink).filter(ContactIdentityLink.organization_id == organization_id, ContactIdentityLink.contact_id.in_([winner_id, *loser_ids])).all()
+            if any(link.employee_id or link.person_id for link in links):
+                raise HTTPException(409, "Linked employees and user identities require a separately authorized identity review before merging")
+            for link in links:
+                link.contact_id = winner_id
+            winner_contact = db.get(CRMContact, winner_id)
+            for loser_contact in db.query(CRMContact).filter(CRMContact.id.in_(loser_ids)):
+                add_tags(winner_contact, *contact_tags(loser_contact))
+            # Repoint every real FK to the canonical contact, including source
+            # conversion logs and optional Sales/POS tables. Their history stays.
+            for mapper in Base.registry.mappers:
+                model = mapper.class_
+                if model in {CRMContact, ContactIdentityLink, CRMDealContact} | master_extensions:
+                    continue
+                for column in mapper.local_table.c:
+                    if column.name == "crm_contact_id" or any(fk.target_fullname == "crm_contacts.id" for fk in column.foreign_keys):
+                        for reference in db.query(model).filter(getattr(model, column.key).in_(loser_ids)).all():
+                            setattr(reference, column.key, winner_id)
         update_count("deals", move_related(db.query(CRMDeal).filter(CRMDeal.organization_id == organization_id, CRMDeal.contact_id.in_(loser_ids)), CRMDeal, {"contact_id": winner_id}))
         update_count("quotations", move_related(db.query(CRMQuotation).filter(CRMQuotation.organization_id == organization_id, CRMQuotation.contact_id.in_(loser_ids)), CRMQuotation, {"contact_id": winner_id}))
         moved_links = 0
@@ -6338,8 +6365,8 @@ def accept_quote(
     quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
     if str(quote.status or "").lower() not in {"sent", "approved", "accepted"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only sent or approved quotes can be accepted")
-    payload = _set_quote_status(db, quote, current_user, "Accepted", "approved")
     conversion = _convert_quote_to_srm(db, quote, current_user)
+    payload = _set_quote_status(db, quote, current_user, "Accepted", "approved")
     return payload | {"srmConversion": conversion}
 
 
@@ -7817,11 +7844,17 @@ def convert_lead(
     if payload.existingCompanyId:
         company = _get_record(db, _get_resource("companies"), payload.existingCompanyId, organization_id)
         _assert_record_visible(db, _get_resource("companies"), company.id, organization_id, current_user)
-    if not company and payload.createCompany and lead.company_name:
-        company = db.query(CRMCompany).filter(
+    if not company and lead.converted_company_id:
+        company = _get_record(db, _get_resource("companies"), lead.converted_company_id, organization_id)
+        _assert_record_visible(db, _get_resource("companies"), company.id, organization_id, current_user)
+    conversion_company_name = payload.companyName or lead.company_name or lead.full_name
+    individual_customer = payload.customerType == "Individual" or (payload.customerType is None and not lead.company_name and not payload.existingCompanyId)
+    created_customer = False
+    if not company and payload.createCompany and conversion_company_name:
+        company = None if individual_customer else db.query(CRMCompany).filter(
             CRMCompany.organization_id == organization_id,
             CRMCompany.deleted_at.is_(None),
-            CRMCompany.name == lead.company_name,
+            CRMCompany.name == conversion_company_name,
         ).first()
         if company:
             _assert_record_visible(db, _get_resource("companies"), company.id, organization_id, current_user)
@@ -7832,7 +7865,7 @@ def convert_lead(
                 branch_id=lead.branch_id,
                 department_id=lead.department_id,
                 assigned_team_id=lead.assigned_team_id,
-                name=lead.company_name,
+                name=conversion_company_name,
                 industry=lead.industry,
                 website=lead.company_website or lead.website,
                 phone=lead.phone,
@@ -7849,11 +7882,25 @@ def convert_lead(
             )
             db.add(company)
             db.flush()
+            created_customer = True
 
+    from sqlalchemy import inspect as inspect_connection
     contact = None
     if payload.existingContactId:
         contact = _get_record(db, _get_resource("contacts"), payload.existingContactId, organization_id)
         _assert_record_visible(db, _get_resource("contacts"), contact.id, organization_id, current_user)
+    if not contact:
+        from app.apps.crm.contact_identity import ContactIdentityLink
+        from sqlalchemy import inspect as inspect_connection
+        if inspect_connection(db.connection()).has_table(ContactIdentityLink.__tablename__):
+            identity = db.query(ContactIdentityLink).filter(ContactIdentityLink.lead_id == lead.id).first()
+            if identity:
+                _assert_record_visible(db, _get_resource("contacts"), identity.contact_id, organization_id, current_user)
+                contact = identity.contact
+    if not contact and lead.email:
+        matches = db.query(CRMContact).filter(CRMContact.organization_id == organization_id, CRMContact.deleted_at.is_(None), func.lower(func.trim(CRMContact.email)) == lead.email.strip().lower()).all()
+        if matches:
+            raise HTTPException(409, "A matching contact exists. Select it explicitly before converting.")
     if payload.createContact and not contact:
         contact = CRMContact(
             organization_id=organization_id,
@@ -7890,6 +7937,28 @@ def convert_lead(
         )
         db.add(contact)
         db.flush()
+
+    previous_contact_lifecycle = contact.lifecycle_stage if contact else None
+    previous_contact_tags = contact.tags_text if contact else None
+    previous_company_type = company.account_type if company else None
+    if contact:
+        from app.apps.crm.contact_identity import add_tags, ContactIdentityLink
+        contact.lifecycle_stage = "Customer"
+        contact.customer_since = contact.customer_since or date.today()
+        if company and not contact.company_id:
+            contact.company_id = company.id
+        add_tags(contact, "Lead", "Customer")
+        if inspect_connection(db.connection()).has_table(ContactIdentityLink.__tablename__):
+            identity = db.query(ContactIdentityLink).filter(ContactIdentityLink.lead_id == lead.id).first()
+            if identity:
+                identity.contact = contact
+            else:
+                db.add(ContactIdentityLink(organization_id=organization_id, contact=contact, lead=lead))
+    if company:
+        company.account_type = "Customer"
+        if created_customer and individual_customer:
+            from app.shared.master_data_models import CompanyMasterDetails
+            db.add(CompanyMasterDetails(account_id=company.id, organization_id=organization_id, business_type="Individual"))
 
     deal = None
     if payload.createDeal:
@@ -7975,6 +8044,9 @@ def convert_lead(
                 "createContact": payload.createContact,
                 "createCompany": payload.createCompany,
                 "createDeal": payload.createDeal,
+                "contactPreviousLifecycle": previous_contact_lifecycle,
+                "contactPreviousTags": previous_contact_tags,
+                "companyPreviousType": previous_company_type,
             },
         )
     )
@@ -8615,7 +8687,12 @@ def create_record(
         from app.shared.catalog import save_legacy
         return save_legacy(db, current_user, "products" if resource.model is CRMProduct else "services", _validate_and_build(resource, payload.model_dump(exclude_unset=True), partial=False))
     raw_payload = payload.model_dump()
+    financial_capture = raw_payload.pop("financialData", None) if resource.model is CRMContact else None
     catalog_lines = raw_payload.pop("catalog_lines", None)
+    master_capture = None
+    if resource.model in {CRMContact, CRMCompany, CRMLead}:
+        from app.shared.master_data import capture_options
+        master_capture = capture_options(raw_payload)
     deal_contacts_payload = None
     if resource.model is CRMDeal:
         for key in ("contacts", "dealContacts", "deal_contacts", "stakeholders"):
@@ -8682,6 +8759,9 @@ def create_record(
         if existing:
             _assert_record_visible(db, resource, existing.id, organization_id, current_user, include_deleted=True)
             return _serialize(existing)
+    if master_capture is not None:
+        from app.shared.master_data import duplicate_guard
+        duplicate_guard(db, current_user, "crm", data.get("phone"), data.get("phone_country_code"), data.get("email"), master_capture["confirmed"], master_capture["reason"])
     record = resource.model(**data)
     if resource.model is CRMDeal:
         _apply_deal_close_fields(record, data)
@@ -8724,6 +8804,12 @@ def create_record(
         after_existing_api(db, current_user, record, owner_was_provided=owner_was_provided)
     from app.shared.catalog import save_form_links
     save_form_links(db, current_user, record, catalog_lines)
+    if master_capture is not None and resource.model in {CRMContact, CRMCompany}:
+        from app.shared.master_data import persist_capture_channels
+        persist_capture_channels(db, current_user, record, master_capture)
+    if financial_capture is not None:
+        from app.apps.crm.financial_data import parse_and_save_profile
+        parse_and_save_profile(db, current_user, record, financial_capture)
     if resource.model is CRMDeal: db.flush()
     else: db.commit()
     db.refresh(record)
@@ -8760,6 +8846,14 @@ def update_record(
         if detail: detail.version += 1
     before = {key: getattr(record, key) for key in _columns(resource.model) if key in IMPORTANT_UPDATE_FIELDS}
     raw_payload = payload.model_dump(exclude_unset=True)
+    financial_capture = raw_payload.pop("financialData", None) if resource.model is CRMContact else None
+    master_capture = None
+    master_initial_version = None
+    if resource.model in {CRMContact, CRMCompany}:
+        from app.shared.master_data import capture_options, version as master_version
+        db.refresh(record, with_for_update=True)
+        master_initial_version = master_version(record)
+        master_capture = capture_options(raw_payload)
     catalog_lines = raw_payload.pop("catalog_lines", None)
     if resource.model is CRMDeal:
         db.refresh(record, with_for_update=True)
@@ -8779,6 +8873,9 @@ def update_record(
         for transient_key in ("syncToCalendar", "sync_to_calendar", "provider"):
             validation_payload.pop(transient_key, None)
     data = _validate_and_build(resource, validation_payload, partial=True)
+    if master_capture is not None and any(key in data for key in ("phone", "phone_country_code", "email")):
+        from app.shared.master_data import duplicate_guard
+        duplicate_guard(db, current_user, "crm", data.get("phone", record.phone), data.get("phone_country_code", record.phone_country_code), data.get("email", record.email), master_capture["confirmed"], master_capture["reason"], "contact" if resource.model is CRMContact else "company", record.id)
     if resource.model is CRMLead:
         from app.apps.crm.lead_management import guard_existing_api
         guard_existing_api(db, current_user, record, data)
@@ -8861,6 +8958,12 @@ def update_record(
     if resource.model is CRMLead:
         from app.apps.crm.lead_management import after_existing_api
         after_existing_api(db, current_user, record, before)
+    if master_capture is not None:
+        from app.shared.master_data import persist_capture_channels
+        persist_capture_channels(db, current_user, record, master_capture, master_initial_version)
+    if financial_capture is not None:
+        from app.apps.crm.financial_data import parse_and_save_profile
+        parse_and_save_profile(db, current_user, record, financial_capture)
     from app.shared.catalog import save_form_links
     save_form_links(db, current_user, record, catalog_lines)
     if resource.model is CRMDeal: db.flush()

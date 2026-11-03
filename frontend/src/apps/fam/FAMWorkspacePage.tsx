@@ -1,3 +1,6 @@
+import CompactActions from "@/components/actions/CompactActions";
+import { ActionToolbar } from "@/components/actions";
+import RecordSections from "@/components/RecordSections";
 import { NativeSelect } from "@/components/ui/native-select";
 import { CompactFields } from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -406,8 +409,8 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
   const voucherQuery = useQuery({ queryKey: ["fam", "voucher", params.id], queryFn: () => famApi.getVoucher(params.id || ""), enabled: mode === "detail" && Boolean(params.id) });
   const typesQuery = useQuery({ queryKey: ["fam", "voucherTypes"], queryFn: famApi.voucherTypes });
   const ledgersQuery = useQuery({ queryKey: ["fam", "ledgers"], queryFn: famApi.ledgers });
-  const [draft, setDraft] = useState<FAMRecord>(voucherDraft(mode === "journal" ? "journal" : "voucherNew"));
-  const effective = (mode === "detail" && voucherQuery.data ? voucherQuery.data : draft) as FAMRecord;
+  const [draft, setDraft] = useState<FAMRecord>(() => mode === "detail" ? {} : voucherDraft(mode === "journal" ? "journal" : "voucherNew"));
+  const effective = (mode === "detail" ? { ...voucherQuery.data, ...draft } : draft) as FAMRecord;
   const lines = ((effective.lines as FAMRecord[] | undefined) || []) as FAMRecord[];
   const debitTotal = lines.reduce((sum, line) => sum + Number(line.debit_amount || 0), 0);
   const creditTotal = lines.reduce((sum, line) => sum + Number(line.credit_amount || 0), 0);
@@ -415,7 +418,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
   const voucherId = String(effective.id || params.id || "");
   const saveMutation = useMutation({
     mutationFn: () => (mode === "detail" && voucherId ? famApi.updateVoucher(voucherId, { ...effective, total_debit: debitTotal, total_credit: creditTotal }) : famApi.createVoucher({ ...effective, total_debit: debitTotal, total_credit: creditTotal })),
-    onSuccess: () => { toast({ title: "Voucher draft saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
+    onSuccess: () => { toast({ title: "Voucher draft saved" }); if (mode === "detail") setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
   });
   const postMutation = useMutation({ mutationFn: () => famApi.postVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
   const cancelMutation = useMutation({ mutationFn: () => famApi.cancelVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cancelled" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
@@ -427,11 +430,12 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
     patch("lines", next);
   };
   const addLine = () => patch("lines", [...lines, { ...defaultVoucherLine }]);
-  const canEdit = String(effective.status || "draft") === "draft";
+  const canEdit = (mode !== "detail" || !!voucherQuery.data) && String(effective.status || "draft") === "draft";
   return (
     <div className="space-y-4">
       <State label="voucher" isLoading={voucherQuery.isLoading || typesQuery.isLoading || ledgersQuery.isLoading} isError={voucherQuery.isError || typesQuery.isError || ledgersQuery.isError} />
-      <div className="grid gap-3 md:grid-cols-4">
+      <RecordSections label="Voucher information" sections={[
+        {id:"overview",label:"Overview",content:<>      <div className="grid gap-3 md:grid-cols-4">
         <Field label="Voucher Type">
           <NativeSelect loading={typesQuery.isFetching} error={typesQuery.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(effective.voucher_type_id || 1)} onChange={(event) => patch("voucher_type_id", Number(event.target.value))} disabled={!canEdit}>
             {listItems(typesQuery.data).map((type) => <option key={String(type.id)} value={String(type.id)}>{text(type.voucher_type_name)}</option>)}
@@ -441,7 +445,8 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
         <Field label="Reference Number"><Input value={String(effective.reference_number || "")} onChange={(event) => patch("reference_number", event.target.value)} disabled={!canEdit} /></Field>
         <Field label="Narration"><RichTextField value={String(effective.narration || "")} onChange={(event) => patch("narration", event.target.value)} disabled={!canEdit} /></Field>
       </div>
-      <Card>
+</>},
+        {id:"lines",label:"Entry lines",content:<>      <Card>
         <CardHeader><CardTitle className="text-base">Debit / Credit lines</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="overflow-x-auto rounded-lg border">
@@ -463,19 +468,22 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
           {canEdit ? <Button variant="outline" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button> : null}
         </CardContent>
       </Card>
-      <div className="grid gap-3 md:grid-cols-4">
+</>},
+        {id:"review",label:"Review totals",content:<>      <div className="grid gap-3 md:grid-cols-4">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total debit</p><p className="text-lg font-semibold">{money(debitTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total credit</p><p className="text-lg font-semibold">{money(creditTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Difference</p><p className={difference ? "text-lg font-semibold text-destructive" : "text-lg font-semibold text-emerald-700"}>{money(difference)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(effective.status || "draft")}>{text(effective.status || "draft")}</Badge></CardContent></Card>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {canEdit ? <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}><Save className="h-4 w-4" />Save draft</Button> : null}
-        {voucherId && canEdit ? <Button onClick={() => postMutation.mutate()} disabled={Boolean(difference) || postMutation.isPending}><LockKeyhole className="h-4 w-4" />Post voucher</Button> : null}
-        {voucherId ? <Button variant="outline" onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending}>Cancel voucher</Button> : null}
-        {voucherId ? <Button variant="outline" onClick={() => reverseMutation.mutate()} disabled={reverseMutation.isPending}><RotateCcw className="h-4 w-4" />Reverse voucher</Button> : null}
-        {voucherId ? <Button variant="outline" onClick={() => cloneMutation.mutate()} disabled={cloneMutation.isPending}><Copy className="h-4 w-4" />Clone voucher</Button> : null}
-      </div>
+</>},
+      ]}/>
+      <ActionToolbar label="Voucher actions" actions={[
+        {id:"save",kind:"save",label:"Save draft",prominent:true,primary:true,available:canEdit,loading:saveMutation.isPending,onSelect:()=>saveMutation.mutate()},
+        {id:"post",kind:"approve",label:"Post voucher",prominent:true,available:!!voucherId&&canEdit,loading:postMutation.isPending,disabled:Boolean(difference),disabledReason:difference?"Balance debit and credit totals before posting":undefined,onSelect:()=>postMutation.mutate(),confirm:{title:"Post this voucher?",description:`${effective.voucher_number || voucherId} · debit ${money(debitTotal)} · credit ${money(creditTotal)}. Review the lines before posting to the ledger.`,label:"Post voucher"}},
+        {id:"clone",kind:"copy",label:"Clone voucher",prominent:true,available:!!voucherId&&!!voucherQuery.data,loading:cloneMutation.isPending,onSelect:()=>cloneMutation.mutate()},
+        {id:"cancel",kind:"reject",label:"Cancel voucher",danger:true,available:!!voucherId&&["draft","posted"].includes(String(effective.status)),loading:cancelMutation.isPending,onSelect:()=>cancelMutation.mutate(),confirm:{title:"Cancel this voucher?",description:`Voucher ${effective.voucher_number || voucherId}. Review its accounting impact before cancelling.`,label:"Cancel voucher"}},
+        {id:"reverse",kind:"review",label:"Reverse voucher",danger:true,available:!!voucherId&&effective.status==="posted",loading:reverseMutation.isPending,onSelect:()=>reverseMutation.mutate(),confirm:{title:"Reverse this posted voucher?",description:`Voucher ${effective.voucher_number || voucherId}. This creates a linked reversal and records it in history.`,label:"Reverse voucher"}},
+      ]}/>
     </div>
   );
 }
@@ -564,13 +572,14 @@ function SRMIntegrationView() {
   const query = useQuery({ queryKey: ["fam", "srmIntegration"], queryFn: famApi.srmIntegrationStatus });
   const rules = useQuery({ queryKey: ["fam", "postingRules"], queryFn: famApi.postingRules });
   const data = (query.data || {}) as FAMRecord;
-  const [draft, setDraft] = useState<FAMRecord>({ invoice_id: 1, receipt_id: 1, allocation_id: 1, reverse_type: "invoice", reverse_id: 1 });
+  const [draft, setDraft] = useState<FAMRecord>({ invoice_id: "", receipt_id: "", allocation_id: "", reverse_type: "invoice", reverse_id: "" });
   const [message, setMessage] = useState("");
   const action = useMutation({
     mutationFn: (run: () => Promise<FAMRecord>) => run(),
     onSuccess: () => { setMessage("Accounting integration updated"); toast({ title: "Accounting integration updated" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
     onError: (err: unknown) => { const textValue = apiErrorMessage(err, "Posting failed pre-flight checks"); setMessage(textValue); toast({ title: "Posting failed", description: textValue, variant: "destructive" }); },
   });
+  const validSource = (value: unknown) => Number.isInteger(Number(value)) && Number(value) > 0;
   const kpis: Array<[string, unknown]> = [["Pending postings", data.pending_postings], ["Failed postings", data.failed_postings], ["Posted today", data.posted_today], ["Unmapped customers", data.unmapped_customers], ["Duplicate prevention", data.duplicate_prevention_status]];
   return (
     <div className="space-y-4">
@@ -582,10 +591,15 @@ function SRMIntegrationView() {
         <Field label="receipt id"><Input value={String(draft.receipt_id || "")} onChange={(event) => setDraft((current) => ({ ...current, receipt_id: Number(event.target.value) }))} /></Field>
         <Field label="allocation id"><Input value={String(draft.allocation_id || "")} onChange={(event) => setDraft((current) => ({ ...current, allocation_id: Number(event.target.value) }))} /></Field>
         <Field label="reverse source id"><Input value={String(draft.reverse_id || "")} onChange={(event) => setDraft((current) => ({ ...current, reverse_id: Number(event.target.value) }))} /></Field>
-        <Button onClick={() => action.mutate(() => famApi.postSrmInvoice(String(draft.invoice_id || 1)))}>Post SRM invoice</Button>
-        <Button variant="outline" onClick={() => action.mutate(() => famApi.postSrmReceipt(String(draft.receipt_id || 1)))}>Post SRM receipt</Button>
-        <Button variant="outline" onClick={() => action.mutate(() => famApi.postSrmAllocation(String(draft.allocation_id || 1)))}>Post allocation</Button>
-        <Button variant="outline" onClick={() => action.mutate(() => famApi.reverseSrmPosting(String(draft.reverse_type || "invoice"), String(draft.reverse_id || 1)))}>Reverse posting</Button>
+        <ActionToolbar label="Accounting posting actions" actions={[
+          {id:"invoice",kind:"save",label:"Post SRM invoice",prominent:true,primary:true,disabled:action.isPending || !validSource(draft.invoice_id),onSelect:()=>action.mutate(()=>famApi.postSrmInvoice(String(draft.invoice_id))),confirm:{title:"Post this invoice to accounting?",description:`Invoice #${draft.invoice_id || "—"}. Review its ledger mapping and amounts before posting.`,label:"Post invoice"}},
+          {id:"receipt",kind:"save",label:"Post SRM receipt",prominent:true,disabled:action.isPending || !validSource(draft.receipt_id),onSelect:()=>action.mutate(()=>famApi.postSrmReceipt(String(draft.receipt_id))),confirm:{title:"Post this receipt to accounting?",description:`Receipt #${draft.receipt_id || "—"}. Review its ledger mapping and amounts before posting.`,label:"Post receipt"}},
+          {id:"allocation",kind:"save",label:"Post allocation",prominent:true,disabled:action.isPending || !validSource(draft.allocation_id),onSelect:()=>action.mutate(()=>famApi.postSrmAllocation(String(draft.allocation_id))),confirm:{title:"Post this allocation?",description:`Allocation #${draft.allocation_id || "—"}. Confirm the receipt and invoice allocation before posting.`,label:"Post allocation"}},
+          {id:"reverse",kind:"review",label:"Reverse posting",danger:true,disabled:action.isPending || !validSource(draft.reverse_id),onSelect:()=>action.mutate(()=>famApi.reverseSrmPosting(String(draft.reverse_type || "invoice"),String(draft.reverse_id))),confirm:{title:"Reverse this accounting posting?",description:`${draft.reverse_type || "Invoice"} #${draft.reverse_id || "—"}. Review the source before creating its reversal.`,label:"Reverse posting"}},
+        ]}/>
+
+
+
       </CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">Recent posting jobs</CardTitle></CardHeader><CardContent><DataTable rows={(data.recent_jobs as FAMRecord[] | undefined) || []} columns={["id", "source_record_type", "source_record_id", "posting_type", "status", "voucher_id", "retry_count"]} /></CardContent></Card>
     </div>
@@ -680,7 +694,12 @@ function BankStatementDetailView() {
   const data = (query.data || {}) as FAMRecord;
   const firstLine = (((data.lines as FAMRecord[] | undefined) || [])[0] || {}) as FAMRecord;
   const action = useMutation({ mutationFn: (run: () => Promise<FAMRecord>) => run(), onSuccess: () => { toast({ title: "Bank reconciliation updated" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4">{["status", "bank_account_id", "statement_period_start", "statement_period_end"].map((field) => <Card key={field}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{field.replace(/_/g, " ")}</p><p className="text-lg font-semibold">{text(data[field])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Review and match</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2"><Button onClick={() => action.mutate(() => famApi.autoMatchBankStatement(id))}>Auto-match</Button><Button variant="outline" onClick={() => action.mutate(() => famApi.matchBankStatement(id, { statement_line_id: Number(firstLine.id || 1), voucher_id: Number(firstLine.matched_voucher_id || 1), matched_amount: Number(firstLine.credit_amount || firstLine.debit_amount || 1000), confirm: true }))}>Confirm match</Button><Button variant="outline" onClick={() => action.mutate(() => famApi.ignoreBankStatementLine(id, { statement_line_id: Number(firstLine.id || 1), reason: "Non-book item" }))}>Ignore line</Button><Button variant="outline" onClick={() => action.mutate(() => famApi.reconcileBankStatement(id))}>Reconcile statement</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Statement lines</CardTitle></CardHeader><CardContent><State label="statement" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.lines as FAMRecord[] | undefined) || []} columns={["transaction_date", "description", "reference_number", "debit_amount", "credit_amount", "balance", "matched_status", "matched_voucher_id"]} /></CardContent></Card></div>;
+  return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4">{["status", "bank_account_id", "statement_period_start", "statement_period_end"].map((field) => <Card key={field}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{field.replace(/_/g, " ")}</p><p className="text-lg font-semibold">{text(data[field])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Review and match</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2"><ActionToolbar label="Bank reconciliation actions" actions={[
+    {id:"auto",kind:"refresh",label:"Auto-match",prominent:true,primary:true,disabled:action.isPending || query.isPending,onSelect:()=>action.mutate(()=>famApi.autoMatchBankStatement(id))},
+    {id:"match",kind:"approve",label:"Confirm match",prominent:true,disabled:action.isPending || !firstLine.id || !firstLine.matched_voucher_id,onSelect:()=>action.mutate(()=>famApi.matchBankStatement(id,{statement_line_id:Number(firstLine.id),voucher_id:Number(firstLine.matched_voucher_id),matched_amount:Number(firstLine.credit_amount || firstLine.debit_amount || 0),confirm:true})),confirm:{title:"Confirm this bank match?",description:`First statement line #${firstLine.id || "—"}, voucher #${firstLine.matched_voucher_id || "—"}. Review the statement lines and amount below before confirming.`,label:"Confirm match"}},
+    {id:"reconcile",kind:"complete",label:"Reconcile statement",prominent:true,disabled:action.isPending || query.isPending,onSelect:()=>action.mutate(()=>famApi.reconcileBankStatement(id)),confirm:{title:"Reconcile this statement?",description:"Review all statement lines and unmatched entries before finalizing reconciliation.",label:"Reconcile statement"}},
+    {id:"ignore",kind:"review",label:"Ignore first line",disabled:action.isPending || !firstLine.id,onSelect:()=>action.mutate(()=>famApi.ignoreBankStatementLine(id,{statement_line_id:Number(firstLine.id),reason:"Reviewed as non-book item"})),confirm:{title:"Ignore this statement line?",description:`First statement line #${firstLine.id || "—"}: ${firstLine.description || "No description"}. Confirm that this is a non-book item.`,label:"Ignore line"}},
+  ]}/></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Statement lines</CardTitle></CardHeader><CardContent><State label="statement" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={(data.lines as FAMRecord[] | undefined) || []} columns={["transaction_date", "description", "reference_number", "debit_amount", "credit_amount", "balance", "matched_status", "matched_voucher_id"]} /></CardContent></Card></div>;
 }
 
 function BankReconciliationView() {
@@ -1078,7 +1097,7 @@ function InventoryDashboardView() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-          <NativeSelect aria-label="Warehouse filter" className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-64" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+          <NativeSelect loading={warehouses.isFetching} error={warehouses.isError} aria-label="Warehouse filter" className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-64" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
             <option value="all">All warehouses</option>
             {warehouseRows.map((warehouse) => <option key={String(warehouse.id)} value={String(warehouse.id)}>{text(warehouse.warehouse_name || warehouse.name)}</option>)}
           </NativeSelect>

@@ -1,0 +1,30 @@
+{
+  "results": [
+    {
+      "name": "whatsapp",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "whatsapp",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "whatsapp",
+      "width": 320,
+      "passed": true
+    }
+  ],
+  "issues": []
+}

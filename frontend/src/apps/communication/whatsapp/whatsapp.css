@@ -29,3 +29,62 @@
 @media(max-width:1050px){.wa-send-layout{grid-template-columns:minmax(0,1fr)}.wa-send-aside{grid-template-columns:1fr 1fr}.wa-preview-card{grid-row:span 2}.wa-preview-card .wa-phone-preview{min-height:260px}.wa-account-description{display:none}.wa-business-identity{max-width:none;flex:1}.wa-record-grid{grid-template-columns:1fr 1fr}.wa-record-grid>.wa-field:last-child{grid-column:span 2}.wa-chat-heading .wa-linked-badge{display:none}.wa-chat-composer{padding:10px}.wa-bubble{max-width:93%}.wa-hub-heading>p:not(.sr-only){font-size:10px}.wa-chat-transcript{padding-inline:12px}}
 @media(max-width:700px){.wa-hub-heading{padding:8px 10px}.wa-hub-heading h1{font-size:20px;gap:8px}.wa-hub-icon{width:34px;height:34px;border-radius:9px}.wa-hub-heading>p:not(.sr-only){margin-left:42px;max-height:30px;overflow:hidden;font-size:9px}.wa-hub-content{padding:5px 10px 12px}.wa-hub-heading nav{margin-top:9px!important}.wa-account-strip{padding:10px;gap:8px;min-height:65px;border-radius:11px}.wa-business-icon{height:35px;width:35px;border-width:4px;border-radius:11px}.wa-business-identity h2{font-size:13px}.wa-business-identity p{font-size:9px;max-width:220px}.wa-connection-status{padding:5px 7px;font-size:9px;gap:3px}.wa-connection-status svg{width:12px}.wa-workspace-tabs{margin-block:8px;gap:4px}.wa-workspace-tabs>button{font-size:10px;padding:6px 8px;min-height:30px}.wa-inbox-layout,.wa-inbox-layout.wa-with-contact.wa-details-open{grid-template-columns:minmax(0,1fr);height:clamp(500px,calc(100dvh - 270px),720px)}.wa-inbox-layout:not(.wa-has-selection) .wa-chat-pane{display:none}.wa-has-selection .wa-conversations{display:none}.wa-mobile-back{display:grid}.wa-chat-heading{padding:9px 10px;gap:7px;min-height:56px}.wa-chat-transcript{padding:8px 12px}.wa-contact-inspector{max-width:95%;width:290px}.wa-list-heading h3{font-size:14px}.wa-conversation-row{padding:10px;gap:11px}.wa-conversation-name strong{font-size:12px}.wa-conversation-phone,.wa-conversation-snippet{font-size:11px}.wa-conversation-row .wa-avatar{width:38px;height:38px}.wa-list-filters>button{font-size:11px;padding:6px 12px}.wa-send-aside{grid-template-columns:1fr}.wa-preview-card{grid-row:auto}.wa-phone-preview{max-width:300px;margin-inline:auto}.wa-compose-card{padding:13px;gap:14px}.wa-card-heading h3{font-size:16px}.wa-card-heading p{font-size:10px}.wa-card-heading .wa-feature-icon{width:36px;height:36px}.wa-record-grid{grid-template-columns:1fr}.wa-record-grid>.wa-field:last-child{grid-column:auto}.wa-recipient-row{flex-direction:column;align-items:stretch;gap:12px}.wa-quick-templates>div:last-child{grid-template-columns:1fr}.wa-variable-grid{grid-template-columns:1fr 1fr}.wa-mode-switch>button{font-size:10px}.wa-composer-footer{gap:8px}.wa-chat-composer .wa-composer-mode-row{gap:5px}.wa-chat-composer .wa-mode-switch>button{padding-inline:8px}.wa-chat-composer .wa-window-badge{font-size:8px;padding:3px 5px}.wa-chat-composer .wa-composer-footer .wa-inline-actions button{font-size:9px;padding-inline:6px}.wa-composer-footer .wa-send-button{margin-left:auto}}
 @media(prefers-reduced-motion:reduce){.wa-workspace *{transition:none!important;scroll-behavior:auto!important}}
+
+/* Keep the inbox focused on conversations rather than stacked introductory cards. */
+.cc-whatsapp-inbox{height:calc(100dvh - 100px);min-height:400px;display:flex;flex-direction:column}
+.cc-whatsapp-inbox .cc-shell-heading{display:flex;align-items:center;gap:12px;padding:3px 10px;flex:none;min-width:0;overflow-x:auto}
+.cc-whatsapp-inbox .cc-shell-title{flex:none;gap:6px}
+.cc-whatsapp-inbox .cc-shell-title h1{font-size:13px;white-space:nowrap}
+.cc-whatsapp-inbox .cc-shell-title>span{width:26px;height:26px;border-radius:6px}
+.cc-whatsapp-inbox .cc-shell-title svg{width:16px;height:16px}
+.cc-whatsapp-inbox .cc-shell-heading>p{display:none}
+.cc-whatsapp-inbox .cc-primary-nav,.cc-whatsapp-inbox .cc-secondary-nav{flex:none;margin:0;padding:0;gap:2px;overflow:visible}
+.cc-whatsapp-inbox .cc-shell-heading nav>button{min-height:28px;padding:4px 7px;font-size:11px}
+.cc-whatsapp-inbox .cc-shell-content{flex:1;min-height:0;padding:5px 0 0;display:flex}
+.wa-inbox-workspace{flex:1;min-height:0;max-width:none;display:flex;flex-direction:column;margin:0;gap:4px}
+.wa-inbox-workspace .wa-account-strip{min-height:30px;padding:2px 8px;gap:8px;border-radius:7px;flex:none}
+.wa-inbox-workspace .wa-business-icon{width:24px;height:24px;border-width:2px;border-radius:7px}
+.wa-inbox-workspace .wa-business-icon svg{width:18px;height:18px}
+.wa-inbox-workspace .wa-business-identity{display:flex;align-items:center;gap:10px;max-width:none;flex:1;overflow:hidden}
+.wa-inbox-workspace .wa-business-identity h2{font-size:13px;white-space:nowrap}
+.wa-inbox-workspace .wa-business-identity p{margin:0;font-size:11px}
+.wa-inbox-workspace .wa-account-description{display:none}
+.wa-inbox-workspace .wa-connection-status{padding:3px 7px;font-size:10px}
+.wa-inbox-workspace .wa-workspace-toolbar{display:flex;align-items:center;gap:8px;min-width:0;flex:none}
+.wa-inbox-workspace .wa-workspace-tabs{flex:1;min-width:0;margin:0;padding:0}
+.wa-inbox-workspace .wa-workspace-tabs>button{min-height:28px;padding:4px 8px}
+.wa-inbox-workspace .wa-match-action{flex:none;max-width:35%}
+.wa-inbox-workspace .wa-match-action>div{flex-wrap:nowrap}
+.wa-inbox-workspace .wa-match-action button{height:28px;white-space:nowrap}
+.wa-inbox-workspace .wa-match-action [role=status]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.wa-inbox-workspace .wa-inbox-layout{height:auto;min-height:0;flex:1;gap:8px}
+.wa-inbox-workspace .wa-conversations{padding-top:6px}
+.wa-inbox-workspace .wa-list-heading{margin-bottom:6px}
+.wa-inbox-workspace .wa-list-heading p{display:none}
+.wa-inbox-workspace .wa-list-heading h3{font-size:12px}
+.wa-inbox-workspace .wa-list-heading .wa-feature-icon{width:24px;height:24px}
+.cc-whatsapp-inbox .wa-conversation-search{flex-direction:row;min-height:32px;padding:0 7px;margin-bottom:6px}
+.cc-whatsapp-inbox .wa-conversation-search input{border:0;padding:4px 0;min-height:30px;background:transparent}
+.wa-inbox-workspace .wa-chat-heading{min-height:42px;padding:5px 10px}
+.wa-inbox-workspace .wa-chat-title{display:flex;align-items:center;gap:10px}
+.wa-inbox-workspace .wa-chat-title p{margin:0;white-space:nowrap}
+.wa-inbox-workspace .wa-chat-composer{padding:6px 10px;gap:5px}
+@media(max-width:700px){
+ .cc-whatsapp-inbox{height:calc(100dvh - 140px)}
+ .cc-whatsapp-inbox .cc-shell-title{display:none}
+ .wa-inbox-workspace .wa-business-identity{gap:6px}
+ .wa-inbox-workspace .wa-business-identity p{font-size:10px}
+ .wa-inbox-workspace .wa-match-action [role=status]{display:none}
+ .wa-inbox-workspace .wa-chat-title{display:block}
+ .wa-inbox-workspace .wa-chat-title h3{font-size:12px}
+}
+
+/* Keep the record tabs usable alongside inbox actions on narrow screens. */
+@media(max-width:639px){
+ .wa-inbox-workspace .wa-account-strip{min-height:54px;align-items:center}
+ .wa-inbox-workspace .wa-business-identity{display:block;min-width:0}
+ .wa-inbox-workspace .wa-business-identity h2{font-size:12px}
+ .wa-inbox-workspace .wa-business-identity p{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .wa-inbox-workspace .wa-match-action{max-width:calc(100% - 3.5rem)}
+ .wa-inbox-workspace .wa-match-action button{min-height:44px}
+}

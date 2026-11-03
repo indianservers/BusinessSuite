@@ -1355,3 +1355,5 @@ class CRMApprovalRequestStep(Base):
 
     request = relationship("CRMApprovalRequest", back_populates="steps")
     step = relationship("CRMApprovalStep")
+
+from app.apps.crm.financial_models import ContactFinancialProfile, ContactFinancialTransaction  # noqa: F401,E402

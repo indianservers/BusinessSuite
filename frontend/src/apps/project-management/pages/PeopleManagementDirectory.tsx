@@ -1,3 +1,5 @@
+import CompactActions from "@/components/actions/CompactActions";
+import PersonRecordPreview from "@/components/PersonRecordPreview";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { DataExportButton } from "@/shared/data-transfer";
@@ -574,7 +576,7 @@ export default function PeopleManagementDirectory() {
               <Users size={12} />
               By team
             </button>
-            <NativeSelect
+            <NativeSelect loading={reference.isFetching} error={reference.isError}
               aria-label="Filter role"
               value={params.get("role") || ""}
               onChange={(e) => change("role", e.target.value)}
@@ -618,7 +620,7 @@ export default function PeopleManagementDirectory() {
               />
               <label>
                 Workspace
-                <NativeSelect
+                <NativeSelect loading={reference.isFetching} error={reference.isError}
                   aria-label="Filter workspace"
                   value={params.get("workspace_id") || ""}
                   onChange={(e) => change("workspace_id", e.target.value)}
@@ -633,7 +635,7 @@ export default function PeopleManagementDirectory() {
               </label>
               <label>
                 Department
-                <NativeSelect
+                <NativeSelect loading={reference.isFetching} error={reference.isError}
                   aria-label="Filter department"
                   value={params.get("department_id") || ""}
                   onChange={(e) => change("department_id", e.target.value)}
@@ -740,7 +742,7 @@ export default function PeopleManagementDirectory() {
             </div>
           )}
           {!!selected.length && (
-            <div className="pd-bulk-actions">
+            <CompactActions className="pd-bulk-actions">
               <strong>{selected.length} selected across {new Set(selected.map(id => selectionPages[id] || page)).size} {new Set(selected.map(id => selectionPages[id] || page)).size === 1 ? "page" : "pages"} · limit 100</strong>
               <button onClick={() => setReviewSelection(true)}>Review selection</button>
               {membershipOptions.isError && <span role="alert">Could not load membership destinations. <button onClick={() => membershipOptions.refetch()}>Retry</button></span>}
@@ -762,7 +764,7 @@ export default function PeopleManagementDirectory() {
               <button onClick={()=>{change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Bulk destinations / transfer / remove / roles</button>
               <button disabled={!ref?.can_export || busy} onClick={()=>void exportPeople("selected")}>Export selected</button>
               <button onClick={() => setSelected([])}>Clear selection</button>
-            </div>
+            </CompactActions>
           )}
           <div className="mb-3 flex flex-wrap items-center gap-4 text-sm"><PageSelection people={people.data?.items || []} selected={selected} onToggle={togglePage} /><span>Select up to 100 active people across pages. Changing filters clears the selection.</span></div>
           {people.isLoading ? (
@@ -839,7 +841,8 @@ export default function PeopleManagementDirectory() {
         /></details></div>
       </div>
       <PeopleDialog open={exportOpen} onClose={()=>setExportOpen(false)} title="Export people" description="Choose which people to export, then pick the format and columns."><div className="pd-dialog-actions">{(["filtered","page","selected"] as const).map(scope=><DataExportButton key={scope} filename="people-directory" label={scope==="filtered"?"All filtered results":scope==="page"?"Current page":`${selected.length} selected people`} disabled={!ref?.can_export||(scope==="selected"&&!selected.length)} load={async()=> (await api.get<Blob>(directoryRoot+"/export",{params:scope==="filtered"?query:{selected_ids:(scope==="selected"?selected:(people.data?.items||[]).map(p=>p.id)).join(",")},responseType:"blob"})).data}/>)}</div></PeopleDialog>
-      <PeopleDialog className="pd-preview-drawer" open={!!previewPerson} onClose={()=>setPreviewPerson(undefined)} title={previewPerson?.name || "Member preview"} description="Quick member preview. Close to return to your current selection and filters.">{previewPerson && <div className="pd-member-preview"><p>{previewPerson.email}</p><p>{previewPerson.classification} / {previewPerson.status}</p><h3>Current projects</h3><p>{previewPerson.projects?.map(p=>p.name).join(", ") || "No current projects"}</p><h3>Teams</h3><p>{previewPerson.teams.map(p=>p.name).join(", ") || "No teams"}</p>{previewPerson.classification.toLowerCase() === "intern" && <><h3>Intern batches</h3><p>{previewPerson.batches.map(p=>p.name).join(", ") || "No batch"}</p></>}<h3>Skills</h3><p>{previewPerson.skills.join(", ") || "No skills listed"}</p><div className="pd-dialog-actions"><Link className="pd-button" to={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`}>Open full profile</Link><Link className="pd-button" to={`/pms/people/${previewPerson.id}?tab=activity&returnTo=${encodeURIComponent(backTo)}`}>Assignment history</Link><button className="pd-primary" onClick={()=>{setSelected([previewPerson.id]);setPreviewPerson(undefined);change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Assign to destination</button></div></div>}</PeopleDialog>
+      {previewPerson && <PersonRecordPreview key={previewPerson.id} record={previewPerson} onClose={() => setPreviewPerson(undefined)} fullProfileHref={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`} work={<div className="pd-member-preview"><p>{previewPerson.email}</p><p>{previewPerson.classification} / {previewPerson.status}</p><h3>Current projects</h3><p>{previewPerson.projects?.map(p=>p.name).join(", ") || "No current projects"}</p><h3>Teams</h3><p>{previewPerson.teams.map(p=>p.name).join(", ") || "No teams"}</p>{previewPerson.classification.toLowerCase() === "intern" && <><h3>Intern batches</h3><p>{previewPerson.batches.map(p=>p.name).join(", ") || "No batch"}</p></>}<h3>Skills</h3><p>{previewPerson.skills.join(", ") || "No skills listed"}</p><div className="pd-dialog-actions"><Link className="pd-button" to={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`}>Open full profile</Link><Link className="pd-button" to={`/pms/people/${previewPerson.id}?tab=activity&returnTo=${encodeURIComponent(backTo)}`}>Assignment history</Link><button className="pd-primary" onClick={()=>{setSelected([previewPerson.id]);setPreviewPerson(undefined);change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Assign to destination</button></div></div>} />}
+
       <PeopleDialog open={reviewSelection} onClose={() => setReviewSelection(false)} title="Review selected people" description={`${selected.length} selected people. Remove anyone before applying a bulk action.`}>
         <ul className="max-h-80 overflow-auto">{selected.map(id => <li className="flex items-center justify-between border-b py-2" key={id}><span>{selectionPeople[id]?.name || `Person #${id}`}<small className="block">{selectionPeople[id]?.email}</small></span><button className="pd-button" onClick={() => setSelected(ids => ids.filter(value => value !== id))}>Remove</button></li>)}</ul>
         <button className="pd-button" onClick={() => setReviewSelection(false)}>Done</button>

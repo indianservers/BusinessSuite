@@ -12,6 +12,7 @@ ACCOUNT_FIELDS = {
     "billing_address": "address",
     "website": "website",
     "phone": "phone",
+    "phone_country_code": "phone_country_code",
     "country": "country",
 }
 CLIENT_FIELDS = {
@@ -19,6 +20,7 @@ CLIENT_FIELDS = {
     "company_name": "name",
     "email": "email",
     "phone": "phone",
+    "phone_country_code": "phone_country_code",
     "website": "website",
 }
 
@@ -76,6 +78,41 @@ def overlay(value, payload):
     return payload
 
 
+def client_write(db, client, user, changes, shared_customer_id=None, confirmed=False, reason=None):
+    """Explicit PMS adapter; never infer a match from a name or email."""
+    from fastapi import HTTPException
+    from app.shared.master_data import CompanyInput, owner, write_company, version
+    buyer = linked_customer(db, "pms_client", client.id)
+    if shared_customer_id is not None:
+        selected = owner(db, user, "company", shared_customer_id, "project_management")
+        if buyer and buyer.id != selected.id:
+            raise HTTPException(409, "This client already has a shared identity. Review its business links before relinking")
+        buyer = selected
+    if buyer is None:
+        buyer = write_company(db, user, "project_management", CompanyInput(
+            name=client.company_name or client.name, email=client.email,
+            phone=client.phone, phone_country_code=client.phone_country_code,
+            website=client.website, roles=["Customer"], confirmShared=confirmed, sharedReason=reason))
+    elif shared_customer_id is None:
+        # Preserve master extensions and independent roles while editing legacy fields.
+        from app.shared.master_data import company_output
+        current = company_output(db, buyer)
+        values = {key: current.get(key) for key in CompanyInput.model_fields if key in current}
+        for old, new in CLIENT_FIELDS.items():
+            if old in changes:
+                values[new] = changes[old]
+        if not values.get("name"):
+            raise HTTPException(422, "Company name cannot be empty")
+        values.update(version=version(buyer), confirmShared=confirmed, sharedReason=reason)
+        write_company(db, user, "project_management", CompanyInput(**values), buyer)
+    link = db.query(CustomerLink).filter_by(source_type="pms_client", source_id=client.id).first()
+    if not link:
+        db.add(CustomerLink(organization_id=tenant(user), source_type="pms_client", source_id=client.id, customer_id=buyer.id, actor_id=user.id))
+    for old, new in CLIENT_FIELDS.items():
+        setattr(client, old, getattr(buyer, new))
+    return buyer
+
+
 @event.listens_for(Session, "before_flush")
 def refresh_legacy_projections(db, flush_context, instances):
     """Canonical profile edits refresh compatibility columns in the same transaction.
@@ -95,7 +132,8 @@ def refresh_legacy_projections(db, flush_context, instances):
         ]:
             ids = [link.source_id for link in links if link.source_type == kind]
             if ids:
-                db.query(model).filter(model.id.in_(ids)).update(
-                    {old: getattr(buyer, new) for old, new in fields.items()},
-                    synchronize_session="fetch",
-                )
+                # ORM writes enforce branch/tenant ownership and run validation;
+                # bulk UPDATE bypasses that unit of work and is intentionally denied.
+                for extension in db.query(model).filter(model.id.in_(ids)).all():
+                    for old, new in fields.items():
+                        setattr(extension, old, getattr(buyer, new))

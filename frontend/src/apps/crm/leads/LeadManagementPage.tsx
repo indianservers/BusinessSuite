@@ -1,3 +1,6 @@
+import { SharedNumberConfirmation } from "@/shared/master-data/CompanySelect";
+import { PersonPreviewHeader } from "@/components/PersonPreviewDialog";
+import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobile } from "@/components/mobile/useMobile";
 import { MobileContactActions, MobileFilters } from "@/components/mobile/MobilePrimitives";
@@ -275,6 +278,7 @@ export default function LeadManagementPage() {
   useEffect(() => {
     sessionStorage.setItem(`lead-columns-${userId}`, JSON.stringify(columns));
   }, [columns, userId]);
+  useRecordView<ListResult>("/crm/lead-management/leads", { search, stage, ...(owner ? {owner} : {}), queue, page, per_page: 40 }, snapshot => { setResult(snapshot); setSelected(ids => ids.filter(id => snapshot.items.some(row => row.id === id))); }, () => { setResult(undefined); setSelected([]); });
   const ownerName = (id?: number) =>
     bootstrap?.owners.find((o) => o.id === id)?.name ||
     (id ? `User ${id}` : "Unassigned");
@@ -1092,6 +1096,7 @@ export function CaptureDialog({
   useEffect(() => { sessionStorage.setItem(`${key}:catalog`, JSON.stringify(catalogLines)); }, [key, catalogLines]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sharedConfirmed,setSharedConfirmed]=useState(false);const [sharedReason,setSharedReason]=useState("");
   const [duplicate,setDuplicate]=useState<{matched:boolean;items:{id:number;name:string}[];message:string}>();
   useEffect(()=>{const controller=new AbortController();const timer=setTimeout(()=>{if(!values.email&&!values.phone){setDuplicate(undefined);return;}void api.get("/crm/productivity/duplicate-check",{params:{email:values.email||"",phone:values.phone||"",phone_country_code:values.phone_country_code||""},signal:controller.signal}).then(r=>setDuplicate(r.data)).catch(()=>{});},350);return()=>{clearTimeout(timer);controller.abort();};},[values.email,values.phone,values.phone_country_code]);
   useEffect(() => {
@@ -1140,11 +1145,12 @@ export function CaptureDialog({
               requestAnimationFrame(() => captureForm.current?.querySelector<HTMLInputElement>(nameMissing ? '[aria-label="Lead Name *"]' : values.email ? '[aria-label="Email"]' : 'input[type="tel"]')?.focus());
               return;
             }
-            if (duplicate?.matched && bootstrap.settings.preventDuplicates) { setStep(1); setError("Review the matching lead before creating another record."); return; }
+            if (duplicate?.matched && bootstrap.settings.preventDuplicates && !sharedConfirmed) { setStep(1); setError("Review the matching lead before creating another record."); return; }
             setSaving(true);
             setError("");
             try {
               const response = await leadsApi.create({
+                confirmShared:sharedConfirmed,sharedReason:sharedReason||undefined,
                 catalog_lines: catalogLines.map(linePayload),
                 values: Object.fromEntries(
                   Object.entries({
@@ -1184,7 +1190,7 @@ export function CaptureDialog({
             {step === 1 && <div className="lead-create-grid">{field("email", "Email", "e.g. john@company.com", "email")}<label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{field("job_title", "Job Title", "e.g. Sales Manager")}</div>}
             {step === 2 && <div className="lead-create-grid">{field("company_name", "Company", "Company name")}{field("industry", "Industry", "e.g. Technology")}{field("city", "City")}{field("country", "Country")}</div>}
             {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><NativeSelect value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</NativeSelect></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}</>}
-            {duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
+            <SharedNumberConfirmation phone={values.phone} countryCode={values.phone_country_code} email={values.email} confirmed={sharedConfirmed} reason={sharedReason} onChange={(a,b)=>{setSharedConfirmed(a);setSharedReason(b);}}/>{duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
             {step === 4 && <CatalogLinesEditor selectionOnly value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
             {error && <ErrorNotice message={error}/>}
           </div>
@@ -1329,7 +1335,7 @@ export function LeadDrawer({
         if (!open) dismiss();
       }}
     >
-      <DialogContent className="lm-drawer">
+      <DialogContent className="lm-drawer wf-preview lm-person-preview">
         {loggingInteraction&&lead&&<CRMInteractionDialog record={{entity:"leads",id:lead.id,name:lead.full_name,timezone:lead.details.customerTimezone}} activities={lead.activities||[]} close={()=>setLoggingInteraction(false)} saved={()=>{setLoggingInteraction(false);changed();setReload(v=>v+1);}} next={next?()=>{setLoggingInteraction(false);changed();next();}:undefined}/>}
         {scheduling && lead && (
           <FollowUpDialog
@@ -1342,9 +1348,8 @@ export function LeadDrawer({
             }}
           />
         )}
-        <DialogTitle className="lm-drawer-title">
-          {lead?.full_name || "Lead details"}
-        </DialogTitle>
+        <PersonPreviewHeader name={lead?.full_name || "Lead details"} identifier={`#${id}`} status={lead?.status}/>
+        <div className="wfp-body wf-space">
         <div className="flex gap-2"><Button variant="outline" disabled={!previous||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the previous record?"))previous?.();}}>Previous</Button><Button variant="outline" disabled={!next||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the next record?"))next?.();}}>Next</Button></div>
         {!lead ? (
           error ? (
@@ -2074,7 +2079,7 @@ export function LeadDrawer({
                     }
                   }}
                 >
-                  Convert lead
+                  Convert to customer
                 </Button>
                 <Button disabled={!dirty || busy} onClick={() => void save()}>
                   Save changes
@@ -2179,6 +2184,7 @@ export function LeadDrawer({
             </Dialog>
           </>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

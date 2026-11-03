@@ -197,11 +197,11 @@ def options(db: Session = Depends(get_db), actor: User = Depends(get_current_use
 
 @router.get("/assignment-options")
 def assignment_options(project_id: int, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
-    from .access import get_project_for_action, can_access_project
+    from .access import get_project_for_action, can_access_project, module_identity_allowed
     project = get_project_for_action(db, project_id, actor)
     ids = db.query(PMSWorkspaceMember.user_id).filter(PMSWorkspaceMember.workspace_id == project.workspace_id, PMSWorkspaceMember.role != "Guest") if project.workspace_id else db.query(PMSProjectMember.user_id).filter_by(project_id=project.id)
     people = db.query(User).filter(User.is_active.is_(True), or_(User.id.in_(ids), User.id == project.manager_user_id)).order_by(User.email).all()
-    return {"items": [public_person(db, user) for user in people], "workspace_id": project.workspace_id,
+    return {"items": [public_person(db, user) for user in people if module_identity_allowed(db, user, project.organization_id or 1)], "workspace_id": project.workspace_id,
         "can_add_existing": can_access_project(db, project, actor, "manage_members"),
         "unavailable_reason": "Only a scoped organization Admin/HR or workspace/project administrator can add an existing person while assigning work"}
 
@@ -577,6 +577,8 @@ def apply_action(user_id: int, data: PersonAction, db: Session = Depends(get_db)
         if data.action != "suspend" and until:
             raise HTTPException(422, "Only temporary suspension has an end date")
         person.external_refs_json = {**(person.external_refs_json or {}), "pms_suspension": {"reason": data.reason, "end_at": until.isoformat() if until else None, "actor_id": actor.id}}
+        from app.access.setup import protect_administrator_account
+        protect_administrator_account(db, target)
         target.is_active = False
         if data.action == "terminate":
             employee = getattr(target, "employee", None)

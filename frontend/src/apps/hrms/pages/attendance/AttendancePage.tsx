@@ -416,6 +416,7 @@ export default function AttendancePage() {
           </div>
 
           <div className="ui-toolbar">
+            {selectedRegisterIds.length > 0 && <>
             <label className="sr-only" htmlFor="bulk-attendance-status">Bulk attendance status</label>
             <NativeSelect id="bulk-attendance-status" value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
               {REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
@@ -424,10 +425,11 @@ export default function AttendancePage() {
             <Button onClick={() => saveRegisterRows(true)} disabled={saveRegisterMutation.isPending || !selectedRegisterIds.length}>
               Save Selected
             </Button>
+            <span className="text-xs text-muted-foreground">{selectedRegisterIds.length} selected</span>
+            </>}
             <Button variant="secondary" onClick={() => saveRegisterRows(false)} disabled={saveRegisterMutation.isPending || !registerRows.length}>
               Save All Visible
             </Button>
-            <span className="text-xs text-muted-foreground">{selectedRegisterIds.length} selected</span>
           </div>
 
           <div className="ui-table-wrap">

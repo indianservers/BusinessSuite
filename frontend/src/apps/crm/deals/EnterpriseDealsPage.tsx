@@ -1,3 +1,5 @@
+import CompactActions from "@/components/actions/CompactActions";
+import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import CRMDataTransfer from "../CRMDataTransfer";
 import { useCreateIntent } from "@/hooks/use-create-intent";
@@ -132,6 +134,7 @@ export default function EnterpriseDealsPage() {
   const [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
     [lookupsError, setLookupsError] = useState("");
+  const [lookupsLoading, setLookupsLoading] = useState(true);
   const [create, setCreate] = useState(false),
     [editing, setEditing] = useState<number>(),
     [transition, setTransition] = useState<{ id: number; stage?: number }>();
@@ -190,6 +193,7 @@ export default function EnterpriseDealsPage() {
   }, []);
   useEffect(() => {
     let active = true;
+    setLookupsLoading(true);
     void Promise.all(
       [
         "deal-workspace/pipelines",
@@ -221,7 +225,7 @@ export default function EnterpriseDealsPage() {
       })
       .catch((e) => {
         if (active) setLookupsError(dealError(e));
-      });
+      }).finally(() => { if (active) setLookupsLoading(false); });
     return () => {
       active = false;
     };
@@ -282,6 +286,12 @@ export default function EnterpriseDealsPage() {
     JSON.stringify(gridQuery.filters),
     JSON.stringify(gridQuery.sorting),
   ]);
+  useRecordView<GridResult<Row>>("/crm/deal-workspace/grid/query", { state: JSON.stringify({ ...gridQuery, search: filters.search, grouping: [], path: [], page, pageSize: mode === "kanban" ? 100 : 25 }), base: JSON.stringify(params) }, result => {
+    if (mode !== "grid") {
+      setData({ items: result.rows, total: result.total, page: result.page, pages: Math.ceil(result.pageTotal / result.pageSize), can_manage: result.permissions?.edit, can_export: result.permissions?.export, can_archive: result.permissions?.archive, can_assign: result.permissions?.assign });
+      setSummary(result.context?.summary as Row);
+    }
+  }, () => { setData(undefined); setSummary(undefined); setSelected([]); });
   const rows: Row[] = data?.items || [];
   const lookup = (resource: string, id: unknown) => {
     const found = options[resource]?.find(
@@ -524,16 +534,18 @@ export default function EnterpriseDealsPage() {
           </p>
         ))}
         <div className="ed-card-actions">
-          <Link to={`/crm/deals/${row.id}?tab=Activities`}>Next action</Link>
-          <Link to={`/crm/deals/${row.id}?tab=Notes+%26+Files`}>Note</Link>
-          {data?.can_manage && (
+          <CompactActions><Link to={`/crm/deals/${row.id}?tab=Activities`}>Next action</Link>
+<Link to={`/crm/deals/${row.id}?tab=Notes+%26+Files`}>Note</Link>
+{data?.can_manage && (
             <>
               <button onClick={() => setEditing(row.id)}>Edit</button>
               <button onClick={() => setTransition({ id: row.id })}>
                 Move
               </button>
             </>
-          )}
+          )}</CompactActions>
+
+
         </div>
       </article>
     );
@@ -676,6 +688,8 @@ export default function EnterpriseDealsPage() {
                 {String(title)}
                 <NativeSelect
                   aria-label={String(title)}
+                  loading={lookupsLoading}
+                  error={!!lookupsError}
                   value={String(filters[key as keyof Filters])}
                   onChange={(event) => {
                     change(key as keyof Filters, event.target.value);
@@ -752,6 +766,8 @@ export default function EnterpriseDealsPage() {
               Sales team
               <NativeSelect
                 aria-label="Sales team"
+                loading={lookupsLoading}
+                error={!!lookupsError}
                 value={filters.team_id}
                 onChange={(e) => change("team_id", e.target.value)}
               >

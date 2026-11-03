@@ -15,9 +15,11 @@ channel?.addEventListener("message", () => window.dispatchEvent(new Event("suite
 export function useCatalogRefresh(refresh: () => void) {
   useEffect(() => {
     const update = () => { if (document.visibilityState !== "hidden") refresh(); };
-    const interval = window.setInterval(update, 2000);
+    const interval = window.setInterval(update, 45000);
+    const synchronized = (event: Event) => { if ((event as CustomEvent<{entity: string}>).detail?.entity === "catalog") update(); };
+    window.addEventListener("suite:records-updated", synchronized);
     window.addEventListener("suite:catalog-changed", update); window.addEventListener("focus", update);
-    return () => { clearInterval(interval); window.removeEventListener("suite:catalog-changed", update); window.removeEventListener("focus", update); };
+    return () => { window.removeEventListener("suite:records-updated", synchronized); clearInterval(interval); window.removeEventListener("suite:catalog-changed", update); window.removeEventListener("focus", update); };
   }, [refresh]);
 }
 export function useDebounced(value: string) {

@@ -32,7 +32,7 @@ export const DialogContent = React.forwardRef<
       <CompactFields className="contents" enabled={isEditorDialog(children)}>{children}</CompactFields>
       <Primitive.Close
         aria-label="Close dialog"
-        className="absolute right-3 top-3 rounded p-1 text-muted-foreground"
+        className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <X size={18} />
       </Primitive.Close>

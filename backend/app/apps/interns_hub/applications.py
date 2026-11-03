@@ -482,6 +482,9 @@ def lifecycle(application_id:int,data:LifecycleInput,user=Depends(application_ad
     employee=db.get(Employee,item.employee_id);account=employee.user
     item.lifecycle=data.state;employee.status='Active' if data.state=='Active' else 'Inactive'
     if account:
+        if data.state != 'Active':
+            from app.access.setup import protect_administrator_account
+            protect_administrator_account(db, account)
         account.is_active=data.state=='Active'
         if not account.is_active:
             from app.models.user import UserSession

@@ -1,3 +1,5 @@
+import { IconActionButton } from "@/components/actions";
+import { savedWithUndo } from "@/components/actions/undo-feedback";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { api } from "@/services/api";
 import { fieldPath, type FieldRecord } from "./CustomFields";
@@ -246,7 +248,19 @@ export default function RecordActions({
       );
   };
   const update = (changes: Parameters<typeof tasksAPI.update>[1]) =>
-    void run(() => tasksAPI.update(record.id, changes), "Task updated.");
+    void run(async () => {
+      const freshTask = async () => (await api.get<Awaited<ReturnType<typeof tasksAPI.get>>>(`/project-management/tasks/${record.id}`, {recordCache: false, _recordSyncBypass: true, headers: {"Cache-Control": "no-cache"}})).data;
+      const before = await freshTask();
+      const saved = await tasksAPI.update(record.id, changes);
+      const keys = Object.keys(changes) as (keyof typeof changes)[];
+      const previous = Object.fromEntries(keys.map(key => [key, before[key as keyof typeof before] ?? null]));
+      savedWithUndo("Task updated", async () => {
+        const current = await freshTask();
+        if (keys.some(key => JSON.stringify(current[key as keyof typeof current]) !== JSON.stringify(saved[key as keyof typeof saved]))) throw new Error("This task changed again. Review its latest details before editing.");
+        await tasksAPI.update(record.id, previous);
+        await onChanged?.();
+      });
+    }, "Task updated.");
   const selectedIds =
     record.assignee_user_ids ??
     (record.assignee_user_id ? [record.assignee_user_id] : []);
@@ -388,8 +402,7 @@ export default function RecordActions({
           </M.Portal>
         </M.Sub>
       ) : (
-        <M.Item
-          key={action.label}
+        <span key={action.label} className="contents">{action.danger && <M.Separator className="my-1 border-t"/>}<M.Item
           disabled={busy}
           className={`pms-record-item ${action.danger ? "danger" : ""}`}
           onSelect={() => {
@@ -401,13 +414,13 @@ export default function RecordActions({
           </span>
           <span>{action.label}</span>
           {index === 0 && mode === "context" && <kbd aria-hidden="true">↵</kbd>}
-        </M.Item>
+        </M.Item></span>
       ),
     );
   }
   const menuButton = (
     <span className="inline-flex items-center gap-1">
-    {kind === "task" && canEdit && <><button type="button" className="pms-record-more" aria-label={`Edit task ${record.title}`} onClick={e => { e.stopPropagation(); navigate(`${href}/edit`); }}>Edit</button><button type="button" className="pms-record-more" aria-label={`Delete task ${record.title}`} onClick={e => { e.stopPropagation(); hidePreview(); setConfirmTrash(true); }}><Trash2 size={16}/></button></>}
+    {kind === "task" && canEdit && <IconActionButton action="edit" tooltip="Edit task details" aria-label={`Edit task ${record.title}`} onClick={e => { e.stopPropagation(); navigate(`${href}/edit`); }}/>}
     <Dropdown.Root
       open={menuOpen}
       onOpenChange={(value) => {
@@ -419,17 +432,17 @@ export default function RecordActions({
       }}
     >
       <Dropdown.Trigger asChild>
-        <button
-          type="button"
+        <IconActionButton
+          action="more"
           className="pms-record-more"
+          tooltip="Open record actions"
           aria-label={`${kind === "task" ? "Task" : "Project"} actions for ${record.title}`}
           disabled={busy}
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <MoreHorizontal size={18} />
-        </button>
+        </IconActionButton>
       </Dropdown.Trigger>
       <Dropdown.Portal>
         <Dropdown.Content

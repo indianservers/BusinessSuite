@@ -21,7 +21,11 @@ export default function BranchSwitcher() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingSwitch, setPendingSwitch] = useState<string | null>(null);
-  const current = useQuery<Context>({ queryKey: ["suite-branch-context", user?.id, user?.access?.companyId], enabled: !!user, queryFn: async () => (await api.get("/branches/context", { progress: false })).data, retry: false, refetchOnWindowFocus: true });
+  const current = useQuery<Context>({ queryKey: ["suite-branch-context", user?.id, user?.access?.companyId], enabled: !!user, queryFn: async () => {
+    const {data} = await api.get<Context>("/branches/context", {progress: false});
+    if (!data || !Array.isArray(data.branches)) throw new Error("Branch choices are unavailable. Retry loading branches.");
+    return data;
+  }, retry: false, refetchOnWindowFocus: true });
   const context = current.data;
   const storedBranch = sessionStorage.getItem("suite-branch");
   const staleBranch = !!context && !!storedBranch && storedBranch !== String(context.selected);

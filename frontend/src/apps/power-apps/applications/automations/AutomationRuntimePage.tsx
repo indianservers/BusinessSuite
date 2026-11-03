@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -722,7 +723,7 @@ export default function AutomationRuntimePage() {
                 </button>
               )}
               {can("publish") && (
-                <div className="rt-actions">
+                <CompactActions className="rt-actions">
                   <button
                     disabled={busy}
                     onClick={() =>
@@ -793,7 +794,7 @@ export default function AutomationRuntimePage() {
                         Archive runtime
                       </button>
                     )}
-                </div>
+                </CompactActions>
               )}
             </section>
             <div>
@@ -1007,7 +1008,7 @@ export default function AutomationRuntimePage() {
                 )}
               </div>
               <div className="rt-actions">
-                <button
+                <CompactActions><button
                   disabled={!report.can_export || busy}
                   onClick={() =>
                     void action(async () => {
@@ -1017,7 +1018,7 @@ export default function AutomationRuntimePage() {
                 >
                   <Download size={14} /> Export sanitized report
                 </button>
-                {can("execute") && (
+{can("execute") && (
                   <>
                     <button
                       disabled={
@@ -1051,7 +1052,8 @@ export default function AutomationRuntimePage() {
                       Re-run with confirmation
                     </button>
                   </>
-                )}
+                )}</CompactActions>
+
               </div>
             </section>
             <RunGraph

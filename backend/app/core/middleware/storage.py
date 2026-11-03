@@ -60,6 +60,10 @@ class PrivateUploadURLMiddleware(BaseHTTPMiddleware):
             body = json.dumps(sign_upload_references(json.loads(body))).encode()
         headers = dict(response.headers)
         headers.pop("content-length", None)
-        headers["Cache-Control"] = "private, no-store"
+        # Ordinary JSON receives the outer security middleware's default policy.
+        # Signed private file links must always remain non-cacheable, including
+        # responses otherwise eligible for negotiated record synchronization.
+        if any(marker in body for marker in (b"/uploads/", b"X-Amz-Signature=", b"/api/v1/files/blob?", b"/api/v1/files/local?")):
+            headers["Cache-Control"] = "private, no-store"
         return Response(body, status_code=response.status_code, headers=headers,
                         background=response.background)

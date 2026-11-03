@@ -118,8 +118,11 @@ export default function ConnectedCollectionsPage() {
   const uid = useAuthStore((state) => state.user?.id);
   const query = useQuery({
     queryKey: ["collection-invoices", uid],
-    queryFn: async () =>
-      (await api.get("/srm/business/collection-invoices")).data,
+    queryFn: async () => {
+      const {data} = await api.get<{items: Row[]; can_record: boolean}>("/srm/business/collection-invoices");
+      if (!data || !Array.isArray(data.items) || typeof data.can_record !== "boolean") throw new Error("Collection invoice choices are unavailable");
+      return data;
+    },
     refetchInterval: 10000,
   });
   if (query.isPending) return <p>Loading collections…</p>;

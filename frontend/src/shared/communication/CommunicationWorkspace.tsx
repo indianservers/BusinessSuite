@@ -898,7 +898,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                               </button>
                             </span>
                           ))}
-                          <div className="ce-composer-tools"><details><summary aria-label="Insert emoji">☺</summary><div>{["👍","❤️","🎉","✅","🙏","💡","🚀"].map(emoji => <button type="button" key={emoji} onClick={() => setDrafts(d => ({...d,[context]:appendRichMarkdown(d[context] || "", emoji)}))}>{emoji}</button>)}</div></details><NativeSelect aria-label="Mention conversation member" value="" onChange={e => { if(e.target.value) setDrafts(d=>({...d,[context]:appendRichMarkdown(d[context] || "", "@" + e.target.value)})); }}><option value="">@ Mention</option>{room.participants.map(p=><option key={p.id} value={p.email}>{p.email}</option>)}</NativeSelect></div>
+                          <div className="ce-composer-tools"><details><summary aria-label="Insert emoji">☺</summary><div>{["👍","❤️","🎉","✅","🙏","💡","🚀"].map(emoji => <button type="button" key={emoji} onClick={() => setDrafts(d => ({...d,[context]:appendRichMarkdown(d[context] || "", emoji)}))}>{emoji}</button>)}</div></details><NativeSelect loading={inbox.isFetching} error={inbox.isError} aria-label="Mention conversation member" value="" onChange={e => { if(e.target.value) setDrafts(d=>({...d,[context]:appendRichMarkdown(d[context] || "", "@" + e.target.value)})); }}><option value="">@ Mention</option>{room.participants.map(p=><option key={p.id} value={p.email}>{p.email}</option>)}</NativeSelect></div>
                           <footer>
                             {features.files !== false && <label>
                               Attach files
@@ -1199,7 +1199,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                   >
                     <label>
                       Share an existing project file
-                      <NativeSelect
+                      <NativeSelect loading={workspaces.isFetching || inbox.isFetching} error={workspaces.isError || inbox.isError}
                         aria-label="Choose project file"
                         required
                         value={fileId}

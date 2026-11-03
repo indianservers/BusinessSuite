@@ -1,7 +1,8 @@
+import { openPerson } from "@/apps/project-management/components/people/peopleTypes";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import ProfileListCard, { ProfileAction } from "./ProfileListCard";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import PersonRecordPreview from "./PersonRecordPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -31,7 +32,7 @@ export default function PeopleDirectoryPage() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   useRefreshableEffect(() => {
     let cancelled = false;
-    setData(undefined); setError("");
+    setError("");
     async function load() {
       const first = (await api.get<Directory>("/users/directory", { params: { page: 1, page_size: 200 } })).data;
       const items = [...first.items];
@@ -46,6 +47,7 @@ export default function PeopleDirectoryPage() {
     void load().catch(e => { if (!cancelled) setError(e.response?.data?.detail || "Unable to load people. Please retry."); });
     return () => { cancelled = true; };
   }, [attempt]);
+  useEffect(() => { const refresh = () => setAttempt(a => a + 1); window.addEventListener("pms:people-changed", refresh); return () => window.removeEventListener("pms:people-changed", refresh); }, []);
   const teams = data?.teams.filter(t => !workspace || t.workspace_id === Number(workspace)) || [];
   const people = useMemo(() => data?.items.filter(p =>
     (!query || `${p.name} ${p.email}`.toLowerCase().includes(query.toLowerCase())) &&
@@ -77,20 +79,13 @@ export default function PeopleDirectoryPage() {
             ...memberTeams.slice(0, 2).map(t => ({ label: t.name, onClick: () => { setWorkspace(String(t.workspace_id)); setTeam(String(t.id)); } })),
             ...(workspaces.length + memberTeams.length > 4 ? [{ label: "More memberships", onClick: () => setSelectedPerson(p) }] : []),
           ]}
-          actions={<>{p.is_active && <ProfileAction href={`/pms/members?email=${encodeURIComponent(p.email)}`} label={`Add ${p.name} to workspace or project`}>Add to workspace / project</ProfileAction>}<ProfileAction onClick={() => setSelectedPerson(p)} label={`View profile of ${p.name}`}>View profile</ProfileAction><ProfileAction href={`mailto:${p.email}`} label={`Email ${p.name}`}>Email</ProfileAction></>} />;
+          actions={<>{p.is_active && <ProfileAction onClick={() => openPerson({ userId: p.id, compactMemberships: true })} label={`Add ${p.name} to workspace or project`}>Add to workspace / project</ProfileAction>}<ProfileAction onClick={() => setSelectedPerson(p)} label={`View profile of ${p.name}`}>View profile</ProfileAction><ProfileAction href={`mailto:${p.email}`} label={`Email ${p.name}`}>Email</ProfileAction></>} />;
       })}</div>
-      <Dialog open={!!selectedPerson} onOpenChange={open => { if (!open) setSelectedPerson(null); }}><DialogContent>
-        <DialogTitle>Profile overview</DialogTitle>
-        {selectedPerson && <><ProfileListCard name={selectedPerson.name} photoUrl={selectedPerson.profile_photo_url}
-          subtitle={selectedPerson.role.replace(/_/g, " ")} status={{label:selectedPerson.is_active ? "Active" : "Inactive",tone:selectedPerson.is_active ? "positive" : "muted"}}
-          actions={<ProfileAction href={`mailto:${selectedPerson.email}`}>Email {selectedPerson.name}</ProfileAction>} />
-          <p className="break-all text-sm text-muted-foreground">{selectedPerson.email}</p>
-          <div><h3 className="mb-2 text-sm font-medium">Workspaces &amp; teams</h3><div className="flex flex-wrap gap-2">
+      {selectedPerson && <PersonRecordPreview key={selectedPerson.id} record={{ ...selectedPerson, status: selectedPerson.is_active ? "Active" : "Inactive", workspaces: selectedPerson.workspace_ids.map(id => data.workspaces.find(w => w.id === id)).filter(Boolean), teams: data.teams.filter(t => t.member_ids.includes(selectedPerson.id)) }} onClose={() => setSelectedPerson(null)} actions={selectedPerson.is_active && <button onClick={() => openPerson({ userId: selectedPerson.id, compactMemberships: true })}>Add to workspace / project</button>} work={<div><h3 className="mb-2 text-sm font-medium">Workspaces &amp; teams</h3><div className="flex flex-wrap gap-2">
             {selectedPerson.workspace_ids.map(id => <ProfileAction key={id} onClick={() => {setWorkspace(String(id));setTeam("");setSelectedPerson(null);}}>{data.workspaces.find(w => w.id === id)?.name || "Workspace"}</ProfileAction>)}
             {data.teams.filter(t => t.member_ids.includes(selectedPerson.id)).map(t => <ProfileAction key={`team-${t.id}`} onClick={() => {setWorkspace(String(t.workspace_id));setTeam(String(t.id));setSelectedPerson(null);}}>{t.name}</ProfileAction>)}
             {!selectedPerson.workspace_ids.length && <p className="text-sm text-muted-foreground">No workspace membership</p>}
-          </div></div></>}
-      </DialogContent></Dialog>
+          </div></div>} />}
       {!people.length && <p>No users match these filters.</p>}
     </>}
   </main>;

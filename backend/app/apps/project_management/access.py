@@ -72,7 +72,30 @@ def project_member(db: Session, project_id: int, user_id: int) -> PMSProjectMemb
     ).first()
 
 
+def module_identity_allowed(db: Session, user: User, company_id: int) -> bool:
+    """Workspace membership cannot override a disabled account/module policy."""
+    if not user or not user.is_active:
+        return False
+    if user.is_superuser:
+        return True
+    from app.access.models import AccessMembership
+    from app.access.service import policy_for, resolved_grants
+    membership = db.query(AccessMembership).filter_by(user_id=user.id, company_id=company_id).first()
+    if membership and not membership.active:
+        return False
+    policy = policy_for(db, user, company_id)
+    if policy is None:
+        # Existing workspace/project membership remains the legacy access source.
+        return True
+    grant = resolved_grants(db, policy).get("project_management", {})
+    return policy.status == "active" and bool(grant.get("enabled")) and "view" in grant.get("actions", [])
+
+
 def can_access_project(db: Session, project: PMSProject, user: User, action: str = "browse") -> bool:
+    if not module_identity_allowed(db, user, project.organization_id or 1):
+        return False
+    if not same_organization(project, user):
+        return False
     if getattr(project, "is_task_collection", False) and action in {"edit_project", "administer", "create_project"}:
         return False
     if project.workspace_id:

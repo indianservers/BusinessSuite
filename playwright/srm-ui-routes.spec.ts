@@ -10,7 +10,7 @@ test.describe("SRM UI route completion", () => {
     await authenticate(page, "srm_admin");
     for (const route of srmRoutes) {
       await expectHealthySrmRoute(page, route);
-      await expect(page.locator("body")).toContainText("SRM");
+      await expect(page.locator("body")).toContainText(route === "/srm/settings" ? "Sales settings" : "SRM");
     }
     expect(consoleErrors.filter((line) => !line.includes("favicon"))).toEqual([]);
   });

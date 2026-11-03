@@ -1,8 +1,9 @@
+import { ActionToolbar } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
 import HRTransfer from "./HRTransfer";
 import {useState} from "react";
 
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 
 import {useQuery,useQueryClient} from "@tanstack/react-query";
 
@@ -15,10 +16,12 @@ import {Input} from "@/components/ui/input";
 import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
 
 import {HR,errorText} from "./shared";
+import { openPerson } from "@/apps/project-management/components/people/peopleTypes";
 
 
 
 export default function EmployeeActions({id,changed}:{id:number;changed?:()=>void}){
+ const navigate=useNavigate();
 
  const [transfer,setTransfer]=useState(false);
  const qc=useQueryClient(),[action,setAction]=useState(""),[reason,setReason]=useState(""),[lastDay,setLastDay]=useState(new Date().toLocaleDateString("en-CA")),[error,setError]=useState(""),[busy,setBusy]=useState(false),[notice,setNotice]=useState("");
@@ -41,7 +44,16 @@ export default function EmployeeActions({id,changed}:{id:number;changed?:()=>voi
 
  return <section aria-label="Employee management" className="space-y-4 rounded-xl border bg-card p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">Employee actions</h2><p className="text-xs">Scope: {data.scope.company} · {data.scope.branch} · {data.scope.department} · {data.employee_code}</p></div><div className="flex flex-wrap gap-2 text-sm"><span className="rounded border px-3 py-2">Employment: <strong>{data.employment_status}</strong></span><span className="rounded border px-3 py-2">Login access: <strong>{data.login_status}</strong></span></div></div><p className="text-sm">{data.user_id?<>Linked login: {data.account_email||`Account #${data.user_id}`} · <Link className="underline" to={`/hrms/employees/${id}?tab=account`}>Account details</Link></>:"This employee has no linked login. Employment records can exist without sign-in access; link an eligible account from the Account tab."}</p>
 
- <div className="flex flex-wrap gap-2">{data.permissions.edit?<Button variant="outline" asChild><Link to={`/hrms/employees/${id}?tab=personal`}>Edit employee</Link></Button>:<Button variant="outline" disabled>Edit employee</Button>}<Button variant="outline" disabled={!data.permissions.edit} onClick={()=>setTransfer(true)}>Transfer / Change manager</Button><Button variant="outline" asChild><Link to={`/hrms/people-work?employee_id=${id}`}>Assign work</Link></Button><Button variant="outline" disabled={!data.permissions.access} onClick={()=>setAction(data.login_status==="Active"?"suspend_access":"reactivate_access")}>{data.login_status==="Active"?"Suspend login":"Reactivate login"}</Button><Button variant="outline" disabled={!data.permissions.exit||!!checklist.data?.exit} onClick={()=>setAction("start_exit")}>Start Exit</Button>{["Terminated","Exited","Resigned"].includes(data.employment_status)?<Button variant="outline" disabled={!data.permissions.terminate} onClick={()=>setAction("reactivate_employment")}>Reactivate employment</Button>:<Button variant="destructive" disabled={!data.permissions.terminate} onClick={()=>setAction("terminate_employment")}>Terminate employment</Button>}</div>{!data.permissions.edit&&<p className="text-xs">Employee update permission is required to edit fields or change organizational assignments.</p>}{data.access_reason&&<p className="text-xs text-muted-foreground">{data.access_reason}</p>}<p className="text-xs text-muted-foreground">Suspend login blocks sign-in and revokes sessions; employment stays unchanged. Terminate employment ends employment and disables the linked login. Start Exit opens a checklist and does not change either status.</p>
+ <ActionToolbar label="Employee management actions" actions={[
+ {id:"edit",available:!!data.permissions.edit,kind:"edit",label:"Edit employee",prominent:true,disabled:!data.permissions.edit,disabledReason:!data.permissions.edit ? "Employee update permission is required" : undefined,onSelect:()=>navigate(`/hrms/employees/${id}?tab=personal`)},
+ {id:"membership",available:!!data.user_id,kind:"assign",label:"Add to project / workspace",prominent:true,disabled:!data.user_id,disabledReason:!data.user_id ? "Link an employee login account first" : undefined,onSelect:()=>openPerson({userId:data.user_id,compactMemberships:true})},
+ {id:"transfer",available:!!data.permissions.edit,kind:"assign",label:"Transfer / Change manager",disabled:!data.permissions.edit,disabledReason:!data.permissions.edit ? "Employee update permission is required" : undefined,onSelect:()=>setTransfer(true)},
+ {id:"work",kind:"task",label:"Assign work",prominent:true,onSelect:()=>navigate(`/hrms/people-work?employee_id=${id}`)},
+ {id:"access",available:!!data.permissions.access,kind:"profile",label:data.login_status === "Active" ? "Suspend login" : "Reactivate login",disabled:!data.permissions.access,disabledReason:!data.permissions.access ? "Account access permission is required" : undefined,danger:data.login_status === "Active",onSelect:()=>setAction(data.login_status === "Active" ? "suspend_access" : "reactivate_access")},
+ {id:"exit",available:!!data.permissions.exit && !checklist.data?.exit,kind:"review",label:"Start Exit",danger:true,disabled:!data.permissions.exit || !!checklist.data?.exit,disabledReason:checklist.data?.exit ? "An exit process already exists" : !data.permissions.exit ? "Exit management permission is required" : undefined,onSelect:()=>setAction("start_exit")},
+ {id:"employment",available:!!data.permissions.terminate,kind:["Terminated","Exited","Resigned"].includes(data.employment_status) ? "profile" : "delete",label:["Terminated","Exited","Resigned"].includes(data.employment_status) ? "Reactivate employment" : "Terminate employment",danger:true,disabled:!data.permissions.terminate,disabledReason:!data.permissions.terminate ? "Employment lifecycle permission is required" : undefined,onSelect:()=>setAction(["Terminated","Exited","Resigned"].includes(data.employment_status) ? "reactivate_employment" : "terminate_employment")},
+ ]}/>
+{!data.permissions.edit&&<p className="text-xs">Employee update permission is required to edit fields or change organizational assignments.</p>}{data.access_reason&&<p className="text-xs text-muted-foreground">{data.access_reason}</p>}<p className="text-xs text-muted-foreground">Suspend login blocks sign-in and revokes sessions; employment stays unchanged. Terminate employment ends employment and disables the linked login. Start Exit opens a checklist and does not change either status.</p>
 
  {notice&&<p role="status">{notice}</p>}<details><summary className="cursor-pointer font-medium">Profile completion checklist</summary><div className="mt-2 grid gap-2 sm:grid-cols-2">{data.completion.map((c:any)=><Link className="rounded border p-2 text-sm" key={c.label} to={c.url}>{c.complete?"✓":"○"} {c.label}</Link>)}</div><p className="mt-2 text-xs">Restricted personal, bank and tax fields remain masked according to your field permissions.</p></details>
 

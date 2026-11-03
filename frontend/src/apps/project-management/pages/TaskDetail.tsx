@@ -1,3 +1,6 @@
+import CompactActions from "@/components/actions/CompactActions";
+import { ActionToolbar } from "@/components/actions";
+import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import TaskExecutionPanel from "../components/TaskExecutionPanel";
@@ -732,7 +735,7 @@ export default function TaskDetail() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link className="inline-flex items-center rounded-md border px-3 py-2 text-sm" to={`/pms/operator?project=${task.project_id}&task=${task.id}`}>AI operator · voice / text</Link>
+              <details className="rounded-lg border px-3 py-2 text-sm"><summary className="cursor-pointer" data-action-tooltip="Open AI task tools">AI assistant</summary><div className="mt-3 flex flex-wrap gap-2">              <Link className="inline-flex items-center rounded-md border px-3 py-2 text-sm" to={`/pms/operator?project=${task.project_id}&task=${task.id}`}>AI operator · voice / text</Link>
               <AskAiButton
                 module="PMS"
                 relatedEntityType="task"
@@ -743,14 +746,16 @@ export default function TaskDetail() {
               />
               <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Summarize task" defaultPrompt="Summarize this task using accessible task data. Include progress, blockers and outstanding work. Clearly identify missing information. Do not modify the task." />
               <AskAiButton module="PMS" relatedEntityType="task" relatedEntityId={task.id} buttonLabel="Plan next steps" defaultPrompt="Suggest a practical checklist of next steps for this task using accessible data. Include dependencies and questions that need answers. Present suggestions for review without modifying the task." />
-              <Button onClick={() => updateTask({ title: task.title, description: task.description })} disabled={saving}>
-                <Save className="h-4 w-4" />{saving ? "Saving" : "Save"}
-              </Button>
-              <QuickAnchor label="Comment" target="comments" setActiveTab={setActiveTab} />
-              <QuickAnchor label="Attach File" target="files" setActiveTab={setActiveTab} />
-              <QuickAnchor label="Log Time" target="time" setActiveTab={setActiveTab} />
-              <Button variant="outline" onClick={() => document.getElementById("add-checklist-item")?.focus()}><CheckSquare className="h-4 w-4" />Add Checklist</Button>
-              <Button variant="outline" onClick={() => document.getElementById("add-subtask")?.focus()}><Plus className="h-4 w-4" />Add Sub-task</Button>
+</div></details>
+              <ActionToolbar label="Task record actions" actions={[
+                {id:"save",kind:"save",prominent:true,primary:true,loading:saving,onSelect:()=>updateTask({title:task.title,description:task.description})},
+                {id:"comment",kind:"sms",label:"Comment",tooltip:"Add a comment to this task",prominent:true,onSelect:()=>setActiveTab("comments")},
+                {id:"file",kind:"upload",label:"Attach File",prominent:true,onSelect:()=>setActiveTab("files")},
+                {id:"time",kind:"time",label:"Log Time",tooltip:"Record time spent on this task",onSelect:()=>setActiveTab("time")},
+                {id:"checklist",kind:"review",label:"Add Checklist",onSelect:()=>document.getElementById("add-checklist-item")?.focus()},
+                {id:"subtask",kind:"task",label:"Add Sub-task",onSelect:()=>document.getElementById("add-subtask")?.focus()},
+              ]}/>
+
             </div>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -936,13 +941,13 @@ export default function TaskDetail() {
 
           <Card>
             <CardHeader>
-              <div className="flex flex-wrap gap-2">
-                {tabs.map((tab) => (
-                  <Button key={tab.key} type="button" variant={activeTab === tab.key ? "default" : "outline"} size="sm" onClick={() => setActiveTab(tab.key)}>
-                    {tab.icon}{tab.label}
-                  </Button>
-                ))}
-              </div>
+              <RecordSectionNav value={activeTab} onChange={value => setActiveTab(value as TabKey)} label="Task information" groups={[
+                {label:"Work", sections:tabs.filter(t=>["work","links","development"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+                {label:"Discussion", sections:tabs.filter(t=>["comments","notes"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+                {label:"Time & files", sections:tabs.filter(t=>["time","files"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+                {label:"Activity", sections:tabs.filter(t=>["activity","history"].includes(t.key)).map(t=>({value:t.key,label:t.label}))},
+              ]}/>
+
             </CardHeader>
             <CardContent className="space-y-4">
               {activeTab === "notes" ? <TaskLinkedNotes projectId={task.project_id} taskId={task.id}/> : null}
@@ -1201,7 +1206,7 @@ function SubtaskRow({
             {(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} / Due {formatDate(task.due_date || null)}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <CompactActions className="flex shrink-0 flex-wrap gap-2">
           <Button type="button" size="sm" variant="ghost" disabled={busy || first} onClick={moveUp} aria-label={`Move ${task.title} up`}>Up</Button>
           <Button type="button" size="sm" variant="ghost" disabled={busy || last} onClick={moveDown} aria-label={`Move ${task.title} down`}>Down</Button>
           <Button type="button" size="sm" variant="ghost" onClick={promote}>Promote</Button>
@@ -1213,7 +1218,7 @@ function SubtaskRow({
           <Button type="button" size="sm" variant="ghost" onClick={() => deleteSubtask(task)} aria-label={`Delete ${task.title}`}>
             <Trash2 className="h-4 w-4" />
           </Button>
-        </div>
+        </CompactActions>
       </div>
     </div>
   );
@@ -1686,7 +1691,7 @@ export function FilesTab({
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <CompactActions className="flex flex-wrap gap-2">
                 {canPreview(item) ? (
                   <Button type="button" size="sm" variant="outline" onClick={() => setPreviewFile((current) => current?.id === item.id ? null : item)}>
                     <Eye className="h-4 w-4" />Preview
@@ -1701,7 +1706,7 @@ export function FilesTab({
                 {canManage && <Button type="button" size="sm" variant="ghost" onClick={() => deleteAttachment(item)}>
                   <Trash2 className="h-4 w-4" />Delete
                 </Button>}
-              </div>
+              </CompactActions>
             </div>
             {previewFile?.id === item.id ? (
               <div className="mt-3 overflow-hidden rounded-md border bg-muted/20">

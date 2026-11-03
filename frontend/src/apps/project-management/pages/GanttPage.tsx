@@ -491,7 +491,7 @@ function DependencyRow({ dependency, onDelete, canEdit }: { dependency: PMSTaskD
         <p className="font-medium">{dependency.source_task_key || dependency.depends_on_task_key} &rarr; {dependency.target_task_key || dependency.task_key}</p>
         <p className="text-xs text-muted-foreground">{dependency.dependency_type} / Lag {dependency.lag_days || 0} days</p>
       </div>
-      <Button disabled={!canEdit} type="button" size="sm" variant="ghost" onClick={onDelete} aria-label="Delete dependency"><Trash2 className="h-4 w-4" /></Button>
+      <Button available={!!(canEdit)} disabled={!canEdit} type="button" size="sm" variant="ghost" onClick={onDelete} aria-label="Delete dependency"><Trash2 className="h-4 w-4" /></Button>
     </div>
   );
 }

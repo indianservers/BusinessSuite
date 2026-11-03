@@ -12,6 +12,7 @@ export type SRMSyncEvent = {
 };
 
 function invalidateSrm(queryClient: QueryClient) {
+  window.dispatchEvent(new CustomEvent("suite:record-push", { detail: { module: "sales" } }));
   queryClient.invalidateQueries({ queryKey: ["srm"] });
 }
 

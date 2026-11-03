@@ -1,3 +1,5 @@
+import { ActionToolbar } from "@/components/actions";
+import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import EmployeeActions from "../../workbench/EmployeeActions";
@@ -604,23 +606,19 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         </CardContent>
       </Card>
 
+      <ActionToolbar label="Employee contact actions" actions={[
+        {id:"email",kind:"email",prominent:true,tooltip:"Compose email to this employee",disabled:!emp.work_email && !emp.personal_email,disabledReason:!emp.work_email && !emp.personal_email ? "No employee email address is recorded" : undefined,href:`mailto:${emp.work_email || emp.personal_email || ""}`},
+        {id:"call",kind:"call",prominent:true,tooltip:"Call this employee",disabled:!emp.phone_number,disabledReason:!emp.phone_number ? "No employee phone number is recorded" : undefined,href:`tel:${emp.phone_number_country_code || ""}${emp.phone_number || ""}`},
+        {id:"profile",kind:"profile",prominent:true,onSelect:()=>setActiveTab("profile")},
+      ]}/>
       {/* Tabs */}
-      <div className="flex overflow-x-auto gap-1 border-b pb-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex shrink-0 items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <RecordSectionNav value={activeTab} onChange={setActiveTab} label="Employee information" groups={[
+        {label:"Overview", sections:TABS.filter(t=>["360","profile"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Personal", sections:TABS.filter(t=>["personal","family","health","bank"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Work", sections:TABS.filter(t=>["job","education","experience","skills","documents"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Pay & access", sections:TABS.filter(t=>["payroll","account"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+      ]}/>
+
 
       {editing && (
         <Card>

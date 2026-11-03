@@ -5,11 +5,17 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def approval_tenant(db):
-    from app.models.company import Company
+def approval_tenant(db, request):
+    from app.models.company import Company, Branch
     if not db.get(Company, 1):
         db.add(Company(id=1, name='Quote approval regression tenant'))
     db.commit()
+    if "superuser_headers" in request.fixturenames:
+        headers = request.getfixturevalue("superuser_headers")
+        branch = Branch(company_id=1, name="Quote approval test", code="QUOTE-QA")
+        db.add(branch)
+        db.commit()
+        headers.update({"X-Suite-Organization":"1", "X-Suite-Branch":str(branch.id)})
 
 
 def test_quote_approval_list_defaults_to_submission_date(client, db, superuser_headers):
@@ -22,6 +28,9 @@ def test_quote_approval_list_defaults_to_submission_date(client, db, superuser_h
     row = db.query(CRMQuoteApproval).filter_by(quote_id=quote.json()['id']).one()
     row.submitted_at = datetime(2026, 10, 1, tzinfo=timezone.utc)
     db.add(CRMQuoteApproval(organization_id=row.organization_id, quote_id=row.quote_id, status='pending', submitted_at=datetime(2026, 10, 2, tzinfo=timezone.utc)))
+    db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), row.organization_id, table_names={CRMQuoteApproval.__tablename__})
     db.commit()
     response = client.get('/api/v1/crm/quote-approvals', headers=superuser_headers)
     assert response.status_code == 200, response.text

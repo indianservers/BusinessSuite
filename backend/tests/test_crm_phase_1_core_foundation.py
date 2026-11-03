@@ -1,5 +1,5 @@
 import pytest
-from app.models.company import Company
+from app.models.company import Company, Branch
 from tests.tenant_test_utils import assign_company
 
 @pytest.fixture(autouse=True)
@@ -7,6 +7,23 @@ def company_context(db):
     if not db.get(Company, 1):
         db.add(Company(id=1, name="CRM integration tenant"))
         db.flush()
+    if not db.query(Branch).filter(Branch.company_id == 1, Branch.code == "CRM-PHASE1").first():
+        db.add(Branch(company_id=1, name="CRM foundation test branch", code="CRM-PHASE1"))
+        db.flush()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1, table_names={"branches"})
+
+
+@pytest.fixture
+def superuser_headers(superuser_headers, db):
+    # Business workflow fixtures must carry a verified company and destination;
+    # do not weaken the production boundary to accommodate legacy test logins.
+    from test_identity_utils import attach_test_identity
+    user = db.query(User).filter(User.email == "testadmin@test.com").one()
+    attach_test_identity(db, user)
+    branch = db.query(Branch).filter(Branch.company_id == 1, Branch.code == "CRM-PHASE1").one()
+    db.commit()
+    return {**superuser_headers, "X-Suite-Branch": str(branch.id)}
 
 from app.apps.crm.models import CRMLeadConversionLog, CRMTimelineEvent
 from app.core.security import get_password_hash
@@ -28,6 +45,10 @@ def _headers_for_permissions(client, db, email: str, permissions: list[str]):
     db.add(user)
     db.flush()
     assign_company(db, user, 1)
+    branch = db.query(Branch).filter(Branch.company_id == 1, Branch.code == "CRM-PHASE1").first()
+    if branch:
+        from app.branches.models import BranchGrant
+        db.add(BranchGrant(user_id=user.id, company_id=1, branch_id=branch.id, can_write=any(name.endswith("_manage") or name == "crm_admin" for name in permissions)))
     db.commit()
     login = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
     assert login.status_code == 200

@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState, useDeferredValue, useRef } from "react";
@@ -223,7 +224,7 @@ export default function InternApplicationsPage() {
   const { data: intakeJobs } = useQuery<Row>({ queryKey: ["intake-jobs"],
     queryFn: () => api.get("/interns-hub/admin/application-jobs").then(r => r.data), refetchInterval: 10000 });
   const pendingIntakeJobs: Row[] = (intakeJobs?.items || []).filter((job: Row) => job.status !== "Completed");
-  const { data: options } = useQuery({
+  const organizationQuery = useQuery({
     queryKey: ["intern-application-organization"],
     queryFn: async () => {
       const [branches, departments, designations, managerResponse] = await Promise.all([
@@ -241,6 +242,15 @@ export default function InternApplicationsPage() {
       };
     },
   });
+  const options = organizationQuery.data;
+  const organizationReady = !!options?.branches.length && !!options?.departments.length && !!options?.designations.length && !!options?.managers.length;
+  const organizationStatus = organizationQuery.isPending ? (
+    <p role="status" className="text-sm sm:col-span-2">Loading organization options…</p>
+  ) : organizationQuery.isError ? (
+    <div role="alert" className="text-sm sm:col-span-2">Organization options could not load. {reviewError(organizationQuery.error)} <Button type="button" variant="outline" size="sm" onClick={() => void organizationQuery.refetch()}>Retry organization options</Button></div>
+  ) : !organizationReady ? (
+    <div role="alert" className="text-sm sm:col-span-2">Approval needs available branches, departments, designations and reporting managers in the current company and branch. <Link className="underline" to="/settings/company-profile">Review organization setup</Link>. <Button type="button" variant="outline" size="sm" onClick={() => void organizationQuery.refetch()}>Reload organization options</Button></div>
+  ) : null;
   const list = applications.filter((a) => (!filter || a.status === filter) && `${a.full_name} ${a.email} ${a.reference}`.toLowerCase().includes(search.trim().toLowerCase()));
   const eligible = list.filter(reviewable);
   const checkedApplications = applications.filter(item => checkedIds.includes(item.id) && reviewable(item));
@@ -377,12 +387,16 @@ export default function InternApplicationsPage() {
             disabled={busy} onChange={event => { setBulkAll(false); setCheckedIds(event.target.checked ? eligible.map(item => item.id) : []); }} />
           Select all shown ({eligible.length})
         </label>
+        {(checkedApplications.length > 0 || bulkAll) && <>
         <span className="text-sm" role="status">{bulkAll ? intake?.reviewable_total : checkedApplications.length} selected</span>
+        <CompactActions>
         <Button disabled={(!checkedApplications.length && !bulkAll) || busy} onClick={() => openBulkReview("Approved")}>Approve selected</Button>
         <Button variant="outline" disabled={(!checkedApplications.length && !bulkAll) || busy} onClick={() => openBulkReview("Rejected")}>Reject selected</Button>
         <Button variant="outline" disabled={(!checkedApplications.length && !bulkAll) || busy} onClick={() => openBulkReview("Correction Requested")}>Request corrections for selected</Button>
         {!bulkAll && <Button variant="outline" disabled={busy} onClick={() => { setBulkAll(true); setCheckedIds([]); }}>Select all {intake?.reviewable_total} matching reviewable applications</Button>}
         {(checkedIds.length > 0 || bulkAll) && <Button variant="ghost" disabled={busy} onClick={() => { setCheckedIds([]); setBulkAll(false); }}>Clear selection</Button>}
+        </CompactActions>
+        </>}
       </section>}
       <div className="flex flex-wrap items-center gap-3"><span>{intake?.total || 0} matching applications Â· Page {intakePage}</span>
         <Button variant="outline" disabled={intakePage === 1 || busy} onClick={() => { setIntakePage(p => p - 1); setCheckedIds([]); setSelected(undefined); }}>Previous</Button>
@@ -404,13 +418,14 @@ export default function InternApplicationsPage() {
           <p className="text-sm text-muted-foreground">This will update {bulkAll ? intake?.reviewable_total : bulkReview?.ids.length || 0} selected application(s). {bulkReview?.status === "Approved" ? "The same branch, department, designation, manager and joining date will apply to everyone selected." : "The reason or instructions below will apply to every selected applicant."}</p>
           <CompactForm onSubmit={event => {
             event.preventDefault();
-            if (bulkReview && (bulkReview.status === "Approved" || bulkDecision.review_note.trim())) bulkMutation.mutate({ ...bulkReview, values: { ...bulkDecision } });
+            if (bulkReview && (bulkReview.status === "Approved" ? organizationReady : bulkDecision.review_note.trim())) bulkMutation.mutate({ ...bulkReview, values: { ...bulkDecision } });
           }}>
             <fieldset disabled={bulkMutation.isPending} className="grid gap-4 sm:grid-cols-2">
+              {bulkReview?.status === "Approved" && organizationStatus}
               <DecisionFields decision={bulkDecision} setDecision={setBulkDecision} options={options} prefix="bulk-review" approval={bulkReview?.status === "Approved"} requireReason={bulkReview?.status !== "Approved"} />
               <div className="flex flex-wrap justify-end gap-3 sm:col-span-2">
                 <Button type="button" variant="outline" onClick={() => setBulkReview(null)}>Cancel</Button>
-                <Button type="submit" disabled={bulkReview?.status !== "Approved" && !bulkDecision.review_note.trim()}>{bulkReview?.status === "Approved" ? "Approve & onboard selected" : bulkReview?.status === "Rejected" ? "Confirm rejection" : "Send correction requests"}</Button>
+                <Button type="submit" disabled={bulkReview?.status === "Approved" ? !organizationReady : !bulkDecision.review_note.trim()}>{bulkReview?.status === "Approved" ? "Approve & onboard selected" : bulkReview?.status === "Rejected" ? "Confirm rejection" : "Send correction requests"}</Button>
               </div>
             </fieldset>
             {bulkMutation.isPending && <p role="status" className="mt-3 text-sm">Starting a resumable intake operation. Progress will be saved on the server.</p>}
@@ -510,9 +525,10 @@ export default function InternApplicationsPage() {
                       className="grid gap-4 sm:grid-cols-2"
                       onSubmit={(e) => {
                         e.preventDefault();
-                        mutation.mutate("Approved");
+                        if (organizationReady) mutation.mutate("Approved");
                       }}
                     >
+                      {organizationStatus}
                       <DecisionFields decision={decision} setDecision={setDecision} options={options} prefix="approval" />
                       <div className="flex flex-wrap justify-end gap-3 sm:col-span-2">
                         <Button
@@ -524,7 +540,7 @@ export default function InternApplicationsPage() {
                           Reject Application
                         </Button>
                         <Button type="button" variant="outline" disabled={busy} onClick={()=>mutation.mutate("Correction Requested")}>Request Corrections</Button>
-                        <Button disabled={busy}>
+                        <Button disabled={busy || !organizationReady}>
                           <CheckCircle2 className="mr-2 h-4 w-4" />
                           Approve & Onboard
                         </Button>

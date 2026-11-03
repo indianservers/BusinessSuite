@@ -184,7 +184,7 @@ export default function FilesPage() {
           value={folder}
           onChange={(e) => setFolder(e.target.value)}
         />
-        <Button
+        <Button available={!!(canEdit)}
           disabled={!folder.trim() || busy || !canEdit}
           onClick={async () => {
             setBusy(true);

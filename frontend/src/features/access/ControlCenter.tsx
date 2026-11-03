@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -408,19 +409,24 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
             ))}
           </div>
           <section className="cc-card cc-actions">
-            <Link to="/admin/access?action=add">
+            <CompactActions><Link to="/admin/access?action=add">
               <Plus size={14} />
               Add User
             </Link>
-            <Link to="/admin/access?action=invite">Invite User</Link>
-            {actor.is_superuser && (
+<Link to="/admin/access?action=invite">Invite User</Link>
+{actor.is_superuser && (
               <Button variant="outline" onClick={() => editOrg()}>
                 Add Company
               </Button>
             )}
-            <Link to="/admin/access?tab=Roles">Manage Roles</Link>
-            <Link to="/admin/access">Assign Modules</Link>
-            <Link to="/admin/control/audit">View Audit Logs</Link>
+<Link to="/admin/access?tab=Roles">Manage Roles</Link>
+<Link to="/admin/access">Assign Modules</Link>
+<Link to="/admin/control/audit">View Audit Logs</Link></CompactActions>
+
+
+
+
+
           </section>
           <div className="cc-charts">
             {Object.entries(data.charts).map(([key, values]) => (

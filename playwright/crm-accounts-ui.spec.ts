@@ -9,6 +9,7 @@ test.describe("CRM accounts UI", () => {
     await page.goto("/crm/accounts/1", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Acme India" })).toBeVisible();
     await expect(page.getByText("Software").first()).toBeVisible();
+    await page.getByRole("tab", {name:"Activity",exact:true}).click();
     await expect(page.getByRole("heading", { name: "Activity Timeline" })).toBeVisible();
   });
 });

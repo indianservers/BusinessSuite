@@ -1,4 +1,4 @@
-from test_identity_utils import attach_test_identity
+from test_identity_utils import attach_test_identity, attach_workflow_branch
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
 
@@ -35,10 +35,11 @@ def auth_headers(client, db, email="phase8-admin@example.com", role_name="crm_su
     user = User(email=email, hashed_password=get_password_hash("Admin@123456"), is_active=True, is_superuser=superuser, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user)
+    branch = attach_workflow_branch(db, user)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Admin@123456"})
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Branch": str(branch.id)}
 
 
 def create_profile(client, headers, name="crm_sales_executive"):

@@ -955,13 +955,13 @@ export default function InternManagementPage({ page }: { page: Page }) {
               title="All Interns"
               action={
                 <div className="im-actions">
-                  <Button
+                  {(selected.length > 0 || allFiltered) && <Button
                     size="sm"
                     disabled={!selected.length && !allFiltered}
                     onClick={() => setMembershipDialog({ action: "add" })}
                   >
                     Add to Batch
-                  </Button>
+                  </Button>}
                   <Button
                     size="sm"
                     variant="outline"

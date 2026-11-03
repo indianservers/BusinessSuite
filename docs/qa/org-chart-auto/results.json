@@ -1,0 +1,20 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "passed": true,
+      "requests": 9
+    },
+    {
+      "width": 390,
+      "passed": true,
+      "requests": 9
+    },
+    {
+      "width": 320,
+      "passed": true,
+      "requests": 9
+    }
+  ],
+  "api": "Browser fixtures; no record mutations"
+}

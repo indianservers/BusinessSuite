@@ -1,3 +1,4 @@
+import { recordCache } from "@/lib/smart-cache/integration";
 import { api } from "@/services/api";
 import { getApiBaseUrl } from "@/config/runtime";
 
@@ -105,6 +106,7 @@ export type Lead = {
   scoreReasons?: { name: string; matched: boolean; points: number }[];
 };
 export type LeadPatch = {
+ confirmShared?:boolean;sharedReason?:string;
   catalog_lines?: {kind: "product" | "service"; item_id: number; pricing_id?: string | null; quantity: number; unit_price: number; discount: number}[];
   values?: Record<string, unknown>;
   details?: Partial<LeadDetails>;
@@ -212,7 +214,7 @@ export const leadsApi = {
     api.get<Lead>(`${root}/leads/${id}`, { signal }),
   create: (patch: LeadPatch) => api.post<Lead>(`${root}/leads`, patch),
   update: (id: number, patch: LeadPatch) =>
-    api.patch<Lead>(`${root}/leads/${id}`, patch),
+    recordCache ? recordCache.optimisticEdit("lead", id, patch.values || {}, patch.version, () => api.patch<Lead>(`${root}/leads/${id}`, patch), patch.details as Record<string, unknown> | undefined) : api.patch<Lead>(`${root}/leads/${id}`, patch),
   activity: (id: number, data: Record<string, unknown>) =>
     api.post(`${root}/leads/${id}/activity`, data),
   completeTask: (id: number, activityId: number) =>

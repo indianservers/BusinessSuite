@@ -1,8 +1,10 @@
+import CompactActions from "@/components/actions/CompactActions";
+import WorkforcePersonPreview from "./WorkforcePersonPreview";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
@@ -23,7 +25,8 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
   const search = useDeferredValue(filters.search);
   const [exception, setException] = useState("");
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<number[]>([]);
+  const location = useLocation();
+  const [selected, setSelected] = useState<number[]>(() => Array.isArray(location.state?.employee_ids) ? location.state.employee_ids.filter((id: unknown) => typeof id === "number" && Number.isInteger(id) && id > 0) : []);
   const [allFiltered, setAllFiltered] = useState(false);
   const [modal, setModal] = useState<"notice" | "warning" | "reassign" | null>(null);
   const [form, setForm] = useState({ title: "", message: "", severity: "normal", reporting_manager_id: "" });
@@ -32,9 +35,7 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
   const [profile, setProfile] = useState<Row>();
-  const [profilePage, setProfilePage] = useState(1);
-  const [historyPage, setHistoryPage] = useState(1);
-  const [resolution, setResolution] = useState({ id: 0, note: "" });
+  function openProfile(person: Row) { setProfile(person); }
   const [jobPage, setJobPage] = useState(1);
   const requestKey = useRef(crypto.randomUUID());
   const [views, setViews] = useState<Array<{ name: string; filters: Filters }>>([]);
@@ -52,10 +53,6 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
     queryFn: () => api.get(root + "/managers").then(r => r.data) });
   const { data: jobs } = useQuery<Row>({ queryKey: ["workforce", root, "jobs", jobPage],
     queryFn: () => api.get(root + "/jobs", { params: { page: jobPage } }).then(r => r.data), refetchInterval: 10000 });
-  const { data: history, error: historyError } = useQuery<Row>({ queryKey: ["workforce", root, "history", profile?.id, historyPage],
-    queryFn: () => api.get(`${root}/people/${profile!.id}/history`, { params: { page: historyPage } }).then(r => r.data), enabled: !!profile });
-  const { data: personWork, error: workError } = useQuery<Row>({ queryKey: ["workforce", root, "work", profile?.id, profilePage],
-    queryFn: () => api.get(`${root}/people/${profile!.id}/work`, { params: { page: profilePage } }).then(r => r.data), enabled: !!profile });
   function update(next: Partial<Filters>) { setFilters(f => ({ ...f, ...next })); setPage(1); setSelected([]); setAllFiltered(false); setPreview(undefined); }
   function refresh() { void qc.invalidateQueries({ queryKey: ["workforce"] }); void qc.invalidateQueries({ queryKey: ["intern-management"] }); }
   const count = allFiltered ? data?.total || 0 : selected.length;
@@ -72,9 +69,9 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
     <header className="wf-row wf-between"><div><p className="wf-eyebrow">PEOPLE · PROGRAMS · DELIVERY</p>
       <h1>{context === "interns" ? "Intern profiles & work" : "People & work management"}</h1>
       <p>Find people, study their workload, assign work and follow up from one place.</p></div>
-      <div className="wf-actions"><Link className="wf-button" to={batchPath}>Groups & programs</Link><Link className="wf-button" to={taskPath}>Assign work</Link>
+      <CompactActions className="wf-actions"><Link className="wf-button" to={batchPath}>Groups & programs</Link><Link className="wf-button" to={taskPath}>Assign work</Link>
         <Link className="wf-button" to={context === "pms" ? "/pms/reviews" : "/hrms/interns/reviews"}>Review work</Link>
-        <Link className="wf-button" to="/pms/my-notices">My notices</Link></div></header>
+        <Link className="wf-button" to="/pms/my-notices">My notices</Link></CompactActions></header>
     <section aria-label="Workforce overview" className="wf-metrics">
       {[["", "People", summary?.people], ["overdue", "Overdue assignments", summary?.overdue], ["review", "Awaiting review", summary?.review], ["unassigned", "No supervisor", summary?.unassigned], ["warnings", "Open warnings", summary?.warnings]].map(([key, label, value]) =>
         <button key={String(key)} className="wf-card wf-metric" aria-pressed={exception === key} onClick={() => { setException(String(key)); setPage(1); setSelected([]); setAllFiltered(false); }}><span>{label}</span><strong>{typeof value === "number" ? value.toLocaleString() : "—"}</strong></button>)}
@@ -103,22 +100,22 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
         <button onClick={refresh}>Refresh</button></div>
       <div className="wf-table wf-people"><table><thead><tr><th><input aria-label="Select this page" type="checkbox" checked={rows.length > 0 && rows.every(e => selected.includes(e.id))} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? Array.from(new Set([...prev, ...rows.map(r => r.id)])) : prev.filter(id => !rows.some(r => r.id === id)))} /></th>
         {["Person", "Department / Supervisor", "Status", "Work", "Follow up", "Profile"].map(h => <th key={h}>{h}</th>)}</tr></thead>
-        <tbody>{rows.map(person => <tr {...recordPreviewProps(person)} key={person.id}><td><input type="checkbox" aria-label={`Select ${person.name}`} checked={allFiltered || selected.includes(person.id)} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? [...prev, person.id] : prev.filter(id => id !== person.id))} /></td>
+        <tbody>{rows.map(person => <tr onDoubleClick={e => { if (!(e.target as HTMLElement).closest("input, button, a")) openProfile(person); }} key={person.id}><td><input type="checkbox" aria-label={`Select ${person.name}`} checked={allFiltered || selected.includes(person.id)} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? [...prev, person.id] : prev.filter(id => id !== person.id))} /></td>
           <td><strong>{person.name}</strong><small>{person.employee_id} · {person.employment_type}</small><small>{person.email || "No email"}</small></td>
           <td>{person.department || "No department"}<small>{person.manager || "No supervisor assigned"}</small></td>
           <td><span className="wf-pill">{person.status}</span><small>{person.account_active ? "Account active" : "No active account"}</small></td>
           <td>{person.done}/{person.assigned} completed<small>{person.overdue} overdue · {person.review} awaiting review</small></td>
           <td>{person.warnings ? `${person.warnings} open warnings` : "No open warnings"}</td>
-          <td><button onClick={() => { setProfile(person); setProfilePage(1); setHistoryPage(1); setResolution({ id: 0, note: "" }); }}>Study profile</button></td></tr>)}</tbody></table></div>
+          <td><button onClick={() => { openProfile(person); }}>Study profile</button></td></tr>)}</tbody></table></div>
       {isLoading && <p role="status">Loading people…</p>}
       {!isLoading && !rows.length && <p className="wf-muted">No people match this view. Adjust the filters or add people through HRMS.</p>}
       <footer className="wf-row wf-between"><span>Page {page} · 50 people per page</span><div className="wf-actions"><button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button><button disabled={!data || page * 50 >= data.total} onClick={() => setPage(p => p + 1)}>Next</button></div></footer>
     </section>
-    {count > 0 && <section className="wf-card wf-toolbar wf-row" aria-label="Selected people actions"><strong>{count.toLocaleString()} selected</strong>
+    {count > 0 && <section className="wf-card wf-toolbar wf-row" aria-label="Selected people actions"><strong>{count.toLocaleString()} selected</strong><CompactActions>
       {!exception && !allFiltered && <button onClick={() => { setAllFiltered(true); setSelected([]); }}>Select all {data?.total?.toLocaleString()} matching people</button>}
       <button disabled={busy} onClick={() => openOperation("reassign")}>Change supervisor</button><button disabled={busy} onClick={() => openOperation("notice")}>Send notice</button><button disabled={busy} onClick={() => openOperation("warning")}>Send warning</button>
       {!allFiltered && <Link className="wf-button" to={taskPath} state={{ employee_ids: selected }}>Assign work to selected</Link>}
-      <button onClick={() => { setSelected([]); setAllFiltered(false); }}>Clear</button></section>}
+      <button onClick={() => { setSelected([]); setAllFiltered(false); }}>Clear</button></CompactActions></section>}
     <section className="wf-card wf-dialog"><h2>Bulk operations</h2><p className="wf-muted">Large operations run in resumable chunks. Your selection is fixed when the operation starts.</p>
       {jobs?.items.map((job: Row) => <div key={job.id} className="wf-row wf-between"><span>#{job.id} · {job.operation} · <strong>{job.status}</strong> · {job.cursor}/{job.total}</span>
         {job.error && <span className="wf-error">{job.error}</span>}
@@ -145,22 +142,6 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
         <div className="wf-row"><button type="button" disabled={busy} onClick={() => setModal(null)}>Cancel</button><button className="wf-primary" disabled={busy || !preview?.total}>{busy ? "Starting…" : `Confirm for ${preview?.total || 0} people`}</button></div>
       </CompactForm>
     </DialogContent></Dialog>
-    <Dialog open={!!profile} onOpenChange={open => { if (!open) setProfile(undefined); }}><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{profile?.name}</DialogTitle></DialogHeader>
-      {profile && <div className="wf-space max-h-[78vh] overflow-y-auto"><dl className="wf-profile">{[["Employee ID", profile.employee_id], ["Email", profile.email], ["Department", profile.department], ["Supervisor", profile.manager], ["Employment", profile.employment_type], ["Status", profile.status]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not assigned"}</dd></div>)}</dl>
-        <div className="wf-actions"><Link className="wf-button" to={`/hrms/employees/${profile.id}`}>Full HRMS profile</Link><Link className="wf-button" to={taskPath} state={{ employee_ids: [profile.id] }}>Assign work</Link>
-          <button onClick={() => { setSelected([profile.id]); setAllFiltered(false); setProfile(undefined); }}>Select for follow-up</button></div>
-        <h2>Work & progress</h2>{workError && <p role="alert" className="wf-error">{errorMessage(workError)}</p>}
-        <div className="wf-table"><table><thead><tr><th>Assignment</th><th>Status</th><th>Due</th></tr></thead><tbody>{personWork?.items.map((task: Row) => <tr {...recordPreviewProps(task)} key={task.id}><td><Link to={`/pms/projects/${task.project_id}/tasks/${task.id}`}>{task.title}</Link><small>{task.progress}% progress</small></td><td>{task.status}</td><td>{task.due_date || "No deadline"}{task.overdue && <small className="wf-error">Overdue</small>}</td></tr>)}</tbody></table>{personWork?.total === 0 && <p>No assignments in projects you can access.</p>}</div>
-        <div className="wf-actions"><button disabled={profilePage === 1} onClick={() => setProfilePage(p => p - 1)}>Previous work</button><button disabled={!personWork || profilePage * 20 >= personWork.total} onClick={() => setProfilePage(p => p + 1)}>More work</button></div>
-        <h2>Notices & warning history</h2>{historyError && <p role="alert" className="wf-error">{errorMessage(historyError)}</p>}<div className="wf-history">{history?.items.map((message: Row) => <article key={message.id} className={`wf-card ${message.kind === "warning" ? "wf-warning" : ""}`}>
-          <strong>{message.title}</strong><small className="wf-muted"> · {message.kind} · {new Date(message.created_at).toLocaleString()}</small><p className="wf-message">{message.message}</p>
-          <p>{message.acknowledged_at ? "Acknowledged" : "Awaiting acknowledgement"} · {message.resolved_at ? `Resolved: ${message.resolution}` : "Open"}</p>
-          {!message.resolved_at && <div className="wf-row"><input aria-label={`Resolution for ${message.title}`} placeholder="Resolution note" value={resolution.id === message.id ? resolution.note : ""} onChange={e => setResolution({ id: message.id, note: e.target.value })} />
-            <button disabled={busy || resolution.id !== message.id || resolution.note.trim().length < 3} onClick={async () => { setBusy(true); try { await api.post(`${root}/messages/${message.id}/resolve`, { note: resolution.note }); setResolution({ id: 0, note: "" }); refresh(); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); } }}>Resolve</button></div>}
-        </article>)}{history?.total === 0 && <p>No notices or warnings for this person.</p>}</div>
-        <div className="wf-actions"><button disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)}>Previous messages</button><button disabled={!history || historyPage * 25 >= history.total} onClick={() => setHistoryPage(p => p + 1)}>More messages</button></div>
-        {error && <p role="alert" className="wf-error">{error}</p>}
-      </div>}
-    </DialogContent></Dialog>
+    {profile && <WorkforcePersonPreview key={profile.id} profile={profile} root={root} taskPath={taskPath} onClose={() => setProfile(undefined)} onFollowUp={() => { setSelected([profile.id]); setAllFiltered(false); setProfile(undefined); }} />}
   </div>;
 }

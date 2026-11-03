@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { GraphProposalPreview } from "./builder/IntelligencePanels";
@@ -324,7 +325,7 @@ export function AutomationList({
                       <summary aria-label={`Actions for ${row.name}`}>
                         <MoreHorizontal size={19} />
                       </summary>
-                      <div>
+                      <CompactActions>
                         <button onClick={() => open(row)}>Open workflow</button>
                         <button
                           disabled={!can("edit") || Boolean(row.archived_at)}
@@ -384,7 +385,7 @@ export function AutomationList({
                           <Trash2 size={13} />
                           Delete
                         </button>
-                      </div>
+                      </CompactActions>
                     </details>
                   </td>
                 </tr>

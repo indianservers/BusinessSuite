@@ -1,3 +1,5 @@
+import { ActionToolbar } from "@/components/actions";
+import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import CustomerFollowUps from "@/shared/follow-ups/CustomerFollowUps";
@@ -64,8 +66,23 @@ export default function Deal360Page() {
     <Link className="ed-text-button inline-flex items-center gap-1" to="/crm/deals"><ArrowLeft size={14}/>Deals</Link>
     {error && <div className="ed-error" role="alert">{error}<Button onClick={() => setReload(v => v + 1)}>Retry</Button></div>}
     {record && <>
-      <header className="ed-header"><div><p className="ed-eyebrow">DEAL-{ident} · {record.status}</p><h1>{record.name}</h1><p className="ed-muted">{related.account?.name || "No associated company"}</p></div><div className="ed-actions"><Button variant="outline" aria-label="Refresh deal" onClick={() => setReload(v => v + 1)}><RefreshCw size={16}/></Button>{canManage && <><Button variant="outline" onClick={() => setEditing(true)}><Edit3 size={15}/>Edit</Button><Button variant="outline" onClick={() => setStage(true)}>Change stage</Button><details className="relative"><summary className="ed-link-button">More actions</summary><div className="ed-popover"><Button variant="ghost" disabled={busy} onClick={async () => {setBusy(true);try {await crmApi.submitApproval({entityType: "deal", entityId: ident, triggerType: "manual"});refresh();} catch(e) {setError(dealError(e));} finally {setBusy(false);}}}>Submit for approval</Button><Button variant="ghost" disabled={busy} onClick={async () => {if (!window.confirm("Archive this deal? It will be removed from active views; its history is retained.")) return;setBusy(true);try {await crmApi.delete("deals", ident);window.dispatchEvent(new CustomEvent("crm:records-changed"));navigate("/crm/deals");} catch(e) {setError(dealError(e));} finally {setBusy(false);}}}>Archive deal</Button></div></details>{record.status === "Open" && <><Button onClick={() => setOutcome("Won")}><Check size={15}/>Mark Won</Button><Button variant="outline" onClick={() => setOutcome("Lost")}><X size={15}/>Mark Lost</Button></>}</>}</div></header>
-      <nav className="ed-360-tabs" aria-label="Deal workspace tabs">{tabs.map(name => <Button key={name} size="sm" variant={tab === name ? "default" : "ghost"} onClick={() => {setEventPage(1);setFeed([]);setParams({tab: name});}}>{name}</Button>)}</nav>
+      <header className="ed-header"><div><p className="ed-eyebrow">DEAL-{ident} · {record.status}</p><h1>{record.name}</h1><p className="ed-muted">{related.account?.name || "No associated company"}</p></div><ActionToolbar label="Deal actions" actions={[
+        {id:"refresh",kind:"refresh",onSelect:()=>setReload(v=>v+1),prominent:!canManage},
+        ...(canManage ? [
+          {id:"edit",kind:"edit" as const,prominent:true,onSelect:()=>setEditing(true)},
+          {id:"stage",kind:"review" as const,label:"Change stage",onSelect:()=>setStage(true)},
+          ...(record.status === "Open" ? [{id:"won",kind:"complete" as const,label:"Mark Won",prominent:true,primary:true,onSelect:()=>setOutcome("Won")},{id:"lost",kind:"reject" as const,label:"Mark Lost",prominent:true,onSelect:()=>setOutcome("Lost")}] : []),
+          {id:"approval",kind:"approve" as const,label:"Submit for approval",disabled:busy,onSelect:async()=>{setBusy(true);try{await crmApi.submitApproval({entityType:"deal",entityId:ident,triggerType:"manual"});refresh();}catch(e){setError(dealError(e));}finally{setBusy(false);}}},
+          {id:"archive",kind:"delete" as const,label:"Archive deal",tooltip:"Archive this deal and retain its history",danger:true,disabled:busy,confirm:{title:"Archive this deal?",description:"The deal will be removed from active views. Its history is retained.",label:"Archive deal"},onSelect:async()=>{setBusy(true);try{await crmApi.delete("deals",ident);window.dispatchEvent(new CustomEvent("crm:records-changed"));navigate("/crm/deals");}catch(e){setError(dealError(e));}finally{setBusy(false);}}},
+        ] : []),
+      ]}/></header>
+      <RecordSectionNav value={tab} onChange={name => {setParams({tab:name});setEventPage(1);setFeed([]);}} label="Deal information" groups={[
+        {label:"Overview",sections:[{value:"Overview",label:"Opportunity"},{value:"Insights",label:"Insights"}]},
+        {label:"People",sections:[{value:"Contacts",label:"Contacts & collaborators"}]},
+        {label:"Commercial",sections:[{value:"Products & Quotations",label:"Products & quotations"},{value:"Tasks",label:"Tasks"}]},
+        {label:"Activity",sections:[{value:"Activities",label:"Activities"},{value:"Notes & Files",label:"Notes & files"},{value:"History",label:"History"}]},
+      ]}/>
+
       <div className="ed-360-layout"><aside className="ed-360-summary">{Object.entries(summaryFields).map(([name, value]) => <div key={name}><p className="ed-muted">{name}</p><strong className="text-sm">{String(value)}</strong></div>)}<div className="ed-health"><strong>{insights?.level || "Health unavailable"} · {insights?.score ?? "—"}/100</strong>{insights?.reasons?.map((reason: string) => <p className="mt-1" key={reason}>{reason}</p>)}</div>{canManage && <Button onClick={() => setInteraction(true)}>Log outcome & next action</Button>}</aside>
       <div className="ed-360-content">
         {canManage && <div className="ed-actions mb-4">{[["call", "Call"], ["meeting", "Meeting"], ["task", "Task"], ["note", "Note"], ["email", "Email"], ["quotation", "Quotation"]].map(([kind, name]) => <Button size="sm" variant="outline" key={kind} onClick={() => setAction(kind as typeof action)}><Plus size={14}/>{name}</Button>)}</div>}

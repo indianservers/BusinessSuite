@@ -1,0 +1,177 @@
+{
+  "results": [
+    {
+      "name": "crm-lead",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "crm-contact",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "crm-company",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "crm-deal",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "crm-quotation",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "employee",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "task-classic",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "task-workspace",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "sales-order",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "engagement",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "crm-lead",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "crm-contact",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "crm-company",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "crm-deal",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "crm-quotation",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "employee",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "task-classic",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "task-workspace",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "sales-order",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "engagement",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "crm-lead",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "crm-contact",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "crm-company",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "crm-deal",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "crm-quotation",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "employee",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "task-classic",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "task-workspace",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "sales-order",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "engagement",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 320,
+      "passed": true
+    }
+  ],
+  "issues": [],
+  "fixtures": "all API responses (isolated layout verification)",
+  "viewports": [
+    1440,
+    390,
+    320
+  ],
+  "note": "Read-only real local API except explicitly listed record fixtures. No record mutations."
+}

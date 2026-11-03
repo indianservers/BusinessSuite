@@ -1,3 +1,4 @@
+import { useMobile } from "@/components/mobile/useMobile";
 import { LoadingState } from "@/components/ui/state";
 import SuiteContextBar from "@/components/suite/SuiteContextBar";
 import PageContextMenu from "@/components/app/PageContextMenu";
@@ -18,10 +19,11 @@ import "./mobile-workspaces.css";
 
 export default function AppLayout() {
   const location = useLocation();
+  const mobileLead = useMobile() && /^\/crm\/leads\/\d+\/?$/.test(location.pathname);
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const isPeopleDirectory = location.pathname === "/pms/people" || location.pathname === "/pms/directory" || /^\/pms\/people\/\d+$/.test(location.pathname);
-  const isMessaging = /^\/(pms|crm|hrms|srm|fam)\/messages\/?$/.test(location.pathname);
+  const isMessaging = /^\/(pms|crm|hrms|srm|fam)\/messages\/?$/.test(location.pathname) || /^\/crm\/whatsapp\/inbox\/?$/.test(location.pathname);
   const isPosTerminal = location.pathname === "/srm/pos" || location.pathname === "/srm/pos/terminal";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("sidebarCollapsed") === "true");
@@ -63,20 +65,20 @@ export default function AppLayout() {
           sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"
         }`}
       >
-        <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main id="suite-main" tabIndex={-1} className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${isPeopleDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
-          {isPosTerminal || isMessaging || isPeopleDirectory ? null : <Breadcrumbs />}
-          {!isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
+        {!mobileLead && <Topbar onMenuClick={() => setSidebarOpen(true)} />}
+        <main id="suite-main" tabIndex={-1} className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+          {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory ? null : <Breadcrumbs />}
+          {!mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <ErrorBoundary>
             <Suspense fallback={<LoadingState label="Loading page data" />}><Outlet /></Suspense>
           </ErrorBoundary>
         </main>
-        <BackToTop />
+        {!mobileLead && <BackToTop />}
       </div>
       <SessionTimeoutWarning />
-      {!isPeopleDirectory && <PMSAssistant />}
+      {!mobileLead && !isPeopleDirectory && <PMSAssistant />}
 
-      <MobileModuleDock />
+      {!mobileLead && <MobileModuleDock />}
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

@@ -1,0 +1,10 @@
+import type { GrowthRecord } from "../GrowthWorkspace";
+import type { OfferingChoice } from "@/shared/catalog/CatalogMultiSelect";
+export type Relationship = GrowthRecord & { offerings: OfferingChoice[]; owner_id?: number; owner_name?: string; stage?: string; amount?: string; currency?: string; last_contact?: string; created_at?: string; customer?: boolean };
+export type MoneyGroup = { currency: string; value: string };
+export type AudienceAnalytics = { counts: Record<string, number>; customers: number; customers_companies: number; active_deals: number; converted_leads: number; conversion_rate: number | null; conversion_denominator: number; pipeline_values: MoneyGroup[]; unassigned: number; top_offerings: (OfferingChoice & { relationships: number; leads: number; customers: number; deals: number; pipeline_values: MoneyGroup[]; conversion_rate: number | null })[]; trends: { date: string; leads: number; converted: number; closed: number }[]; trend_timezone: string };
+export type AudienceListing = { items: Relationship[]; total: number; pages: number; counts: Record<string, number>; buckets: Record<string, number>; analytics?: AudienceAnalytics };
+export const names: Record<string, string> = { all: "All records", leads: "Leads", contacts: "Contacts", customers: "Customers", customers_companies: "Customers / Companies", companies: "Companies", deals: "Deals" };
+export const failure = (error: unknown) => { const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail; return typeof detail === "string" ? detail : "Unable to load or save relationships. Please retry."; };
+export const moneyGroups = (values: MoneyGroup[] = []) => values.map(item => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency: item.currency || "INR", maximumFractionDigits: 0, notation: "compact" }).format(Number(item.value)); } catch { return `${item.currency} ${Number(item.value).toLocaleString()}`; } }).join(" · ") || "—";
+export const dateLabel = (value?: string) => value ? new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—";

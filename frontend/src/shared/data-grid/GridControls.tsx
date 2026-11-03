@@ -276,6 +276,7 @@ export function GridExportMenu({
   setColumns,
   run,
   busy,
+  formats,
 }: {
   selectedCount: number;
   visibleCount: number;
@@ -290,6 +291,7 @@ export function GridExportMenu({
     summaries: boolean,
   ) => void;
   busy: boolean;
+  formats?: GridExportRequest["format"][];
 }) {
   const [scope, setScope] = useState<GridExportRequest["scope"]>("visible"),
     [groups, setGroups] = useState(false),
@@ -368,7 +370,7 @@ export function GridExportMenu({
                 ["pdf", "PDF"],
                 ["clipboard", "Copy to clipboard"],
               ] as const
-            ).map(([format, label]) => (
+            ).filter(([format]) => !formats || formats.includes(format)).map(([format, label]) => (
               <button
                 key={format}
                 disabled={

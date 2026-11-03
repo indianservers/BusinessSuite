@@ -1,3 +1,4 @@
+import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
@@ -30,7 +31,7 @@ export const api = axios.create({
 // Request interceptor: attach access token
 api.interceptors.request.use((config) => {
   const organization = sessionStorage.getItem("suite-organization");
-  if ((config.method || "get").toLowerCase() === "get" && !config._finishPageRefresh) {
+  if (!config._recordSyncBackground && (config.method || "get").toLowerCase() === "get" && !config._finishPageRefresh) {
     config._finishPageRefresh = trackPageRefreshRead();
   }
   if (organization && !config.headers["X-Suite-Organization"]) config.headers["X-Suite-Organization"] = organization;
@@ -53,7 +54,7 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  if (config.progress !== false && !config._finishProgress) {
+  if (config.progress !== false && !config._finishProgress && !(recordCachePolicy(config.url || "") && !config._recordSyncBypass && (config.method || "get") === "get")) {
     config._finishProgress = beginProgress(
       (config.method || "get").toLowerCase() === "get" ? "Loading page data" : "Processing your request"
     );
@@ -69,9 +70,13 @@ api.interceptors.response.use(
     }
     const method=(response.config.method||"get").toLowerCase();
     if(!["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
+    if (!["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));
     return response;
   },
   async (error: AxiosError) => {
+    if (error.response?.status === 409 && error.response.headers?.["x-suite-setup-required"] === "1") {
+      window.dispatchEvent(new Event("suite:setup-required"));
+    }
     const original = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
 
     if (error.response?.status === 401 && original && !original._retry) {
@@ -84,19 +89,28 @@ api.interceptors.response.use(
             refreshPromise = axios
               .post<RefreshResponse>(`${BASE_URL}/auth/refresh`, {
                 refresh_token: refreshToken,
-              })
+              }, { timeout: 60000 })
               .then((res) => res.data)
               .finally(() => {
                 refreshPromise = null;
               });
           }
           const { access_token, refresh_token } = await refreshPromise;
-          setTokens(access_token, refresh_token);
+          // A sign-out or account change may finish while refresh is in flight.
+          // Never restore the old account over the newer session.
+          const current = useAuthStore.getState();
+          const alreadyRefreshed = current.refreshToken === refresh_token && current.accessToken === access_token;
+          if (current.refreshToken !== refreshToken && !alreadyRefreshed) {
+            return Promise.reject(error);
+          }
+          if (!alreadyRefreshed) setTokens(access_token, refresh_token);
           original.headers = original.headers || {};
           original.headers.Authorization = `Bearer ${access_token}`;
           return api(original);
-        } catch {
-          if (useAuthStore.getState().refreshToken === refreshToken) {
+        } catch (refreshError) {
+          const status = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined;
+          // Temporary outages and offline requests do not revoke a session.
+          if ((status === 401 || status === 403) && useAuthStore.getState().refreshToken === refreshToken) {
             logout();
           }
         }

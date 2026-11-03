@@ -153,6 +153,11 @@ export async function installApiStubs(page: Page, user = users.fam_admin) {
 
     if (path.includes("/auth/me")) {
       body = { id: user.id, email: user.email, role: { name: user.role }, is_superuser: user.is_superuser, employee_id: user.employee_id };
+    } else if (path === "/access/settings" || path.startsWith("/access/settings/")) {
+      const options = [["finance", "Finance"], ["financial-years", "Financial years"], ["voucher-types", "Voucher types"], ["payment-modes", "Payment modes"], ["cost-centers", "Cost centers"], ["accounting-branches", "Accounting branches"], ["tax-settings", "Tax settings"]].map(([id,title]) => ({id,title,group:"Configuration",description:title,destination:null,scope:"company",editable:true}));
+      body = path === "/access/settings" ? {companyId:1,companyName:"Workflow test company",options} : options.find(option => path.endsWith("/"+option.id));
+    } else if (path === "/branches/context") {
+      body = {company_id: 1, selected: 1, all_branches: false, manage_access: false, branches: [{id: 1, name: "Workflow test branch", code: "QA", can_write: true}]};
     } else if (path.includes("/auth/sso/providers")) {
       body = [];
     } else if (path.includes("/notifications/unread")) {
@@ -173,10 +178,11 @@ export async function installApiStubs(page: Page, user = users.fam_admin) {
 
 export async function expectHealthyFamRoute(page: Page, route: string) {
   await page.goto(route, { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
+  const canonical: Record<string,string> = {"/fam/settings":"/settings/finance", "/fam/financial-years":"/settings/financial-years", "/fam/voucher-types":"/settings/voucher-types", "/fam/payment-modes":"/settings/payment-modes", "/fam/cost-centers":"/settings/cost-centers", "/fam/branches":"/settings/accounting-branches", "/fam/gst/settings":"/settings/tax-settings"};
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(canonical[route] || route)}$`));
   await expect(page.getByText("403 Access Denied", { exact: false })).toHaveCount(0);
   await expect(page.locator(".vite-error-overlay, #webpack-dev-server-client-overlay")).toHaveCount(0);
-  await expect(page.locator("body")).toContainText(/FAM|Finance|Accounting|Ledger|Opening|Audit|Branch/i, { timeout: 20_000 });
+  await expect(page.locator("body")).toContainText(canonical[route] ? /Settings|Finance|Financial|Accounting|Voucher/i : /FAM|Finance|Accounting|Ledger|Opening|Audit|Branch/i, { timeout: 20_000 });
 }
 
 export async function expectDenied(page: Page, route: string) {

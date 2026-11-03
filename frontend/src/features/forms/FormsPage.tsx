@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -1120,7 +1121,7 @@ export default function FormsPage() {
                     · {f.draft.fields.length} fields · v{f.version}
                   </p>
                   <div className="forms-actions">
-                    {f.read_only ? (
+                    <CompactActions>{f.read_only ? (
                       <Link to={`${base}/${f.id}/view`}>Respond to form →</Link>
                     ) : (
                       <>
@@ -1137,11 +1138,12 @@ export default function FormsPage() {
                         </Link>
                       </>
                     )}
-                    {f.published?.settings?.public && (
+{f.published?.settings?.public && (
                       <button onClick={() => void copy(publicUrl(f))}>
                         Copy public URL
                       </button>
-                    )}
+                    )}</CompactActions>
+
                   </div>
                   {f.published &&
                     !f.published.settings?.public &&

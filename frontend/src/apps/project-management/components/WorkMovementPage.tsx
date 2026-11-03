@@ -1,3 +1,4 @@
+import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -58,6 +59,7 @@ export default function WorkMovementPage({ title }: { title: string }) {
     onEvent: () => void load(),
     showToast: false,
   });
+  useRecordView<{items: PMSTaskListItem[]}>("/project-management/tasks", { projectId: project, pageSize: 200, sortBy: "position", sortOrder: "asc" }, snapshot => setTasks(snapshot.items), () => setTasks([]), project > 0);
   const canManage = projects.find((p) => p.id === project)?.can_manage_tasks;
   return (
     <div className="space-y-5">

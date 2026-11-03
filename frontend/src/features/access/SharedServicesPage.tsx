@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -523,10 +524,10 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                   </option>
                 ))}
             </NativeSelect>
-            <Button variant="outline" onClick={() => openWorkflow()}>
+            <CompactActions><Button variant="outline" onClick={() => openWorkflow()}>
               New
             </Button>
-            <Button
+<Button
               variant="outline"
               disabled={!definition}
               onClick={() => {
@@ -537,11 +538,11 @@ export default function SharedServicesPage({ section: requestedSection, embedded
             >
               Duplicate
             </Button>
-            <Button onClick={save} disabled={!name.trim() || !identity}>
+<Button onClick={save} disabled={!name.trim() || !identity}>
               <Save size={14} />
               Save Draft
             </Button>
-            <Button
+<Button
               variant="outline"
               disabled={!definition || dirty}
               onClick={() =>
@@ -554,7 +555,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
             >
               Publish
             </Button>
-            <Button
+<Button
               variant="outline"
               onClick={async () => {
                 try {
@@ -567,7 +568,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
             >
               Validate Preview
             </Button>
-            <Button
+<Button
               variant="outline"
               disabled={!definition}
               onClick={async () => {
@@ -586,7 +587,12 @@ export default function SharedServicesPage({ section: requestedSection, embedded
               }}
             >
               Versions
-            </Button>
+            </Button></CompactActions>
+
+
+
+
+
             {dirty && <span>Unsaved changes</span>}
           </div>
           <div className="ss-workflow-meta">

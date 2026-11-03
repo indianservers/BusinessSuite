@@ -1148,3 +1148,5 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+@media(max-width:639px){.udg-action-cell>button{min-height:44px;min-width:44px;opacity:1}.udg-menu [role=menuitem]{min-height:44px}}

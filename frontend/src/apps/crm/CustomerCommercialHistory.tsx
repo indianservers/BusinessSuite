@@ -38,8 +38,8 @@ export default function CustomerCommercialHistory({
           </p>
         ) : (
           <div className="space-y-4">
-            <InvoiceList invoices={query.data.invoices} />
-            {query.data.projects.map((p: any) => (
+            <InvoiceList invoices={query.data?.invoices || []} />
+            {(query.data?.projects || []).map((p: any) => (
               <p key={p.id}>
                 <Link to={`/pms/projects/${p.id}`}>{p.name} ↗</Link>
               </p>

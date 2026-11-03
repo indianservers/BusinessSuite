@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:quick-actions": "node scripts/test-quick-actions.cjs && node scripts/test-suite-actions.cjs",
     "train:operator": "node scripts/train-operator-router.mjs",
     "dev": "vite",
     "build": "tsc && vite build",
@@ -12,6 +13,8 @@
     "test:rbac": "playwright test --config=playwright.config.ts",
     "preview": "vite preview",
     "prepare:operator-llm": "python scripts/prepare-operator-llm.py",
+    "test:record-cache:assets": "node scripts/test-record-cache-sw.cjs",
+    "test:record-cache": "node scripts/test-record-cache.cjs",
     "test:validation": "node scripts/test-validation.cjs",
     "postbuild": "node scripts/write-release-version.mjs"
   },

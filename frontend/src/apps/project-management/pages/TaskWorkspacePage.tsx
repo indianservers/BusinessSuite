@@ -1,3 +1,5 @@
+import { ActionToolbar } from "@/components/actions";
+import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobile } from "@/components/mobile/useMobile";
 import MobileTaskQuickEdit from "@/components/mobile/MobileTaskQuickEdit";
@@ -659,62 +661,14 @@ export default function TaskWorkspacePage() {
           <progress max={100} value={data.progress} />
           <strong>{data.progress}%</strong>
         </div>
-        <div className="tw-buttons">
-          <button
-            disabled={
-              !data.can_work ||
-              busy ||
-              task.status === "In Progress" ||
-              task.status === "Done"
-            }
-            onClick={() => void action("start")}
-          >
-            <Play size={15} /> Start Work
-          </button>
-          <button
-            className="tw-primary"
-            onClick={() => {
-              chooseTab("updates");
-              setBlocker(false);
-              composer.current?.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            <Plus size={16} /> Add Update
-          </button>
-          <button
-            disabled={!data.can_work}
-            onClick={() => {
-              chooseTab("updates");
-              setBlocker(true);
-              setEditing(undefined);
-            }}
-          >
-            <AlertTriangle size={15} /> Report Blocker
-          </button>
-          <button
-            disabled={!data.can_work}
-            onClick={() => {
-              chooseTab("followups");
-              setBlocker(false);
-              setEditing(undefined);
-            }}
-          >
-            <Clock3 size={15} /> Add Follow-up
-          </button>
-          <button
-            className="tw-submit"
-            disabled={
-              !data.can_work ||
-              busy ||
-              task.status === "In Review" ||
-              task.status === "Done" ||
-              !!data.blockers.length
-            }
-            onClick={() => void action("submit")}
-          >
-            <Send size={15} /> Submit for Review
-          </button>
-        </div>
+        <ActionToolbar label="Task workflow actions" actions={[
+          {id:"update",available:data.can_work,kind:"note",label:"Add Update",prominent:true,primary:true,disabled:!data.can_work,disabledReason:!data.can_work ? "Your project role does not allow task updates" : undefined,onSelect:()=>{chooseTab("updates");setBlocker(false);composer.current?.scrollIntoView({behavior:"smooth"});}},
+          {id:"followup",available:data.can_work && task.status !== "Done",kind:"followup",label:"Add Follow-up",prominent:true,disabled:!data.can_work,disabledReason:!data.can_work ? "Your project role does not allow task updates" : undefined,onSelect:()=>{chooseTab("followups");setBlocker(false);setEditing(undefined);}},
+          {id:"review",available:data.can_work && !["In Review","Done"].includes(task.status),kind:"review",label:"Submit for Review",prominent:true,disabled:!data.can_work || busy || ["In Review","Done"].includes(task.status) || !!data.blockers.length,disabledReason:data.blockers.length ? "Resolve outstanding blockers before submitting for review" : !data.can_work ? "Your project role does not allow task updates" : ["In Review","Done"].includes(task.status) ? "This task is already in review or completed" : undefined,onSelect:()=>action("submit")},
+          {id:"start",available:data.can_work && !["In Progress","Done"].includes(task.status),kind:"start",label:"Start Work",disabled:!data.can_work || busy || ["In Progress","Done"].includes(task.status),disabledReason:!data.can_work ? "Your project role does not allow task updates" : task.status === "In Progress" ? "Work is already in progress" : task.status === "Done" ? "This task is completed" : undefined,onSelect:()=>action("start")},
+          {id:"blocker",available:data.can_work && task.status !== "Done",kind:"blocker",label:"Report Blocker",disabled:!data.can_work,disabledReason:!data.can_work ? "Your project role does not allow task updates" : undefined,onSelect:()=>{chooseTab("updates");setBlocker(true);setEditing(undefined);}},
+        ]}/>
+
       </div>
       {!!data.blockers.length && (
         <section className="tw-blockers">
@@ -737,21 +691,13 @@ export default function TaskWorkspacePage() {
       )}
       <div className="tw-layout">
         <section className="tw-main">
-          <nav className="tw-tabs" aria-label="Task workspace sections">
-            {tabs.filter(([key])=>mobile || key !== "conversation").map(([key, label, Icon]) => (
-              <button
-                key={key}
-                aria-pressed={tab === key}
-                onClick={() => chooseTab(key)}
-              >
-                <Icon size={15} />
-                {label}
-                {key === "discussion" && data.unread_comments > 0 && (
-                  <span className="tw-unread">{data.unread_comments}</span>
-                )}
-              </button>
-            ))}
-          </nav>
+          <RecordSectionNav value={tab} onChange={chooseTab} label="Task workspace sections" groups={[
+            {label:"Overview",sections:tabs.filter(([key])=>["overview","checklist","review"].includes(key)).map(([value,label])=>({value,label}))},
+            {label:"Discussion",sections:tabs.filter(([key])=>["conversation","discussion"].includes(key) && (mobile || key !== "conversation")).map(([value,label])=>({value,label: value === "discussion" && data.unread_comments > 0 ? `${label} (${data.unread_comments} unread)` : label}))},
+            {label:"Updates",sections:tabs.filter(([key])=>["updates","followups"].includes(key)).map(([value,label])=>({value,label}))},
+            {label:"Files & history",sections:tabs.filter(([key])=>["files","history"].includes(key)).map(([value,label])=>({value,label}))},
+          ]}/>
+
           {tab === "conversation" && <section className="tw-box"><h2>Conversation & activity</h2><p className="tw-muted">Recent updates, comments and activity, newest first.</p>{(updates.isPending||comments.isPending||history.isPending)&&<p role="status">Loading conversation…</p>}{(updates.isError||comments.isError||history.isError)&&<p role="alert">Some activity is unavailable. <button onClick={refresh}>Retry</button></p>}
             <div className="mobile-contact-strip"><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","discussion");return n;})}>Write comment</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Attachments ({attachments.data?.length ?? 0})</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","updates");return n;})}>Post update</button></div>
             {[...(updates.data?.items||[]).map(entry=>({key:`update-${entry.id}`,date:entry.created_at,node:renderEntry(entry)})),...(comments.data||[]).map(c=>({key:`comment-${c.id}`,date:c.created_at,node:<article className="tw-comment"><strong>{c.author?.name||"Team member"}</strong><RichTextContent value={c.body} legacyFormat={c.body_format === "markdown" ? "markdown" : "plain"}/><small>{stamp(c.created_at)}</small></article>})),...(attachments.data||[]).map(file=>({key:`file-${file.id}`,date:file.created_at,node:<article className="tw-history"><strong>Attachment: {file.original_name || file.file_name}</strong><small>{file.uploaded_by_name || "Team member"} · {stamp(file.created_at)}</small><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Open attachment</button></article>})),...(history.data?.items||[]).map(h=>({key:`history-${h.id}`,date:h.created_at,node:<article className="tw-history"><strong>{h.summary}</strong><small>{h.actor.name} · {stamp(h.created_at)}</small></article>}))].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).map(event=><div key={event.key}>{event.node}</div>)}
@@ -884,7 +830,7 @@ export default function TaskWorkspacePage() {
                       </label>
                       <label>
                         Responsible person
-                        <NativeSelect
+                        <NativeSelect loading={detail.isFetching} error={detail.isError}
                           aria-label="Blocker responsible person"
                           value={responsible}
                           onChange={(e) => setResponsible(e.target.value)}
@@ -1389,7 +1335,7 @@ export default function TaskWorkspacePage() {
         <aside className="tw-sidebar">
           <section className="tw-box">
             <h2>Task Status & Actions</h2>
-            <NativeSelect
+            <NativeSelect loading={detail.isFetching} error={detail.isError}
               className="tw-status-select"
               aria-label="Task status"
               value={task.status}

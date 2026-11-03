@@ -1,3 +1,10 @@
+import FinancialDataTab, { type FinancialData } from "./FinancialDataTab";
+import SharedCompanySelect from "@/shared/master-data/CompanySelect";
+import { SharedNumberConfirmation } from "@/shared/master-data/CompanySelect";
+import { CommunicationDraftEditor, primaryEntries, transportEntries, type CommunicationEntry } from "@/shared/master-data/CommunicationEditor";
+import CompactActions from "@/components/actions/CompactActions";
+import { ActionToolbar } from "@/components/actions";
+import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobileSessionState } from "@/components/mobile/useMobileSessionState";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -971,6 +978,7 @@ function useCrmRecords<T = CRMRecord>(entity: string | undefined, fallback: T[],
     };
   }, [entity, JSON.stringify(params)]);
 
+  useRecordView<{items: CRMApiRecord[]}>(`/crm/${entity || ''}`, { per_page: 100, ...(params || {}) }, response => { if (entity) setState({ data: response.items.map(item => normalizeApiRecord(kindlessEntity(entity), item)) as T[], loading: false, error: null }); }, () => setState({ data: [], loading: false, error: null }), Boolean(entity));
   return state;
 }
 
@@ -2041,12 +2049,12 @@ function PipelinePage() {
                 : "A faster CRM board with industry templates, weighted forecast, deal hygiene, and CRM-to-SRM handoff readiness in one workspace."}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <CompactActions className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => navigate("/crm/deals")}><ListFilter className="h-4 w-4" />Deal list</Button>
             <Button variant={isTemplateLibrary ? "default" : "outline"} onClick={() => navigate("/crm/templates")}><LayoutGrid className="h-4 w-4" />Templates</Button>
             <Button variant="outline" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-4 w-4" />Reports</Button>
             <Button onClick={() => navigate("/crm/pipeline-settings")}><Plus className="h-4 w-4" />Pipeline settings</Button>
-          </div>
+          </CompactActions>
         </div>
       </div>
       <div className="grid min-w-0 gap-0 xl:grid-cols-[21rem_minmax(0,1fr)]">
@@ -2424,7 +2432,7 @@ function DealCard({
       <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">Next: {deal.nextAction?new Date(deal.nextAction).toLocaleString():"No next action"} · {deal.nextStep||""}</p>
       <p className="mt-2 text-xs text-muted-foreground">Last interaction: {deal.lastInteraction?new Date(deal.lastInteraction).toLocaleString():"None recorded"}</p>
       {!overlay && onTransition && sortedStages.length ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <CompactActions className="mt-3 grid grid-cols-2 gap-2">
           <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs" disabled={!previousStage || transitioning} onClick={() => move(previousStage)}>
             <ChevronLeft className="h-3.5 w-3.5" />Prev
           </Button>
@@ -2437,7 +2445,7 @@ function DealCard({
           <Button type="button" size="sm" variant="outline" className="h-8 justify-start text-xs text-red-700" disabled={!canMoveLost || transitioning} onClick={() => move(lostStage)}>
             <X className="h-3.5 w-3.5" />Lost
           </Button>
-        </div>
+        </CompactActions>
       ) : null}
       {transitioning ? <p className="mt-2 text-xs text-muted-foreground">Saving stage...</p> : null}
     </article>
@@ -3265,12 +3273,12 @@ function CalendarEventDialog({ event, onClose, onOpenRecord, onComplete, onSynce
               <InfoTile label="External event" value={event.externalEventId || "-"} />
             </div>
           ) : null}
-          <div className="flex flex-wrap gap-2">
+          <CompactActions className="flex flex-wrap gap-2">
             {event.source === "tasks" ? <Button onClick={onComplete}><CheckCircle2 className="h-4 w-4" />Mark complete</Button> : null}
             {event.source === "meetings" ? <Button onClick={syncMeeting} disabled={syncing}><CalendarDays className="h-4 w-4" />{syncing ? "Syncing..." : "Sync to calendar"}</Button> : null}
             {path ? <Button variant="outline" onClick={() => onOpenRecord(path)}>Open related record</Button> : null}
             <Button variant="outline" onClick={onClose}>Close</Button>
-          </div>
+          </CompactActions>
         </CardContent>
       </Card>
     </div>
@@ -3748,12 +3756,12 @@ function LeadDetailDrawer({ lead, ownerNames, territoryNames, onClose, onEdit, o
         <div className="flex min-w-0 items-center gap-3"><LeadAvatar lead={lead} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{lead.name}</h2><p className="truncate text-sm text-muted-foreground">{lead.company || "No company"}</p></div></div>
         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close lead details"><X className="h-4 w-4" /></Button>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <CompactActions className="mt-4 flex flex-wrap gap-2">
         {lead.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${lead.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
         {lead.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${lead.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
         <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
-      </div>
+      </CompactActions>
       <LeadDrawerSection title="Contact">
         <LeadInfo label="Email" value={lead.email} />
         <LeadInfo label="Phone" value={lead.phone} />
@@ -4216,7 +4224,7 @@ export function CRMContactsPage() {
         refresh();
         toast({ title: formMode === "edit" ? "Contact updated" : "Contact created", description: contact.name });
       })
-      .catch((err) => setFormError(err?.response?.data?.detail || "Contact could not be saved."))
+      .catch((err) => setFormError(dealError(err)))
       .finally(() => setFormSaving(false));
   };
   const bulkPatch = (payload: CRMApiRecord, title: string) => {
@@ -4321,7 +4329,7 @@ export function CRMContactsPage() {
           {selectedRows.length ? (
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} contact{selectedRows.length === 1 ? "" : "s"} selected</div>
-              <div className="flex flex-wrap gap-2">
+              <CompactActions className="flex flex-wrap gap-2">
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-card">{stage}</option>)}</NativeSelect></label>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
@@ -4329,7 +4337,7 @@ export function CRMContactsPage() {
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-contacts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
                 <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
                 <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear contact selection"><X className="h-4 w-4" /></Button>
-              </div>
+              </CompactActions>
             </div>
           ) : null}
         </main>
@@ -4345,6 +4353,7 @@ export function CRMContactsPage() {
       {manualMerge && <MergeWizardModal group={manualMerge} onClose={() => setManualMerge(null)} onMerged={(winnerId, count) => { setManualMerge(null); setSelectedIds({}); setSelected(null); refresh(); toast({ title: "Contacts merged", description: `${count + 1} contacts combined into record #${winnerId}.` }); }}/>}
       {formMode ? (
         <ContactFormModal
+          key={`${formMode}:${editingContact?.id || "new"}`}
           mode={formMode}
           contact={editingContact}
           saving={formSaving}
@@ -4394,12 +4403,12 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <CompactActions className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
-      </div>
+      </CompactActions>
       {showColumns ? (
         <div className="absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-border bg-card p-2 shadow-xl">
           {columns.map(([key, label]) => (
@@ -4511,12 +4520,12 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAdd
         <div className="flex min-w-0 items-center gap-3"><ContactAvatar contact={contact} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{contact.name}</h2><p className="truncate text-sm text-muted-foreground">{contact.companyName || "No company linked"}</p></div></div>
         <div className="flex items-center gap-1"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close contact details"><X className="h-4 w-4" /></Button></div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <CompactActions className="mt-4 flex flex-wrap gap-2">
         {contact.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${contact.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
         {contact.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${contact.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
         <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(contact)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
-      </div>
+      </CompactActions>
       <CatalogAssociations key={contact.id} source="crm" target="contact" id={contact.id}/>
       <LeadDrawerSection title="Contact">
         <LeadInfo label="Email" value={contact.email || "No email"} />
@@ -4547,12 +4556,11 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onOpenActivities, onAdd
 }
 
 export function ContactFormModal({ mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
-  const initial = useMemo(() => contactFormInitial(contact), [contact?.id]);
+  const [initial] = useState(() => contactFormInitial(mode === "edit" ? contact : null));
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
   const [contactTab, setContactTab] = useState("basic");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  useEffect(() => setDraft(initial), [initial]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial) || catalogLines.length > 0;
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
@@ -4576,8 +4584,8 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close contact form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="suite-dialog-body space-y-4 px-5 py-4">{error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
-          <FormSectionTabs label="contact form sections" active={contactTab} onChange={setContactTab} sections={[{id:"basic",label:"Basic details",content:(<LeadFormSection title="Basic details"><LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField><LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField></LeadFormSection>)},{id:"contact",label:"Contact info",content:(<LeadFormSection title="Contact info"><LeadFormField label="Email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email" /></LeadFormField><LeadFormField label="Phone" error={fieldErrors.phone}><PhoneInput label="Phone" value={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch("phone",value)} onCountryCodeChange={value=>patch("phone_country_code",value)} error={fieldErrors.phone} /></LeadFormField></LeadFormSection>)},{id:"company",label:"Company & ownership",content:(<LeadFormSection title="Relationship">
-            <LeadFormField label="Company"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.companyId)} onChange={(event) => patch("companyId", event.target.value)}><option value="">No company linked</option>{companies.map((company) => <option key={String(company.id)} value={String(company.id)}>{String(company.name || company.company_name || company.id)}</option>)}</NativeSelect></LeadFormField>
+          <FormSectionTabs label="contact form sections" active={contactTab} onChange={setContactTab} sections={[{id:"basic",label:"Basic details",content:(<LeadFormSection title="Basic details"><LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField><LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField></LeadFormSection>)},{id:"contact",label:"Contact info",content:(<LeadFormSection title="Communication details"><CommunicationDraftEditor ownerId={mode==="edit"?contact?.id:undefined} value={Array.isArray(draft.communicationChannels)?draft.communicationChannels as unknown as CommunicationEntry[]:primaryEntries(valueText(draft.email),valueText(draft.phone),valueText(draft.phone_country_code))} onChange={(items,version)=>{patch("communicationChannels",items as unknown as CRMApiRecord[]);patch("communicationVersion",version);const email=items.find(x=>x.kind==="email"&&x.primary);const phone=items.find(x=>x.kind==="phone"&&x.primary);patch("email",email?.value||"");patch("phone",(phone?.value||"").replace(/[ ()-]/g,""));patch("phone_country_code",phone?.countryCode||"+91");}}/><SharedNumberConfirmation phone={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} email={valueText(draft.email)} confirmed={draft.confirmShared===true} reason={valueText(draft.sharedReason)} onChange={(confirmed,reason)=>{patch("confirmShared",confirmed);patch("sharedReason",reason);}}/></LeadFormSection>)},{id:"financial",label:"Financial data",content:(<FinancialDataTab contactId={mode==="edit"?contact?.id:undefined} value={draft.financialData as unknown as FinancialData|undefined} onChange={data=>patch("financialData",data as unknown as CRMApiRecord)}/>)},{id:"company",label:"Company & ownership",content:(<LeadFormSection title="Relationship">
+            <LeadFormField label="Company"><SharedCompanySelect value={valueText(draft.companyId)} onChange={value=>patch("companyId",value)} initial={companies.map(company=>({id:Number(company.id),name:String(company.name||company.company_name||company.id)}))}/></LeadFormField>
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
             <LeadFormField label="Lifecycle stage"><LeadFormSelect value={valueText(draft.stage)} values={stages} onChange={(value) => patch("stage", value)} /></LeadFormField>
             <LeadFormField label="Status"><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
@@ -4639,6 +4647,11 @@ function buildContactPayload(draft: CRMApiRecord): CRMApiRecord {
     next_follow_up_at: followUp || undefined,
     notes: emptyToUndefined(draft.notes),
   };
+  if (Array.isArray(draft.communicationChannels)) payload.communication_channels = transportEntries(draft.communicationChannels as unknown as CommunicationEntry[]);
+  if (draft.financialData) payload.financialData = draft.financialData;
+  if (draft.communicationVersion) payload.communication_version = draft.communicationVersion;
+  payload.confirmShared = draft.confirmShared === true;
+  if (draft.sharedReason) payload.sharedReason = draft.sharedReason;
   if (draft.companyId) payload.company_id = Number(draft.companyId);
   if (draft.ownerId) payload.ownerId = Number(draft.ownerId);
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
@@ -4998,7 +5011,7 @@ function CRMAccountsPage() {
           {selectedRows.length ? (
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} account{selectedRows.length === 1 ? "" : "s"} selected</div>
-              <div className="flex flex-wrap gap-2">
+              <CompactActions className="flex flex-wrap gap-2">
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><TagIcon /><span className="sr-only">Change account type</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ account_type: event.target.value }, "Account type changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change type</option>{typeOptions.map((type) => <option key={type} value={type} className="bg-card">{type}</option>)}</NativeSelect></label>
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Activity className="h-3.5 w-3.5" /><span className="sr-only">Change status</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ status: event.target.value }, "Account status changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change status</option>{statusOptions.map((status) => <option key={status} value={status} className="bg-card">{status}</option>)}</NativeSelect></label>
@@ -5006,7 +5019,7 @@ function CRMAccountsPage() {
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-accounts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
                 <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
                 <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear account selection"><X className="h-4 w-4" /></Button>
-              </div>
+              </CompactActions>
             </div>
           ) : null}
         </main>
@@ -5052,12 +5065,12 @@ function AccountsToolbar({ search, view, activeFilters, showColumns, visibleColu
           <div className="flex flex-wrap gap-1">
             {views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>{item.label}</button>)}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <CompactActions className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
-          </div>
+          </CompactActions>
         </div>
       </div>
       {showColumns ? <div className="absolute right-3 top-full z-30 mt-2 w-52 rounded-md border border-border bg-card p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground hover:bg-muted/40"><input type="checkbox" checked={visibleColumns[key]} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
@@ -5173,13 +5186,13 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
         <div className="flex min-w-0 items-center gap-3"><AccountAvatar account={account} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{account.name}</h2><div className="mt-1 flex gap-1"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></div></div></div>
         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close account details"><X className="h-4 w-4" /></Button>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <CompactActions className="mt-4 flex flex-wrap gap-2">
         {account.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${account.phone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
         {account.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${account.email}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
         <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
         <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
-      </div>
+      </CompactActions>
       <LeadDrawerSection title="Account details">
         <LeadInfo label="Industry" value={account.industry || "Not provided"} />
         <LeadInfo label="Type" value={account.type || "Prospect"} />
@@ -5581,14 +5594,14 @@ function CRMDealsPage() {
           {selectedRows.length ? (
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} deal{selectedRows.length === 1 ? "" : "s"} selected</div>
-              <div className="flex flex-wrap gap-2">
+              <CompactActions className="flex flex-wrap gap-2">
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
                 <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><GitMerge className="h-3.5 w-3.5" /><span className="sr-only">Change stage</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { const stage = stages.find((item) => String(item.id) === event.target.value); if (stage) bulkPatch({ pipeline_id: Number(stage.pipelineId || stage.pipeline_id || 0), stage_id: Number(stage.id), probability: Number(stage.probability || 0), status: inferDealStatusFromStage(stage) }, "Deal stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stages.map((stage) => <option key={String(stage.id)} value={String(stage.id)} className="bg-card">{String(stage.name || stage.stageName || stage.id)}</option>)}</NativeSelect></label>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-deals.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export</Button>
                 <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
                 <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear deal selection"><X className="h-4 w-4" /></Button>
-              </div>
+              </CompactActions>
             </div>
           ) : null}
         </main>
@@ -5613,12 +5626,12 @@ function DealsToolbar({ search, view, activeFilters, showColumns, visibleColumns
         </label>
         <div className="flex flex-wrap justify-between gap-2">
           <div className="flex flex-wrap gap-1">{views.map((item) => <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>{item.label}</button>)}</div>
-          <div className="flex flex-wrap gap-2">
+          <CompactActions className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filter{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
             <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
-          </div>
+          </CompactActions>
         </div>
       </div>
       {showColumns ? <div className="absolute right-3 top-full z-30 mt-1 w-56 rounded-md border border-border bg-card p-2 shadow-xl">{columns.map(([key, label]) => <label key={key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-foreground hover:bg-muted/40"><input type="checkbox" checked={Boolean(visibleColumns[key])} onChange={() => onColumnToggle(key)} />{label}</label>)}</div> : null}
@@ -5737,13 +5750,13 @@ function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDeal
         <div className="flex min-w-0 items-center gap-3"><DealAvatar deal={deal} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{deal.name}</h2><p className="mt-1 truncate text-sm text-muted-foreground">{deal.companyName || "No company linked"}{deal.contactName ? ` / ${deal.contactName}` : ""}</p><div className="mt-2 flex gap-1"><LeadBadge value={deal.stageName || "Open"} tone="blue" /><LeadBadge value={deal.status || "Open"} tone={deal.status === "Lost" ? "red" : deal.status === "Won" ? "blue" : "slate"} /></div></div></div>
         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close deal details"><X className="h-4 w-4" /></Button>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <CompactActions className="mt-4 flex flex-wrap gap-2">
         {deal.contactPhone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${deal.contactPhone}`}><Phone className="h-3.5 w-3.5" />Log call</a></Button> : null}
         {deal.contactEmail ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${deal.contactEmail}`}><Mail className="h-3.5 w-3.5" />Log email</a></Button> : null}
         <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/calendar")}><CalendarDays className="h-3.5 w-3.5" />Schedule</Button>
         <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(deal)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
-      </div>
+      </CompactActions>
       <LeadDrawerSection title="Deal overview">
         <LeadInfo label="Amount" value={formatCurrency(deal.amount)} />
         <LeadInfo label="Pipeline" value={deal.pipelineName || "Not assigned"} />
@@ -6098,6 +6111,10 @@ function buildDealPayload(draft: CRMApiRecord, amount: number, customValues?: CR
     const links = (draft.related_contacts as CRMApiRecord[]).filter(link => Number(link.contactId) !== Number(draft.contactId));
     payload.dealContacts = [...(draft.contactId ? [{contactId: Number(draft.contactId), role: "Primary", isPrimary: true}] : []), ...links.map(link => ({...link, isPrimary: false}))];
   }
+  if (Array.isArray(draft.communicationChannels)) payload.communication_channels = transportEntries(draft.communicationChannels as unknown as CommunicationEntry[]);
+  if (draft.communicationVersion) payload.communication_version = draft.communicationVersion;
+  payload.confirmShared = draft.confirmShared === true;
+  if (draft.sharedReason) payload.sharedReason = draft.sharedReason;
   if (draft.companyId) payload.company_id = Number(draft.companyId);
   if (draft.contactId) payload.contact_id = Number(draft.contactId);
   if (draft.assigned_team_id) payload.assigned_team_id = Number(draft.assigned_team_id);
@@ -6650,6 +6667,13 @@ function QuoteBuilderPage() {
     action().then((response) => setQuote(response.data.quote && typeof response.data.quote === "object" ? response.data.quote as CRMRecord : response.data)).catch((err) => setError(err?.response?.data?.detail || `${label} failed.`)).finally(() => setSaving(false));
   };
   const addLine = () => run("Add line", () => crmApi.addQuoteLine(quoteId, line));
+  const actor = useAuthStore(state => state.user);
+  const quoteGrant = actor?.access?.grants.crm;
+  const granted = (permissions: string[], actions: string[]) => !!actor?.is_superuser || !actor?.access?.managed || !!quoteGrant?.enabled && (permissions.some(p => (quoteGrant.permissions || []).includes(p)) || actions.some(action => (quoteGrant.actions || []).includes(action)));
+  const canManageQuote = granted(["crm_admin", "crm_manage", "crm_quotes_manage"], ["manage", "edit", "create"]);
+  const canApproveQuote = granted(["crm_admin", "crm_manage", "crm_quotes_approve"], ["approve"]);
+  const quoteStatus = String(quote?.status || "").toLowerCase();
+  const quoteApproval = String(quote?.approval_status || quote?.approvalStatus || "").toLowerCase();
   const lines = Array.isArray(quote?.lines) ? quote?.lines as CRMRecord[] : [];
   return (
     <div className="space-y-6">
@@ -6683,12 +6707,19 @@ function QuoteBuilderPage() {
         <Card>
           <CardHeader><CardTitle>Quote Actions</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <Button className="w-full justify-start" variant="outline" onClick={() => run("Submit", () => crmApi.submitQuote(quoteId))}>Submit for approval</Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => run("Approve", () => crmApi.approveQuote(quoteId))}>Approve</Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => run("Send", () => crmApi.sendQuote(quoteId))}>Send</Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => run("Accept", () => crmApi.acceptQuote(quoteId))}>Accept and convert to SRM</Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => run("New version", () => crmApi.newQuoteVersion(quoteId))}>Create new version</Button>
-            <Button className="w-full justify-start" variant="outline" onClick={() => crmApi.quotePdf(quoteId, true)}>Generate PDF</Button>
+            <ActionToolbar label="Quote actions" actions={[
+              {id:"submit", kind:"review", label:"Submit for approval", prominent:true, primary:true, available:!!quote && canManageQuote && ["draft","rejected"].includes(quoteStatus), loading:saving, onSelect:()=>run("Submit",()=>crmApi.submitQuote(quoteId))},
+              {id:"approve", kind:"approve", label:"Approve", prominent:true, primary:true, available:!!quote && canApproveQuote && quoteStatus === "pending approval", loading:saving, onSelect:()=>run("Approve",()=>crmApi.approveQuote(quoteId)), confirm:{title:"Approve this quote?", description:"Review the quote lines, total and margin before approving it.", label:"Approve quote"}},
+              {id:"send", kind:"email", label:"Send", prominent:true, primary:true, available:!!quote && canManageQuote && (quoteStatus === "approved" || quoteApproval === "not_required") && !["sent","accepted","declined","converted"].includes(quoteStatus), loading:saving, onSelect:()=>run("Send",()=>crmApi.sendQuote(quoteId))},
+              {id:"accept", kind:"convert", label:"Accept and convert to SRM", prominent:true, available:!!quote && canManageQuote && ["sent","approved"].includes(quoteStatus), disabled:!quote?.deal_id && !quote?.dealId, disabledReason:!quote?.deal_id && !quote?.dealId ? "Link this quote to a CRM deal before conversion" : undefined, loading:saving, onSelect:()=>run("Accept",()=>crmApi.acceptQuote(quoteId)), confirm:{title:"Accept and convert this quote?", description:"This records customer acceptance and creates the linked SRM commercial records.", label:"Accept and convert"}},
+              {id:"version", kind:"copy", label:"Create new version", available:!!quote && canManageQuote, loading:saving, onSelect:()=>run("New version",()=>crmApi.newQuoteVersion(quoteId))},
+              {id:"pdf", kind:"download", label:"Generate PDF", prominent:true, available:!!quote, onSelect:()=>{void crmApi.quotePdf(quoteId,true);}},
+            ]}/>
+
+
+
+
+
           </CardContent>
         </Card>
       </div>
@@ -7126,12 +7157,12 @@ function WebhookSettingsPage() {
                   </div>
                   <Badge className={statusColor((webhook.isActive ?? webhook.is_active) ? "Active" : "Inactive")}>{(webhook.isActive ?? webhook.is_active) ? "Active" : "Inactive"}</Badge>
                   <span className="text-sm text-muted-foreground">Secret {String(webhook.secret || "masked")}</span>
-                  <div className="flex flex-wrap gap-2">
+                  <CompactActions className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => setSelected(webhook)}>Logs</Button>
                     <Button variant="outline" size="sm" onClick={() => test(webhook)}>Test</Button>
                     <Button variant="outline" size="sm" onClick={() => toggleActive(webhook)}>{(webhook.isActive ?? webhook.is_active) ? "Disable" : "Enable"}</Button>
                     <Button variant="outline" size="sm" onClick={() => crmApi.deleteWebhook(Number(webhook.id)).then(load)}>Delete</Button>
-                  </div>
+                  </CompactActions>
                 </div>
               ))}
               {!loading && !webhooks.length ? <p className="text-sm text-muted-foreground">No webhooks configured yet.</p> : null}

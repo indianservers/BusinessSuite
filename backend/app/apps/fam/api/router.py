@@ -1567,7 +1567,8 @@ def update_voucher(id: int, payload: VoucherUpdatePayload, request: Request, db:
     voucher.source_module = payload.source_module
     voucher.source_record_type = payload.source_record_type
     voucher.source_record_id = payload.source_record_id
-    db.query(FAMVoucherLine).filter(FAMVoucherLine.voucher_id == voucher.id).delete()
+    for line in db.query(FAMVoucherLine).filter(FAMVoucherLine.voucher_id == voucher.id).all():
+        db.delete(line)
     db.flush()
     for index, line in enumerate(payload.lines, start=1):
         db.add(FAMVoucherLine(voucher_id=voucher.id, line_number=index, **line.model_dump()))

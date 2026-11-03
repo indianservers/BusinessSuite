@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "name": "whatsapp",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "whatsapp",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "whatsapp",
+      "width": 320,
+      "passed": true
+    },
+    {
+      "name": "person-management",
+      "width": 320,
+      "passed": true
+    }
+  ],
+  "issues": [],
+  "fixtures": "all API responses (isolated layout verification)",
+  "viewports": [
+    1440,
+    390,
+    320
+  ],
+  "note": "Read-only real local API except explicitly listed record fixtures. No record mutations."
+}

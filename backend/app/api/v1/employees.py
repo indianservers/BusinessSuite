@@ -1130,6 +1130,8 @@ def my_profile_completeness(
         Employee.id == current_user.employee.id,
         Employee.deleted_at.is_(None),
     ).first()
+    if employee is None:
+        raise HTTPException(status_code=404, detail="Employee profile not found in the current branch")
     fields = {
         "personal_email": employee.personal_email,
         "phone_number": employee.phone_number,

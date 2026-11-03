@@ -116,6 +116,31 @@ export function ApprovalRequestCard({
     </button>
   );
 }
+function QuickApprovalReview({ row, environment, onChanged, onOpen }: { row: RequestRow; environment: string; onChanged: () => void; onOpen: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState<Detail>();
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    setDetail(undefined); setError("");
+    api.get<Detail>(`/requests/${row.id}`, environment).then(data => { if (active) setDetail(data); }).catch(e => { if (active) setError(errorMessage(e)); });
+    return () => { active = false; };
+  }, [open, row.id, environment]);
+  return <div className="ap-actions" style={{padding: 12, flexDirection: "column", alignItems: "stretch"}}>
+    <button aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Close quick review" : "Review & decide"}</button>
+    {open && <section aria-label={`Quick approval review: ${row.title}`}>
+      {error && <p role="alert" className="ap-error">{error}</p>}
+      {!detail && !error && <p role="status">Loading request…</p>}
+      {detail && <><p>{detail.description || "No description provided."}</p>
+        {Object.entries(detail.state.fields).map(([key, value]) => <p key={key}><strong>{key.replace(/_/g, " ")}: </strong>{typeof value === "object" ? JSON.stringify(value) : String(value ?? "—")}</p>)}
+        <button onClick={onOpen}>Full details & documents</button>
+        <ApprovalDecisionPanel request={detail} environment={environment} onError={setError} onChanged={() => { setOpen(false); onChanged(); }} />
+      </>}
+    </section>}
+  </div>;
+}
+
 export function ApprovalInbox({
   environment,
   scope = "assigned",
@@ -126,6 +151,7 @@ export function ApprovalInbox({
   onOpen: (id: number) => void;
 }) {
   const [tab, setTab] = useState(scope),
+    [refresh, setRefresh] = useState(0),
     [search, setSearch] = useState(""),
     [rows, setRows] = useState<RequestRow[]>([]),
     [error, setError] = useState(""),
@@ -169,7 +195,7 @@ export function ApprovalInbox({
     return () => {
       live = false;
     };
-  }, [environment, tab, searchQuery, offset, sort, priority]);
+  }, [environment, tab, searchQuery, offset, sort, priority, refresh]);
   return (
     <>
       <div className="ap-tabs">
@@ -251,11 +277,13 @@ export function ApprovalInbox({
           <p className="ap-empty">Loading approvals…</p>
         ) : rows.length ? (
           rows.map((row) => (
+            <div key={row.id}>
             <ApprovalRequestCard
-              key={row.id}
               row={row}
               onOpen={() => onOpen(row.id)}
             />
+            {row.status === "Pending" && ["assigned", "delegated"].includes(tab) && <QuickApprovalReview row={row} environment={environment} onOpen={() => onOpen(row.id)} onChanged={() => setRefresh(value => value + 1)} />}
+            </div>
           ))
         ) : (
           <div className="ap-empty">
@@ -356,12 +384,12 @@ export function ApprovalDecisionPanel({
           <Check size={14} />
           Approve
         </button>
-        <button disabled={busy} onClick={() => void decide("changes")}>
+        <button disabled={busy || !reason.trim()} onClick={() => void decide("changes")}>
           Request changes
         </button>
         <button
           className="ap-danger"
-          disabled={busy}
+          disabled={busy || !reason.trim()}
           onClick={() => void decide("reject")}
         >
           Reject

@@ -8,6 +8,109 @@ from app.apps.crm.models import CRMActivity, CRMContact
 ROOT='/api/v1/crm/growth'
 
 
+@pytest.fixture(autouse=True)
+def growth_company_setup(db,superuser_headers):
+    from app.models.company import Company
+    company=db.get(Company,1)
+    company.email=company.email or 'crm-growth-test@example.com'
+    company.country=company.country or 'India'
+    db.commit()
+
+
+@pytest.mark.parametrize('format',['csv','clipboard','xlsx','pdf'])
+def test_relationship_exports_are_real_files_and_authorized(client,superuser_headers,format):
+    h=superuser_headers;c=contact(client,h,full_name='=Export fixture',email='export@example.com')
+    payload={'format':format,'recipients':[{'entity':'contacts','id':c['id']}],'columns':['name','email','owner_id'],'summary':True}
+    response=client.post(ROOT+'/export',headers=h,json=payload)
+    assert response.status_code==200,response.text
+    if format=='xlsx':
+        from io import BytesIO
+        from openpyxl import load_workbook
+        sheet=load_workbook(BytesIO(response.content)).active
+        assert sheet.cell(2,1).value=="'=Export fixture" and sheet.cell(2,1).data_type=='s'
+    elif format=='pdf':assert response.content.startswith(b'%PDF')
+    else:assert "'=Export fixture" in response.text and 'export@example.com' in response.text
+    invalid=client.post(ROOT+'/export',headers=h,json={**payload,'recipients':[{'entity':'contacts','id':999999}]})
+    assert invalid.status_code==404
+
+
+def test_bulk_assignment_partial_results_and_new_payload(client,superuser_headers):
+    h=superuser_headers
+    a=contact(client,h,full_name='Bulk A',email='bulk-a@example.com')
+    b=contact(client,h,full_name='Bulk B',email='bulk-b@example.com')
+    due=(datetime.now(timezone.utc)+timedelta(days=2)).isoformat()
+    scheduled=post(client,h,'crm/growth/follow-up',{'entity':'contacts','record_id':a['id'],'due_at':due})
+    owner=get(client,h,f"/pending/contacts/{a['id']}")['items'][0]['owner_id']
+    payload={'recipients':[{'entity':'contacts','id':a['id']},{'entity':'contacts','id':b['id']}],'action':'assign','owner_id':owner,'request_id':str(uuid4())}
+    first=post(client,h,'crm/growth/follow-ups/bulk',payload)
+    assert first['saved']==1 and not first['items'][1]['saved']
+    retry=post(client,h,'crm/growth/follow-ups/bulk',payload)
+    assert retry['saved']==1 and retry['items'][0]['replayed']
+    assert get(client,h,f"/pending/contacts/{a['id']}")['items'][0]['id']==scheduled['activity_id']
+    conflict=post(client,h,'crm/growth/follow-ups/bulk',{**payload,'action':'schedule','due_at':due})
+    assert not conflict['items'][0]['saved'] and 'identifier' in conflict['items'][0]['message']
+
+
+def test_local_reminder_dispatch_and_offset_normalization(client,db,superuser_headers):
+    from app.apps.crm.growth import dispatch_relationship_reminders
+    from app.models.notification import Notification
+    h=superuser_headers;c=contact(client,h)
+    at=datetime.now(timezone.utc)
+    reminder=at+timedelta(hours=1)
+    saved=post(client,h,'crm/growth/follow-up',{'entity':'contacts','record_id':c['id'],'title':'x'*220,'due_at':(at+timedelta(hours=2)).isoformat(),'reminder_at':reminder.astimezone(timezone(timedelta(hours=5,minutes=30))).isoformat()})
+    item=get(client,h,f"/pending/contacts/{c['id']}")['items'][0]
+    assert datetime.fromisoformat(item['metadata']['reminder_at'])==reminder
+    assert item['metadata']['reminder_at'].endswith('+00:00')
+    assert dispatch_relationship_reminders(db)==0
+    row=db.get(CRMActivity,saved['activity_id']);row.metadata_json={**row.metadata_json,'reminder_at':(at-timedelta(minutes=1)).isoformat()};db.commit()
+    assert dispatch_relationship_reminders(db)==1
+    assert dispatch_relationship_reminders(db)==0
+    assert db.query(Notification).filter_by(event_type='relationship_follow_up_reminder',related_entity_id=c['id']).count()==1
+    visible=client.get('/api/v1/notifications/',headers=h,params={'module':'crm'}).json()['items']
+    assert any(item['event_type']=='relationship_follow_up_reminder' and item['related_entity_id']==c['id'] and f"record_id={c['id']}" in item['action_url'] for item in visible)
+
+
+def test_relationship_grid_filters_sorting_and_stale_edits(client,superuser_headers):
+    import json
+    h=superuser_headers
+    a=contact(client,h,full_name='Alpha grid',email='alpha-grid@example.com')
+    contact(client,h,full_name='Zulu grid',email='zulu-grid@example.com')
+    query={'search':'grid','filters':{'logic':'and','rules':[{'field':'email','operator':'contains','value':'alpha-grid'}]},'sorting':[{'id':'name','desc':True}],'page':1,'pageSize':25}
+    result=get(client,h,'/records',entity='contacts',state=json.dumps(query))
+    assert result['total']==1 and result['counts']['contacts']==1
+    assert result['items'][0]['id']==a['id']
+    query['sorting']=[{'id':'not-a-field','desc':False}]
+    assert client.get(ROOT+'/records',headers=h,params={'state':json.dumps(query)}).status_code==422
+    due=(datetime.now(timezone.utc)+timedelta(days=2)).isoformat()
+    first=post(client,h,'crm/growth/follow-up',{'entity':'contacts','record_id':a['id'],'due_at':due,'priority':'High','next_action':'Review quote'})
+    item=get(client,h,f"/pending/contacts/{a['id']}")['items'][0]
+    assert item['priority']=='High' and item['metadata']['next_action']=='Review quote'
+    stale=client.post(ROOT+'/follow-up',headers=h,json={'entity':'contacts','record_id':a['id'],'activity_id':first['activity_id'],'activity_version':'2000-01-01T00:00:00Z','due_at':due})
+    assert stale.status_code==409
+
+
+def test_bulk_schedule_retry_and_relationship_reminder(client,db,superuser_headers):
+    from app.apps.crm.growth import scheduled_relationship_reminders
+    from app.models.notification import Notification
+    h=superuser_headers;c=contact(client,h)
+    due=(datetime.now(timezone.utc)+timedelta(days=2)).isoformat()
+    payload={'recipients':[{'entity':'contacts','id':c['id']}],'action':'schedule','due_at':due,'request_id':str(uuid4())}
+    first=post(client,h,'crm/growth/follow-ups/bulk',payload)
+    retry=post(client,h,'crm/growth/follow-ups/bulk',payload)
+    assert first['saved']==1 and retry['items'][0]['replayed']
+    pending=get(client,h,f"/pending/contacts/{c['id']}")['items']
+    assert len(pending)==1
+    row=db.get(CRMActivity,pending[0]['id'])
+    row.metadata_json={**(row.metadata_json or {}),'reminder_at':(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat()}
+    db.commit()
+    assert scheduled_relationship_reminders(db,row.organization_id)==1
+    db.commit()
+    assert scheduled_relationship_reminders(db,row.organization_id)==0
+    assert db.query(Notification).filter_by(event_type='relationship_follow_up_reminder',related_entity_id=c['id']).count()==1
+    visible=client.get('/api/v1/notifications/',headers=h,params={'module':'crm'}).json()['items']
+    assert any(item['event_type']=='relationship_follow_up_reminder' and item['related_entity_id']==c['id'] and f"record_id={c['id']}" in item['action_url'] for item in visible)
+
+
 def get(client,h,path,**params):
     response=client.get(ROOT+path,headers=h,params=params)
     assert response.status_code==200,response.text
@@ -72,7 +175,7 @@ def greeting(recipients,**kwargs):
 def test_greeting_preview_personalizes_excludes_optouts_and_duplicates(client,superuser_headers):
     h=superuser_headers
     a=contact(client,h,full_name='Asha',email='asha@example.com')
-    duplicate=contact(client,h,full_name='Duplicate Asha',email='asha@example.com')
+    duplicate=contact(client,h,full_name='Duplicate Asha',email='asha@example.com',confirmShared=True,sharedReason='Explicit duplicate destination regression fixture')
     opted=contact(client,h,full_name='Opted out',email='no@example.com')
     missing=contact(client,h,full_name='Missing email',email=None)
     post(client,h,'communication/consents',{'email':'no@example.com','record_type':'contact','record_id':opted['id'],'consent_type':'email','status':'opted_out'})

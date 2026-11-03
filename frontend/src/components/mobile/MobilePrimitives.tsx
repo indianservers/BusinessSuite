@@ -1,5 +1,6 @@
+import { WhatsAppIcon } from "@/components/actions";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Filter, Mail, MessageCircle, Phone, StickyNote } from "lucide-react";
+import { Filter, Mail, Phone, StickyNote } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useMobile } from "./useMobile";
 import "./mobile-experience.css";
@@ -19,7 +20,7 @@ export function MobileFilters({ children, chips = [], onClear, label = "Filters"
 export function MobileContactActions({ phone, email, onNote }: { phone?: string | null; email?: string | null; onNote?: () => void }) {
   const mobile = useMobile(); if (!mobile || (!phone && !email && !onNote)) return null;
   const clean = phone?.replace(/[^\d+]/g, ""); const digits = clean?.replace(/\D/g, "");
-  return <nav className="mobile-contact-strip" aria-label="Contact actions">{clean && <a href={`tel:${clean}`}><Phone size={18}/>Call</a>}{digits && <a href={`https://wa.me/${digits}`} target="_blank" rel="noreferrer"><MessageCircle size={18}/>WhatsApp</a>}{email && <a href={`mailto:${email}`}><Mail size={18}/>Email</a>}{onNote && <button type="button" onClick={onNote}><StickyNote size={18}/>Add note</button>}</nav>;
+  return <nav className="mobile-contact-strip" aria-label="Contact actions">{clean && <a aria-label="Call contact" data-action-tooltip="Call this contact" href={`tel:${clean}`}><Phone className="text-teal-600" size={18}/>Call</a>}{digits && <a aria-label="Send WhatsApp message" data-action-tooltip="Send WhatsApp message" href={`https://wa.me/${digits}`} target="_blank" rel="noreferrer"><WhatsAppIcon className="h-[18px] w-[18px] text-[#25D366]"/>WhatsApp</a>}{email && <a aria-label="Compose email to this contact" data-action-tooltip="Compose email to this contact" href={`mailto:${email}`}><Mail className="text-blue-600" size={18}/>Email</a>}{onNote && <button type="button" onClick={onNote}><StickyNote size={18}/>Add note</button>}</nav>;
 }
 export function MobileDisclosure({ title, children }: { title: string; children: ReactNode }) {
   const mobile = useMobile(); return mobile ? <details className="mobile-disclosure"><summary>{title}</summary><div>{children}</div></details> : <>{children}</>;

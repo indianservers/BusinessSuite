@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { MobileFilters } from "@/components/mobile/MobilePrimitives";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -158,12 +159,12 @@ export default function ReportsPage() {
           <h1 className="page-title">PMS reports</h1><div className="flex gap-4 text-sm text-violet-600"><Link to="/pms/analytics/team">Team analytics</Link><Link to="/pms/analytics/projects">Project analytics</Link></div>
           <p className="page-description">Real task, sprint, status-history, flow, cycle-time, health, and team analytics.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <CompactActions className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => void loadReports()} disabled={loading || exporting}><RefreshCw className="h-4 w-4" />Refresh</Button>
           <Button variant="outline" disabled={exportDisabled} onClick={() => void exportReport("csv")}><Download className="h-4 w-4" />CSV</Button>
           <Button variant="outline" disabled={exportDisabled} onClick={() => void exportReport("xlsx")}><Download className="h-4 w-4" />Excel</Button>
           <Button variant="outline" disabled={exportDisabled} onClick={() => void exportReport("pdf")}><Download className="h-4 w-4" />PDF</Button>
-        </div>
+        </CompactActions>
       </div>
 
       {distribution && <section className="mobile-only-panel"><div className="mobile-focus-summary"><div><strong>{distribution.total_tasks}</strong><span>Total tasks</span></div><div><strong>{distribution.by_status.filter(row=>["done","completed","closed"].includes(row.name.toLowerCase())).reduce((sum,row)=>sum+row.tasks,0)}</strong><span>Completed tasks</span></div></div><nav className="mobile-stepper" aria-label="Report date range">{[7,30,90].map(days=><button type="button" key={days} onClick={()=>{const end=new Date(),start=new Date();start.setDate(start.getDate()-days+1);setFrom(start.toISOString().slice(0,10));setTo(end.toISOString().slice(0,10));setActiveTab("Distribution");}}>Last {days} days</button>)}</nav><Link className="mobile-filter-trigger" to="/pms/workload">View team workload</Link><Link className="mobile-filter-trigger" to="/pms/my-work?overdue=true">Overdue work</Link><button type="button" className="mobile-filter-trigger" onClick={()=>setActiveTab("Flow")}>Completion trends</button><div className="space-y-2 mt-3">{distribution.by_status.map(row=><div key={row.name} className="text-xs"><div className="flex justify-between"><span>{row.name}</span><strong>{row.tasks} tasks</strong></div><progress className="w-full" max={Math.max(1,distribution.total_tasks)} value={row.tasks}/></div>)}</div></section>}

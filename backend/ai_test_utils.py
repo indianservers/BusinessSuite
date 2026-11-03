@@ -1,4 +1,4 @@
-from test_identity_utils import attach_test_identity
+from test_identity_utils import attach_test_identity, attach_workflow_branch
 from app.core.security import get_password_hash
 from app.models.user import Permission, Role, User
 
@@ -37,12 +37,13 @@ def auth_headers(client, db, email: str = "ai-admin@example.com", permissions: l
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user, company_id)
+    branch = attach_workflow_branch(db, user, company_id)
     from app.ai_agents.services.registry import AiAgentRegistryService
     AiAgentRegistryService(db).ensure_seed_data()
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}, user
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Branch": str(branch.id)}, user
 
 
 def create_mock_provider(client, headers):

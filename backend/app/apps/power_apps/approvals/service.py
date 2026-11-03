@@ -199,6 +199,31 @@ def signature(key, body):
     ).hexdigest()
 
 
+def _inherit_request_branch(db, root, organization_id, rows):
+    """Worker-created seats and signed history inherit validated request ownership."""
+    from sqlalchemy import select
+    from app.branches.models import BranchOwnership
+    register = BranchOwnership.__table__
+    connection = db.connection()
+    owner = connection.execute(select(register.c.company_id, register.c.branch_id).where(
+        register.c.resource_table == ApprovalRequest.__tablename__,
+        register.c.resource_key == str(root.id), register.c.company_id == organization_id,
+    )).first()
+    if not owner:
+        return  # Unresolved legacy ownership remains inaccessible.
+    db.flush()
+    for row in rows:
+        table, key = row.__table__.name, str(row.id)
+        previous = connection.execute(select(register.c.company_id, register.c.branch_id).where(
+            register.c.resource_table == table, register.c.resource_key == key,
+        )).first()
+        if previous and tuple(previous) != tuple(owner):
+            raise HTTPException(409, "Approval record branch does not match its request")
+        if not previous:
+            connection.execute(register.insert().values(resource_table=table, resource_key=key,
+                company_id=owner.company_id, branch_id=owner.branch_id, source="approval-request-worker"))
+
+
 def evidence(db, root, state, actor, event_type, reason="", details=None):
     last = (
         db.query(ApprovalHistory)
@@ -234,8 +259,7 @@ def evidence(db, root, state, actor, event_type, reason="", details=None):
         "correlation_id": str(uuid.uuid4()),
     }
     proof = signature(settings.SECRET_KEY, body)
-    db.add(
-        ApprovalHistory(
+    history = ApprovalHistory(
             request_id=root.id,
             event_type=event_type,
             actor_user_id=actor,
@@ -245,9 +269,10 @@ def evidence(db, root, state, actor, event_type, reason="", details=None):
             created_at=datetime.fromisoformat(body["at"]),
             details_json={"evidence": body, "hash": proof},
         )
-    )
+    db.add(history)
     state.head_hash = proof
     db.flush()
+    _inherit_request_branch(db, root, state.organization_id, [history])
 
 
 def verify_history(db, state):
@@ -722,6 +747,7 @@ def _open_stage(db, run, step, config):
                 )
                 db.add(row)
                 assignments.append(row)
+            _inherit_request_branch(db, root, run.organization_id, assignments)
             root.sla_due_at = deadline(
                 step.started_at, stage.sla_seconds, process.business_calendar
             )
@@ -739,8 +765,7 @@ def _open_stage(db, run, step, config):
     step.output = None
     existing_wait = db.query(Wait).filter_by(step_id=step.id).first()
     if not existing_wait:
-        db.add(
-            Wait(
+        existing_wait = Wait(
                 **scope_values(run),
                 run_id=run.id,
                 step_id=step.id,
@@ -755,7 +780,8 @@ def _open_stage(db, run, step, config):
                     ]
                 ),
             )
-        )
+        db.add(existing_wait)
+    _inherit_request_branch(db, root, run.organization_id, [step, existing_wait])
     evidence(
         db,
         root,

@@ -314,6 +314,10 @@ def apply_user(db, actor, target, company, patch, reason, request):
     before = snapshot(db, target, company)
     grants = validate_grants(db, patch.get("grants", {}), company)
     status = patch.get("status", before["status"])
+    if status != "active":
+        from app.access.setup import protect_last_company_admin
+        membership = db.query(AccessMembership).filter_by(user_id=target.id, company_id=company).first()
+        protect_last_company_admin(db, membership, False, False)
     if status not in {"active", "invited", "suspended", "deactivated"}:
         raise HTTPException(422, "Invalid account status")
     if status == "active" and not target.is_active:

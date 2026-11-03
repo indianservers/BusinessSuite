@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, or_
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_current_user, get_db
 from app.models.employee import Employee
@@ -81,14 +81,23 @@ def directory(
     if not service.can_manage(actor):
         raise HTTPException(403, "HR profile management access is required")
     # Expose business directory information only; private profile fields require a scoped detail read.
-    candidates = db.query(User).order_by(User.email).all()
+    loaders = [joinedload(User.person)]
+    if hasattr(User, "employee"):
+        loaders.append(joinedload(User.employee).joinedload(Employee.branch))
+    candidates = db.query(User).options(*loaders).order_by(User.email).all()
+    candidate_ids = [target.id for target in candidates]
+    employees = db.query(Employee).options(joinedload(Employee.branch)).filter(Employee.user_id.in_(candidate_ids), Employee.deleted_at.is_(None)).all() if service.is_app_enabled("hrms") else []
+    # Preserve the separate unscoped existence check: a hidden home-branch
+    # employee must never be exposed as an account-only profile.
+    linked = set(db.connection().execute(select(Employee.user_id).where(Employee.user_id.in_(candidate_ids), Employee.deleted_at.is_(None))).scalars()) if service.is_app_enabled("hrms") else set()
+    directory_context = {"users": {target.id: target for target in candidates}, "employees": {employee.user_id: employee for employee in employees}, "linked": linked}
     items = []
     for target in candidates:
         if service.tenant(target) != service.tenant(actor):
             continue
         try:
-            service.authorized_user(db, actor, target.id)
-            employee = service.employee_for(db, target)
+            service.authorized_user(db, actor, target.id, directory=directory_context)
+            employee = service.employee_for(db, target, directory=directory_context)
         except HTTPException:
             continue
         name = (

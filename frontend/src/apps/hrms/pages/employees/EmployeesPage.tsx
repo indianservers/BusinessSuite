@@ -1,5 +1,7 @@
+import CompactActions from "@/components/actions/CompactActions";
+import { IconActionButton } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
-import { recordPreviewProps } from "@/components/RecordQuickPreview";
+import EmployeeQuickPreview from "./EmployeeQuickPreview";
 import { ImportWizard, DataExportButton } from "@/shared/data-transfer";
 import { employeeImportFields } from "@/shared/data-transfer/fields";
 import {useHRSession} from "../../workbench/useHRSession";
@@ -206,13 +208,11 @@ export default function EmployeesPage() {
       header: "Actions",
       cell: (info) => (
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Preview employee" aria-label={`Preview ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: false }); }}>
-            <Eye className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit employee" aria-label={`Edit ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: true }); }}>
-            <Edit className="h-3.5 w-3.5" />
-          </Button>
-          <label className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md hover:bg-muted" onClick={(event) => event.stopPropagation()}>
+          <IconActionButton action="view" tooltip="Preview employee details" aria-label={`Preview ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: false }); }}>
+          </IconActionButton>
+          <IconActionButton action="edit" tooltip="Edit employee details" aria-label={`Edit ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: true }); }}>
+          </IconActionButton>
+          <label aria-label="Upload employee photo" data-action-tooltip="Upload employee profile photo" className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md hover:bg-muted" onClick={(event) => event.stopPropagation()}>
             <Camera className="h-3.5 w-3.5" />
             <input
               type="file"
@@ -262,7 +262,7 @@ export default function EmployeesPage() {
             {data?.total ?? 0} {activeCount || search ? "matching" : "total"} employees
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <CompactActions primaryId="quick-add-employee" className="flex flex-wrap items-center gap-2">
           <Button variant={layout === "cards" ? "default" : "outline"} size="sm" aria-pressed={layout === "cards"} onClick={() => setLayout("cards")}>Profile cards</Button>
           <Button variant={layout === "table" ? "default" : "outline"} size="sm" aria-pressed={layout === "table"} onClick={() => setLayout("table")}>Table</Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -272,8 +272,8 @@ export default function EmployeesPage() {
           <DataExportButton filename="employees" description="All employees matching the current filters, subject to your export permissions." load={async()=> (await employeeApi.exportCsv(queryFilters)).data}/>
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
-          <Button size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Quick Add Employee</Button><Link className="p-2 text-sm underline" to="/hrms/employees/new">Full employee form</Link>
-        </div>
+          <Button id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Quick Add Employee</Button><Link className="p-2 text-sm underline" to="/hrms/employees/new">Full employee form</Link>
+        </CompactActions>
       </div>
 
       {/* Filters */}
@@ -349,7 +349,7 @@ export default function EmployeesPage() {
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr {...recordPreviewProps(headerGroup)} key={headerGroup.id}>
+                <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
@@ -364,7 +364,7 @@ export default function EmployeesPage() {
             <tbody>
               {isLoading ? (
                 Array.from({ length: 10 }).map((_, i) => (
-                  <tr {...recordPreviewProps(_)} key={i} className="border-b">
+                  <tr key={i} className="border-b">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 skeleton rounded-full" />
@@ -394,7 +394,7 @@ export default function EmployeesPage() {
                 </tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr {...recordPreviewProps(row)}
+                  <tr onDoubleClick={() => setEmployeePopup({ employee: row.original, editing: false })}
                     key={row.id}
                     className="cursor-pointer border-b transition-colors hover:bg-muted/30"
                     onClick={() => setEmployeePopup({ employee: row.original, editing: false })}
@@ -442,8 +442,9 @@ export default function EmployeesPage() {
         )}
       </Card>
 
+      {employeePopup && !employeePopup.editing && <EmployeeQuickPreview key={employeePopup.employee.id} employee={employeePopup.employee} options={filterOptions} onClose={() => setEmployeePopup(null)} />}
       {quickAdd&&<HRQuickAdd close={()=>setQuickAdd(false)} saved={async id=>{setQuickAdd(false);void qc.invalidateQueries({queryKey:["employees"]});const r=await employeeApi.get(id);setEmployeePopup({employee:r.data,editing:false});}}/>}
-      <Dialog open={!!employeePopup} onOpenChange={(open) => { if (!open) setEmployeePopup(null); }}>
+      <Dialog open={!!employeePopup?.editing} onOpenChange={(open) => { if (!open) setEmployeePopup(null); }}>
         <DialogContent className="flex max-h-[94dvh] w-[calc(100%-1rem)] max-w-7xl flex-col overflow-hidden p-0 sm:w-[calc(100%-3rem)]">
           <div className="border-b px-5 py-4 pr-12">
             <DialogTitle className="text-lg font-semibold">{employeePopup?.editing ? "Edit employee" : "Employee preview"}: {employeePopup?.employee.first_name} {employeePopup?.employee.last_name}</DialogTitle>

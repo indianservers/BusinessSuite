@@ -711,6 +711,7 @@ const hrNav: RoleNavItem[] = [
 ];
 
 const adminNav: RoleNavItem[] = [
+ {label:"Employee birthdays",icon:CalendarDays,to:"/hrms/birthdays",group:"Core HR"},
   { label: "Forms", icon: FileText, to: "/hrms/forms", group: "Workspace" },
   { label: "Admin Home", icon: ShieldCheck, to: "/admin-home", group: "Core HR", exact: true },
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard", group: "Core HR", exact: true },
@@ -828,12 +829,15 @@ const employeeNav: RoleNavItem[] = [
 ];
 
 const crmNav: RoleNavItem[] = [
+ {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
   { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },
   { label: "Leads", icon: Users, to: "/crm/leads", group: "Core" },
   { label: "Contacts", icon: UserRound, to: "/crm/contacts", group: "Core" },
-  { label: "Records management", icon: TableProperties, to: "/crm/records", group: "Core" },
-  { label: "Customers / Companies", icon: Building2, to: "/crm/companies", group: "Core" },
+  { label: "Relationship Hub", icon: TableProperties, to: "/crm/records", group: "Core" },
+  { label: "Customers", icon: UserRound, to: "/crm/customers", group: "Core" },
+  { label: "Companies", icon: Building2, to: "/crm/companies", group: "Core" },
+  { label: "Vendors", icon: Users, to: "/crm/vendors", group: "Core" },
   { label: "Deals", icon: DollarSign, to: "/crm/deals", group: "Sales" },
   { label: "Pipeline", icon: GitBranch, to: "/crm/pipeline", group: "Sales", badge: "Drag" },
   { label: "Pipeline templates", icon: LayoutGrid, to: "/crm/templates", group: "Sales" },
@@ -954,6 +958,10 @@ const projectManagementNav: RoleNavItem[] = [
   return groups.indexOf(a.group) - groups.indexOf(b.group) || rank(a) - rank(b);
 });
 const srmNav: RoleNavItem[] = [
+  {label:"Customers",icon:Users,to:"/srm/customers",group:"Business relationships"},
+ {label:"Vendors",icon:Users,to:"/srm/vendors",group:"Business relationships"},
+  {label:"Suppliers",icon:Users,to:"/srm/suppliers",group:"Business relationships"},
+  {label:"Companies",icon:Users,to:"/srm/companies",group:"Business relationships"},
   { label: "Forms", icon: FileText, to: "/srm/forms", group: "Workspace" },
   { label: "Dashboard", icon: LayoutDashboard, to: "/srm/dashboard", group: "Sales & Inventory", exact: true },
   { label: "Sales Orders", icon: Receipt, to: "/srm/sales-orders", group: "Sales & Inventory" },

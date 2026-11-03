@@ -1,3 +1,5 @@
+import { usePageTitle } from "@/hooks/use-page-title";
+import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArchiveRestore, Plus, RefreshCw, Settings2, Trash2 } from "lucide-react";
@@ -7,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { crmApi, type CRMApiRecord } from "./api";
 import { dealError } from "./deals/deal-utils";
+import UniversalContactsPage from "./UniversalContactsPage";
 
 const entities = [
   { key: "contacts", label: "Contacts", singular: "contact", description: "People, contact details, company relationships and customer preferences." },
@@ -19,6 +22,12 @@ const displayDate = (value: unknown) => value ? new Date(String(value)).toLocale
 
 /** A common directory; specialized capture/detail screens retain their workflow validation. */
 export default function CRMRecordsPage() {
+  usePageTitle("Relationship Hub");
+  const [params] = useSearchParams();
+  return ["deals", "companies"].includes(params.get("entity") || "") ? <LegacyRecordsPage /> : <UniversalContactsPage title="Relationship Hub" />;
+}
+
+function LegacyRecordsPage() {
   const [params, setParams] = useSearchParams();
   const entity = entities.find(item => item.key === params.get("entity")) || entities[0];
   const archived = params.get("view") === "deleted";
@@ -60,6 +69,7 @@ export default function CRMRecordsPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [entity.key, archived, search, page, revision]);
+  useRecordView<{items: CRMApiRecord[]; total: number}>(`/crm/${entity.key}`, { page, per_page: 25, search, deleted_only: archived, sort_by: archived ? "deleted_at" : "updated_at", sort_order: "desc" }, data => { setRows(data.items); setTotal(data.total); }, () => { setRows([]); setTotal(0); });
   const mutate = async () => {
     if (!pending || busy) return;
     setBusy(true); setError("");
@@ -74,7 +84,7 @@ export default function CRMRecordsPage() {
   };
   return <main className="space-y-5 p-4 md:p-6">
     <header className="flex flex-wrap items-start justify-between gap-3">
-      <div><p className="text-xs uppercase tracking-wide text-muted-foreground">CRM</p><h1 className="text-2xl font-bold">Records management</h1><p className="mt-1 text-sm text-muted-foreground">Create, find, update and recover your business relationships.</p></div>
+      <div><p className="text-xs uppercase tracking-wide text-muted-foreground">CRM</p><h1 className="text-2xl font-bold">Relationship Hub</h1><p className="mt-1 text-sm text-muted-foreground">Create, find, update and recover your business relationships.</p></div>
       <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to={`/crm/record-metadata?entity=${entity.key}`}><Settings2 className="mr-2 h-4 w-4" />Manage metadata</Link></Button><Button asChild><Link to={`/crm/${entity.key}?new=${entity.key}`}><Plus className="mr-2 h-4 w-4" />Create {entity.singular}</Link></Button></div>
     </header>
     <nav aria-label="Record types" className="flex flex-wrap gap-2">{entities.map(item => <Button key={item.key} variant={entity.key === item.key ? "default" : "outline"} aria-current={entity.key === item.key ? "page" : undefined} onClick={() => { setNotice(""); change({ entity: item.key, page: "" }); }}>{item.label}</Button>)}</nav>

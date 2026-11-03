@@ -1,3 +1,5 @@
+import { ActionTooltipProvider } from "@/components/actions";
+import SetupReadiness from "@/components/suite/SetupReadiness";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import OperationsWorkspace from "@/components/layout/OperationsWorkspace";
 import { getOperationWorkspace } from "@/lib/navigation-workspaces";
@@ -281,7 +283,9 @@ export default function App() {
       </Suspense>
       {isHydrated && isAuthenticated ? <PMSRealtimeBridge /> : null}
       <SuiteNavigationTracker />
+      <SetupReadiness />
       <Toaster />
+      <ActionTooltipProvider />
       {isAuthenticated && <Suspense fallback={null}><PersonManagementHost /></Suspense>}
     </>
   );

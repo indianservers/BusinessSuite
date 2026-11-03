@@ -297,7 +297,7 @@ def _srm_accounting_status(db: Session | None, organization_id: int | None, sour
     }
 
 
-def _invoice_payload(invoice: SRMInvoice, db: Session | None = None) -> dict:
+def _invoice_payload(invoice: SRMInvoice, db: Session | None = None, related: dict | None = None) -> dict:
     payload = _serialize(invoice)
     if invoice.invoice_draft_id:
         from sqlalchemy.orm import object_session
@@ -310,13 +310,14 @@ def _invoice_payload(invoice: SRMInvoice, db: Session | None = None) -> dict:
         payload["source_type"] = payload.get("source_type") or lines[0].get("source_type")
         payload["source_id"] = lines[0].get("source_id")
     from app.apps.srm.commercial_models import InvoiceContext, InvoiceDelivery
-    ctx = db.get(InvoiceContext, invoice.id) if db else None
-    latest = db.query(InvoiceDelivery).filter_by(invoice_id=invoice.id).order_by(InvoiceDelivery.id.desc()).first() if db else None
+    ctx = related['contexts'].get(invoice.id) if related is not None else db.get(InvoiceContext, invoice.id) if db else None
+    latest = related['deliveries'].get(invoice.id) if related is not None else db.query(InvoiceDelivery).filter_by(invoice_id=invoice.id).order_by(InvoiceDelivery.id.desc()).first() if db else None
     payload.update(origin=ctx.origin if ctx else "srm", project_id=ctx.project_id if ctx else None,
         seller_id=ctx.seller_id if ctx else None, document_status="cancelled" if invoice.status == "cancelled" else ("issued" if invoice.approved_at else "draft"),
         payment_status="not_payable" if invoice.status == "cancelled" else "paid" if _decimal(invoice.balance_amount) <= 0 and _decimal(invoice.total_amount) > 0 else ("partially_paid" if _decimal(invoice.paid_amount) > 0 else "unpaid"),
         delivery_status=latest.status if latest else ("legacy_sent" if invoice.sent_at else "not_sent"))
-    return payload | {"lines": lines, "accounting_status": _srm_accounting_status(db, invoice.organization_id, "invoice", invoice.id)}
+    accounting = related['accounting'][invoice.id] if related is not None else _srm_accounting_status(db, invoice.organization_id, "invoice", invoice.id)
+    return payload | {"lines": lines, "accounting_status": accounting}
 
 
 def _assert_invoice_source_available(db: Session, source_type: str, source_id: int | None) -> None:
@@ -3252,7 +3253,31 @@ def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depe
 
 @router.get("/invoices")
 def list_invoices(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
-    return [_invoice_payload(item, db) for item in authorized_invoice_query(db, current_user).order_by(SRMInvoice.id.desc()).limit(200).all()]
+    from sqlalchemy.orm import selectinload
+    from app.apps.srm.commercial_models import InvoiceContext, InvoiceDelivery
+    items = authorized_invoice_query(db, current_user).options(selectinload(SRMInvoice.lines)).order_by(SRMInvoice.id.desc()).limit(200).all()
+    if not items:
+        return []
+    identities = [item.id for item in items]
+    contexts = {row.invoice_id: row for row in db.query(InvoiceContext).filter(InvoiceContext.invoice_id.in_(identities))}
+    deliveries = {}
+    for row in db.query(InvoiceDelivery).filter(InvoiceDelivery.invoice_id.in_(identities)).order_by(InvoiceDelivery.id.desc()):
+        deliveries.setdefault(row.invoice_id, row)
+    companies = {int(item.organization_id or 1) for item in items}
+    jobs = {}
+    for row in db.query(FAMPostingJob).filter(FAMPostingJob.company_id.in_(companies), FAMPostingJob.source_module == 'srm', FAMPostingJob.source_record_type == 'invoice', FAMPostingJob.source_record_id.in_(identities)).order_by(FAMPostingJob.id.desc()):
+        jobs.setdefault((row.company_id, row.source_record_id), row)
+    mappings = {}
+    for row in db.query(FAMSRMMapping).filter(FAMSRMMapping.company_id.in_(companies), FAMSRMMapping.srm_record_type == 'invoice', FAMSRMMapping.srm_record_id.in_(identities)):
+        mappings.setdefault((row.company_id, row.srm_record_id), []).append(row)
+    accounting = {}
+    for item in items:
+        key = (int(item.organization_id or 1), item.id)
+        job = jobs.get(key)
+        accounting[item.id] = {'status': job.status if job else 'not_posted', 'voucher_id': job.voucher_id if job else None, 'job_id': job.id if job else None,
+            'mappings': [{'fam_record_type': row.fam_record_type, 'fam_record_id': row.fam_record_id, 'mapping_status': row.mapping_status} for row in mappings.get(key, [])]}
+    related = {'contexts': contexts, 'deliveries': deliveries, 'accounting': accounting}
+    return [_invoice_payload(item, db, related) for item in items]
 
 
 @router.get("/invoices/{invoice_id}")

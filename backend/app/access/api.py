@@ -31,6 +31,8 @@ from app.common.services.identity import SharedIdentityService
 router = APIRouter(prefix="/access", tags=["Master Suite Users & Access"])
 from app.access.settings_hub import router as settings_router
 router.include_router(settings_router)
+from app.access.setup import router as setup_router
+router.include_router(setup_router)
 from app.access.homepage_banner import router as homepage_banner_router
 router.include_router(homepage_banner_router)
 
@@ -897,6 +899,8 @@ def membership(
     if not row:
         row = AccessMembership(company_id=data.companyId, user_id=data.userId)
         db.add(row)
+    from app.access.setup import protect_last_company_admin
+    protect_last_company_admin(db, row, data.active, data.isAdmin)
     row.active, row.is_admin = data.active, data.isAdmin
     if data.active and not service.policy_for(db, user, data.companyId):
         db.add(

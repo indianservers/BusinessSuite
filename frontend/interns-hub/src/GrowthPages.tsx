@@ -587,7 +587,7 @@ export function Attendance() {
             })}
           </div>
           <p className="muted">
-            ● Green: Present　 ● Red: Absent　 ● Gray: No record
+            ● Green: Present  ● Red: Absent  ● Gray: No record
           </p>
         </Card>
         <div className="stack">

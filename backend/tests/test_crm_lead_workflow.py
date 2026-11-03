@@ -1,10 +1,47 @@
 from tests.rich_text_test_utils import organization_context
 from datetime import datetime, timedelta, timezone
+import pytest
 
 from app.apps.crm.models import CRMActivity, CRMTimelineEvent
 from app.models.notification import Notification
-from tests.test_crm_lead_assignment import employee_account
+from tests.test_crm_lead_assignment import employee_account as create_employee_account
 from tests.test_crm_lead_management import ROOT, create
+
+
+@pytest.fixture(autouse=True)
+def workflow_branch(db, superuser_headers, organization_context):
+    from app.models.company import Branch
+    branch = Branch(company_id=1, name="Lead workflow test", code="LEAD-QA")
+    db.add(branch)
+    db.commit()
+    superuser_headers.update({"X-Suite-Organization":"1", "X-Suite-Branch":str(branch.id)})
+
+
+def employee_account(db, *args, **kwargs):
+    from app.models.company import Branch, Company
+    organization = kwargs.get("organization", 1)
+    if not db.get(Company, organization):
+        db.add(Company(id=organization, name=f"Workflow tenant {organization}", is_active=True))
+        db.flush()
+    user, employee = create_employee_account(db, *args, **kwargs)
+    from app.branches.models import BranchGrant
+    from app.branches.migration import backfill
+    from app.access.models import AccessPolicy
+    branch = db.query(Branch).filter_by(company_id=organization,code="LEAD-QA").first()
+    if not branch:
+        branch = Branch(company_id=organization,name="Lead workflow test",code="LEAD-QA")
+        db.add(branch)
+        db.flush()
+    employee.branch_id = branch.id
+    db.add(BranchGrant(user_id=user.id,company_id=branch.company_id,branch_id=branch.id,can_write=True))
+    db.add(AccessPolicy(user_id=user.id,company_id=organization,status="active",grants={"crm":{
+        "enabled":True,"role":"custom","scope":"own","permissions":[permission.name for permission in user.role.permissions],
+        "actions":["view","read","create","edit","update","comment"],
+    }}))
+    db.commit()
+    backfill(db.connection(), branch.company_id)
+    db.commit()
+    return user, employee
 
 
 def future(days=1):

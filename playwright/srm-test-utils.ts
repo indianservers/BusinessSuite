@@ -74,10 +74,17 @@ export async function installApiStubs(page: Page, user = users.srm_admin) {
 
     if (path.includes("/auth/me")) {
       body = { id: user.id, email: user.email, role: { name: user.role }, is_superuser: user.is_superuser, employee_id: user.employee_id };
+    } else if (path === "/access/settings" || path.startsWith("/access/settings/")) {
+      const options = [["sales", "Sales settings"]].map(([id,title]) => ({id,title,group:"Configuration",description:title,destination:null,scope:"company",editable:true}));
+      body = path === "/access/settings" ? {companyId:1,companyName:"Workflow test company",options} : options.find(option => path.endsWith("/"+option.id));
+    } else if (path === "/branches/context") {
+      body = {company_id: 1, selected: 1, all_branches: false, manage_access: false, branches: [{id: 1, name: "Workflow test branch", code: "QA", can_write: true}]};
     } else if (path.includes("/auth/sso/providers")) {
       body = [];
     } else if (path.includes("/notifications/unread")) {
       body = { unread: 0 };
+    } else if (path === "/srm/business/collection-invoices") {
+      body = {items: [], can_record: ["admin", "srm_admin", "srm_finance_manager", "srm_collection_executive"].includes(user.role)};
     } else if (path.startsWith("/srm")) {
       if (isForbiddenSrmMutation(user.role, method, path)) {
         await route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "Forbidden SRM action" }) });
@@ -112,7 +119,7 @@ function isForbiddenSrmMutation(role: string, method: string, path: string) {
 
 export async function expectHealthySrmRoute(page: Page, route: string) {
   await page.goto(route, { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route)}$`));
+  await expect(page).toHaveURL(new RegExp(`${escapeRegExp(route === "/srm/settings" ? "/settings/sales" : route)}$`));
   await expect(page.getByText("403 Access Denied", { exact: false })).toHaveCount(0);
   await expect(page.locator(".vite-error-overlay, #webpack-dev-server-client-overlay")).toHaveCount(0);
   await expect(page.locator("body")).toContainText(/SRM|Sales|Revenue|Invoice|Collection|Profitability|Engagement/i, { timeout: 20_000 });

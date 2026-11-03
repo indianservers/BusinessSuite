@@ -18,10 +18,15 @@ class PMSClientBase(BaseModel):
 
 
 class PMSClientCreate(PMSClientBase):
-    pass
+    shared_customer_id: int | None = Field(None, gt=0)
+    confirmShared: bool = False
+    sharedReason: str | None = Field(None, max_length=250)
 
 
 class PMSClientUpdate(BaseModel):
+    shared_customer_id: int | None = Field(None, gt=0)
+    confirmShared: bool = False
+    sharedReason: str | None = Field(None, max_length=250)
     name: Optional[str] = None
     company_name: Optional[str] = None
     email: Optional[str] = None
@@ -32,6 +37,7 @@ class PMSClientUpdate(BaseModel):
 
 
 class PMSClientResponse(PMSClientBase):
+    shared_customer_id: int | None = None
     id: int
     organization_id: Optional[int] = None
     created_at: datetime

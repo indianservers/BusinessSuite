@@ -111,11 +111,12 @@ def get_current_user(
         stack.callback(bind_authorization(db, user, request))
         from app.core.tenant_boundary import company_ids
         own_account = request.url.path in {"/api/v1/auth/me", "/api/v1/auth/logout", "/api/v1/auth/change-password", "/api/v1/auth/mfa/setup", "/api/v1/auth/mfa/confirm", "/api/v1/auth/mfa/disable"}
+        context = None
         if not own_account or company_ids(db, user):
             stack.callback(install_boundary(db, user, user.organization_id))
             from app.branches.service import context as branch_context
             from app.branches.boundary import install as install_branch_boundary
-            branch_discovery = request.url.path == "/api/v1/branches/context"
+            branch_discovery = request.url.path == "/api/v1/access/setup" or request.url.path.startswith(("/api/v1/access/settings", "/api/v1/branches"))
             context = branch_context(db, user, user.organization_id, None if branch_discovery else request.headers.get("X-Suite-Branch"))
             stack.callback(install_branch_boundary(db, user, context, identity_administration=request.url.path.startswith("/api/v1/access/")))
             previous_branch = getattr(user, "_suite_branch_id", None)
@@ -135,6 +136,22 @@ def get_current_user(
         stack.callback(restore_actor)
         set_audit_actor(user)
         stack.callback(bind_http(db, user, request, payload))
+        # Capture effective grants while the authorization context is still bound.
+        # No token or personal information is included in this opaque fingerprint.
+        if request.headers.get("x-suite-sync") == "1":
+            from app.core.middleware.record_sync import digest
+            request.state.record_sync_scope = digest([
+                user.id, user.organization_id, user.is_superuser, user.role_id, user.role.name if user.role else None,
+                getattr(user, "_suite_session_id", None),
+                getattr(user, "_suite_policy_version", None),
+                getattr(user, "_suite_grants", None),
+                sorted(p.name for p in (user.role.permissions if user.role else [])),
+                getattr(user, "_suite_branch_id", None),
+                sorted(context.allowed) if context else [],
+                sorted(context.writable) if context else [],
+            ])
+        from app.access.setup import enforce_setup
+        enforce_setup(db, user, request)
         yield user
 
 

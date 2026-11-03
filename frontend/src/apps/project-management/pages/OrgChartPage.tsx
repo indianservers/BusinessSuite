@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -405,8 +406,8 @@ export default function OrgChartPage() {
           >
             <summary>Export ↓</summary>
             <div>
-              <button onClick={exportCSV}>People CSV</button>
-              <button
+              <CompactActions><button onClick={exportCSV}>People CSV</button>
+<button
                 onClick={() =>
                   exportFile(
                     JSON.stringify(data.people, null, 2),
@@ -417,7 +418,7 @@ export default function OrgChartPage() {
               >
                 People JSON
               </button>
-              <button
+<button
                 onClick={() =>
                   exportFile(
                     chartSVG(graph.nodes, graph.width, graph.height),
@@ -428,7 +429,10 @@ export default function OrgChartPage() {
               >
                 Visible chart SVG
               </button>
-              <button onClick={() => window.print()}>Print / Save PDF</button>
+<button onClick={() => window.print()}>Print / Save PDF</button></CompactActions>
+
+
+
             </div>
           </details>
         </div>

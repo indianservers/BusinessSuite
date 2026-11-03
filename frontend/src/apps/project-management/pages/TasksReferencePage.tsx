@@ -1,3 +1,5 @@
+import CompactActions from "@/components/actions/CompactActions";
+import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import Sidebar from "@/components/layout/Sidebar";
@@ -247,6 +249,7 @@ export default function TasksReferencePage() {
         setNotice("Saved views could not be loaded. Refresh to retry."),
       );
   }, []);
+  useRecordView<PMSTaskListResponse>("/project-management/tasks", { ...Object.fromEntries(params), page, pageSize, referenceDate: localDay(), overdue: params.get("overdue") === "true" }, snapshot => { setData(snapshot); setSelected(ids => ids.filter(id => snapshot.items.some(row => row.id === id))); }, () => { setData(undefined); setSelected([]); }, !studio);
   const reload = () => setRevision((n) => n + 1);
   useRefreshableEffect(() => {
     reload();
@@ -1078,7 +1081,7 @@ export default function TasksReferencePage() {
                   <Sparkles size={19} />
                   Quick Actions
                 </h2>
-                <div className="tr-quick">
+                <CompactActions className="tr-quick">
                   <button className="tr-primary" onClick={() => add()}>
                     <Plus />
                     Add Task
@@ -1101,7 +1104,7 @@ export default function TasksReferencePage() {
                     <Upload />
                     Import Tasks
                   </button>
-                </div>
+                </CompactActions>
               </section>
               <section>
                 <h2>

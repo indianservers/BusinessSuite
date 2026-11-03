@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import {
@@ -1388,7 +1389,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                 <Redo2 size={17} />
               </button>
             </div>
-            <button
+            <CompactActions><button
               onClick={validate}
               disabled={validating}
               className="as-validate-button"
@@ -1396,14 +1397,14 @@ function BuilderCanvas(props: AutomationBuilderProps) {
               <ShieldCheck size={15} />
               {validating ? "Checking..." : "Validate"}
             </button>
-            <button
+<button
               className="as-test-button"
               onClick={() => setShowTesting((v) => !v)}
             >
               <Play size={14} />
               Test workflow
             </button>
-            <button
+<button
               className="as-button-primary"
               onClick={save}
               disabled={
@@ -1415,7 +1416,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
               <Save size={14} />
               Save draft
             </button>
-            <button
+<button
               disabled={!props.onRuntime}
               onClick={props.onRuntime}
               title="Review the saved draft, publication and execution policy"
@@ -1424,7 +1425,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
               <LockKeyhole size={13} />
               Publish & runs
             </button>
-            {props.authoring && (
+{props.authoring && (
               <>
                 <button
                   aria-label="Create with AI"
@@ -1443,7 +1444,11 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                   <span className="ai-button-label">Authoring tools</span>
                 </button>
               </>
-            )}
+            )}</CompactActions>
+
+
+
+
             <details className="as-more-menu">
               <summary aria-label="More automation actions">
                 <MoreHorizontal size={20} />

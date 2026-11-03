@@ -8,7 +8,13 @@ export default function LeadEmployeeAssignment({
   leadId,
   ownerId,
   onAssigned,
+  compact = false,
+  open,
+  onOpenChange,
 }: {
+  compact?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   leadId: number;
   ownerId?: number;
   onAssigned: () => void;
@@ -36,7 +42,7 @@ export default function LeadEmployeeAssignment({
     setSelected(String(ownerId || ""));
   }, [ownerId]);
   const current = directory?.owners.find((owner) => owner.id === ownerId);
-  return (
+  const controls = (
     <div className="flex flex-wrap items-center gap-2">
       <label htmlFor={id}>Assigned employee</label>
       {directory?.canManage ? (
@@ -94,4 +100,5 @@ export default function LeadEmployeeAssignment({
       )}
     </div>
   );
+  return compact ? <details className="ml-assignment" open={open} onToggle={event => onOpenChange?.(event.currentTarget.open)}><summary>{current?.name || (ownerId ? "Assigned employee" : "Not Assigned")}</summary>{controls}</details> : controls;
 }

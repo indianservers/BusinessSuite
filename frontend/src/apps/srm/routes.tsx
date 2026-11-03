@@ -35,7 +35,12 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
   element: <InventoryBridgePage />,
 });
 
+const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
 export const srmRoutes: FrontendRoute[] = [
+ {path:"srm/customers",element:<CompaniesPage source="srm" role="Customer"/>},
+ {path:"srm/vendors",element:<CompaniesPage source="srm" role="Vendor"/>},
+ {path:"srm/suppliers",element:<CompaniesPage source="srm" role="Supplier"/>},
+ {path:"srm/companies",element:<CompaniesPage source="srm"/>},
  {path:"srm/quotes",element:<MobileQuotesWorkspace/>},
  {path:"srm/quotes/:id/builder",element:<CRMWorkspacePage kind="quoteBuilder"/>},
  {path:"srm/follow-ups/directory",element:<FollowUpsPage/>},

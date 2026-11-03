@@ -1,3 +1,4 @@
+import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "../../components/forms/CompactForm";
 import React, { useEffect, useId, useRef, useState } from "react";
@@ -717,19 +718,13 @@ export function UnifiedProfile({
           </button>
         </div>
       )}
-      <nav className="up-tabs" aria-label="Profile sections">
-        {tabs.map((name) => (
-          <button
-            key={name}
-            type="button"
-            aria-pressed={tab === name}
-            className={tab === name ? "active" : ""}
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </button>
-        ))}
-      </nav>
+      <RecordSectionNav value={tab} onChange={setTab} label="Profile sections" groups={[
+        {label:"Overview",sections:tabs.filter(name=>["Overview","Pending changes"].includes(name)).map(value=>({value,label:value}))},
+        {label:"Personal",sections:tabs.filter(name=>["Personal","Contact"].includes(name)).map(value=>({value,label:value}))},
+        {label:"Career",sections:tabs.filter(name=>["Academic","Education","Experience","Professional","Employment"].includes(name)).map(value=>({value,label:value}))},
+        {label:"Documents",sections:tabs.filter(name=>["Documents","Application"].includes(name)).map(value=>({value,label:value}))},
+      ]}/>
+
       <CompactForm onSubmit={save}>
         <fieldset className="up-fieldset" disabled={busy}>
           {tab === "Overview" && (

@@ -57,7 +57,7 @@ export default function BlueprintEditor({ initial, saved, projects, busy, canEdi
         {!canEdit && <p className="text-sm text-muted-foreground">Guests can preview blueprints. Workspace members can customize and create tasks.</p>}
         {saved && !enabled && <p className="text-sm text-muted-foreground">This blueprint is paused. An owner or admin can enable it from Manage workspace blueprints.</p>}
         {canEdit && !manages && <p className="text-sm text-muted-foreground">Your edits apply to this run. Owners and admins can save reusable workspace versions.</p>}
-        <div className="flex flex-wrap justify-end gap-3 border-t pt-4"><Button type="button" variant="outline" disabled={busy} onClick={onClose}>Cancel</Button>{manages && <Button type="button" variant="outline" disabled={busy || !projects.length} onClick={() => { setAttempted(true); if (!invalid) onSave(clean()); }}>{saved ? "Save changes" : "Save workspace copy"}</Button>}<Button type="submit" disabled={busy || !canEdit || !enabled || !projects.length}>{busy ? "Working…" : `Create ${draft.task_titles.length} tasks`}</Button></div>
+        <div className="flex flex-wrap justify-end gap-3 border-t pt-4"><Button type="button" variant="outline" disabled={busy} onClick={onClose}>Cancel</Button>{manages && <Button type="button" variant="outline" disabled={busy || !projects.length} onClick={() => { setAttempted(true); if (!invalid) onSave(clean()); }}>{saved ? "Save changes" : "Save workspace copy"}</Button>}<Button available={!!(canEdit)} type="submit" disabled={busy || !canEdit || !enabled || !projects.length}>{busy ? "Working…" : `Create ${draft.task_titles.length} tasks`}</Button></div>
       </CompactForm>
     </Dialog.Content>
   </Dialog.Portal></Dialog.Root>;

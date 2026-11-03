@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -648,15 +649,15 @@ function Assistant() {
                             {m.card.number} · {m.card.currency} {m.card.total} ·
                             Balance {m.card.balance}
                           </strong>
-                          <Link to={`/srm/invoices/${m.card.id}`}>
+                          <CompactActions><Link to={`/srm/invoices/${m.card.id}`}>
                             View invoice ↗
                           </Link>
-                          <button
+<button
                             onClick={() => download(m.card.id, m.card.number)}
                           >
                             Download PDF
                           </button>
-                          <button
+<button
                             disabled={
                               busy || m.card.document_status !== "draft"
                             }
@@ -669,7 +670,7 @@ function Assistant() {
                           >
                             Review issue
                           </button>
-                          <button
+<button
                             disabled={
                               busy ||
                               m.card.document_status !== "issued" ||
@@ -684,7 +685,7 @@ function Assistant() {
                           >
                             Review send
                           </button>
-                          <button
+<button
                             disabled={
                               busy ||
                               m.card.document_status !== "issued" ||
@@ -700,7 +701,11 @@ function Assistant() {
                             }}
                           >
                             Record payment
-                          </button>
+                          </button></CompactActions>
+
+
+
+
                         </div>
                       )}
                       {m.card?.kind === "saved_project" && (

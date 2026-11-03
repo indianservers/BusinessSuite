@@ -1,3 +1,4 @@
+import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -53,6 +54,7 @@ const ProjectManagementHomePage: React.FC = () => {
     loadProjects();
   }, [setProjects]);
 
+  useRecordView<PMSProject[]>("/project-management/projects", { skip: 0, limit: 100 }, snapshot => { const current = useProjectStore.getState(); setProjects(snapshot); if (current.selectedProject && current.projects.some(project => project.id === current.selectedProject?.id) && !snapshot.some(project => project.id === current.selectedProject?.id)) setSelectedProject(null); }, () => { setProjects([]); setSelectedProject(null); });
   const handleSelectProject = (project: PMSProject) => {
     setSelectedProject(project);
     navigate(`/pms/projects/${project.id}`);

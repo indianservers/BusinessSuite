@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import CompactForm from "@/components/forms/CompactForm";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -158,17 +159,18 @@ export default function AiAgentChatPage() {
           <p className="text-sm text-muted-foreground">{agent?.description || "Chat with a backend-connected AI Agent."}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {conversationId ? (
+          <CompactActions>{conversationId ? (
             <>
               <Button type="button" variant="outline" onClick={() => exportConversation("pdf")}><Download className="h-4 w-4" /> PDF</Button>
               <Button type="button" variant="outline" onClick={() => exportConversation("csv")}><Download className="h-4 w-4" /> CSV</Button>
               <Button type="button" variant="outline" onClick={() => exportConversation("json")}><Download className="h-4 w-4" /> JSON</Button>
             </>
           ) : null}
-          <Button type="button" variant="outline" onClick={startNewConversation}>
+<Button type="button" variant="outline" onClick={startNewConversation}>
             <Sparkles className="h-4 w-4" />
             New chat
-          </Button>
+          </Button></CompactActions>
+
         </div>
       </div>
 

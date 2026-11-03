@@ -40,7 +40,7 @@ export default function NoteEditor({ AttachmentView, value, onChange, onSelectio
     parseHTML: () => [{tag: "p[data-note-image]", priority: 1000, getAttrs: element => ({ attachmentId: Number((element as HTMLElement).getAttribute("data-note-image")), alt: (element as HTMLElement).textContent || "Image",width:Number((element as HTMLElement).getAttribute("data-note-width"))||null,align:(element as HTMLElement).getAttribute("data-note-align")||"center",caption:(element as HTMLElement).getAttribute("data-note-caption")||"" })}],
     renderHTML: ({node}) => ["p", {"data-note-image": String(node.attrs.attachmentId),"data-note-width":node.attrs.width,"data-note-align":node.attrs.align,"data-note-caption":node.attrs.caption||undefined}, String(node.attrs.alt)],
     addNodeView: () => ReactNodeViewRenderer((props: NodeViewProps) => AttachmentView ? <AttachmentView {...props} noteId={noteIdRef.current} /> : <NodeViewWrapper contentEditable={false}>Attachment unavailable</NodeViewWrapper>),
-    renderMarkdown: (node: any) => `![${String(node.attrs.alt).replace(/[\[\]]/g, "") }](attachment:${node.attrs.attachmentId})`,
+    renderMarkdown: (node: any) => `![${String(node.attrs.alt).replace(/[[\]]/g, "") }](attachment:${node.attrs.attachmentId})`,
   });
   const editor = useEditor({
     extensions: [...richTextExtensions("Start writing, or type / for commands…", [1,2,3,4,5,6]), PrivateImage, NoteSections, Extension.create({name:"notesLimit",addKeyboardShortcuts(){return {"Mod-y":()=>this.editor.commands.redo()};},addProseMirrorPlugins(){return [new Plugin({filterTransaction(tr,state){return !tr.docChanged || tr.doc.textContent.length<=200000 || tr.doc.textContent.length<state.doc.textContent.length;}})];}})],

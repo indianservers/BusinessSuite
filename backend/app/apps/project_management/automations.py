@@ -100,7 +100,13 @@ def list_runs(workspace_id: int, db: Session = Depends(get_db), user: User = Dep
 
 
 def _eligible_assignee(db, workspace_id, user_id):
-    return user_id and db.query(PMSWorkspaceMember).join(User, User.id == PMSWorkspaceMember.user_id).filter(PMSWorkspaceMember.workspace_id == workspace_id, PMSWorkspaceMember.user_id == user_id, PMSWorkspaceMember.role != "Guest", User.is_active == True).first()
+    from .access import module_identity_allowed
+    from .models import PMSWorkspace
+    target = db.get(User, user_id) if user_id else None
+    workspace = db.get(PMSWorkspace, workspace_id)
+    if not target or not workspace or not module_identity_allowed(db, target, workspace.organization_id or 1):
+        return False
+    return db.query(PMSWorkspaceMember).filter(PMSWorkspaceMember.workspace_id == workspace_id, PMSWorkspaceMember.user_id == user_id, PMSWorkspaceMember.role != "Guest").first()
 
 
 def apply_task_rules(db, task, project, actor, trigger):

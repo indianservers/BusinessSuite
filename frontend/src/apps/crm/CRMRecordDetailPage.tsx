@@ -1,5 +1,14 @@
+import { FinancialDataPanel } from "./FinancialDataTab";
+import { BirthdayEditor, ContactCommunicationPanel } from "@/shared/master-data/CommunicationEditor";
+import { lazy, Suspense } from "react";
+import { canAccessRoute } from "@/lib/roles";
+import MobileLeadDetails from "./leads/MobileLeadDetails";
+import { useMobile } from "@/components/mobile/useMobile";
+import type { ActionSpec } from "@/components/actions";
+import CompactActions from "@/components/actions/CompactActions";
+import { ActionToolbar, IconActionButton } from "@/components/actions";
+import RecordSections from "@/components/RecordSections";
 import { NativeSelect } from "@/components/ui/native-select";
-import { MobileContactActions } from "@/components/mobile/MobilePrimitives";
 import CompactForm from "@/components/forms/CompactForm";
 import CustomerFollowUps from "@/shared/follow-ups/CustomerFollowUps";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -48,6 +57,8 @@ import { formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
 import { communicationApi } from "@/apps/communication/api";
 import { crmApi, type CRMApiRecord, type CRMApiValue, type CRMApprovalRequest, type CRMEnrichmentPreview } from "./api";
+
+const MobileQuickCreate = lazy(() => import("./SalesActions").then(module => ({default: module.CRMQuickCreate})));
 
 type DetailKind = "leads" | "contacts" | "accounts" | "deals" | "quotations";
 type DetailRecord = Record<string, any> & {
@@ -180,6 +191,9 @@ const detailInlineEditConfig: Record<DetailKind, Record<string, DetailInlineConf
 };
 
 export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
+  const mobile = useMobile();
+  const [mobileQuickCreate, setMobileQuickCreate] = useState("");
+  const [mobileAssignmentOpen, setMobileAssignmentOpen] = useState(false);
   const actingUser=useAuthStore(s=>s.user);const {pin}=useCRMProductivity();const [stageOpen,setStageOpen]=useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -192,10 +206,28 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   const [editOpen, setEditOpen] = useState(false);
   const [action, setAction] = useState<QuickAction | null>(null);
   const [enrichmentOpen, setEnrichmentOpen] = useState(false);
-  const [messageOpen, setMessageOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState<"sms" | "whatsapp" | null>(null);
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [leadConverting, setLeadConverting] = useState(false);
+
+  useEffect(() => {
+    if (!mobile || !(editOpen || enrichmentOpen || messageOpen || action || mobileQuickCreate)) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      setEditOpen(false);
+      setEnrichmentOpen(false);
+      setMessageOpen(null);
+      setAction(null);
+      setMobileQuickCreate("");
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
+  }, [mobile, editOpen, enrichmentOpen, messageOpen, action, mobileQuickCreate]);
 
   const loadRecord = () => {
     setLoading(true);
@@ -217,6 +249,8 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   const approvalStatus = valueText(approval?.status);
   const finalActionBlocked = approvalStatus === "pending" || approvalStatus === "rejected";
   const duplicateCount = duplicateCountFor(record);
+  const leadConverted = Boolean(record?.is_converted || (kind === "leads" && String(record?.status).toLowerCase() === "converted"));
+  const contactPhone = record?.phone || record?.mobile || record?.mobile_phone;
   const aiContext = getAiContext(kind);
 
   const updateRecord = (data: CRMApiRecord) => {
@@ -281,7 +315,6 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   };
 
   const deleteRecord = () => {
-    if (!window.confirm(`Delete this ${config.singular.toLowerCase()}?`)) return;
     crmApi.delete(config.entity, recordId).then(() => navigate(config.listPath)).catch((err) => setError(dealError(err) || "CRM record could not be deleted."));
   };
 
@@ -296,7 +329,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   };
 
   const convertLead = () => {
-    if (kind !== "leads") return;
+    if (kind !== "leads" || leadConverted || leadConverting) return;
     setLeadConverting(true);
     setError(null);
     crmApi
@@ -354,29 +387,62 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       .finally(() => setPdfGenerating(false));
   };
 
+  const crmGrant = actingUser?.access?.grants.crm;
+  const crmRole = String(actingUser?.role || "").toLowerCase();
+  const mayCreateDeal = (!!actingUser?.is_superuser || (crmGrant ? crmGrant.enabled && crmGrant.actions.includes("create") : ["admin", "super_admin", "crm_super_admin", "crm_org_admin", "crm_sales_manager", "crm_sales_executive"].includes(crmRole))) && (!crmGrant || crmGrant.permissions.some(permission => ["crm_admin", "crm_manage", "crm_deals_manage"].includes(permission))) && canAccessRoute("/crm/deals", actingUser?.role, actingUser?.is_superuser);
+
+  const recordActions: ActionSpec[] = record ? [
+                {id:"whatsapp",kind:"whatsapp",prominent:kind === "leads" || kind === "contacts",onSelect:()=>setMessageOpen("whatsapp"),disabled:!contactPhone || finalActionBlocked,disabledReason:!contactPhone ? "Add a mobile number to send WhatsApp messages" : finalActionBlocked ? "Resolve the approval before sending messages" : undefined},
+                {id:"email",kind:"email",prominent:true,onSelect:()=>setAction("email"),disabled:!record.email || finalActionBlocked,disabledReason:!record.email ? "Add an email address to compose an email" : finalActionBlocked ? "Resolve the approval before sending email" : undefined},
+                ...(kind === "leads" ? [{id:"convert",kind:"convert" as const,prominent:true,primary:!leadConverted,label:leadConverted ? "Converted to Customer" : "Convert Lead to Customer",onSelect:convertLead,loading:leadConverting,disabled:leadConverted,disabledReason:leadConverted ? "This lead has already been converted to a customer" : undefined}] : []),
+                ...(kind !== "quotations" ? [{id:"quotation",kind:"quotation" as const,prominent:kind === "accounts" || kind === "contacts",primary:kind === "accounts",onSelect:()=>setAction("quotation")}] : []),
+                {id:"edit",kind:"edit",onSelect:()=>setEditOpen(true)},
+                {id:"call",kind:"call",onSelect:()=>setAction("call"),tooltip:"Log a call with this contact",disabled:!contactPhone,disabledReason:!contactPhone ? "Add a phone number before calling this contact" : undefined},
+                {id:"sms",kind:"sms",onSelect:()=>setMessageOpen("sms"),disabled:!contactPhone || finalActionBlocked,disabledReason:!contactPhone ? "Add a mobile number to send SMS" : finalActionBlocked ? "Resolve the approval before sending messages" : undefined},
+                {id:"followup",kind:"followup",onSelect:()=>setAction("task"),tooltip:"Create a task for the next follow-up"},
+                {id:"note",kind:"note",onSelect:()=>setAction("note")},
+                {id:"task",kind:"task",onSelect:()=>setAction("task")},
+                ...(["leads","contacts"].includes(kind) ? [{id:"enrich",kind:"enrich" as const,onSelect:()=>setEnrichmentOpen(true)}] : []),
+                ...(kind === "leads" ? [{id:"score",kind:"score" as const,onSelect:recalculateScore,loading:saving}] : []),
+                ...(["deals","quotations"].includes(kind) ? [{id:"approval",kind:"approve" as const,label:"Submit for approval",onSelect:submitApproval,loading:approvalSubmitting,disabled:approvalStatus === "pending",disabledReason:approvalStatus === "pending" ? "Approval is already pending" : undefined}] : []),
+                ...(kind === "quotations" ? [{id:"pdf",kind:"view" as const,label:"Generate PDF",prominent:true,onSelect:()=>openQuotationPdf(false),loading:pdfGenerating},{id:"download",kind:"download" as const,label:"Download PDF",onSelect:()=>openQuotationPdf(true),loading:pdfGenerating}] : []),
+                {id:"delete",kind:"delete",danger:true,onSelect:deleteRecord,confirm:{title:`Move this ${config.singular.toLowerCase()} to Trash?`,description:"The record will be removed from active views. You can restore it from Relationship Hub.",label:"Move to Trash"}},
+              ] : [];
+
   return (
     <div className="space-y-5">
-      <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      {!(mobile && kind === "leads") && <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Link to="/crm" className="hover:text-foreground">CRM</Link>
         <ChevronRight className="h-4 w-4" />
         <Link to={config.listPath} className="hover:text-foreground">{config.label}</Link>
         <ChevronRight className="h-4 w-4" />
         <span className="text-foreground">{title}</span>
-      </nav>
+      </nav>}
 
-      {record && kind === "accounts" && <CustomerFollowUps customerId={recordId}/>}
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       {loading ? <div className="rounded-md border bg-card px-4 py-8 text-center text-sm text-muted-foreground">Loading {config.singular.toLowerCase()} details...</div> : null}
 
       {!loading && record ? (
         <>
-          <MobileContactActions phone={record.phone ? `${record.phone_country_code || ""}${record.phone}` : undefined} email={record.email} onNote={!finalActionBlocked ? ()=>setAction("note") : undefined}/>
+          {mobile && kind === "leads" ? <MobileLeadDetails key={recordId} record={record} title={title} actions={recordActions}
+            pinned={!!useCRMProductivity.getState().scopes[crmScope(actingUser?.id,actingUser?.access?.companyId)]?.pins.some(p => p.path === `/crm/leads/${recordId}`)}
+            onPin={() => pin(crmScope(actingUser?.id,actingUser?.access?.companyId), {path:`/crm/leads/${recordId}`,label:title})}
+            onAssign={() => setMobileAssignmentOpen(true)} onAddActivity={() => setAction("meeting")} onCreateDeal={mayCreateDeal ? () => setMobileQuickCreate("deal") : undefined}
+            assignment={<LeadEmployeeAssignment compact open={mobileAssignmentOpen} onOpenChange={setMobileAssignmentOpen} leadId={recordId} ownerId={Number(record.ownerId || record.owner_user_id) || undefined} onAssigned={loadRecord}/>}
+            discussion={<ConversationLauncher module="CRM" context={{type:"lead",id:recordId}} label="Discuss"/>}
+            ai={<AskAiButton module="CRM" relatedEntityType={aiContext.entityType} relatedEntityId={recordId} defaultAgentCode={aiContext.agentCode} defaultPrompt={aiContext.prompt} buttonLabel="Ask AI"/>}
+            insights={<AICopilotPanel kind={kind} recordId={recordId}/>}
+            details={<>{["Contact", "Business", "CRM"].map(group => <details className="ml-detail-group" key={group} open={group === "Contact"}><summary>{group} information</summary><FullDetails kind={kind} record={record} onSave={saveInlineField} group={group}/>{group === "CRM" && <CustomFields fields={record.customFields || []} onSave={saveCustomField}/>}</details>)}</>}
+            activity={<><CommunicationTimeline recordType="lead" recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/></>}
+            related={<><CatalogAssociations source="crm" target="lead" id={recordId}/><RelatedRecords related={record.related || {}}/></>}
+          /> : <>
           <header className="rounded-lg border bg-card p-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex min-w-0 flex-col gap-4">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-semibold">{title}</h1><Button variant="outline" size="sm" onClick={()=>pin(crmScope(actingUser?.id,actingUser?.access?.companyId),{path:`/crm/${kind==="accounts"?"companies":kind}/${recordId}`,label:title})}>Pin record</Button>{kind==="deals"&&<Button variant="outline" size="sm" onClick={()=>setStageOpen(true)}>Review stage move</Button>}{stageOpen&&<CRMStageDialog id={recordId} close={()=>setStageOpen(false)} saved={loadRecord}/>}
+                  <h1 className="truncate text-2xl font-semibold">{title}</h1><IconActionButton action="pin" aria-label="Pin record" onClick={()=>pin(crmScope(actingUser?.id,actingUser?.access?.companyId),{path:`/crm/${kind==="accounts"?"companies":kind}/${recordId}`,label:title})}/>{kind==="deals"&&<Button variant="outline" size="sm" onClick={()=>setStageOpen(true)}>Review stage move</Button>}{stageOpen&&<CRMStageDialog id={recordId} close={()=>setStageOpen(false)} saved={loadRecord}/>}
                   {["leads","deals","accounts"].includes(kind) && <ConversationLauncher module="CRM" context={{type:kind === "leads" ? "lead" : kind === "deals" ? "deal" : "account", id:recordId}}/>}
+                  <AskAiButton module="CRM" relatedEntityType={aiContext.entityType} relatedEntityId={recordId} defaultAgentCode={aiContext.agentCode} defaultPrompt={aiContext.prompt}/>
                   {statusBadges.map((status) => <Badge key={status} className={statusColor(status)}>{status}</Badge>)}
                   {approvalStatus ? <Badge className={statusColor(approvalStatus)}>Approval {labelFor(approvalStatus)}</Badge> : null}
                   {kind === "quotations" ? <Badge className={statusColor(valueText(record.pdfStatus || record.pdf_status) || "not generated")}>PDF {labelFor(valueText(record.pdfStatus || record.pdf_status) || "not generated")}</Badge> : null}
@@ -387,55 +453,28 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
                   <span>Last updated {formatDate(valueText(record.updatedAt || record.updated_at || record.createdAt || record.created_at))}</span>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <AskAiButton
-                  module="CRM"
-                  relatedEntityType={aiContext.entityType}
-                  relatedEntityId={recordId}
-                  defaultAgentCode={aiContext.agentCode}
-                  defaultPrompt={aiContext.prompt}
-                />
-                <Button variant="outline" onClick={() => setEditOpen(true)}><Edit3 className="h-4 w-4" />Edit</Button>
-                <Button variant="outline" onClick={() => setAction("note")}><Plus className="h-4 w-4" />Add Note</Button>
-                <Button variant="outline" onClick={() => setAction("task")}><CalendarDays className="h-4 w-4" />Add Task</Button>
-                <Button variant="outline" onClick={() => setAction("call")}><Phone className="h-4 w-4" />Add Call</Button>
-                <Button variant="outline" onClick={() => setAction("email")}><Mail className="h-4 w-4" />Send Email</Button>
-                {["leads", "contacts", "deals"].includes(kind) ? <Button variant="outline" onClick={() => setMessageOpen(true)}><MessageSquare className="h-4 w-4" />Send SMS/WhatsApp</Button> : null}
-                {["leads", "contacts"].includes(kind) ? <Button variant="outline" onClick={() => setEnrichmentOpen(true)}><Sparkles className="h-4 w-4" />Enrich Contact</Button> : null}
-                {kind === "leads" ? <Button variant="outline" onClick={recalculateScore} disabled={saving}><CheckCircle2 className="h-4 w-4" />Recalculate Score</Button> : null}
-                {kind === "leads" ? <Button variant="outline" onClick={convertLead} disabled={leadConverting || Boolean(record.is_converted)}><FileCheck2 className="h-4 w-4" />{leadConverting ? "Converting..." : "Convert Lead"}</Button> : null}
-                {["deals", "quotations"].includes(kind) ? <Button variant="outline" onClick={submitApproval} disabled={approvalSubmitting || approvalStatus === "pending"}><FileCheck2 className="h-4 w-4" />{approvalSubmitting ? "Submitting..." : "Submit Approval"}</Button> : null}
-                {kind === "quotations" ? <Button variant="outline" onClick={() => openQuotationPdf(false)} disabled={pdfGenerating}><FileText className="h-4 w-4" />{pdfGenerating ? "Generating..." : "Generate PDF"}</Button> : null}
-                {kind === "quotations" ? <Button variant="outline" onClick={() => openQuotationPdf(true)} disabled={pdfGenerating}><Download className="h-4 w-4" />Download PDF</Button> : null}
-                {kind !== "quotations" ? <Button variant="outline" onClick={() => setAction("quotation")}><FileText className="h-4 w-4" />Create Quotation</Button> : null}
-                <Button variant="destructive" onClick={deleteRecord}><Trash2 className="h-4 w-4" />Delete</Button>
-              </div>
+              <ActionToolbar label={`${config.singular} actions`} actions={recordActions}/>
+
             </div>
           </header>
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
-            <main className="space-y-5">
-              {(["leads", "contacts", "accounts", "deals"].includes(kind)) && <CatalogAssociations source="crm" target={kind === "leads" ? "lead" : kind === "contacts" ? "contact" : kind === "deals" ? "deal" : "customer"} id={recordId} currency={kind === "deals" ? String(record.currency || "INR") : undefined}/>}
-              {(["accounts", "contacts", "deals"].includes(kind)) && <CustomerCommercialHistory customerId={Number(record.shared_customer_id || (kind === "accounts" ? recordId : 0) || record.company_id || record.companyId || 0)} />}
-              <DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving} />
-              {kind === "deals" ? <CommercialHandoff related={record.related || {}} /> : null}
-              <FullDetails kind={kind} record={record} onSave={saveInlineField} />
-              {["deals", "quotations"].includes(kind) ? <ApprovalTimeline approval={approval} /> : null}
-              <CustomFields fields={record.customFields || []} onSave={saveCustomField} />
-            </main>
-            <aside className="space-y-5">
-              <AICopilotPanel kind={kind} recordId={recordId} />
-              <CommunicationTimeline recordType={kind === "accounts" ? "account" : kind.replace(/s$/, "")} recordId={recordId} />
-              <Timeline events={record.timeline || []} onAction={setAction} />
-              <RelatedRecords related={record.related || {}} />
-            </aside>
-          </div>
+          <RecordSections key={`${kind}-${recordId}`} label="CRM record information" sections={[
+            {id:"overview",label:"Overview",content:<><DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving}/><AICopilotPanel kind={kind} recordId={recordId}/></>},
+            {id:"details",label:"Details",content:<><FullDetails kind={kind} record={record} onSave={saveInlineField}/><CustomFields fields={record.customFields || []} onSave={saveCustomField}/></>},
+            ...(kind === "contacts" ? [{id:"financial",label:"Financial data",content:<FinancialDataPanel key={recordId} contactId={recordId}/>}]: []),
+            ...(kind === "contacts" ? [{id:"communication",label:"Communication & birthday",content:<><ContactCommunicationPanel id={recordId}/><BirthdayEditor id={recordId}/></>}] : []),
+            {id:"activity",label:"Activity",content:<>{kind === "accounts" && <CustomerFollowUps customerId={recordId}/>}<CommunicationTimeline recordType={kind === "accounts" ? "account" : kind.replace(/s$/, "")} recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/>{["deals","quotations"].includes(kind) && <ApprovalTimeline approval={approval}/>}</>},
+            {id:"related",label:"Related",content:<>{["leads","contacts","accounts","deals"].includes(kind) && <CatalogAssociations source="crm" target={kind === "leads" ? "lead" : kind === "contacts" ? "contact" : kind === "deals" ? "deal" : "customer"} id={recordId} currency={kind === "deals" ? String(record.currency || "INR") : undefined}/>} {["accounts","contacts","deals"].includes(kind) && <CustomerCommercialHistory customerId={Number(record.shared_customer_id || (kind === "accounts" ? recordId : 0) || record.company_id || record.companyId || 0)}/>} {kind === "deals" && <CommercialHandoff related={record.related || {}}/>}<RelatedRecords related={record.related || {}}/></>},
+          ]}/>
+          </>}
+
         </>
       ) : null}
 
+      {mobileQuickCreate && <Suspense fallback={<p role="status">Loading deal form…</p>}><MobileQuickCreate type={mobileQuickCreate} close={() => setMobileQuickCreate("")} saved={() => {setMobileQuickCreate("");loadRecord();}}/></Suspense>}
       {editOpen && record ? <EditRecordModal record={record} title={`Edit ${config.singular}`} saving={saving} onClose={() => setEditOpen(false)} onSave={updateRecord} /> : null}
       {enrichmentOpen && record ? <EnrichmentModal kind={kind} record={record} recordId={recordId} onClose={() => setEnrichmentOpen(false)} onDone={(next) => { setRecord(next); setEnrichmentOpen(false); loadRecord(); }} /> : null}
-      {messageOpen && record ? <MessageComposeModal kind={kind} record={record} onClose={() => setMessageOpen(false)} onDone={() => { setMessageOpen(false); loadRecord(); }} /> : null}
+      {messageOpen && record ? <MessageComposeModal kind={kind} record={record} initialChannel={messageOpen} onClose={() => setMessageOpen(null)} onDone={() => { setMessageOpen(null); loadRecord(); }} /> : null}
       {action === "email" && record ? <EmailComposeModal kind={kind} record={record} disabled={finalActionBlocked} approvalStatus={approvalStatus} onClose={() => setAction(null)} onDone={() => { setAction(null); loadRecord(); }} /> : null}
       {action && action !== "email" && record ? <QuickActionModal action={action} kind={kind} record={record} entity={config.entity} recordId={recordId} onClose={() => setAction(null)} onDone={() => { setAction(null); loadRecord(); }} /> : null}
     </div>
@@ -544,8 +583,8 @@ function InlineField({ fieldKey, value, countryCode, config, onSave, saving }: {
   );
 }
 
-function FullDetails({ kind, record, onSave }: { kind: DetailKind; record: DetailRecord; onSave: (key: string, value: string | number | boolean | null, extra?: CRMApiRecord) => Promise<unknown> }) {
-  const entries = Object.entries(record).filter(([key]) => !readOnlyKeys.has(key) && !key.endsWith("Id"));
+function FullDetails({ kind, record, onSave, group }: { kind: DetailKind; record: DetailRecord; group?: string; onSave: (key: string, value: string | number | boolean | null, extra?: CRMApiRecord) => Promise<unknown> }) {
+  const entries = Object.entries(record).filter(([key]) => !readOnlyKeys.has(key) && !key.endsWith("Id") && (!group || (/company|industry|website|revenue|business|employees|designation|job_title|source|products|services/i.test(key) ? "Business" : /name|email|phone|mobile|address|city|state|country|postal|zip/i.test(key) ? "Contact" : "CRM") === group));
   return (
     <Card>
       <CardHeader><CardTitle>Full Details</CardTitle></CardHeader>
@@ -707,12 +746,12 @@ function Timeline({ events, onAction }: { events: TimelineEvent[]; onAction: (ac
       <CardHeader className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Activity Timeline</CardTitle>
-          <div className="flex gap-2">
+          <CompactActions className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => onAction("note")}><Plus className="h-4 w-4" />Note</Button>
             <Button size="sm" variant="outline" onClick={() => onAction("task")}><CheckCircle2 className="h-4 w-4" />Task</Button>
             <Button size="sm" variant="outline" onClick={() => onAction("call")}><Phone className="h-4 w-4" />Call</Button>
             <Button size="sm" variant="outline" onClick={() => onAction("meeting")}><CalendarDays className="h-4 w-4" />Meeting</Button>
-          </div>
+          </CompactActions>
         </div>
         <div className="flex gap-2 overflow-x-auto">
           {types.map((type) => (
@@ -1152,7 +1191,7 @@ export function EmailComposeModal({ kind, record, disabled = false, approvalStat
   );
 }
 
-function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKind; record: DetailRecord; onClose: () => void; onDone: () => void }) {
+function MessageComposeModal({ kind, record, onClose, onDone, initialChannel = "sms" }: { kind: DetailKind; record: DetailRecord; onClose: () => void; onDone: () => void; initialChannel?: "sms" | "whatsapp" }) {
   const entityType = kind === "accounts" ? "account" : kind.replace(/s$/, "");
   const recordName = titleFor(record, detailConfig[kind].nameKeys, detailConfig[kind].singular);
   const [templates, setTemplates] = useState<CRMApiRecord[]>([]);
@@ -1160,7 +1199,7 @@ function MessageComposeModal({ kind, record, onClose, onDone }: { kind: DetailKi
   const [draft, setDraft] = useState<CRMApiRecord>(() => ({
     entityType,
     entityId: Number(record.id),
-    channel: "sms",
+    channel: initialChannel,
     to: valueText(record.phone || record.mobile || record.mobile_phone),
     country_code:valueText(record.phone_country_code || record.mobile_country_code),
     templateId: "",

@@ -79,7 +79,7 @@ test("desktop queues, layouts, preview drawer and stage history", async ({ page 
 test("capture lead and save a stage change inline", async ({ page }) => {
   const mutations = await setup(page);
   await page.getByRole("button", { name: "Add lead", exact: true }).click();
-  await page.getByLabel("Full name *", { exact: true }).fill("New Prospect");
+  await page.getByRole("textbox", {name:/^Full name/i}).fill("New Prospect");
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
   await page.getByLabel("Assign to employee", { exact: true }).selectOption("101");
   await page.getByRole("button", { name: "Create lead", exact: true }).click();

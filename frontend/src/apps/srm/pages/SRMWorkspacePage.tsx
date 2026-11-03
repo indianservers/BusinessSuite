@@ -1,3 +1,5 @@
+import CompactActions from "@/components/actions/CompactActions";
+import { ActionButton } from "@/components/actions";
 import { MobileFilters } from "@/components/mobile/MobilePrimitives";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -363,7 +365,7 @@ function DashboardView() {
             <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={groupedMoney("overdue_value")} detail="All time" tone={overdue > 0 ? "danger" : "default"} />
           </div>
 <p className="text-xs text-muted-foreground">{String(data.currency_policy||"Currency units unavailable")}</p>
-<SecondaryDetails title="Revenue events and order pipeline"><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<NativeSelect className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</NativeSelect></label><label>Event type<NativeSelect className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</NativeSelect></label></div><p className="text-xs">Monthly totals for the selected event type and currency. Different commercial events are not combined into accounting revenue.</p>
+<SecondaryDetails title="Revenue events and order pipeline"><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</NativeSelect></label><label>Event type<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</NativeSelect></label></div><p className="text-xs">Monthly totals for the selected event type and currency. Different commercial events are not combined into accounting revenue.</p>
           <div className="grid gap-4 xl:grid-cols-12">
             <RevenuePerformanceCard records={revenueTrend} />
             <OrderPipelineCard items={orderPipeline} total={numberValue(data.total_sales_orders)} />
@@ -923,7 +925,7 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
             <Input inputMode="decimal" value={source.hourlyRate} onChange={(event) => update("hourlyRate", event.target.value)} />
           </label>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <CompactActions className="flex flex-wrap gap-2">
           <Button variant="outline" disabled={action.isPending || !numericField(source.salesOrderId)} onClick={() => action.mutate({ label: "Sales order draft", run: () => srmApi.draftInvoiceFromSalesOrder(Number(source.salesOrderId)) })}>Draft from Sales Order</Button>
           <Button variant="outline" disabled={action.isPending || !numericField(source.engagementId)} onClick={() => action.mutate({ label: "Engagement draft", run: () => srmApi.draftInvoiceFromEngagement(Number(source.engagementId)) })}>Draft from Engagement</Button>
           <Button variant="outline" disabled={action.isPending || !numericField(source.billingMilestoneId)} onClick={() => action.mutate({ label: "Billing milestone draft", run: () => srmApi.draftInvoiceFromBillingMilestone(Number(source.billingMilestoneId)) })}>Draft from Billing Milestone</Button>
@@ -943,7 +945,7 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
           >
             Draft from Timesheets
           </Button>
-        </div>
+        </CompactActions>
       </CardContent>
     </Card>
   );
@@ -1693,7 +1695,7 @@ function CashierClosingView() {
         <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
           <Input value={countedCash} onChange={(event) => setCountedCash(event.target.value)} placeholder="Counted cash" />
           <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Closing notes" />
-          <Button onClick={() => close.mutate()} disabled={!canManage || close.isPending || !session || !countedCash}>Close Session</Button>
+          <Button available={!!(canManage)} onClick={() => close.mutate()} disabled={!canManage || close.isPending || !session || !countedCash}>Close Session</Button>
         </CardContent>
       </Card>
       <Card>
@@ -2118,18 +2120,18 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                             {canManage && kind === "salesOrders" && id ? (
                               <>
                                 {isPosSale ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">POS posted</span> : null}
-                                {!isPosSale && status === "draft" ? <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</Button> : null}
+                                {!isPosSale && status === "draft" ? <ActionButton action="review" loading={action.isPending} tooltip="Submit this sales order for approval" onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</ActionButton> : null}
                                 {!isPosSale && status === "pending_approval" ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">Awaiting approval</span> : null}
-                                {!isPosSale && status === "approved" ? <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "confirmSalesOrder", id })}>Confirm</Button> : null}
-                                {!isPosSale && status === "confirmed" ? <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "draftInvoiceFromSalesOrder", id })}>Draft invoice</Button> : null}
+                                {!isPosSale && status === "approved" ? <ActionButton action="approve" loading={action.isPending} tooltip="Confirm this approved sales order" onClick={() => action.mutate({ name: "confirmSalesOrder", id })}>Confirm</ActionButton> : null}
+                                {!isPosSale && status === "confirmed" ? <ActionButton action="quotation" loading={action.isPending} tooltip="Create an invoice draft from this confirmed order" onClick={() => action.mutate({ name: "draftInvoiceFromSalesOrder", id })}>Draft invoice</ActionButton> : null}
                                 {!isPosSale && ["cancelled", "closed"].includes(status) ? <span className="text-xs text-muted-foreground">No action</span> : null}
                               </>
                             ) : null}
-                            {canManage && kind === "engagements" && id ? <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</Button> : null}
+                            {canManage && kind === "engagements" && id ? <ActionButton action="task" loading={action.isPending} tooltip="Create the delivery project for this engagement" onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</ActionButton> : null}
                             {canManage && kind === "invoices" && id ? (
                               <>
-                                <Button size="sm" variant="outline" disabled={action.isPending} onClick={() => action.mutate({ name: "approveInvoice", id })}>Approve</Button>
-                                <Button size="sm" disabled={action.isPending} onClick={() => action.mutate({ name: "sendInvoice", id })}>Send</Button>
+                                <ActionButton action="approve" loading={action.isPending} tooltip="Approve this invoice" onClick={() => action.mutate({ name: "approveInvoice", id })}>Approve</ActionButton>
+                                <ActionButton action="email" loading={action.isPending} tooltip="Send this invoice to the customer" onClick={() => action.mutate({ name: "sendInvoice", id })}>Send invoice</ActionButton>
                               </>
                             ) : null}
                           </div>

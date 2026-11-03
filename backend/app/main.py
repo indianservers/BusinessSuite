@@ -143,6 +143,9 @@ app.add_middleware(PrivateUploadURLMiddleware)
 from app.core.middleware.rich_text import RichTextMiddleware
 app.add_middleware(RichTextMiddleware)
 
+from app.core.middleware.record_sync import RecordSyncMiddleware
+app.add_middleware(RecordSyncMiddleware)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -150,7 +153,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Request-ID", "Retry-After"],
+    expose_headers=["X-Request-ID", "Retry-After", "ETag", "X-Suite-Sync-Cursor", "X-Suite-Sync-Scope", "X-Suite-Sync-Mode", "X-Suite-Cache", "X-Suite-Setup-Required"],
 )
 
 # GZip compression

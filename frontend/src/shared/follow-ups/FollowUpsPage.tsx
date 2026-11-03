@@ -1,3 +1,4 @@
+import { ActionToolbar } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
 import MobileFollowUpQueue from "@/components/mobile/MobileFollowUpQueue";
 import { useMobileSessionState } from "@/components/mobile/useMobileSessionState";
@@ -472,47 +473,14 @@ export default function FollowUpsPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-          <div className="flex flex-wrap gap-2">
-            <Button
-              disabled={busy}
-              onClick={() => void run(() => action(Number(id), "complete"))}
-            >
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Complete
-            </Button>
-            <Button
-              disabled={busy || !notes.trim()}
-              variant="outline"
-              onClick={() => void run(() => action(Number(id), "comment"))}
-            >
-              Add comment
-            </Button>
-            <Button
-              disabled={busy || !notes.trim()}
-              variant="outline"
-              onClick={() => void run(() => action(Number(id), "contact"))}
-            >
-              Log customer contact
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSchedule({ ...detail.data!.configuration, required: true });
-                setCustomer(String(detail.data!.customer_id));
-                setTitle(detail.data!.title);
-                setCreating(true);
-              }}
-            >
-              Create next follow-up
-            </Button>
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={() => void run(() => action(Number(id), "cancel"))}
-            >
-              Cancel
-            </Button>
-          </div>
+          <ActionToolbar label="Follow-up actions" actions={[
+            {id:"complete",kind:"complete",label:"Complete",prominent:true,primary:true,disabled:busy,onSelect:()=>run(()=>action(Number(id),"complete"))},
+            {id:"contact",kind:"call",label:"Log customer contact",prominent:true,disabled:busy || !notes.trim(),disabledReason:!notes.trim() ? "Enter a comment or reason before logging contact" : undefined,onSelect:()=>run(()=>action(Number(id),"contact"))},
+            {id:"next",kind:"followup",label:"Create next follow-up",prominent:true,onSelect:()=>{setSchedule({...detail.data!.configuration,required:true});setCustomer(String(detail.data!.customer_id));setTitle(detail.data!.title);setCreating(true);}},
+            {id:"comment",kind:"note",label:"Add comment",disabled:busy || !notes.trim(),disabledReason:!notes.trim() ? "Enter a comment first" : undefined,onSelect:()=>run(()=>action(Number(id),"comment"))},
+            {id:"cancel",kind:"reject",label:"Cancel follow-up",danger:true,disabled:busy,confirm:{title:"Cancel this follow-up?",description:"This follow-up will be marked as cancelled. Its activity history will be retained.",label:"Cancel follow-up"},onSelect:()=>run(()=>action(Number(id),"cancel"))},
+          ]}/>
+
           <div className="flex flex-wrap gap-2">
             <Input
               className="max-w-xs"
@@ -532,7 +500,7 @@ export default function FollowUpsPage() {
                 )
               }
             >
-              Reschedule
+              <CalendarDays className="h-4 w-4" aria-hidden="true"/>Reschedule
             </Button>
           </div>
           <section className="space-y-2">
@@ -744,7 +712,7 @@ export default function FollowUpsPage() {
                     setAssigned(v.assigned || "");
                     setSort(v.sort || "due_at");
                     setGroup(v.group || "");
-                  } catch {}
+                  } catch { /* Keep current filters when the saved view is invalid. */ }
                 }}
               >
                 Restore view

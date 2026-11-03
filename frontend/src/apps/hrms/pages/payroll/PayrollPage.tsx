@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useHRSession} from "../../workbench/useHRSession";
@@ -1554,25 +1555,25 @@ export default function PayrollPage() {
                     <CardTitle className="text-base">Pre-Run Checks Dashboard</CardTitle>
                     <CardDescription>Blockers must be cleared before approval and publish.</CardDescription>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <CompactActions className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => worksheetMutation.mutate(selectedRun.id)} disabled={worksheetMutation.isPending}>
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Reprocess
                     </Button>
-                    <Button size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "approve" })} disabled={runStatusMutation.isPending || selectedRunStatus !== "calculated"}>
+                    <Button available={!(selectedRunStatus !== "calculated")} size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "approve" })} disabled={runStatusMutation.isPending || selectedRunStatus !== "calculated"}>
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       Approve run
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "approve", forceApprove: true })} disabled={runStatusMutation.isPending || selectedRunStatus !== "calculated"}>
+                    <Button available={!(selectedRunStatus !== "calculated")} variant="outline" size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "approve", forceApprove: true })} disabled={runStatusMutation.isPending || selectedRunStatus !== "calculated"}>
                       Force approve
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "lock" })} disabled={runStatusMutation.isPending || selectedRunStatus !== "approved"}>
+                    <Button available={!(selectedRunStatus !== "approved")} variant="outline" size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "lock" })} disabled={runStatusMutation.isPending || selectedRunStatus !== "approved"}>
                       Lock
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "paid" })} disabled={runStatusMutation.isPending || selectedRunStatus !== "locked"}>
+                    <Button available={!(selectedRunStatus !== "locked")} variant="outline" size="sm" onClick={() => runStatusMutation.mutate({ id: selectedRun.id, action: "paid" })} disabled={runStatusMutation.isPending || selectedRunStatus !== "locked"}>
                       Mark paid
                     </Button>
-                  </div>
+                  </CompactActions>
                 </div>
               </CardHeader>
               <CardContent className="grid gap-3 md:grid-cols-3">
@@ -1813,8 +1814,8 @@ export default function PayrollPage() {
                           <td className="px-4 py-3"><Badge variant={row.approval_status === "Approved" ? "secondary" : row.approval_status === "On Hold" || row.approval_status === "Skipped" ? "destructive" : "outline"}>{row.approval_status}</Badge></td>
                           <td className="px-4 py-3">{formatCurrency(row.net_salary)}</td>
                           <td className="px-4 py-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Button
+                            <CompactActions className="flex flex-wrap items-center gap-2">
+                              <Button available={!(row.approval_status === "Approved")}
                                 variant="outline"
                                 size="sm"
                                 className="h-7 text-xs"
@@ -1823,7 +1824,7 @@ export default function PayrollPage() {
                               >
                                 Approve
                               </Button>
-                              <Button
+                              <Button available={!(row.approval_status === "Approved")}
                                 variant="outline"
                                 size="sm"
                                 className="h-7 text-xs"
@@ -1833,7 +1834,7 @@ export default function PayrollPage() {
                                 <PauseCircle className="mr-1 h-3 w-3" />
                                 Hold
                               </Button>
-                              <Button
+                              <Button available={!(row.approval_status === "Approved")}
                                 variant="outline"
                                 size="sm"
                                 className="h-7 text-xs"
@@ -1856,7 +1857,7 @@ export default function PayrollPage() {
                               <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => worksheetMutation.mutate(selectedRun.id)} disabled={worksheetMutation.isPending}>
                                 Reprocess
                               </Button>
-                            </div>
+                            </CompactActions>
                             {row.hold_reason && <p className="mt-1 text-xs text-muted-foreground">{row.hold_reason}</p>}
                             {row.skip_reason && <p className="mt-1 text-xs text-muted-foreground">{row.skip_reason}</p>}
                           </td>
@@ -2443,14 +2444,14 @@ export default function PayrollPage() {
                 <CardDescription>Run selected payroll maintenance actions.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <CompactActions className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("arrears")} disabled={!selectedRun || payrollOperationMutation.isPending}>Auto Arrears</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("gratuity")} disabled={!selectedRun || payrollOperationMutation.isPending}>Gratuity Accrual</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("expenses")} disabled={!selectedRun || payrollOperationMutation.isPending}>Link Expenses</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bank-details")} disabled={payrollOperationMutation.isPending}>Bank Details</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("cutoff")} disabled={payrollOperationMutation.isPending}>Cutoff Reminder</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("periods")} disabled={payrollOperationMutation.isPending}>Auto Periods</Button>
-                </div>
+                </CompactActions>
                 <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                   <Input value={bankFileName} onChange={(event) => setBankFileName(event.target.value)} placeholder="Bank name" />
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bank-file")} disabled={!selectedRun || payrollOperationMutation.isPending}>Validate File</Button>
@@ -2551,13 +2552,13 @@ export default function PayrollPage() {
                 <Input placeholder="Convert amount" value={convertAmount} onChange={(event) => setConvertAmount(event.target.value)} />
                 <Button onClick={() => planningToolMutation.mutate("analytics")} disabled={planningToolMutation.isPending}>Load Analytics</Button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <CompactActions className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => planningToolMutation.mutate("budget")} disabled={planningToolMutation.isPending}>Create Budget</Button>
                 <Button variant="outline" onClick={() => planningToolMutation.mutate("variance")} disabled={planningToolMutation.isPending}>Budget Variance</Button>
                 <Button variant="outline" onClick={() => planningToolMutation.mutate("rate")} disabled={planningToolMutation.isPending}>Create Rate</Button>
                 <Button variant="outline" onClick={() => planningToolMutation.mutate("convert")} disabled={planningToolMutation.isPending}>Convert</Button>
                 <Button variant="outline" onClick={() => planningToolMutation.mutate("report")} disabled={planningToolMutation.isPending}>Create Report</Button>
-              </div>
+              </CompactActions>
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-md border p-3 text-sm"><p className="text-muted-foreground">Analytics records</p><p className="font-semibold">{analyticsResult?.records ?? "-"}</p><p>{analyticsResult?.total_gross_cost ? formatCurrency(analyticsResult.total_gross_cost) : ""}</p></div>
                 <div className="rounded-md border p-3 text-sm"><p className="text-muted-foreground">Budget rows</p><p className="font-semibold">{budgetVarianceResult?.rows?.length ?? "-"}</p></div>

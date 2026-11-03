@@ -5,7 +5,7 @@ type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 export async function authenticateCrm(page: Page) {
   const user = { id: 100, email: "admin@example.com", role: "admin", is_superuser: true, employee_id: null };
   await page.addInitScript((authUser) => {
-    localStorage.setItem("hrms-auth", JSON.stringify({
+    sessionStorage.setItem("hrms-auth", JSON.stringify({
       state: {
         accessToken: "crm-token",
         refreshToken: "crm-refresh",
@@ -15,6 +15,16 @@ export async function authenticateCrm(page: Page) {
       version: 0,
     }));
   }, user);
+  // Keep mocked CRM tests isolated from the developer's API, including shell reads.
+  await page.route("**/api/v1/**", async route => {
+    const path = new URL(route.request().url()).pathname;
+    let data: unknown = {items: []};
+    if (path.endsWith("/access/me")) data = {managed: false, companyId: 1, companyName: "CRM test company", grants: {}, modules: [{key: "crm", route: "/crm", label: "CRM"}], isAccessAdmin: true, isGlobalAdmin: true, memberships: [1], organizations: [{id: 1, name: "CRM test company"}]};
+    if (path.endsWith("/branches/context")) data = {company_id: 1, selected: 1, all_branches: false, manage_access: true, branches: [{id: 1, name: "CRM test branch", code: "QA", can_write: true}]};
+    if (/\/srm\/business\/customers\/\d+\/history$/.test(path)) data = {invoices: [], projects: []};
+    if (path.includes("/branding")) data = {values: {}};
+    await route.fulfill({json: data});
+  });
   // The shared shell checks module access before rendering any CRM route.
   await page.route("**/api/v1/business-os/modules", route => route.fulfill({
     status: 200, contentType: "application/json",
@@ -89,6 +99,8 @@ function crmResponse(path: string, method: Method) {
     if (path.includes("/crm/cpq/evaluate")) return { ruleCount: 1, warnings: [{ rule: "High discount approval" }], recommendations: [] };
     return { id: 99, status: "Created" };
   }
+  if (path.endsWith("/financial-data")) return {gstNumber:"",bankAccounts:[],upiIds:[],version:0,canManage:true,canVoid:true};
+  if (path === "/crm/contact-directory") return {items: [{id: 1, name: "Nisha Rao", email: "nisha@example.com", status: "Active", tags: ["Customer"], version: "1"}], total: 1, stats: {}, canManage: true, classifications: ["Customer", "Vendor"]};
   if (path === "/crm/dashboard" || path === "/crm") {
     return { summary: { leads: 1, qualifiedLeads: 1, contacts: 1, accounts: 1, openDeals: 1, pipelineValue: 250000, overdueActivities: 1 }, nextBestAction: "Follow up hot lead" };
   }

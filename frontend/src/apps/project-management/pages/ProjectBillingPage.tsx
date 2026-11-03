@@ -1,3 +1,4 @@
+import SharedCompanySelect from "@/shared/master-data/CompanySelect";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useAuthStore } from "@/store/authStore";
@@ -15,79 +16,8 @@ const read = async (path: string) => (await api.get(path)).data;
 const errorText = (error: any) =>
   error?.response?.data?.detail || error?.message || "Please try again";
 
-export function SharedCustomerSelect({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const uid = useAuthStore((state) => state.user?.id);
-  const [after, setAfter] = useState(0);
-  const [search, setSearch] = useState("");
-  const result = useQuery({
-    queryKey: ["shared-customers", uid, search, after],
-    queryFn: () =>
-      read(
-        `/srm/business/customers?q=${encodeURIComponent(search)}&after=${after}`,
-      ),
-  });
-  const selected = useQuery({
-    queryKey: ["shared-customer", uid, value],
-    queryFn: () => read(`/srm/business/customers/${value}`),
-    enabled: !!value,
-  });
-  return (
-    <div className="space-y-2">
-      <Input
-        aria-label="Search shared customers"
-        placeholder="Search customers"
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setAfter(0);
-        }}
-      />
-      <NativeSelect loading={result.isFetching || selected.isFetching} error={result.isError || selected.isError}
-        className="h-10 w-full rounded-md border bg-background px-3"
-        aria-label="Shared customer"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">Select a shared customer</option>
-        {selected.data &&
-          !(result.data?.items || []).some(
-            (r: Row) => String(r.id) === value,
-          ) && <option value={value}>{selected.data.name}</option>}
-        {(result.data?.items || []).map((r: Row) => (
-          <option key={r.id} value={r.id}>
-            {r.name}
-          </option>
-        ))}
-      </NativeSelect>
-      {result.data?.next && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setAfter(result.data.next)}
-        >
-          More customers
-        </Button>
-      )}
-      {after > 0 && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setAfter(0)}
-        >
-          First page
-        </Button>
-      )}
-      {result.isError && <p role="alert">{errorText(result.error)}</p>}
-    </div>
-  );
+export function SharedCustomerSelect({value,onChange}:{value:string;onChange:(value:string)=>void}) {
+  return <SharedCompanySelect value={value} onChange={onChange} source={window.location.pathname.startsWith("/srm")?"srm":"project_management"} label="Shared customer" placeholder="Select a shared customer"/>;
 }
 
 export function CommercialIdentityForm({

@@ -1,3 +1,4 @@
+import { ActionButton } from "@/components/actions";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -18,14 +19,13 @@ export default function CustomerFollowUps({
   });
   return (
     <section className="space-y-2 rounded-lg border bg-card p-4">
-      <div className="flex justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold">Service follow-ups</h2>
-        <Link
-          className="text-sm text-primary underline"
+        <ActionButton action="followup" asChild tooltip="Schedule a follow-up for this customer"><Link
           to={`/crm/follow-ups?customer=${customerId}&new=1`}
         >
           Schedule follow-up
-        </Link>
+        </Link></ActionButton>
       </div>
       {q.isLoading && <p role="status">Loading commitments…</p>}
       {q.isError && (

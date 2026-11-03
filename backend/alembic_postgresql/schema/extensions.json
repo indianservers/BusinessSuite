@@ -3007,5 +3007,31 @@
     "start_date",
     "status",
     "updated_at"
+  ],
+  "crm_contact_financial_profiles": [
+    "contact_id",
+    "organization_id",
+    "gst_number",
+    "bank_accounts",
+    "upi_ids",
+    "version"
+  ],
+  "crm_contact_financial_transactions": [
+    "id",
+    "contact_id",
+    "organization_id",
+    "request_id",
+    "version",
+    "status",
+    "void_reason",
+    "direction",
+    "amount",
+    "currency",
+    "transaction_date",
+    "method",
+    "reference",
+    "notes",
+    "created_by_user_id",
+    "created_at"
   ]
 }

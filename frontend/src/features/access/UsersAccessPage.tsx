@@ -1,3 +1,5 @@
+import CompactActions from "@/components/actions/CompactActions";
+import { PersonPreviewHeader } from "@/components/PersonPreviewDialog";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -639,24 +641,24 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             )) || <option value={company}>Company {company}</option>}
           </NativeSelect>
         </label>
-        <Button variant="outline" onClick={() => setCreateMode("add")}>
+        <CompactActions><Button variant="outline" onClick={() => setCreateMode("add")}>
           <Plus size={15} />
           Add User
         </Button>
-        <Button variant="outline" onClick={() => setCreateMode("invite")}>
+<Button variant="outline" onClick={() => setCreateMode("invite")}>
           Invite User
         </Button>
-        <Button variant="outline" onClick={() => setTab("Roles")}>
+<Button variant="outline" onClick={() => setTab("Roles")}>
           Manage Roles
         </Button>
-        <Button variant="outline" onClick={() => setTab("Templates")}>
+<Button variant="outline" onClick={() => setTab("Templates")}>
           Permission Templates
         </Button>
-        <Button variant="outline" onClick={exportReport}>
+<Button variant="outline" onClick={exportReport}>
           <Download size={14} />
           Export Access Report
         </Button>
-        {actor?.is_superuser && (
+{actor?.is_superuser && (
           <Button
             variant="outline"
             onClick={() =>
@@ -671,7 +673,12 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
           >
             Organization membership
           </Button>
-        )}
+        )}</CompactActions>
+
+
+
+
+
       </div>
       {error && (
         <div className="ua-error" role="alert">
@@ -1387,8 +1394,9 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             if (!open) setOpened(undefined);
           }}
         >
-          <DialogContent className="ua-root ua-drawer">
-            <DialogTitle>{opened.name} · Access</DialogTitle>
+          <DialogContent className="ua-root ua-drawer wf-preview ua-person-preview">
+            <PersonPreviewHeader name={opened.name} identifier={opened.email} status={opened.status}/>
+            <div className="wfp-body">
             {(actor?.is_superuser || (actor?.access?.isAccessAdmin && branchChoices.data?.manage_access)) && !opened.isSuperuser && opened.id !== actor.id && <BranchRoleAssignments key={`${company}-${opened.id}`} userId={opened.id} companyId={company} companyGrants={opened.grants} />}
             <p>
               {opened.email} · {opened.department || "No department"} ·{" "}
@@ -1556,6 +1564,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
               >
                 Cancel user changes
               </Button>
+            </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -1,3 +1,4 @@
+import { useMobile } from "@/components/mobile/useMobile";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
@@ -436,7 +437,8 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
           ...emptyQuery(),
           ...props.initialQuery,
           ...saved.query,
-          page: 1,
+          ...props.queryState,
+          page: props.queryState?.page || 1,
           path: [],
         },
         columns,
@@ -461,6 +463,9 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const [layout, setLayout] = useState(initial.layout),
     [query, setQuery] = useState<GridQuery>(initial.query),
     [views, setViews] = useState<GridSavedView[]>(initial.views);
+  const mobile = useMobile();
+  const effectiveRowHeight = mobile ? Math.max(48, layout.rowHeight) : layout.rowHeight;
+  const restoredViewQuery = useRef<string>();
   const [search, setSearch] = useState(initial.query.search),
     [filterOpen, setFilterOpen] = useState(false),
     [notice, setNotice] = useState(""),
@@ -541,7 +546,9 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
     }
   }, [preferenceKey, layout, query, views]);
   useEffect(() => {
-    props.onQueryChange?.(query);
+    const handled = restoredViewQuery.current === JSON.stringify(query);
+    restoredViewQuery.current = undefined;
+    if (!handled) props.onQueryChange?.(query);
   }, [JSON.stringify(query)]);
   const selectionContext = JSON.stringify({
     search: query.search,
@@ -729,7 +736,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const rowVirtual = useVirtualizer({
     count: modelRows.length,
     getScrollElement: () => scroll.current,
-    estimateSize: () => layout.rowHeight,
+    estimateSize: () => effectiveRowHeight,
     overscan: 8,
     scrollMargin: 40,
     scrollPaddingStart: 40,
@@ -746,7 +753,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   });
   useEffect(() => {
     rowVirtual.measure();
-  }, [layout.rowHeight]);
+  }, [effectiveRowHeight]);
   useEffect(() => {
     columnVirtual.measure();
   }, [effectiveSizes, layout.order, layout.visibility, effectivePinning]);
@@ -771,7 +778,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
         )
       : 0;
   const actionWidth = rowActions.length
-    ? rowActions.some((a) => a.quick)
+    ? mobile ? 48 : rowActions.some((a) => a.quick)
       ? 88
       : 40
     : 0;
@@ -1290,6 +1297,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
           key={column.id}
           data-row-id={node.id}
           data-cell-id={column.id}
+          data-cell-editable={permissions.edit && (typeof def.editable === "function" ? def.editable(node.record!) : def.editable) ? "true" : undefined}
           style={style(column)}
           className={`udg-cell udg-align-${def.align || (["number", "currency"].includes(def.type || "") ? "right" : "left")} ${inRange ? "is-range" : ""} ${active?.row === node.id && active.column === column.id ? "is-focused" : ""}`}
           tabIndex={
@@ -1441,12 +1449,22 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
           }
           load={(view) => {
             updateLayout(view.layout);
-            changeQuery({ ...view.query, path: [], page: 1 });
-            props.onViewContextChange?.(view.context || {});
+            const restoredQuery = { ...view.query, path: [], page: 1 };
+            if (props.onRestoreView) restoredViewQuery.current = JSON.stringify(restoredQuery);
+            changeQuery(restoredQuery);
+            // Restoring context can remount the adapter before the persistence effect runs.
+            try {
+              localStorage.setItem(preferenceKey, JSON.stringify({ layout: sanitizeLayout(view.layout, columns), query: restoredQuery, views }));
+            } catch {
+              setNotice("Layout could not be saved in this browser.");
+            }
+            if (props.onRestoreView) props.onRestoreView({ ...view, query: restoredQuery });
+            else props.onViewContextChange?.(view.context || {});
           }}
           remove={(id) => setViews((v) => v.filter((view) => view.id !== id))}
         />
         <GridExportMenu
+          formats={props.exportFormats}
           selectedCount={selection.length}
           visibleCount={visibleRecords.length}
           allowed={!!dataSource.export && !!permissions.export}
@@ -1629,7 +1647,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                 role="rowgroup"
                 style={{
                   height: request.isPending
-                    ? layout.rowHeight * 8
+                    ? effectiveRowHeight * 8
                     : rowVirtual.getTotalSize(),
                   position: "relative",
                 }}
@@ -1639,7 +1657,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                       <div
                         className="udg-skeleton"
                         key={i}
-                        style={{ height: layout.rowHeight }}
+                        style={{ height: effectiveRowHeight }}
                       />
                     ))
                   : virtualRows.map((virtual) => {
@@ -1650,7 +1668,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                           top: 0,
                           left: 0,
                           width: "100%",
-                          height: layout.rowHeight,
+                          height: effectiveRowHeight,
                           transform: `translateY(${virtual.start - 40}px)`,
                         };
                       if (node.more)
@@ -1854,7 +1872,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                                 {rowActions
                                   .filter(
                                     (a) =>
-                                      a.quick &&
+                                      !mobile && a.quick &&
                                       (!a.visible || a.visible(record)),
                                   )
                                   .slice(0, 2)
@@ -2018,7 +2036,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
               })
             }
           >
-            {[25, 50, 100, 200].map((size) => (
+            {[10, 25, 50, 100, 200].map((size) => (
               <option key={size}>{size}</option>
             ))}
           </NativeSelect>

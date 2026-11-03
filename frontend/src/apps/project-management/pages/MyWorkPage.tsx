@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { MobileFilters } from "@/components/mobile/MobilePrimitives";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -857,9 +858,53 @@ export default function MyWorkPage() {
       {!!chosen.length && (
         <section className="mw-bulk" aria-label="Bulk task actions">
           <strong>{chosen.length} selected</strong>
-          <button onClick={() => openAssignment(chosen)}>
+          <CompactActions><button onClick={() => openAssignment(chosen)}>
             <Users size={16} /> Assign people / groups
           </button>
+<button
+            disabled={busy || !bulkValue}
+            onClick={() =>
+              void update(chosen, {
+                [bulkField]:
+                  bulkField === "project_id" ? Number(bulkValue) : bulkValue,
+              })
+            }
+          >
+            Apply
+          </button>
+<button onClick={() => exportTasks(chosen)}>
+            <Download size={15} /> Export
+          </button>
+<button
+            disabled={busy}
+            onClick={() => {
+              if (!window.confirm(`Delete ${chosen.length} selected tasks?`))
+                return;
+              setBusy(true);
+              void (async () => {
+                const failures: string[] = [];
+                let successes = 0;
+                for (const task of chosen) {
+                  try {
+                    await tasksAPI.delete(task.id);
+                    successes++;
+                  } catch (e) {
+                    failures.push(`${task.title}: ${workspaceError(e)}`);
+                  }
+                }
+                setNotice(`${successes} deleted · ${failures.length} failed`);
+                if (failures.length) setError(failures.join("\n"));
+                setBusy(false);
+                setSelected([]);
+                refresh();
+              })();
+            }}
+          >
+            Delete selected
+          </button>
+<button aria-label="Clear selection" onClick={() => setSelected([])}>
+            <X size={16} />
+          </button></CompactActions>
           <NativeSelect
             aria-label="Bulk field"
             value={bulkField}
@@ -902,50 +947,10 @@ export default function MyWorkPage() {
               ))}
             </NativeSelect>
           )}
-          <button
-            disabled={busy || !bulkValue}
-            onClick={() =>
-              void update(chosen, {
-                [bulkField]:
-                  bulkField === "project_id" ? Number(bulkValue) : bulkValue,
-              })
-            }
-          >
-            Apply
-          </button>
-          <button onClick={() => exportTasks(chosen)}>
-            <Download size={15} /> Export
-          </button>
-          <button
-            disabled={busy}
-            onClick={() => {
-              if (!window.confirm(`Delete ${chosen.length} selected tasks?`))
-                return;
-              setBusy(true);
-              void (async () => {
-                const failures: string[] = [];
-                let successes = 0;
-                for (const task of chosen) {
-                  try {
-                    await tasksAPI.delete(task.id);
-                    successes++;
-                  } catch (e) {
-                    failures.push(`${task.title}: ${workspaceError(e)}`);
-                  }
-                }
-                setNotice(`${successes} deleted · ${failures.length} failed`);
-                if (failures.length) setError(failures.join("\n"));
-                setBusy(false);
-                setSelected([]);
-                refresh();
-              })();
-            }}
-          >
-            Delete selected
-          </button>
-          <button aria-label="Clear selection" onClick={() => setSelected([])}>
-            <X size={16} />
-          </button>
+
+
+
+
         </section>
       )}
       {view === "approvals" && (

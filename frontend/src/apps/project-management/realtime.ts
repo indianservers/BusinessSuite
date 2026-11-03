@@ -60,6 +60,7 @@ export const useRealtimeStore = create<RealtimeState>((set, get) => ({
     };
     if (get().events.some(existing => existing.id === normalized.id)) return;
     set({ events: [normalized, ...get().events].slice(0, 50), onlineUsers });
+    if (!["connected", "subscribed", "user.presence"].includes(event.type)) window.dispatchEvent(new CustomEvent("suite:record-push", { detail: { module: "pms" } }));
   },
   publish: (event) => {
     const fullEvent: PMSRealtimeEvent = {

@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -213,14 +214,19 @@ export default function AIOperatorPage() {
       {["queued_planning", "planning", "queued", "executing", "retrying"].includes(run.status) && <p role="status">Background work is in progress. You may leave this page and return to Recent commands. A running worker is required.</p>}
       {run.plan && <><p>{run.plan.summary}</p>{run.plan.clarification && <p role="status">{run.plan.clarification} Reply with a follow-up to resolve this.</p>}<ol className="list-decimal pl-5 space-y-2">{run.plan.steps.map((s, i) => <li key={i}><strong>{s.tool}</strong> · task #{s.task_id}{s.changes && <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(s.changes, null, 2)}</pre>}{s.title && <span> · {s.title}</span>}{s.body && <p className="whitespace-pre-wrap">Internal comment: {s.body}</p>}{s.item_id && <span> · checklist item #{s.item_id}{s.is_completed === undefined ? " · remove" : s.is_completed ? " · complete" : " · reopen"}</span>}{s.sprint_id && <span> · sprint #{s.sprint_id}</span>}{(s.start_date || s.due_date) && <span> · {s.start_date || "unchanged"} → {s.due_date || "unchanged"}</span>}{s.source_task_id && <span> · blocked by task #{s.source_task_id}</span>}{s.depends_on && <span> · after steps {s.depends_on.join(", ") || "none"}</span>}</li>)}</ol></>}
       {run.error_code && <p role="alert" className="text-destructive">{run.error_code}. {run.result?.message || "Review the progress and correct the command or settings."}</p>}
-      {run.status === "awaiting_approval" && <><p className="text-sm text-muted-foreground">Existing automation and recurrence rules apply. {run.execution_mode === "checkpointed" ? "Each step commits separately. Cancellation or a later failure preserves completed effects." : "All task changes commit together or roll back."}</p><Button disabled={busy} onClick={() => void act(() => operatorApi.approve(run))}>Approve and execute this plan</Button></>}
-      {["awaiting_approval", "needs_clarification", "planning", "queued_planning", "queued", "executing", "retrying", "paused"].includes(run.status) && <Button className="ml-3" variant="outline" disabled={busy} onClick={() => void act(() => operatorApi.cancel(run.id))}>Cancel plan</Button>}
-      {run.status === "paused" && <Button className="ml-3" disabled={busy} onClick={() => void act(() => operatorApi.resume(run))}>Resume remaining steps</Button>}
+      <CompactActions>{run.status === "awaiting_approval" && <><p className="text-sm text-muted-foreground">Existing automation and recurrence rules apply. {run.execution_mode === "checkpointed" ? "Each step commits separately. Cancellation or a later failure preserves completed effects." : "All task changes commit together or roll back."}</p><Button disabled={busy} onClick={() => void act(() => operatorApi.approve(run))}>Approve and execute this plan</Button></>}
+{["awaiting_approval", "needs_clarification", "planning", "queued_planning", "queued", "executing", "retrying", "paused"].includes(run.status) && <Button className="ml-3" variant="outline" disabled={busy} onClick={() => void act(() => operatorApi.cancel(run.id))}>Cancel plan</Button>}
+{run.status === "paused" && <Button className="ml-3" disabled={busy} onClick={() => void act(() => operatorApi.resume(run))}>Resume remaining steps</Button>}
+{["awaiting_approval", "needs_clarification", "paused", "succeeded", "failed", "cancelled"].includes(run.status) && <Button variant="outline" disabled={busy} onClick={() => { setFollowUp(true); setCommand(""); setSelection(run.selection); requestRef.current = null; document.getElementById("operator-command")?.focus(); }}>Reply / revise plan</Button>}
+{run.status === "succeeded" && <Button variant="outline" onClick={() => { requestRef.current = null; setCommand(""); setMode("text"); setRun(null); }}>Start another command</Button>}
+{["failed", "cancelled", "needs_clarification"].includes(run.status) && <Button variant="outline" disabled={busy} onClick={() => { requestRef.current = null; void preview(); }}>Create a fresh preview</Button>}</CompactActions>
+
+
       {run.result?.receipts && <div role="status"><p>{run.status === "succeeded" ? "All " : "Completed "}{run.result.receipts.length} steps committed.</p>{run.result.receipts.map(r => <p key={r.step}>Step {r.step}: {r.tool} · task #{r.task_id} · record #{r.record_id}</p>)}</div>}
-      {["awaiting_approval", "needs_clarification", "paused", "succeeded", "failed", "cancelled"].includes(run.status) && <Button variant="outline" disabled={busy} onClick={() => { setFollowUp(true); setCommand(""); setSelection(run.selection); requestRef.current = null; document.getElementById("operator-command")?.focus(); }}>Reply / revise plan</Button>}
+
       {!!eventLog.length && <details><summary>Execution events · {eventLog.length}</summary>{eventLog.map(e => <p className="text-sm" key={e.id}>{new Date(e.created_at).toLocaleTimeString()} · {e.type}{e.payload.step ? ` · step ${e.payload.step}` : ""}{e.payload.error_code ? ` · ${e.payload.error_code}` : ""}</p>)}</details>}
-      {run.status === "succeeded" && <Button variant="outline" onClick={() => { requestRef.current = null; setCommand(""); setMode("text"); setRun(null); }}>Start another command</Button>}
-      {["failed", "cancelled", "needs_clarification"].includes(run.status) && <Button variant="outline" disabled={busy} onClick={() => { requestRef.current = null; void preview(); }}>Create a fresh preview</Button>}
+
+
     </section>}
     <OperatorWorkspaceTools key={projectId} projectId={projectId} workspaceId={project?.workspace_id} command={command} provider={provider} />
     <section><h2 className="font-semibold mb-2">Recent commands</h2>{history.map(h => <button key={h.id} className="block w-full border-b py-3 text-left" disabled={busy} onClick={() => { setRun(h); setFollowUp(false); }}>#{h.id} · {h.status} · {h.command}</button>)}</section>

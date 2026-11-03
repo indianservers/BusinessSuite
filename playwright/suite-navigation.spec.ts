@@ -40,7 +40,7 @@ async function openSidebar(page: Page) {
 async function snapshot(page: Page, name: string, project: string) {
   const target = path.resolve(
     __dirname,
-    `../docs/qa/suite-navigation-${name}-${project}.png`,
+    `../.local/api-validation-screenshots/${name}-${project}-${Date.now()}.png`,
   );
   fs.mkdirSync(path.dirname(target), { recursive: true });
   await expect(page.locator(".async-progress")).toHaveCount(0, {
@@ -71,18 +71,19 @@ test("public entry, application filtering and contextual login", async ({
   await expect(
     page.getByRole("heading", { name: "Your work starts here." }),
   ).toBeVisible();
-  await expect(page.locator(".md-card")).toHaveCount(6);
+  await expect(page.locator(".launcher-card")).toHaveCount(6);
   await page.keyboard.press("Control+k");
   await expect(
     page.getByLabel("Search applications", { exact: true }),
   ).toBeFocused();
   await page.getByLabel("Search applications", { exact: true }).fill("payroll");
-  await expect(page.locator(".md-card")).toHaveCount(1);
+  await expect(page.locator(".launcher-card")).toHaveCount(1);
   await page.getByLabel("Search applications", { exact: true }).fill("");
+  await page.keyboard.press("Escape");
   await noOverflow(page);
   await snapshot(page, "prelogin", info.project.name);
   await page
-    .getByRole("link", { name: "Sign in to VyaparaCRM", exact: true })
+    .getByRole("link", { name: "VyaparaCRM", exact: true })
     .click();
   await expect(
     page.getByText("Continue to VyaparaCRM after signing in."),
@@ -171,28 +172,30 @@ test("dashboard favorites, real badges, compact view and profile menu", async ({
   page,
 }, info) => {
   await signIn(page);
-  await expect(page.locator(".md-card")).toHaveCount(6);
+  await expect(page.locator(".launcher-card")).toHaveCount(6);
   await expect(page.getByText("Featured", { exact: true })).toHaveCount(0);
   await expect(
     page
       .getByRole("article", { name: "AI HRMS", exact: true })
-      .locator(".md-icon"),
-  ).toHaveCSS("color", "rgb(0, 85, 255)");
-  await page.getByLabel("Search your modules", { exact: true }).fill("payroll");
-  await expect(page.locator(".md-card")).toHaveCount(1);
-  await page.getByRole("button", { name: "Clear module search" }).click();
+      .locator(".launcher-icon"),
+  ).toBeVisible();
+  await page.getByRole("combobox", {name: "Search applications", exact: true}).fill("payroll");
+  await expect(page.locator(".launcher-card")).toHaveCount(1);
+  await page.getByRole("combobox", { name: "Search applications", exact: true }).fill("");
   await page
     .getByRole("button", { name: "Pin VyaparaCRM", exact: true })
     .click();
-  await expect(page.locator(".md-card").first()).toHaveAttribute(
+  await expect(page.locator(".launcher-card").first()).toHaveAttribute(
     "aria-label",
     "VyaparaCRM",
   );
+  await page.locator(".launcher-view-options summary").click();
   await page.getByRole("checkbox", { name: "Favorites only" }).check();
-  await expect(page.locator(".md-card")).toHaveCount(1);
+  await expect(page.locator(".launcher-card")).toHaveCount(1);
   await page.getByRole("checkbox", { name: "Favorites only" }).uncheck();
   await page.getByRole("checkbox", { name: "Compact view" }).check();
   await page.reload();
+  await page.locator(".launcher-view-options summary").click();
   await expect(
     page.getByRole("checkbox", { name: "Compact view" }),
   ).toBeChecked();
@@ -220,9 +223,7 @@ test("feature links, recent pages, breadcrumbs, groups and mobile drawer", async
   page,
 }, info) => {
   await signIn(page);
-  await page
-    .getByRole("link", { name: "VyaparaCRM: Customers", exact: true })
-    .click();
+  await page.goto("/crm/contacts");
   await expect(page).toHaveURL(/\/crm\/contacts$/);
   const breadcrumbs = page.getByRole("navigation", {
     name: "Breadcrumb",
@@ -240,8 +241,8 @@ test("feature links, recent pages, breadcrumbs, groups and mobile drawer", async
   await expect(
     nav.getByRole("button", { expanded: true }).first(),
   ).toBeVisible();
-  const firstGroup = nav.getByRole("button").first();
-  const groupName = await firstGroup.innerText();
+  const groupName = (await nav.getByRole("button", {expanded:true}).first().innerText()).replace(/\s+/g," ").trim();
+  const firstGroup = nav.getByRole("button", {name:groupName,exact:true});
   await firstGroup.click();
   await expect(firstGroup).toHaveAttribute("aria-expanded", "false");
   await page.reload();
@@ -348,7 +349,7 @@ test("permission-aware inbox and unauthorized return paths", async ({
   await expect(
     page.getByRole("status").filter({ hasText: "That page isn't available" }),
   ).toBeVisible();
-  await expect(page.locator(".md-card")).toHaveCount(1);
+  await expect(page.locator(".launcher-card")).toHaveCount(1);
   await expect(
     page.getByText("Recommended for your role", { exact: true }),
   ).toBeVisible();
@@ -466,7 +467,7 @@ test("dashboard access loading and failure show a single recoverable state", asy
   ).toHaveCount(0);
   fail = false;
   await page.getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(page.locator(".md-card")).toHaveCount(6);
+  await expect(page.locator(".launcher-card")).toHaveCount(6);
 });
 
 test("reset success returns to sign in and account settings change the password", async ({

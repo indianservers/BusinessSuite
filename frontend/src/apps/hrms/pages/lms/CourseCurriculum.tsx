@@ -110,7 +110,7 @@ export default function CourseCurriculum({ courseId }: { courseId: number }) {
               onChange={(e) => setLesson(e.target.value)}
               placeholder="Lesson title"
             />
-            <NativeSelect
+            <NativeSelect loading={query.isFetching} error={query.isError}
               aria-label="Lesson section"
               value={target || sections[0].id}
               onChange={(e) => setTarget(e.target.value)}

@@ -24,6 +24,19 @@ def approval_actor_actions(request):
 ROOT = "/api/v1/power-apps/approvals"
 
 
+def test_people_keeps_central_approvers_and_skips_unprivileged_accounts(client, db, actors):
+    from app.models.user import Role
+    central = db.query(User).filter_by(email="power-3@example.com").one()
+    central.role_id = db.query(Role).filter_by(name="power_viewer").one().id
+    db.commit()
+    response = client.get(ROOT + "/people", headers=actors[0])
+    assert response.status_code == 200, response.text
+    ids = {item["id"] for item in response.json()["items"]}
+    assert central.id in ids
+    for email in ["power-1@example.com", "power-2@example.com", "power-4@example.com"]:
+        assert db.query(User).filter_by(email=email).one().id not in ids
+
+
 def users(db):
     return [
         db.query(User).filter_by(email=f"power-{i}@example.com").one().id
@@ -103,7 +116,20 @@ def test_simple_wait_and_resume(client, db, actors):
     p = policy(client, actors[0], [ids[3]])
     r = submit(client, actors[0], p)
     drain(db)
-    assert detail(client, actors[3], r)["assignments"][0]["can_decide"]
+    snapshot = detail(client, actors[3], r)
+    assert snapshot["assignments"], snapshot.get("history", snapshot)
+    from app.branches.models import BranchOwnership
+    from app.apps.power_apps.approvals.models import Assignment
+    from app.models.approval_os import ApprovalRequest, ApprovalHistory
+    request_owner = db.get(BranchOwnership, (ApprovalRequest.__tablename__, str(r["id"])))
+    assert request_owner is not None
+    for assignment in snapshot["assignments"]:
+        seat_owner = db.get(BranchOwnership, (Assignment.__tablename__, str(assignment["id"])))
+        assert (seat_owner.company_id, seat_owner.branch_id) == (request_owner.company_id, request_owner.branch_id)
+    for row in db.query(ApprovalHistory).filter_by(request_id=r["id"]):
+        history_owner = db.get(BranchOwnership, (ApprovalHistory.__tablename__, str(row.id)))
+        assert (history_owner.company_id, history_owner.branch_id) == (request_owner.company_id, request_owner.branch_id)
+    assert snapshot["assignments"][0]["can_decide"]
     response = decide(client, actors[3], r)
     assert response.status_code == 200, response.text
     drain(db)

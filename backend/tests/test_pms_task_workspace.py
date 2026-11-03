@@ -137,6 +137,9 @@ def test_assigned_intern_can_post_but_cannot_read_unassigned_work(client, db, st
     item = db.get(PMSTask, tid)
     item.assignee_user_ids = [owner.id, member.id]
     db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1)
+    db.commit()
     detail = client.get(root, headers=mh)
     assert detail.status_code == 200, detail.text
     update = client.post(root+"/entries", headers=mh, json={"body":"Intern QA findings", "progress":25,"revision":0})

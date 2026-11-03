@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     optimizeDeps: { include: ['@tensorflow/tfjs', '@tensorflow/tfjs-backend-wasm', '@huggingface/tokenizers', '@tensorflow/tfjs-core', '@tensorflow/tfjs-layers', '@tensorflow/tfjs-backend-cpu'] },
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: {
         "@": path.resolve(__dirname, "./src"),
       },

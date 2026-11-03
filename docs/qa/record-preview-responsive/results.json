@@ -1,0 +1,125 @@
+{
+  "results": [
+    {
+      "module": "CRM",
+      "width": 1440,
+      "height": 1000,
+      "passed": true
+    },
+    {
+      "module": "HRMS",
+      "width": 1440,
+      "height": 1000,
+      "passed": true
+    },
+    {
+      "module": "PMS",
+      "width": 1440,
+      "height": 1000,
+      "passed": true
+    },
+    {
+      "module": "Finance",
+      "width": 1440,
+      "height": 1000,
+      "passed": true
+    },
+    {
+      "module": "SRM",
+      "width": 1440,
+      "height": 1000,
+      "passed": true
+    },
+    {
+      "module": "CRM",
+      "width": 390,
+      "height": 844,
+      "passed": true
+    },
+    {
+      "module": "HRMS",
+      "width": 390,
+      "height": 844,
+      "passed": true
+    },
+    {
+      "module": "PMS",
+      "width": 390,
+      "height": 844,
+      "passed": true
+    },
+    {
+      "module": "Finance",
+      "width": 390,
+      "height": 844,
+      "passed": true
+    },
+    {
+      "module": "SRM",
+      "width": 390,
+      "height": 844,
+      "passed": true
+    },
+    {
+      "module": "CRM",
+      "width": 320,
+      "height": 740,
+      "passed": true
+    },
+    {
+      "module": "HRMS",
+      "width": 320,
+      "height": 740,
+      "passed": true
+    },
+    {
+      "module": "PMS",
+      "width": 320,
+      "height": 740,
+      "passed": true
+    },
+    {
+      "module": "Finance",
+      "width": 320,
+      "height": 740,
+      "passed": true
+    },
+    {
+      "module": "SRM",
+      "width": 320,
+      "height": 740,
+      "passed": true
+    },
+    {
+      "module": "CRM",
+      "width": 844,
+      "height": 390,
+      "passed": true
+    },
+    {
+      "module": "HRMS",
+      "width": 844,
+      "height": 390,
+      "passed": true
+    },
+    {
+      "module": "PMS",
+      "width": 844,
+      "height": 390,
+      "passed": true
+    },
+    {
+      "module": "Finance",
+      "width": 844,
+      "height": 390,
+      "passed": true
+    },
+    {
+      "module": "SRM",
+      "width": 844,
+      "height": 390,
+      "passed": true
+    }
+  ],
+  "errors": []
+}

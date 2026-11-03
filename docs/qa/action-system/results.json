@@ -1,0 +1,45 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "passed": true
+    },
+    {
+      "width": 320,
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "checks": [
+    "hover and focus tooltips",
+    "four compact mobile actions",
+    "all secondary actions reachable",
+    "separate WhatsApp and SMS compose channels",
+    "destructive confirmation and cancellation",
+    "missing contact explanations",
+    "converted lead status",
+    "PMS and HR permissions",
+    "44px touch targets",
+    "contact and vendor row action menus",
+    "follow-up cancellation confirmation"
+  ],
+  "mutations": [
+    {
+      "method": "DELETE",
+      "path": "/crm/leads/1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/crm/leads/1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/crm/leads/1"
+    }
+  ],
+  "data": "API fixtures; no real messages or record writes"
+}

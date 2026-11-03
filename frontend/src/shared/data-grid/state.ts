@@ -165,7 +165,7 @@ export function sanitizeQuery<T>(
           )
           .slice(0, 4)
       : [],
-    pageSize: [25, 50, 100, 200].includes(Number(value.pageSize))
+    pageSize: [10, 25, 50, 100, 200].includes(Number(value.pageSize))
       ? Number(value.pageSize)
       : 50,
     page: Math.max(1, Number(value.page) || 1),

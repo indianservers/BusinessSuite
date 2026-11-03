@@ -172,6 +172,7 @@ export type SharedDataGridProps<T> = {
   onClearFilters?: () => void;
   viewContext?: Record<string, unknown>;
   onViewContextChange?: (context: Record<string, unknown>) => void;
+  onRestoreView?: (view: GridSavedView) => void;
   onResult?: (result: GridResult<T>) => void;
   onOpen?: (row: T) => void;
   onEdit?: (row: T, column: string, value: string) => Promise<void>;
@@ -184,6 +185,7 @@ export type SharedDataGridProps<T> = {
   height?: number;
   statistics?: (result: GridResult<T>) => ReactNode;
   defaultExportColumns?: string[];
+  exportFormats?: GridExportRequest["format"][];
 };
 export const emptyQuery = (): GridQuery => ({
   search: "",

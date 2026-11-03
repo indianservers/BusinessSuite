@@ -1,3 +1,5 @@
+import { ActionButton } from "@/components/actions";
+import RecordSections from "@/components/RecordSections";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobile } from "@/components/mobile/useMobile";
 import { Link, useParams } from "react-router-dom";
@@ -49,7 +51,8 @@ export default function SRMCommercialDetailPage({ kind }: { kind: DetailKind }) 
         <p className="text-sm text-muted-foreground">Linked commercial lifecycle record.</p>
       </div>
       {mobile && kind === "salesOrder" && query.data && <ol className="mobile-timeline" aria-label="Order progress">{[["Order",record.status],["Delivery",record.delivery_status],["Invoicing",record.invoice_status],["Payment",record.payment_status]].map(([label,status])=><li key={String(label)}><strong>{String(label)}</strong><small>{status ? formatValue(status) : "Status not provided"}</small></li>)}</ol>}
-      <Card>
+      <RecordSections key={`${kind}-${numericId}`} label="Commercial record information" sections={[
+        {id:"overview",label:"Overview",content:<>      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             {formatValue(record.order_number || record.contract_number || record.engagement_number || record.name || record.title || `Record ${numericId}`)}
@@ -65,7 +68,10 @@ export default function SRMCommercialDetailPage({ kind }: { kind: DetailKind }) 
           ))}
         </CardContent>
       </Card>
-      {(kind === "salesOrder" || kind === "engagement") && <CommercialConnections key={`${kind}-${numericId}`} orderId={kind === "salesOrder" ? numericId : Number(record.sales_order_id || 0)} engagementId={kind === "engagement" ? numericId : undefined} />}
+</>},
+        ...((kind === "salesOrder" || kind === "engagement") ? [{id:"connections",label:"Team & projects",content:<>      {(kind === "salesOrder" || kind === "engagement") && <CommercialConnections key={`${kind}-${numericId}`} orderId={kind === "salesOrder" ? numericId : Number(record.sales_order_id || 0)} engagementId={kind === "engagement" ? numericId : undefined} />}</>}] : []),
+      ]}/>
+
     </div>
   );
 }
@@ -78,8 +84,8 @@ function CommercialConnections({ orderId, engagementId }: { orderId: number; eng
   const save = useMutation({ mutationFn: () => api.put(`/srm/business/sales-orders/${orderId}/team`, { team_id: Number(team) }), onSuccess: () => assigned.refetch() });
   const createProject = useMutation({ mutationFn: async () => (await api.post(`/srm/engagements/${engagementId}/create-pms-project`)).data, onSuccess: () => related.refetch() });
   return <Card><CardHeader><CardTitle>Shared team and projects</CardTitle></CardHeader><CardContent className="space-y-4">
-    {orderId > 0 && <div className="flex flex-wrap gap-2"><NativeSelect loading={directory.isFetching} error={directory.isError} aria-label="Shared sales team" className="h-10 rounded-md border bg-background px-3" value={team || String(assigned.data?.team_id || "")} onChange={e => setTeam(e.target.value)}><option value="">Choose company team</option>{(directory.data || []).map((t: any) => <option key={t.id} value={t.id}>{t.name} ({t.status})</option>)}</NativeSelect><Button disabled={!team || save.isPending} onClick={() => save.mutate()}>Assign team</Button>{save.isError && <p role="alert">{(save.error as any)?.response?.data?.detail || "Unable to assign team"}</p>}{save.isSuccess && <p role="status">Shared team assigned.</p>}</div>}
+    {orderId > 0 && <div className="flex flex-wrap gap-2"><NativeSelect loading={directory.isFetching} error={directory.isError} aria-label="Shared sales team" className="h-10 rounded-md border bg-background px-3" value={team || String(assigned.data?.team_id || "")} onChange={e => setTeam(e.target.value)}><option value="">Choose company team</option>{(directory.data || []).map((t: any) => <option key={t.id} value={t.id}>{t.name} ({t.status})</option>)}</NativeSelect><ActionButton action="assign" loading={save.isPending} disabled={!team} disabledReason={!team ? "Choose a shared sales team first" : undefined} onClick={() => save.mutate()}>Assign team</ActionButton>{save.isError && <p role="alert">{(save.error as any)?.response?.data?.detail || "Unable to assign team"}</p>}{save.isSuccess && <p role="status">Shared team assigned.</p>}</div>}
     {related.isError ? <p>Related projects are outside your permitted scope or unavailable.</p> : (related.data || []).map((p: any) => <p key={p.id}><Link className="text-primary underline" to={`/pms/projects/${p.id}`}>{p.name} ↗</Link></p>)}
-    {engagementId && <><Button disabled={createProject.isPending} onClick={() => createProject.mutate()}>Create / open linked project</Button>{createProject.isError && <p role="alert">{(createProject.error as any)?.response?.data?.detail || "Project handoff failed"}</p>}{createProject.data?.project && <p><Link className="text-primary underline" to={`/pms/projects/${createProject.data.project.id}`}>{createProject.data.project.name} ↗</Link></p>}</>}
+    {engagementId && <><ActionButton action="task" loading={createProject.isPending} tooltip="Create or open the delivery project linked to this engagement" onClick={() => createProject.mutate()}>Create / open linked project</ActionButton>{createProject.isError && <p role="alert">{(createProject.error as any)?.response?.data?.detail || "Project handoff failed"}</p>}{createProject.data?.project && <p><Link className="text-primary underline" to={`/pms/projects/${createProject.data.project.id}`}>{createProject.data.project.name} ↗</Link></p>}</>}
   </CardContent></Card>;
 }

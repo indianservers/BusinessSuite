@@ -1,0 +1,78 @@
+{
+  "results": [
+    {
+      "width": 320,
+      "passed": true
+    },
+    {
+      "width": 360,
+      "passed": true
+    },
+    {
+      "width": 375,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "passed": true
+    },
+    {
+      "width": 430,
+      "passed": true
+    },
+    {
+      "width": 768,
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "mutations": [
+    {
+      "method": "PATCH",
+      "path": "/crm/lead-management/leads/1",
+      "body": "{\"values\":{\"owner_user_id\":2}}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/crm/lead-management/leads/1",
+      "body": "{\"values\":{\"owner_user_id\":2}}"
+    },
+    {
+      "method": "POST",
+      "path": "/crm/leads/1/convert",
+      "body": "{\"createContact\":true,\"createCompany\":true,\"createDeal\":true}"
+    }
+  ],
+  "checks": [
+    "Four tabs and collapsible fields",
+    "No page overflow at seven widths",
+    "Desktop layout retained",
+    "Pin toggle",
+    "Discussion, search, quick add and notifications open and close",
+    "AI unconfigured feedback",
+    "WhatsApp, email, call, edit, task, note, follow-up and activity forms open and close",
+    "Assignment PATCH uses existing API",
+    "Conversion POST once, then disabled converted state",
+    "Delete confirmation cancellation",
+    "Single bottom navigation",
+    "Save and Cancel reachable at 320px"
+  ],
+  "modifiedFiles": [
+    "frontend/src/apps/crm/leads/MobileLeadDetails.tsx",
+    "frontend/src/apps/crm/leads/mobile-lead-details.css",
+    "frontend/src/apps/crm/leads/LeadEmployeeAssignment.tsx",
+    "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/components/actions/index.tsx",
+    "qa/mobile_lead_browser.cjs"
+  ],
+  "limitations": [
+    "Browser emulation, not a physical phone",
+    "Live message delivery, configured AI responses and database conversion not exercised"
+  ],
+  "mode": "Mock API fixtures, no real messages or writes"
+}

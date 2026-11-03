@@ -23,6 +23,13 @@ def test_application_requires_approval_before_login(client, db, superuser_header
     notification = Mock()
     monkeypatch.setattr("app.apps.interns_hub.approval_email.notify_approval", notification)
     from app.models.company import Company, Branch, Department, Designation
+    company=db.get(Company,1) or Company(id=1,name="Application Company");db.add(company);db.flush()
+    branch=Branch(name="HQ",company_id=company.id);db.add(branch);db.flush()
+    department=Department(name="Engineering",branch_id=branch.id);db.add(department);db.flush()
+    designation=Designation(name="Development Intern",department_id=department.id);db.add(designation)
+    manager=Employee(user_id=db.query(User).filter_by(email="testadmin@test.com").one().id,employee_id="APP-MANAGER",first_name="Team",last_name="Manager",branch_id=branch.id,date_of_joining=today());db.add(manager);db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), company.id); db.commit()
     base="/api/v1/interns-hub"
     result=client.post(f"{base}/applications",json=application_payload)
     assert result.status_code==201, result.text
@@ -35,13 +42,9 @@ def test_application_requires_approval_before_login(client, db, superuser_header
     assert "password" not in application.details and "identity_number" not in application.details
     assert client.get(f"{base}/admin/applications").status_code==403
     admin_list=client.get(f"{base}/admin/applications",headers=superuser_headers)
-    assert admin_list.status_code==200 and admin_list.json()[0]["identity_last4"]=="1234"
+    assert admin_list.status_code==200, admin_list.text
+    assert admin_list.json()[0]["identity_last4"]=="1234"
     assert "password_hash" not in admin_list.text and "TEST-ID-1234" not in admin_list.text
-    company=db.get(Company,1) or Company(id=1,name="Application Company");db.add(company);db.flush()
-    branch=Branch(name="HQ",company_id=company.id);db.add(branch);db.flush()
-    department=Department(name="Engineering",branch_id=branch.id);db.add(department);db.flush()
-    designation=Designation(name="Development Intern",department_id=department.id);db.add(designation)
-    manager=Employee(user_id=db.query(User).filter_by(email="testadmin@test.com").one().id,employee_id="APP-MANAGER",first_name="Team",last_name="Manager",date_of_joining=today());db.add(manager);db.commit()
     decision=dict(status="Approved",branch_id=branch.id,department_id=department.id,designation_id=designation.id,reporting_manager_id=manager.id,date_of_joining=str(today()))
     if bulk:
         job = client.post(f"{base}/admin/application-jobs", headers=superuser_headers,

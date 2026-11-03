@@ -484,7 +484,7 @@ export function FollowUpDialog({
             </div>
           )}
           {!!activityId&&<label className="lm-work-field">Reason for rescheduling<input required minLength={3} value={rescheduleReason} onChange={e=>setRescheduleReason(e.target.value)}/></label>}
-          <label className="lm-work-field">
+          {!!detail?.activities?.some(a => a.status === "Pending") && <label className="lm-work-field">
             Follow-up action
             <NativeSelect
               aria-label="Follow-up action"
@@ -524,7 +524,7 @@ export function FollowUpDialog({
                   </option>
                 ))}
             </NativeSelect>
-          </label>
+          </label>}
           <label className="lm-work-field">
             Next step
             <input
@@ -563,6 +563,8 @@ export function FollowUpDialog({
               onChange={(e) => setDue(e.target.value)}
             />
           </label>
+          <details>
+          <summary className="cursor-pointer text-sm">More options · {type} · {bootstrap.owners.find(o => String(o.id) === owner)?.name || "Assigned teammate"}</summary>
           <label className="lm-work-field">
             Type
             <NativeSelect
@@ -590,6 +592,7 @@ export function FollowUpDialog({
               ))}
             </NativeSelect>
           </label>
+          </details>
           <p className="lm-help">
             Times use your device timezone. Scheduling creates a CRM task;
             meetings are booked in Activities.

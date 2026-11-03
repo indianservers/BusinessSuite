@@ -695,6 +695,8 @@ class DetailsPatch(Strict):
 
 
 class LeadPayload(Strict):
+    confirmShared: bool = False
+    sharedReason: str | None = Field(None, max_length=250)
     catalog_lines: list[dict[str, Any]] | None = Field(default=None, max_length=100)
     values: dict[str, Any] = Field(default_factory=dict)
     details: DetailsPatch = Field(default_factory=DetailsPatch)
@@ -788,11 +790,16 @@ def create_lead(db, user, payload, settings):
     if details.get("archived") and not details.get("archiveReason"):
         raise HTTPException(422, "Enter an archive reason")
     validate_transition(settings, None, data, details)
-    if settings["preventDuplicates"] and duplicates(db, org, data):
+    from app.shared.master_data import duplicate_guard, audit as master_audit
+    duplicate_guard(db, user, "crm", data.get("phone"), data.get("phone_country_code"), data.get("email"), payload.confirmShared, payload.sharedReason)
+    matched_leads = duplicates(db, org, data)
+    if settings["preventDuplicates"] and matched_leads and not payload.confirmShared:
         raise HTTPException(
             409,
             "A lead with this email or phone already exists; review duplicates before creating",
         )
+    if matched_leads and payload.confirmShared:
+        master_audit(db, user, "SHARED_CONTACT_CONFIRMED", "lead", None, {"reason": payload.sharedReason or "Explicit shared-contact confirmation", "matchedLeadIds": matched_leads})
     crm._validate_related_records(db, data, org)
     data.update(
         organization_id=org, created_by_user_id=user.id, updated_by_user_id=user.id
@@ -2045,6 +2052,7 @@ def conversion_preview(
 
 
 class ConversionPayload(Strict):
+    customerType: Literal["Individual", "Business"] | None = None
     existingContactId: int | None = None
     existingCompanyId: int | None = None
     dealName: str | None = Field(default=None, max_length=180)
@@ -2067,6 +2075,13 @@ def convert(
     validate_transition(
         settings, lead, {"status": "Converted"}, row.data_json, converting=True
     )
+    # A canonical identity link is verified reuse, not an attribute match.
+    from app.apps.crm.contact_identity import ContactIdentityLink
+    from sqlalchemy import inspect as inspect_connection
+    if not payload.existingContactId and inspect_connection(db.connection()).has_table(ContactIdentityLink.__tablename__):
+        identity = db.query(ContactIdentityLink).filter(ContactIdentityLink.lead_id == ident).first()
+        if identity:
+            payload.existingContactId = identity.contact_id
     # Require explicit duplicate reuse instead of silently creating another contact.
     if lead.email and not payload.existingContactId:
         match = (
@@ -2233,11 +2248,14 @@ def scheduled_lead_alerts(db, per_tenant=200):
         .distinct()
         .all()
     ]
+    organizations = sorted(set(organizations) | {org for (org,) in db.query(CRMActivity.organization_id).filter(CRMActivity.organization_id.is_not(None), CRMActivity.metadata_json['reminder_at'].as_string().isnot(None)).distinct()})
     notifications = 0
     leads_escalated = 0
     follow_up_reminders = 0
     for org in organizations:
         follow_up_reminders += due_follow_up_reminders(db, org, per_tenant)
+        from app.apps.crm.growth import scheduled_relationship_reminders
+        follow_up_reminders += scheduled_relationship_reminders(db, org, per_tenant)
         settings = config(db, org)
         due = now() - timedelta(hours=settings["slaHours"])
         rows = (

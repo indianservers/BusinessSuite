@@ -14,6 +14,7 @@ router = APIRouter(prefix="/settings", tags=["Shared Settings"])
 
 # id, label, group, description, destination, module, any required permission, org scope
 OPTIONS = [
+    ("shared-companies", "Shared companies", "Company", "Business company records shared across Business Suite.", None, "crm", ("crm_view", "crm_manage", "crm_admin", "crm_companies_view", "crm_companies_manage"), False),
     ("appearance", "Homepage Banner", "Appearance", "Banner image, crop, positioning and overlay for your company homepage.", None, None, (), True),
     ("account", "My account & security", "Personal", "Your account details and password.", None, None, (), False),
     ("preferences", "Display preferences", "Personal", "Your theme and display density on this browser.", None, None, (), False),
@@ -168,6 +169,11 @@ def update_company_profile(data: ProfileUpdate, request: Request, db: Session = 
     from app.api.v1.company import _ensure_company_unique
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     changes = data.model_dump(exclude_unset=True)
+    import re
+    if "email" in changes and changes["email"] and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", changes["email"].strip()):
+        raise HTTPException(422, "Enter a valid company email")
+    if "default_currency" in changes and not re.fullmatch(r"[A-Z]{3}", changes["default_currency"] or ""):
+        raise HTTPException(422, "Use a three-letter uppercase currency code")
     if "name" in changes and (not changes["name"] or not changes["name"].strip() or len(changes["name"]) > 150):
         raise HTTPException(422, "Company name must contain 1–150 characters")
     for key, value in changes.items():

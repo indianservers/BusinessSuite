@@ -700,6 +700,11 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
                   Searching records…
                 </p>
               )}
+              {!recordSearch.isFetching && recordSearch.isError && (
+                <p role="alert" className="px-4 py-2 text-xs text-destructive">
+                  Could not load record search. <button type="button" className="underline" onClick={() => void recordSearch.refetch()}>Retry</button>
+                </p>
+              )}
 
               <div
                 id="suite-command-results"
@@ -734,7 +739,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
                       </span>
                     </button>
                   ))
-                ) : !recordSearch.isFetching ? (
+                ) : !recordSearch.isFetching && !recordSearch.isError ? (
                   <div className="p-8 text-center text-sm text-muted-foreground">
                     No results found
                   </div>

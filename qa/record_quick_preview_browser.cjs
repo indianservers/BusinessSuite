@@ -26,6 +26,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(
     await expect(page.getByRole('dialog')).toContainText('Beyond visible columns');
     await expect(page.getByRole('dialog')).toContainText('Hyderabad');
     await expect(page.getByRole('dialog')).not.toContainText('DO NOT DISPLAY');
+    const personPreview = await page.getByRole('tab', {name:/Work & Relationships/}).count() > 0;
+    await expect(page.getByRole('tablist').getByRole('tab')).toHaveCount(4);
+    await page.getByRole('tab', {name:personPreview ? /^Overview/ : /Contact/}).click();
+    await expect(page.getByRole('dialog')).toContainText('contact@example.com');
+    await page.getByLabel(personPreview ? 'Search profile fields' : 'Search record fields').fill('Hyderabad');
+    await expect(page.getByRole('dialog')).toContainText('Hyderabad');
+    await page.getByLabel(personPreview ? 'Search profile fields' : 'Search record fields').fill('');
+    if(await page.getByRole('button',{name:'Expand preview',exact:true}).count()){await page.getByRole('button', {name:'Expand preview',exact:true}).click();await expect(page.getByRole('button', {name:'Restore preview size'})).toBeVisible();}
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.getByLabel('Editable value').dblclick();
@@ -39,6 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(
     await page.evaluate(() => history.replaceState({}, '', '/crm/contacts'));
     await page.getByTestId('native-row').getByText('Contact row').dblclick();
     await expect(page.getByRole('dialog')).toContainText('Loaded from detail endpoint');
+    await page.getByRole('tab', {name:/Related|Work & Relationships/}).click();
     await expect(page.getByRole('dialog')).toContainText('Related opportunity');
     await page.getByRole('button',{name:'Close dialog',exact:true}).click();
     await page.route('**/crm/contacts/7', route => route.fulfill({status:403,json:{detail:'Forbidden'}}));

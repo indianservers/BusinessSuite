@@ -33,7 +33,7 @@ export default function HomepageBanner({ appearance, company, preview = false, o
   } as CSSProperties}>
     {image && <picture className="launcher-hero-image">
       {value.mobile_image && <source media="(max-width: 767px)" srcSet={bannerImageUrl(value.mobile_image)} />}
-      <img src={image} alt="" fetchPriority="high" referrerPolicy="no-referrer" onLoad={e => { e.currentTarget.style.visibility = "visible"; }} onError={e => { e.currentTarget.style.visibility = "hidden"; onImageError?.(); }} />
+      <img src={image} alt="" loading="eager" referrerPolicy="no-referrer" onLoad={e => { e.currentTarget.style.visibility = "visible"; }} onError={e => { e.currentTarget.style.visibility = "hidden"; onImageError?.(); }} />
     </picture>}
     <div className="launcher-hero-tint" style={{ background: value.overlay, opacity: value.opacity }} />
     <div className="launcher-hero-wash" />

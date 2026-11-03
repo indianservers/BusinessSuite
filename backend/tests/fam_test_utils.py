@@ -21,13 +21,21 @@ def auth_headers_for(client, db, email: str, role_name: str, password: str = "Pa
     user = User(email=email, hashed_password=get_password_hash(password), is_active=True, is_superuser=False, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user)
+    from app.models.company import Branch
+    from app.branches.models import BranchGrant
+    branch = db.query(Branch).filter_by(company_id=1).first()
+    if branch is None:
+        branch = Branch(company_id=1, name="Accounting workflow test", code="FAM-QA")
+        db.add(branch)
+        db.flush()
+    db.add(BranchGrant(user_id=user.id,company_id=1,branch_id=branch.id,can_write=True))
     db.commit()
     payload = {"email": email, "password": password}
     if role_name in {"fam_admin", "fam_accountant", "fam_finance_manager", "fam_auditor", "fam_viewer", "fam_business_owner"}:
         payload["module"] = "fam"
     response = client.post("/api/v1/auth/login", json=payload)
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Organization":"1", "X-Suite-Branch":str(branch.id)}
 
 
 FAM_ADMIN_PERMISSIONS = [

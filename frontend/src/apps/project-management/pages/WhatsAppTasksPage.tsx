@@ -1066,7 +1066,7 @@ function Conversation({
                 <div className="wa-detail-grid">
                   <label>
                     Status
-                    <NativeSelect
+                    <NativeSelect loading={detail.isFetching} error={detail.isError}
                       aria-label="Task status"
                       disabled={busy || !canPost || data.source_managed}
                       value={task.status}

@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -244,12 +245,12 @@ export default function ProbationPage() {
                     <div className="space-y-2"><Label>Extended until</Label><Input type="date" value={action.extendedUntil} onChange={(event) => setAction({ ...action, extendedUntil: event.target.value })} /></div>
                     <div className="space-y-2"><Label>Remarks</Label><Input value={action.remarks} onChange={(event) => setAction({ ...action, remarks: event.target.value })} /></div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <CompactActions className="flex flex-wrap gap-2">
                     <Button onClick={() => processAction.mutate("confirm")} disabled={processAction.isPending}><CheckCircle2 className="h-4 w-4" /> Confirm</Button>
                     <Button variant="outline" onClick={() => processAction.mutate("extend")} disabled={processAction.isPending}><TimerReset className="h-4 w-4" /> Extend</Button>
                     <Button variant="destructive" onClick={() => processAction.mutate("terminate")} disabled={processAction.isPending}><UserX className="h-4 w-4" /> Terminate</Button>
                     <Button variant="outline" onClick={downloadLetter}><Download className="h-4 w-4" /> Download letter</Button>
-                  </div>
+                  </CompactActions>
                 </CardContent>
               </Card>
 

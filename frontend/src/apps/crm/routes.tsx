@@ -16,15 +16,21 @@ const LeadManagementPage = React.lazy(() => import("./leads/LeadManagementPage")
 const CommunicationHubPage = React.lazy(() => import("@/apps/communication/CommunicationHubPage"));
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
+const ProductCustomersPage = React.lazy(() => import("./product-customers/ProductCustomersPage"));
 const GrowthWorkspace = React.lazy(() => import("./GrowthWorkspace"));
+const FollowUpWorkspace = React.lazy(() => import("./FollowUpWorkspace"));
 const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
 const CRMRecordsPage = React.lazy(() => import("./CRMRecordsPage"));
 const CRMMetadataPage = React.lazy(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
+const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
+const BirthdaysPage = React.lazy(()=>import("@/shared/master-data/BirthdaysPage"));
 export const crmRoutes: FrontendRoute[] = [
+ {path:"crm/birthdays",element:<BirthdaysPage source="crm"/>},
+ {path:"crm/company-directory",element:<CentralSettingsRedirect section="shared-companies"/>},
   { path: "crm/records", element: <CRMRecordsPage /> },
   { path: "crm/record-metadata", element: <CRMMetadataPage /> },
-  {path:"crm/product-customers",element:<GrowthWorkspace key="audience" mode="audience"/>},
-  {path:"crm/customer-follow-ups",element:<GrowthWorkspace key="followups" mode="followups"/>},
+  {path:"crm/product-customers",element:<ProductCustomersPage/>},
+  {path:"crm/customer-follow-ups",element:<FollowUpWorkspace/>},
   {path:"crm/greetings",element:<GrowthWorkspace key="greetings" mode="greetings"/>},
  {path:"crm/follow-ups/directory",element:<FollowUpsPage/>},
  {path:"crm/follow-ups/calendar",element:<FollowUpsPage/>},
@@ -33,7 +39,7 @@ export const crmRoutes: FrontendRoute[] = [
   {path:"crm/statistics/:kind",element:<CRMStatisticsWorklist/>},
  { path: "crm/messages", element: <CommunicationWorkspace module="CRM" /> },
   { path: "crm/gantt", element: <ModuleGanttPage key="crm" module="crm" /> },
-  { path: "crm", element: <CRMSalesHome /> },
+  { path: "crm", element: <><FollowUpSummary base="/crm/follow-ups"/><CRMWorkspacePage kind="dashboard" /></> },
   { path: "crm/sales-home", element: <CRMSalesHome /> },
   { path: "crm/follow-ups", element: <FollowUpsPage /> },
   { path: "crm/dashboard", element: <><FollowUpSummary base="/crm/follow-ups"/><CRMWorkspacePage kind="dashboard" /></> },
@@ -44,9 +50,11 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/leads/:id", element: <CRMRecordDetailPage kind="leads" /> },
   { path: "crm/contacts", element: <CRMWorkspacePage kind="contacts" /> },
   { path: "crm/contacts/:id", element: <CRMRecordDetailPage kind="contacts" /> },
-  { path: "crm/accounts", element: <CRMWorkspacePage kind="companies" /> },
+  { path: "crm/accounts", element: <CompaniesPage role="Customer" /> },
   { path: "crm/accounts/:id", element: <CRMRecordDetailPage kind="accounts" /> },
-  { path: "crm/companies", element: <CRMWorkspacePage kind="companies" /> },
+  { path: "crm/companies", element: <CompaniesPage /> },
+  { path: "crm/customers", element: <CompaniesPage role="Customer" /> },
+  { path: "crm/vendors", element: <CompaniesPage role="Vendor" /> },
   { path: "crm/companies/:id", element: <CRMRecordDetailPage kind="accounts" /> },
   { path: "crm/deals", element: <CRMWorkspacePage kind="deals" /> },
   { path: "crm/deals/:id", element: <Deal360Page /> },

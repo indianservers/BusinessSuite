@@ -567,7 +567,7 @@ export function ApplicationPage({applicant}:{applicant:{email:string;full_name:s
         setForm({ ...defaults, ...restored });
         setNotice("Your saved draft has been restored.");
       }
-    } catch {}
+    } catch { /* Retain the draft while JSON input is incomplete or stored state is unavailable. */ }
     if (applicant.email) {
       const saved = Object.fromEntries(Object.entries(applicant.details || {}).filter(([key])=>key in defaults && key !== 'identity_number').map(([key,value])=>[key,value == null ? '' : String(value)]));
       setForm(current=>({...current,...saved,email:applicant.email,full_name:applicant.full_name || current.full_name}));

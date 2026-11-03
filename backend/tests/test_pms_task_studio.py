@@ -13,19 +13,28 @@ def studio(client, db, middleware_database, organization_context):
     owner, headers = account(db, "studio-owner@test.com", True)
     member, member_headers = account(db, "studio-member@test.com")
     other, other_headers = account(db, "studio-outsider@test.com")
+    # Production writes require a concrete branch destination.
+    from app.branches.models import BranchGrant
+    branch=Branch(name="Studio HQ",company_id=1);db.add(branch);db.flush()
+    for user, request_headers in [(owner, headers), (member, member_headers), (other, other_headers)]:
+        db.add(BranchGrant(user_id=user.id,company_id=1,branch_id=branch.id,can_write=True))
+        request_headers.update({"X-Suite-Organization":"1","X-Suite-Branch":str(branch.id)})
+    db.commit()
     wid = client.post(BASE + "/workspaces", json={"name":"Task Studio"}, headers=headers).json()["id"]
     project = client.post(BASE + "/projects", json={"name":"Studio Project","project_key":"STU","workspace_id":wid}, headers=headers).json()
     db.add(PMSWorkspaceMember(workspace_id=wid, user_id=member.id, role="Member"))
     team=PMSWorkspaceTeam(workspace_id=wid, name="Delivery Team", alias="delivery", member_ids_json=json.dumps([owner.id, member.id]))
     db.add(team)
     if not db.get(Company,1): db.add(Company(id=1,name="Studio Company")); db.flush()
-    branch=Branch(name="Studio HQ",company_id=1);db.add(branch);db.flush()
     department=Department(name="Studio Department",branch_id=branch.id)
     db.add(department); db.flush()
-    employee=Employee(employee_id="STU-INT",first_name="Studio",last_name="Intern",user_id=member.id,employment_type="Intern",department_id=department.id,date_of_joining=date(2026,1,1),status="Active")
+    employee=Employee(employee_id="STU-INT",first_name="Studio",last_name="Intern",user_id=member.id,employment_type="Intern",department_id=department.id,branch_id=branch.id,date_of_joining=date(2026,1,1),status="Active")
     db.add(employee); db.flush()
     batch=InternBatch(organization_id=1,name="Studio Batch",code="STU",department_id=department.id,manager_user_id=owner.id,mentor_user_id=owner.id,project_id=project["id"],start_date=date(2026,1,1),end_date=date(2026,12,31),capacity=10,status="Active")
     db.add(batch); db.flush();db.add(InternBatchMembership(batch_id=batch.id,employee_id=employee.id,assigned_by=owner.id,status="Active"));db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1)
+    db.commit()
     return owner, member, other, headers, member_headers, other_headers, project, team, batch
 
 

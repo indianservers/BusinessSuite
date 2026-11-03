@@ -422,6 +422,9 @@ def person_action(ident:int,data:PersonAction,db:Session=Depends(get_db),user:Us
         from app.api.v1.employee_accounts import revoke
         from app.apps.srm.services.commercial import tenant
         db.info["hr_employee_access_target"]=row.user_id
+        if data.action != "reactivate_access":
+            from app.access.setup import protect_administrator_account
+            protect_administrator_account(db, row.user)
         row.user.is_active=data.action=="reactivate_access"
         if not row.user.is_active:revoke(db,row.user)
         db.add(AuditLog(user_id=user.id,actor_email=user.email,actor_authenticated=True,method="POST",organization_id=tenant(user),

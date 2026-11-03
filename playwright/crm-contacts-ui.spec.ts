@@ -8,7 +8,8 @@ test.describe("CRM contacts UI", () => {
 
     await page.goto("/crm/contacts/1", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Nisha Rao" })).toBeVisible();
-    await expect(page.getByText("Founder").first()).toBeVisible();
-    await expect(page.getByText("Customer").first()).toBeVisible();
+    await page.getByRole("tab", {name:"Details",exact:true}).click();
+    await expect(page.getByRole("tabpanel",{name:"Details",exact:true}).getByText("Founder").first()).toBeVisible();
+    await expect(page.getByRole("tabpanel",{name:"Details",exact:true}).getByText("Customer").first()).toBeVisible();
   });
 });

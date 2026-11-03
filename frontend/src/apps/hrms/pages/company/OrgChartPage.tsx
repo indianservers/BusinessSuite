@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { api } from "@/services/api";
@@ -72,7 +73,6 @@ export default function OrgChartPage() {
   const [locationId, setLocationId] = useState("");
   const [gradeBandId, setGradeBandId] = useState("");
   const [zoom, setZoom] = useState(0.9);
-  const [loadRequested, setLoadRequested] = useState(false);
 
   const departments = useQuery({ queryKey: ["org-departments"], queryFn: () => companyApi.listDepartments().then((r) => r.data) });
   const locations = useQuery({ queryKey: ["org-locations"], queryFn: () => companyApi.workLocations().then((r) => r.data) });
@@ -85,11 +85,10 @@ export default function OrgChartPage() {
         location_id: locationId || undefined,
         grade_band_id: gradeBandId || undefined,
       }).then((r) => r.data as OrgNode[]),
-    enabled: loadRequested,
     retry: false,
   });
 
-  const nodes = useMemo(() => layout([...(org.data || [])]), [org.data]);
+  const nodes = useMemo(() => layout((org.data || []).map((node) => ({ ...node }))), [org.data]);
   const width = Math.max(960, ...nodes.map((node) => (node.x || 0) + NODE_W + 80));
   const height = Math.max(520, ...nodes.map((node) => (node.y || 0) + NODE_H + 80));
   const byId = new Map(nodes.map((node) => [node.position_id, node]));
@@ -158,40 +157,45 @@ export default function OrgChartPage() {
             <Button variant="outline" size="sm" onClick={() => setZoom((v) => Math.max(0.45, v - 0.1))} title="Zoom out"><Minus className="h-4 w-4" /></Button>
             <Button variant="outline" size="sm" onClick={() => setZoom((v) => Math.min(1.5, v + 0.1))} title="Zoom in"><Plus className="h-4 w-4" /></Button>
             <Button variant="outline" size="sm" onClick={() => setZoom(0.9)} title="Reset zoom"><RotateCcw className="h-4 w-4" /></Button>
-            <Button variant="outline" size="sm" onClick={() => setLoadRequested(true)}><RotateCcw className="h-4 w-4" />Load chart</Button>
-            <Button variant="outline" size="sm" onClick={() => window.print()}><FileText className="h-4 w-4" />PDF</Button>
-            <Button variant="outline" size="sm" onClick={exportPng}><FileImage className="h-4 w-4" />PNG</Button>
-            <Button variant="outline" size="sm" onClick={exportSvg}><Download className="h-4 w-4" />SVG</Button>
+            <CompactActions><Button variant="outline" size="sm" disabled={org.isFetching} onClick={() => void org.refetch()}><RotateCcw className={`h-4 w-4 ${org.isFetching ? "animate-spin" : ""}`} />Refresh chart</Button>
+<Button variant="outline" size="sm" disabled={org.isFetching || org.isError || !nodes.length} onClick={() => window.print()}><FileText className="h-4 w-4" />PDF</Button>
+<Button variant="outline" size="sm" disabled={org.isFetching || org.isError || !nodes.length} onClick={exportPng}><FileImage className="h-4 w-4" />PNG</Button>
+<Button variant="outline" size="sm" disabled={org.isFetching || org.isError || !nodes.length} onClick={exportSvg}><Download className="h-4 w-4" />SVG</Button></CompactActions>
+
+
+
           </div>
         </div>
       </div>
 
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-3">
-          <NativeSelect loading={departments.isFetching} error={departments.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+          <NativeSelect aria-label="Filter by department" loading={departments.isFetching} error={departments.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
             <option value="">All departments</option>
             {departments.data?.map((item: { id: number; name: string }) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </NativeSelect>
-          <NativeSelect loading={locations.isFetching} error={locations.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+          <NativeSelect aria-label="Filter by location" loading={locations.isFetching} error={locations.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
             <option value="">All locations</option>
             {locations.data?.map((item: { id: number; name: string }) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </NativeSelect>
-          <NativeSelect loading={gradeBands.isFetching} error={gradeBands.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={gradeBandId} onChange={(e) => setGradeBandId(e.target.value)}>
+          <NativeSelect aria-label="Filter by grade band" loading={gradeBands.isFetching} error={gradeBands.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={gradeBandId} onChange={(e) => setGradeBandId(e.target.value)}>
             <option value="">All grade bands</option>
             {gradeBands.data?.map((item: { id: number; name: string }) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </NativeSelect>
         </CardContent>
       </Card>
 
-      <div className="overflow-auto rounded-lg border bg-white p-4 org-chart-export">
+      <div aria-busy={org.isFetching} className="overflow-auto rounded-lg border bg-white p-4 org-chart-export">
+        {org.isFetching && <p role="status" className="mb-3 text-sm text-muted-foreground">{org.isPending ? "Loading organization chart…" : "Updating organization chart…"}</p>}
+        {org.isError && <div role="alert" className="mb-3 flex flex-wrap items-center gap-3 text-sm text-destructive"><p>The organization chart could not be loaded. Try again.</p><Button variant="outline" size="sm" onClick={() => void org.refetch()}>Retry chart</Button></div>}
         <svg ref={svgRef} width={width * zoom} height={height * zoom} viewBox={`-40 -30 ${width} ${height}`} role="img" aria-label="Organization chart">
           {nodes.map((node) => {
             const parent = node.manager_position_id ? byId.get(node.manager_position_id) : null;
             if (!parent) return null;
             return <path key={`l-${node.position_id}`} d={`M ${(parent.x || 0) + NODE_W / 2} ${(parent.y || 0) + NODE_H} V ${(parent.y || 0) + NODE_H + GAP_Y / 2} H ${(node.x || 0) + NODE_W / 2} V ${node.y || 0}`} fill="none" stroke="#94a3b8" strokeWidth="1.5" />;
           })}
-          {!loadRequested && (
-            <text x="20" y="40" fontSize="14" fill="#64748b">Use Load chart to fetch the live organization hierarchy.</text>
+          {org.isSuccess && !nodes.length && (
+            <text x="20" y="40" fontSize="14" fill="#64748b">No positions match the selected filters.</text>
           )}
           {nodes.map((node) => (
             <g key={node.position_id} transform={`translate(${node.x || 0},${node.y || 0})`} onClick={() => node.incumbent_employee_id && navigate(`/hrms/employees/${node.incumbent_employee_id}`)} className={node.incumbent_employee_id ? "cursor-pointer" : ""}>

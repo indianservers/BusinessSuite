@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { api } from "@/services/api";
 import { useMobile } from "@/components/mobile/useMobile";
 import { useQuery } from "@tanstack/react-query";
@@ -72,7 +73,7 @@ export default function ProjectDashboard() {
           </div>
           <div className="page-description"><RichTextContent value={project.description || "Project workspace overview"}/></div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <CompactActions primaryId="project-board" className="flex flex-wrap gap-2">
           <Button disabled={!project.can_manage_members && !project.can_edit_project} onClick={() => setAddingPeople(true)}>Add existing person</Button><Button asChild variant="outline"><Link to={`/pms/projects/${id}/members`}>Manage project members</Link></Button>
           {project.can_edit_project && <Button asChild variant="outline"><Link to={`/pms/projects/${id}/edit`}>Edit project</Link></Button>}
           <AskAiButton
@@ -86,8 +87,8 @@ export default function ProjectDashboard() {
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/milestones`}><Milestone className="h-4 w-4" />Milestones</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/risks`}><ShieldAlert className="h-4 w-4" />Risks</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/notes`}>My Notes</Link></Button>
-          <Button asChild><Link to={`/pms/projects/${id}/board`}><Kanban className="h-4 w-4" />Open board</Link></Button>
-        </div>
+          <Button id="project-board" asChild><Link to={`/pms/projects/${id}/board`}><Kanban className="h-4 w-4" />Open board</Link></Button>
+        </CompactActions>
       </div>
 
       <section className="mobile-only-panel rounded-2xl border bg-card p-4 space-y-3"><h2 className="font-semibold">Project at a glance</h2><div className="flex items-center justify-between"><strong>{project.progress_percent}% complete</strong><span className="text-sm">{project.health}</span></div><progress className="w-full" value={project.progress_percent} max={100}/><div className="flex justify-between text-sm"><span>Blockers: {dashboard?.status_counts?.Blocked ?? 0}</span><span>Overdue: {dashboard?.metrics.overdue_tasks ?? 0}</span></div><Link className="mobile-filter-trigger" to={`/pms/projects/${id}/milestones`}>{nextMilestone ? `${nextMilestone.name} · ${nextMilestone.due_date || "No due date"}` : "View milestones"}</Link><Link className="mobile-filter-trigger" to={`/pms/projects/${id}/members`}>Owner: {project.manager_user_id ? (mobileMembers.data?.find(member=>member.user_id===project.manager_user_id)?.name || "Assigned") : "Unassigned"} · View team</Link></section>

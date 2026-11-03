@@ -1113,7 +1113,7 @@ export default function PlannerPage() {
           <div className="planner-filters">
             <label>
               Project
-              <NativeSelect
+              <NativeSelect loading={result.isFetching} error={result.isError}
                 aria-label="Planner project"
                 value={project}
                 onChange={(e) => change("project", e.target.value)}
@@ -1128,7 +1128,7 @@ export default function PlannerPage() {
             </label>
             <label>
               Assignee
-              <NativeSelect
+              <NativeSelect loading={result.isFetching} error={result.isError}
                 aria-label="Planner assignee"
                 value={assignee}
                 onChange={(e) => change("person", e.target.value)}

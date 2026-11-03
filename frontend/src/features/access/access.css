@@ -501,3 +501,5 @@
     scroll-behavior: auto !important;
   }
 }
+
+.ua-drawer.wf-preview.ua-person-preview{left:50%!important;right:auto;transform:translate(-50%,-50%)!important;width:calc(100% - 2rem)!important;max-width:920px!important;max-height:calc(100dvh - 2rem);overflow:hidden;padding:0}.ua-person-preview .wfp-body{display:grid;gap:16px}.ua-person-preview .wfp-body>p{margin:0}.ua-person-preview .wfp-header{margin:0}

@@ -1,3 +1,5 @@
+import { BirthdayEditor } from "@/shared/master-data/CommunicationEditor";
+import RecordSections from "@/components/RecordSections";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +31,7 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
   const qc = useQueryClient();
   const userId = useAuthStore(s => s.user?.id);
   const key = ["employee-360", userId, employeeId];
+  const [sectionTab, setSectionTab] = useState("overview");
   const [expenseStatus, setExpenseStatus] = useState("all");
   const overview = useQuery({ queryKey: key, queryFn: () => api.get<Overview>(`/employees/${employeeId}/360`).then(r => r.data) });
   const acknowledge = useMutation({
@@ -38,8 +41,11 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
   });
   const jump = (section: string) => {
     if (section === "profile" || section === "bank") { onOpenTab(section === "bank" ? "bank" : "personal"); return; }
+    setSectionTab(section === "salary" || section === "increments" ? "pay" : section);
+    requestAnimationFrame(() => {
     document.getElementById(`employee-${employeeId}-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     document.getElementById(`employee-${employeeId}-${section}`)?.focus({ preventScroll: true });
+    });
   };
   if (overview.isPending) return <p role="status" className="p-6 text-muted-foreground">Loading salary, assets, expenses and pending actions…</p>;
   if (overview.isError) return <div role="alert" className="rounded-lg border p-6"><p>Employee 360 could not be loaded. Your access may have changed or the service may be unavailable.</p><Button variant="outline" onClick={() => overview.refetch()}>Try again</Button></div>;
@@ -71,12 +77,14 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
       <Button variant="outline" disabled={overview.isFetching} onClick={() => overview.refetch()}><RefreshCw className="mr-2 h-4 w-4" />{overview.isFetching ? "Refreshing…" : "Refresh overview"}</Button>
     </div>
     {overview.isRefetchError && <p role="alert" className="text-sm text-destructive">Refresh failed. Displayed information may be out of date.</p>}
-    <Card>
+    <RecordSections label="Employee overview sections" value={sectionTab} onValueChange={setSectionTab} sections={[
+      {id:"birthday",label:"Birthday",content:<BirthdayEditor id={employeeId} kind="employee" source="hrms"/>},
+      {id:"overview",label:"Overview",content:<>    <Card>
       <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ClipboardList className="h-5 w-5" />Pending actions <Badge variant="outline">{data.pending_actions.length}</Badge></CardTitle></CardHeader>
       <CardContent>{data.pending_actions.length ? <ul className="divide-y">{data.pending_actions.map(action => <li key={action.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="text-sm font-medium">{action.title}</p><p className="text-xs text-muted-foreground">Waiting on: {action.owner}</p></div><Button size="sm" variant="outline" onClick={() => jump(action.section)}>View details</Button></li>)}</ul> : <p className="text-sm text-muted-foreground">No pending actions in the sections you can access.</p>}</CardContent>
     </Card>
-    <div className="grid items-start gap-5 xl:grid-cols-2">
-      <section {...sectionProps("salary")}><Card>
+    {activity.length > 0 && <Card><CardHeader><CardTitle className="text-base">Recorded employee activity</CardTitle></CardHeader><CardContent><p className="mb-3 text-xs text-muted-foreground">Salary dates are effective dates; expense dates are the dates incurred. Statuses reflect the current record.</p><details><summary className="cursor-pointer text-sm">View {activity.length} dated records</summary><ol className="mt-3 divide-y">{activity.map(row => <li key={row.key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><div><p className="font-medium">{row.title}</p><p className="break-words text-muted-foreground">{row.detail}</p></div><time dateTime={row.date} className="text-xs text-muted-foreground">{formatDate(row.date)}</time></li>)}</ol></details></CardContent></Card>}</>},
+      {id:"pay",label:"Pay",content:<>      <section {...sectionProps("salary")}><Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Banknote className="h-5 w-5" />Salary</CardTitle></CardHeader>
         <CardContent className="space-y-4">{!data.access.payroll ? restricted : <>
           {data.salary ? <div><p className="text-sm text-muted-foreground">Current annual CTC · {data.currency}</p><p className="text-2xl font-semibold">{formatCurrency(Number(data.salary.ctc), data.currency)}</p><p className="text-xs text-muted-foreground">Effective {formatDate(data.salary.effective_from)} · {data.salary.payroll_type.replace(/_/g, " ")}</p><p className="mt-2 text-xs text-muted-foreground">CTC is employer cost, not take-home pay.</p></div> : <p className="text-sm">No salary is effective today.</p>}
@@ -88,20 +96,23 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-5 w-5" />Increments & revisions</CardTitle></CardHeader>
         <CardContent>{!data.access.payroll ? restricted : <EmployeeIncrements employeeId={employeeId} currentCtc={data.salary?.ctc || null} currency={data.currency} revisions={data.increments} actions={data.actions} />}</CardContent>
       </Card></section>
-      <section {...sectionProps("assets")}><Card>
+</>},
+      {id:"assets",label:"Assets",content:<>      <section {...sectionProps("assets")}><Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5" />Assigned assets</CardTitle></CardHeader>
         <CardContent>{!data.access.assets ? restricted : data.assets.length ? <ul className="divide-y">{data.assets.map(row => <li key={row.id} className="space-y-2 py-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><span className="font-medium">{row.name} · {row.asset_tag}</span><Badge variant="outline">{row.acknowledged ? "Acknowledged" : "Awaiting acknowledgement"}</Badge></div><p className="text-xs text-muted-foreground">Serial: {row.serial_number || "Not recorded"} · Assigned {formatDate(row.assigned_date)} · Condition: {row.condition || "Not recorded"}</p>{isOwnProfile && !row.acknowledged && <Button size="sm" variant="outline" disabled={acknowledge.isPending} onClick={() => acknowledge.mutate(row.id)}>Acknowledge receipt</Button>}</li>)}</ul> : <p className="text-sm text-muted-foreground">No assets currently assigned.</p>}</CardContent>
       </Card></section>
-      <section {...sectionProps("expenses")}><Card>
+</>},
+      {id:"expenses",label:"Expenses",content:<>      <section {...sectionProps("expenses")}><Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Receipt className="h-5 w-5" />Employee expenses</CardTitle></CardHeader>
         <CardContent className="space-y-4">{!data.access.expenses ? restricted : <>
           {[...expenseTotals].map(([currency, total]) => <dl key={currency} className="grid grid-cols-2 gap-3 rounded-lg border p-3 text-sm">{[["Claimed", total.claimed], ["Finance approved", total.approved], ["Paid", total.paid], ["Awaiting payment", total.awaitingPayment]].map(([label, amount]) => <div key={String(label)}><dt className="text-xs text-muted-foreground">{label} · {currency}</dt><dd className="font-medium">{formatCurrency(Number(amount), currency)}</dd></div>)}</dl>)}
-          {data.expenses.length > 0 && <label className="block text-sm">Claim status<NativeSelect className="ml-2 rounded-md border bg-background p-2" value={expenseStatus} onChange={e => setExpenseStatus(e.target.value)}><option value="all">All statuses</option>{[...new Set(data.expenses.map(c => c.status))].map(status => <option key={status} value={status}>{status.replace(/_/g, " ")}</option>)}</NativeSelect></label>}
+          {data.expenses.length > 0 && <label className="block text-sm">Claim status<NativeSelect loading={overview.isFetching} error={overview.isError} className="ml-2 rounded-md border bg-background p-2" value={expenseStatus} onChange={e => setExpenseStatus(e.target.value)}><option value="all">All statuses</option>{[...new Set(data.expenses.map(c => c.status))].map(status => <option key={status} value={status}>{status.replace(/_/g, " ")}</option>)}</NativeSelect></label>}
           <ul className="divide-y">{visibleClaims.map(row => <li key={row.id} className="space-y-1 py-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><span className="font-medium">{row.claim_number}</span><Badge variant="outline">{row.status.replace(/_/g, " ")}</Badge></div><p>{row.claim_type} · {formatDate(row.expense_date)}</p><p>Claimed {formatCurrency(Number(row.amount), row.currency || data.currency)} · Approved {formatCurrency(Number(row.approved_amount), row.currency || data.currency)}</p>{row.payroll_run_id && <p className="text-xs text-muted-foreground">Payroll run #{row.payroll_run_id}</p>}{row.payment_reference && <p className="break-all text-xs text-muted-foreground">Payment reference: {row.payment_reference}</p>}{row.reimbursed_at && <p className="text-xs text-muted-foreground">Reimbursed {formatDate(row.reimbursed_at)}</p>}</li>)}</ul>
           {!visibleClaims.length && <p className="text-sm text-muted-foreground">{data.expenses.length ? "No claims match this status." : "No expense claims recorded."}</p>}
         </>}</CardContent>
       </Card></section>
-    </div>
-    {activity.length > 0 && <Card><CardHeader><CardTitle className="text-base">Recorded employee activity</CardTitle></CardHeader><CardContent><p className="mb-3 text-xs text-muted-foreground">Salary dates are effective dates; expense dates are the dates incurred. Statuses reflect the current record.</p><details><summary className="cursor-pointer text-sm">View {activity.length} dated records</summary><ol className="mt-3 divide-y">{activity.map(row => <li key={row.key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><div><p className="font-medium">{row.title}</p><p className="break-words text-muted-foreground">{row.detail}</p></div><time dateTime={row.date} className="text-xs text-muted-foreground">{formatDate(row.date)}</time></li>)}</ol></details></CardContent></Card>}
+</>},
+    ]}/>
+
   </div>;
 }

@@ -6,6 +6,9 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
+import { api } from "./services/api";
+import { installRecordCache } from "./lib/smart-cache/integration";
+import CacheDiagnostics from "./lib/smart-cache/CacheDiagnostics";
 import {useAuthStore} from "./store/authStore";
 import AsyncProgress from "./components/app/AsyncProgress";
 import "./index.css";
@@ -38,6 +41,8 @@ const queryClient = new QueryClient({
   },
 });
 
+installRecordCache(api, queryClient);
+
 // Statistics caches must not survive an identity, tenant or permission-context switch.
 const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,u?.role,u?.is_superuser,u?.access?.grants])};
 let activeStatisticsContext=statisticsContext();
@@ -51,6 +56,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AsyncProgress />
+        {import.meta.env.DEV && <CacheDiagnostics />}
         <App />
         <RecordQuickPreview />
       </BrowserRouter>

@@ -141,7 +141,9 @@ function LegacyHrmsRedirect() {
   return <Navigate to={`/hrms${location.pathname}${location.search}${location.hash}`} replace />;
 }
 
+const BirthdaysPage = React.lazy(()=>import("@/shared/master-data/BirthdaysPage"));
 export const hrmsRoutes: FrontendRoute[] = [
+ {path:"hrms/birthdays",element:<BirthdaysPage source="hrms"/>},
  { path: "hrms/messages", element: <CommunicationWorkspace module="HRMS" /> },
   { path: "hrms/leave/gantt", element: <ModuleGanttPage key="hrms" module="hrms" /> },
   { path: "hrms", element: <HRDailyWork /> },

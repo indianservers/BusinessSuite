@@ -18,7 +18,7 @@ def deny(message="Record is outside the selected branch or writable scope"):
     raise HTTPException(403, message)
 
 
-def branch_for_row(connection, table, values, company, tables, target_branch=None, historical=False):
+def branch_for_row(connection, table, values, company, tables, target_branch=None, historical=False, owner_cache=None):
     """Trusted direct ownership and parent evidence; actors never decide it."""
     branches = set()
     if table.name == "branches":
@@ -51,7 +51,13 @@ def branch_for_row(connection, table, values, company, tables, target_branch=Non
             continue
         if parent.name == "fam_ledgers" and connection.execute(select(parent.c.id).where(key == value, parent.c.company_id == company, parent.c.system_ledger.is_(True))).first():
             continue
-        found = connection.execute(select(ownership.c.branch_id).select_from(parent.join(ownership, and_(ownership.c.resource_table == parent.name, ownership.c.resource_key == key_expression(parent), ownership.c.company_id == company))).where(key == value)).scalar()
+        cache_key = (parent.name, key.name, value, company)
+        if owner_cache is not None and cache_key in owner_cache:
+            found = owner_cache[cache_key]
+        else:
+            found = connection.execute(select(ownership.c.branch_id).select_from(parent.join(ownership, and_(ownership.c.resource_table == parent.name, ownership.c.resource_key == key_expression(parent), ownership.c.company_id == company))).where(key == value)).scalar()
+            if owner_cache is not None:
+                owner_cache[cache_key] = found
         if found is not None:
             if target_branch is not None and parent.name in {"crm_companies", "crm_contacts"}:
                 shares = BranchRecordShare.__table__
@@ -64,7 +70,13 @@ def branch_for_row(connection, table, values, company, tables, target_branch=Non
             # user's current branch. Its migration must resolve first.
             deny(f"Parent ownership is unresolved: {table.name}.{column.name}")
     for parent, key in polymorphic_parents(table, values, tables):
-        found = connection.execute(select(ownership.c.branch_id).where(ownership.c.resource_table == parent.name, ownership.c.resource_key == key, ownership.c.company_id == company)).scalar()
+        cache_key = (parent.name, "polymorphic", key, company)
+        if owner_cache is not None and cache_key in owner_cache:
+            found = owner_cache[cache_key]
+        else:
+            found = connection.execute(select(ownership.c.branch_id).where(ownership.c.resource_table == parent.name, ownership.c.resource_key == key, ownership.c.company_id == company)).scalar()
+            if owner_cache is not None:
+                owner_cache[cache_key] = found
         if found is None:
             deny("Linked record ownership is unresolved or outside this company")
         branches.add(found)

@@ -1,0 +1,15 @@
+const {chromium,expect}=require('playwright/test');
+(async()=>{const browser=await chromium.launch();try{const page=await browser.newPage();page.on('pageerror',e=>console.log('ERROR',e.message));await page.route('**/api/v1/**',r=>{const p=new URL(r.request().url()).pathname;return r.fulfill({json:p.endsWith('/contact-directory')?{items:[{id:1,name:'Test Contact',tags:[],status:'Active',version:'1'}],total:1,stats:{},canManage:true,classifications:[]}:p.endsWith('/contact-directory/1')?{id:1,name:'Test Contact',tags:[],status:'Active',version:'1',leads:[],related:{}}:p.endsWith('/channels')?{items:[],version:'1'}:{items:[]}})});await page.route('**/contact-editor-qa',r=>r.fulfill({contentType:'text/html',body:`<div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>t=>t;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/contact-editor-harness.tsx');</script>`}));await page.goto('http://localhost:5173/contact-editor-qa');await page.getByRole('button',{name:'More actions for Test Contact',exact:true}).last().click();await page.getByRole('menuitem',{name:'Edit',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByRole('textbox',{name:'Phone number 1',exact:true})).toBeVisible(); await page.getByRole('textbox',{name:'Phone number 1',exact:true}).fill('9876543210'); await page.getByRole('button',{name:'Add number',exact:true}).click(); await expect(page.getByRole('textbox',{name:'Phone number 3',exact:true})).toBeVisible(); await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0); console.log('Direct mobile field, additional number and Cancel passed');await page.getByRole('button',{name:'More actions for Test Contact',exact:true}).last().click();await page.getByRole('menuitem',{name:'Edit',exact:true}).click();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0); console.log('Escape passed');
+await page.getByRole('button',{name:'View Test Contact',exact:true}).click();
+await page.getByRole('button',{name:'Edit contact',exact:true}).click();
+await expect(page.getByRole('dialog')).toHaveCount(1);
+await expect(page.getByRole('heading',{name:'Edit contact',exact:true})).toBeVisible();
+await page.getByRole('button',{name:'Cancel',exact:true}).click();
+await expect(page.getByRole('heading',{name:'Test Contact',exact:true})).toBeVisible();
+await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+console.log('Edit from preview, Cancel and preview Escape passed');
+await page.getByRole('button',{name:'Add contact',exact:true}).click();
+await expect(page.getByRole('textbox',{name:'Phone number 1',exact:true})).toBeVisible();
+await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+await expect(page.getByRole('dialog')).toHaveCount(0);
+console.log('Create contact direct mobile field and close button passed');}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});

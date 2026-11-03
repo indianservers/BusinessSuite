@@ -21,6 +21,7 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.shared.master_data",
     "app.branches.api",
     "app.shared.data_transfer",
     "app.services.metrics.api",
@@ -57,6 +58,7 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.shared.master_data_models",
     "app.shared.whatsapp_models",
     "app.branches.models",
     "app.models.email_outbox",
@@ -171,7 +173,7 @@ APP_MODULES: dict[str, AppModule] = {
         key="crm",
         label="CRM",
         router_modules=("app.apps.crm.api.router",),
-        model_modules=("app.apps.crm.models",),
+        model_modules=("app.apps.crm.models", "app.apps.crm.contact_identity"),
     ),
     "project_management": AppModule(
         key="project_management",

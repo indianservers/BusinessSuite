@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import PeopleAction from "../components/people/PeopleAction";
 import AddPeopleMemberships from "../components/people/AddPeopleMemberships";
@@ -137,7 +138,7 @@ export default function PeopleDirectoryProfile() {
             </span>
           </header>
           <div className="pd-profile-actions">
-            {data.can_manage ? (
+            <CompactActions>{data.can_manage ? (
               <button
                 className="pd-button"
                 onClick={() => openPerson({ userId: person.id })}
@@ -150,20 +151,24 @@ export default function PeopleDirectoryProfile() {
                 Editing requires permission to manage this person.
               </span>
             )}
-            <PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding team memberships." : !reference.data?.can_manage_people ? "Adding team members requires workspace administration access." : undefined} onClick={() => setAdding(true)}>
+<PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding team memberships." : !reference.data?.can_manage_people ? "Adding team members requires workspace administration access." : undefined} onClick={() => setAdding(true)}>
               <Users size={16} />
               Add to team
             </PeopleAction>
-            <PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding memberships." : !destinations.data?.workspaces.length ? (destinations.isLoading ? "Loading workspaces…" : "No workspaces you can manage.") : undefined} onClick={()=>setMembershipMode("workspace")}>Add to workspace</PeopleAction>
-            <PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding memberships." : !destinations.data?.projects.length ? (destinations.isLoading ? "Loading projects…" : "No projects you can manage.") : undefined} onClick={()=>setMembershipMode("project")}>Add to project</PeopleAction>
-            <PeopleAction
+<PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding memberships." : !destinations.data?.workspaces.length ? (destinations.isLoading ? "Loading workspaces…" : "No workspaces you can manage.") : undefined} onClick={()=>setMembershipMode("workspace")}>Add to workspace</PeopleAction>
+<PeopleAction className="pd-button" reason={person.status !== "active" ? "Reactivate the account before adding memberships." : !destinations.data?.projects.length ? (destinations.isLoading ? "Loading projects…" : "No projects you can manage.") : undefined} onClick={()=>setMembershipMode("project")}>Add to project</PeopleAction>
+<PeopleAction
               className="pd-primary"
               reason={person.status !== "active" ? "Reactivate the account before assigning work." : undefined}
               onClick={() => navigate(directoryTaskHref("people", [person.id]))}
             >
               <Plus size={15} />
               Assign task
-            </PeopleAction>
+            </PeopleAction></CompactActions>
+
+
+
+
             <a
               className="pd-button"
               href={`mailto:${encodeURIComponent(person.email)}`}

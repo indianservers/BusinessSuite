@@ -244,7 +244,7 @@ function Field({
             setDraft(e.target.value);
             try {
               onChange(JSON.parse(e.target.value));
-            } catch {}
+            } catch { /* Retain the draft while JSON input is incomplete or stored state is unavailable. */ }
           }}
           onBlur={() => {
             try {
@@ -403,7 +403,7 @@ export default function EnterprisePage() {
     setReason("");
     let value = { ...defaults[kind] };
     let version = row?.version || 0;
-    let id = row?.id;
+    const id = row?.id;
     let policyKey =
       kind === "dashboard"
         ? `user:${actor?.id}`

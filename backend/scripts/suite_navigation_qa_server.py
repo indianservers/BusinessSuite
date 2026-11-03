@@ -38,7 +38,7 @@ from app.api.v1.auth import _hash_reset_token
 pwd_context.update(bcrypt__rounds=4)
 Base.metadata.create_all(engine)
 with SessionLocal() as db:
-    db.add_all([Company(id=1, name="Indian Servers", is_active=True), Company(id=2, name="Studio Operations", is_active=True)])
+    db.add_all([Company(id=1, name="Indian Servers", email="company1@suiteqa.example.com", is_active=True), Company(id=2, name="Studio Operations", email="company2@suiteqa.example.com", is_active=True)])
     admin_role, employee_role = Role(name="admin"), Role(name="employee")
     db.add_all([admin_role, employee_role]); db.flush()
     users = []
@@ -59,7 +59,18 @@ with SessionLocal() as db:
     for user in users[:2]:
         for module, url, title, company in [("hrms", "/hrms/profile", "Profile update available", 1), ("crm", "/crm/contacts", "Review your contacts", 1), ("fam", "/fam/ledgers", "Finance update", 1), ("hrms", "/hrms/profile", "Other company private update", 2)]:
             db.add(Notification(user_id=user.id, company_id=company, module=module, action_url=url, title=title, message="A QA notification for navigation verification.", priority="normal", channels=["in_app"], is_read=False))
-    for company in [1, 2]: ensure_business_os_seed(db, company)
+    from app.models.company import Branch
+    from app.branches.models import BranchGrant
+    for company in [1, 2]:
+        branch = Branch(company_id=company, name="Navigation QA branch", code="NAVQA")
+        db.add(branch); db.flush()
+        for user in users[:2] if company == 1 else users[:1]:
+            db.add(BranchGrant(company_id=company, user_id=user.id, branch_id=branch.id, can_write=True))
+        ensure_business_os_seed(db, company)
+    db.flush()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1)
+    backfill(db.connection(), 2)
     db.commit()
 
 # These navigation tests do not need schedulers, external workers, or production

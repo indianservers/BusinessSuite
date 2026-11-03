@@ -1,3 +1,4 @@
+import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useState } from "react";
@@ -97,11 +98,11 @@ export default function DirectoryDestinations({ selected, dragging, request, onC
     <PeopleDialog open={!!preview||!!result} onClose={()=>{if(!busy){setPreview(undefined);setResult(undefined);}}} title={result?"Operation results":"Review membership changes"} description={body?`${body.action} · ${body.kind} · ${body.user_ids.length} members. ${body.action==="add"?"Existing memberships are retained.":"Review the affected memberships before applying."}`:"Review individual outcomes."}>
       <div className="pd-operation-results"><table><thead><tr><th>Member</th><th>Destination / change</th><th>Workload</th><th>Result</th></tr></thead><tbody>{(result?.rows||preview?.rows||[]).map((row,i)=><tr {...recordPreviewProps(row)} key={i}><td><strong>{row.name}</strong><small>{row.email}</small></td><td>{row.destination_name}{row.source&&<small>Transfer from {row.source}</small>}{row.workspace_access_added&&<small>Workspace Member access will also be added</small>}{body?.action==="role"&&<small>{row.current_role} → {body.role}</small>}</td><td>{row.open_tasks} open / {row.overdue_tasks} overdue</td><td data-status={row.status}>{row.status.replace(/_/g," ")}{row.reason&&<small>{row.reason}</small>}</td></tr>)}</tbody></table></div>
       {error&&<p role="alert" className="pd-error">{error}</p>}{announcement&&result&&<p role="status">{announcement}</p>}
-      <div className="pd-dialog-actions">{preview&&<button className="pd-primary" disabled={busy||!preview.rows.some(r=>r.status==="ready")} onClick={()=>void apply()}>{busy?"Applying…":"Apply reviewed changes"}</button>}
+      <CompactActions className="pd-dialog-actions">{preview&&<button className="pd-primary" disabled={busy||!preview.rows.some(r=>r.status==="ready")} onClick={()=>void apply()}>{busy?"Applying…":"Apply reviewed changes"}</button>}
         {result&&!!result.failed_user_ids.length&&body&&<button className="pd-button" disabled={busy} onClick={()=>void runPreview({...body,user_ids:result.failed_user_ids,version:undefined})}>Review and retry failed members</button>}
         {result&&!!result.undo_ids.length&&<button className="pd-button" disabled={busy||!undoAvailable} onClick={()=>void undo()}>{undoAvailable?"Undo eligible additions (5 minutes)":"Undo expired"}</button>}
         <button className="pd-button" disabled={busy} onClick={()=>{setPreview(undefined);setResult(undefined);}}>Done</button>
-      </div>
+      </CompactActions>
     </PeopleDialog>
   </aside>;
 }

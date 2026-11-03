@@ -100,6 +100,8 @@ def customers(
         CRMCompany.deleted_at.is_(None),
         CRMCompany.id > after,
     )
+    from app.shared.master_data_models import BusinessRelationship
+    query = query.filter(or_(CRMCompany.account_type == "Customer", CRMCompany.id.in_(db.query(BusinessRelationship.account_id).filter(BusinessRelationship.role == "Customer"))))
     # Respect existing CRM record visibility for CRM-only callers.
     names = {p.name for p in (permission_objects(user))}
     if not user.is_superuser and not names.intersection(set(DIRECTORY[3:])):
@@ -146,6 +148,8 @@ def quick_add_customer(data: QuickCustomerInput, db: Session = Depends(get_db), 
                        owner_user_id=user.id, created_by_user_id=user.id, updated_by_user_id=user.id)
     db.add(value)
     db.flush()
+    from app.shared.master_data_models import CompanyMasterDetails
+    db.add(CompanyMasterDetails(account_id=value.id, organization_id=tenant(user), business_type="Individual"))
     from app.apps.srm.api.router import _audit
     _audit(db, user, "customer", value.id, "quick_added", after=customer_profile(value))
     db.commit()

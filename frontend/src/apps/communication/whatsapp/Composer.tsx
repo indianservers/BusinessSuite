@@ -1,3 +1,4 @@
+import { WhatsAppIcon } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { contract } from "@/lib/validation";
@@ -79,7 +80,7 @@ export default function Composer({templates,contact,admin,scope,refresh,compact=
     } finally { setBusy(false); }
   }
   const editor=<section className={compact?'wa-chat-composer':'wa-compose-card'}>
-    {!compact&&<div className="wa-card-heading"><span className="wa-feature-icon"><Send size={24}/></span><div><h3>Send WhatsApp Message</h3><p>Send an approved template or reply to a customer conversation.</p></div></div>}
+    {!compact&&<div className="wa-card-heading"><span className="wa-feature-icon"><WhatsAppIcon className="h-6 w-6"/></span><div><h3>Send WhatsApp Message</h3><p>Send an approved template or reply to a customer conversation.</p></div></div>}
     {!contact&&<><div className="wa-record-grid">
       <label className="wa-field"><span><Layers size={14}/>CRM record type</span><NativeSelect className="wa-select" disabled={locked} value={entity} onChange={e=>{setEntity(e.target.value);setRecordId('');}}><option value="lead">Lead</option><option value="contact">Contact</option><option value="deal">Deal</option></NativeSelect></label>
       <label className="wa-field"><span><Search size={14}/>Search CRM <small>(optional)</small></span><Input disabled={locked} placeholder="Name, phone, email or ID…" value={search} onChange={e=>setSearch(e.target.value)}/></label>
@@ -100,7 +101,7 @@ export default function Composer({templates,contact,admin,scope,refresh,compact=
     </div>:<label className="wa-message-field"><span className={compact?'sr-only':'wa-field-caption'}>Message</span><textarea aria-label="Message" placeholder={contact?`Type your message to ${contact.name||'this contact'}…`:'Type your message…'} rows={compact?2:5} maxLength={4096} disabled={locked} value={body} onChange={e=>setBody(e.target.value)} onKeyDown={e=>{if(e.key==='/'&&!body){e.preventDefault();e.currentTarget.closest('section')?.querySelector<HTMLElement>('.cc-quick-replies summary')?.click();}if((e.ctrlKey||e.metaKey)&&e.key==='Enter'&&!disabled){e.preventDefault();void send();}}}/><span className="wa-character-count">{body.length}/4096</span></label>}
     {!compact&&<RecipientConsent to={to} entityType={recordFields().entityType} entityId={recordFields().entityId} disabled={locked||!admin&&!linked} refresh={refresh}/>}
     <div className="wa-composer-footer"><div className="wa-inline-actions">{mode==='text'&&<QuickReplies disabled={locked} onInsert={text=>setBody(body?body+'\n\n'+text:text)}/>}<Button size="sm" variant="outline" disabled={locked||!body&&!template} onClick={saveDraft}><Save size={14}/>Save draft</Button>{hasDraft&&<Button size="sm" variant="ghost" disabled={locked} onClick={restoreDraft}><RotateCcw size={13}/>Restore</Button>}{result&&!pending&&<Button size="sm" variant="outline" onClick={()=>{setResult(null);setBody('');setNotice('');}}>New message</Button>}</div>
-      <Button className="wa-send-button" disabled={disabled} onClick={()=>void send()}><Send size={15}/>{busy?'Checking…':pending?'Check original send':compact?'Send reply':'Send message'}</Button>
+      <Button className="wa-send-button" disabled={disabled} onClick={()=>void send()}><WhatsAppIcon className="h-4 w-4"/>{busy?'Checking…':pending?'Check original send':compact?'Send reply':'Send message'}</Button>
     </div>
     {autosaved&&!result&&<p className="cc-save-status" role="status">Draft autosaved in this tab · {autosaved}</p>}
     {!pending&&!result&&reasons.length>0&&<details className="wa-muted-note"><summary>Why is sending unavailable?</summary><ul>{reasons.map(reason=><li key={reason}>{reason}</li>)}</ul><p>Your text and template drafts are kept when switching modes.</p></details>}

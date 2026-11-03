@@ -161,6 +161,9 @@ def register_routes(router, source, default=None):
 
 
 def request_module(request):
+    if request.url.path.startswith("/api/v1/master-data/"):
+        source = request.query_params.get("source", "crm")
+        return source if source in {"crm", "srm", "project_management", "hrms"} else None
     if request.url.path.startswith("/api/v1/catalog/"):
         return "project_management" if request.query_params.get("source", "crm") == "pms" else "crm"
     route = request.scope.get("route")
@@ -236,6 +239,8 @@ def permission_names(user):
 
 def action_for(request):
     path = request.url.path.lower()
+    if request.method == "POST" and path.startswith("/api/v1/master-data/") and (path.endswith("/bulk") or path.endswith("/prepare-greeting")):
+        return "edit"
     if path == "/api/v1/crm/deal-workspace/grid/archive":
         return "delete"
     if path.startswith("/api/v1/catalog/") and path.endswith("/archive"):

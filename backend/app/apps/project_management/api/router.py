@@ -1447,7 +1447,9 @@ def _replace_comment_mentions(
     current_user: User,
     mention_user_ids: list[int],
 ) -> None:
-    db.query(PMSMention).filter(PMSMention.comment_id == comment.id).delete()
+    # Keep branch ownership validation on mention removal, including empty sets.
+    for mention in db.query(PMSMention).filter(PMSMention.comment_id == comment.id).all():
+        db.delete(mention)
     if not mention_user_ids:
         return
     allowed_users = {user.id: user for user in _project_user_query(db, project).filter(User.id.in_(mention_user_ids)).all()}
@@ -1745,7 +1747,9 @@ def _sync_task_planning_links(db: Session, project_id: int, task_data: dict) -> 
     else:
         task_data.pop("assignee_user_ids", None)
     for user_id in task_data.get("assignee_user_ids", []):
-        if not _project_user_query(db, project).filter(User.id == user_id).first():
+        from ..access import module_identity_allowed
+        assignee = _project_user_query(db, project).filter(User.id == user_id).first()
+        if not assignee or not module_identity_allowed(db, assignee, project.organization_id or 1):
             raise HTTPException(422, "Every assignee must be an active project collaborator")
     if project and project.workspace_id and task_data.get("assignee_user_id"):
         membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=task_data["assignee_user_id"]).first()
@@ -1850,12 +1854,15 @@ def create_client(
         raise HTTPException(status_code=403, detail="Project management permission required")
     db_client = PMSClient(
         organization_id=organization_id_for(current_user),
-        **client_in.dict()
+        **client_in.model_dump(exclude={"shared_customer_id", "confirmShared", "sharedReason"})
     )
     db.add(db_client)
+    db.flush()
+    from app.apps.srm.services.customer_identity import client_write, overlay
+    client_write(db, db_client, current_user, client_in.model_dump(), client_in.shared_customer_id, client_in.confirmShared, client_in.sharedReason)
     db.commit()
     db.refresh(db_client)
-    return db_client
+    return overlay(db_client, {col.name: getattr(db_client, col.name) for col in db_client.__table__.columns})
 
 
 @router.get("/clients", response_model=list[PMSClientResponse])
@@ -1912,20 +1919,16 @@ def update_client(
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     
-    update_data = client_in.dict(exclude_unset=True)
-    from app.apps.srm.services.customer_identity import linked_customer, CLIENT_FIELDS
-    buyer = linked_customer(db, "pms_client", client.id)
-    if buyer:
-        for field, value in update_data.items():
-            if field in CLIENT_FIELDS:
-                setattr(buyer, CLIENT_FIELDS[field], value)
+    update_data = client_in.model_dump(exclude_unset=True, exclude={"shared_customer_id", "confirmShared", "sharedReason"})
     for field, value in update_data.items():
         setattr(client, field, value)
+    from app.apps.srm.services.customer_identity import client_write, overlay
+    client_write(db, client, current_user, update_data, client_in.shared_customer_id, client_in.confirmShared, client_in.sharedReason)
     
     db.add(client)
     db.commit()
     db.refresh(client)
-    return client
+    return overlay(client, {col.name: getattr(client, col.name) for col in client.__table__.columns})
 
 
 @router.delete("/clients/{client_id}")
