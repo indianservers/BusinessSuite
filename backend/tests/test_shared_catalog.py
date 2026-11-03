@@ -1,3 +1,4 @@
+from tests.test_contact_directory import directory_identity
 import io
 import json
 import pytest

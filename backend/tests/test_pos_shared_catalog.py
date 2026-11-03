@@ -1,3 +1,4 @@
+from tests.test_contact_directory import directory_identity
 """Products and services share POS identities; edits preserve operational stock."""
 import io
 import pytest

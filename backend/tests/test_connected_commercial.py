@@ -1,3 +1,4 @@
+from tests.test_contact_directory import directory_identity
 from datetime import date
 from uuid import uuid4
 from decimal import Decimal
@@ -60,6 +61,8 @@ def setup_business(db):
         )
     )
     db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1); db.commit()
     return buyer, contact, p, team
 
 

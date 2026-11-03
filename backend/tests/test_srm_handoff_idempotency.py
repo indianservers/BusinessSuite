@@ -1,3 +1,4 @@
+from tests.test_contact_directory import directory_identity
 from app.apps.project_management.models import PMSProject
 from app.apps.srm.models import SRMSalesOrder
 

@@ -14,7 +14,7 @@ export default function CompaniesPage({source="crm",role="",entityKind="companie
   const user=useAuthStore(s=>s.user);const scope=masterScope();
   const [refresh,setRefresh]=useState(0);const [create,setCreate]=useState(false);const [profile,setProfile]=useState<number>();const [selected,setSelected]=useState<string[]>([]);const [trash,setTrash]=useState(false);const [result,setResult]=useState<GridResult<Company>>();const [value,setValue]=useState("Vendor");const [tag,setTag]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);
   const columns=useMemo<GridColumn<Company>[]>(()=>[
-    {id:"name",title:role||"Company",width:260,editable:true,render:row=><button className="font-semibold text-left" onClick={()=>setProfile(row.id)}>{row.name}</button>},
+    {id:"name",title:role||"Company",width:260,editable:true,render:row=><button className="font-semibold text-left" onClick={()=>setProfile(row.id)}>{row.name}{role&&<small className="block text-xs font-normal text-muted-foreground">{row.entityKind==="Individual"?"Individual":"Business / company"}</small>}</button>},
     {id:"account_type",title:"Business roles",accessor:row=>row.roles?.join(", "),render:row=><div className="md-role-badges">{row.roles?.map(x=><span key={x} data-role={x.toLowerCase()}>{x}</span>)}</div>},
     {id:"email",title:"Primary email",width:240}, {id:"phone",title:"Primary phone",render:row=><span>{row.phone_country_code} {row.phone||"—"}</span>},
     {id:"industry",title:"Industry",editable:true}, {id:"status",title:"Status",type:"status",editable:true,editor:"select",options:["Active","Inactive","Blocked"].map(x=>({value:x,label:x}))},

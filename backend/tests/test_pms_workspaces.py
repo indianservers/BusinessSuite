@@ -25,7 +25,9 @@ def account(db, email, admin=False):
     db.add(user)
     db.flush()
     from app.common.services.identity import SharedIdentityService
-    SharedIdentityService.ensure_person_for_user(db, user, organization_id=1)
+    from test_identity_utils import attach_test_identity, attach_workflow_branch
+    attach_test_identity(db, user)
+    attach_workflow_branch(db, user)
     db.commit()
     return user, {"Authorization": "Bearer " + create_access_token(str(user.id))}
 

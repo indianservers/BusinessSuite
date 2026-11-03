@@ -21,10 +21,12 @@ def auth_headers_for(client, db, email: str, role_name: str, password: str = "Pa
     user = User(email=email, hashed_password=get_password_hash(password), is_active=True, is_superuser=False, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db, user)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": password, "module": "srm"})
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Branch": str(branch.id)}
 
 
 def create_sales_order(client, headers, title: str = "Enterprise onboarding"):

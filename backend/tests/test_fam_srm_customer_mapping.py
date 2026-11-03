@@ -1,3 +1,4 @@
+from tests.test_contact_directory import directory_identity
 from app.apps.fam.models import FAMParty, FAMSRMMapping
 from tests.test_fam_srm_invoice_posting import create_sent_srm_invoice
 
