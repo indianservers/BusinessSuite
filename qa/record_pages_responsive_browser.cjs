@@ -1,5 +1,5 @@
 const {chromium,expect:raw}=require('../frontend/node_modules/playwright/test');
-const fs=require('node:fs');const path=require('node:path');const expect=raw.configure({timeout:20000});
+const fs=require('node:fs');const path=require('node:path');const expect=raw.configure({timeout:Number(process.env.QA_EXPECT_TIMEOUT || 20000)});
 const origin=process.env.QA_ORIGIN || 'http://127.0.0.1:5198',apiRoot='http://127.0.0.1:1534/api/v1';
 const output=path.resolve(process.env.QA_OUTPUT || 'docs/qa/record-pages-responsive');fs.mkdirSync(output,{recursive:true});
 (async()=>{
