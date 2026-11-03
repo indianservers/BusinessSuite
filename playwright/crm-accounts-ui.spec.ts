@@ -11,7 +11,8 @@ test.describe("CRM accounts UI", () => {
     await page.goto("/crm/accounts/1", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Acme India" })).toBeVisible();
     await expect(page.getByText("Software").first()).toBeVisible();
-    await page.getByRole("tab", {name:"Activity",exact:true}).click();
+    await page.getByRole("tab", {name:"More details",exact:true}).click();
+    await page.getByRole("combobox", {name:"CRM record information section",exact:true}).selectOption("activity");
     await expect(page.getByRole("heading", { name: "Activity Timeline" })).toBeVisible();
   });
 });

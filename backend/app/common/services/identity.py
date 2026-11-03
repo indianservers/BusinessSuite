@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from sqlalchemy import or_
+from sqlalchemy import or_, select
+from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from app.common.models import CommonPerson, CommonProfile
@@ -115,6 +116,10 @@ class SharedIdentityService:
             person.source_record_id = source_record_id if source_record_id is not None else person.source_record_id
 
         if not person.profile:
+            # A scope-filtered relationship is not evidence that its private
+            # row is missing. Never replace a hidden profile or bypass its scope.
+            if db.connection().execute(select(CommonProfile.id).where(CommonProfile.person_id == person.id).limit(1)).first():
+                raise HTTPException(404, "Profile is unavailable in your permitted scope")
             person.profile = CommonProfile(person_id=person.id, **(profile_defaults or {}))
             db.add(person.profile)
             db.flush()

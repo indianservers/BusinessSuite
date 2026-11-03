@@ -169,13 +169,17 @@ def test_termination_and_reactivation_are_distinct(client, db):
     from app.models.employee import Employee
     owner, oh = account(db, "terminate-owner@test.com", True)
     target, _ = account(db, "terminate-person@test.com")
-    employee = Employee(user_id=target.id, employee_id="PMS-LIFECYCLE-1", first_name="Delivery", last_name="Person", date_of_joining=date(2026,1,1), status="Active")
+    from app.models.company import Branch
+    branch=db.query(Branch).filter_by(company_id=1).first()
+    employee = Employee(user_id=target.id, branch_id=branch.id, employee_id="PMS-LIFECYCLE-1", first_name="Delivery", last_name="Person", date_of_joining=date(2026,1,1), status="Active")
     db.add(employee)
     from test_identity_utils import own_workflow_records
     own_workflow_records(db,employee);db.commit()
     from app.branches.migration import backfill
     backfill(db.connection(), 1); db.commit()
-    detail = client.get(ROOT + f"/{target.id}", headers=oh).json()
+    response = client.get(ROOT + f"/{target.id}", headers=oh)
+    assert response.status_code == 200, response.text
+    detail = response.json()
     assert detail["permissions"]["terminate"]
     preview = client.get(ROOT + f"/{target.id}/preview", headers=oh).json()
     result = client.post(ROOT + f"/{target.id}/actions", headers=oh, json={"action":"terminate", "reason":"Employment ended after completed handover", "preview_version":preview["version"]})

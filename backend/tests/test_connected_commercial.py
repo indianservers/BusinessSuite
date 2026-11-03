@@ -188,7 +188,8 @@ def test_partial_time_reservations_and_server_totals(client, db, superuser_heade
         approval_status="Approved",
     )
     db.add(log)
-    db.commit()
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,log);db.commit()
 
     def bill(minutes):
         return client.post(
@@ -274,7 +275,9 @@ def test_financial_permissions_and_tenant_boundaries(client, db, superuser_heade
     if not db.get(Company, 2):
         db.add(Company(id=2, name="Other real tenant"))
         db.flush()
-    db.add(CommonPerson(user_id=u.id, organization_id=2, display_name="Other tenant"))
+    u.person.organization_id = 2
+    u.person.display_name = "Other tenant"
+    other.pop("X-Suite-Branch", None)
     db.commit()
     assert (
         client.get(f"/api/v1/srm/invoices/{inv['id']}", headers=other).status_code

@@ -1,3 +1,4 @@
+import {useQueryClient} from "@tanstack/react-query";
 import {lazy,Suspense,useState} from "react";
 const HRQuickAdd=lazy(()=>import("@/apps/hrms/workbench/shared").then(m=>({default:m.HRQuickAdd})));
 const CRMQuickCreate=lazy(()=>import("@/apps/crm/SalesActions").then(m=>({default:m.CRMQuickCreate})));
@@ -13,6 +14,7 @@ export default function ModuleNewMenu() {
   const [crmQuick,setCRMQuick]=useState("");
   const [hrQuick,setHRQuick]=useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const user = useAuthStore(s => s.user);
   const role = String(user?.role || "").toLowerCase();
   const hrRole = getRoleKey(user?.role, user?.is_superuser);
@@ -53,5 +55,5 @@ export default function ModuleNewMenu() {
     add("Apply Leave", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
     add("Support ticket", user?.employee_id ? "Ask your support team for help" : "Link an employee profile to raise tickets", LifeBuoy, "/hrms/helpdesk?new=ticket", true, !user?.employee_id);
   }
-  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <><NewMenu actions={actions} />{hrQuick&&<Suspense fallback={<p role="status">Loading employee capture…</p>}><HRQuickAdd close={()=>setHRQuick(false)} saved={id=>{setHRQuick(false);navigate(`/hrms/employees/${id}`);}}/></Suspense>}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>window.dispatchEvent(new CustomEvent("crm:records-changed"))}/></Suspense>}</>;
+  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <><NewMenu actions={actions} />{hrQuick&&<Suspense fallback={<p role="status">Loading employee capture…</p>}><HRQuickAdd close={()=>setHRQuick(false)} saved={id=>{setHRQuick(false);navigate(`/hrms/employees/${id}`);}}/></Suspense>}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>{window.dispatchEvent(new CustomEvent("crm:records-changed"));void Promise.all([queryClient.invalidateQueries({queryKey:["shared-grid"]}),queryClient.invalidateQueries({queryKey:["master-companies"]}),queryClient.invalidateQueries({queryKey:["universal-contacts"]})]);}}/></Suspense>}</>;
 }

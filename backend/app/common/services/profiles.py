@@ -261,6 +261,8 @@ def ensure_profile(db, user, employee=None):
             source_module="hrms" if employee else "common",
         )
     if not person.profile:
+        if db.connection().execute(select(CommonProfile.id).where(CommonProfile.person_id == person.id).limit(1)).first():
+            raise HTTPException(404, "Profile is unavailable in your permitted scope")
         person.profile = CommonProfile(person_id=person.id, profile_data_json={})
         db.add(person.profile)
         db.flush()

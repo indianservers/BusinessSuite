@@ -95,5 +95,13 @@ export function FinancialDataPanel({contactId}: {contactId: number}) {
   const [draft, setDraft] = useState<FinancialData>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  return <div className="crm-financial"><FinancialDataTab contactId={contactId} value={draft} onChange={setDraft} readOnly={!profile.data?.canManage}/>{draft && profile.data?.canManage && <div className="flex flex-wrap gap-2"><Button type="button" disabled={busy} onClick={() => {setBusy(true); setMessage(""); void api.put(`${root}/${contactId}/financial-data`, draft).then(async () => {setDraft(undefined); setMessage("Financial data saved."); await Promise.all([qc.invalidateQueries({queryKey: ["contact-financial"]}), qc.invalidateQueries({queryKey: ["universal-contacts"]})]);}).catch(e => setMessage(dealError(e))).finally(() => setBusy(false));}}>Save financial data</Button><Button type="button" variant="outline" disabled={busy} onClick={() => setDraft(undefined)}>Discard financial changes</Button></div>}{message && <p role="status">{message}</p>}</div>;
+  return <div className="crm-financial"><FinancialDataTab contactId={contactId} value={draft} onChange={setDraft} readOnly={!profile.data?.canManage}/>{draft && profile.data?.canManage && <div className="flex flex-wrap gap-2"><Button type="button" disabled={busy} onClick={() => {setBusy(true); setMessage(""); void api.put(`${root}/${contactId}/financial-data`, draft).then(async () => {setDraft(undefined); setMessage("Financial data saved."); await Promise.all([qc.invalidateQueries({queryKey: ["contact-financial"]}), qc.invalidateQueries({queryKey: ["universal-contacts"]}), qc.invalidateQueries({queryKey:["shared-grid"]}), qc.invalidateQueries({queryKey:["master-company"]})]);}).catch(e => setMessage(dealError(e))).finally(() => setBusy(false));}}>Save financial data</Button><Button type="button" variant="outline" disabled={busy} onClick={() => setDraft(undefined)}>Discard financial changes</Button></div>}{message && <p role="status">{message}</p>}</div>;
+}
+
+
+export function CompanyFinancialDataPanel({companyId}: {companyId: number}) {
+  const company = useQuery<{financialContactId?: number}>({queryKey:["master-company",masterScope(),"crm",String(companyId)],queryFn:async()=>(await api.get(`/master-data/companies/${companyId}`,{params:{source:"crm"}})).data});
+  if(company.isPending)return <p role="status">Loading financial data...</p>;
+  if(company.error)return <p role="alert">{dealError(company.error)}</p>;
+  return company.data?.financialContactId ? <FinancialDataPanel key={company.data.financialContactId} contactId={company.data.financialContactId}/> : <p>Financial data requires an accessible, verified contact identity. Link existing business records in Relationship Hub if needed.</p>;
 }

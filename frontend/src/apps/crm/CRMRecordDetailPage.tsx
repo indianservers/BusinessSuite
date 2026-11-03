@@ -1,4 +1,4 @@
-import { FinancialDataPanel } from "./FinancialDataTab";
+import { CompanyFinancialDataPanel, FinancialDataPanel } from "./FinancialDataTab";
 import { BirthdayEditor, ContactCommunicationPanel } from "@/shared/master-data/CommunicationEditor";
 import { lazy, Suspense } from "react";
 import { canAccessRoute } from "@/lib/roles";
@@ -461,6 +461,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
           <RecordSections key={`${kind}-${recordId}`} label="CRM record information" sections={[
             {id:"overview",label:"Overview",content:<><DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving}/><AICopilotPanel kind={kind} recordId={recordId}/></>},
             {id:"details",label:"Details",content:<><FullDetails kind={kind} record={record} onSave={saveInlineField}/><CustomFields fields={record.customFields || []} onSave={saveCustomField}/></>},
+            ...(kind === "accounts" ? [{id:"financial",label:"Financial data",content:<CompanyFinancialDataPanel key={recordId} companyId={recordId}/>}]: []),
             ...(kind === "contacts" ? [{id:"financial",label:"Financial data",content:<FinancialDataPanel key={recordId} contactId={recordId}/>}]: []),
             ...(kind === "contacts" ? [{id:"communication",label:"Communication & birthday",content:<><ContactCommunicationPanel id={recordId}/><BirthdayEditor id={recordId}/></>}] : []),
             {id:"activity",label:"Activity",content:<>{kind === "accounts" && <CustomerFollowUps customerId={recordId}/>}<CommunicationTimeline recordType={kind === "accounts" ? "account" : kind.replace(/s$/, "")} recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/>{["deals","quotations"].includes(kind) && <ApprovalTimeline approval={approval}/>}</>},

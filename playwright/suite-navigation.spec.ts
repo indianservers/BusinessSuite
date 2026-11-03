@@ -212,9 +212,7 @@ test("dashboard favorites, real badges, compact view and profile menu", async ({
   await expect(
     page.getByRole("heading", { name: "Settings" }),
   ).toBeVisible();
-  await page
-    .getByRole("link", { name: "All applications", exact: true })
-    .click();
+  await page.goto("/dashboard");
   await noOverflow(page);
   await snapshot(page, "dashboard", info.project.name);
 });
@@ -351,9 +349,7 @@ test("permission-aware inbox and unauthorized return paths", async ({
     page.getByRole("status").filter({ hasText: "That page isn't available" }),
   ).toBeVisible();
   await expect(page.locator(".launcher-card")).toHaveCount(1);
-  await expect(
-    page.getByText("Recommended for your role", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("article", {name:"AI HRMS",exact:true})).toBeVisible();
   await page.getByRole("button", { name: /^Notifications/ }).click();
   await expect(
     page.getByText("Profile update available", { exact: true }),
@@ -449,19 +445,22 @@ test("dashboard access loading and failure show a single recoverable state", asy
 }) => {
   await signIn(page);
   let fail = true;
+  let releaseFailure!: () => void;
+  const failureGate = new Promise<void>(resolve => {releaseFailure = resolve;});
   await page.route("**/api/v1/access/me", async (route) => {
     if (!fail) return route.continue();
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await failureGate;
     return route.fulfill({ status: 503, json: { detail: "QA unavailable" } });
   });
-  await page.reload();
-  await expect(page.locator(".suite-dashboard-skeleton")).toHaveCount(6);
+  await page.reload({waitUntil:"domcontentloaded"});
+  await expect(page.getByText(/Loading your authorized applications/)).toBeVisible();
+  releaseFailure();
   await expect(
     page.getByText("No applications assigned yet", { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByText(/available modules/)).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "We couldn't load your applications." }),
+    page.getByRole("alert").filter({hasText:"We couldn't load your applications."}),
   ).toBeVisible();
   await expect(
     page.getByText("No applications assigned yet", { exact: true }),
@@ -505,7 +504,7 @@ test("reset success returns to sign in and account settings change the password"
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByRole("button", { name: "Open account menu" }).click();
   await page
-    .getByRole("menuitem", { name: "Settings", exact: true })
+    .getByRole("menuitem", { name: "My profile", exact: true })
     .click();
   await page.getByLabel("Current password", { exact: true }).fill(nextPassword);
   await page

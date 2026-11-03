@@ -6,6 +6,8 @@ const voucher={...record,company_id:1,financial_year_id:1,voucher_type_id:1,vouc
 const access={companyId:1,companyName:'Business Suite',memberships:[1],organizations:[{id:1,name:'Business Suite'}],isSuperuser:true,managed:false,modules:[],grants:{},branches:[{id:6,name:'Main Branch'}]};
 function response(path){
  const p=path.replace(/^\/api\/v1/,'').replace(/\/$/,'');
+ if(p.endsWith('/financial-data'))return {gstNumber:'',bankAccounts:[],upiIds:[],version:0,canManage:false,canVoid:false};
+ if(p.endsWith('/financial-transactions'))return {items:[],total:0};
  if(p==='/auth/me')return {...person,is_superuser:true,employee_id:null,role:{name:'admin'}};
  if(p==='/access/me')return access;
  if(p==='/branches/context')return {company_id:1,selected:6,all_branches:false,manage_access:true,branches:[{id:6,name:'Main Branch',code:'MAIN',can_write:true,is_active:true}]};
