@@ -1,6 +1,6 @@
 const {chromium,expect}=require('../frontend/node_modules/playwright/test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const origin=process.env.PREVIEW_QA_ORIGIN||'http://localhost:5200';
+const origin=process.env.PREVIEW_QA_ORIGIN||'http://localhost:5173';
 (async()=>{
  const code=await(await fetch(origin+'/src/components/RecordQuickPreview.tsx')).text();
  const react=code.match(/"([^"\n]*\/react\.js\?v=[^"\n]+)"/)[1],router=code.match(/"([^"\n]*\/react-router-dom\.js\?v=[^"\n]+)"/)[1];

@@ -1,5 +1,6 @@
 """CRM relationship pages use one canonical master, including Sales customers."""
 import json
+import pytest
 from app.apps.crm.models import CRMCompany, CRMLead, CRMContact
 from tests.test_master_data import company, ROOT
 from tests.test_contact_directory import directory_identity
@@ -39,18 +40,28 @@ def test_sales_created_customer_uses_same_master_and_classification(client, db, 
     assert db.query(CRMCompany).count() == 1
 
 
-def test_individual_lead_conversion_becomes_same_sales_customer(client, db, superuser_headers, directory_identity):
+@pytest.mark.parametrize("customer_type", ["Individual", "Business"])
+def test_lead_conversion_becomes_same_sales_customer(client, db, superuser_headers, directory_identity, customer_type):
     from app.branches.migration import backfill
-    lead = CRMLead(organization_id=1, branch_id=directory_identity.id, first_name="Converted", full_name="Converted buyer", status="Qualified")
+    lead = CRMLead(organization_id=1, branch_id=directory_identity.id, first_name="Converted", full_name="Converted buyer", company_name="Converted business" if customer_type == "Business" else None, status="Qualified")
     db.add(lead); db.commit()
     backfill(db.connection(), 1); db.commit()
-    response = client.post("/api/v1/crm/contact-directory/convert", headers=superuser_headers, json={"leadId":lead.id, "customerType":"Individual"})
+    response = client.post("/api/v1/crm/contact-directory/convert", headers=superuser_headers, json={"leadId":lead.id, "customerType":customer_type})
     assert response.status_code == 200, response.text
     db.expire_all()
     ident = db.get(CRMLead, lead.id).converted_company_id
     assert ident
     assert db.query(CRMContact).filter(CRMContact.full_name == "Converted buyer").count() == 1
     assert [x["id"] for x in grid(client, superuser_headers, role="Customer")] == [ident]
-    assert not grid(client, superuser_headers, entity_kind="companies")
+    assert bool(grid(client, superuser_headers, entity_kind="companies")) == (customer_type == "Business")
     sales = client.get("/api/v1/srm/business/customers", headers=superuser_headers)
     assert ident in {x["id"] for x in sales.json()["items"]}
+
+    corrected = client.post(f"/api/v1/crm/contact-directory/leads/{lead.id}/correct-conversion", headers=superuser_headers, json={"reason":"Review and reconvert the same identity"})
+    assert corrected.status_code == 200, corrected.text
+    assert not grid(client, superuser_headers, role="Customer")
+    repeated = client.post("/api/v1/crm/contact-directory/convert", headers=superuser_headers, json={"leadId":lead.id, "customerType":customer_type})
+    assert repeated.status_code == 200, repeated.text
+    db.expire_all()
+    assert db.get(CRMLead, lead.id).converted_company_id == ident
+    assert db.query(CRMCompany).count() == 1

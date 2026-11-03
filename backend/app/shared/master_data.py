@@ -492,7 +492,8 @@ def write_company(db, actor, source, data, row=None):
                 if not data.confirmShared:
                     raise HTTPException(409, {"code": "duplicate_company", "message": "This legal identifier is already associated with a company.", "matches": [{"kind": "company", "id": candidate.account_id}], "canCreateSeparate": True})
     details.legal_name, details.trade_name = data.legalName, data.tradeName
-    details.business_type = "Individual" if data.entityKind == "Individual" else (None if data.entityKind == "Company" and data.businessType == "Individual" else data.businessType)
+    if "entityKind" in data.model_fields_set or "businessType" in data.model_fields_set:
+        details.business_type = "Individual" if data.entityKind == "Individual" else (None if data.entityKind == "Company" and data.businessType == "Individual" else data.businessType)
     details.addresses, details.tax_registrations = data.addresses, data.taxRegistrations
     details.version = (details.version or 0) + 1
     primary = owner(db, actor, "contact", data.primaryContactId, source) if data.primaryContactId else None

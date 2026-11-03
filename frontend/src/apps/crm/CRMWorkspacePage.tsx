@@ -1163,7 +1163,7 @@ function CRMDashboard() {
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">CRM Overview</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">CRM Dashboard</h1>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden="true" />Live
               </span>
