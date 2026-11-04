@@ -1,4 +1,4 @@
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { defaultText } from "@/lib/form-defaults";
 import SharedCompanySelect from "@/shared/master-data/CompanySelect";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";

@@ -3,12 +3,12 @@ import json
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from app.models.company import Company, Branch, Department, CostCenter
 from app.models.user import User
 from app.shared.models import ServicePolicy
 
-FIELDS = json.loads((Path(__file__).resolve().parents[3] / "shared" / "form-defaults.json").read_text(encoding="utf-8"))
+FIELDS = json.loads((Path(__file__).resolve().parents[1] / "core" / "form_defaults.json").read_text(encoding="utf-8"))
 DEFINITIONS = {field["key"]: field for field in FIELDS}
 MODULES = {"crm", "srm", "fam", "hrms", "project_management"}
 BASE = {field["key"]: field.get("default") for field in FIELDS}
@@ -27,21 +27,24 @@ def check_branch(db, company_id, branch_id):
 
 def reference_queries(db, company_id):
     from app.apps.crm.models import CRMPipeline, CRMPipelineStage, CRMPriceBook
-    from app.apps.fam.models import FAMBankAccount, FAMPaymentMode
+    from app.apps.fam.models import FAMBankAccount, FAMPaymentMode, FAMCostCenter
     from app.models.attendance import Shift
     from app.models.leave import LeaveType
     from app.access.models import AccessMembership
+    from app.models.employee import Employee
+    from app.common.models import CommonPerson
     # Shifts and leave types are shared HR masters in the existing schema.
     return {
         "branches": (db.query(Branch).filter_by(company_id=company_id, is_active=True), "name"),
         "departments": (db.query(Department).join(Branch, Department.branch_id == Branch.id).filter(Branch.company_id == company_id, Department.is_active.is_(True)), "name"),
+        "accounting_cost_centers": (db.query(FAMCostCenter).filter_by(company_id=company_id, active=True), "name"),
         "cost_centers": (db.query(CostCenter).filter_by(company_id=company_id, is_active=True), "name"),
         "pipelines": (db.query(CRMPipeline).filter_by(organization_id=company_id, active=True, deleted_at=None), "name"),
         "stages": (db.query(CRMPipelineStage).join(CRMPipeline).filter(CRMPipeline.organization_id == company_id, CRMPipeline.active.is_(True), CRMPipeline.deleted_at.is_(None), CRMPipelineStage.active.is_(True), CRMPipelineStage.deleted_at.is_(None), CRMPipelineStage.stage_type == "open"), "name"),
         "price_books": (db.query(CRMPriceBook).filter_by(organization_id=company_id, active=True, deleted_at=None), "name"),
         "bank_accounts": (db.query(FAMBankAccount).filter_by(company_id=company_id, active=True), "bank_name"),
         "payment_modes": (db.query(FAMPaymentMode).filter_by(company_id=company_id, active=True), "name"),
-        "users": (db.query(User).join(AccessMembership, AccessMembership.user_id == User.id).filter(AccessMembership.company_id == company_id, AccessMembership.active.is_(True), User.is_active.is_(True)), "email"),
+        "users": (db.query(User).filter(User.is_active.is_(True), User.id.notin_(select(AccessMembership.user_id).where(AccessMembership.company_id == company_id, AccessMembership.active.is_(False))), or_(User.id.in_(select(AccessMembership.user_id).where(AccessMembership.company_id == company_id, AccessMembership.active.is_(True))), User.id.in_(select(CommonPerson.user_id).where(CommonPerson.organization_id == company_id)), User.id.in_(select(Employee.user_id).join(Branch, Employee.branch_id == Branch.id).where(Branch.company_id == company_id, Employee.deleted_at.is_(None))))), "email"),
         "shifts": (db.query(Shift).filter_by(is_active=True), "name"),
         "leave_types": (db.query(LeaveType).filter_by(is_active=True), "name"),
     }
@@ -61,7 +64,9 @@ def effective(db, company_id, module=None, branch_id=None, *, skip_scope=None):
     if org:
         from app.core.input_validation import CONTRACT
         country = next((row["iso"] for row in CONTRACT["countries"] if row["country"].lower() == (org.country or "").lower() or row["iso"] == org.country), "IN")
-        result.update(currency=org.default_currency or "INR", payroll_currency=org.default_currency or "INR", timezone=org.default_timezone or "Asia/Kolkata", country=country, fiscal_year_start_month=org.fiscal_year_start_month or 4, working_days=list(range(1, min(org.working_days_per_week or 5, 6) + 1)) + ([0] if org.working_days_per_week == 7 else []))
+        country = {"UAE": "AE", "UK": "GB"}.get(org.country, country)
+        phone_code = next((row["code"] for row in CONTRACT["countries"] if row["iso"] == country), "+91")
+        result.update(phone_country_code=phone_code, currency=org.default_currency or "INR", payroll_currency=org.default_currency or "INR", timezone=org.default_timezone or "Asia/Kolkata", country=country, fiscal_year_start_month=org.fiscal_year_start_month or 4, working_days=list(range(1, min(org.working_days_per_week or 5, 6) + 1)) + ([0] if org.working_days_per_week == 7 else []))
     keys = [scope_key(company_id)]
     if module: keys.append(scope_key(company_id, module))
     if branch_id: keys.append(scope_key(company_id, branch_id=branch_id))
@@ -74,6 +79,29 @@ def effective(db, company_id, module=None, branch_id=None, *, skip_scope=None):
                 if name in DEFINITIONS:
                     result[name] = value
                     sources[name] = key
+    # A configured ID can be retired later. Never preselect unavailable masters.
+    refs = None
+    for field in FIELDS:
+        if field["type"] != "reference" or not result.get(field["key"]): continue
+        if refs is None: refs = reference_queries(db, company_id)
+        query, _ = refs[field["reference"]]
+        model = query.column_descriptions[0]["entity"]
+        if field["reference"] == "branches":
+            found = db.connection().execute(select(Branch.id).where(Branch.id == result[field["key"]], Branch.company_id == company_id, Branch.is_active.is_(True))).first()
+        else: found = query.filter(model.id == result[field["key"]]).first()
+        if not found: result[field["key"]] = None
+    if result.get("stage_id"):
+        from app.apps.crm.models import CRMPipelineStage
+        stage = db.get(CRMPipelineStage, result["stage_id"])
+        if not stage or stage.pipeline_id != result.get("pipeline_id"): result["stage_id"] = None
+    if result.get("department_id") and result.get("branch_id"):
+        department = db.get(Department, result["department_id"])
+        if not department or department.branch_id != result["branch_id"]: result["department_id"] = None
+    if result.get("payment_mode_id"):
+        from app.apps.fam.models import FAMPaymentMode
+        mode = db.get(FAMPaymentMode, result["payment_mode_id"])
+        result["payment_mode_name"] = mode.name
+        result["payment_mode_type"] = mode.type
     return {"values": result, "sources": sources}
 
 

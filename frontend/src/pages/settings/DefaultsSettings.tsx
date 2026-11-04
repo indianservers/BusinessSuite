@@ -1,3 +1,4 @@
+import { registerSettingsDraftGuard } from "./settingsNavigationGuard";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RotateCcw, Save, Search } from "lucide-react";
@@ -6,7 +7,7 @@ import { CurrencySelect, CountrySelect } from "@/lib/validation/business";
 import { contract } from "@/lib/validation";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
-import { type DefaultValue, type DefaultValues } from "@/lib/form-defaults";
+import { defaultsScope, type DefaultValue, type DefaultValues } from "@/lib/form-defaults";
 import "./defaults-settings.css";
 
 type Choice = { value: string | number | boolean; label: string; pipeline_id?: number; branch_id?: number };
@@ -32,14 +33,21 @@ function DefaultsEditor({ module, branch, changeScope }: { module: string; branc
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const params = { module: module || undefined, branch_id: branch ? Number(branch) : undefined };
-  const query = useQuery({ queryKey: ["defaults-configuration", module, branch, sessionStorage.getItem("suite-organization")], queryFn: () => api.get<Configuration>(endpoint, { params }).then(r => r.data), refetchOnWindowFocus: false, staleTime: 0 });
+  const queryKey = ["defaults-configuration", defaultsScope(), module, branch];
+  const query = useQuery({ queryKey, queryFn: () => api.get<Configuration>(endpoint, { params }).then(r => r.data), refetchOnWindowFocus: false, staleTime: 0 });
   useEffect(() => { if (query.data) { setOverrides(query.data.overrides); setSaved(query.data.overrides); setVersion(query.data.version); } }, [query.data]);
   const dirty = JSON.stringify(overrides) !== JSON.stringify(saved);
   useEffect(() => {
+    const releaseGuard = registerSettingsDraftGuard(() => dirty);
+    const click = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (dirty && target && target.href !== location.href && !target.hash && !window.confirm("Discard unsaved default changes?")) { event.preventDefault(); event.stopPropagation(); }
+    };
+    document.addEventListener("click", click, true);
     const prevent = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); };
     const beforeContext = (event: Event) => { if (dirty && !window.confirm("Discard unsaved default changes?")) event.preventDefault(); };
     window.addEventListener("beforeunload", prevent); window.addEventListener("suite:before-context-change", beforeContext);
-    return () => { window.removeEventListener("beforeunload", prevent); window.removeEventListener("suite:before-context-change", beforeContext); };
+    return () => { releaseGuard(); document.removeEventListener("click", click, true); window.removeEventListener("beforeunload", prevent); window.removeEventListener("suite:before-context-change", beforeContext); };
   }, [dirty]);
   if (query.isPending) return <p role="status">Loading defaults…</p>;
   if (query.isError || !query.data) return <div role="alert">Could not load defaults. <Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></div>;
@@ -53,14 +61,16 @@ function DefaultsEditor({ module, branch, changeScope }: { module: string; branc
     setBusy(true); setError(""); setMessage("");
     try {
       const { data: result } = await api.put(endpoint, { values: overrides, version }, { params });
-      setVersion(result.version); setSaved(overrides); setMessage("Defaults saved. New forms will use these values.");
-      await Promise.all([qc.invalidateQueries({ queryKey: ["form-defaults"] }), qc.invalidateQueries({ queryKey: ["master-form-options"] }), qc.invalidateQueries({ queryKey: ["shared-settings"] })]);
+      setVersion(result.version); setSaved(overrides);
+      qc.setQueryData<Configuration>(queryKey, { ...data, overrides, version: result.version, effective: { ...data.inherited, ...overrides } });
+      setMessage("Defaults saved. New forms will use these values.");
+      await Promise.all([query.refetch(), qc.invalidateQueries({ queryKey: ["form-defaults"] }), qc.invalidateQueries({ queryKey: ["master-form-options"] }), qc.invalidateQueries({ queryKey: ["shared-settings"] })]);
     } catch (error) { setError(errorText(error)); } finally { setBusy(false); }
   }
   const matching = data.fields.filter(field => (search.trim() || field.group === activeGroup) && `${field.label} ${field.group} ${field.help || ""}`.toLowerCase().includes(search.toLowerCase().trim()));
   const groups = [...new Set(matching.map(field => field.group))];
   function control(field: Field) {
-    const value = values[field.key]; const disabled = busy || !Object.prototype.hasOwnProperty.call(overrides, field.key);
+    const value = values[field.key]; const disabled = busy || query.isFetching || !Object.prototype.hasOwnProperty.call(overrides, field.key);
     if (field.type === "currency") return <CurrencySelect label={field.label} value={String(value || "")} disabled={disabled} onChange={value => set(field.key, value)}/>;
     if (field.type === "country") return <CountrySelect label={field.label} value={String(value || "")} disabled={disabled} onChange={value => set(field.key, value)}/>;
     if (field.type === "number") return <input aria-label={field.label} type="number" min={field.min} max={field.max} step={field.key === "tax_rate" ? "0.01" : "1"} value={value === null ? "" : String(value)} disabled={disabled} placeholder="Not set" onChange={event => set(field.key, event.target.value === "" ? null : Number(event.target.value))}/>;

@@ -65,3 +65,6 @@ backend/.secrets/
 
 # Installed dependencies in generated workspaces
 **/node_modules/
+
+# Generated defaults verification builds
+/outputs/defaults-verification-*/

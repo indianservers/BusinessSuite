@@ -1,6 +1,6 @@
 /** Installed before BrowserRouter so canceled back/forward events never replace the draft. */
 type DraftGuard = { isDirty: () => boolean; index: number };
-let current: DraftGuard | undefined;
+const guards = new Set<DraftGuard>();
 let reversing = false;
 window.addEventListener("popstate", event => {
   if (reversing) {
@@ -8,7 +8,8 @@ window.addEventListener("popstate", event => {
     event.stopImmediatePropagation();
     return;
   }
-  if (!current?.isDirty()) return;
+  const current = [...guards].find(guard => guard.isDirty());
+  if (!current) return;
   if (window.confirm("Discard your unsaved settings changes?")) return;
   event.stopImmediatePropagation();
   const destination = event.state?.idx;
@@ -19,6 +20,6 @@ window.addEventListener("popstate", event => {
 }, true);
 export function registerSettingsDraftGuard(isDirty: () => boolean) {
   const guard = { isDirty, index: window.history.state?.idx ?? 0 };
-  current = guard;
-  return () => { if (current === guard) current = undefined; };
+  guards.add(guard);
+  return () => { guards.delete(guard); };
 }

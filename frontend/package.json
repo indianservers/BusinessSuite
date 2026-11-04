@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:defaults": "node scripts/test-form-defaults.cjs && node scripts/test-currency-selector.cjs && node scripts/test-phone-selector.cjs",
     "test:record-360": "node scripts/test-record-360.cjs && node scripts/test-task-record-links.cjs",
     "test:quick-actions": "node scripts/test-quick-actions.cjs && node scripts/test-suite-actions.cjs",
     "train:operator": "node scripts/train-operator-router.mjs",

@@ -1,4 +1,4 @@
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { defaultOwner } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -388,7 +388,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       ...Object.fromEntries(
         (["people", "teams", "batches"] as const).map((kind) => [
           kind,
-          (params.get(kind) || "")
+          (params.get(kind) ?? (kind === "people" && !params.has("teams") && !params.has("batches") ? String(defaultOwner("project_management") || "") : ""))
             .split(",")
             .map(Number)
             .filter((id) => Number.isInteger(id) && id > 0),

@@ -364,6 +364,15 @@
     ]
   },
   {
+    "key": "accounting_cost_center_id",
+    "label": "Finance cost centre",
+    "group": "Sales & finance",
+    "type": "reference",
+    "default": null,
+    "reference": "accounting_cost_centers",
+    "help": "Accounting cost centre for new voucher lines. Organisation cost centres are configured under Organisation & HR."
+  },
+  {
     "key": "bank_account_id",
     "label": "Receiving bank account",
     "group": "Sales & finance",
@@ -492,7 +501,7 @@
     "group": "CRM & tasks",
     "type": "number",
     "default": 3,
-    "min": 0,
+    "min": 1,
     "max": 365
   },
   {

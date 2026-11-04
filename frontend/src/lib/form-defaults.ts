@@ -1,21 +1,22 @@
-import definitions from "../../../shared/form-defaults.json";
+import definitions from "../../../backend/app/core/form_defaults.json";
 import { useAuthStore } from "@/store/authStore";
 
 export type DefaultValue = string | number | boolean | number[] | null;
 export type DefaultValues = Record<string, DefaultValue>;
 export type DefaultsPayload = { values: DefaultValues; modules: Record<string, DefaultValues>; companyId: number; branchId: number | null };
 const builtIn = Object.fromEntries(definitions.map(field => [field.key, field.default])) as DefaultValues;
+function storedContext(key: string): string | null { try { return sessionStorage.getItem(key); } catch { return null; } }
 let snapshot: { scope: string; payload: DefaultsPayload } | undefined;
 export function defaultsScope() {
   const user = useAuthStore.getState().user;
-  return `${user?.id}:${sessionStorage.getItem("suite-organization") || user?.access?.companyId}:${sessionStorage.getItem("suite-branch") || ""}`;
+  return `${user?.id}:${storedContext("suite-organization") || user?.access?.companyId}:${storedContext("suite-branch") || ""}`;
 }
 export function installFormDefaults(payload: DefaultsPayload) {
-  if (payload.branchId && !sessionStorage.getItem("suite-branch")) sessionStorage.setItem("suite-branch", String(payload.branchId));
+  if (payload.branchId && !storedContext("suite-branch")) { try { sessionStorage.setItem("suite-branch", String(payload.branchId)); } catch { /* Preferences still work without browser storage. */ } }
   snapshot = { scope: defaultsScope(), payload };
 }
 export function currentModule(): string {
-  const prefix = location.pathname.split("/")[1];
+  const prefix = typeof location === "undefined" ? "" : location.pathname.split("/")[1];
   return prefix === "pms" ? "project_management" : ["crm", "srm", "fam", "hrms"].includes(prefix) ? prefix : "";
 }
 export function formDefaults(module = currentModule()): DefaultValues {
@@ -51,3 +52,10 @@ export function displayDate(value: string | Date, module?: string): string {
 }
 export function displayTime(value: string | Date, module?: string): string { return new Date(value).toLocaleTimeString(defaultText("number_format", module), { hour: "2-digit", minute: "2-digit", hour12: defaultText("time_format", module) === "12h", timeZone: defaultText("timezone", module) }); }
 export function displayNumber(value: number, options?: Intl.NumberFormatOptions, module?: string): string { return value.toLocaleString(defaultText("number_format", module), options); }
+export function defaultFiscalYear(module?: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: defaultText("timezone", module), year: "numeric", month: "numeric" }).formatToParts(new Date());
+  const year = Number(parts.find(part => part.type === "year")?.value), month = Number(parts.find(part => part.type === "month")?.value);
+  const startMonth = defaultNumber("fiscal_year_start_month", module);
+  const startYear = month >= startMonth ? year : year - 1;
+  return { name: `FY ${startYear}-${String(startYear + 1).slice(-2)}`, start_date: `${startYear}-${String(startMonth).padStart(2, "0")}-01`, end_date: new Date(Date.UTC(startYear + 1, startMonth - 1, 0)).toISOString().slice(0, 10) };
+}

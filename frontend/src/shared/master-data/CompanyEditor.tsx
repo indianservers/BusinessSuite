@@ -1,4 +1,4 @@
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { defaultText, defaultPaymentTerms } from "@/lib/form-defaults";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import BranchAvailability, { type BranchAvailabilityValue } from "@/shared/BranchAvailability";
 import {useEffect,useRef,useState} from 'react';

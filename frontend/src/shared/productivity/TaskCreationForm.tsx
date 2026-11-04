@@ -1,4 +1,4 @@
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { defaultText } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm, { revealFormField } from "@/components/forms/CompactForm";
 import { useAuthStore } from "@/store/authStore";

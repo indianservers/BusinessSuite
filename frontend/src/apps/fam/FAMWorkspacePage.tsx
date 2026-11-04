@@ -1,4 +1,4 @@
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { defaultFiscalYear, defaultText, defaultId, defaultDateAfter } from "@/lib/form-defaults";
 import SuiteBarChart from "@/components/visuals/SuiteBarChart";
 import { SuiteHeading, SuiteMetric } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -390,8 +390,8 @@ function voucherDraft(kind: FAMViewKind): FAMRecord {
     narration: isJournal ? "Journal adjustment" : "",
     source_module: "fam",
     lines: [
-      { ...defaultVoucherLine, debit_amount: 1000, narration: "Debit line" },
-      { ...defaultVoucherLine, ledger_id: 2, credit_amount: 1000, narration: "Credit line" },
+      { ...defaultVoucherLine, cost_center_id: defaultId("accounting_cost_center_id", "fam"), debit_amount: 1000, narration: "Debit line" },
+      { ...defaultVoucherLine, cost_center_id: defaultId("accounting_cost_center_id", "fam"), ledger_id: 2, credit_amount: 1000, narration: "Credit line" },
     ],
   };
 }
@@ -422,7 +422,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
     const next = lines.map((line, lineIndex) => lineIndex === index ? { ...line, [key]: numericFields.has(key) ? Number(value) : value } : line);
     patch("lines", next);
   };
-  const addLine = () => patch("lines", [...lines, { ...defaultVoucherLine }]);
+  const addLine = () => patch("lines", [...lines, { ...defaultVoucherLine, cost_center_id: defaultId("accounting_cost_center_id", "fam") }]);
   const canEdit = (mode !== "detail" || !!voucherQuery.data) && String(effective.status || "draft") === "draft";
   return (
     <div className="space-y-4">
@@ -2052,7 +2052,7 @@ function parseJson(value: unknown) {
 const numericFields = new Set(["financial_year_id", "ledger_id", "ledger_group_id", "voucher_type_id", "debit_amount", "credit_amount", "opening_balance_dr", "opening_balance_cr", "opening_balance", "sequence_order", "numbering_sequence", "cost_center_id", "party_id", "payment_terms_days", "credit_limit", "original_amount", "outstanding_amount", "from_bill_reference_id", "to_bill_reference_id", "allocated_amount", "invoice_id", "receipt_id", "allocation_id", "source_record_id", "roundoff_ledger_id", "bank_account_id", "default_ledger_id", "statement_line_id", "voucher_id", "ledger_entry_id", "matched_amount", "expense_ledger_id", "from_ledger_id", "to_ledger_id", "amount", "cgst_rate", "sgst_rate", "igst_rate", "cess_rate", "default_gst_rate_id", "period_month", "period_year", "threshold_amount", "taxable_value", "vendor_id", "quantity", "quantity_in", "quantity_out", "available_quantity", "rate", "unit_cost", "gst_rate_id", "gst_amount", "tds_section_id", "tds_amount", "line_total", "subtotal", "discount_total", "gst_total", "grand_total", "employee_id", "total_amount", "default_rate", "section_id", "taxable_amount", "tds_rate", "bank_ledger_id", "purchase_bill_id", "bill_reference_id", "stock_group_id", "unit_id", "default_warehouse_id", "inventory_ledger_id", "purchase_ledger_id", "sales_ledger_id", "cogs_ledger_id", "adjustment_gain_ledger_id", "adjustment_loss_ledger_id", "grni_ledger_id", "warehouse_id", "from_warehouse_id", "to_warehouse_id", "stock_item_id", "product_id", "batch_id", "bom_id", "order_id", "finished_product_id", "component_product_id", "output_quantity", "planned_quantity", "completed_quantity", "purchase_rate", "sales_rate", "price", "discount_percent", "discount_amount", "min_quantity", "priority", "reorder_level", "min_stock", "max_stock", "parent_group_id", "branch_id", "adjustment_ledger_id"]);
 
 function getListConfig(kind: FAMViewKind) {
-  if (kind === "financialYears") return { label: "financial year", query: famApi.financialYears, create: famApi.createFinancialYear, initial: { name: "FY 2027-28", start_date: "2027-04-01", end_date: "2028-03-31", status: "open", is_current: false }, fields: ["name", "start_date", "end_date"], columns: ["name", "start_date", "end_date", "status", "is_current"] };
+  if (kind === "financialYears") return { label: "financial year", query: famApi.financialYears, create: famApi.createFinancialYear, initial: { ...defaultFiscalYear("fam"), status: "open", is_current: false }, fields: ["name", "start_date", "end_date"], columns: ["name", "start_date", "end_date", "status", "is_current"] };
   if (kind === "ledgerGroups") return { label: "ledger group", query: famApi.ledgerGroups, create: famApi.createLedgerGroup, initial: { group_name: "", group_code: "", nature: "asset", sequence_order: 100 }, fields: ["group_name", "group_code", "nature", "sequence_order"], columns: ["group_code", "group_name", "nature", "system_group", "active"] };
   if (kind === "ledgers") return { label: "ledger", query: famApi.ledgers, create: famApi.createLedger, initial: { ledger_code: "", ledger_name: "", ledger_group_id: 1, nature: "asset", ledger_type: "general" }, fields: ["ledger_code", "ledger_name", "ledger_group_id", "nature", "ledger_type"], columns: ["ledger_code", "ledger_name", "nature", "ledger_type", "current_balance_dr", "current_balance_cr", "active"] };
   if (kind === "voucherTypes") return { label: "voucher type", query: famApi.voucherTypes, create: famApi.createVoucherType, initial: { voucher_type_code: "", voucher_type_name: "", category: "journal", numbering_prefix: "JV", numbering_sequence: 1, auto_numbering: true }, fields: ["voucher_type_code", "voucher_type_name", "category", "numbering_prefix", "numbering_sequence"], columns: ["voucher_type_code", "voucher_type_name", "category", "numbering_prefix", "numbering_sequence", "active"] };

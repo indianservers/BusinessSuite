@@ -1,6 +1,6 @@
 """Server-owned settings discovery. Role labels never confer configuration access."""
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
 from app.access import service
@@ -253,8 +253,8 @@ def setting_history(key: str, db: Session = Depends(get_db), actor: User = Depen
 
 class DefaultsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    values: dict
-    version: int
+    values: dict[str, object] = Field(max_length=100)
+    version: int = Field(ge=0, strict=True)
 
 
 @router.get("/defaults/effective")

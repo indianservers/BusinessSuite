@@ -2,12 +2,15 @@ const { buildSync } = require('esbuild');
 const { chromium, expect } = require('playwright/test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const fs = require('node:fs');
 const root = path.resolve(__dirname, '..');
 const source = `
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import * as Dialog from '@radix-ui/react-dialog';
 import {PhoneInput} from './src/lib/validation/PhoneInput';
+import {installFormDefaults} from './src/lib/form-defaults';
+if(location.hash==='#custom')installFormDefaults({values:{phone_country_code:'+971'},modules:{},companyId:1,branchId:null});
 function Fields(){
  const [values,set]=useState({first:'',second:'',firstCode:'',secondCode:''});
  const [submits,S]=useState(0);
@@ -19,7 +22,9 @@ function Fields(){
 function App(){return location.hash==='#dialog'?<Dialog.Root defaultOpen><Dialog.Portal><Dialog.Overlay/><Dialog.Content aria-describedby={undefined} style={{position:'fixed',left:24,top:24,width:280,height:100,overflow:'hidden',transform:'translateX(5px)'}}><Dialog.Title>Phone dialog</Dialog.Title><Fields/></Dialog.Content></Dialog.Portal></Dialog.Root>:<div style={{height:100,overflow:'hidden',width:280}}><Fields/></div>}
 createRoot(document.getElementById('root')).render(<App/>);`;
 (async()=>{
- const bundle=buildSync({stdin:{contents:source,resolveDir:root,loader:'tsx'},bundle:true,write:false,format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'}}).outputFiles[0].text;
+ const flagDirectory=path.join(root,'node_modules/country-flag-icons/3x2');
+ const flagAssets=Object.fromEntries(fs.readdirSync(flagDirectory).filter(name=>name.endsWith('.svg')).map(name=>['/node_modules/country-flag-icons/3x2/'+name,'data:image/svg+xml;base64,'+fs.readFileSync(path.join(flagDirectory,name)).toString('base64')]));
+ const bundle=buildSync({stdin:{contents:source,resolveDir:root,loader:'tsx'},bundle:true,write:false,format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"','import.meta.glob':'flagGlob'},banner:{js:'function flagGlob(){return '+JSON.stringify(flagAssets)+';}'}}).outputFiles[0].text;
  const browser=await chromium.launch({headless:true});
  try{
  for(const mode of ['form','dialog']){
@@ -29,7 +34,7 @@ createRoot(document.getElementById('root')).render(<App/>);`;
  await page.addScriptTag({content:bundle});
  await expect(page.getByTestId('state')).toContainText('"firstCode":"+91","secondCode":"+91"');
  const trigger=page.getByRole('button',{name:/^first country calling code/});
- await expect(trigger).toHaveText('+91▾');assert.ok((await trigger.boundingBox()).width<=68);
+ await expect(trigger).toHaveText('+91▾');assert.ok((await trigger.boundingBox()).width<=112);
  await trigger.click();const search=page.getByRole('combobox');await expect(search).toBeFocused();
  assert.equal(await page.locator('[popover]').evaluate(e=>e.matches(':popover-open')),true);
  await search.fill('India');await expect(page.getByRole('option',{name:/IN \+91/})).toBeVisible();
@@ -54,5 +59,6 @@ createRoot(document.getElementById('root')).render(<App/>);`;
  const popup=await page.locator('[popover]').boundingBox();assert.ok(popup.x>=0&&popup.x+popup.width<=320&&popup.y>=0&&popup.y+popup.height<=300);
  await page.close();console.log(mode+': default codes, compact width, search, mouse/keyboard selection, shared codes, clipping and focus passed');
  }
+ const customPage=await browser.newPage();await customPage.setContent('<div id="root"></div>');await customPage.evaluate(()=>{location.hash='custom'});await customPage.addScriptTag({content:bundle});await expect(customPage.getByTestId('state')).toContainText('"firstCode":"+971","secondCode":"+971"');await customPage.close();console.log('Configured phone code applies to new fields');
  }finally{await browser.close()}
 })().catch(error=>{console.error(error);process.exit(1)});

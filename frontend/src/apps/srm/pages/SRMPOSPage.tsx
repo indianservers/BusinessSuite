@@ -1,3 +1,4 @@
+import { defaultText } from "@/lib/form-defaults";
 import { CompanyProfile } from "@/shared/master-data/CompanySelect";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -335,7 +336,7 @@ export default function SRMPOSPage() {
   const [coupon, setCoupon] = useState("");
   const [note, setNote] = useState("");
   const [activeModal, setActiveModal] = useState<"payment" | "held" | "success" | "close" | "cash" | "profile" | null>(null);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>("Cash");
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>(() => paymentModes.find(mode => mode.toLowerCase() === defaultText("payment_mode_name", "srm").toLowerCase() || mode.toLowerCase() === defaultText("payment_mode_type", "srm").toLowerCase()) || "Cash");
   const [paymentRows, setPaymentRows] = useState<PaymentRow[]>([]);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
   const [closingCash, setClosingCash] = useState("");

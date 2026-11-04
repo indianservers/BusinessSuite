@@ -1,4 +1,4 @@
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { defaultText, defaultDateAfter, displayDate } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import CompaniesPage from "@/shared/master-data/CompaniesPage";
 import SalesPipeline from "../components/SalesPipeline";

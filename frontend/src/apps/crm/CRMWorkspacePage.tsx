@@ -1,4 +1,4 @@
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultDateAfter, formDefaults } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
@@ -6511,6 +6511,7 @@ function QuoteBuilderPage() {
   const customFieldForm=useCrmFieldForm("quotations","edit",quoteId);
   const [quote, setQuote] = useState<CRMRecord | null>(null);
   const [line, setLine] = useState<CRMRecord>({ item_type: "service", name: "Implementation", quantity: 1, unit_price: 50000, discount_type: "amount", discount_value: 0, tax_rate: defaultNumber("tax_rate", "crm"), estimated_cost: 25000, billing_type: "fixed" });
+  const [priceIncludesTax, setPriceIncludesTax] = useState(() => Boolean(formDefaults("crm").tax_inclusive));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const load = () => {
@@ -6523,7 +6524,7 @@ function QuoteBuilderPage() {
     setError(null);
     action().then((response) => setQuote(response.data.quote && typeof response.data.quote === "object" ? response.data.quote as CRMRecord : response.data)).catch((err) => setError(err?.response?.data?.detail || `${label} failed.`)).finally(() => setSaving(false));
   };
-  const addLine = () => run("Add line", () => crmApi.addQuoteLine(quoteId, line));
+  const addLine = () => run("Add line", () => crmApi.addQuoteLine(quoteId, { ...line, unit_price: priceIncludesTax ? Math.round(Number(line.unit_price || 0) / (1 + Number(line.tax_rate || 0) / 100) * 100) / 100 : line.unit_price }));
   const actor = useAuthStore(state => state.user);
   const quoteGrant = actor?.access?.grants.crm;
   const granted = (permissions: string[], actions: string[]) => !!actor?.is_superuser || !actor?.access?.managed || !!quoteGrant?.enabled && (permissions.some(p => (quoteGrant.permissions || []).includes(p)) || actions.some(action => (quoteGrant.actions || []).includes(action)));
@@ -6550,6 +6551,7 @@ function QuoteBuilderPage() {
           <Card>
             <CardHeader><CardTitle>Quote Lines</CardTitle></CardHeader>
             <CardContent className="space-y-3">
+              <label className="flex items-center gap-2 text-sm">Price tax treatment<NativeSelect aria-label="Quote line tax treatment" className="h-9 rounded border bg-background px-2" value={priceIncludesTax ? "inclusive" : "exclusive"} onChange={event => setPriceIncludesTax(event.target.value === "inclusive")}><option value="exclusive">Tax exclusive</option><option value="inclusive">Tax inclusive</option></NativeSelect></label>
               <div className="grid gap-2 md:grid-cols-6">
                 <Input value={String(line.name || "")} onChange={(event) => setLine((current) => ({ ...current, name: event.target.value }))} placeholder="Line item" />
                 <Input type="number" value={Number(line.quantity || 1)} onChange={(event) => setLine((current) => ({ ...current, quantity: Number(event.target.value) }))} />
