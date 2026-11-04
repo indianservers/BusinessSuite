@@ -1,3 +1,4 @@
+import { refreshNotifications } from "@/lib/notification-cache";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -52,9 +53,7 @@ export default function SuiteNotificationsPage() {
         : notificationsApi.markRead(id),
     onSuccess: () => {
       setMutationError("");
-      void qc.invalidateQueries({ queryKey: ["suite-notifications"] });
-      void qc.invalidateQueries({ queryKey: ["notifications"] });
-      void qc.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+      return refreshNotifications(qc);
     },
     onError: () =>
       setMutationError("Could not update notifications. Please try again."),

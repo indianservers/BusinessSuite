@@ -17,7 +17,7 @@ from app.apps.power_apps.integrations import (
     native_events,
     native_sources,
 )
-from app.apps.power_apps.integrations.models import NativeDelivery
+from app.apps.power_apps.integrations.models import NativeDelivery, ConnectorGate
 from app.apps.power_apps.integrations.transport import Response, EgressPolicy
 from app.apps.power_apps.integrations.contracts import IntegrationFailure
 from app.apps.power_apps.runtime import now
@@ -95,6 +95,7 @@ def test_github_native_setup_verified_inbox_dedup_and_cleanup(
     native.tick(db)
     assert trigger.config["native"]["phase"] == "active", trigger.config
     assert sum(method == "POST" for method, _, _ in calls) == 1
+    assert not db.query(ConnectorGate).one().leases, db.query(ConnectorGate).one().leases
     private = native.read_private(trigger)
     body = json.dumps(
         {
@@ -129,9 +130,11 @@ def test_github_native_setup_verified_inbox_dedup_and_cleanup(
         )
         assert response.status_code == 200, response.text
     assert db.query(NativeDelivery).count() == 1
+    db.refresh(trigger)
+    assert trigger.next_at.replace(tzinfo=timezone.utc)<=now(), (trigger.next_at,now(),trigger.config)
     native.tick(db)
     drain(db)
-    assert db.query(PowerExecution).filter_by(resource_id=row["id"]).count() == 1
+    assert db.query(PowerExecution).filter_by(resource_id=row["id"]).count() == 1, (trigger.config["native"],native.read_private(trigger)["state"],db.query(ConnectorGate).one().leases,[(d.status,d.attempts) for d in db.query(NativeDelivery).all()])
     assert db.query(NativeDelivery).one().encrypted_payload is None
     listing = client.get(f"{ROOT}/{row['id']}/triggers", headers=actors[0]).text
     assert private["secrets"]["verification"] not in listing

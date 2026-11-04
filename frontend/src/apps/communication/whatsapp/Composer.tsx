@@ -15,18 +15,19 @@ import { whatsappBase as base, whatsappError, templateParameters, templateSuppor
 
 type SendPayload = { requestId: string; to: string; body: string; template?: { name: string; language: { code: string }; components?: unknown[] }; entityType?: string; entityId?: number };
 type CRMRecord = { id: number; name?: string; fullName?: string; firstName?: string; lastName?: string; title?: string; phone?: string; phoneCountryCode?: string;email?:string };
+export type WhatsAppDraft = { key: string; to: string; body: string; entityType?: "lead" | "contact" | "deal"; entityId?: number };
 const recordName=(r:CRMRecord)=>r.fullName || r.name || [r.firstName,r.lastName].filter(Boolean).join(' ') || r.title || `Record ${r.id}`;
-export default function Composer({templates,contact,admin,scope,refresh,compact=false,businessName='Your business'}:{templates:Template[];contact?:Contact;admin:boolean;scope:string;refresh:()=>Promise<void>;compact?:boolean;businessName?:string}) {
-  const [to,setTo]=useState(contact?'+'+contact.recipient:''),[body,setBody]=useState('');
+export default function Composer({templates,contact,admin,scope,refresh,compact=false,businessName='Your business',initialDraft}:{templates:Template[];contact?:Contact;admin:boolean;scope:string;refresh:()=>Promise<void>;compact?:boolean;businessName?:string;initialDraft?:WhatsAppDraft}) {
+  const [to,setTo]=useState(contact?'+'+contact.recipient:initialDraft?.to||''),[body,setBody]=useState(initialDraft?.body||'');
   const [countryCode,setCountryCode]=useState(contract.default_calling_code);
   const callingCode=to.startsWith('+')?([...contract.countries].sort((a,b)=>b.code.length-a.code.length).find(c=>to.startsWith(c.code))?.code||countryCode):countryCode;
   const nationalNumber=to.startsWith(callingCode)?to.slice(callingCode.length):to;
   const [mode,setMode]=useState(contact?.serviceWindowOpen?'text':'template'),[chosen,setChosen]=useState('');
   const [parameters,setParameters]=useState<Record<string,string>>({});
-  const [entity,setEntity]=useState(contact?.entityType||'lead'),[recordId,setRecordId]=useState(contact?.entityId?String(contact.entityId):''),[search,setSearch]=useState('');
+  const [entity,setEntity]=useState(contact?.entityType||initialDraft?.entityType||'lead'),[recordId,setRecordId]=useState(contact?.entityId?String(contact.entityId):initialDraft?.entityId?String(initialDraft.entityId):''),[search,setSearch]=useState('');
   const [busy,setBusy]=useState(false),[notice,setNotice]=useState('');
-  const [pending,setPending]=useState<SendPayload|null>(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`whatsapp-draft:${scope}:${contact?.id||'new'}:pending`)||'null');return saved&&typeof saved.requestId==='string'?saved:null;}catch{return null;}}),[result,setResult]=useState<Message|null>(null);
-  const draftKey=`whatsapp-draft:${scope}:${contact?.id||'new'}`;
+  const [pending,setPending]=useState<SendPayload|null>(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`whatsapp-draft:${scope}:${contact?.id||initialDraft?.key||'new'}:pending`)||'null');return saved&&typeof saved.requestId==='string'?saved:null;}catch{return null;}}),[result,setResult]=useState<Message|null>(null);
+  const draftKey=`whatsapp-draft:${scope}:${contact?.id||initialDraft?.key||'new'}`;
   const [hasDraft,setHasDraft]=useState(()=>!!sessionStorage.getItem(draftKey));
   const [draftReady,setDraftReady]=useState(false),[autosaved,setAutosaved]=useState(''),[lookupTo,setLookupTo]=useState(to);
   useEffect(()=>{const timer=setTimeout(()=>setLookupTo(to),250);return()=>clearTimeout(timer);},[to]);

@@ -1,3 +1,4 @@
+import { refreshNotifications } from "@/lib/notification-cache";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, X, ArrowLeft } from "lucide-react";
@@ -23,9 +24,7 @@ export default function SuiteNotificationBell() {
   const markRead = useMutation({
     mutationFn: (id: number) => notificationsApi.markRead(id),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["suite-notifications"] });
-      void qc.invalidateQueries({ queryKey: ["notifications"] });
-      void qc.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+      return refreshNotifications(qc);
     },
   });
   const items = (feed.data?.items || []).filter(canSeeNotification);

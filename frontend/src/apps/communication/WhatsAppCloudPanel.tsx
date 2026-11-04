@@ -7,7 +7,7 @@ import { api } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import ConnectionPanel from './whatsapp/ConnectionPanel';
 import TemplatesPanel from './whatsapp/TemplatesPanel';
-import Composer from './whatsapp/Composer';
+import Composer, { type WhatsAppDraft } from './whatsapp/Composer';
 import Inbox from './whatsapp/Inbox';
 import ProfilePanel from './whatsapp/ProfilePanel';
 import SentMessages from './whatsapp/SentMessages';
@@ -15,12 +15,14 @@ import { whatsappBase as base, whatsappError, type Status, type Template } from 
 import './whatsapp/whatsapp.css';
 import CustomerMatchButton from './CustomerMatchButton';
 
-export default function WhatsAppCloudPanel() {
+export default function WhatsAppCloudPanel({initialDraft}:{initialDraft?:WhatsAppDraft} = {}) {
   const user=useAuthStore(state=>state.user);
+  const location=useLocation();
+  const draft=initialDraft || (location.state as {whatsappDraft?:WhatsAppDraft}|null)?.whatsappDraft;
   const scope=`${user?.id}:${sessionStorage.getItem('suite-organization')||'default'}:${sessionStorage.getItem('suite-branch')||'default'}`;
-  return <WhatsAppWorkspace key={scope} scope={scope}/>;
+  return <WhatsAppWorkspace key={`${scope}:${draft?.key||'new'}`} scope={scope} initialDraft={draft}/>;
 }
-function WhatsAppWorkspace({scope}:{scope:string}) {
+function WhatsAppWorkspace({scope,initialDraft}:{scope:string;initialDraft?:WhatsAppDraft}) {
   const cache=useQueryClient(),location=useLocation(),navigate=useNavigate();
   const [params,setParams]=useSearchParams();
   const routeTab=location.pathname.split('/').pop()||'';
@@ -46,7 +48,7 @@ function WhatsAppWorkspace({scope}:{scope:string}) {
     {!account.configured&&tab!=='settings'&&<p className="wa-empty-note">An organization administrator must connect and verify a WhatsApp sender in Account settings.</p>}
     {templates.isError&&tab!=='settings'&&<p role="alert" className="wa-error">Templates could not load: {whatsappError(templates.error)}</p>}
     {templates.data?.hasMore&&tab!=='settings'&&<p className="wa-muted-note">Showing the first 100 Meta templates.</p>}
-    {account.configured&&tab==='send'&&<Composer scope={scope} templates={templates.data?.items||[]} admin={account.canAdmin} refresh={refresh} businessName={account.connection?.businessName||'Your business'}/>}
+    {account.configured&&tab==='send'&&<Composer scope={scope} templates={templates.data?.items||[]} admin={account.canAdmin} refresh={refresh} businessName={account.connection?.businessName||'Your business'} initialDraft={initialDraft}/>}
     {account.configured&&tab==='inbox'&&<Inbox scope={scope} selected={selected} onSelect={id=>setParams({conversation:String(id)})} onClear={()=>setParams({})} templates={templates.data?.items||[]} admin={account.canAdmin} refresh={refresh}/>}
     {account.configured&&tab==='templates'&&<TemplatesPanel templates={templates.data?.items||[]} admin={account.canAdmin} refresh={refresh}/>}
     {account.configured&&tab==='sent'&&<SentMessages scope={scope}/>}

@@ -105,6 +105,9 @@ def ensure(client, mid, setup, private, callback, save):
             client.request("POST",("/drive/v3" if mid=="google_drive" else "/calendar/v3")+"/channels/stop",{"id":retired["id"],"resourceId":retired["resource_id"]},allow=(404,))
         private["retired_channels"].remove(retired); save()
     delivery = mode(mid, setup)
+    if mid=="hubspot" and delivery=="native_journal":
+        from app.apps.power_apps.integrations.native_hubspot import ensure as ensure_journal
+        return ensure_journal(client,setup,private,save)
     if delivery in {"native_polling", "native_stream"} or mid == "http":
         state.setdefault("registered_at", iso_after(0))
         save()
@@ -473,6 +476,9 @@ def renew(client, mid, setup, private, callback, save):
 
 
 def remove(client, mid, setup, private, *, shared_in_use=False):
+    if mid=="hubspot" and mode(mid,setup)=="native_journal":
+        from app.apps.power_apps.integrations.native_hubspot import remove as remove_journal
+        return remove_journal(client,private,shared_in_use)
     state = private.get("state", {})
     id = state.get("id")
     if mid in {"gmail", "google_forms"}:

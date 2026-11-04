@@ -128,7 +128,7 @@ def prepare(db, row, trigger, state, module_id, setup, enabled, provider_secrets
         private["secrets"]["verification"] = secrets.token_urlsafe(24)
     missing = [
         key
-        for key in specs.SECRET_FIELDS.get(module_id, {})
+        for key in specs.secret_fields(module_id,setup)
         if not private["secrets"].get(key)
     ]
     if "cloud_service_account" in provider_secrets:
@@ -398,6 +398,9 @@ def _matching(trigger, event):
 
 
 def _source_poll(client, mid, setup, private):
+    if mid=="hubspot" and specs.mode(mid,setup)=="native_journal":
+        from app.apps.power_apps.integrations.native_hubspot import poll
+        return poll(client,setup,private),[]
     if (
         mid in {"dropbox", "google_drive", "onedrive"}
         or mid == "sharepoint"

@@ -110,7 +110,7 @@ def test_destination_module_viewer_cannot_receive_new_offering(client, db, scope
     assert "module role" in response.json()["detail"]
 
 
-@pytest.mark.parametrize("entity,payload", [("contacts", {"firstName": "Branch", "lastName": "Contact"}), ("companies", {"name": "Branch CRM account"})])
+@pytest.mark.parametrize("entity,payload", [("contacts", {"fullName": "Branch Contact", "firstName": "Branch", "lastName": "Contact"}), ("companies", {"name": "Branch CRM account"})])
 def test_legacy_crm_forms_create_and_edit_availability(client, scope, entity, payload):
     root = "/api/v1/crm/" + entity
     created = client.post(root, headers=headers(scope), json={**payload, "branch_availability": {"scope": "all"}})
@@ -120,3 +120,22 @@ def test_legacy_crm_forms_create_and_edit_availability(client, scope, entity, pa
     response = client.patch(f"{root}/{ident}", headers=headers(scope), json={"branch_availability": {"scope": "current"}})
     assert response.status_code == 200, response.text
     assert client.get(f"{root}/{ident}", headers=headers(scope, 1)).status_code == 404
+
+
+def test_company_manager_can_share_its_generated_identity(client, db, scope):
+    from app.models.user import Role, Permission
+    permission = db.query(Permission).filter_by(name="crm_accounts_manage").first()
+    if permission is None:
+        permission = Permission(name="crm_accounts_manage", module="crm")
+        db.add(permission); db.flush()
+    role = Role(name="availability_company_manager", is_system=False)
+    role.permissions.append(permission)
+    db.add(role); db.flush()
+    scope[0].role_id = role.id
+    scope[0].is_superuser = False
+    db.add(BranchPolicy(user_id=scope[0].id, company_id=1, use_home_branch=False))
+    for branch in scope[1]:
+        db.add(BranchGrant(user_id=scope[0].id, company_id=1, branch_id=branch.id, can_write=True))
+    db.commit()
+    response = client.post("/api/v1/master-data/companies", headers=headers(scope), json={"name": "Company manager shared customer", "roles": ["Customer"], "branch_availability": {"scope": "all"}})
+    assert response.status_code == 201, response.text

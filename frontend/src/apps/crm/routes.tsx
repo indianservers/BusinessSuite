@@ -23,9 +23,8 @@ const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"
 const CRMRecordsPage = React.lazy(() => import("./CRMRecordsPage"));
 const CRMMetadataPage = React.lazy(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
 const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
-const BirthdaysPage = React.lazy(()=>import("@/shared/master-data/BirthdaysPage"));
 export const crmRoutes: FrontendRoute[] = [
- {path:"crm/birthdays",element:<BirthdaysPage source="crm"/>},
+ {path:"crm/birthdays",element:<CommunicationHubPage/>},
  {path:"crm/company-directory",element:<CentralSettingsRedirect section="shared-companies"/>},
   { path: "crm/records", element: <CRMRecordsPage /> },
   { path: "crm/record-metadata", element: <CRMMetadataPage /> },
@@ -68,6 +67,7 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/calendar", element: <CRMWorkspacePage kind="calendar" /> },
   { path: "crm/calendar-integrations", element: <CRMWorkspacePage kind="calendarIntegrations" /> },
   { path: "crm/webhooks", element: <CentralSettingsRedirect section="crm-webhooks" /> },
+  { path: "crm/send-reminders", element: <CommunicationHubPage /> },
   { path: "crm/communication-hub", element: <CommunicationHubPage /> },
   { path: "crm/email-templates", element: <CommunicationHubPage /> },
   { path: "crm/emails", element: <CommunicationHubPage /> },

@@ -19,7 +19,7 @@ MODES = {
     "whatsapp_business": "native_webhook",
     "dropbox": "native_polling",
     "notion": "native_polling",
-    "hubspot": "native_polling",
+    "hubspot": "native_journal",
     "salesforce": "native_stream",
     "http": "native_webhook",
 }
@@ -49,8 +49,10 @@ SECRET_FIELDS = {
     },
     "whatsapp_business": {"app_secret": "Meta app secret"},
     "box": {"primary_signature_key": "Box primary webhook signing key"},
+    "hubspot": {"client_id":"HubSpot developer app client ID", "client_secret":"HubSpot developer app client secret"},
 }
 EXTRA_FIELDS = {
+    "subscription_mode":{"type":"string","enum":["journal","polling"],"default":"journal","title":"HubSpot event source"},
     "cloud_project_id": {"type": "string", "title": "Google Cloud project ID"},
     "app_id": {"type": "string", "title": "Provider app ID"},
     "business_account_id": {"type": "string", "title": "WhatsApp Business Account ID"},
@@ -73,6 +75,7 @@ EXTRA_FIELDS = {
 
 def mode(module_id, setup=None):
     setup = setup or {}
+    if module_id=="hubspot" and setup.get("subscription_mode")=="polling": return "native_polling"
     if module_id == "http" and setup.get("event") == "response_condition_matched":
         return "native_polling"
     if module_id == "salesforce" and setup.get("event") != "platform_event":
@@ -87,6 +90,7 @@ def augment_schema(module_id, schema):
     for key in REQUIRED.get(module_id, []):
         properties.setdefault(key, EXTRA_FIELDS.get(key, {"type": "string"}))
     for key in {
+        "hubspot":["subscription_mode"],
         "notion": ["condition"],
         "airtable": ["condition"],
         "salesforce": ["stream_channel"],
@@ -101,6 +105,11 @@ def augment_schema(module_id, schema):
         {"type": "integer", "minimum": 15, "maximum": 3600, "default": 30},
     )
     return schema
+
+
+def secret_fields(module_id,setup):
+    if module_id=="hubspot" and mode(module_id,setup)=="native_polling": return {}
+    return SECRET_FIELDS.get(module_id,{})
 
 
 def validate_native(module_id, setup):

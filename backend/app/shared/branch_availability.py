@@ -44,10 +44,8 @@ def resolve(db, actor, value, module, action="edit", validate=None):
     return targets
 
 
-
 def check_destinations(db, actor, targets, module, action, validate=None):
-    from app.access.service import check_background_access, policy_for, resolved_grants
-    from app.access.service import effective_objects
+    from app.access.service import check_background_access, policy_for, resolved_grants, effective_objects
     from app.branches.roles import effective_grants
     for branch in sorted(targets):
         check_background_access(db, actor, module, action, branch_id=branch)
@@ -64,6 +62,7 @@ def check_destinations(db, actor, targets, module, action, validate=None):
         finally:
             actor._suite_grants, actor._suite_permission_objects = previous
 
+
 def profile_availability(db, row):
     table = row.__tablename__
     connection = db.connection()
@@ -74,11 +73,12 @@ def profile_availability(db, row):
     return {"scope": "selected", "branch_ids": sorted(ids)} if ids else None
 
 
-def save_profile_availability(db, actor, row, value, module="crm", action="edit"):
+def save_profile_availability(db, actor, row, value, module="crm", action="edit", validate=None):
     if value is None:
         return
     from app.shared.master_data import authorize
-    validate = lambda: authorize(actor, module, True, "companies" if row.__tablename__ == "crm_companies" else "contacts", action)
+    if validate is None:
+        validate = lambda: authorize(actor, module, True, "companies" if row.__tablename__ == "crm_companies" else "contacts", action)
     targets = resolve(db, actor, value, module, action, validate)
     db.flush()
     connection = db.connection()
@@ -104,7 +104,7 @@ def save_profile_availability(db, actor, row, value, module="crm", action="edit"
         from app.apps.crm.contact_identity import ContactIdentityLink
         link = db.query(ContactIdentityLink).filter(ContactIdentityLink.account_id == row.id).first()
         if link:
-            save_profile_availability(db, actor, link.contact, value, module, action)
+            save_profile_availability(db, actor, link.contact, value, module, action, validate)
 
 
 def capture_availability(payload, db, actor, entity, action):

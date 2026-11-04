@@ -11,7 +11,7 @@ const labels: Record<string, string> = {
   "/pms/settings": "Workspace settings", "/pms/admin": "Workspace administration",
   "/pms/templates": "Templates & workflows", "/pms/goals": "Goals",
   "/pms/backlog": "Backlog & sprints", "/pms/notes": "Notes",
-  "/crm/companies": "Companies & customers", "/crm/customer-360": "Customer overview",
+  "/crm/companies": "Companies", "/crm/customer-360": "Customer overview",
   "/crm/lead-to-cash": "Sales to payment", "/crm/gantt": "Activity timeline",
   "/crm/quotations": "Quotes", "/crm/duplicates": "Duplicate records",
   "/crm/settings": "Fields & preferences", "/crm/feature-checklist": "Feature availability",

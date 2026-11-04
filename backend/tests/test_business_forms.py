@@ -46,6 +46,10 @@ def test_shared_company_role_add_preserves_customer_and_other_details(client,db,
     assert saved.json()['businessType']=='private_limited'
     assert saved.json()['vendorClassification']=='Service Provider'
     assert db.query(CRMCompany).filter_by(name=row['name']).count()==1
+    grid=client.get(ROOT+'/company-directory/query',headers=superuser_headers,params={'role':'Vendor'})
+    assert grid.status_code==200,grid.text
+    assert grid.json()['companyStats']['services']==1
+    assert grid.json()['companyStats']['total']==1
     for source in ['crm','srm','project_management']:
         result=client.get(ROOT+'/companies',headers=superuser_headers,params={'source':source,'role':'Vendor'} )
         assert result.status_code==200,result.text

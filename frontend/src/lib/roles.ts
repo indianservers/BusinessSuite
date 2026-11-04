@@ -829,6 +829,7 @@ const employeeNav: RoleNavItem[] = [
 ];
 
 const crmNav: RoleNavItem[] = [
+ {label:"Send reminders",icon:MessageCircle,to:"/crm/send-reminders",group:"Communication"},
  {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
   { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },

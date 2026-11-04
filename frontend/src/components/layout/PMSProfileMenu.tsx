@@ -1,3 +1,4 @@
+import { refreshNotifications } from "@/lib/notification-cache";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -202,12 +203,7 @@ export default function PMSProfileMenu({
     setError("");
     try {
       await notificationsApi.markRead(id);
-      await Promise.all([
-        client.invalidateQueries({
-          queryKey: ["profile-notifications", user?.id],
-        }),
-        client.invalidateQueries({ queryKey: ["notifications-unread-count"] }),
-      ]);
+      await refreshNotifications(client);
     } catch {
       setError("Could not mark the notification as read. Please retry.");
     } finally {

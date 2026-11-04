@@ -334,9 +334,15 @@ def relationships(db, row, kind):
 
 def company_output(db, row):
     details = db.get(CompanyMasterDetails, row.id)
-    vendor = db.query(BusinessRelationship).filter(BusinessRelationship.account_id == row.id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.id).first()
+    if "master_vendor_cache" not in db.info:
+        cache = {}
+        for link in db.query(BusinessRelationship).filter(BusinessRelationship.organization_id == row.organization_id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.id):
+            cache.setdefault(link.account_id, link)
+        db.info["master_vendor_cache"] = cache
+    vendor = db.info["master_vendor_cache"].get(row.id)
     return {"branch_availability": profile_availability(db, row), "id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "status": row.status,
         "country": row.country or "IN", "vendorClassification": vendor.category if vendor else None, "paymentTerms": vendor.payment_terms if vendor else None,
+        "gstNumber": next((r.get("number", "") for r in (details.tax_registrations if details else []) if r.get("type", "").upper() in {"GST", "GSTIN"}), ""),
         "roles": relationships(db, row, "company"), "tags": [x.strip() for x in (row.tags_text or "").split(",") if x.strip() and x.strip() not in ROLES], "notes": row.notes,
         "entityKind": "Individual" if details and details.business_type == "Individual" else "Company",
         "legalName": details.legal_name if details else None, "tradeName": details.trade_name if details else None, "businessType": details.business_type if details else None,
@@ -377,7 +383,8 @@ def list_companies(source: Source = "crm", search: str = Query("", max_length=18
 
 @router.get("/form-options")
 def form_options(source: Source = "crm", db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
-    authorize(actor, source)
+    try: authorize(actor, source)
+    except HTTPException: authorize(actor, source, entity="contacts")
     from app.models.company import Company as TenantCompany
     company = db.get(TenantCompany, actor.organization_id)
     return {"country": company.country if company else "IN", "currency": company.default_currency if company else "INR"}
@@ -582,6 +589,7 @@ def write_company(db, actor, source, data, row=None):
     effective_roles = sorted((set() if is_new else set(relationships(db, row, "company"))) | set(data.roles))
     save_roles(db, actor, row, "company", effective_roles)
     db.flush()  # Newly added relationship rows must exist before saving details.
+    db.info.pop("master_vendor_cache", None)
     if data.country is not None: row.country = country
     if "vendorClassification" in data.model_fields_set or "paymentTerms" in data.model_fields_set:
         relationship = db.query(BusinessRelationship).filter_by(account_id=row.id, role="Vendor").first()
@@ -943,7 +951,12 @@ def company_grid(state: str = Query("{}", max_length=16000), source: Source = "c
             raise HTTPException(422, "Unknown business role")
         role_values = ["Vendor", "Supplier"] if role in {"Vendor", "Supplier"} else [role]
         q = q.filter(or_(CRMCompany.account_type.in_(role_values), CRMCompany.id.in_(select(BusinessRelationship.account_id).where(BusinessRelationship.role.in_(role_values)))))
-    fields = {name: GridField(getattr(CRMCompany, name), "id" if name == "id" else "datetime" if name in {"created_at", "updated_at"} else "text") for name in ["id", "name", "email", "phone", "industry", "status", "account_type", "tags_text", "created_at", "updated_at"]}
+    q = q.outerjoin(CompanyMasterDetails, CompanyMasterDetails.account_id == CRMCompany.id)
+    category = select(BusinessRelationship.category).where(BusinessRelationship.account_id == CRMCompany.id,
+        BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.id).limit(1).scalar_subquery()
+    fields = {name: GridField(getattr(CRMCompany, name), "id" if name == "id" else "datetime" if name in {"created_at", "updated_at"} else "text") for name in ["id", "name", "email", "phone", "country", "industry", "status", "account_type", "tags_text", "created_at", "updated_at"]}
+    fields["businessType"] = GridField(CompanyMasterDetails.business_type, "text")
+    fields["vendorClassification"] = GridField(category, "text")
     q = apply_filters(q, parsed, fields)
     if parsed.search:
         value = "%" + parsed.search.replace("%", "\\%").replace("_", "\\_") + "%"
@@ -957,6 +970,16 @@ def company_grid(state: str = Query("{}", max_length=16000), source: Source = "c
         except HTTPException:
             return False
     result = {"rows": [], "groups": [], "total": total, "pageTotal": branch.count(), "page": parsed.page, "pageSize": parsed.pageSize, "permissions": {"edit": can("edit"), "archive": can("delete"), "export": can("export")}, "context": {"canCreate": can("create")}}
+    if role in {"Vendor", "Supplier"}:
+        due = select(BusinessRelationship.account_id).where(BusinessRelationship.role.in_(["Vendor", "Supplier"]),
+            BusinessRelationship.follow_up_at.is_not(None), BusinessRelationship.status == "Active")
+        counts = q.with_entities(func.count(CRMCompany.id),
+            func.count(CRMCompany.id).filter(CRMCompany.status == "Active"),
+            func.count(CRMCompany.id).filter(category == "Goods Supplier"),
+            func.count(CRMCompany.id).filter(category == "Service Provider"),
+            func.count(CRMCompany.id).filter(CRMCompany.id.in_(due)),
+            func.count(CRMCompany.id).filter(CRMCompany.created_at >= datetime.now(timezone.utc) - timedelta(days=7))).one()
+        result["companyStats"] = dict(zip(["total", "active", "goods", "services", "followUps", "recent"], counts))
     if len(parsed.path) < len(parsed.grouping):
         name = parsed.grouping[len(parsed.path)]
         column = field_for(fields, name).expression
@@ -1021,7 +1044,7 @@ def export_companies(data: CompanyExport, source: Source = "crm", role: str = ""
     from app.shared.data_grid import parse_query, safe_cell
     authorize(actor, source, action="export")
     columns = data.columns
-    if not columns or set(columns) - {"name", "email", "phone", "industry", "status", "roles", "tags", "account_type", "tags_text", "gstNumber", "bankAccountCount", "upiCount"}:
+    if not columns or set(columns) - {"name", "email", "phone", "industry", "status", "roles", "tags", "account_type", "tags_text", "gstNumber", "bankAccountCount", "upiCount", "businessType", "vendorClassification", "country"}:
         raise HTTPException(422, "Unsupported export columns")
     parsed = parse_query(data.state)
     parsed.grouping, parsed.path, parsed.page, parsed.pageSize = [], [], 1, 200
@@ -1059,4 +1082,4 @@ def company_financial_summaries(db, actor, account_ids):
     except HTTPException:
         return {}
     rows = db.query(ContactIdentityLink.account_id, ContactIdentityLink.contact_id, ContactFinancialProfile).join(contacts, contacts.c.id == ContactIdentityLink.contact_id).outerjoin(ContactFinancialProfile, ContactFinancialProfile.contact_id == ContactIdentityLink.contact_id).filter(ContactIdentityLink.account_id.in_(account_ids), ContactIdentityLink.organization_id == actor.organization_id).all()
-    return {account: {"financialContactId": contact, "gstNumber": profile.gst_number or "" if profile else "", "bankAccountCount": len(profile.bank_accounts) if profile else 0, "upiCount": len(profile.upi_ids) if profile else 0} for account, contact, profile in rows}
+    return {account: {"financialContactId": contact, **({"gstNumber": profile.gst_number} if profile and profile.gst_number else {}), "bankAccountCount": len(profile.bank_accounts) if profile else 0, "upiCount": len(profile.upi_ids) if profile else 0} for account, contact, profile in rows}

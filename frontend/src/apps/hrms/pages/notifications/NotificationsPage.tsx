@@ -1,3 +1,4 @@
+import { refreshNotifications } from "@/lib/notification-cache";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,8 +48,7 @@ export default function NotificationsPage() {
   const markRead = useMutation({
     mutationFn: (id: number) => notificationsApi.markRead(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["suite-notifications"] });
+      return refreshNotifications(qc);
     },
   });
 
@@ -56,8 +56,7 @@ export default function NotificationsPage() {
     mutationFn: () => notificationsApi.markAllRead(),
     onSuccess: () => {
       toast({ title: "Notifications marked as read" });
-      qc.invalidateQueries({ queryKey: ["notifications"] });
-      qc.invalidateQueries({ queryKey: ["suite-notifications"] });
+      return refreshNotifications(qc);
     },
   });
 
@@ -127,7 +126,7 @@ export default function NotificationsPage() {
                       </Button>
                     )}
                     {item.action_url && (
-                      <Link to={hrmsActionUrl(item.action_url)}>
+                      <Link to={hrmsActionUrl(item.action_url)} onClick={() => { if (!item.is_read) markRead.mutate(item.id); }}>
                         <Button size="sm">
                           <ExternalLink className="h-4 w-4" />
                           Open
