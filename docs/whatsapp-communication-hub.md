@@ -111,3 +111,13 @@ The regular backend regressions cover integration, hub behavior, CRM follow-ups,
 `tests/test_whatsapp_hub_browser_e2e.py` starts a loopback bridge to the actual isolated test application and runs `qa/whatsapp_hub_api_browser.cjs` against the actual Vite frontend. Domain APIs are not fabricated: authentication, branch checks, validation and persistence execute normally. Meta requests and media transport are simulated, email sending is forbidden, the browser blocks external hosts, and campaign queues exist only in the test database. Enable with `WHATSAPP_HUB_BROWSER=1`; Vite defaults to `http://127.0.0.1:5191`.
 
 `qa/whatsapp_hub_audit_browser.cjs` additionally verifies rejected-versus-uncertain send recovery, request-ID retention after reload, emoji insertion and every added server-filter control using mocked API failures. The three previous browser suites remain regression coverage for the desktop/mobile workspace, media, inline context and four shared creation forms.
+
+
+### Final audit verification — 2026-11-05
+
+- Broader backend regressions: 117 passed across WhatsApp integration/workspace, hub, shared engagement, customer campaigns, CRM follow-ups, sales/finance creation, PMS Task Studio and record links.
+- After correcting the shared catalog default argument, the final focused rerun passed all 11 checks: original-brief audit regressions, price-list regression and the complete real-frontend/real-API browser scenario. The browser scenario also waits for the real analytics response and verifies both active conversations.
+- All four standalone browser suites passed: base workspace, extended media/context/follow-ups, shared record creation and final audit/recovery/filter/mobile checks.
+- TypeScript `tsc --noEmit` passed; targeted `git diff --check` passed. Existing dependency deprecation warnings remain.
+- The real API browser scenario verifies quoted reply and document sends, canonical internal note, Pending, deal/quotation/invoice/PMS task creation and canonical task linking, follow-up schedule/complete, approved template variable mapping, signed inbound/dedup/read receipts, unknown contact create/link, own read cursor, campaign audience preview, isolated scheduled launch/dedup/cancel and real analytics data. Only provider transport is simulated. Campaign rows are cancelled inside the isolated test database without dispatch.
+- No live messages, campaigns, credential changes, webhook configuration changes, schema migrations or deployment were performed. Previously missing provider media IDs and unrecorded historical resolution transitions cannot be recovered; these remain explicit data limitations.

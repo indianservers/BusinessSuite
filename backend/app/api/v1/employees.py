@@ -874,6 +874,11 @@ def create_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_create")),
 ):
+    from app.shared.form_defaults import effective as form_defaults
+    branch = getattr(current_user, "_suite_branch_id", None)
+    values = form_defaults(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None)["values"]
+    changes = {key: values[default] for key, default in {"employment_type": "employment_type", "branch_id": "branch_id", "department_id": "department_id", "shift_id": "shift_id", "cost_center_id": "cost_center_id", "salary_currency": "payroll_currency"}.items() if key not in data.model_fields_set and values[default] is not None}
+    data = EmployeeCreate.model_validate({**data.model_dump(), **changes})
     validate_employee_links(db, current_user, data.model_dump())
     if data.employee_id and crud_employee.get_by_employee_id(db, data.employee_id):
         raise HTTPException(status_code=400, detail="Employee ID already exists")

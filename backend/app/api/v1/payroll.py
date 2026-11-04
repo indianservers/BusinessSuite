@@ -836,6 +836,10 @@ def list_pay_groups(db: Session = Depends(get_db), current_user: User = Depends(
 
 @router.post("/setup/pay-groups", response_model=PayrollPayGroupSchema, status_code=201)
 def create_pay_group(data: PayrollPayGroupCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("payroll_run"))):
+    if "pay_frequency" not in data.model_fields_set:
+        from app.shared.form_defaults import effective
+        branch = getattr(current_user, "_suite_branch_id", None)
+        data.pay_frequency = effective(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None)["values"]["pay_frequency"]
     item = PayrollPayGroup(**data.model_dump())
     db.add(item)
     _audit(db, None, "pay_group_created", current_user.id, data.code)

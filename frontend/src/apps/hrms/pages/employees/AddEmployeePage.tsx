@@ -1,3 +1,4 @@
+import { CurrencySelect } from "@/lib/validation/business";
 import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -27,6 +28,7 @@ const schema = z.object({
   gender: z.string().optional(),
   date_of_birth: z.preprocess((v) => v === "" ? undefined : v, z.string().optional()),
   date_of_joining: z.string().min(1, "Joining date is required"),
+  salary_currency: z.string().optional(),
   employment_type: z.string().default("Full-time"),
   branch_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
   department_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
@@ -170,7 +172,7 @@ export default function AddEmployeePage() {
     formState: { errors },
   } = useForm<z.input<typeof schema>, unknown, FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { cost_center_id: defaultId("cost_center_id", "hrms"), branch_id: defaultId("branch_id", "hrms"), department_id: defaultId("department_id", "hrms"), shift_id: defaultId("shift_id", "hrms"), employment_type: defaultText("employment_type", "hrms"), create_user_account: false, last_name: "", phone_number_country_code: defaultText("phone_country_code", "hrms"), alternate_phone_country_code: defaultText("phone_country_code", "hrms"), emergency_contact_number_country_code: defaultText("phone_country_code", "hrms") },
+    defaultValues: { salary_currency: defaultText("payroll_currency", "hrms"), cost_center_id: defaultId("cost_center_id", "hrms"), branch_id: defaultId("branch_id", "hrms"), department_id: defaultId("department_id", "hrms"), shift_id: defaultId("shift_id", "hrms"), employment_type: defaultText("employment_type", "hrms"), create_user_account: false, last_name: "", phone_number_country_code: defaultText("phone_country_code", "hrms"), alternate_phone_country_code: defaultText("phone_country_code", "hrms"), emergency_contact_number_country_code: defaultText("phone_country_code", "hrms") },
     mode: "onBlur",
   });
 
@@ -380,7 +382,7 @@ export default function AddEmployeePage() {
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
                   <option value="Contract">Contract</option>
-                  <option value="Intern">Intern</option>
+                  <option value="Intern">Intern</option><option value="Consultant">Consultant</option>
                 </NativeSelect>
               </div>
               <div className="space-y-2">
@@ -461,6 +463,7 @@ export default function AddEmployeePage() {
                 {errors.shift_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.shift_id.message}/></div>}
               </div>
               <label className="space-y-2 text-sm">Cost centre<NativeSelect aria-label="Employee cost centre" {...register("cost_center_id", { setValueAs: value => value === "" ? null : Number(value) })} className="flex h-10 w-full rounded-md border bg-background px-3"><option value="">None</option>{costCenters.data?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
+              <label className="space-y-2 text-sm">Salary currency<Controller name="salary_currency" control={editorControl} render={({field}) => <CurrencySelect label="Salary currency" value={field.value || ""} onChange={field.onChange}/>}/></label>
             </CardContent>
           </Card>
         )}
