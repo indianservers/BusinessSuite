@@ -1047,7 +1047,8 @@
     gap: 7px;
   }
   .db-header-actions button {
-    flex: 1;
+    flex: 1 0 auto;
+    min-width: max-content;
   }
   .db-canvas-toolbar {
     align-items: flex-start;

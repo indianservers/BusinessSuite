@@ -3,7 +3,7 @@ import csv
 import io
 import json
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Literal
+from typing import Literal, Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
@@ -324,7 +324,7 @@ def commit(db):
 
 
 @router.get("/items")
-def list_items(source: Source = "crm", kind: Kind | None = None, search: str = Query("", max_length=180), category: str = "", status: Literal["all", "Active", "Archived"] = "Active", workspace_id: int | None = None, sort: Literal["name", "price", "category", "code"] = "name", direction: Literal["asc", "desc"] = "asc", page: int = Query(1, ge=1), per_page: int = Query(24, ge=1, le=100), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source: Source = "crm", kind: Kind | None = None, search: str = Query("", max_length=180), category: str = "", status: Literal["all", "Active", "Archived"] = "Active", workspace_id: int | None = None, sort: Literal["name", "price", "category", "code"] = "name", direction: Literal["asc", "desc"] = "asc", page: int = Query(1, ge=1), per_page: int = Query(24, ge=1, le=100), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     from app.apps.project_management.models import PMSWorkspaceMember, PMSWorkspace
     from app.apps.project_management.people_management import organization_admin
     if workspace_id:
@@ -374,6 +374,20 @@ def list_items(source: Source = "crm", kind: Kind | None = None, search: str = Q
         model = SRMProduct
         details = {getattr(d, selected + "_id"): d for d in db.query(CatalogDetails).filter(getattr(CatalogDetails, selected + "_id").in_(ids)).all()}
         items.extend(output(row, selected, details.get(row.id)) for row in db.query(model).filter(model.id.in_(ids)).all())
+    if price_book_id:
+        from app.apps.crm.models import CRMPriceBook, CRMPriceBookItem
+        from datetime import date
+        book = db.query(CRMPriceBook).filter_by(id=price_book_id, organization_id=tenant(user), active=True, deleted_at=None).first()
+        if not book or (book.effective_from and book.effective_from > date.today()) or (book.effective_to and book.effective_to < date.today()):
+            raise HTTPException(422, "Selected price list is unavailable or outside its effective dates")
+        entries = db.query(CRMPriceBookItem).filter_by(price_book_id=book.id, organization_id=tenant(user), active=True, deleted_at=None).all()
+        pricing = {(entry.item_type, entry.service_id if entry.item_type == "service" else entry.product_id): entry for entry in entries}
+        for item in items:
+            entry = pricing.get((item["kind"], item["id"]))
+            if entry and item["currency"] == book.currency:
+                item["price"] = float(entry.unit_price)
+                item["tax"] = float(entry.tax_rate)
+                item["price_book_id"] = book.id
     indexed = {(v["kind"], v["id"]): v for v in items}
     return {"items": [indexed[(r["kind"], r["id"])] for r in rows], "total": total, "pages": (total + per_page - 1) // per_page, "permissions": permissions}
 

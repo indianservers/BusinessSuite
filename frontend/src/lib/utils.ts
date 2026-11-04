@@ -1,3 +1,4 @@
+import { defaultText, displayDate, displayTime } from "./form-defaults";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { getUploadsBaseUrl } from "@/config/runtime";
@@ -13,7 +14,7 @@ export function assetUrl(path?: string | null): string | undefined {
 }
 
 export function formatCurrency(amount: number, currency = "INR"): string {
-  return new Intl.NumberFormat("en-IN", {
+  return new Intl.NumberFormat(defaultText("number_format"), {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
@@ -23,28 +24,11 @@ export function formatCurrency(amount: number, currency = "INR"): string {
 
 /** Preserve currency minor units on payroll and expense statements. */
 export function formatCurrencyPrecise(amount: number, currency = "INR"): string {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(amount);
+  return new Intl.NumberFormat(defaultText("number_format"), { style: "currency", currency }).format(amount);
 }
 
-export function formatDate(date: string | Date | null): string {
-  if (!date) return "-";
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(date));
-}
-
-export function formatDateTime(date: string | Date | null): string {
-  if (!date) return "-";
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
-}
+export function formatDate(date: string | Date | null): string { return date ? displayDate(date) : "-"; }
+export function formatDateTime(date: string | Date | null): string { return date ? `${displayDate(date)} ${displayTime(date)}` : "-"; }
 
 export function getInitials(name: string): string {
   return name

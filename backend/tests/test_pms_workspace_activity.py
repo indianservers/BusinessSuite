@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from tests.test_pms_workspaces import account, middleware_database, BASE
 from app.apps.project_management.models import PMSActivity, PMSWorkspaceMember
 
@@ -8,8 +9,13 @@ def test_workspace_activity_pagination_filters_and_private_access(client, db):
     member, mh = account(db, "activity-member@test.com")
     wid = client.post(BASE + "/workspaces", json={"name": "Activity audit"}, headers=oh).json()["id"]
     pid = client.post(BASE + "/projects", json={"name": "Audited", "project_key": "AUD", "workspace_id": wid}, headers=oh).json()["id"]
-    db.add(PMSWorkspaceMember(workspace_id=wid, user_id=member.id, role="Member"))
-    db.add_all([PMSActivity(project_id=pid, actor_user_id=owner.id, action="audit.first", entity_type="project", summary="First event"), PMSActivity(project_id=pid, actor_user_id=owner.id, action="audit.second", entity_type="project", summary="Second event")])
+    membership = PMSWorkspaceMember(workspace_id=wid, user_id=member.id, role="Member")
+    db.add(membership)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, membership)
+    events = [PMSActivity(project_id=pid, actor_user_id=owner.id, action="audit.first", entity_type="project", summary="First event"), PMSActivity(project_id=pid, actor_user_id=owner.id, action="audit.second", entity_type="project", summary="Second event")]
+    db.add_all(events)
+    own_workflow_records(db, *events)
     db.commit()
     url = f"{BASE}/workspaces/{wid}/activity"
     assert client.get(url, headers=xh).status_code == 404

@@ -43,7 +43,11 @@ def test_duplicate_warning_normalized_and_scope_safe(client,db,superuser_headers
     assert response.json()["matched"] and response.json()["items"][0]["id"]==lead["id"]
     phone=client.get(ROOT+"/duplicate-check",headers=superuser_headers,params={"phone":"98765 43210","phone_country_code":"+91"})
     assert phone.json()["matched"]
-    person,_=employee_account(db,"search-scope",permissions=("crm_leads_view",))
+    person,employee=employee_account(db,"search-scope",permissions=("crm_leads_view",))
+    # This actor has a branch access grant but no employment branch that would
+    # otherwise confer visibility of peers' leads through the legacy CRM scope.
+    employee.branch_id = None
+    db.commit()
     headers={"Authorization":"Bearer "+create_access_token(str(person.id))}
     warning=client.get(ROOT+"/duplicate-check",headers=headers,params={"email":"duplicate@example.com"})
     assert warning.status_code==200,warning.text

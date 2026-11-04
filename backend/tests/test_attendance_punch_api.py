@@ -1,4 +1,5 @@
 from test_identity_utils import attach_test_identity
+from tests.rich_text_test_utils import organization_context
 from datetime import date, datetime, time, timezone
 
 from app.core.security import get_password_hash
@@ -27,6 +28,8 @@ def _user_employee(db, email, code, first_name, *, manager_id=None, is_superuser
     )
     db.add(user)
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, user)
     db.flush()
     employee = Employee(
         employee_id=code,

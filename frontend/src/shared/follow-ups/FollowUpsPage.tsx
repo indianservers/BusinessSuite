@@ -1,3 +1,4 @@
+import { useRecordScope } from "@/shared/records/Record360Workspace";
 import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import { ActionToolbar } from "@/components/actions";
@@ -24,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   ScheduleFields,
-  defaultSchedule,
+  newDefaultSchedule,
   type Schedule,
 } from "./ScheduleFields";
 import { toast } from "@/hooks/use-toast";
@@ -57,8 +58,9 @@ const load = (url: string, params = {}) =>
   api.get(url, { params }).then((r) => r.data);
 export default function FollowUpsPage() {
   const { id } = useParams();
+  const scope=useRecordScope();
   const location = useLocation();
-  const base = location.pathname.startsWith("/srm")
+  const base = location.pathname.startsWith("/pms") ? "/pms/follow-ups" : location.pathname.startsWith("/srm")
     ? "/srm/follow-ups"
     : "/crm/follow-ups";
   const view = id
@@ -77,7 +79,7 @@ export default function FollowUpsPage() {
     new URLSearchParams(location.search).has("new"),
   );
   const [schedule, setSchedule] = useState<Schedule>({
-    ...defaultSchedule,
+    ...newDefaultSchedule(),
     required: true,
   });
   const [customer, setCustomer] = useState(
@@ -98,7 +100,7 @@ export default function FollowUpsPage() {
   );
   const [sourceSearch, setSourceSearch] = useState("");
   const linkedOptions = useQuery({
-    queryKey: ["follow-up-links", sourceType, sourceSearch],
+    queryKey: ["follow-up-links", scope, sourceType, sourceSearch],
     queryFn: () =>
       load(`/follow-ups/link-options/${sourceType}`, { search: sourceSearch }),
     enabled: creating,
@@ -109,7 +111,7 @@ export default function FollowUpsPage() {
     queryKey: ["follow-up-catalogue", productSearch, base],
     queryFn: () =>
       load("/catalog/items", {
-        source: base.startsWith("/srm") ? "srm" : "crm",
+        source: base.startsWith("/pms") ? "pms" : base.startsWith("/srm") ? "srm" : "crm",
         search: productSearch,
         status: "Active",
         per_page: 100,
@@ -117,11 +119,11 @@ export default function FollowUpsPage() {
     enabled: creating,
   });
   const options = useQuery({
-    queryKey: ["follow-up-options"],
+    queryKey: ["follow-up-options", scope],
     queryFn: () => load("/follow-ups/options"),
   });
   const query = useQuery({
-    queryKey: ["follow-ups", search, status, assigned, page],
+    queryKey: ["follow-ups", scope, search, status, assigned, page],
     queryFn: () =>
       load("/follow-ups", {
         search,
@@ -135,25 +137,25 @@ export default function FollowUpsPage() {
     refetchInterval: 60000,
   });
   const stats = useQuery({
-    queryKey: ["follow-ups", "statistics"],
+    queryKey: ["follow-ups", scope, "statistics"],
     queryFn: () => load("/follow-ups/statistics"),
     refetchInterval: 60000,
   });
   const preferences = useQuery({
-    queryKey: ["follow-up-preferences"],
+    queryKey: ["follow-up-preferences", scope],
     queryFn: () => load("/follow-ups/preferences/me"),
   });
   const attachments = useQuery({
-    queryKey: ["follow-up-attachments", id],
+    queryKey: ["follow-up-attachments", scope, id],
     queryFn: () => load(`/follow-ups/${id}/attachments`),
     enabled: !!id,
   });
   const detail = useQuery<Row>({
-    queryKey: ["follow-ups", id],
+    queryKey: ["follow-ups", scope, id],
     queryFn: () => load(`/follow-ups/${id}`),
     enabled: !!id,
   });
-  const refresh = () => cache.invalidateQueries({ queryKey: ["follow-ups"] });
+  const refresh = () => cache.invalidateQueries({ queryKey: ["follow-ups", scope] });
   const run = async (work: () => Promise<unknown>) => {
     setBusy(true);
     try {
@@ -264,7 +266,7 @@ export default function FollowUpsPage() {
                       [key]: e.target.checked,
                     });
                     await cache.invalidateQueries({
-                      queryKey: ["follow-up-preferences"],
+                      queryKey: ["follow-up-preferences", scope],
                     });
                   });
                 }}
@@ -439,7 +441,7 @@ export default function FollowUpsPage() {
           </div>
           <Link
             className="text-primary underline"
-            to={`/crm/companies/${detail.data.customer_id}`}
+            to={`/${base.startsWith("/pms")?"pms":base.startsWith("/srm")?"srm":"crm"}/customers/${detail.data.customer_id}/360`}
           >
             Customer 360
           </Link>
@@ -818,7 +820,7 @@ export default function FollowUpsPage() {
                           className="text-xs font-semibold"
                           onClick={() => {
                             setSchedule({
-                              ...defaultSchedule,
+                              ...newDefaultSchedule(),
                               required: true,
                               type: "date",
                               due_at: new Date(

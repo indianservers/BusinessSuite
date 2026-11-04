@@ -1,0 +1,650 @@
+[
+  {
+    "key": "currency",
+    "label": "Currency",
+    "group": "General",
+    "type": "currency",
+    "default": "INR"
+  },
+  {
+    "key": "country",
+    "label": "Country",
+    "group": "General",
+    "type": "country",
+    "default": "IN"
+  },
+  {
+    "key": "phone_country_code",
+    "label": "Phone code",
+    "group": "General",
+    "type": "phone",
+    "default": "+91"
+  },
+  {
+    "key": "timezone",
+    "label": "Timezone",
+    "group": "General",
+    "type": "timezone",
+    "default": "Asia/Kolkata"
+  },
+  {
+    "key": "date_format",
+    "label": "Date format",
+    "group": "General",
+    "type": "select",
+    "default": "DD/MM/YYYY",
+    "options": [
+      {
+        "value": "DD/MM/YYYY",
+        "label": "DD/MM/YYYY"
+      },
+      {
+        "value": "MM/DD/YYYY",
+        "label": "MM/DD/YYYY"
+      },
+      {
+        "value": "YYYY-MM-DD",
+        "label": "YYYY-MM-DD"
+      }
+    ]
+  },
+  {
+    "key": "time_format",
+    "label": "Time format",
+    "group": "General",
+    "type": "select",
+    "default": "12h",
+    "options": [
+      {
+        "value": "12h",
+        "label": "12-hour"
+      },
+      {
+        "value": "24h",
+        "label": "24-hour"
+      }
+    ]
+  },
+  {
+    "key": "number_format",
+    "label": "Number format",
+    "group": "General",
+    "type": "select",
+    "default": "en-IN",
+    "options": [
+      {
+        "value": "en-IN",
+        "label": "Indian (1,00,000)"
+      },
+      {
+        "value": "en-US",
+        "label": "International (100,000)"
+      }
+    ]
+  },
+  {
+    "key": "language",
+    "label": "Document language",
+    "group": "General",
+    "type": "select",
+    "default": "en",
+    "help": "Language tag for new quote and invoice documents.",
+    "options": [
+      {
+        "value": "en",
+        "label": "English"
+      },
+      {
+        "value": "hi",
+        "label": "Hindi"
+      },
+      {
+        "value": "ar",
+        "label": "Arabic"
+      }
+    ]
+  },
+  {
+    "key": "fiscal_year_start_month",
+    "label": "Financial year starts",
+    "group": "General",
+    "type": "select",
+    "default": 4,
+    "options": [
+      {
+        "value": 1,
+        "label": "January"
+      },
+      {
+        "value": 2,
+        "label": "February"
+      },
+      {
+        "value": 3,
+        "label": "March"
+      },
+      {
+        "value": 4,
+        "label": "April"
+      },
+      {
+        "value": 5,
+        "label": "May"
+      },
+      {
+        "value": 6,
+        "label": "June"
+      },
+      {
+        "value": 7,
+        "label": "July"
+      },
+      {
+        "value": 8,
+        "label": "August"
+      },
+      {
+        "value": 9,
+        "label": "September"
+      },
+      {
+        "value": 10,
+        "label": "October"
+      },
+      {
+        "value": 11,
+        "label": "November"
+      },
+      {
+        "value": 12,
+        "label": "December"
+      }
+    ]
+  },
+  {
+    "key": "working_days",
+    "label": "Working days",
+    "group": "General",
+    "type": "days",
+    "default": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  {
+    "key": "week_start",
+    "label": "First day of week",
+    "group": "General",
+    "type": "select",
+    "default": 1,
+    "options": [
+      {
+        "value": 1,
+        "label": "Monday"
+      },
+      {
+        "value": 0,
+        "label": "Sunday"
+      },
+      {
+        "value": 6,
+        "label": "Saturday"
+      }
+    ]
+  },
+  {
+    "key": "payment_terms_days",
+    "label": "Payment terms",
+    "group": "Sales & finance",
+    "type": "select",
+    "default": 30,
+    "options": [
+      {
+        "value": 0,
+        "label": "Due on receipt"
+      },
+      {
+        "value": 7,
+        "label": "Net 7"
+      },
+      {
+        "value": 15,
+        "label": "Net 15"
+      },
+      {
+        "value": 30,
+        "label": "Net 30"
+      },
+      {
+        "value": 45,
+        "label": "Net 45"
+      },
+      {
+        "value": 60,
+        "label": "Net 60"
+      },
+      {
+        "value": 90,
+        "label": "Net 90"
+      }
+    ]
+  },
+  {
+    "key": "quote_validity_days",
+    "label": "Quote validity (days)",
+    "group": "Sales & finance",
+    "type": "number",
+    "default": 14,
+    "min": 1,
+    "max": 365
+  },
+  {
+    "key": "price_book_id",
+    "label": "Price list",
+    "group": "Sales & finance",
+    "type": "reference",
+    "default": null,
+    "reference": "price_books"
+  },
+  {
+    "key": "unit_of_measure",
+    "label": "Unit of measurement",
+    "group": "Sales & finance",
+    "type": "select",
+    "default": "Nos",
+    "options": [
+      {
+        "value": "Nos",
+        "label": "Nos"
+      },
+      {
+        "value": "Pieces",
+        "label": "Pieces"
+      },
+      {
+        "value": "Hours",
+        "label": "Hours"
+      },
+      {
+        "value": "Days",
+        "label": "Days"
+      },
+      {
+        "value": "Kg",
+        "label": "Kg"
+      },
+      {
+        "value": "Litres",
+        "label": "Litres"
+      },
+      {
+        "value": "Metres",
+        "label": "Metres"
+      },
+      {
+        "value": "Boxes",
+        "label": "Boxes"
+      },
+      {
+        "value": "Sets",
+        "label": "Sets"
+      }
+    ]
+  },
+  {
+    "key": "tax_inclusive",
+    "label": "Price tax treatment",
+    "group": "Sales & finance",
+    "type": "select",
+    "default": false,
+    "options": [
+      {
+        "value": false,
+        "label": "Tax exclusive"
+      },
+      {
+        "value": true,
+        "label": "Tax inclusive"
+      }
+    ]
+  },
+  {
+    "key": "tax_rate",
+    "label": "Tax rate (%)",
+    "group": "Sales & finance",
+    "type": "number",
+    "default": null,
+    "min": 0,
+    "max": 100,
+    "help": "Optional starting rate for new manual lines. Product and statutory tax rules take precedence."
+  },
+  {
+    "key": "invoice_template",
+    "label": "Invoice layout",
+    "group": "Sales & finance",
+    "type": "select",
+    "default": "standard",
+    "options": [
+      {
+        "value": "standard",
+        "label": "standard"
+      },
+      {
+        "value": "compact",
+        "label": "compact"
+      },
+      {
+        "value": "detailed",
+        "label": "detailed"
+      }
+    ]
+  },
+  {
+    "key": "quote_template",
+    "label": "Quote layout",
+    "group": "Sales & finance",
+    "type": "select",
+    "default": "standard",
+    "options": [
+      {
+        "value": "standard",
+        "label": "standard"
+      },
+      {
+        "value": "compact",
+        "label": "compact"
+      },
+      {
+        "value": "detailed",
+        "label": "detailed"
+      }
+    ]
+  },
+  {
+    "key": "bank_account_id",
+    "label": "Receiving bank account",
+    "group": "Sales & finance",
+    "type": "reference",
+    "default": null,
+    "reference": "bank_accounts"
+  },
+  {
+    "key": "payment_mode_id",
+    "label": "Payment method",
+    "group": "Sales & finance",
+    "type": "reference",
+    "default": null,
+    "reference": "payment_modes"
+  },
+  {
+    "key": "lead_source",
+    "label": "Lead source",
+    "group": "CRM & tasks",
+    "type": "select",
+    "default": "Other",
+    "options": [
+      {
+        "value": "Website",
+        "label": "Website"
+      },
+      {
+        "value": "Referral",
+        "label": "Referral"
+      },
+      {
+        "value": "Cold Call",
+        "label": "Cold Call"
+      },
+      {
+        "value": "Social Media",
+        "label": "Social Media"
+      },
+      {
+        "value": "Email Campaign",
+        "label": "Email Campaign"
+      },
+      {
+        "value": "Event",
+        "label": "Event"
+      },
+      {
+        "value": "Other",
+        "label": "Other"
+      }
+    ]
+  },
+  {
+    "key": "pipeline_id",
+    "label": "Sales pipeline",
+    "group": "CRM & tasks",
+    "type": "reference",
+    "default": null,
+    "reference": "pipelines"
+  },
+  {
+    "key": "stage_id",
+    "label": "Initial deal stage",
+    "group": "CRM & tasks",
+    "type": "reference",
+    "default": null,
+    "reference": "stages"
+  },
+  {
+    "key": "owner_mode",
+    "label": "Record owner",
+    "group": "CRM & tasks",
+    "type": "select",
+    "default": "current_user",
+    "options": [
+      {
+        "value": "current_user",
+        "label": "Current user"
+      },
+      {
+        "value": "specific_user",
+        "label": "Specific owner"
+      },
+      {
+        "value": "assignment_rule",
+        "label": "Use module assignment rules"
+      }
+    ]
+  },
+  {
+    "key": "owner_id",
+    "label": "Specific owner",
+    "group": "CRM & tasks",
+    "type": "reference",
+    "default": null,
+    "reference": "users"
+  },
+  {
+    "key": "task_priority",
+    "label": "Task priority",
+    "group": "CRM & tasks",
+    "type": "select",
+    "default": "Medium",
+    "options": [
+      {
+        "value": "Low",
+        "label": "Low"
+      },
+      {
+        "value": "Medium",
+        "label": "Medium"
+      },
+      {
+        "value": "High",
+        "label": "High"
+      },
+      {
+        "value": "Urgent",
+        "label": "Urgent"
+      }
+    ]
+  },
+  {
+    "key": "follow_up_days",
+    "label": "Follow-up interval (days)",
+    "group": "CRM & tasks",
+    "type": "number",
+    "default": 3,
+    "min": 0,
+    "max": 365
+  },
+  {
+    "key": "reminder_minutes",
+    "label": "Reminder before due time",
+    "group": "CRM & tasks",
+    "type": "select",
+    "default": 30,
+    "options": [
+      {
+        "value": 0,
+        "label": "At due time"
+      },
+      {
+        "value": 5,
+        "label": "5 minutes"
+      },
+      {
+        "value": 15,
+        "label": "15 minutes"
+      },
+      {
+        "value": 30,
+        "label": "30 minutes"
+      },
+      {
+        "value": 60,
+        "label": "1 hour"
+      },
+      {
+        "value": 1440,
+        "label": "1 day"
+      }
+    ]
+  },
+  {
+    "key": "branch_id",
+    "label": "Branch / location",
+    "group": "Organisation & HR",
+    "type": "reference",
+    "default": null,
+    "reference": "branches"
+  },
+  {
+    "key": "department_id",
+    "label": "Department",
+    "group": "Organisation & HR",
+    "type": "reference",
+    "default": null,
+    "reference": "departments"
+  },
+  {
+    "key": "cost_center_id",
+    "label": "Cost centre",
+    "group": "Organisation & HR",
+    "type": "reference",
+    "default": null,
+    "reference": "cost_centers"
+  },
+  {
+    "key": "employment_type",
+    "label": "Employment type",
+    "group": "Organisation & HR",
+    "type": "select",
+    "default": "Full-time",
+    "options": [
+      {
+        "value": "Full-time",
+        "label": "Full-time"
+      },
+      {
+        "value": "Part-time",
+        "label": "Part-time"
+      },
+      {
+        "value": "Contract",
+        "label": "Contract"
+      },
+      {
+        "value": "Intern",
+        "label": "Intern"
+      },
+      {
+        "value": "Consultant",
+        "label": "Consultant"
+      }
+    ]
+  },
+  {
+    "key": "shift_id",
+    "label": "Work shift",
+    "group": "Organisation & HR",
+    "type": "reference",
+    "default": null,
+    "reference": "shifts"
+  },
+  {
+    "key": "holiday_calendar",
+    "label": "Holiday calendar",
+    "group": "Organisation & HR",
+    "type": "select",
+    "default": "branch",
+    "options": [
+      {
+        "value": "branch",
+        "label": "Employee branch holidays"
+      },
+      {
+        "value": "company",
+        "label": "Company holidays"
+      }
+    ]
+  },
+  {
+    "key": "leave_type_id",
+    "label": "Leave policy / type",
+    "group": "Organisation & HR",
+    "type": "reference",
+    "default": null,
+    "reference": "leave_types",
+    "help": "Prefills new leave requests; entitlement and eligibility rules still apply."
+  },
+  {
+    "key": "payroll_currency",
+    "label": "Payroll currency",
+    "group": "Organisation & HR",
+    "type": "currency",
+    "default": "INR"
+  },
+  {
+    "key": "pay_frequency",
+    "label": "Pay frequency",
+    "group": "Organisation & HR",
+    "type": "select",
+    "default": "Monthly",
+    "options": [
+      {
+        "value": "Monthly",
+        "label": "Monthly"
+      },
+      {
+        "value": "Weekly",
+        "label": "Weekly"
+      },
+      {
+        "value": "Bi-weekly",
+        "label": "Bi-weekly"
+      },
+      {
+        "value": "Semi-monthly",
+        "label": "Semi-monthly"
+      }
+    ]
+  }
+]

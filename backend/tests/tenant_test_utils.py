@@ -15,3 +15,5 @@ def assign_company(db, user, company_id):
     user.person = person
     user.organization_id = company_id
     db.flush()
+    from test_identity_utils import complete_workflow_company
+    complete_workflow_company(db, company_id)

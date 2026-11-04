@@ -1,5 +1,5 @@
 from tests.security_file_fixtures import uploaded_reference
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 
 

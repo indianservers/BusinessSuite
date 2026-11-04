@@ -1,3 +1,4 @@
+import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 import MobilePdfActions from "@/components/mobile/MobilePdfActions";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -73,6 +74,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
     <div className="space-y-5">
       <Link to="/srm/invoices">← Sales invoices</Link>
       <h1 className="page-title">{r.invoice_number}</h1>
+      {r.customer_id && <Button variant="outline" asChild><Link to={`/srm/customers/${r.customer_id}/360`}>Open customer 360</Link></Button>}
       {r.project_id && (
         <Link
           className="text-primary underline"
@@ -191,6 +193,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           )}
         </CardContent>
       </Card>
+      {r.can_record_payment && <PaymentRequestButton source="srm_invoice" sourceId={Number(id)}/>}
       {r.can_record_payment &&
         r.document_status === "issued" &&
         Number(r.balance_amount) > 0 && (

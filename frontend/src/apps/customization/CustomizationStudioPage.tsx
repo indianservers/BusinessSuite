@@ -1,3 +1,5 @@
+import ModuleRecords from "./ModuleRecords";
+import FieldManager from "./FieldManager";
 import LayoutArrangement from "./LayoutArrangement";
 import type React from "react";
 import { useMemo } from "react";
@@ -75,18 +77,10 @@ function actionError(error: unknown) {
 }
 
 function Modules() {
-  return <GenericSection title="Module Builder" description="Create admin-defined modules without altering hardcoded CRM, PMS, or SRM modules." queryKey="customization-modules" queryFn={customizationApi.modules} action="Create Module" mutation={() => customizationApi.createModule({ module_api_name: "partner_projects", module_label: "Partner Project", plural_label: "Partner Projects", icon: "database", description: "Partner delivery records", enabled: true })} />;
+  return <GenericSection title="Module Builder" description="Create admin-defined modules without altering hardcoded CRM, PMS, or SRM modules." queryKey="customization-modules" queryFn={customizationApi.modules} actions={item => item.enabled !== false ? <ModuleRecords module={String(item.module_api_name)} label={String(item.module_label)}/> : null} action="Create Module" mutation={() => customizationApi.createModule({ module_api_name: "partner_projects", module_label: "Partner Project", plural_label: "Partner Projects", icon: "database", description: "Partner delivery records", enabled: true })} />;
 }
 
-function Fields() {
-  const { toast } = useToast();
-  const validate = useMutation({
-    mutationFn: (id: number) => customizationApi.validateField(id, { value: "Project Alpha", record: { project_name: "Project Alpha" } }),
-    onSuccess: () => toast({ title: "Field validation passed" }),
-    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
-  });
-  return <GenericSection title="Field Builder" description="Required, unique, typed, picklist, lookup, formula, rollup, visibility, and editability metadata." queryKey="customization-fields" queryFn={customizationApi.fields} action="Create Field" mutation={() => customizationApi.createField({ module_name: "partner_projects", field_api_name: "project_name", field_label: "Project Name", field_type: "text", required: true, unique: true, visible: true, editable: true })} actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || validate.isPending} onClick={() => validate.mutate(Number(item.id))}>Validate</Button>} />;
-}
+function Fields() { return <FieldManager/>; }
 
 function Layouts() {
   const { toast } = useToast();

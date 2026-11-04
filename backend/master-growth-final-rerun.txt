@@ -1,0 +1,36 @@
+bringing up nodes...
+bringing up nodes...
+
+.......................s.....F
+____ test_audience_permissions_hide_records_and_catalog_and_reject_writes _____
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_product_audience.py:86: in test_audience_permissions_hide_records_and_catalog_and_reject_writes
+    grant = db.query(BranchGrant).filter_by(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch'])).one()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\orm\query.py:2815: in one
+    return self._iter().one()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\engine\result.py:1840: in one
+    return self._only_one_row(
+backend\venv\Lib\site-packages\sqlalchemy\engine\result.py:772: in _only_one_row
+    raise exc.NoResultFound(
+E   sqlalchemy.exc.NoResultFound: No row was found when one was required
+.F
+________________ test_read_only_actor_cannot_schedule_or_send _________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_growth.py:281: in test_read_only_actor_cannot_schedule_or_send
+    grant = db.query(BranchGrant).filter_by(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch'])).one()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\orm\query.py:2815: in one
+    return self._iter().one()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\engine\result.py:1840: in one
+    return self._only_one_row(
+backend\venv\Lib\site-packages\sqlalchemy\engine\result.py:772: in _only_one_row
+    raise exc.NoResultFound(
+E   sqlalchemy.exc.NoResultFound: No row was found when one was required
+..                                                                       [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_crm_product_audience.py::test_audience_permissions_hide_records_and_catalog_and_reject_writes
+FAILED backend\tests\test_crm_growth.py::test_read_only_actor_cannot_schedule_or_send
+2 failed, 31 passed, 1 skipped, 8 warnings in 56.45s

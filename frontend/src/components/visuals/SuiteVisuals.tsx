@@ -1,8 +1,21 @@
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode, type ElementType } from "react";
 import { assetUrl } from "@/lib/utils";
 import "./suite-visuals.css";
 
 export type PortraitKind = "person" | "employee" | "customer" | "vendor" | "company";
+
+export function SuiteMetric({ label, value, icon: Icon, children }: { label: string; value: ReactNode; icon?: ElementType; children?: ReactNode }) {
+  return <div className="suite-metric"><div><p>{label}</p><strong>{value}</strong>{children}</div>{Icon && <span className="suite-metric-icon"><Icon size={23} aria-hidden="true"/></span>}</div>;
+}
+
+export function SuiteHeading({ title, description, icon: Icon, actions }: { title: string; description?: ReactNode; icon: ElementType; actions?: ReactNode }) {
+  return <header className="suite-page-heading"><div className="suite-heading-identity"><span className="suite-heading-icon"><Icon size={25} aria-hidden="true" /></span><div><h1>{title}</h1>{description && <div className="suite-heading-description">{description}</div>}</div></div>{actions && <div className="suite-heading-actions">{actions}</div>}</header>;
+}
+
+export function SuiteFileIcon({ name }: { name: string }) {
+  const extension = name.split(".").pop()?.toUpperCase() || "FILE";
+  return <span className="suite-file-icon" aria-label={`${extension} file`}><svg viewBox="0 0 40 48" aria-hidden="true"><path d="M7 2h18l10 10v33H7Z" fill="currentColor" opacity=".1" stroke="currentColor" strokeWidth="2"/><path d="M25 2v12h10M14 22h14M14 28h14" fill="none" stroke="currentColor" strokeWidth="2"/></svg><small>{extension.slice(0, 5)}</small></span>;
+}
 
 /** Neutral artwork represents a missing picture; it never impersonates a real person. */
 export function SuiteAvatar({ name, src, kind = "person", size = 40 }: {
@@ -22,13 +35,21 @@ export function SuiteAvatar({ name, src, kind = "person", size = 40 }: {
 }
 
 export function SuiteIllustration({ variant = "records" }: { variant?: string }) {
+  const artwork: Record<string, ReactNode> = {
+    hrms: <><circle cx="70" cy="61" r="10" fill="currentColor" opacity=".3"/><path d="M50 91c0-21 40-21 40 0" fill="currentColor" opacity=".5"/><path d="M98 58h18m-18 10h13m-13 10h17" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/></>,
+    crm: <><circle cx="68" cy="62" r="9" fill="currentColor" opacity=".6"/><circle cx="96" cy="62" r="9" fill="currentColor" opacity=".3"/><path d="M49 91c0-22 38-22 38 0m-4-8c8-11 30-8 30 8" stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity=".5"/></>,
+    pms: <><path d="m48 59 4 4 7-9m-11 20 4 4 7-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/><path d="M70 59h42M70 74h30" stroke="currentColor" strokeWidth="6" strokeLinecap="round" opacity=".3"/></>,
+    srm: <><path d="m52 59 27-10 27 10v27H52Z" fill="currentColor" opacity=".2"/><path d="m52 59 27 10 27-10M79 69v19M65 54l27 10" stroke="currentColor" strokeWidth="3" strokeLinejoin="round"/></>,
+    fam: <><path d="M48 83V70m17 13V62m17 21V69m17 14V54" stroke="currentColor" strokeWidth="9" strokeLinecap="round" opacity=".35"/><path d="m48 62 20-14 18 7 20-15" stroke="currentColor" strokeWidth="2"/></>,
+    power_apps: <><path d="M56 61h48M80 61v23" stroke="currentColor" strokeWidth="2"/><rect x="48" y="53" width="19" height="18" rx="5" fill="currentColor" opacity=".25"/><rect x="95" y="53" width="19" height="18" rx="5" fill="currentColor" opacity=".5"/><rect x="71" y="78" width="19" height="15" rx="5" fill="currentColor" opacity=".7"/></>,
+  };
   return <svg className="suite-illustration" viewBox="0 0 180 120" fill="none" aria-hidden="true">
     <ellipse cx="90" cy="104" rx="69" ry="9" fill="currentColor" opacity=".08"/>
     <circle cx="92" cy="57" r="48" fill="currentColor" opacity=".06"/>
     <rect x="34" y="25" width="96" height="72" rx="10" fill="hsl(var(--card))" stroke="currentColor" strokeOpacity=".3" strokeWidth="2"/>
     <path d="M34 44h96" stroke="currentColor" strokeOpacity=".2"/>
     <circle cx="46" cy="35" r="2" fill="currentColor"/><circle cx="54" cy="35" r="2" fill="currentColor" opacity=".4"/>
-    {variant === "records" ? <><rect x="47" y="55" width="19" height="28" rx="4" fill="currentColor" opacity=".15"/><path d="M76 59h36M76 69h29M76 79h20" stroke="currentColor" strokeWidth="4" strokeLinecap="round" opacity=".3"/></> : <><path d="M49 82V68m18 14V58m18 24V64m18 18V51" stroke="currentColor" strokeWidth="9" strokeLinecap="round" opacity=".35"/><path d="m48 62 20-14 18 7 20-15" stroke="currentColor" strokeWidth="2"/></>}
+    {artwork[variant] || <><rect x="47" y="55" width="19" height="28" rx="4" fill="currentColor" opacity=".15"/><path d="M76 59h36M76 69h29M76 79h20" stroke="currentColor" strokeWidth="4" strokeLinecap="round" opacity=".3"/></>}
     <rect x="119" y="64" width="31" height="31" rx="10" fill="currentColor"/><path d="m128 79 5 5 9-11" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
     <path d="M22 43v8m-4-4h8m122-23v8m-4-4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".4"/>
   </svg>;

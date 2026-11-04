@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from test_identity_utils import attach_test_identity
 from datetime import datetime, timedelta, timezone
 
@@ -28,6 +29,8 @@ def _user(db, email: str, role_name: str) -> User:
     )
     db.add(user)
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, user)
     db.commit()
     db.refresh(user)
     return user

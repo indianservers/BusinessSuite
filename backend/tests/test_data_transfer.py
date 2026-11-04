@@ -7,14 +7,16 @@ from openpyxl import Workbook, load_workbook
 
 from app.shared.tabular_files import read_table
 from app.models.user import User
-from test_identity_utils import attach_test_identity
+from test_identity_utils import attach_test_identity, attach_workflow_branch
 
 ROOT = "/api/v1/data-transfer"
 
 
 @pytest.fixture
 def headers(db, superuser_headers):
-    attach_test_identity(db, db.query(User).filter_by(email="testadmin@test.com").one())
+    actor = db.query(User).filter_by(email="testadmin@test.com").one()
+    attach_test_identity(db, actor)
+    attach_workflow_branch(db, actor)
     db.commit()
     return superuser_headers
 

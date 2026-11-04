@@ -17,6 +17,7 @@ async function sourceTests() {
   assert.equal((await source.load({ ...emptyQuery(), search: "ALPHA" })).rows[0].id, "1");
   assert.deepEqual((await source.load({ ...emptyQuery(), sorting: [{ id: "amount", desc: true }] })).rows.map(r => r.id), ["3", "2", "1"]);
   assert.equal((await source.load({ ...emptyQuery(), filters: { logic: "or", rules: [{ field: "amount", operator: "gt", value: 20 }, { field: "name", operator: "equals", value: "Beta" }] } })).total, 2);
+  assert.equal((await source.load({ ...emptyQuery(), filters: { logic: "and", rules: [{ field: "status", operator: "equals", value: "Open" }, { logic: "or", rules: [{ field: "amount", operator: "gt", value: 50 }, { field: "name", operator: "equals", value: "Beta" }] }] } })).total, 1);
   const grouped = await source.load({ ...emptyQuery(), grouping: ["status"] });
   assert.equal(grouped.groups.find(g => g.value === "Open").count, 2);
   const branch = await source.load({ ...emptyQuery(), grouping: ["status"], path: [{ field: "status", value: "Open" }] });
@@ -51,6 +52,9 @@ async function browserTests() {
     await shared.getByRole("button", { name: /Open.*17/ }).click();
     await shared.getByRole("checkbox", { name: "Select row Record 2", exact: true }).waitFor();
     await shared.getByRole("checkbox", { name: "Select row Record 2", exact: true }).click();
+    await shared.getByRole("button", { name: "Fail update", exact: true }).click();
+    await shared.getByRole("alert").filter({ hasText: "Update denied by record permission" }).waitFor();
+    assert.equal(await shared.getByRole("checkbox", { name: "Select row Record 2", exact: true }).isChecked(), true);
     await shared.getByRole("button", { name: "Mark done", exact: true }).click();
     await shared.getByRole("button", { name: /Done.*19/ }).waitFor();
     await adapter.getByLabel("Existing select a", { exact: true }).check();

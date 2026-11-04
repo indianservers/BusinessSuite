@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "module": "crm",
+      "id": 17,
+      "remote_id": "id:AP58D9UZh2cAAAAAAAAABw",
+      "sha256_matches": true,
+      "staging_cleanup_and_cloud_materialize": "pass"
+    },
+    {
+      "module": "pms",
+      "id": 18,
+      "remote_id": "id:AP58D9UZh2cAAAAAAAAACQ",
+      "sha256_matches": true,
+      "staging_cleanup_and_cloud_materialize": "pass"
+    },
+    {
+      "module": "hrms",
+      "id": 19,
+      "remote_id": "id:AP58D9UZh2cAAAAAAAAACw",
+      "sha256_matches": true,
+      "staging_cleanup_and_cloud_materialize": "pass"
+    }
+  ],
+  "routing": "Existing Google Drive routes preserved"
+}

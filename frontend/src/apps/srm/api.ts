@@ -3,7 +3,7 @@ import type { SRMRecord } from "./types";
 
 export const srmApi = {
   moduleInfo: () => api.get("/srm/module-info").then((res) => res.data),
-  dashboard: () => api.get("/srm/dashboard").then((res) => res.data),
+  dashboard: (period: "all" | "3" | "12" | "custom" = "all", start_date?: string, end_date?: string) => api.get("/srm/dashboard", { params: { period, start_date, end_date } }).then((res) => res.data),
   customer360: (params?: Record<string, string | number | undefined>) => api.get("/srm/customer-360", { params }).then((res) => res.data),
   salesOrders: () => api.get<SRMRecord[]>("/srm/sales-orders").then((res) => res.data),
   salesOrder: (id: number) => api.get<SRMRecord>(`/srm/sales-orders/${id}`).then((res) => res.data),

@@ -15,6 +15,43 @@ from .task_studio import version, publish
 
 router = APIRouter(prefix="/task-workspace", tags=["PMS Task Workspace"])
 
+
+class TaskRecordInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    kind: Literal['contact', 'lead']
+    record_id: int = Field(gt=0)
+
+
+@router.get('/tasks/{task_id}/crm-links')
+def crm_links(task_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from .task_record_links import read_links
+    return read_links(db, user, task_id)
+
+
+@router.post('/tasks/{task_id}/crm-links')
+def add_crm_link(task_id: int, data: TaskRecordInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from .task_record_links import link_record
+    return link_record(db, user, task_id, data.kind, data.record_id)
+
+
+@router.delete('/tasks/{task_id}/crm-links/{link_id}')
+def remove_crm_link(task_id: int, link_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from .task_record_links import unlink_record
+    return unlink_record(db, user, task_id, link_id)
+
+
+@router.get('/tasks/{task_id}/crm-link-options')
+def crm_link_options(task_id: int, kind: Literal['contact', 'lead'], search: str = Query('', max_length=200), after: int = Query(0, ge=0), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    scoped_task(db, task_id, user, 'manage_tasks')
+    from app.shared.record_360 import crm_query
+    from app.apps.crm.models import CRMContact, CRMLead
+    model = CRMContact if kind == 'contact' else CRMLead
+    query = crm_query(db, user, 'contacts' if kind == 'contact' else 'leads').filter(model.id > after)
+    if search.strip():
+        query = query.filter(model.full_name.ilike('%' + search.strip() + '%'))
+    rows = query.order_by(model.id).limit(26).all()
+    return {'items': [{'id': row.id, 'name': row.full_name} for row in rows[:25]], 'next': rows[24].id if len(rows) > 25 else None}
+
 def manager_ids(db, project):
     ids = {project.manager_user_id, project.owner_user_id} - {None}
     if not ids and project.workspace_id:

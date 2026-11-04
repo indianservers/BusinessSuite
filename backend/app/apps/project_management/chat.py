@@ -792,15 +792,11 @@ def send(
             db.add(msg)
             db.flush()
             for a in files:
-                if (
-                    db.execute(
-                        update(Attachment)
-                        .where(Attachment.id == a.id, Attachment.message_id.is_(None))
-                        .values(message_id=msg.id)
-                    ).rowcount
-                    != 1
-                ):
+                attachment = db.query(Attachment).filter(Attachment.id == a.id, Attachment.message_id.is_(None)).populate_existing().with_for_update().first()
+                if attachment is None:
                     raise HTTPException(409, "Attachment was already sent")
+                attachment.message_id = msg.id
+                db.flush()
             # Legacy main timelines remain usable. Replies stay in the thread timeline.
             if room.legacy_dm_id and not data.parent_id:
                 old = PMSDirectMessage(
@@ -959,15 +955,7 @@ def read(
 ):
     room, m = locked_access(db, wid, rid, user)
     target = min(data.message_id, floor(db, rid))
-    db.execute(
-        update(Member)
-        .where(
-            Member.conversation_id == rid,
-            Member.user_id == user.id,
-            Member.read_id < target,
-        )
-        .values(read_id=target)
-    )
+    m.read_id = max(m.read_id, target)
     commit_chat(db, wid, rid)
     return {"unread": unread(db, room, m, user.id)}
 
@@ -996,18 +984,10 @@ def read_all(
         .join(Room, Room.id == Member.conversation_id)
         .filter(
             Room.workspace_id == wid, Member.user_id == user.id, Member.active.is_(True), Room.id.notin_(denied_rooms(db,user,wid))
-        )
+        ).order_by(Member.conversation_id).with_for_update()
     ):
         target = floor(db, m.conversation_id)
-        db.execute(
-            update(Member)
-            .where(
-                Member.conversation_id == m.conversation_id,
-                Member.user_id == user.id,
-                Member.read_id < target,
-            )
-            .values(read_id=target)
-        )
+        m.read_id = max(m.read_id, target)
     commit_chat(db, wid, extra_ids=[user.id])
     return {"ok": True}
 

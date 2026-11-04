@@ -123,7 +123,7 @@ function Item({
         <div className="form-field-ghost">
           {field.type === "section"
             ? "Section divider"
-            : ["select", "radio", "multiselect"].includes(field.type)
+            : ["select", "combobox", "radio", "multiselect"].includes(field.type)
               ? field.options.join(" · ")
               : field.placeholder || "Answer goes here"}
         </div>
@@ -423,7 +423,7 @@ export default function FormBuilder({
                   Required question
                 </label>
               )}
-              {["select", "radio", "multiselect"].includes(field.type) && (
+              {["select", "combobox", "radio", "multiselect"].includes(field.type) && (
                 <label>
                   Options · one per line
                   <textarea

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -8,9 +9,7 @@ from app.models.payroll import EmployeeSalary
 
 
 def test_employee_sensitive_field_update_creates_masked_hash_audit(client, db, superuser_headers):
-    branch = Branch(name="Audit branch", company_id=1)
-    db.add(branch)
-    db.flush()
+    branch = db.query(Branch).filter_by(company_id=1,is_active=True).order_by(Branch.id).first()
     departments = [Department(name=name, branch_id=branch.id) for name in ["Before", "After"]]
     db.add_all(departments)
     db.flush()

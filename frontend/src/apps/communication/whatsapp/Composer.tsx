@@ -1,24 +1,32 @@
+import {type ReplyTarget} from './QuotedMessage';
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {type UploadedMedia} from './MessageMedia';
 import PhoneActions from "@/components/PhoneActions";
 import { WhatsAppIcon } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { contract } from "@/lib/validation";
-import { useEffect,useState } from "react";
+import { useEffect,useState,useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Search, Link2, Layers, UserRound, Clock3, ShieldCheck, MessageSquareText, Eye, Info, CheckCheck, Save, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Send, Search, X, Link2, Layers, UserRound, Clock3, ShieldCheck, MessageSquareText, Eye, Info, CheckCheck, Save, RotateCcw, CheckCircle2 } from "lucide-react";
 import RecipientConsent from "./RecipientConsent";
 import { QuickReplies } from '../center/shared';
 import { whatsappBase as base, whatsappError, templateParameters, templateSupported, initials, contactName, type Contact, type Message, type Template } from "./types";
 
-type SendPayload = { requestId: string; to: string; body: string; template?: { name: string; language: { code: string }; components?: unknown[] }; entityType?: string; entityId?: number };
+type SendPayload = { replyTo?:number;media?:string; requestId: string; to: string; body: string; template?: { name: string; language: { code: string }; components?: unknown[] }; entityType?: string; entityId?: number };
 type CRMRecord = { id: number; name?: string; full_name?: string; fullName?: string; firstName?: string; lastName?: string; title?: string; phone?: string; phoneCountryCode?: string;phone_country_code?: string;email?:string };
 export type WhatsAppDraft = { key: string; to: string; body: string; entityType?: "lead" | "contact" | "deal"; entityId?: number };
 const recordName=(r:CRMRecord)=>r.fullName || r.full_name || r.name || [r.firstName,r.lastName].filter(Boolean).join(' ') || r.title || `Record ${r.id}`;
-export default function Composer({templates,contact,admin,scope,refresh,compact=false,businessName='Your business',initialDraft}:{templates:Template[];contact?:Contact;admin:boolean;scope:string;refresh:()=>Promise<void>;compact?:boolean;businessName?:string;initialDraft?:WhatsAppDraft}) {
+export default function Composer({templates,contact,admin,scope,refresh,compact=false,businessName='Your business',initialDraft,replyTarget,onReplyClear,onLockedChange}:{replyTarget?:ReplyTarget|null;onReplyClear?:()=>void;onLockedChange?:(locked:boolean)=>void;templates:Template[];contact?:Contact;admin:boolean;scope:string;refresh:()=>Promise<void>;compact?:boolean;businessName?:string;initialDraft?:WhatsAppDraft}) {
+  const [quote,setQuote]=useState<ReplyTarget|null>(null);
+  useEffect(()=>{if(replyTarget!==undefined)setQuote(replyTarget);},[replyTarget]);
   const [to,setTo]=useState(contact?'+'+contact.recipient:initialDraft?.to||''),[body,setBody]=useState(initialDraft?.body||'');
+  const [pickerOpen,setPickerOpen]=useState(false),[templateSearch,setTemplateSearch]=useState('');
+  const [attachment,setAttachment]=useState<UploadedMedia|null>(null),[uploading,setUploading]=useState(false);
+  const fileInput=useRef<HTMLInputElement>(null),sendLock=useRef(false);
   const [countryCode,setCountryCode]=useState(contract.default_calling_code);
   const callingCode=to.startsWith('+')?([...contract.countries].sort((a,b)=>b.code.length-a.code.length).find(c=>to.startsWith(c.code))?.code||countryCode):countryCode;
   const nationalNumber=to.startsWith(callingCode)?to.slice(callingCode.length):to;
@@ -32,6 +40,7 @@ export default function Composer({templates,contact,admin,scope,refresh,compact=
   const [draftReady,setDraftReady]=useState(false),[autosaved,setAutosaved]=useState(''),[lookupTo,setLookupTo]=useState(to);
   useEffect(()=>{const timer=setTimeout(()=>setLookupTo(to),250);return()=>clearTimeout(timer);},[to]);
   const recipientLookup=useQuery({queryKey:['whatsapp',scope,'recipient',lookupTo],enabled:!contact&&/^\+?[1-9]\d{6,14}$/.test(lookupTo),queryFn:async()=>(await api.get<{contact:Contact|null}>(base+'/recipient',{params:{to:lookupTo}})).data.contact});
+  const business=useQuery({queryKey:['whatsapp',scope,'business-context',contact?.id],enabled:mode==='template'&&!!contact?.id,queryFn:async()=>(await api.get<{profile?:{companyName?:string};deals:{id:number;name:string}[];quotations:{name:string}[];invoices:{name:string;amount:string|number;balance?:string|number;currency:string;dueAt?:string}[]}>(base+`/conversations/${contact!.id}/context`)).data});
   const records=useQuery({queryKey:['whatsapp-records',scope,entity,search],enabled:!contact,queryFn:async()=>(await api.get<{items:CRMRecord[]}>(`/crm/${entity==='lead'?'leads':entity==='contact'?'contacts':'deals'}`,{params:{search,per_page:30}})).data.items});
   const recents=useQuery({queryKey:['whatsapp',scope,'recent-contacts'],enabled:!contact,queryFn:async()=>(await api.get<{items:Contact[]}>(base+'/conversations',{params:{limit:12}})).data.items});
   const activeContact=contact||(lookupTo===to?recipientLookup.data:null)||recents.data?.find(c=>c.recipient===to.replace(/[^0-9]/g,''));
@@ -39,18 +48,27 @@ export default function Composer({templates,contact,admin,scope,refresh,compact=
   const approved=templates.filter(t=>t.status==='APPROVED'&&templateSupported(t));
   const template=approved.find(t=>t.name+':'+t.language===chosen);
   const placeholders=templateParameters(template);
-  const locked=busy||!!pending||!!result, linked=contact?.entityId||recordId;
-  const reasons=[...(!/^\+?[1-9]\d{6,14}$/.test(to)?['Enter a valid international recipient number.']:[]),...(!admin&&!linked?['Choose an accessible CRM record.']:[]),...(activeContact?.consent==='opted_out'?['This recipient has opted out.']:[]),...(mode==='text'&&!activeContact?.serviceWindowOpen?['Text replies require an open 24-hour service window. Use an approved template with opt-in.']:[]),...(mode==='text'&&!body.trim()?['Write a reply.']:[]),...(mode==='template'&&!template?['Choose an approved template.']:[]),...(mode==='template'&&activeContact?.consent!=='opted_in'?['Record recipient opt-in before starting a template conversation.']:[]),...(mode==='template'&&placeholders.some(p=>!parameters[p]?.trim())?['Fill every template field.']:[])];
-  const disabled=busy||!!result&&!pending||!pending&&reasons.length>0;
+  const locked=busy||uploading||!!pending||!!result, linked=contact?.entityId||recordId;
+  useEffect(()=>onLockedChange?.(locked),[locked,onLockedChange]);
+  const reasons=[...(!/^\+?[1-9]\d{6,14}$/.test(to)?['Enter a valid international recipient number.']:[]),...(!admin&&!linked?['Choose an accessible CRM record.']:[]),...(activeContact?.consent==='opted_out'?['This recipient has opted out.']:[]),...(mode==='text'&&!activeContact?.serviceWindowOpen?['Text replies require an open 24-hour service window. Use an approved template with opt-in.']:[]),...(mode==='text'&&!body.trim()&&!attachment?['Write a reply.']:[]),...(mode==='text'&&attachment&&((['audio','sticker'].includes(attachment.kind)&&body.trim())||body.length>1024)?['Audio/stickers have no caption; other media captions are limited to 1024 characters.']:[]),...(mode==='template'&&!template?['Choose an approved template.']:[]),...(mode==='template'&&activeContact?.consent!=='opted_in'?['Record recipient opt-in before starting a template conversation.']:[]),...(mode==='template'&&placeholders.some(p=>!parameters[p]?.trim())?['Fill every template field.']:[])];
+  const disabled=busy||uploading||!!result&&!pending||!pending&&reasons.length>0;
   function recordFields(){return linked?{entityType:contact?.entityType||entity,entityId:Number(linked)}:{};}
   function chooseTemplate(t:Template){setChosen(t.name+':'+t.language);setParameters({});setMode('template');}
-  function saveDraft(){sessionStorage.setItem(draftKey,JSON.stringify({to,body,mode,chosen,parameters,entity,recordId}));setHasDraft(true);setNotice('Draft saved in this browser tab.');}
-  function restoreDraft(){try{const d=JSON.parse(sessionStorage.getItem(draftKey)||'{}');if(!contact&&typeof d.to==='string')setTo(d.to);if(typeof d.body==='string')setBody(d.body);if(['text','template'].includes(d.mode))setMode(d.mode);if(typeof d.chosen==='string')setChosen(d.chosen);if(d.parameters&&typeof d.parameters==='object')setParameters(Object.fromEntries(Object.entries(d.parameters).filter(([,v])=>typeof v==='string')) as Record<string,string>);if(!contact&&['lead','contact','deal'].includes(d.entity)){setEntity(d.entity);setRecordId(String(d.recordId||''));}setNotice('Saved draft restored. Review the recipient before sending.');}catch{setNotice('This draft could not be restored.');}}
+  function saveDraft(){sessionStorage.setItem(draftKey,JSON.stringify({to,body,mode,chosen,parameters,entity,recordId,attachment,quote}));setHasDraft(true);setNotice('Draft saved in this browser tab.');}
+  function restoreDraft(){try{const d=JSON.parse(sessionStorage.getItem(draftKey)||'{}');if(!contact&&typeof d.to==='string')setTo(d.to);if(typeof d.body==='string')setBody(d.body);if(d.quote&&Number.isInteger(d.quote.id)&&typeof d.quote.body==='string')setQuote(d.quote);if(d.attachment&&typeof d.attachment.token==='string')setAttachment(d.attachment);if(['text','template'].includes(d.mode))setMode(d.mode);if(typeof d.chosen==='string')setChosen(d.chosen);if(d.parameters&&typeof d.parameters==='object')setParameters(Object.fromEntries(Object.entries(d.parameters).filter(([,v])=>typeof v==='string')) as Record<string,string>);if(!contact&&['lead','contact','deal'].includes(d.entity)){setEntity(d.entity);setRecordId(String(d.recordId||''));}setNotice('Saved draft restored. Review the recipient before sending.');}catch{setNotice('This draft could not be restored.');}}
   useEffect(()=>{if(sessionStorage.getItem(draftKey))restoreDraft();setDraftReady(true);},[draftKey]);
-  useEffect(()=>{if(!draftReady||locked)return;const timer=setTimeout(()=>{try{if(body||chosen||to&&!contact){sessionStorage.setItem(draftKey,JSON.stringify({to,body,mode,chosen,parameters,entity,recordId}));setHasDraft(true);setAutosaved(new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));}}catch{setAutosaved('');}},650);return()=>clearTimeout(timer);},[to,body,mode,chosen,parameters,entity,recordId,draftReady,locked,draftKey]);
+  useEffect(()=>{if(!draftReady||locked)return;const timer=setTimeout(()=>{try{if(body||chosen||attachment||quote||hasDraft||to&&!contact){sessionStorage.setItem(draftKey,JSON.stringify({to,body,mode,chosen,parameters,entity,recordId,attachment,quote}));setHasDraft(true);setAutosaved(new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));}}catch{setAutosaved('');}},650);return()=>clearTimeout(timer);},[to,body,mode,chosen,parameters,entity,recordId,attachment,quote,hasDraft,draftReady,locked,draftKey]);
   const preview=mode==='text'?body:(template?.components?.find(c=>c.type==='BODY')?.text||'').replace(/\{\{\d+\}\}/g,p=>parameters[p]||p);
+  async function uploadFile(file:File){
+    if(!activeContact||uploading||locked)return;
+    setUploading(true);setNotice('');
+    try{const data=new FormData();data.append('file',file);const response=await api.post<UploadedMedia>(base+`/conversations/${activeContact.id}/media`,data,{uploadLimitBytes:16*1024*1024});setAttachment(response.data);setMode('text');}
+    catch(error){setNotice(whatsappError(error));}finally{setUploading(false);if(fileInput.current)fileInput.current.value='';}
+  }
   async function send() {
-    const payload = pending || { requestId: crypto.randomUUID(), to, body: mode === "text" ? body : "", ...recordFields(),
+    if(sendLock.current||disabled)return;
+    sendLock.current=true;
+    const payload = pending || { ...(mode==='text'&&quote?{replyTo:quote.id}:{}), ...(mode==='text'&&attachment?{media:attachment.token}:{}), requestId: crypto.randomUUID(), to, body: mode === "text" ? body : "", ...recordFields(),
       ...(mode === "template" && template ? { template: { name: template.name, language: { code: template.language },
         ...(placeholders.length ? { components: [{ type: "body", parameters: placeholders.map(p => ({ type: "text", text: parameters[p] })) }] } : {}) } } : {}) };
     sessionStorage.setItem(draftKey+':pending',JSON.stringify(payload));
@@ -62,7 +80,7 @@ export default function Composer({templates,contact,admin,scope,refresh,compact=
         ? `Meta reported failure for message ${message.id}${message.errorCode?' (code '+message.errorCode+')':''}. Check Sent & delivery for the recorded result.`
         : uncertain ? `Message ${message.id} is awaiting reconciliation. Its outcome is not confirmed; this is not a confirmed send failure.`
         : `Message ${message.id}: ${message.status.replace(/_/g,' ')}. View Sent & delivery for delivery and read updates.`);
-      if(!uncertain){setPending(null);sessionStorage.removeItem(draftKey+':pending');sessionStorage.removeItem(draftKey);setHasDraft(false);}
+      if(!uncertain){if(message.status!=='failed'){setQuote(null);onReplyClear?.();}setPending(null);sessionStorage.removeItem(draftKey+':pending');sessionStorage.removeItem(draftKey);setHasDraft(false);}
     };
     try {
       const message = (await api.post<Message>(base + "/messages", payload)).data;
@@ -75,11 +93,13 @@ export default function Composer({templates,contact,admin,scope,refresh,compact=
       try {
         showOutcome((await api.get<Message>(base+'/messages/by-request/'+payload.requestId)).data);
         await refresh();
-      } catch {
-        setNotice(`${whatsappError(error)} ${status===422?'Correct the message fields before sending.':'The send outcome is unconfirmed. Check the original request or Sent & delivery; do not create a duplicate send.'}`);
-        if(status===422){setPending(null);sessionStorage.removeItem(draftKey+':pending');}
+      } catch (lookupError) {
+        const noRecord=(lookupError as {response?:{status?:number}})?.response?.status===404;
+        const rejected=noRecord&&!!status&&[400,401,403,404,409,413,415,422,429].includes(status);
+        setNotice(`${whatsappError(error)} ${rejected?'Correct the message fields before sending.':'The send outcome is unconfirmed. Check the original request or Sent & delivery; do not create a duplicate send.'}`);
+        if(rejected){setPending(null);sessionStorage.removeItem(draftKey+':pending');}
       }
-    } finally { setBusy(false); }
+    } finally { sendLock.current=false;setBusy(false); }
   }
   const editor=<section className={compact?'wa-chat-composer':'wa-compose-card'}>
     {!compact&&<div className="wa-card-heading"><span className="wa-feature-icon"><WhatsAppIcon className="h-6 w-6"/></span><div><h3>Send WhatsApp Message</h3><p>Send an approved template or reply to a customer conversation.</p></div></div>}
@@ -92,17 +112,20 @@ export default function Composer({templates,contact,admin,scope,refresh,compact=
       <label className="wa-field wa-recent-picker"><span><Clock3 size={14}/>Recent contacts</span><NativeSelect loading={recents.isFetching} error={recents.isError} aria-label="Recent contacts" className="wa-select" disabled={locked} value="" onChange={e=>{const c=recents.data?.find(c=>String(c.id)===e.target.value);if(c){setTo('+'+c.recipient);setEntity(c.entityType||'lead');setRecordId(c.entityId?String(c.entityId):'');}}}><option value="">Pick a recent conversation</option>{recents.data?.map(c=><option key={c.id} value={c.id}>{contactName(c)}</option>)}</NativeSelect></label>
     </div></>}
     {!compact&&<div className={`wa-consent-strip ${activeContact?.consent==='opted_out'?'is-warning':''}`}><Info size={15}/><span>Consent: {activeContact?.consent.replace(/_/g,' ')||'unknown'}. {activeContact?activeContact.serviceWindowOpen?'24-hour reply window is open.':'Use an approved template with opt-in.':'Record opt-in before starting a template conversation.'}</span></div>}
+    {mode==='text'&&quote&&<div className="wa-reply-composer"><span>Replying to {quote.direction==='outbound'?'your message':'customer'}<small>{quote.body}</small></span><button type="button" aria-label="Cancel quoted reply" disabled={locked} onClick={()=>{setQuote(null);onReplyClear?.();}}><X size={14}/></button></div>}
     <div className="wa-composer-mode-row"><div className="wa-mode-switch" role="group" aria-label="Message type">
       <button type="button" disabled={locked} aria-pressed={mode==='text'} className={mode==='text'?'is-active':''} onClick={()=>setMode('text')}><MessageSquareText size={14}/>Text reply</button>
-      <button type="button" disabled={locked} aria-pressed={mode==='template'} className={mode==='template'?'is-active':''} onClick={()=>setMode('template')}><ShieldCheck size={14}/>Approved template</button>
+      <button type="button" disabled={locked} aria-pressed={mode==='template'} className={mode==='template'?'is-active':''} onClick={()=>{setMode('template');setPickerOpen(true);}}><ShieldCheck size={14}/>Approved template</button>
     </div>{compact&&<span className={`wa-window-badge ${contact?.serviceWindowOpen?'is-open':''}`}><Clock3 size={12}/>{contact?.serviceWindowOpen?'24-hour window open':'Reply window closed'}</span>}</div>
+    <Dialog open={pickerOpen} onOpenChange={setPickerOpen}><DialogContent className="wa-template-picker"><DialogTitle>Select approved template</DialogTitle><Input aria-label="Search approved templates" placeholder="Search name, language or category…" value={templateSearch} onChange={e=>setTemplateSearch(e.target.value)}/><div className="wa-template-results">{approved.filter(t=>(t.name+' '+t.language+' '+t.category).toLowerCase().includes(templateSearch.toLowerCase())).map(t=><button key={t.id||t.name+t.language} disabled={locked} onClick={()=>{chooseTemplate(t);setPickerOpen(false);}}><strong>{t.name.replace(/_/g,' ')}</strong><small>{t.category} · {t.language} · {t.status}</small>{t.components?.filter(c=>c.text).map((c,i)=><p key={i}><small>{c.type}</small> {c.text}</p>)}{t.components?.flatMap(c=>c.buttons||[]).map((button,i)=><small key={i}>▣ {button.text||button.type||'Approved button'} {button.url||button.phone_number||''}</small>)}</button>)}{!approved.some(t=>(t.name+' '+t.language+' '+t.category).toLowerCase().includes(templateSearch.toLowerCase()))&&<p>No supported approved templates match this search.</p>}</div><small>Live Meta template structure. Variable values are reviewed in the composer before sending.</small></DialogContent></Dialog>
     {mode==='template'?<div className="wa-template-fields"><label className="wa-field"><span><Layers size={14}/>Approved template</span><NativeSelect className="wa-select" disabled={locked} value={chosen} onChange={e=>{setChosen(e.target.value);setParameters({});}}><option value="">Choose approved template</option>{approved.map(t=><option key={t.name+t.language} value={t.name+':'+t.language}>{t.name} · {t.language}</option>)}</NativeSelect></label>
-      {placeholders.length>0&&<div className="wa-variable-grid">{placeholders.map(p=><div className="wa-field" key={p}><label><span>Template field {p}</span><Input aria-label={`Value for ${p}`} disabled={locked} value={parameters[p]||''} onChange={e=>setParameters({...parameters,[p]:e.target.value})}/></label><NativeSelect aria-label={`Map ${p} to customer field`} className="wa-select" value="" disabled={locked} onChange={e=>{const values:Record<string,string>={name:activeContact?contactName(activeContact):selectedRecord?recordName(selectedRecord):'',phone:to,email:selectedRecord?.email||activeContact?.crmEmail||'',reference:recordId?`${entity} #${recordId}`:''};setParameters({...parameters,[p]:values[e.target.value]||''});}}><option value="">Fill from customer data…</option><option value="name">Customer name</option><option value="phone">WhatsApp number</option><option value="email">Customer email</option><option value="reference">CRM reference</option></NativeSelect></div>)}</div>}
+      {placeholders.length>0&&<div className="wa-variable-grid">{placeholders.map(p=><div className="wa-field" key={p}><label><span>Template field {p}</span><Input aria-label={`Value for ${p}`} disabled={locked} value={parameters[p]||''} onChange={e=>setParameters({...parameters,[p]:e.target.value})}/></label><NativeSelect aria-label={`Map ${p} to customer field`} className="wa-select" value="" disabled={locked} onChange={e=>{const values:Record<string,string>={name:activeContact?contactName(activeContact):selectedRecord?recordName(selectedRecord):'',phone:to,email:selectedRecord?.email||activeContact?.crmEmail||'',reference:recordId?`${entity} #${recordId}`:'',company:business.data?.profile?.companyName||'',deal:business.data?.deals?.[0]?.name||'',quotation:business.data?.quotations?.[0]?.name||'',invoice:business.data?.invoices?.[0]?.name||'',balance:String(business.data?.invoices?.[0]?.balance??''),currency:business.data?.invoices?.[0]?.currency||'',dueDate:business.data?.invoices?.[0]?.dueAt?.slice(0,10)||''};setParameters({...parameters,[p]:values[e.target.value]||''});}}><option value="">Fill from customer data…</option><option value="name">Customer name</option><option value="phone">WhatsApp number</option><option value="email">Customer email</option><option value="reference">CRM reference</option><option value="company">Company name</option><option value="deal">Latest visible deal</option><option value="quotation">Latest visible quotation number</option><option value="invoice">Latest visible invoice number</option><option value="balance">Latest visible invoice balance</option><option value="currency">Invoice currency</option><option value="dueDate">Invoice due date</option></NativeSelect></div>)}</div>}
       {compact&&template&&<p className="wa-compact-preview">{preview}</p>}
       {!compact&&<p className="wa-muted-note">Choose a template approved for this business. Fill in each variable before sending.</p>}
     </div>:<label className="wa-message-field"><span className={compact?'sr-only':'wa-field-caption'}>Message</span><textarea aria-label="Message" placeholder={contact?`Type your message to ${contact.name||'this contact'}…`:'Type your message…'} rows={compact?2:5} maxLength={4096} disabled={locked} value={body} onChange={e=>setBody(e.target.value)} onKeyDown={e=>{if(e.key==='/'&&!body){e.preventDefault();e.currentTarget.closest('section')?.querySelector<HTMLElement>('.cc-quick-replies summary')?.click();}if((e.ctrlKey||e.metaKey)&&e.key==='Enter'&&!disabled){e.preventDefault();void send();}}}/><span className="wa-character-count">{body.length}/4096</span></label>}
     {!compact&&<RecipientConsent to={to} entityType={recordFields().entityType} entityId={recordFields().entityId} disabled={locked||!admin&&!linked} refresh={refresh}/>}
-    <div className="wa-composer-footer"><div className="wa-inline-actions">{mode==='text'&&<QuickReplies disabled={locked} onInsert={text=>setBody(body?body+'\n\n'+text:text)}/>}<Button size="sm" variant="outline" disabled={locked||!body&&!template} onClick={saveDraft}><Save size={14}/>Save draft</Button>{hasDraft&&<Button size="sm" variant="ghost" disabled={locked} onClick={restoreDraft}><RotateCcw size={13}/>Restore</Button>}{result&&!pending&&<Button size="sm" variant="outline" onClick={()=>{setResult(null);setBody('');setNotice('');}}>New message</Button>}</div>
+    {mode==='text'&&<div className="wa-attachment-controls"><input ref={fileInput} type="file" className="sr-only" aria-label="Attach WhatsApp file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,.xls,.xlsx,.ppt,.pptx,audio/aac,audio/mp4,audio/mpeg,audio/amr,audio/ogg,video/mp4,video/3gpp" disabled={locked||!activeContact?.serviceWindowOpen||activeContact?.consent==='opted_out'} onChange={e=>{const file=e.target.files?.[0];if(file)void uploadFile(file);}}/><Button size="sm" variant="ghost" disabled={locked||!activeContact?.serviceWindowOpen||activeContact?.consent==='opted_out'} onClick={()=>fileInput.current?.click()}>{uploading?'Uploading…':'Attach file'}</Button><small>Images up to 5 MB; documents, audio and video up to 16 MB. Audio has no caption.</small>{attachment&&<span>{attachment.filename}<button type="button" disabled={locked} aria-label="Remove attachment" onClick={()=>setAttachment(null)}>×</button></span>}</div>}
+    <div className="wa-composer-footer"><div className="wa-inline-actions">{mode==='text'&&<details className="wa-emoji-picker"><summary aria-label="Choose emoji">Emoji</summary><div role="group" aria-label="Emoji">{['😀','😊','👍','🙏','✅','🎉','❤️','📅','📦','💬','👋','🤝'].map(emoji=><button key={emoji} type="button" aria-label={`Insert ${emoji}`} disabled={locked||body.length>4092} onClick={()=>setBody(value=>value+emoji)}>{emoji}</button>)}</div></details>}{mode==='text'&&<QuickReplies disabled={locked} onInsert={text=>setBody(body?body+'\n\n'+text:text)}/>}<Button size="sm" variant="outline" disabled={locked||!body&&!template} onClick={saveDraft}><Save size={14}/>Save draft</Button>{hasDraft&&<Button size="sm" variant="ghost" disabled={locked} onClick={restoreDraft}><RotateCcw size={13}/>Restore</Button>}{result&&!pending&&<Button size="sm" variant="outline" disabled={busy||uploading} onClick={()=>{setResult(null);setBody('');setAttachment(null);setNotice('');}}>New message</Button>}</div>
       <Button className="wa-send-button" disabled={disabled} onClick={()=>void send()}><WhatsAppIcon className="h-4 w-4"/>{busy?'Checking…':pending?'Check original send':compact?'Send reply':'Send message'}</Button>
     </div>
     {autosaved&&!result&&<p className="cc-save-status" role="status">Draft autosaved in this tab · {autosaved}</p>}

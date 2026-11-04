@@ -99,6 +99,8 @@ def key_for_source(source, default=None):
     if source.startswith("app.forms."):
         return "forms"
     if source in {
+        "app.shared.payment_requests",
+        "app.shared.record_360",
         "app.access.api",
         "app.access.control",
         "app.shared.data_transfer", "app.shared.api", "app.shared.catalog", "app.shared.follow_ups", "app.shared.communication.gateway", "app.enterprise.api", "app.ai_agents.security_api",

@@ -52,6 +52,27 @@ class PrivateUploadURLMiddleware(BaseHTTPMiddleware):
                 except (ValueError, TypeError):
                     pass  # Preserve FastAPI's normal malformed-JSON validation.
         response = await call_next(request)
+        from app.services.file_storage_exports import should_archive, archive
+        if should_archive(request, response):
+            # Generated exports are bounded separately from native file streaming.
+            chunks, size = [], 0
+            async for chunk in response.body_iterator:
+                chunks.append(chunk)
+                size += len(chunk)
+                if size > 32 * 1024 * 1024:
+                    from starlette.responses import StreamingResponse
+                    async def remaining():
+                        for saved in chunks: yield saved
+                        async for later in response.body_iterator: yield later
+                    return StreamingResponse(remaining(), status_code=response.status_code, headers=dict(response.headers), background=response.background)
+            binary = b"".join(chunks)
+            try:
+                from starlette.concurrency import run_in_threadpool
+                await run_in_threadpool(archive, binary, response.headers.get("content-disposition", ""))
+            except Exception:
+                # Download remains usable if archival fails; never claim a verified save.
+                response.headers["X-Storage-Status"] = "archive-failed"
+            return Response(binary, status_code=response.status_code, headers=dict(response.headers), background=response.background)
         if (settings.STORAGE_BACKEND not in {"local", "s3", "vercel_blob"} or response.status_code >= 400
                 or "application/json" not in response.headers.get("content-type", "")):
             return response

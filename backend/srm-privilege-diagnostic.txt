@@ -1,0 +1,44 @@
+F
+================================== FAILURES ===================================
+_________________ test_srm_finance_collection_and_sales_rbac __________________
+backend\tests\test_srm_finance_rbac.py:23: in test_srm_finance_collection_and_sales_rbac
+    assert invoice.status_code == 201, invoice.text
+E   AssertionError: {"detail":"Resource is outside the authorized company or writable scope"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  passlib.handlers.bcrypt:bcrypt.py:622 (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+------------------------------ Captured log call ------------------------------
+WARNING  businesssuite.security:tenant_boundary.py:426 security_event=company_access_denied actor=2 company=1 action=privilege_write resource=users
+Stack (most recent call last):
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1032, in _bootstrap
+    self._bootstrap_inner()
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\srm\api\router.py", line 3078, in draft_from_sales_order
+    invoice = _create_invoice_from_lines(db, current_user, "sales_order", order.id, None, order,
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\srm\api\router.py", line 2988, in _create_invoice_from_lines
+    lock_tenant(db, user)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\srm\services\commercial.py", line 111, in lock_tenant
+    db.execute(
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2209, in _execute_internal
+    fn_result: Optional[Result[Any]] = fn(orm_exec_state)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\tenant_boundary.py", line 562, in restrict
+    denied("privilege_write", model)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\tenant_boundary.py", line 426, in denied
+    logger.warning(
+=========================== short test summary info ===========================
+FAILED backend\tests\test_srm_finance_rbac.py::test_srm_finance_collection_and_sales_rbac
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 2 warnings in 7.50s

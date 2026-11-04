@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from datetime import date
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, PayrollRecord, PayrollRun
 
@@ -50,7 +51,7 @@ def test_payroll_analytics_returns_range_totals_trends_and_breakdowns(client, db
             net_salary=Decimal("96000"),
         ),
     ])
-    db.commit()
+    commit_payroll_fixture(db)
 
     response = client.get(
         "/api/v1/payroll/analytics",

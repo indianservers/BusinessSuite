@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from test_identity_utils import attach_test_identity
 from datetime import date
 

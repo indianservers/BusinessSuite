@@ -106,7 +106,7 @@ export default function CreateProjectPage() {
                 <Input disabled={editing} id="project-key" value={projectKey} onChange={(event) => setProjectKey(event.target.value.toUpperCase())} maxLength={10} />
               </div>
             </div>
-            <CustomFieldsForm entity="project" projectId={projectId?Number(projectId):undefined} values={customValues} onChange={setCustomValues}/>
+            <CustomFieldsForm placement={editing?"edit":"create"} entity="project" projectId={projectId?Number(projectId):undefined} values={customValues} onChange={setCustomValues}/>
             <div className="space-y-2">
               <Label htmlFor="project-description">Description</Label>
               <RichTextField data-legacy-format="markdown" id="project-description" value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm" />

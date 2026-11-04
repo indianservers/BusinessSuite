@@ -197,7 +197,7 @@ def _action_result(db: Session, action: AutomationAction, context: dict[str, Any
     action_type = validate_action_schema(payload)
     if action_type == "send_notification":
         db.add(Notification(
-            company_id=None,
+            company_id=organization_id_for(user),
             user_id=payload.get("user_id") or user.id,
             title=payload["title"],
             message=payload.get("message", "Automation notification"),

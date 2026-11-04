@@ -1091,6 +1091,8 @@ def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
         company = Company(name="Demo Company", legal_name="Demo Company Pvt Ltd")
         db.add(company)
         db.flush()
+    company.email = company.email or "office@demo.example.test"
+    company.country = company.country or "India"
     company_id = company.id
 
     branch = db.query(Branch).filter(Branch.company_id == company_id, Branch.name == "Head Office").first()
@@ -1102,16 +1104,18 @@ def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
 
     department = db.query(Department).filter(Department.branch_id == branch_id, Department.name == "People Operations").first()
     if not department:
-        department = Department(name="People Operations", code="HR", branch_id=branch_id)
+        department = Department(name="People Operations", code="HR", branch_id=branch_id, organization_id=company_id)
         db.add(department)
         db.flush()
+    department.organization_id = company_id
     department_id = department.id
 
     designation = db.query(Designation).filter(Designation.department_id == department_id, Designation.name == "HRMS User").first()
     if not designation:
-        designation = Designation(name="HRMS User", code="USER", department_id=department_id)
+        designation = Designation(name="HRMS User", code="USER", department_id=department_id, organization_id=company_id)
         db.add(designation)
         db.flush()
+    designation.organization_id = company_id
     designation_id = designation.id
 
     from app.core.tenant_boundary import claim_single_company_legacy
@@ -1146,6 +1150,9 @@ def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
             db.query(LoginAttempt).filter(LoginAttempt.email == item["email"]).delete(synchronize_session=False)
         from app.common.services.identity import SharedIdentityService
         SharedIdentityService.ensure_person_for_user(db, user, organization_id=company_id)
+        from app.branches.models import BranchGrant
+        if not db.query(BranchGrant).filter_by(company_id=company_id,user_id=user.id,branch_id=branch_id).first():
+            db.add(BranchGrant(company_id=company_id,user_id=user.id,branch_id=branch_id,can_write=True))
         seeded_user_ids[item["role"]] = user.id
     db.commit()
 
@@ -1192,6 +1199,10 @@ def init_db(db: Session, *, seed_demo: bool | None = None) -> None:
         )
         db.add(employee)
 
+    db.commit()
+    # Demo records use the same explicit branch ownership as normal API writes.
+    from app.branches.migration import backfill
+    backfill(db.connection(), company_id)
     db.commit()
 
 

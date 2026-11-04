@@ -879,6 +879,9 @@ def create_employee(
         raise HTTPException(status_code=400, detail="Employee ID already exists")
     if data.create_user_account and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Only admin can create login users")
+    from app.services.employee_custom_fields import save as save_custom_fields
+    from types import SimpleNamespace
+    save_custom_fields(db,current_user,SimpleNamespace(id=None),data.custom_fields,validate_only=True)
     return crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
 
 
@@ -1447,6 +1450,14 @@ def create_employee_user_account(
     return emp
 
 
+@router.get("/custom-fields/definitions")
+def employee_field_definitions(employee_id: int | None = None, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_view", "employee_create", "employee_update"))):
+    if employee_id and not db.query(Employee.id).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first():
+        raise HTTPException(404, "Employee not found")
+    from app.services.employee_custom_fields import serialize
+    return serialize(db, current_user, employee_id)
+
+
 @router.get("/{employee_id}", response_model=EmployeeSchema)
 def get_employee(
     employee_id: int,
@@ -1483,6 +1494,9 @@ def update_employee(
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
     values = data.model_dump(exclude_unset=True)
+    from app.services.employee_custom_fields import save as save_custom_fields
+    custom_values=values.pop("custom_fields", {}) or {}
+    save_custom_fields(db, current_user, emp, custom_values, validate_only=True)
     from app.core.masking import can_view_sensitive_employee, SENSITIVE_EMPLOYEE_FIELDS
     if SENSITIVE_EMPLOYEE_FIELDS.intersection(values) and not can_view_sensitive_employee(current_user, emp.id):
         raise HTTPException(403, "Sensitive employee fields require employee_sensitive_view within your assigned scope")
@@ -1506,6 +1520,7 @@ def update_employee(
             method="PUT", endpoint=f"/employees/{emp.id}", entity_type="employee", entity_id=emp.id,
             action="PROFILE_EDIT", description="Changed " + ", ".join(changed_fields),
             new_values=json.dumps({"fields": changed_fields})))
+    save_custom_fields(db, current_user, emp, custom_values)
     updated = crud_employee.update(db, db_obj=emp, obj_in=values)
     return mask_employee_detail(updated, current_user)
 
@@ -1643,7 +1658,7 @@ async def upload_document(
         raise HTTPException(413, 'Upload exceeds the configured file size limit')
     with open(file_path, "wb") as f:
         f.write(body)
-    persist_file(file_path)
+    persist_file(file_path, db=db, module="hrms", filename=document_name or file.filename)
 
     file_url = f"/uploads/employee_docs/{employee_id}/{filename}"
     try:

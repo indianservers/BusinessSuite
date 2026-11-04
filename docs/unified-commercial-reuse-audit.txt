@@ -1,0 +1,43 @@
+Unified commercial audit — 2026-11-04
+
+Canonical implementation (verified in code, not inferred from names)
+- CRMCompany / CRMContact are customer identities. business_customer_links and
+  customer_identity.py map legacy SRM/PMS identities without copying masters.
+- CRMQuotation, CRMQuotationItem, CRMQuoteVersion and CRMQuoteApproval implement
+  quotes, snapshots, approval and conversion logs in crm/api/router.py.
+- SRMSalesOrder and SRMInvoice are commercial records. InvoiceContext preserves
+  seller/customer/contact snapshots; commercial.py provides issuance, numbering,
+  PDF, authorization, locks and truthful delivery outcomes.
+- SRMReceipt / SRMReceiptAllocation implement advance receipts and many-to-many
+  settlements. FAMSRMMapping, FAMPostingJob and fam/api/router.py implement
+  accounting posting and bill allocation; no replacement ledger is needed.
+- ProjectCommercial, MilestoneBillingSource and TimeBillingAllocation connect
+  existing PMS projects, milestones and approved time to the same invoices.
+- Shared follow_ups.py and CRM follow-up workspace provide linked follow-ups.
+- CustomerAutomation, CustomerDelivery, CustomerBinding and customer_service.py
+  already implement consent, explicit recipients, quiet hours, invoice.due rules,
+  durable retry keys, scheduler dispatch and delivery revalidation.
+- Existing grids, SharedInvoicePage, ConnectedCollectionsPage and project billing
+  are shared UI entry points. HRMS users and existing approvals remain canonical.
+
+Verified gaps selected for implementation
+- Legacy receipt allocation has no request correlation and can double-apply a
+  retried request. It also permits cancelled receipts and sub-cent amounts.
+- No invoice collection hold exists for disputes, pause or scheduled resume.
+- Invoice due automation can reach non-billing contacts and pending approval
+  invoices. Dispatch must recheck holds as well as scheduling eligibility.
+- Aging uses floats and includes draft invoices in receivables.
+- Desktop collection form omits payment method/date controls already on mobile.
+
+Architecture decision before edits
+Extend existing receipt allocation and invoice rows with additive nullable keys
+and collection controls. Reuse both migration histories through one helper.
+Extend the existing reminder scheduler and delivery policy, without adding a
+parallel worker, message history, customer table, invoice table or ledger.
+Keep existing routes and optional request fields backward compatible.
+
+Not yet certified
+The historical reports in the repository predate current code and are not proof
+of acceptance. Full A–J workflows, real PostgreSQL concurrency, all jurisdiction
+tax rules, recurring billing, credit/debit notes and every UI acceptance criterion
+require separate evidence. No completion claim is based on these reports.

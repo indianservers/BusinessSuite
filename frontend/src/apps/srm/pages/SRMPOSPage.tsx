@@ -1,8 +1,9 @@
+import { CompanyProfile } from "@/shared/master-data/CompanySelect";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { api } from "@/services/api";
 import QuickAddCustomer, { type PosCustomerRecord } from "../components/QuickAddCustomer";
-import { ScheduleFields, defaultSchedule, type Schedule } from "@/shared/follow-ups/ScheduleFields";
+import { ScheduleFields, newDefaultSchedule, type Schedule } from "@/shared/follow-ups/ScheduleFields";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -302,6 +303,7 @@ export default function SRMPOSPage() {
   const activeStoreProfile = useMemo(() => posStoreProfiles.find((profile) => profile.id === activeProfileId) || defaultStoreProfile, [activeProfileId]);
   const mode = activeStoreProfile.mode;
   const [customerId, setCustomerId] = useState(0);
+  const [customerProfile,setCustomerProfile]=useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const customersQuery = useQuery<Customer[]>({ queryKey: ["srm", "posCustomers"], queryFn: async () => {
     const items: Customer[] = [];
@@ -447,7 +449,11 @@ export default function SRMPOSPage() {
     setActiveModal("payment");
   }
 
-  async function completeSale(after: "done" | "print" | "whatsapp" | "email") {
+  async function completeSale(after: "done" | "print" | "whatsapp" | "email" | "request_payment") {
+    if (after === "request_payment" && !customerId) {
+      toast({ title: "Select a customer", description: "A saved customer is required for a payment request.", variant: "destructive" });
+      return;
+    }
     if (after === "whatsapp" && (!phoneLinks(customer.phone)?.whatsapp || !canAccessRoute("/crm/whatsapp", authUser?.role, authUser?.is_superuser))) {
       toast({ title: "WhatsApp receipt unavailable", description: "Select a customer with an international phone number and make sure you have access to WhatsApp in Communication.", variant: "destructive" });
       return;
@@ -461,7 +467,7 @@ export default function SRMPOSPage() {
       toast({ title: "Customer required", description: "Credit sale needs a registered customer." });
       return;
     }
-    if (paymentMode !== "Credit" && received < totals.grandTotal) {
+    if (after !== "request_payment" && paymentMode !== "Credit" && received < totals.grandTotal) {
       toast({ title: "Payment short", description: "Received amount is less than the bill total." });
       return;
     }
@@ -487,6 +493,7 @@ export default function SRMPOSPage() {
       createdAt: new Date().toISOString(),
       items: cart.length,
     };
+    let savedOrderId = 0;
     try {
       const activeSession = await srmApi.activePosSession();
       const posSession = (activeSession as { session?: { id?: number } | null })?.session || null;
@@ -504,7 +511,8 @@ export default function SRMPOSPage() {
           source: "pos",
           pos_sale_id: sale.id,
           pos_session_id: posSession?.id,
-          payment_mode: paymentMode,
+          payment_mode: after === "request_payment" ? "Payment request" : paymentMode,
+          ...(after === "request_payment" ? { payment_status: "awaiting_payment" } : {}),
           register: activeStoreProfile.register,
           branch: activeStoreProfile.branch,
           cashier: "Sales Manager",
@@ -529,23 +537,31 @@ export default function SRMPOSPage() {
           },
         })),
       });
+      savedOrderId = Number((postedOrder as SRMRecord).id);
+      if (!Number.isSafeInteger(savedOrderId) || savedOrderId <= 0) throw new Error("Order reference was not confirmed");
       sale.invoiceNo = String((postedOrder as SRMRecord).order_number || (postedOrder as SRMRecord).id || sale.invoiceNo);
       await syncSrmNow(queryClient, {
-        type: "pos_sale_completed",
+        type: after === "request_payment" ? "sales_order_changed" : "pos_sale_completed",
         source: "pos-terminal",
         ids: { sales_order_id: Number((postedOrder as SRMRecord).id || 0) || undefined },
       });
     } catch (error) {
       checkoutBusy.current = false;
       toast({
-        title: "Sale not completed",
-        description: "Could not post the sale to SRM. Stock, session, or permissions may need attention.",
+        title: after === "request_payment" ? "Payment request not prepared" : "Sale not completed",
+        description: after === "request_payment" ? "The order outcome could not be confirmed. Check saved orders before retrying. No payment was recorded." : "Could not post the sale to SRM. Stock, session, or permissions may need attention.",
         variant: "destructive",
       });
       return;
     }
     checkoutBusy.current = false;
     setCheckoutKey(crypto.randomUUID());
+    if (after === "request_payment") {
+      setCart([]); setBillDiscount(0); setCoupon(""); setNote(""); setActiveModal(null);
+      toast({ title: "Order saved for payment request", description: "No payment was received or recorded. Review the amount and save the payment request." });
+      navigate(`/srm/payment-requests?source_type=srm_order&source_id=${savedOrderId}`);
+      return;
+    }
     await Promise.all([productsQuery.refetch(), heldBillsQuery.refetch()]);
     setSales((current) => [sale, ...current].slice(0, 25));
     setLastSale(sale);
@@ -728,6 +744,8 @@ export default function SRMPOSPage() {
             <SelectTrigger aria-label="Sale customer" className="h-11 min-w-0 border-slate-200 bg-white text-slate-950"><SelectValue /></SelectTrigger>
             <SelectContent>{customers.map(item => <SelectItem key={item.id} value={String(item.id)}>{item.name}{item.phone ? ` · ${item.phone}` : ""}</SelectItem>)}</SelectContent>
           </Select>
+          {customerId>0&&<Button type="button" variant="outline" aria-label="Open customer 360" onClick={()=>setCustomerProfile(true)}>360°</Button>}
+          {customerProfile&&customerId>0&&<CompanyProfile id={customerId} source="srm" onClose={()=>setCustomerProfile(false)}/>}
           <Button type="button" variant="outline" className="h-11 shrink-0 border-slate-200 bg-white text-slate-950" onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add</Button>
         </div>{customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <button type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</button></p>}</div>
         <Button className="h-11 bg-[#3157d8] px-6 text-white hover:bg-[#2748b8]" onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />Payment [F7]</Button>
@@ -977,7 +995,8 @@ export default function SRMPOSPage() {
             <div className="space-y-4">
               <div className="space-y-3 rounded-lg bg-background p-3 text-foreground">
                 <div className="flex flex-wrap items-end gap-2"><label className="flex-1 text-xs">Customer for this sale & follow-ups<NativeSelect loading={customersQuery.isFetching} error={customersQuery.isError} aria-label="Follow-up customer" className="block w-full rounded border bg-background p-2 text-foreground" value={customerId || ""} onChange={e => setCustomerId(Number(e.target.value))}><option value="">Walk-in — select a customer to schedule</option>{customers.filter(c => c.id).map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}</NativeSelect></label><Button type="button" variant="outline" onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add customer</Button></div>
-                {cart.map(line=><details key={line.lineId}><summary className="cursor-pointer text-sm">{line.name} · {line.followUp?.required?`${line.followUp.interval_days} day follow-up`:"Configure follow-up"}</summary><ScheduleFields template value={line.followUp||defaultSchedule} employees={followUpOptions.data?.employees} teams={followUpOptions.data?.teams} onChange={value=>setCart(current=>current.map(l=>l.lineId===line.lineId?{...l,followUp:value}:l))}/></details>)}
+                {customerId>0&&<Button type="button" variant="outline" onClick={()=>setCustomerProfile(true)}>View customer 360</Button>}
+                {cart.map(line=><details key={line.lineId}><summary className="cursor-pointer text-sm">{line.name} · {line.followUp?.required?`${line.followUp.interval_days} day follow-up`:"Configure follow-up"}</summary><ScheduleFields template value={line.followUp||newDefaultSchedule()} employees={followUpOptions.data?.employees} teams={followUpOptions.data?.teams} onChange={value=>setCart(current=>current.map(l=>l.lineId===line.lineId?{...l,followUp:value}:l))}/></details>)}
               </div>
               <div className="rounded-lg bg-slate-950 p-4">
                 <span className="text-xs uppercase text-slate-400">Grand total</span>
@@ -1001,8 +1020,8 @@ export default function SRMPOSPage() {
                       <SelectTrigger className="border-white/15 bg-slate-900 text-white"><SelectValue /></SelectTrigger>
                       <SelectContent>{rowModes.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
                     </Select>
-                    <Input type="number" min="0" value={row.amount} onChange={(event) => setPaymentRows((current) => current.map((item) => item.id === row.id ? { ...item, amount: Number(event.target.value) || 0 } : item))} className="border-white/15 bg-slate-900 text-white" />
-                    <Input value={row.reference} onChange={(event) => setPaymentRows((current) => current.map((item) => item.id === row.id ? { ...item, reference: event.target.value } : item))} placeholder="Reference" className="border-white/15 bg-slate-900 text-white" />
+                    <Input aria-label="Payment amount" type="number" min="0" value={row.amount} onChange={(event) => setPaymentRows((current) => current.map((item) => item.id === row.id ? { ...item, amount: Number(event.target.value) || 0 } : item))} className="border-white/15 bg-slate-900 text-white" />
+                    <Input aria-label="Payment reference" value={row.reference} onChange={(event) => setPaymentRows((current) => current.map((item) => item.id === row.id ? { ...item, reference: event.target.value } : item))} placeholder="Reference" className="border-white/15 bg-slate-900 text-white" />
                     <Button size="icon" variant="ghost" className="text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => setPaymentRows((current) => current.filter((item) => item.id !== row.id))}><X className="h-4 w-4" /></Button>
                   </div>
                 ))}
@@ -1016,6 +1035,7 @@ export default function SRMPOSPage() {
               <CompactActions><Button className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400" onClick={() => completeSale("done")}>Complete Sale</Button>
 <Button variant="outline" className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => completeSale("print")}>Complete + Print</Button>
 <Button variant="outline" className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => completeSale("whatsapp")}>Complete + WhatsApp</Button>
+<Button variant="outline" className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => completeSale("request_payment")}>Save order & request payment</Button>
 <Button variant="outline" className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => completeSale("email")}>Complete + Email</Button></CompactActions>
 
 

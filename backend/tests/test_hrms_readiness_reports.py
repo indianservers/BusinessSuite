@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 
 from app.db.init_db import init_db
@@ -23,7 +24,8 @@ def test_employee_ess_summary_includes_attendance_leave_and_claims(client, db):
     db.add(leave_type)
     db.flush()
     from app.models.security_boundary import SecurityResourceOwnership
-    db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
+    if db.get(SecurityResourceOwnership, ("leave_types", leave_type.id)) is None:
+        db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
     db.add(LeaveBalance(
         employee_id=employee.id,
         leave_type_id=leave_type.id,

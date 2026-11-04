@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import time
 from datetime import datetime, timezone
 
@@ -198,6 +199,8 @@ def normalize(client, mid, setup, private, delivery):
             "file_shared": "file_shared",
         }.get(typ)
         if typ == "message":
+            if item.get("subtype") in {"message_changed", "message_deleted"}:
+                return []
             name = "message_received"
         if typ in {"channel_created", "channel_rename", "channel_archive"}:
             name = "channel_event"
@@ -371,7 +374,7 @@ def normalize(client, mid, setup, private, delivery):
                         "changed_fields": fields,
                         "record": compact(record),
                     },
-                    [id, name, record.get("Modified_Time") or digest(data)],
+                    [id, name, record.get("Modified_Time"), digest(data)],
                 )
             )
         return result
@@ -381,21 +384,40 @@ def normalize(client, mid, setup, private, delivery):
         result = []
         for notification in data.get("value", []):
             if notification.get("lifecycleEvent"):
-                if notification["lifecycleEvent"] in {
-                    "subscriptionRemoved",
-                    "reauthorizationRequired",
-                }:
+                if notification["lifecycleEvent"] == "subscriptionRemoved":
                     state.pop("id", None)
+                if notification["lifecycleEvent"] == "reauthorizationRequired":
+                    state["needs_reauthorize"] = True
+                if notification["lifecycleEvent"] == "missed":
+                    state["needs_resync"] = True
                 continue
             id = notification.get("resourceData", {}).get("id")
             if not id:
                 continue
             change = notification.get("changeType")
+            if mid == "microsoft_teams" and change == "deleted":
+                continue
             user = "users/" + q(setup["mailbox"]) if setup.get("mailbox") else "me"
             if mid == "outlook":
                 path = "/v1.0/" + user + "/messages/" + q(id)
             elif mid == "microsoft_calendar":
-                path = "/v1.0/" + user + "/events/" + q(id)
+                path = (
+                    "/v1.0/"
+                    + user
+                    + (
+                        "/calendars/" + q(setup["calendar_id"])
+                        if setup.get("calendar_id")
+                        else ""
+                    )
+                    + "/events/"
+                    + q(id)
+                )
+                if (
+                    change == "deleted"
+                    and setup.get("calendar_id")
+                    and id not in state.get("calendar", {})
+                ):
+                    continue
             elif setup.get("chat_id"):
                 path = "/v1.0/chats/" + q(setup["chat_id"]) + "/messages/" + q(id)
             else:
@@ -407,12 +429,31 @@ def normalize(client, mid, setup, private, delivery):
                     + "/messages/"
                     + q(id)
                 )
+                resource = str(notification.get("resource", ""))
+                match = re.search(r"/messages/([^/]+)/replies/[^/]+$", resource)
+                if match:
+                    from urllib.parse import unquote
+
+                    path = (
+                        path.rsplit("/messages/", 1)[0]
+                        + "/messages/"
+                        + q(unquote(match.group(1)))
+                        + "/replies/"
+                        + q(id)
+                    )
             record = (
                 {"id": id}
                 if change == "deleted"
                 else client.request("GET", path, allow=(404,))
             )
             if record.get("_status") == 404:
+                continue
+            if mid == "microsoft_calendar":
+                from app.apps.power_apps.integrations.native_sources import (
+                    calendar_changes,
+                )
+
+                result.extend(calendar_changes(setup, state, [record], change=change))
                 continue
             common = {
                 "id": id,
@@ -427,7 +468,8 @@ def normalize(client, mid, setup, private, delivery):
                 if change == "deleted":
                     continue
                 common.update(
-                    folder_id=record.get("parentFolderId"),
+                    folder_id=setup.get("folder_id") or record.get("parentFolderId"),
+                    actual_folder_id=record.get("parentFolderId"),
                     sender=record.get("from", {})
                     .get("emailAddress", {})
                     .get("address"),
@@ -480,6 +522,42 @@ def normalize(client, mid, setup, private, delivery):
                     )
                 )
         return result
+    if mid == "jira":
+        if data.get("webhookEvent") != "comment_created":
+            return []
+        issue_id = data.get("issue", {}).get("id")
+        comment_id = data.get("comment", {}).get("id")
+        if not issue_id or not comment_id:
+            return []
+        path = "/rest/api/3/issue/" + q(issue_id)
+        comment = client.request(
+            "GET", path + "/comment/" + q(comment_id), allow=(404,)
+        )
+        if comment.get("_status") == 404:
+            return []
+        try:
+            if datetime.fromisoformat(
+                comment["created"].replace("Z", "+00:00")
+            ) < datetime.fromisoformat(private["started_at"]):
+                return []
+        except (ValueError, KeyError):
+            return []
+        issue = client.request("GET", path, query={"fields": "project"}, allow=(404,))
+        if issue.get("_status") == 404:
+            return []
+        return [
+            event(
+                "comment_added",
+                {
+                    "issue_id": str(issue_id),
+                    "project_key": issue.get("fields", {})
+                    .get("project", {})
+                    .get("key"),
+                    "comment": compact(comment),
+                },
+                str(comment_id),
+            )
+        ]
     if mid == "http":
         return [event("webhook_received", data, digest(data))]
     return []

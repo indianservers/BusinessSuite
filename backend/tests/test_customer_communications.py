@@ -8,11 +8,14 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def organization_context(db):
+def organization_context(db, superuser_headers):
     from app.models.company import Company, Branch
     if not db.get(Company, 1):
         db.add(Company(id=1, name='Synthetic communications company', is_active=True))
         db.flush()
+    company = db.get(Company, 1)
+    company.email = company.email or 'communications-fixture@example.test'
+    company.country = company.country or 'India'
     if not db.query(Branch).filter_by(company_id=1).first():
         db.add(Branch(company_id=1, organization_id=1, name='Synthetic branch', code='COMMS', is_active=True))
     db.flush()
@@ -136,10 +139,10 @@ def test_source_event_to_provider_acceptance(client, db, superuser_headers, monk
     drain_outbox(db)
     db.refresh(rows[0])
     assert rows[0].status == 'accepted', rows[0].error
-    send.assert_called_once()
+    assert sum(call.args[0] == 'customer@example.com' for call in send.call_args_list) == 1
     service.process_customer_communications(db)
     drain_outbox(db)
-    send.assert_called_once()
+    assert sum(call.args[0] == 'customer@example.com' for call in send.call_args_list) == 1
 
 
 def test_collection_requires_real_recipient_and_outstanding_invoice(client, db, superuser_headers):

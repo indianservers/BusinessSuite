@@ -1,0 +1,32 @@
+bringing up nodes...
+bringing up nodes...
+
+..............F
+____ test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume ____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_people_workspace.py:449: in test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+    assert response.json()["total"] == 20000 and len(response.json()["items"]) == 24
+E   assert (600 == 20000)
+.....F
+_________ test_crm_and_hrms_adapters_reuse_authorized_native_records __________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:246: in test_crm_and_hrms_adapters_reuse_authorized_native_records
+    employee=Employee(organization_id=1,employee_id="COLLAB-EMP",first_name="Team",last_name="Member",date_of_joining=date(2026,1,1),user_id=users[1].id,status="Active")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:4: in __init__
+    ???
+backend\venv\Lib\site-packages\sqlalchemy\orm\state.py:596: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:121: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+backend\venv\Lib\site-packages\sqlalchemy\orm\state.py:594: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+backend\venv\Lib\site-packages\sqlalchemy\orm\decl_base.py:2179: in _declarative_constructor
+    raise TypeError(
+E   TypeError: 'organization_id' is an invalid keyword argument for Employee
+                                                                         [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_people_workspace.py::test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+FAILED backend\tests\test_communication_engine.py::test_crm_and_hrms_adapters_reuse_authorized_native_records
+2 failed, 19 passed, 107 warnings in 125.14s (0:02:05)

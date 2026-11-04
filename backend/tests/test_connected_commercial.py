@@ -28,6 +28,7 @@ def setup_business(db):
     buyer = CRMCompany(
         organization_id=1,
         name="Shared buyer",
+        account_type="Customer",
         email="billing@example.com",
         address="Original address",
         owner_user_id=owner.id,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.access.catalog import permission_objects
 
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, lazyload
 from sqlalchemy import func
 
 from app.apps.project_management.models import PMSProject, PMSProjectMember, PMSTask, PMSWorkspaceMember
@@ -193,7 +193,10 @@ def get_project_for_action(db: Session, project_id: int, user: User, action: str
 
 
 def get_task_project_for_action(db: Session, task_id: int, user: User, action: str = "browse") -> tuple[PMSTask, PMSProject]:
-    task = db.query(PMSTask).filter(PMSTask.id == task_id, PMSTask.deleted_at == None).first()
+    # Authorization only needs task/project fields. Re-querying an already loaded
+    # feed task must not eager-load its assignees again; intern checks still load
+    # the relationship on demand when they actually need assignment information.
+    task = db.query(PMSTask).options(lazyload(PMSTask.assignments)).filter(PMSTask.id == task_id, PMSTask.deleted_at == None).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     project = get_project_for_action(db, task.project_id, user, action)

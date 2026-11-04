@@ -278,6 +278,9 @@ def catalog(db: Session = Depends(get_db), user=Depends(get_current_user)):
         "integer": "number",
         "decimal": "number",
         "date": "date",
+        "radio": "radio",
+        "combobox": "combobox",
+        "multi_select": "multiselect",
         "dropdown": "select",
         "select": "select",
         "picklist": "select",
@@ -301,7 +304,7 @@ def catalog(db: Session = Depends(get_db), user=Depends(get_current_user)):
             .filter_by(field_id=f.id, active=True)
             .order_by(CustomizationFieldOption.order_index)
         ]
-        if kind in {"select", "multiselect"} and not opts:
+        if kind in {"select", "combobox", "radio", "multiselect"} and not opts:
             continue
         result.append(
             {

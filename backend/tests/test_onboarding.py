@@ -1,4 +1,19 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def employee_structure(db, superuser_headers):
+    from app.models.company import Branch, Department, Designation
+    from test_identity_utils import own_workflow_records
+    branch = db.query(Branch).filter_by(company_id=1,is_active=True).order_by(Branch.id).first()
+    department = Department(name="Onboarding department",organization_id=1,branch_id=branch.id)
+    db.add(department); db.flush()
+    designation = Designation(name="Onboarding employee",organization_id=1,department_id=department.id)
+    db.add(designation)
+    own_workflow_records(db,department,designation)
+    db.commit()
 
 
 def test_employee_creation_auto_starts_onboarding(client, superuser_headers):

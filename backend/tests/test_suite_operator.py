@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import asyncio
 from uuid import uuid4
 from datetime import timedelta
@@ -141,6 +142,8 @@ def test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks(client,
     h, user, _, _ = setup_suite(client, db)
     workspace = PMSWorkspace(name='QA owned workspace');db.add(workspace);db.flush()
     db.add(PMSWorkspaceMember(workspace_id=workspace.id, user_id=user.id, role='Owner'));db.commit()
+    workspace.organization_id = None
+    db.commit()  # Explicit legacy private workspace sponsorship scenario.
     assert resolve_provider(db, user, 'gemini', workspace.id) is None
     source = db.query(OperatorProvider).filter_by(provider='gemini').one();source.allow_workspace_inheritance=True;db.commit()
     assert resolve_provider(db, user, 'gemini', workspace.id).id == source.id
@@ -148,6 +151,8 @@ def test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks(client,
     db.add(PMSWorkspaceMember(workspace_id=workspace.id, user_id=invited.id, role='Member'));db.commit()
     assert resolve_provider(db, invited, 'gemini', workspace.id).id == source.id
     other = PMSWorkspace(name='Unrelated');db.add(other);db.flush();db.add(PMSWorkspaceMember(workspace_id=other.id,user_id=invited.id,role='Owner'));db.commit()
+    other.organization_id = None
+    db.commit()
     assert resolve_provider(db, invited, 'gemini', other.id) is None
     override = OperatorProvider(scope_key=f'workspace:{workspace.id}',provider='gemini',model='override',encrypted_key='unused',enabled=False,data_sharing_allowed=False,updated_by=user.id)
     db.add(override);db.commit()

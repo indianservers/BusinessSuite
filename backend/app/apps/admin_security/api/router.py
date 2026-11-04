@@ -148,7 +148,9 @@ def set_profile_permissions(profile_id: int, data: ProfilePermissionsPayload, db
     profile = db.query(AdminProfile).filter(AdminProfile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    db.query(AdminProfilePermission).filter(AdminProfilePermission.profile_id == profile_id).delete()
+    for previous in db.query(AdminProfilePermission).filter(AdminProfilePermission.profile_id == profile_id).all():
+        db.delete(previous)
+    db.flush()
     for name in data.permissions:
         db.add(AdminProfilePermission(profile_id=profile_id, permission_name=name, allowed=True))
     audit(db, current_user, "admin_profile_permissions_updated", "admin", "profile", profile_id, {"permissions": data.permissions})

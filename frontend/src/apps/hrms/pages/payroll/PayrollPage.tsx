@@ -1,3 +1,4 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -317,14 +318,14 @@ export default function PayrollPage() {
   const { data: payslip, isLoading: loadingSlip } = useQuery({
     queryKey: ["payslip", slipMonth, slipYear, slipEmployeeId, isEmployee],
     queryFn: () => payrollApi.payslip(slipMonth, slipYear, !isEmployee && slipEmployeeId ? Number(slipEmployeeId) : undefined).then((r) => r.data),
-    enabled: isEmployee || Boolean(slipEmployeeId),
+    enabled: activeTab === "viewer" && (isEmployee || Boolean(slipEmployeeId)),
     retry: false,
   });
 
   const { data: payslipEmployeeOptions } = useQuery({
     queryKey: ["payslip-employee-options", slipEmployeeSearch],
     queryFn: () => employeeApi.list({ search: slipEmployeeSearch || undefined, limit: 50 }).then((r) => r.data),
-    enabled: !isEmployee,
+    enabled: !isEmployee && ["viewer","tools"].includes(activeTab),
   });
 
   const { data: runs, isLoading: loadingRuns, refetch: refetchRuns } = useQuery({
@@ -336,55 +337,61 @@ export default function PayrollPage() {
   const { data: runRecords } = useQuery({
     queryKey: ["run-records", selectedRun?.id],
     queryFn: () => payrollApi.runRecords(selectedRun!.id).then((r) => r.data),
-    enabled: !!selectedRun,
+    enabled: !!selectedRun && ["run","variance"].includes(activeTab),
   });
 
   const { data: runVariance, refetch: refetchVariance } = useQuery({
     queryKey: ["run-variance", selectedRun?.id],
     queryFn: () => payrollApi.runVariance(selectedRun!.id).then((r) => r.data),
-    enabled: !!selectedRun,
+    enabled: !!selectedRun && ["run","variance"].includes(activeTab),
   });
 
   const { data: preRunChecks } = useQuery({
     queryKey: ["payroll-pre-run-checks", selectedRun?.id],
     queryFn: () => payrollApi.preRunChecks(selectedRun!.id).then((r) => r.data),
-    enabled: !!selectedRun,
+    enabled: !!selectedRun && activeTab === "run",
   });
 
   const { data: payGroups } = useQuery({
     queryKey: ["payroll-pay-groups"],
     queryFn: () => payrollApi.payGroups().then((r) => r.data),
+    enabled: !isEmployee && ["wizard","setup","run","inputs"].includes(activeTab),
   });
 
   const { data: legalEntities } = useQuery({
     queryKey: ["payroll-legal-entities"],
     queryFn: () => statutoryComplianceApi.legalEntities().then((r) => r.data),
+    enabled: !isEmployee && activeTab !== "guided",
   });
 
   const { data: salaryComponents } = useQuery({
     queryKey: ["salary-components"],
     queryFn: () => payrollApi.components().then((r) => r.data),
+    enabled: !isEmployee && ["wizard","setup","tools"].includes(activeTab),
   });
 
   const { data: salaryStructures } = useQuery({
     queryKey: ["salary-structures"],
     queryFn: () => payrollApi.structures().then((r) => r.data),
+    enabled: !isEmployee && ["wizard","setup","run"].includes(activeTab),
   });
 
   const { data: setupStatutoryProfiles } = useQuery({
     queryKey: ["payroll-setup-statutory-profiles", (legalEntities as LegalEntity[] | undefined)?.[0]?.id],
     queryFn: () => payrollApi.setupStatutoryProfiles({ legal_entity_id: (legalEntities as LegalEntity[])[0].id }).then((r) => r.data),
-    enabled: Boolean((legalEntities as LegalEntity[] | undefined)?.[0]?.id),
+    enabled: ["wizard","setup","statutory"].includes(activeTab) && Boolean((legalEntities as LegalEntity[] | undefined)?.[0]?.id),
   });
 
   const { data: salaryTemplates } = useQuery({
     queryKey: ["salary-templates"],
     queryFn: () => payrollApi.salaryTemplates().then((r) => r.data),
+    enabled: !isEmployee && ["wizard","setup"].includes(activeTab),
   });
 
   const { data: payrollPeriods } = useQuery({
     queryKey: ["payroll-periods", runYear],
     queryFn: () => payrollApi.payrollPeriods({ year: runYear }).then((r) => r.data),
+    enabled: !isEmployee && ["run","inputs","wizard","setup"].includes(activeTab),
   });
 
   const selectedInputPeriod = Number(inputPeriodId || ((payrollPeriods as { id: number }[] | undefined)?.[0]?.id || 0));
@@ -397,43 +404,43 @@ export default function PayrollPage() {
   const { data: payrollInputs } = useQuery({
     queryKey: ["payroll-inputs", selectedInputPeriod],
     queryFn: () => payrollApi.payrollAttendanceInputs({ period_id: selectedInputPeriod }).then((r) => r.data),
-    enabled: !!selectedInputPeriod,
+    enabled: !!selectedInputPeriod && activeTab === "inputs",
   });
 
   const { data: lopAdjustments } = useQuery({
     queryKey: ["lop-adjustments", selectedInputPeriod],
     queryFn: () => payrollApi.lopAdjustments({ period_id: selectedInputPeriod }).then((r) => r.data),
-    enabled: !!selectedInputPeriod,
+    enabled: !!selectedInputPeriod && activeTab === "inputs",
   });
 
   const { data: overtimeLines } = useQuery({
     queryKey: ["overtime-lines", selectedInputPeriod],
     queryFn: () => payrollApi.overtimeLines({ period_id: selectedInputPeriod }).then((r) => r.data),
-    enabled: !!selectedInputPeriod,
+    enabled: !!selectedInputPeriod && activeTab === "inputs",
   });
 
   const { data: encashmentLines } = useQuery({
     queryKey: ["encashment-lines", selectedInputPeriod],
     queryFn: () => payrollApi.leaveEncashmentLines({ period_id: selectedInputPeriod }).then((r) => r.data),
-    enabled: !!selectedInputPeriod,
+    enabled: !!selectedInputPeriod && activeTab === "inputs",
   });
 
   const { data: lwpFeed } = useQuery({
     queryKey: ["lwp-feed", lwpMonth],
     queryFn: () => leavePayrollApi.lwpFeed(lwpMonth).then((r) => r.data as { preview: LwpFeedRow[]; entries: LwpEntry[] }),
-    enabled: !isEmployee,
+    enabled: !isEmployee && activeTab === "inputs",
   });
 
   const { data: worksheetRows } = useQuery({
     queryKey: ["payroll-worksheet", selectedRun?.id],
     queryFn: () => payrollApi.runWorksheet(selectedRun!.id).then((r) => r.data),
-    enabled: !!selectedRun,
+    enabled: !!selectedRun && activeTab === "run",
   });
 
   const { data: paymentBatches } = useQuery({
     queryKey: ["payment-batches", selectedRun?.id],
     queryFn: () => payrollApi.paymentBatches({ payroll_run_id: selectedRun!.id }).then((r) => r.data),
-    enabled: !!selectedRun,
+    enabled: !!selectedRun && activeTab === "run",
   });
 
   const { data: bankAdvicePreview, isLoading: loadingBankAdvice } = useQuery({
@@ -451,42 +458,49 @@ export default function PayrollPage() {
   const { data: accountingJournals } = useQuery({
     queryKey: ["accounting-journals", selectedRun?.id],
     queryFn: () => payrollApi.accountingJournals(selectedRun!.id).then((r) => r.data),
-    enabled: !!selectedRun,
+    enabled: !!selectedRun && activeTab === "run",
   });
 
   const { data: taxCycles } = useQuery({
     queryKey: ["tax-cycles"],
     queryFn: () => payrollApi.taxCycles().then((r) => r.data),
+    enabled: activeTab === "tax",
   });
 
   const { data: pfRules } = useQuery({
     queryKey: ["payroll-pf-rules"],
     queryFn: () => payrollApi.pfRules().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "statutory",
   });
 
   const { data: esiRules } = useQuery({
     queryKey: ["payroll-esi-rules"],
     queryFn: () => payrollApi.esiRules().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "statutory",
   });
 
   const { data: ptSlabs } = useQuery({
     queryKey: ["payroll-pt-slabs"],
     queryFn: () => payrollApi.ptSlabs().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "statutory",
   });
 
   const { data: lwfSlabs } = useQuery({
     queryKey: ["payroll-lwf-slabs"],
     queryFn: () => payrollApi.lwfSlabs().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "statutory",
   });
 
   const { data: gratuityRules } = useQuery({
     queryKey: ["payroll-gratuity-rules"],
     queryFn: () => payrollApi.gratuityRules().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "statutory",
   });
 
   const { data: challans } = useQuery({
     queryKey: ["payroll-statutory-challans"],
     queryFn: () => payrollApi.statutoryChallans().then((r) => r.data),
+    enabled: !isEmployee && activeTab === "statutory",
   });
 
   const activeTaxCycle = Array.isArray(taxCycles) ? taxCycles[0] : null;
@@ -494,7 +508,7 @@ export default function PayrollPage() {
   const { data: taxDeclarations } = useQuery({
     queryKey: ["tax-declarations", activeTaxCycle?.id],
     queryFn: () => payrollApi.taxDeclarations({ cycle_id: activeTaxCycle.id }).then((r) => r.data),
-    enabled: !!activeTaxCycle,
+    enabled: !!activeTaxCycle && activeTab === "tax",
   });
 
   const { data: taxProjection } = useQuery({
@@ -682,7 +696,7 @@ export default function PayrollPage() {
         name: payGroupName,
         code: payGroupCode,
         description: "Default payroll group",
-        pay_frequency: "Monthly",
+        pay_frequency: defaultText("pay_frequency", "hrms"),
         legal_entity_id: (legalEntities as LegalEntity[] | undefined)?.[0]?.id,
         state: legalState,
         is_default: true,
@@ -947,7 +961,7 @@ export default function PayrollPage() {
   });
 
   const simulateSalaryMutation = useMutation({
-    mutationFn: () => payrollApi.simulateSalary({ ctc: simCtc, state: simState, monthly_reimbursements: simReimbursements, currency: "INR" }),
+    mutationFn: () => payrollApi.simulateSalary({ ctc: simCtc, state: simState, monthly_reimbursements: simReimbursements, currency: defaultText("payroll_currency", "hrms") }),
     onSuccess: (response) => saveToolResult("simulation", response.data, "Salary simulated"),
     onError: () => toast({ title: "Could not simulate salary", variant: "destructive" }),
   });
@@ -1041,10 +1055,10 @@ export default function PayrollPage() {
 
   const planningToolMutation = useMutation({
     mutationFn: async (action: string) => {
-      if (action === "budget") return payrollApi.createPayrollBudget({ month: toolsMonth, year: toolsYear, budget_amount: budgetAmount, department_id: budgetDepartmentId ? Number(budgetDepartmentId) : undefined, currency: "INR" });
+      if (action === "budget") return payrollApi.createPayrollBudget({ month: toolsMonth, year: toolsYear, budget_amount: budgetAmount, department_id: budgetDepartmentId ? Number(budgetDepartmentId) : undefined, currency: defaultText("payroll_currency", "hrms") });
       if (action === "variance") return payrollApi.payrollBudgetVariance({ month: toolsMonth, year: toolsYear });
-      if (action === "rate") return payrollApi.createExchangeRate({ from_currency: exchangeFrom, to_currency: "INR", rate: exchangeRate, effective_date: `${toolsYear}-${String(toolsMonth).padStart(2, "0")}-01`, source: "Manual" });
-      if (action === "convert") return payrollApi.convertCurrency({ amount: convertAmount, from_currency: exchangeFrom, to_currency: "INR" });
+      if (action === "rate") return payrollApi.createExchangeRate({ from_currency: exchangeFrom, to_currency: defaultText("payroll_currency", "hrms"), rate: exchangeRate, effective_date: `${toolsYear}-${String(toolsMonth).padStart(2, "0")}-01`, source: "Manual" });
+      if (action === "convert") return payrollApi.convertCurrency({ amount: convertAmount, from_currency: exchangeFrom, to_currency: defaultText("payroll_currency", "hrms") });
       if (action === "analytics") return payrollApi.payrollAnalytics({ month: toolsMonth, year: toolsYear });
       if (action === "report") return payrollApi.createPayrollReport({ name: `Payroll Summary ${toolsMonth}/${toolsYear}`, report_type: "department_salary_cost", filters_json: { month: toolsMonth, year: toolsYear }, columns_json: ["department_id", "amount"] });
       throw new Error("Unknown action");

@@ -1,3 +1,5 @@
+import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
+import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { useEffect, useRef, useState } from "react";
 import { FileText, ListChecks, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
@@ -26,6 +28,8 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
   const [pages, setPages] = useState(0);
   const [refresh, setRefresh] = useState(0);
   const [editing, setEditing] = useState<Task | "new" | null>(null);
+  const customFieldForm=useCrmFieldForm("tasks",editing&&editing!=="new"?"edit":"create",editing&&editing!=="new"?editing.id:undefined);
+  const [detailTask,setDetailTask]=useState<Task|null>(null);
   const [deleting, setDeleting] = useState<Task | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -46,9 +50,9 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
     return { ...(user && draft.assignees.some(person => person === user.email || person === user.name) ? { owner_user_id: user.id } : {}), title: draft.title, description: draft.description, status: draft.status, priority: draft.priority, due_date: draft.due ? `${draft.due}T12:00:00Z` : null, task_details: draft };
   }
   async function save(draft: TaskCreationDraft, another: boolean) {
-    const data = payload(draft);
+    const data = {...payload(draft),customFields:customFieldForm.validate()};
     if (editing && editing !== "new") await api.patch(`/crm/tasks/${editing.id}`, data);
-    else { await api.post("/crm/tasks", data); setPage(1); setSearch(""); }
+    else { await api.post("/crm/tasks", data); customFieldForm.setValues({}); setPage(1); setSearch(""); }
     setMessage("Task saved to CRM."); setRefresh(v => v + 1);
     if (!another) setEditing(null);
   }
@@ -75,7 +79,7 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
     } catch (e) { setError(errorMessage(e)); }
     finally { setRefresh(v => v + 1); busyRef.current = false; setBusy(false); }
   }
-  if (editing) return <TaskCreationForm key={editing === "new" ? "new" : editing.id} databaseBacked draftKey={`${legacyKey}:task-draft${editing === "new" ? "" : `:${editing.id}`}`} initialDraft={editing === "new" ? undefined : toDraft(editing)} tasks={tasks.filter(t => editing === "new" || t.id !== editing.id).map(t => ({ id: String(t.id), title: t.title, content: t.description || "" }))} onCreate={save} onCancel={() => setEditing(null)}/>;
+  if (editing) return <TaskCreationForm additionalFields={<CrmRecordFields state={customFieldForm}/>}  key={editing === "new" ? "new" : editing.id} databaseBacked draftKey={`${legacyKey}:task-draft${editing === "new" ? "" : `:${editing.id}`}`} initialDraft={editing === "new" ? undefined : toDraft(editing)} tasks={tasks.filter(t => editing === "new" || t.id !== editing.id).map(t => ({ id: String(t.id), title: t.title, content: t.description || "" }))} onCreate={save} onCancel={() => setEditing(null)}/>;
   return <section className="space-y-4" aria-label="CRM tasks workspace">
     <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">CRM tasks</h1><p className="text-sm text-muted-foreground">Saved to CRM. Access your tasks from any device.</p></div><button className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground" onClick={() => setEditing("new")}><Plus size={16}/>New task</button></header>
     <div className="flex gap-2"><button className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-primary-foreground" aria-pressed="true"><ListChecks size={16}/>Tasks</button><button className="inline-flex items-center gap-2 rounded-md border px-3 py-2" onClick={onNotes}><FileText size={16}/>Notes</button></div>
@@ -83,8 +87,9 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
     {error && <p role="alert" className="text-red-600">{error} <button onClick={() => setRefresh(v => v + 1)} className="underline">Retry</button></p>}
     {message && <p role="status">{message}</p>}
     <div className="flex items-center gap-2"><label className="flex flex-1 items-center gap-2 rounded-md border px-3 py-2"><Search size={16}/><input className="w-full bg-transparent outline-none" aria-label="Search CRM tasks" placeholder="Search tasks…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}/></label><button className="rounded-md border p-2" aria-label="Refresh tasks" onClick={() => setRefresh(v => v + 1)}><RefreshCw size={18}/></button></div>
-    {loading ? <p role="status">Loading tasks…</p> : <div className="space-y-2">{!tasks.length && !error && <p className="rounded-md border p-6">No tasks found. Create a task to get started.</p>}{tasks.map(task => <article key={task.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-4"><div className="min-w-0 flex-1"><button className="text-left font-semibold" onClick={() => setEditing(task)}>{task.title}</button><p className="line-clamp-2 text-sm text-muted-foreground">{richTextPlainText(task.description || "")}</p><p className="mt-2 text-sm">{task.status} · {task.priority}{task.dueDate ? ` · Due ${task.dueDate.slice(0, 10)}` : ""}{task.ownerId === user?.id ? " · Assigned to me" : ""}</p></div><div className="flex gap-2"><button className="inline-flex items-center gap-1 rounded-md border px-3 py-2" aria-label={`Edit task ${task.title}`} onClick={() => setEditing(task)}><Pencil size={14}/>Edit</button><button className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-red-600" aria-label={`Delete task ${task.title}`} onClick={() => setDeleting(task)}><Trash2 size={14}/>Delete</button></div></article>)}</div>}
+    {loading ? <p role="status">Loading tasks…</p> : <div className="space-y-2">{!tasks.length && !error && <p className="rounded-md border p-6">No tasks found. Create a task to get started.</p>}{tasks.map(task => <article key={task.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-4"><div className="min-w-0 flex-1"><button className="text-left font-semibold" onClick={() => setEditing(task)}>{task.title}</button><p className="line-clamp-2 text-sm text-muted-foreground">{richTextPlainText(task.description || "")}</p><p className="mt-2 text-sm">{task.status} · {task.priority}{task.dueDate ? ` · Due ${task.dueDate.slice(0, 10)}` : ""}{task.ownerId === user?.id ? " · Assigned to me" : ""}</p></div><div className="flex gap-2"><button type="button" className="rounded-md border px-3 py-2 text-sm" aria-label={`View task details ${task.title}`} onClick={()=>setDetailTask(task)}>Details</button><button className="inline-flex items-center gap-1 rounded-md border px-3 py-2" aria-label={`Edit task ${task.title}`} onClick={() => setEditing(task)}><Pencil size={14}/>Edit</button><button className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-red-600" aria-label={`Delete task ${task.title}`} onClick={() => setDeleting(task)}><Trash2 size={14}/>Delete</button></div></article>)}</div>}
     <div className="flex items-center justify-end gap-3"><button disabled={loading || page <= 1} onClick={() => setPage(v => v - 1)}>Previous</button><span>Page {page} of {Math.max(1, pages)}</span><button disabled={loading || page >= pages} onClick={() => setPage(v => v + 1)}>Next</button></div>
+    <Dialog open={!!detailTask} onOpenChange={open=>{if(!open)setDetailTask(null);}}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogTitle>{detailTask?.title||"Task details"}</DialogTitle>{detailTask&&<><p className="text-sm text-muted-foreground">{detailTask.status} · {detailTask.priority}</p><CrmFieldsReadOnly entity="tasks" recordId={detailTask.id}/></>}</DialogContent></Dialog>
     <AlertDialog.Root open={!!deleting} onOpenChange={open => { if (!open && !busy) setDeleting(null); }}><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/40"/><AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-lg bg-background p-6 shadow-lg"><AlertDialog.Title className="text-lg font-semibold">Delete task?</AlertDialog.Title><AlertDialog.Description>Delete “{deleting?.title}” from CRM?</AlertDialog.Description><div className="flex justify-end gap-3"><AlertDialog.Cancel asChild><button disabled={busy}>Cancel</button></AlertDialog.Cancel><AlertDialog.Action asChild><button className="rounded-md bg-red-600 px-3 py-2 text-white" disabled={busy} onClick={event => { event.preventDefault(); void remove(); }}>{busy ? "Deleting…" : "Delete task"}</button></AlertDialog.Action></div>{error && <p role="alert" className="text-red-600">{error}</p>}</AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root>
   </section>;
 }

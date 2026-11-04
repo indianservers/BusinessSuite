@@ -15,7 +15,7 @@ def member_roles(db, studio):
     studio[1].role_id = role.id
     studio[2].role_id = role.id
     from app.access.models import AccessPolicy
-    db.add(AccessPolicy(user_id=studio[1].id, company_id=1, status="active", grants={"project_management": {"enabled": True, "role": "custom", "permissions": ["pms_view"], "actions": ["read"], "scope": "all"}}))
+    db.add(AccessPolicy(user_id=studio[1].id, company_id=1, status="active", grants={"project_management": {"enabled": True, "role": "custom", "permissions": ["pms_view"], "actions": ["view"], "scope": "organization"}}))
     db.commit()
 
 

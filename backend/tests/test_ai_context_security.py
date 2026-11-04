@@ -11,7 +11,10 @@ def test_ai_context_excludes_hidden_custom_fields(client, db):
     field = CRMCustomField(organization_id=1, entity="leads", field_key="secret_budget", label="Secret Budget", is_visible=False, is_active=True)
     db.add(field)
     db.flush()
-    db.add(CRMCustomFieldValue(organization_id=1, custom_field_id=field.id, entity="leads", record_id=lead.id, value_text="Top Secret"))
+    value = CRMCustomFieldValue(organization_id=1, custom_field_id=field.id, entity="leads", record_id=lead.id, value_text="Top Secret")
+    db.add(value)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db,lead,value)
     db.commit()
     response = client.post("/api/v1/ai/summary", headers=headers, json={"module_name": "crm", "record_type": "lead", "record_id": lead.id})
     assert response.status_code == 200, response.text

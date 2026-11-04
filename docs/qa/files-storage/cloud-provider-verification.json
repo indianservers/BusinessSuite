@@ -1,0 +1,20 @@
+[
+  {
+    "module": "crm",
+    "remote_id": "1MF0twWIaztthz70FYh_j5tqF8xnDI4c3",
+    "sha256_matches": true,
+    "size": 71
+  },
+  {
+    "module": "pms",
+    "remote_id": "15H2fHvRIRIBQXUcgqeXYmOelW3lS8RRv",
+    "sha256_matches": true,
+    "size": 71
+  },
+  {
+    "module": "hrms",
+    "remote_id": "1oeHkKYpH4Fr0zT0u2Z_-Mlra_nrfj9mh",
+    "sha256_matches": true,
+    "size": 71
+  }
+]

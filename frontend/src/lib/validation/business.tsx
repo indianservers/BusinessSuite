@@ -47,9 +47,7 @@ export function bankCodeError(kind:string,input:string,country?:string){
 export function CountrySelect({value,onChange,label='Country',disabled=false}:{value:string;onChange:(value:string)=>void;label?:string;disabled?:boolean}){
   return <NativeSelect searchable aria-label={label} value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}>{contract.countries.map(c=><option key={c.iso} value={c.iso}>{c.country} ({c.iso})</option>)}</NativeSelect>;
 }
-export function CurrencySelect({value,onChange,label='Currency',disabled=false}:{value:string;onChange:(value:string)=>void;label?:string;disabled?:boolean}){
-  return <NativeSelect searchable aria-label={label} value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}>{[...new Set([value,...definitions.currencies])].filter(Boolean).map(c=><option key={c} value={c}>{c}</option>)}</NativeSelect>;
-}
+export { CurrencySelect } from './CurrencySelect';
 export function BusinessTypeSelect({value,onChange,country}:{value:string;onChange:(value:string)=>void;country:string}){
   const items=definitions.businessTypes.filter(t=>!t.countries.length||t.countries.includes(country)||t.id===value);
   return <NativeSelect searchable aria-label="Business type" value={value} onChange={e=>onChange(e.target.value)}><option value="">Not specified</option>{value&&!definitions.businessTypes.some(t=>t.id===value)&&<option value={value}>{value} (saved legacy value)</option>}{items.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}</NativeSelect>;

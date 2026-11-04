@@ -1,6 +1,4 @@
-import CompactActions from "@/components/actions/CompactActions";
 import { api } from "@/services/api";
-import { useMobile } from "@/components/mobile/useMobile";
 import { useQuery } from "@tanstack/react-query";
 import { milestonesAPI } from "../services/api";
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
@@ -27,9 +25,8 @@ import type { DashboardData, PMSTask } from "../types";
 export default function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = Number(projectId || 0);
-  const mobile=useMobile();
-  const mobileMembers=useQuery({queryKey:["mobile-project-members",id],queryFn:()=>api.get<{user_id:number;name?:string;email?:string}[]>(`/project-management/projects/${id}/members`).then(r=>r.data),enabled:mobile&&!!id});
-  const mobileMilestones=useQuery({queryKey:["mobile-project-milestones",id],queryFn:()=>milestonesAPI.list(id),enabled:mobile&&!!id});
+  const mobileMembers=useQuery({queryKey:["mobile-project-members",id],queryFn:()=>api.get<{user_id:number;name?:string;email?:string}[]>(`/project-management/projects/${id}/members`).then(r=>r.data),enabled:!!id});
+  const mobileMilestones=useQuery({queryKey:["mobile-project-milestones",id],queryFn:()=>milestonesAPI.list(id),enabled:!!id});
   const nextMilestone=mobileMilestones.data?.filter(m=>!["Completed","Done","Cancelled"].includes(m.status)).sort((a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"))[0];
   const { selectedProject, setSelectedProject } = useProjectStore();
   const { tasks, setTasks } = useTaskStore();
@@ -73,7 +70,7 @@ export default function ProjectDashboard() {
           </div>
           <div className="page-description"><RichTextContent value={project.description || "Project workspace overview"}/></div>
         </div>
-        <CompactActions primaryId="project-board" className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-start gap-2"><Button id="project-board" asChild><Link to={`/pms/projects/${id}/board`}><Kanban className="h-4 w-4" />Open board</Link></Button><details className="relative"><summary className="cursor-pointer rounded-md border px-4 py-2 text-sm font-medium">Project actions</summary><div className="absolute right-0 z-20 grid w-64 gap-2 rounded-lg border bg-popover p-3">
           <Button disabled={!project.can_manage_members && !project.can_edit_project} onClick={() => setAddingPeople(true)}>Add existing person</Button><Button asChild variant="outline"><Link to={`/pms/projects/${id}/members`}>Manage project members</Link></Button>
           {project.can_edit_project && <Button asChild variant="outline"><Link to={`/pms/projects/${id}/edit`}>Edit project</Link></Button>}
           <AskAiButton
@@ -87,11 +84,19 @@ export default function ProjectDashboard() {
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/milestones`}><Milestone className="h-4 w-4" />Milestones</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/risks`}><ShieldAlert className="h-4 w-4" />Risks</Link></Button>
           <Button asChild variant="outline"><Link to={`/pms/projects/${id}/notes`}>My Notes</Link></Button>
-          <Button id="project-board" asChild><Link to={`/pms/projects/${id}/board`}><Kanban className="h-4 w-4" />Open board</Link></Button>
-        </CompactActions>
+        </div></details></div>
       </div>
 
-      <section className="mobile-only-panel rounded-2xl border bg-card p-4 space-y-3"><h2 className="font-semibold">Project at a glance</h2><div className="flex items-center justify-between"><strong>{project.progress_percent}% complete</strong><span className="text-sm">{project.health}</span></div><progress className="w-full" value={project.progress_percent} max={100}/><div className="flex justify-between text-sm"><span>Blockers: {dashboard?.status_counts?.Blocked ?? 0}</span><span>Overdue: {dashboard?.metrics.overdue_tasks ?? 0}</span></div><Link className="mobile-filter-trigger" to={`/pms/projects/${id}/milestones`}>{nextMilestone ? `${nextMilestone.name} · ${nextMilestone.due_date || "No due date"}` : "View milestones"}</Link><Link className="mobile-filter-trigger" to={`/pms/projects/${id}/members`}>Owner: {project.manager_user_id ? (mobileMembers.data?.find(member=>member.user_id===project.manager_user_id)?.name || "Assigned") : "Unassigned"} · View team</Link></section>
+      <section className="rounded-2xl border bg-card p-4 space-y-3"><h2 className="font-semibold">Project at a glance</h2><div className="flex items-center justify-between"><strong>{project.progress_percent}% complete</strong><span className="text-sm">{project.health} · Due {formatDate(project.due_date || null)}</span></div><progress aria-label="Project completion" className="h-2 w-full accent-primary" value={project.progress_percent} max={100}/><div className="flex justify-between text-sm"><span>Blockers: {dashboard?.status_counts?.Blocked ?? 0}</span><span>Overdue: {dashboard?.metrics.overdue_tasks ?? 0}</span></div><Link className="block rounded-md border px-3 py-2 text-sm hover:bg-muted" to={`/pms/projects/${id}/milestones`}>{nextMilestone ? `${nextMilestone.name} · ${nextMilestone.due_date || "No due date"}` : "View milestones"}</Link><Link className="block rounded-md border px-3 py-2 text-sm hover:bg-muted" to={`/pms/projects/${id}/members`}>Owner: {project.manager_user_id ? (mobileMembers.data?.find(member=>member.user_id===project.manager_user_id)?.name || "Assigned") : "Unassigned"} · View team</Link></section>
+      <section aria-labelledby="project-attention" className="space-y-3">
+        <h2 id="project-attention" className="text-base font-semibold">Needs attention</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Link className="rounded-lg border bg-card p-4 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary" to={`/pms/tasks?projectId=${id}`}><span className="text-sm text-muted-foreground">Overdue tasks</span><strong className="block text-2xl text-destructive">{dashboard?.metrics.overdue_tasks ?? "—"}</strong><span className="text-xs">Review project tasks →</span></Link>
+          <Link className="rounded-lg border bg-card p-4 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary" to={`/pms/projects/${id}/board`}><span className="text-sm text-muted-foreground">Blocked tasks</span><strong className="block text-2xl">{dashboard ? (dashboard.status_counts?.Blocked ?? 0) : "—"}</strong><span className="text-xs">Review blockers on board →</span></Link>
+          <Link className="rounded-lg border bg-card p-4 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary" to={`/pms/projects/${id}/risks`}><span className="text-sm text-muted-foreground">High risks</span><strong className="block text-2xl">{dashboard?.metrics.high_risks ?? "—"}</strong><span className="text-xs">Review project risks →</span></Link>
+        </div>
+        {overdue.length > 0 && <div className="divide-y rounded-lg border">{overdue.slice(0,3).map(task=><Link key={task.id} className="flex flex-wrap justify-between gap-2 p-3 text-sm hover:bg-muted" to={`/pms/tasks/${task.id}`}><span>{task.title}</span><span className="text-destructive">Due {formatDate(task.due_date || null)}</span></Link>)}<p className="p-3 text-xs text-muted-foreground">Preview of loaded tasks; open project tasks for the complete list.</p></div>}
+      </section>
       <MobileDisclosure title="Project metrics">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Metric icon={ListChecks} label="Total tasks" value={dashboard?.metrics.total_tasks ?? "Unavailable"} />
@@ -159,7 +164,7 @@ export default function ProjectDashboard() {
 }
 
 function isOverdue(task: PMSTask) {
-  return Boolean(task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done");
+  return Boolean(task.due_date && new Date(task.due_date) < new Date() && !["Done", "Completed", "Cancelled"].includes(task.status));
 }
 
 function Metric({ icon: Icon, label, value, tone }: { icon: typeof ListChecks; label: string; value: string | number; tone?: string }) {

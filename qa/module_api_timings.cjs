@@ -1,0 +1,5 @@
+const {auth}=require('./custom_fields_live.cjs'),fs=require('node:fs'),crypto=require('node:crypto');
+const output='docs/qa/local-performance';fs.mkdirSync(output,{recursive:true});
+const paths=['/hrms/payroll/lwp-feed?month=2026-11','/project-management/people-workspace/actions/destinations?kind=projects','/follow-ups/options','/crm/dashboard?period=month'];
+function stable(value){if(Array.isArray(value))return value.map(stable).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])]));return value;}
+(async()=>{const {api}=await auth(),rows=[];for(const path of paths){const start=Date.now();try{const data=await api(path);rows.push({path,ms:Date.now()-start,status:200,contentHash:crypto.createHash('sha256').update(JSON.stringify(stable(data))).digest('hex')});}catch(error){rows.push({path,ms:Date.now()-start,error:error.message.slice(0,180)});}console.log(rows.at(-1));}fs.writeFileSync(`${output}/api-${process.argv[2]||'after'}.json`,JSON.stringify(rows,null,2));})().catch(error=>{console.error(error.message);process.exitCode=1;});

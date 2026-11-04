@@ -1,0 +1,84 @@
+[
+  {
+    "role": "pms_org_admin",
+    "queue_status": 403,
+    "items": 0,
+    "reason": "Verified company membership is required"
+  },
+  {
+    "role": "pms_project_manager",
+    "queue_status": 403,
+    "items": 0,
+    "reason": "Verified company membership is required"
+  },
+  {
+    "role": "pms_team_member",
+    "queue_status": 403,
+    "items": 0,
+    "reason": "Verified company membership is required"
+  },
+  {
+    "role": "pms_client",
+    "queue_status": 403,
+    "items": 0,
+    "reason": "Verified company membership is required",
+    "unrelated_link_status": 403
+  },
+  {
+    "role": "crm_sales_executive",
+    "queue_status": 403,
+    "items": 0,
+    "reason": "Verified company membership is required"
+  },
+  {
+    "role": "employee",
+    "queue_status": 403,
+    "items": 0,
+    "reason": "Verified company membership is required",
+    "unrelated_link_status": 403
+  },
+  {
+    "actor_id": 33,
+    "queue_status": 200,
+    "items": 0,
+    "task_checks": [],
+    "unassigned_qa_task_status": 403
+  },
+  {
+    "actor_id": 35,
+    "queue_status": 200,
+    "items": 5,
+    "task_checks": [
+      {
+        "task_id": 2,
+        "can_manage": false
+      },
+      {
+        "task_id": 3,
+        "can_manage": false
+      }
+    ],
+    "unassigned_qa_task_status": 404
+  },
+  {
+    "actor_id": 401,
+    "queue_status": 200,
+    "items": 5,
+    "task_checks": [
+      {
+        "task_id": 1165,
+        "can_manage": true
+      },
+      {
+        "task_id": 1197,
+        "can_manage": true
+      }
+    ],
+    "unassigned_qa_task_status": 404
+  },
+  {
+    "actor_id": 557,
+    "queue_status": 403,
+    "reason": "Intern accounts are restricted to Interns Hub unless explicitly assigned restricted PMS access"
+  }
+]

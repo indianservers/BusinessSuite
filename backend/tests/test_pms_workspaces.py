@@ -182,7 +182,10 @@ def test_workspace_notes_and_chat_permissions(client, db):
     outsider, other = account(db, "notes-outsider@test.com")
     guest, guest_headers = account(db, "notes-guest@test.com")
     wid = client.post(BASE + "/workspaces", json={"name": "Team"}, headers=headers).json()["id"]
-    db.add(PMSWorkspaceMember(workspace_id=wid, user_id=guest.id, role="Guest"))
+    membership = PMSWorkspaceMember(workspace_id=wid, user_id=guest.id, role="Guest")
+    db.add(membership)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, membership)
     db.commit()
     url = f"{BASE}/workspaces/{wid}/entries"
     assert client.post(url, json={"kind": "note", "body": "Meeting decisions"}, headers=headers).status_code == 201

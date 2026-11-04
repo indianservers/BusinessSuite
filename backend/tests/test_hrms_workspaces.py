@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 from decimal import Decimal
 from app.models.employee import Employee
@@ -13,7 +14,10 @@ def people(db):
     db.add(lead); db.flush()
     report = Employee(employee_id="WS-REPORT", first_name="Direct", last_name="Report", date_of_joining=date.today(), reporting_manager_id=lead.id)
     other = Employee(employee_id="WS-OTHER", first_name="Other", last_name="Team", date_of_joining=date.today())
-    db.add_all([report, other]); db.commit()
+    db.add_all([report, other])
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, lead, report, other)
+    db.commit()
     return report, other
 
 

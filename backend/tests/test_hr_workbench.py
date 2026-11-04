@@ -169,6 +169,9 @@ def test_managed_hr_can_suspend_in_scope_with_edit_action_without_global_user_ad
     db.commit()
     from app.models.company import Branch
     branch=Branch(company_id=1,name="Scoped HR branch");db.add(branch);db.commit()
+    from app.branches.models import BranchGrant
+    db.add(BranchGrant(user_id=actor.id,company_id=1,branch_id=branch.id,can_write=True))
+    db.commit()
     person=make_employee(db,user_id=target.id,branch_id=branch.id)
     headers={"Authorization":"Bearer "+create_access_token(actor.id)}
     panel=client.get(ROOT+f"/people/{person.id}",headers=headers)
@@ -250,3 +253,22 @@ def test_payroll_variance_explains_actual_lines_and_currency(client,db,superuser
     row=response.json()[0]
     assert "Basic-pay earnings" in row["reason"] and "Unpaid leave" in row["reason"] and "Overtime" in row["reason"]
     assert row["previous_currency"]==row["current_currency"]=="INR"
+
+
+def test_account_link_candidates_exclude_foreign_and_revoked_company_memberships(client, db, superuser_headers):
+    from app.models.company import Company
+    from app.common.models import CommonPerson
+    from app.access.models import AccessMembership
+    db.add(Company(id=2, name="Foreign link company")); db.flush()
+    foreign = User(email="link-boundary-foreign@example.test", hashed_password="unused", is_active=True)
+    revoked = User(email="link-boundary-revoked@example.test", hashed_password="unused", is_active=True)
+    db.add_all([foreign,revoked]); db.flush()
+    db.add_all([CommonPerson(user_id=foreign.id,organization_id=2,display_name="Foreign"),CommonPerson(user_id=revoked.id,organization_id=1,display_name="Revoked"),AccessMembership(user_id=revoked.id,company_id=1,active=False,is_admin=False)])
+    db.commit()
+    options=client.get(ROOT+"/account-options",headers=superuser_headers,params={"q":"link-boundary"})
+    assert options.status_code==200,options.text
+    assert options.json()["items"]==[]
+    for account in [foreign,revoked]:
+        response=client.post(ROOT+"/quick-add",headers=superuser_headers,json={"first_name":"Denied link","date_of_joining":str(date.today()),"existing_user_id":account.id})
+        assert response.status_code==403,response.text
+    assert db.query(Employee).filter(Employee.user_id.in_([foreign.id,revoked.id])).count()==0

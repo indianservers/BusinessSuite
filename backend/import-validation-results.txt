@@ -1,0 +1,16 @@
+.................................                                        [100%]
+============================== warnings summary ===============================
+venv\Lib\site-packages\starlette\testclient.py:53
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+venv\Lib\site-packages\reportlab\lib\rl_safe_eval.py:12
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\reportlab\lib\rl_safe_eval.py:12: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    haveNameConstant = hasattr(ast,'NameConstant')
+
+tests/test_import_workspace.py::test_import_catalog_three_types_per_module_and_real_templates
+  C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\alembic\config.py:612: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+33 passed, 3 warnings in 193.67s (0:03:13)

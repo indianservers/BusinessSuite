@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 
 from app.apps.crm.models import CRMDeal, CRMQuotation, CRMQuotationItem, CRMQuoteSRMConversionLog, CRMPipeline, CRMPipelineStage

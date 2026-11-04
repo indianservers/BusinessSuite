@@ -487,6 +487,7 @@ def record(db, task, user, selection):
     if selection.get("group_responsibility"):
         for target in db.query(PMSTaskGroupTarget).filter_by(task_id=task.id).all():
             db.delete(target)
+        db.flush()
         for group in selection.get("groups", []):
             db.add(PMSTaskGroupTarget(task_id=task.id, kind=group["kind"], target_id=group["id"], name=group["name"], member_count=len(group["member_ids"]), assigned_by=user.id))
 

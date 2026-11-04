@@ -1,3 +1,15 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { CurrencySelect } from "@/lib/validation/business";
+import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
+import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
+import CustomFieldsManager from "./CustomFieldsManager";
+import FieldControl, { fieldShown, fieldOptions } from "@/shared/custom-fields/FieldControl";
+import CompaniesPage from "@/shared/master-data/CompaniesPage";
+import Record360Workspace from "@/shared/records/Record360Workspace";
+import PipelineStageEditor from "@/shared/pipeline/PipelineStageEditor";
+import { prefillDealCompany, prefillDealLead, fillEmptyDealFields, changeDealCompany } from "./deals/deal-prefill";
+import { CompanyQuickCreate } from "@/shared/master-data/CompanySelect";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import BranchAvailability, { type BranchAvailabilityValue } from "@/shared/BranchAvailability";
@@ -1012,7 +1024,7 @@ function kindlessEntity(entity: string) {
 
 export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
   if (kind === "files") return <CrmFilesPage />;
-  if (kind === "pipeline") return <PipelinePage />;
+  if (kind === "pipeline") return window.location.pathname.endsWith("/templates") ? <PipelinePage /> : <EnterpriseDealsPage initialView="kanban" />;
   if (kind === "pipelineSettings") return <PipelineSettingsPage />;
   if (kind === "leadScoring") return <LeadScoringSettingsPage />;
   if (kind === "calendar") return <CRMCalendarPage />;
@@ -1050,7 +1062,6 @@ export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
 function CRMDashboard() {
   const navigate = useNavigate();
   const leadState = useCrmRecords<CRMRecord>("leads", emptyRecords);
-  const contactState = useCrmRecords<CRMRecord>("contacts", emptyRecords);
   const companyState = useCrmRecords<CRMRecord>("companies", emptyRecords);
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
   const taskState = useCrmRecords<CRMRecord>("tasks", emptyRecords);
@@ -1103,8 +1114,8 @@ function CRMDashboard() {
     highValueDeals: priorityDeals.filter((deal) => deal.reason.includes("High value")).length,
     pipelineValue,
   }), [overdueFollowUps, staleOpenDeals, openCrmDeals, priorityDeals, pipelineValue]);
-  const loading = leadState.loading || contactState.loading || companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || forecastState.loading || calendarState.loading;
-  const error = canonical.error || leadState.error || contactState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
+  const loading = leadState.loading || companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || forecastState.loading || calendarState.loading;
+  const error = canonical.error || leadState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
 
   useRefreshableEffect(() => {
     let cancelled = false;
@@ -1172,11 +1183,11 @@ function CRMDashboard() {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight text-foreground">CRM Dashboard</h1>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" aria-hidden="true" />Live
+                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />{canonical.loading ? "Refreshing" : canonical.error ? "Unavailable" : "Updated"}
               </span>
               <span className="text-xs text-muted-foreground">{label}</span>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Compact sales workspace powered by CRM records, pipeline stages, forecast, tasks, activities, and calendar data.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Your sales priorities, upcoming commitments and pipeline performance.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="sr-only" htmlFor="crm-dashboard-range">Dashboard range</label>
@@ -1199,10 +1210,14 @@ function CRMDashboard() {
       <main className="space-y-3 px-4 py-3 sm:px-5 lg:px-8">
       {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-200">{error}</div> : null}
       {loading ? <DashboardSkeleton /> : null}
-<ModuleWorkflows module="crm" />
-      <p className="text-xs text-muted-foreground">{canonical.data?.context.definition||"Loading full-dataset statistics..."} {canonical.data&&`${canonical.data.context.timezone} - refreshed ${new Date(canonical.data.context.as_of).toLocaleString()}`}</p>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><span>{label}{canonical.data&&` · Last refreshed ${new Date(canonical.data.context.as_of).toLocaleString()}`}</span><details><summary className="cursor-pointer">Metric definitions</summary><p className="max-w-xl py-2">{canonical.data?.context.definition||"Full-dataset statistics unavailable."} {canonical.data?.context.timezone}</p></details></div>
+      <section aria-label="Sales priorities" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+        <div className="flex items-start gap-3"><AlertTriangle className="mt-1 h-5 w-5 text-destructive" aria-hidden="true"/><div><h2 className="font-semibold">Follow-ups needing attention</h2><p className="text-sm text-muted-foreground">{canonical.loading ? "Loading commitments…" : canonical.data ? `${canonical.data.overdue_followups} overdue commitments across active leads and tasks` : "Follow-up totals unavailable"}</p></div></div>
+        <Button variant="outline" onClick={()=>navigate("/crm/sales-home?view=overdue")}>Review overdue follow-ups</Button>
+      </section>
       <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="CRM metrics">
-        <CompactMetricCard title="New leads" value={canonical.loading?"Loading...":canonical.data?.leads_created??"Unavailable"} detail="Full permitted query; before pagination" tone="emerald" onClick={() => navigate(`/crm/statistics/leads?period=${dateRange}`)} />
+        <CompactMetricCard title="New leads" value={canonical.loading?"Loading...":canonical.data?.leads_created??"Unavailable"} detail="New leads in selected period" tone="emerald" onClick={() => navigate(`/crm/statistics/leads?period=${dateRange}`)} />
         <CompactMetricCard title="Open deals" value={canonical.loading?"Loading...":canonical.data?.open_deals??"Unavailable"} detail="Selected reporting period" tone="sky" onClick={() => navigate(`/crm/statistics/open-deals?period=${dateRange}`)} />
         <CompactMetricCard title="Pipeline by currency" value={moneyGroups(canonical.data?.pipeline_by_currency)} detail="No currency conversion" tone="sky" onClick={() => navigate(`/crm/statistics/open-deals?period=${dateRange}`)} />
         <CompactMetricCard title="Weighted open pipeline" value={moneyGroups(canonical.data?.weighted_by_currency)} detail="Amount multiplied by probability" tone="emerald" onClick={() => navigate("/crm/forecasting")} />
@@ -1322,6 +1337,7 @@ function CRMDashboard() {
 </SecondaryDetails>
         </aside>
       </div>
+      <details className="rounded-lg border"><summary className="cursor-pointer p-3 text-sm font-medium">Explore CRM workflows</summary><div className="p-3 pt-0"><ModuleWorkflows module="crm" /></div></details>
       {showQuickCreate ? (
         <DashboardQuickCreateDialog
           kind={quickCreateKind}
@@ -1371,8 +1387,8 @@ function CompactMetricCard({ title, value, detail, tone, onClick }: { title: str
   return (
     <button type="button" className="rounded-md border border-border bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={onClick}>
       <p className="text-xs font-medium text-muted-foreground">{title}</p>
-      <p className={`mt-2 truncate text-2xl font-semibold tracking-tight ${toneClass}`}>{value}</p>
-      <p className="mt-1 truncate text-[11px] text-muted-foreground">{detail}</p>
+      <p title={String(value)} className={`mt-2 break-words text-2xl font-semibold tracking-tight ${toneClass}`}>{value}</p>
+      <p title={detail} className="mt-1 text-xs text-muted-foreground">{detail}</p>
     </button>
   );
 }
@@ -2534,158 +2550,37 @@ function CustomFieldsSettingsPageLegacy() {
 }
 
 function PipelineSettingsPage() {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const pipelineState = useCrmRecords<CRMRecord>("pipelines", emptyRecords, { sort_by: "created_at", sort_order: "asc" });
   const stageState = useCrmRecords<CRMRecord>("pipeline-stages", emptyRecords, { sort_by: "position", sort_order: "asc" });
-  const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
-  const [pipelines, setPipelines] = useState<CRMRecord[]>([]);
-  const [stages, setStages] = useState<CRMRecord[]>([]);
-  const [selectedPipelineId, setSelectedPipelineId] = useState<number | null>(null);
-  const [pipelineName, setPipelineName] = useState("");
-  const [stageDraft, setStageDraft] = useState<CRMRecord>({ name: "", probability: 10, color: "#2563eb", is_won: false, is_lost: false });
-  const [error, setError] = useState<string | null>(null);
-  const activePipelineId = selectedPipelineId || Number(pipelines.find((pipeline) => pipeline.is_default)?.id || pipelines[0]?.id || 0);
-  const activeStages = stages.filter((stage) => Number(stage.pipeline_id || stage.pipelineId || 0) === activePipelineId).sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
-  const stageDealCounts = useMemo(() => {
-    const counts = new Map<number, number>();
-    dealState.data.forEach((deal) => counts.set(Number(deal.stageId || deal.stage_id || 0), (counts.get(Number(deal.stageId || deal.stage_id || 0)) || 0) + 1));
-    return counts;
-  }, [dealState.data]);
-
-  useEffect(() => setPipelines(pipelineState.data), [pipelineState.data]);
-  useEffect(() => setStages(stageState.data), [stageState.data]);
-
-  const createPipeline = () => {
-    const name = pipelineName.trim();
-    if (!name) return;
-    crmApi.create<CRMApiRecord>("pipelines", { name, description: "Custom sales pipeline" }).then((response) => {
-      setPipelines((items) => [...items, normalizeApiRecord("pipelines", response.data) as CRMRecord]);
-      setSelectedPipelineId(Number(response.data.id));
-      setPipelineName("");
-    }).catch((err) => setError(err?.response?.data?.detail || "Could not create pipeline."));
-  };
-
-  const createStage = () => {
-    if (!activePipelineId || !String(stageDraft.name || "").trim()) return;
-    const position = activeStages.length + 1;
-    crmApi.createPipelineStage<CRMApiRecord>(activePipelineId, { ...stageDraft, position }).then((response) => {
-      setStages((items) => [...items, normalizeApiRecord("pipeline-stages", response.data) as CRMRecord]);
-      setStageDraft({ name: "", probability: 10, color: "#2563eb", is_won: false, is_lost: false });
-    }).catch((err) => setError(err?.response?.data?.detail || "Could not create stage."));
-  };
-
-  const updateStage = (stage: CRMRecord, patch: CRMApiRecord) => {
-    const stageId = Number(stage.id);
-    const previous = stages;
-    setStages((items) => items.map((item) => Number(item.id) === stageId ? ({ ...item, ...patch } as CRMRecord) : item));
-    crmApi.update("pipeline-stages", stageId, patch).catch((err) => {
-      setStages(previous);
-      setError(err?.response?.data?.detail || "Could not update stage.");
-    });
-  };
-
-  const deleteStage = (stage: CRMRecord, remapStageId?: number) => {
-    crmApi.delete("pipeline-stages", Number(stage.id), remapStageId ? { remapStageId } : undefined).then(() => {
-      setStages((items) => items.filter((item) => Number(item.id) !== Number(stage.id)));
-    }).catch((err) => setError(err?.response?.data?.detail || "Could not delete stage."));
-  };
-
-  const onStageDragEnd = async (event: DragEndEvent) => {
-    const activeId = Number(event.active.id);
-    const overId = Number(event.over?.id);
-    if (!activeId || !overId || activeId === overId) return;
-    const oldIndex = activeStages.findIndex((stage) => Number(stage.id) === activeId);
-    const newIndex = activeStages.findIndex((stage) => Number(stage.id) === overId);
-    if (oldIndex < 0 || newIndex < 0) return;
-    const reordered = [...activeStages];
-    const [moved] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, moved);
-    const withPositions: CRMRecord[] = reordered.map((stage, index) => ({ ...stage, position: index + 1 }));
-    setStages((items) => items.map((stage) => withPositions.find((item) => Number(item.id) === Number(stage.id)) || stage));
-    try { await movementApi.post(`/crm/pipelines/${activePipelineId}/stages/reorder`, { ids:withPositions.map(s=>Number(s.id)),previous_order:activeStages.map(s=>Number(s.id)) }); }
-    catch(e) { setStages(stageState.data); setError((e as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Could not save stage order. Refresh and try again."); }
-  };
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Pipeline Settings" description="Create multiple deal pipelines and maintain each pipeline's custom stages." action="Back to board" onAction={() => window.history.back()} />
-      {error || pipelineState.error || stageState.error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error || pipelineState.error || stageState.error}</div> : null}
-      <div className="grid gap-4 xl:grid-cols-[20rem_1fr]">
-        <Card>
-          <CardHeader><CardTitle>Pipelines</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-2">
-              <Input value={pipelineName} onChange={(event) => setPipelineName(event.target.value)} placeholder="New pipeline name" />
-              <Button onClick={createPipeline}><Plus className="h-4 w-4" /></Button>
-            </div>
-            <div className="space-y-2">
-              {pipelines.map((pipeline) => (
-                <button key={String(pipeline.id)} type="button" className={`w-full rounded-md border px-3 py-2 text-left text-sm ${Number(pipeline.id) === activePipelineId ? "border-primary bg-primary/10" : "bg-card"}`} onClick={() => setSelectedPipelineId(Number(pipeline.id))}>
-                  <span className="block font-medium">{String(pipeline.name)}</span>
-                  <span className="text-xs text-muted-foreground">{pipeline.is_default ? "Default pipeline" : "Custom pipeline"}</span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Stages</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-[1fr_7rem_6rem_7rem_7rem_auto] md:items-end">
-              <label className="space-y-1 text-sm"><span className="font-medium">Name</span><Input value={String(stageDraft.name || "")} onChange={(event) => setStageDraft((current) => ({ ...current, name: event.target.value }))} /></label>
-              <label className="space-y-1 text-sm"><span className="font-medium">Probability</span><Input type="number" value={Number(stageDraft.probability || 0)} onChange={(event) => setStageDraft((current) => ({ ...current, probability: Number(event.target.value) }))} /></label>
-              <label className="space-y-1 text-sm"><span className="font-medium">Color</span><Input type="color" value={String(stageDraft.color || "#2563eb")} onChange={(event) => setStageDraft((current) => ({ ...current, color: event.target.value }))} /></label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(stageDraft.is_won)} onChange={(event) => setStageDraft((current) => ({ ...current, is_won: event.target.checked, is_lost: event.target.checked ? false : current.is_lost }))} />Won</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(stageDraft.is_lost)} onChange={(event) => setStageDraft((current) => ({ ...current, is_lost: event.target.checked, is_won: event.target.checked ? false : current.is_won }))} />Lost</label>
-              <Button onClick={createStage}>Add</Button>
-            </div>
-            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onStageDragEnd}>
-              <SortableContext items={activeStages.map((stage) => Number(stage.id))} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2">
-                  {activeStages.map((stage) => (
-                    <PipelineStageSettingsRow
-                      key={String(stage.id)}
-                      stage={stage}
-                      stages={activeStages}
-                      dealCount={stageDealCounts.get(Number(stage.id)) || 0}
-                      onUpdate={updateStage}
-                      onDelete={deleteStage}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </CardContent>
-        </Card>
-      </div>
-      <PipelinePolicyPanel/>
-    </div>
-  );
+  const [rulesOpen,setRulesOpen]=useState(false);
+  const [selectedId,setSelectedId] = useState(0);
+  const [newName,setNewName] = useState("");
+  const [error,setError] = useState("");
+  const [revision,setRevision] = useState(0);
+  const [localPipelines,setLocalPipelines] = useState<CRMRecord[] | null>(null);
+  const [localStages,setLocalStages] = useState<CRMRecord[] | null>(null);
+  const pipelines = localPipelines || pipelineState.data;
+  const stages = localStages || stageState.data;
+  const pipeline = pipelines.find(p=>Number(p.id)===selectedId) || pipelines.find(p=>p.is_default) || pipelines[0];
+  const activeStages = stages.filter(s=>Number(s.pipeline_id||s.pipelineId)===Number(pipeline?.id)).sort((a,b)=>Number(a.position)-Number(b.position));
+  async function reloadConfiguration() {
+    const [p,s] = await Promise.all([crmApi.list<CRMApiRecord>("pipelines",{per_page:100}),crmApi.list<CRMApiRecord>("pipeline-stages",{per_page:100})]);
+    setLocalPipelines(p.data.items.map(r=>normalizeApiRecord("pipelines",r) as CRMRecord));
+    setLocalStages(s.data.items.map(r=>normalizeApiRecord("pipeline-stages",r) as CRMRecord));
+    setRevision(v=>v+1);
+  }
+  return <div className="space-y-4"><PageHeader title="Pipeline Settings" description="Customize the stages of your sales process." action="Back to board" onAction={()=>window.location.assign("/crm/pipeline")}/>
+    {(error||pipelineState.error||stageState.error)&&<p role="alert" className="text-destructive">{error||pipelineState.error||stageState.error}</p>}
+    <div className="flex flex-wrap gap-2 items-center"><label>Pipeline <NativeSelect className="rounded border p-2 bg-background" value={pipeline?.id?String(pipeline.id):""} onChange={e=>setSelectedId(Number(e.target.value))}>{pipelines.map(p=><option key={String(p.id)} value={String(p.id)}>{String(p.name)}</option>)}</NativeSelect></label><Input className="max-w-56" aria-label="New pipeline name" placeholder="New pipeline name" value={newName} onChange={e=>setNewName(e.target.value)}/><Button disabled={!newName.trim()} onClick={()=>{setError("");void crmApi.create<CRMApiRecord>("pipelines",{name:newName.trim()}).then(async r=>{setSelectedId(Number(r.data.id));setNewName("");await reloadConfiguration();}).catch(e=>setError(dealError(e)));}}>Create pipeline</Button></div>
+    {pipelineState.loading||stageState.loading?<p role="status">Loading pipeline settings…</p>:pipeline&&<PipelineStageEditor key={`${pipeline.id}:${revision}`} name={String(pipeline.name)} sales stages={activeStages.map(s=>({id:String(s.id),name:String(s.name),probability:Number(s.probability||0),color:String(s.color||"#278a48"),outcome:s.is_won?"won":s.is_lost?"lost":"open",wip_limit:(s.policy_json as CRMRecord|undefined)?.wip_limit as number|undefined,aging_days:Number((s.policy_json as CRMRecord|undefined)?.stagnation_days||14),required:((s.policy_json as CRMRecord|undefined)?.required||[]) as string[],approval_required:Boolean((s.policy_json as CRMRecord|undefined)?.approval_required),notify_owner:Boolean((s.policy_json as CRMRecord|undefined)?.notify_owner)}))} onSave={async draft=>{
+      await movementApi.put(`/crm/pipelines/${pipeline.id}/configuration`,{...draft,expected_stages:activeStages.map(s=>({id:Number(s.id),name:s.name,probability:s.probability,color:s.color,is_won:s.is_won,is_lost:s.is_lost,position:s.position,policy_json:s.policy_json||null})),expected_name:pipeline.name});
+      await reloadConfiguration();
+    }}/>}<Button variant="outline" onClick={()=>setRulesOpen(true)}>Advanced transition rules</Button><PipelineDrawer open={rulesOpen} onClose={()=>setRulesOpen(false)} title="Transition paths and approvals"><PipelinePolicyPanel/></PipelineDrawer></div>;
 }
 
-function PipelineStageSettingsRow({ stage, stages, dealCount, onUpdate, onDelete }: { stage: CRMRecord; stages: CRMRecord[]; dealCount: number; onUpdate: (stage: CRMRecord, patch: CRMApiRecord) => void; onDelete: (stage: CRMRecord, remapStageId?: number) => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: Number(stage.id) });
-  const [remapStageId, setRemapStageId] = useState("");
-  return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`grid gap-2 rounded-md border bg-card p-3 md:grid-cols-[2rem_1fr_7rem_6rem_5rem_5rem_8rem_auto] md:items-center ${isDragging ? "opacity-60" : ""}`}>
-      <button type="button" className="rounded p-1 text-muted-foreground hover:bg-muted" {...attributes} {...listeners} aria-label="Reorder stage"><GripVertical className="h-4 w-4" /></button>
-      <Input value={String(stage.name || "")} onChange={(event) => onUpdate(stage, { name: event.target.value })} />
-      <Input type="number" value={Number(stage.probability || 0)} onChange={(event) => onUpdate(stage, { probability: Number(event.target.value) })} />
-      <Input type="color" value={String(stage.color || "#2563eb")} onChange={(event) => onUpdate(stage, { color: event.target.value })} />
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(stage.is_won)} onChange={(event) => onUpdate(stage, { is_won: event.target.checked, is_lost: event.target.checked ? false : Boolean(stage.is_lost) })} />Won</label>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(stage.is_lost)} onChange={(event) => onUpdate(stage, { is_lost: event.target.checked, is_won: event.target.checked ? false : Boolean(stage.is_won) })} />Lost</label>
-      {dealCount ? (
-        <NativeSelect className="h-10 rounded-md border bg-background px-2 text-sm" value={remapStageId} onChange={(event) => setRemapStageId(event.target.value)}>
-          <option value="">Remap {dealCount}</option>
-          {stages.filter((item) => Number(item.id) !== Number(stage.id)).map((item) => <option key={String(item.id)} value={Number(item.id)}>{String(item.name)}</option>)}
-        </NativeSelect>
-      ) : <span className="text-sm text-muted-foreground">No deals</span>}
-      <Button variant="outline" size="sm" onClick={() => onDelete(stage, remapStageId ? Number(remapStageId) : undefined)}>Delete</Button>
-    </div>
-  );
-}
+export function CustomFieldsSettingsPage() { return <CustomFieldsManager />; }
 
-export function CustomFieldsSettingsPage() {
+function CustomFieldsSettingsPageOld() {
   const location = useLocation();
   const requestedEntity = new URLSearchParams(location.search).get("entity");
   const [entity, setEntity] = useState(customFieldEntities.some(item => item.value === requestedEntity) ? requestedEntity! : "leads");
@@ -2804,11 +2699,11 @@ function ToggleBox({ checked, onChange }: { checked: boolean; onChange: (checked
 
 function parseOptions(value: unknown) {
   if (Array.isArray(value)) return value.map(String);
-  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+  return fieldOptions(value);
 }
 
 function optionsText(value: unknown) {
-  return Array.isArray(value) ? value.join(", ") : String(value || "");
+  return fieldOptions(value).join(", ");
 }
 
 function slugifyKey(value: string) {
@@ -3757,51 +3652,19 @@ function LeadDetailDrawer({ lead, ownerNames, territoryNames, onClose, onEdit, o
       .finally(() => setLoading(false));
   }, [lead?.id]);
   if (!lead) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select a lead to inspect details.</aside>;
-  return (
-    <aside className="border-l border-border bg-card p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3"><LeadAvatar lead={lead} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{lead.name}</h2><p className="truncate text-sm text-muted-foreground">{lead.company || "No company"}</p></div></div>
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close lead details"><X className="h-4 w-4" /></Button>
-      </div>
-      <CompactActions className="mt-4 flex flex-wrap gap-2">
-        {lead.phone ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`tel:${lead.phone}`}><Phone className="h-3.5 w-3.5" />Call</a></Button> : null}
-        {lead.email ? <Button asChild size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent"><a href={`mailto:${lead.email}`}><Mail className="h-3.5 w-3.5" />Email</a></Button> : null}
-        <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={onAddTask}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
-        <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
-      </CompactActions>
-      <LeadDrawerSection title="Contact">
-        <LeadInfo label="Email" value={lead.email} />
-        <LeadInfo label="Phone" value={lead.phone} record={lead} />
-        <LeadInfo label="Company" value={lead.company} />
-        <LeadInfo label="Source" value={lead.source} />
-        <LeadInfo label="Territory" value={lead.territoryId ? territoryNames.get(lead.territoryId) || `Territory #${lead.territoryId}` : ""} />
-      </LeadDrawerSection>
-      <LeadDrawerSection title="Qualification">
-        <LeadInfo label="Status" value={lead.status} />
-        <LeadInfo label="Rating" value={lead.rating} />
-        <LeadInfo label="Lead score" value={String(lead.leadScore ?? "")} />
-        <LeadInfo label="Owner" value={lead.ownerId ? ownerNames.get(lead.ownerId) || `Owner #${lead.ownerId}` : lead.owner} />
-        <LeadInfo label="Next follow-up" value={lead.nextFollowUp ? `${formatDate(lead.nextFollowUp)}${isPastDue(lead.nextFollowUp) ? " - Overdue" : ""}` : ""} />
-        <LeadInfo label="Value" value={formatCurrency(lead.value || 0)} />
-      </LeadDrawerSection>
-      <LeadDrawerSection title="Activity">
-        {loading ? <p className="text-sm text-muted-foreground">Loading activity...</p> : null}
-        {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
-        {!loading && !error && timeline.slice(0, 4).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
-        {!loading && !error && !timeline.length ? <p className="text-sm text-muted-foreground">No activity found for this lead.</p> : null}
-        <Button size="sm" variant="outline" className="mt-3 w-full border-border bg-transparent text-foreground hover:bg-accent" onClick={onOpenActivities}>View all activity</Button>
-      </LeadDrawerSection>
-    </aside>
-  );
+  return <aside className="p-4"><Button variant="ghost" onClick={onClose}>Close</Button><Record360Workspace key={lead.id} kind="lead" id={lead.id} actions={<Button variant="outline" onClick={()=>onEdit(lead)}>Edit</Button>}/></aside>;
 }
 
 function LeadFormModal({ mode, lead, saving, error, owners, territories, statuses, ratings, sources, onClose, onSave }: { mode: LeadFormMode; lead: CRMLead | null; saving: boolean; error: string | null; owners: CRMRecord[]; territories: CRMRecord[]; statuses: string[]; ratings: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const customFieldForm=useCrmFieldForm("leads",mode === "edit" ? "edit" : "create",mode === "edit" ? lead?.id : undefined);
+  const [customDirty,setCustomDirty]=useState(false);
+  const [customError,setCustomError]=useState("");
   const initial = useMemo(() => leadFormInitial(lead), [lead?.id]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
   const [leadTab, setLeadTab] = useState("section-0");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   useEffect(() => setDraft(initial), [initial]);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const dirty = customDirty || JSON.stringify(draft) !== JSON.stringify(initial);
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
     if (dirty && !window.confirm("Discard unsaved lead changes?")) return;
@@ -3811,8 +3674,11 @@ function LeadFormModal({ mode, lead, saving, error, owners, territories, statuse
     const validation = validateLeadDraft(draft);
     setFieldErrors(validation);
     if (Object.keys(validation).length) { setLeadTab(validation.value ? "section-1" : "section-0"); return; }
+    let customValues:CRMApiRecord;try{customValues=customFieldForm.validate();setCustomError("");}catch(e){setCustomError(e instanceof Error?e.message:"Check custom fields");return;}
     const fullPayload = buildLeadPayload(draft);
+    fullPayload.customFields=customValues;
     const dirtyPayload = buildLeadDirtyPayload(draft, initial);
+    if(Object.keys(customValues).length)dirtyPayload.customFields=customValues;
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
   };
   return (
@@ -3823,6 +3689,7 @@ function LeadFormModal({ mode, lead, saving, error, owners, territories, statuse
           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close lead form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="suite-dialog-body space-y-5 px-5 py-4">{error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
+          <CrmRecordFields state={{...customFieldForm,setValues:next=>{customFieldForm.setValues(next);setCustomDirty(true);}}}/>{customError&&<p role="alert" className="text-destructive">{customError}</p>}
           <FormSectionTabs label="lead form sections" active={leadTab} onChange={setLeadTab} sections={[{id:"section-0",label:"Contact details",content:(<LeadFormSection title="Contact details">
             <LeadFormField label="Lead name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter lead name" /></LeadFormField>
             <LeadFormField label="Company"><Input className="border-border bg-card text-foreground" value={valueText(draft.company)} onChange={(event) => patch("company", event.target.value)} placeholder="Enter company name" /></LeadFormField>
@@ -3907,13 +3774,14 @@ function LeadFormSection({ title, children }: { title: string; children: React.R
   return <section><h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3><div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">{children}</div></section>;
 }
 
-function LeadFormField({ label, required, error, wide, children }: { label: string; required?: boolean; error?: string; wide?: boolean; children: React.ReactNode }) {
+function LeadFormField({ label, required, error, wide, children, group = false }: { label: string; required?: boolean; error?: string; wide?: boolean; children: React.ReactNode; group?: boolean }) {
+  const Wrapper = group ? "div" : "label";
   return (
-    <label className={`min-w-0 space-y-1 text-sm ${wide ? "md:col-span-2" : ""}`}>
+    <Wrapper role={group ? "group" : undefined} aria-label={group ? label : undefined} className={`min-w-0 space-y-1 text-sm ${wide ? "md:col-span-2" : ""}`}>
       <span className="font-medium text-foreground">{label}{required ? <span className="text-red-700 dark:text-red-300"> *</span> : null}</span>
       {children}
       {error ? <span className="block text-xs text-red-700 dark:text-red-300">{error}</span> : null}
-    </label>
+    </Wrapper>
   );
 }
 
@@ -3928,14 +3796,14 @@ function leadFormInitial(lead: CRMLead | null): CRMApiRecord {
     company: lead?.company || "",
     email: lead?.email || "",
     phone: lead?.phone || "",
-    phone_country_code: lead?.phone_country_code || (lead ? "" : "+91"),
-    source: lead?.source || "Other",
+    phone_country_code: lead?.phone_country_code || (lead ? "" : defaultText("phone_country_code", "crm")),
+    source: lead ? (lead.source || "Other") : defaultText("lead_source", "crm"),
     status: lead?.status || "New",
     rating: lead?.rating || "Warm",
-    ownerId: lead?.ownerId || "",
+    ownerId: lead ? (lead.ownerId || "") : (defaultOwner("crm") || ""),
     territoryId: lead?.territoryId || "",
     value: lead?.value || "",
-    nextFollowUpDate: followUp ? followUp.toISOString().slice(0, 10) : "",
+    nextFollowUpDate: followUp ? followUp.toISOString().slice(0, 10) : (lead ? "" : defaultDateAfter("follow_up_days", "crm")),
     nextFollowUpTime: followUp ? followUp.toTimeString().slice(0, 5) : "",
     notes: lead?.notes || "",
   };
@@ -4485,7 +4353,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 {visibleColumns.phone ? <td className="px-3 py-3 text-muted-foreground">{<PhoneActions value={contact.phone} record={contact} />}</td> : null}
                 {visibleColumns.stage ? <td className="px-3 py-3"><LeadBadge value={contact.stage || "Lead"} tone="blue" /></td> : null}
                 {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /></td> : null}
-                {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(contact.owner || "U")}</span>{contact.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><SuiteAvatar name={contact.owner || "Unassigned"} kind="employee" size={24}/>{contact.owner || "Unassigned"}</span></td> : null}
                 {visibleColumns.nextFollowUp ? <td className="px-3 py-3"><FollowUpCell value={contact.nextFollowUp} /></td> : null}
                 {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{contact.updatedAt ? formatDate(contact.updatedAt) : "-"}</td> : null}
                 <td className="sticky right-0 z-10 bg-card px-2 py-3 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]" onClick={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={()=>onEdit(contact)}/></td>
@@ -4526,50 +4394,20 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivi
       .finally(() => setLoading(false));
   }, [contact?.id]);
   if (!contact) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select a contact to inspect details.</aside>;
-  return (
-    <aside className="border-l border-border bg-card p-4 xl:sticky xl:top-0 xl:h-[calc(100vh-5rem)] xl:overflow-y-auto">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3"><ContactAvatar contact={contact} large /><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-foreground">{contact.name}</h2><p className="truncate text-sm text-muted-foreground">{contact.companyName || "No company linked"}</p></div></div>
-        <div className="flex items-center gap-1"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /><Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={onClose} aria-label="Close contact details"><X className="h-4 w-4" /></Button></div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2"><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={()=>onEdit(contact)}/><Button size="sm" variant="outline" onClick={onAddTask}><CalendarDays size={14}/>Add task</Button></div>
-      <CatalogAssociations key={contact.id} source="crm" target="contact" id={contact.id}/>
-      <LeadDrawerSection title="Contact">
-        <LeadInfo label="Email" value={contact.email || "No email"} />
-        <LeadInfo label="Phone" value={contact.phone} record={contact} />
-        <LeadInfo label="Company" value={contact.companyName || "No company linked"} />
-        <LeadInfo label="Job title" value={contact.title || "Not set"} />
-      </LeadDrawerSection>
-      <LeadDrawerSection title="Relationship">
-        <LeadInfo label="Company" value={contact.companyName || "No company linked"} />
-        <LeadInfo label="Lifecycle stage" value={contact.stage || "Lead"} />
-        <LeadInfo label="Status" value={contact.status || "Active"} />
-        <LeadInfo label="Source" value={contact.source || "Not set"} />
-        <LeadInfo label="Owner" value={contact.owner || "Unassigned"} />
-      </LeadDrawerSection>
-      <LeadDrawerSection title="Follow-up">
-        <LeadInfo label="Next follow-up" value={contact.nextFollowUp ? formatDate(contact.nextFollowUp) : "No follow-up"} />
-        <LeadInfo label="Status" value={contact.nextFollowUp ? followUpStatus(contact.nextFollowUp) : "No follow-up"} />
-      </LeadDrawerSection>
-      <LeadDrawerSection title="Activity">
-        {loading ? <p className="text-sm text-muted-foreground">Loading activity...</p> : null}
-        {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
-        {!loading && !error && timeline.slice(0, 5).map((item) => <LeadActivityItem key={String(item.id || item.title || item.occurredAt)} item={item} />)}
-        {!loading && !error && !timeline.length ? <p className="rounded-md border border-border bg-white/[0.03] px-3 py-8 text-center text-sm text-muted-foreground">No activity yet</p> : null}
-        <Button size="sm" variant="outline" className="mt-3 w-full border-border bg-transparent text-foreground hover:bg-accent" onClick={onOpenActivities}>View all activity</Button>
-      </LeadDrawerSection>
-    </aside>
-  );
+  return <aside className="p-4"><Button variant="ghost" onClick={onClose}>Close</Button><Record360Workspace key={contact.id} kind="contact" id={contact.id} actions={<Button variant="outline" onClick={()=>onEdit(contact)}>Edit</Button>}/></aside>;
 }
 
 export function ContactFormModal({ mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const customFieldForm=useCrmFieldForm("contacts",mode === "edit" ? "edit" : "create",mode === "edit" ? contact?.id : undefined);
+  const [customDirty,setCustomDirty]=useState(false);
+  const [customError,setCustomError]=useState("");
   const [initial] = useState(() => contactFormInitial(mode === "edit" ? contact : null));
   const [availability, setAvailability] = useState<BranchAvailabilityValue>();
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
   const [contactTab, setContactTab] = useState("basic");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const dirty = availability !== undefined || JSON.stringify(draft) !== JSON.stringify(initial) || catalogLines.length > 0;
+  const dirty = customDirty || availability !== undefined || JSON.stringify(draft) !== JSON.stringify(initial) || catalogLines.length > 0;
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
     if (dirty && !window.confirm("Discard unsaved contact changes?")) return;
@@ -4588,9 +4426,12 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
     const validation = validateContactDraft(draft);
     setFieldErrors(validation);
     if (Object.keys(validation).length) { setContactTab(validation.name ? "basic" : "contact"); return; }
+    let customValues:CRMApiRecord;try{customValues=customFieldForm.validate();setCustomError("");}catch(e){setCustomError(e instanceof Error?e.message:"Check custom fields");return;}
     const fullPayload = buildContactPayload(draft);
+    fullPayload.customFields=customValues;
     if (mode === "create") fullPayload.catalog_lines = catalogLines.map(linePayload);
     const dirtyPayload = buildContactDirtyPayload(draft, initial);
+    if(Object.keys(customValues).length)dirtyPayload.customFields=customValues;
     if (availability) { fullPayload.branch_availability = availability as unknown as CRMApiRecord; dirtyPayload.branch_availability = availability as unknown as CRMApiRecord; }
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
   };
@@ -4602,6 +4443,7 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close contact form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="suite-dialog-body space-y-4 px-5 py-4">{error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
+          <CrmRecordFields state={{...customFieldForm,setValues:next=>{customFieldForm.setValues(next);setCustomDirty(true);}}}/>{customError&&<p role="alert" className="text-destructive">{customError}</p>}
           <FormSectionTabs label="contact form sections" active={contactTab} onChange={setContactTab} sections={[{id:"basic",label:"Basic details",content:(<LeadFormSection title="Basic details"><div className="col-span-full"><BranchAvailability value={availability} editing={mode === "edit"} resource={mode === "edit" && contact ? {table:"crm_contacts", id:contact.id} : undefined} disabled={saving} onChange={setAvailability}/></div><LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField><LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField></LeadFormSection>)},{id:"contact",label:"Contact info",content:(<LeadFormSection title="Communication details"><CommunicationDraftEditor ownerId={mode==="edit"?contact?.id:undefined} value={Array.isArray(draft.communicationChannels)?draft.communicationChannels as unknown as CommunicationEntry[]:primaryEntries(valueText(draft.email),valueText(draft.phone),valueText(draft.phone_country_code))} onChange={(items,version)=>{patch("communicationChannels",items as unknown as CRMApiRecord[]);patch("communicationVersion",version);const email=items.find(x=>x.kind==="email"&&x.primary);const phone=items.find(x=>x.kind==="phone"&&x.primary);patch("email",email?.value||"");patch("phone",(phone?.value||"").replace(/[ ()-]/g,""));patch("phone_country_code",phone?.countryCode||"+91");}}/><SharedNumberConfirmation phone={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} email={valueText(draft.email)} confirmed={draft.confirmShared===true} reason={valueText(draft.sharedReason)} onChange={(confirmed,reason)=>{patch("confirmShared",confirmed);patch("sharedReason",reason);}}/></LeadFormSection>)},{id:"financial",label:"Financial data",content:(<FinancialDataTab contactId={mode==="edit"?contact?.id:undefined} value={draft.financialData as unknown as FinancialData|undefined} onChange={data=>patch("financialData",data as unknown as CRMApiRecord)}/>)},{id:"company",label:"Company & ownership",content:(<LeadFormSection title="Relationship">
             <LeadFormField label="Company"><SharedCompanySelect value={valueText(draft.companyId)} onChange={value=>patch("companyId",value)} initial={companies.map(company=>({id:Number(company.id),name:String(company.name||company.company_name||company.id)}))}/></LeadFormField>
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
@@ -4626,14 +4468,14 @@ function contactFormInitial(contact: CRMContact | null): CRMApiRecord {
     name: contact?.name || "",
     email: contact?.email || "",
     phone: contact?.phone || "",
-    phone_country_code: contact?.phone_country_code || (contact ? "" : "+91"),
+    phone_country_code: contact?.phone_country_code || (contact ? "" : defaultText("phone_country_code", "crm")),
     title: contact?.title || "",
     companyId: contact?.companyId || "",
-    source: contact?.source || "Other",
+    source: contact ? (contact.source || "Other") : defaultText("lead_source", "crm"),
     stage: contact?.stage || "Lead",
     status: contact?.status || "Active",
-    ownerId: contact?.ownerId || "",
-    nextFollowUpDate: followUp ? followUp.toISOString().slice(0, 10) : "",
+    ownerId: contact ? (contact.ownerId || "") : (defaultOwner("crm") || ""),
+    nextFollowUpDate: followUp ? followUp.toISOString().slice(0, 10) : (contact ? "" : defaultDateAfter("follow_up_days", "crm")),
     nextFollowUpTime: followUp ? followUp.toTimeString().slice(0, 5) : "",
     notes: contact?.notes || "",
   };
@@ -5141,7 +4983,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 {visibleColumns.type ? <td className="px-3 py-3"><LeadBadge value={account.type || "Prospect"} tone={account.type === "Customer" ? "blue" : "amber"} /></td> : null}
                 {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={account.status || "Active"} tone={account.status === "Active" ? "blue" : "slate"} /></td> : null}
                 {visibleColumns.revenue ? <td className="px-3 py-3 font-semibold text-foreground">{formatCurrency(account.revenue || 0)}</td> : null}
-                {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(account.owner || "U")}</span>{account.owner || "Unassigned"}</span></td> : null}
+                {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><SuiteAvatar name={account.owner || "Unassigned"} kind="employee" size={24}/>{account.owner || "Unassigned"}</span></td> : null}
                 {visibleColumns.city ? <td className="px-3 py-3 text-muted-foreground">{account.city || "Not provided"}</td> : null}
                 {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{account.updatedAt ? formatDate(account.updatedAt) : "-"}</td> : null}
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
@@ -5242,6 +5084,9 @@ function AccountRelatedTile({ icon, label, value, onClick }: { icon: React.React
 }
 
 function AccountFormModal({ mode, account, saving, error, owners, territories, industries, types, statuses, onClose, onSave }: { mode: AccountFormMode; account: CRMAccount | null; saving: boolean; error: string | null; owners: CRMRecord[]; territories: CRMRecord[]; industries: string[]; types: string[]; statuses: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const customFieldForm=useCrmFieldForm("companies",mode === "edit" ? "edit" : "create",mode === "edit" ? account?.id : undefined);
+  const [customDirty,setCustomDirty]=useState(false);
+  const [customError,setCustomError]=useState("");
   const initial = useMemo(() => accountFormInitial(account), [account?.id]);
   const [availability, setAvailability] = useState<BranchAvailabilityValue>();
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
@@ -5249,7 +5094,7 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
   const [accountTab, setAccountTab] = useState("section-0");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   useEffect(() => setDraft(initial), [initial]);
-  const dirty = availability !== undefined || JSON.stringify(draft) !== JSON.stringify(initial);
+  const dirty = customDirty || availability !== undefined || JSON.stringify(draft) !== JSON.stringify(initial);
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
     if (dirty && !window.confirm("Discard unsaved account changes?")) return;
@@ -5259,9 +5104,12 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
     const validation = validateAccountDraft(draft);
     setFieldErrors(validation);
     if (Object.keys(validation).length) { setAccountTab(validation.name ? "section-0" : validation.revenue ? "section-1" : "section-2"); return; }
+    let customValues:CRMApiRecord;try{customValues=customFieldForm.validate();setCustomError("");}catch(e){setCustomError(e instanceof Error?e.message:"Check custom fields");return;}
     const fullPayload = buildAccountPayload(draft);
+    fullPayload.customFields=customValues;
     if (mode === "create" && catalogLines.length) fullPayload.catalog_lines = catalogLines.map(linePayload);
     const dirtyPayload = buildAccountDirtyPayload(draft, initial);
+    if(Object.keys(customValues).length)dirtyPayload.customFields=customValues;
     if (availability) { fullPayload.branch_availability = availability as unknown as CRMApiRecord; dirtyPayload.branch_availability = availability as unknown as CRMApiRecord; }
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
   };
@@ -5274,6 +5122,7 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
         </div>
         <div className="suite-dialog-body space-y-4 px-5 py-4">{error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
           <BranchAvailability value={availability} editing={mode === "edit"} resource={mode === "edit" && account ? {table:"crm_companies", id:account.id} : undefined} disabled={saving} onChange={setAvailability}/>
+          <CrmRecordFields state={{...customFieldForm,setValues:next=>{customFieldForm.setValues(next);setCustomDirty(true);}}}/>{customError&&<p role="alert" className="text-destructive">{customError}</p>}
           <FormSectionTabs label="account form sections" active={accountTab} onChange={setAccountTab} sections={[{id:"section-0",label:"Company details",content:(<LeadFormSection title="Company details">
               <LeadFormField label="Company name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter company name" /></LeadFormField>
               <LeadFormField label="Industry" required><LeadFormSelect value={valueText(draft.industry)} values={industries} onChange={(value) => patch("industry", value)} /></LeadFormField>
@@ -5304,12 +5153,12 @@ function accountFormInitial(account: CRMAccount | null): CRMApiRecord {
     type: account?.type || "Prospect",
     status: account?.status || "Active",
     revenue: account?.revenue || "",
-    ownerId: account?.ownerId || "",
+    ownerId: account ? (account.ownerId || "") : (defaultOwner("crm") || ""),
     territoryId: account?.territoryId || "",
     city: account?.city || "",
     email: account?.email || "",
     phone: account?.phone || "",
-    phone_country_code: account?.phone_country_code || (account ? "" : "+91"),
+    phone_country_code: account?.phone_country_code || (account ? "" : defaultText("phone_country_code", "crm")),
     website: account?.website || "",
     notes: account?.notes || "",
   };
@@ -5806,7 +5655,8 @@ function DealDetailDrawer({ deal, onClose, onEdit, onNavigate }: { deal: CRMDeal
   );
 }
 
-export function QuickDealDialog({close, saved, dealId}: {close: () => void; saved: () => void; dealId?: number}) {
+export function QuickDealDialog({placement="create",close, saved, dealId, initialStageId, initialPipelineId, initialValues, draftScope}: {initialValues?:CRMApiRecord;draftScope?:string;placement?:"create"|"quick_create";close: () => void; saved: () => void; dealId?: number; initialStageId?:number;initialPipelineId?:number}) {
+  const saveLock=useRef(false);
   const [lookups, setLookups] = useState<Record<string, CRMRecord[]>>();
   const [canManualProbability, setCanManualProbability] = useState(false);
   const [record, setRecord] = useState<CRMDealRow | null>(null);
@@ -5832,25 +5682,26 @@ export function QuickDealDialog({close, saved, dealId}: {close: () => void; save
     }).catch(err => {if (active) setError(dealError(err));});
     return () => {active = false;};
   }, [reload, dealId]);
-  if (!lookups) return createPortal(<div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-label="Create deal" className="rounded-lg bg-card p-6 text-foreground">{error ? <><p role="alert">{error}</p><Button onClick={() => setReload(v => v + 1)}>Retry</Button></> : <div role="status" className="animate-pulse space-y-3"><p>Loading deal form...</p><div className="h-10 w-72 rounded bg-muted"/><div className="h-10 w-72 rounded bg-muted"/></div>}<Button variant="outline" onClick={close}>Cancel</Button></div></div>, document.body);
-  return <DealFormModal canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} teams={lookups["deal-workspace/teams"]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload) => {
+  if (!lookups) return createPortal(<div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-label={dealId ? "Edit deal" : "Create deal"} className="rounded-lg bg-card p-6 text-foreground">{error ? <><p role="alert">{error}</p><Button onClick={() => setReload(v => v + 1)}>Retry</Button></> : <div role="status" className="animate-pulse space-y-3"><p>Loading deal form...</p><div className="h-10 w-72 rounded bg-muted"/><div className="h-10 w-72 rounded bg-muted"/></div>}<Button variant="outline" onClick={close}>Cancel</Button></div></div>, document.body);
+  return <DealFormModal placement={placement} draftScope={draftScope} initialValues={!dealId?{...initialValues,...(initialStageId?{stageId:initialStageId}:{}),...(initialPipelineId?{pipelineId:initialPipelineId}:{})}:undefined} canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} teams={lookups["deal-workspace/teams"]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload) => {
+    if(saveLock.current)return;saveLock.current=true;
     setSaving(true);setError(null);
     try {
       if (dealId) await crmApi.update("deals", dealId, {...dirtyPayload, expected_version: dirtyPayload.expected_version ?? record?.version});
       else await crmApi.create("deals", payload);
-      sessionStorage.removeItem(`crm-deal-draft:${user?.access?.companyId}:${user?.id}:${dealId || "new"}`);
+      sessionStorage.removeItem(`crm-deal-draft:${user?.access?.companyId}:${user?.id}:${dealId || "new"}${draftScope?":"+draftScope:""}`);
       saved();close();
-    } catch(err) {setError(dealError(err));} finally {setSaving(false);}
+    } catch(err) {setError(dealError(err));} finally {saveLock.current=false;setSaving(false);}
   }}/>;
 }
 
-function DealFormModal({ canManualProbability = false, teams = [], mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { canManualProbability?: boolean; teams?: CRMRecord[]; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
-  const initial = useMemo(() => dealFormInitial(deal), [deal?.id]);
+function DealFormModal({ placement="create", initialValues, draftScope, canManualProbability = false, teams = [], mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { placement?:"create"|"quick_create";initialValues?:CRMApiRecord;draftScope?:string;canManualProbability?: boolean; teams?: CRMRecord[]; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+  const initial = useMemo(() => ({...dealFormInitial(deal),...initialValues}), [deal?.id,initialValues?.stageId,initialValues?.pipelineId]);
   const initialCustomValues = useMemo(() => dealCustomFieldInitial(deal), [deal?.id]);
   const user = useAuthStore(state => state.user);
-  const draftKey = `crm-deal-draft:${user?.access?.companyId}:${user?.id}:${deal?.id || "new"}`;
+  const draftKey = `crm-deal-draft:${user?.access?.companyId}:${user?.id}:${deal?.id || "new"}${draftScope?":"+draftScope:""}`;
   const restored = useMemo(() => {try {return JSON.parse(sessionStorage.getItem(draftKey) || "null");} catch {return null;}}, [draftKey]);
-  const [draft, setDraft] = useState<CRMApiRecord>(restored?.draft || initial);
+  const [draft, setDraft] = useState<CRMApiRecord>({...(restored?.draft||initial),...initialValues});
   const [customValues, setCustomValues] = useState<CRMApiRecord>(restored?.customValues || initialCustomValues);
   const initialLines = useMemo<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({name: String(line.name || ""), key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0), pricingId: line.pricing_id ? String(line.pricing_id) : null})), [deal?.id]);
   const [lines, setLines] = useState<DealLineItem[]>(restored?.lines || initialLines);
@@ -5860,6 +5711,8 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
   const [inlineKind, setInlineKind] = useState<"companies" | "contacts" | "products" | "services" | null>(null);
   const [inlineSaving, setInlineSaving] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [autofillNotice, setAutofillNotice] = useState("");
+  const [inlineSeedName, setInlineSeedName] = useState("");
   const allProducts = [...products, ...addedProducts];
   const createInline = async (record: CRMRecord, customFields?: CRMApiRecord) => {
     if (!inlineKind) return;
@@ -5881,7 +5734,7 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
   useEffect(() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: restored?.baseVersion || deal?.version}));}, [draftKey, draft, customValues, lines]);
   useEffect(() => {let active = true;const timer = setTimeout(() => {if (String(draft.name || "").trim().length < 2) {setDuplicate([]);return;}void crmApi.list("deal-workspace/duplicates", {name: String(draft.name), company_id: draft.companyId ? Number(draft.companyId) : undefined, exclude_id: deal?.id}).then(response => {if (active) setDuplicate(response.data.items || []);}).catch(() => {});}, 400);return () => {active = false;clearTimeout(timer);};}, [draft.name, draft.companyId, deal?.id]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const visibleCustomFields = useMemo(() => customFields.filter((field) => Boolean(field.isVisible ?? field.is_visible ?? true)), [customFields]);
+  const visibleCustomFields = useMemo(() => customFields.filter((field) => fieldShown(field, mode === "create" ? placement : "edit")), [customFields, mode, placement]);
 
   const pipelineStages = useMemo(() => stages.filter((stage) => !draft.pipelineId || String(stage.pipelineId || stage.pipeline_id || "") === String(draft.pipelineId)), [stages, draft.pipelineId]);
   const visibleContacts = useMemo(() => [...contacts, ...addedContacts].filter((contact) => !draft.companyId || !(contact.companyId || contact.company_id) || String(contact.companyId || contact.company_id) === String(draft.companyId)), [contacts, addedContacts, draft.companyId]);
@@ -5900,9 +5753,9 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
     setDraft((current) => ({ ...current, stageId, pipelineId: stage ? Number(stage.pipelineId || stage.pipeline_id || current.pipelineId || 0) : current.pipelineId, probability: stage ? Number(stage.probability || current.probability || 0) : current.probability, status: stage ? inferDealStatusFromStage(stage) : current.status }));
   };
   const submit = () => {
-    const validation = { ...validateDealDraft(draft), ...(mode === "create" ? validateDealCustomFields(visibleCustomFields, customValues) : {}) };
+    const validation = { ...validateDealDraft(draft), ...validateDealCustomFields(visibleCustomFields, customValues) };
     setFieldErrors(validation);
-    if (Object.keys(validation).length) {setAdvancedTab(0);setQuickSection("details");return;}
+    if (Object.keys(validation).length) {setAdvancedTab(0);setQuickSection("details");setTimeout(()=>document.querySelector<HTMLElement>('[data-custom-field-error], [aria-invalid="true"]')?.focus(),0);return;}
     if (lines.some(line => !line.productId || !Number.isFinite(Number(line.unitPrice)) || Number(line.unitPrice) < 0 || !Number.isInteger(Number(line.quantity)) || Number(line.quantity) < 1 || !Number.isFinite(Number(line.discount)) || Number(line.discount) < 0 || Number(line.discount) > 100)) {setFieldErrors({...validation, catalog: "Choose a product/service for each line, a nonnegative price, a whole quantity of at least 1, and a discount from 0 to 100."});return;}
     setAdvancedTab(0);
     const fullPayload = buildDealPayload(draft, effectiveAmount, customValues);
@@ -5914,7 +5767,7 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
   };
   return createPortal(
     <DealDialog.Root open modal={!inlineKind} onOpenChange={open => {if (!open && !saving) requestClose();}}>
-    <DealDialog.Content asChild aria-describedby={undefined} onInteractOutside={e => {if (inlineKind) e.preventDefault();}} onEscapeKeyDown={e => {if (inlineKind) {e.preventDefault();if (!inlineSaving) setInlineKind(null);}}}>
+    <DealDialog.Content asChild aria-describedby={undefined} onInteractOutside={e => {if (inlineKind) e.preventDefault();}} onEscapeKeyDown={e => {if (document.activeElement?.matches('[data-record-picker][aria-expanded="true"]')) {e.preventDefault();return;} if (inlineKind) {e.preventDefault();if (!inlineSaving) setInlineKind(null);}}}>
     <div role="dialog" aria-modal="true" aria-label={mode === "edit" ? "Edit deal" : "Create deal"} className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
       <div className="flex max-h-[min(82dvh,42rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-2xl">
         <div className="flex flex-wrap items-start justify-between gap-3 shrink-0 border-b border-border px-5 py-4">
@@ -5929,11 +5782,17 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
             {Object.keys(fieldErrors).length > 0 && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{Object.values(fieldErrors).join(" ")}</p>}
             {duplicate.length > 0 && <p role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">A deal with this name already exists in your permitted scope. {duplicate.map(item => <a key={String(item.id)} className="ml-2 underline" href={`/crm/deals/${item.id}`} target="_blank" rel="noreferrer">Review #{String(item.id)}</a>)}</p>}
             {((formTab === "simple" && quickSection === "details") || (formTab === "advanced" && advancedTab === 0)) && <LeadFormSection title="Opportunity">
-              <LeadFormField label="Company"><DealRecordSelect resource="companies" name="Company" value={valueText(draft.companyId)} onChange={value => setDraft(v => ({...v, companyId: value, contactId: ""}))} initial={[...companies, ...addedCompanies]}/><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("companies");}}><Plus size={14}/>Add company</Button></LeadFormField>
-              <LeadFormField label="Contact"><DealRecordSelect resource="contacts" name="Contact" value={valueText(draft.contactId)} onChange={value => patch("contactId", value)} initial={visibleContacts}/><Button type="button" size="sm" variant="ghost" onClick={() => {setInlineError(null);setInlineKind("contacts");}}><Plus size={14}/>Add contact</Button></LeadFormField>
+              {mode === "create" && <LeadFormField label="Prefill from lead" wide group><DealRecordSelect resource="leads" name="Lead" value={valueText(draft.prefillLeadId)} initial={[]} onChange={value=>patch("prefillLeadId",value)} onSelected={lead=>{setDraft(current=>prefillDealLead(current,lead,[...companies,...addedCompanies],[...contacts,...addedContacts]));setAutofillNotice("Empty fields filled from the selected lead. Review company, contact and deal details before saving.");}}/><p className="text-xs text-muted-foreground">Optional: use an existing lead to fill empty fields. Existing values are preserved.</p></LeadFormField>}
+              <LeadFormField label="Customer / company" group><DealRecordSelect resource="companies" name="Company" value={valueText(draft.companyId)} onChange={value => {setDraft(v => changeDealCompany(v,value));setAutofillNotice("Company changed. Contacts are reset so only contacts belonging to this customer are linked.");}} initial={[...companies, ...addedCompanies]}
+                onCreate={name=>{setInlineSeedName(name);setInlineError(null);setInlineKind("companies");}}
+                onSelected={company=>{setDraft(current=>prefillDealCompany(current,company));void directoryApi.get(`/master-data/companies/${company.id}`,{params:{source:"crm"}}).then(response=>setDraft(current=>prefillDealCompany(current,response.data))).catch(()=>setAutofillNotice("Company selected. Choose a contact if its details could not be loaded."));}}/></LeadFormField>
+              <LeadFormField label="Contact" group><DealRecordSelect resource="contacts" name="Contact" value={valueText(draft.contactId)} companyId={valueText(draft.companyId)} onChange={value => patch("contactId", value)} initial={visibleContacts}
+                onCreate={name=>{setInlineSeedName(name);setInlineError(null);setInlineKind("contacts");}}
+                onSelected={contact=>setDraft(current=>fillEmptyDealFields(current,{companyId:contact.company_id||contact.companyId}))}/></LeadFormField>
+              {autofillNotice && <p role="status" className="col-span-full text-xs text-muted-foreground">{autofillNotice}</p>}
               <LeadFormField label="Deal name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter deal name..." /></LeadFormField>
               <LeadFormField label="Pipeline" required error={fieldErrors.pipelineId}><NativeSelect aria-label="Pipeline" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.pipelineId)} onChange={event => setDraft(v => ({...v, pipelineId: event.target.value, stageId: "", status: "Open"}))}><option value="">Select pipeline</option>{pipelines.map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.name)}</option>)}</NativeSelect></LeadFormField>
-              <LeadFormField label="Currency"><Input maxLength={3} value={valueText(draft.currency || "INR")} onChange={e => patch("currency", e.target.value.toUpperCase())}/></LeadFormField>
+              <LeadFormField label="Currency"><CurrencySelect value={valueText(draft.currency || "INR")} onChange={currency => patch("currency", currency)}/></LeadFormField>
               <LeadFormField label="Deal owner"><NativeSelect aria-label="Deal owner" className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.ownerId)} onChange={e => patch("ownerId", e.target.value)}><option value="">Assign to me</option>{owners.map(owner => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.name || owner.full_name || owner.email)}</option>)}</NativeSelect></LeadFormField>
               <LeadFormField label="Priority"><LeadFormSelect value={valueText(draft.priority || "Medium")} values={["Low", "Medium", "High", "Critical"]} onChange={value => patch("priority", value)}/></LeadFormField>
               <LeadFormField label="Lead source"><Input value={valueText(draft.source)} onChange={e => patch("source", e.target.value)}/></LeadFormField>
@@ -5950,18 +5809,11 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
                 {advancedTab === 2 && <LeadFormField label="Territory"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.territoryId)} onChange={(event) => patch("territoryId", event.target.value)}><option value="">No territory</option>{territories.map((territory) => <option key={String(territory.id)} value={String(territory.id)}>{String(territory.name || territory.code || territory.id)}</option>)}</NativeSelect></LeadFormField>}
 
                 {advancedTab === 3 && <LeadFormField label="Next follow-up"><Input className="border-border bg-card text-foreground" type="date" value={valueText(draft.nextFollowUp)} onChange={(event) => patch("nextFollowUp", event.target.value)} /></LeadFormField>}
-                {advancedTab === 1 && <><LeadFormField label="Estimated deal value"><Input type="number" min={0} step="0.01" value={valueText(draft.amount)} onChange={e => patch("amount", e.target.value)}/></LeadFormField><LeadFormField label="Deal currency"><Input maxLength={3} value={valueText(draft.currency || "INR")} onChange={e => patch("currency", e.target.value.toUpperCase())}/></LeadFormField><LeadFormField label="Expected revenue"><p>{currencyMoney(effectiveAmount * Number(draft.probability || 0) / 100)}</p></LeadFormField></>}
+                {advancedTab === 1 && <><LeadFormField label="Estimated deal value"><Input type="number" min={0} step="0.01" value={valueText(draft.amount)} onChange={e => patch("amount", e.target.value)}/></LeadFormField><LeadFormField label="Deal currency"><CurrencySelect value={valueText(draft.currency || "INR")} onChange={currency => patch("currency", currency)}/></LeadFormField><LeadFormField label="Expected revenue"><p>{currencyMoney(effectiveAmount * Number(draft.probability || 0) / 100)}</p></LeadFormField></>}
                 {advancedTab === 3 && <LeadFormField label="Expected closing date"><Input type="date" value={valueText(draft.expectedCloseDate)} onChange={e => patch("expectedCloseDate", e.target.value)}/></LeadFormField>}
               </LeadFormSection>
             ) : null}
-            {formTab === "advanced" && advancedTab === 5 && visibleCustomFields.length ? (
-              <LeadFormSection title="Custom fields">
-                {visibleCustomFields.map((field) => {
-                  const key = String(field.fieldKey || field.field_key || field.id);
-                  return <LeadFormField key={String(field.id)} label={String(field.fieldName || field.label || field.field_key)} required={Boolean(field.isRequired || field.is_required)} error={fieldErrors[`custom.${key}`]}><DealCustomFieldInput field={field} value={customValues[key]} onChange={(value) => setCustomValues((current) => ({ ...current, [key]: value }))} /></LeadFormField>;
-                })}
-              </LeadFormSection>
-            ) : null}
+            {visibleCustomFields.length ? <div className="sm:col-span-2"><CrmRecordFields errors={fieldErrors} state={{fields:visibleCustomFields as CRMApiRecord[],values:customValues,setValues:setCustomValues,loading:false,error:"",validate:()=>customValues}}/></div> : null}
             {((formTab === "simple" && quickSection === "products") || (formTab === "advanced" && advancedTab === 1)) && <LeadFormSection title="Products & services"><div className="md:col-span-2"><CatalogLinesEditor currency={String(draft.currency || "INR")} disabled={saving} value={lines.filter(line => line.productId).map(line => ({kind: line.productId.split(":")[0] as "product" | "service", item_id: Number(line.productId.split(":")[1]), name: line.name, item: line.catalogItem, pricing_id: line.pricingId, quantity: Number(line.quantity), unit_price: Number(line.unitPrice), discount: Number(line.discount), currency: String(draft.currency || "INR")}))} onChange={selected => setLines(selected.map((line, index) => ({key: `${line.kind}:${line.item_id}:${index}`, productId: `${line.kind}:${line.item_id}`, name: line.name, catalogItem: line.item, pricingId: line.pricing_id, quantity: String(line.quantity), unitPrice: String(line.unit_price), discount: String(line.discount)})))}/></div></LeadFormSection>}
             {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Sales team"><LeadFormField label="Assigned sales team"><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={valueText(draft.assigned_team_id)} onChange={e => patch("assigned_team_id", e.target.value)}><option value="">No team assigned</option>{teams.map(team => <option key={String(team.id)} value={String(team.id)}>{String(team.name)}</option>)}</NativeSelect></LeadFormField><p className="text-sm text-muted-foreground">Secondary owners, lead originators, collaborators, and watchers are managed in the saved deal's Contacts tab, where their record access can be verified.</p></LeadFormSection>}
             {formTab === "advanced" && advancedTab === 2 && <LeadFormSection title="Related contacts & decision roles"><div className="space-y-3 sm:col-span-2">{visibleContacts.map(person => {const links = (draft.related_contacts || []) as CRMApiRecord[];const selected = links.find(link => Number(link.contactId) === Number(person.id));return <div className="flex flex-wrap items-center gap-3" key={String(person.id)}><label className="flex min-w-0 flex-1 items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(selected)} onChange={e => patch("related_contacts", e.target.checked ? [...links, {contactId: Number(person.id), role: "Stakeholder", isPrimary: false}] : links.filter(link => Number(link.contactId) !== Number(person.id)))}/>{String(person.name || person.full_name || person.email)}</label>{selected && <NativeSelect aria-label={`Role for ${person.name || person.full_name}`} className="rounded border bg-background p-2 text-sm" value={String(selected.role)} onChange={e => patch("related_contacts", links.map(link => link === selected ? {...link, role: e.target.value} : link))}>{["Stakeholder", "Decision Maker", "Influencer", "Technical Contact", "Procurement", "Finance", "Champion", "Economic Buyer"].map(role => <option key={role}>{role}</option>)}</NativeSelect>}</div>;})}</div></LeadFormSection>}
@@ -5978,7 +5830,7 @@ function DealFormModal({ canManualProbability = false, teams = [], mode, deal, s
       </div>
     </div>
     </DealDialog.Content>
-    {inlineKind && <CreateRecordDialog kind={inlineKind} saving={inlineSaving} error={inlineError} onClose={() => {if (!inlineSaving) setInlineKind(null);}} onCreate={createInline}/>}
+    {inlineKind === "companies" ? <CompanyQuickCreate source="crm" seedName={inlineSeedName} onClose={()=>setInlineKind(null)} onSaved={(company,keepOpen)=>{setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company as unknown as CRMRecord]);setDraft(current=>prefillDealCompany(changeDealCompany(current,String(company.id)),company as unknown as CRMApiRecord));if(!keepOpen)setInlineKind(null);}}/> : inlineKind && <CreateRecordDialog seedName={inlineSeedName} kind={inlineKind} saving={inlineSaving} error={inlineError} onClose={() => {if (!inlineSaving) setInlineKind(null);}} onCreate={createInline}/>}
     </DealDialog.Root>, document.body
   );
 }
@@ -5989,18 +5841,7 @@ function DealProductLine({ line, products, onChange, onRemove }: { line: DealLin
 }
 
 function DealCustomFieldInput({ field, value, onChange }: { field: CRMRecord; value: CRMApiRecord[string]; onChange: (value: CRMApiRecord[string]) => void }) {
-  const type = String(field.fieldType || field.field_type || "text");
-  const options = parseOptions(field.options ?? field.options_json);
-  if(type==='phone'){
-    const pair=value&&typeof value==='object'&&!Array.isArray(value)?value as CRMApiRecord:null;
-    return <PhoneInput label={String(field.label || field.name || 'Phone')} value={String(pair?.national_number ?? value ?? '')} countryCode={String(pair?.country_code ?? (value ? '' : '+91'))} onChange={number=>onChange({national_number:number,country_code:pair?.country_code ?? (value ? '' : '+91')})} onCountryCodeChange={code=>onChange({national_number:pair?.national_number ?? value ?? '',country_code:code})} />;
-  }
-  const inputClass = "h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400";
-  if (type === "dropdown") return <NativeSelect className={inputClass} value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</NativeSelect>;
-  if (type === "multi_select") return <Input className="border-border bg-card text-foreground" value={Array.isArray(value) ? value.join(", ") : String(value || "")} onChange={(event) => onChange(parseOptions(event.target.value))} placeholder={options.length ? options.join(", ") : "Comma separated values"} />;
-  if (type === "checkbox") return <label className="flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm text-foreground"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />Yes</label>;
-  const inputType = type === "number" || type === "currency" || type === "user" || type === "owner" ? "number" : type === "date" ? "date" : type === "datetime" ? "datetime-local" : type === "email" ? "email" : type === "url" ? "url" : "text";
-  return <Input className="border-border bg-card text-foreground" type={inputType} value={String(value || "")} onChange={(event) => onChange(event.target.value)} />;
+  return <FieldControl field={field} value={value} onChange={value => onChange(value as CRMApiRecord[string])} />;
 }
 
 function DealAvatar({ deal, large }: { deal: Pick<CRMDealRow, "name" | "status">; large?: boolean }) {
@@ -6069,7 +5910,7 @@ function recordToDealRow(record: CRMRecord, lookups: { companyNames: Map<number,
 }
 
 function dealFormInitial(deal: CRMDealRow | null): CRMApiRecord {
-  return { assigned_team_id: deal?.assigned_team_id || "", related_contacts: (deal?.contactLinks || []).map(link => ({contactId: Number(link.contactId || link.contact_id), role: link.role || "Stakeholder", isPrimary: Boolean(link.isPrimary || link.is_primary)})), currency: deal?.currency || "INR", priority: deal?.priority || "Medium", deal_type: deal?.deal_type || "New Business", industry: deal?.industry || "", internal_reference: deal?.internal_reference || "", planning: deal?.planning || {}, name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal?.pipelineId || "", stageId: deal?.stageId || "", amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal?.source || "", ownerId: deal?.ownerId || "", territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
+  return { assigned_team_id: deal?.assigned_team_id || "", related_contacts: (deal?.contactLinks || []).map(link => ({contactId: Number(link.contactId || link.contact_id), role: link.role || "Stakeholder", isPrimary: Boolean(link.isPrimary || link.is_primary)})), currency: deal ? (deal.currency || "INR") : (defaultText("currency", "crm")), priority: deal ? (deal.priority || "Medium") : (defaultText("task_priority", "crm")), deal_type: deal?.deal_type || "New Business", industry: deal?.industry || "", internal_reference: deal?.internal_reference || "", planning: deal?.planning || {}, name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal ? (deal.pipelineId || "") : (defaultId("pipeline_id", "crm") || ""), stageId: deal ? (deal.stageId || "") : (defaultId("stage_id", "crm") || ""), amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal ? (deal.source || "") : (defaultText("lead_source", "crm")), ownerId: deal ? (deal.ownerId || "") : (defaultOwner("crm") || ""), territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
 }
 
 function dealCustomFieldInitial(deal: CRMDealRow | null): CRMApiRecord {
@@ -6101,7 +5942,7 @@ function validateDealCustomFields(fields: CRMRecord[], values: CRMApiRecord) {
 }
 
 function cleanCustomFieldValues(values: CRMApiRecord) {
-  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined));
 }
 
 function extractDealCustomValues(record: CRMRecord) {
@@ -6128,10 +5969,6 @@ function buildDealPayload(draft: CRMApiRecord, amount: number, customValues?: CR
     const links = (draft.related_contacts as CRMApiRecord[]).filter(link => Number(link.contactId) !== Number(draft.contactId));
     payload.dealContacts = [...(draft.contactId ? [{contactId: Number(draft.contactId), role: "Primary", isPrimary: true}] : []), ...links.map(link => ({...link, isPrimary: false}))];
   }
-  if (Array.isArray(draft.communicationChannels)) payload.communication_channels = transportEntries(draft.communicationChannels as unknown as CommunicationEntry[]);
-  if (draft.communicationVersion) payload.communication_version = draft.communicationVersion;
-  payload.confirmShared = draft.confirmShared === true;
-  if (draft.sharedReason) payload.sharedReason = draft.sharedReason;
   if (draft.companyId) payload.company_id = Number(draft.companyId);
   if (draft.contactId) payload.contact_id = Number(draft.contactId);
   if (draft.assigned_team_id) payload.assigned_team_id = Number(draft.assigned_team_id);
@@ -6146,7 +5983,7 @@ function buildDealDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord, amoun
   const previous = buildDealPayload(initial, Number(initial.amount || 0));
   const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
   const payload = Object.fromEntries(Array.from(keys).flatMap((key) => JSON.stringify(next[key] ?? null) === JSON.stringify(previous[key] ?? null) ? [] : [[key, next[key] ?? null]]));
-  const customDirty = cleanCustomFieldValues(Object.fromEntries(Object.entries(customValues || {}).filter(([key, value]) => String(value ?? "") !== String(initialCustomValues?.[key] ?? ""))));
+  const customDirty = cleanCustomFieldValues(Object.fromEntries(Object.entries(customValues || {}).filter(([key, value]) => JSON.stringify(value ?? null) !== JSON.stringify(initialCustomValues?.[key] ?? null))));
   if (Object.keys(customDirty).length) payload.customFields = customDirty;
   return payload;
 }
@@ -6375,7 +6212,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
         }) : undefined} loading={loading} error={error} />
         <RecordPanel record={selectedRecord || rows[0] || null} kind={kind} />
       </div>
-      {showCreate ? <CreateRecordDialog kind={kind} saving={createSaving} error={createError} onClose={() => setShowCreate(false)} onCreate={createRecord} /> : null}
+      {showCreate ? <CreateRecordDialog placement="create" kind={kind} saving={createSaving} error={createError} onClose={() => setShowCreate(false)} onCreate={createRecord} /> : null}
     </div>
   );
 }
@@ -6669,8 +6506,9 @@ function quoteIdFromPath() {
 
 function QuoteBuilderPage() {
   const quoteId = quoteIdFromPath();
+  const customFieldForm=useCrmFieldForm("quotations","edit",quoteId);
   const [quote, setQuote] = useState<CRMRecord | null>(null);
-  const [line, setLine] = useState<CRMRecord>({ item_type: "service", name: "Implementation", quantity: 1, unit_price: 50000, discount_type: "amount", discount_value: 0, tax_rate: 18, estimated_cost: 25000, billing_type: "fixed" });
+  const [line, setLine] = useState<CRMRecord>({ item_type: "service", name: "Implementation", quantity: 1, unit_price: 50000, discount_type: "amount", discount_value: 0, tax_rate: defaultNumber("tax_rate", "crm"), estimated_cost: 25000, billing_type: "fixed" });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const load = () => {
@@ -6696,6 +6534,7 @@ function QuoteBuilderPage() {
     <div className="space-y-6">
       <PageHeader title="Quote Builder" description={descriptionFor("quoteBuilder")} action="Recalculate" onAction={() => run("Calculate", () => crmApi.calculateQuote(quoteId))} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      {(customFieldForm.fields.length>0||customFieldForm.error) && <section className="space-y-3"><CrmRecordFields state={customFieldForm}/><Button type="button" variant="outline" disabled={saving || customFieldForm.loading || ["accepted","declined","rejected","converted"].includes(quoteStatus)} onClick={async()=>{setSaving(true);setError(null);try{await crmApi.update("quotations",quoteId,{customFields:customFieldForm.validate()});load();}catch(e){setError(dealError(e));}finally{setSaving(false);}}}>Save custom fields</Button></section>}
       <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
         <div className="space-y-4">
           <Card>
@@ -7754,7 +7593,7 @@ function ForecastingPage() {
 function SalesTargetsPage() {
   const [targets, setTargets] = useState<CRMApiRecord[]>([]);
   const [performance, setPerformance] = useState<CRMApiRecord[]>([]);
-  const [draft, setDraft] = useState<CRMApiRecord>({ periodType: "monthly", periodStart: "2026-06-01", periodEnd: "2026-06-30", targetOwnerType: "user", targetOwnerId: 100, targetAmount: 1000000, currency: "INR" });
+  const [draft, setDraft] = useState<CRMApiRecord>({ periodType: "monthly", periodStart: "2026-06-01", periodEnd: "2026-06-30", targetOwnerType: "user", targetOwnerId: 100, targetAmount: 1000000, currency: defaultText("currency", "crm") });
   const [error, setError] = useState<string | null>(null);
   const load = () => {
     Promise.all([crmApi.targets(), crmApi.targetPerformance()])
@@ -7871,36 +7710,7 @@ function LostAnalysisPage() {
   );
 }
 
-function Customer360Page() {
-  const companyState = useCrmRecords<CRMRecord>("companies", emptyRecords);
-  const customers = companyState.data.map((company) => customer360For(String(company.name)));
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Customer 360" description="Contacts, companies, deals, tickets, activities, quotations, files, and campaigns in one customer view." action="Open customer" />
-      <div className="grid gap-4 xl:grid-cols-2">
-        {customers.map((customer) => (
-          <Card key={customer.company}>
-            <CardHeader className="flex-row items-start justify-between">
-              <div><CardTitle>{customer.company}</CardTitle><p className="text-sm text-muted-foreground">{customer.industry}</p></div>
-              <Badge>{customer.status}</Badge>
-            </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-3">
-              {customer.metrics.map(([label, value]) => (
-                <div key={label} className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="text-lg font-semibold">{value}</p></div>
-              ))}
-              <div className="md:col-span-3 rounded-lg border bg-muted/30 p-3 text-sm">
-                <p className="font-medium">Timeline</p>
-                <div className="mt-2 space-y-2">
-                  {customer.timeline.map((item) => <TimelineItem key={item} text={item} />)}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
+function Customer360Page() { return <CompaniesPage role="Customer"/>; }
 
 function ImportExportPage() { return <CRMTransferHub/>; }
 
@@ -8294,7 +8104,7 @@ function Metric({ icon: Icon, label, value, tone }: { icon: React.ElementType; l
 
 function RecordPanel({ record, kind }: { record: CRMRecord | null; kind: CRMPageKind }) {
   if (!record) return <Card><CardContent className="p-5 text-sm text-muted-foreground">Select a record to inspect details.</CardContent></Card>;
-  const customer360 = kind === "contacts" || kind === "companies" ? customer360For(String(record.company || record.name || "")) : null;
+  const customer360Id = ["contacts", "companies"].includes(kind) ? Number(record.id) : 0;
   return (
     <Card className="h-fit">
       <CardHeader className="space-y-1">
@@ -8311,22 +8121,7 @@ function RecordPanel({ record, kind }: { record: CRMRecord | null; kind: CRMPage
           ))}
         </div>
 
-        {customer360 ? (
-          <div className="rounded-lg border bg-primary/5 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer 360</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              {customer360.metrics.map(([label, value]) => (
-                <div key={label} className="rounded-md bg-background p-2">
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                  <p className="font-semibold">{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 space-y-2 text-sm">
-              {customer360.timeline.slice(0, 3).map((item) => <TimelineItem key={item} text={item} />)}
-            </div>
-          </div>
-        ) : null}
+        {customer360Id > 0 && <Record360Workspace key={`${kind}:${customer360Id}`} kind={kind === "contacts" ? "contact" : "company"} id={customer360Id}/>}
         <div className="rounded-lg border bg-muted/30 p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Timeline</p>
           <div className="mt-3 space-y-3 text-sm">
@@ -8338,23 +8133,6 @@ function RecordPanel({ record, kind }: { record: CRMRecord | null; kind: CRMPage
   );
 }
 
-function customer360For(companyName: string) {
-  return {
-    company: companyName || "Customer",
-    industry: "Account",
-    status: "Active",
-    metrics: [
-      ["Contacts", "-"],
-      ["Deals", "-"],
-      ["Pipeline", "-"],
-      ["Notes", "-"],
-    ] as Array<[string, string | number]>,
-    timeline: [
-      "Customer 360 reads from CRM APIs.",
-      "Open related CRM grids for persisted contacts, deals, notes, and quotations.",
-    ],
-  };
-}
 
 function DashboardQuickCreateDialog({
   kind,
@@ -8391,10 +8169,12 @@ function DashboardQuickCreateDialog({
   );
 }
 
-function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header }: { kind: CRMPageKind; saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void; header?: React.ReactNode }) {
+function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, seedName, placement="quick_create" }: { placement?:"create"|"quick_create";seedName?: string; kind: CRMPageKind; saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void; header?: React.ReactNode }) {
   const title = actionFor(kind) || "Create record";
   const entity = apiEntityForKind[kind];
-  const customFieldState = useCrmRecords<CRMApiRecord>(entity && customFieldEntities.some((item) => item.value === entity) ? "custom-fields" : undefined, [], entity ? { entityType: entity } : undefined);
+  const fieldEntity=entity==="quotes"?"quotations":entity==="accounts"?"companies":entity;
+  const fieldForm = useCrmFieldForm(fieldEntity && customFieldEntities.some((item) => item.value === fieldEntity) ? fieldEntity : "", placement);
+  const customFieldState = {data:fieldForm.fields,loading:fieldForm.loading,error:fieldForm.error};
   const formFields = quickFormFieldsByKind[kind] || [
     { key: "name", label: "Name", required: true, placeholder: "Record name" },
     { key: "status", label: "Status", placeholder: "New" },
@@ -8403,13 +8183,14 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header }: 
   ];
   const defaultName = `New ${pageTitles[kind].replace("CRM ", "").replace(/s$/, "")}`;
   const initialDraft = useMemo(() => ({
-    name: defaultName,
+    name: seedName || defaultName,
     subject: defaultName,
     owner: "",
     status: kind === "tickets" ? "Open" : "New",
-    nextFollowUp: new Date().toISOString().slice(0, 10),
-  }), [defaultName, kind]);
+    nextFollowUp: defaultDateAfter("follow_up_days", "crm"),
+  }), [defaultName, kind, seedName]);
   const [draft, setDraft] = useState<CRMRecord>(initialDraft);
+  const [customError,setCustomError]=useState("");
   const [customValues, setCustomValues] = useState<CRMApiRecord>({});
   useEffect(() => {
     setDraft(initialDraft);
@@ -8417,14 +8198,13 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header }: 
   }, [initialDraft]);
   const patchDraft = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   if (kind === "deals") {
-    return <CreateDealDialog saving={saving} error={error} onClose={onClose} onCreate={onCreate} />;
+    return <CreateDealDialog placement={placement} saving={saving} error={error} onClose={onClose} onCreate={onCreate} />;
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+    <Dialog open onOpenChange={open=>{if(!open&&!saving)onClose();}}><DialogContent className="max-w-lg">
       <Card className="w-full max-w-lg">
         <CardHeader className="flex-row items-start justify-between">
-          <div><CardTitle>{title}</CardTitle><p className="text-sm text-muted-foreground">Fast-create form with required CRM fields.</p></div>
-          <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <div><DialogTitle>{title}</DialogTitle><p className="text-sm text-muted-foreground">Fast-create form with required CRM fields.</p></div>
         </CardHeader>
         <CardContent className="space-y-4">
           {header}
@@ -8438,19 +8218,16 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header }: 
               </div>
             ))}
           </div>
-          {customFieldState.data.filter((field) => Boolean(field.isVisible ?? field.is_visible ?? true)).map((field) => (
-            <Field key={String(field.id)} label={`${String(field.fieldName || field.label || field.field_key)}${field.isRequired || field.is_required ? " *" : ""}`}>
-              <CustomFieldInput field={field} value={customValues[String(field.fieldKey || field.field_key || field.id)]} onChange={(value) => setCustomValues((current) => ({ ...current, [String(field.fieldKey || field.field_key || field.id)]: value }))} />
-            </Field>
-          ))}
-          <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={() => onCreate(draft, customValues)} disabled={saving}>{saving ? "Creating..." : "Create"}</Button></div>
+          <CrmRecordFields state={{fields:customFieldState.data.filter(field=>fieldShown(field,placement)),values:customValues,setValues:setCustomValues,loading:customFieldState.loading,error:customFieldState.error||"",validate:()=>customValues}}/>
+          {customError&&<p role="alert" className="text-sm text-destructive">{customError}</p>}{customFieldState.error&&<p role="alert" className="text-sm text-destructive">{customFieldState.error}</p>}<div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={() => {const errors=validateDealCustomFields(customFieldState.data.filter(f=>fieldShown(f,placement)),customValues);if(Object.keys(errors).length){setCustomError(Object.values(errors)[0]);return;}setCustomError("");onCreate(draft,customValues);}} disabled={saving || customFieldState.loading || Boolean(customFieldState.error)}>{saving ? "Creating..." : "Create"}</Button></div>
         </CardContent>
       </Card>
-    </div>
+    </DialogContent></Dialog>
   );
 }
 
-function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void }) {
+function CreateDealDialog({ placement="quick_create", saving, error, onClose, onCreate }: { placement?:"create"|"quick_create";saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void }) {
+  const customFieldForm=useCrmFieldForm("deals",placement);
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
   const [stageOpen, setStageOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -8464,7 +8241,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
     amount: "",
     probability: 75,
     status: "Open",
-    nextFollowUp: new Date().toISOString().slice(0, 10),
+    nextFollowUp: defaultDateAfter("follow_up_days", "crm"),
     description: "",
     owner: "",
     source: "Manual Entry",
@@ -8508,6 +8285,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
       setLocalError(`${missing.map(([label]) => label).join(", ")} ${missing.length === 1 ? "is" : "are"} required.`);
       return;
     }
+    let customFields:CRMApiRecord;try{customFields=customFieldForm.validate();}catch(e){setLocalError(e instanceof Error?e.message:"Check custom fields");return;}
     onCreate({
       ...draft,
       amount: displayAmount,
@@ -8517,7 +8295,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
       products: lineItems.map((line) => line.product).filter(Boolean),
       associatedProducts: lineItems,
       nextStep: String(draft.description || ""),
-    });
+    },customFields);
   };
 
   return (
@@ -8547,6 +8325,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_19rem]">
             <div className="space-y-6 px-5 py-5">
+              <CrmRecordFields state={customFieldForm}/>
               {(error || localError) ? <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{localError || error}</div> : null}
               <section className="grid gap-4 lg:grid-cols-2">
                 <DealField label="Company Name" required>
@@ -8734,23 +8513,7 @@ function DealStagePicker({ selectedStage, open, onToggle, onSelect }: { selected
 }
 
 function CustomFieldInput({ field, value, onChange }: { field: CRMApiRecord; value: CRMApiRecord[string]; onChange: (value: CRMApiRecord[string]) => void }) {
-  const type = String(field.fieldType || field.field_type || "text");
-  const options = parseOptions(field.options ?? field.options_json);
-  if(type==='phone'){
-    const pair=value&&typeof value==='object'&&!Array.isArray(value)?value as CRMApiRecord:null;
-    return <PhoneInput label={String(field.label || field.name || 'Phone')} value={String(pair?.national_number ?? value ?? '')} countryCode={String(pair?.country_code ?? (value ? '' : '+91'))} onChange={number=>onChange({national_number:number,country_code:pair?.country_code ?? (value ? '' : '+91')})} onCountryCodeChange={code=>onChange({national_number:pair?.national_number ?? value ?? '',country_code:code})} />;
-  }
-  if (type === "dropdown") {
-    return <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(value || "")} onChange={(event) => onChange(event.target.value)}><option value="">Select</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</NativeSelect>;
-  }
-  if (type === "multi_select") {
-    return <Input value={Array.isArray(value) ? value.join(", ") : String(value || "")} onChange={(event) => onChange(parseOptions(event.target.value))} placeholder={options.length ? options.join(", ") : "Comma separated values"} />;
-  }
-  if (type === "checkbox") {
-    return <ToggleBox checked={Boolean(value)} onChange={onChange} />;
-  }
-  const inputType = type === "number" || type === "currency" || type === "user" || type === "owner" ? "number" : type === "date" ? "date" : type === "datetime" ? "datetime-local" : type === "email" ? "email" : type === "url" ? "url" : "text";
-  return <Input type={inputType} value={String(value || "")} onChange={(event) => onChange(event.target.value)} />;
+  return <FieldControl field={field} value={value} onChange={value => onChange(value as CRMApiRecord[string])} />;
 }
 
 function QuickFormInput({

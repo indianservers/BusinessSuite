@@ -265,3 +265,28 @@ def test_destination_mapping_constraints_are_authoritative(client,actors):
     value={"schema_version":2,"nodes":[node("limit","loop",max_iterations=5)]}
     value["nodes"][0]["mappings"]={"max_iterations":mapping(1000000,target_type="number")}
     assert client.post(ROOT,headers=actors[0],json={"name":"Unsafe bound","definition":value}).status_code==422
+
+
+def test_company_gateway_config_is_reusable_across_branches_without_cross_tenant_access(db, actors):
+    from app.ai_operator.models import OperatorProvider
+    from app.models.user import User
+    from app.models.company import Branch
+    from app.core.tenant_boundary import install as install_tenant
+    from app.branches.boundary import install as install_branch
+    from app.branches.service import context
+    user = db.query(User).filter_by(email="power-0@example.com").one()
+    db.add(Branch(company_id=1, name="Second gateway branch", code="GATEWAY-SECOND"))
+    for company in (1, 2):
+        db.add(OperatorProvider(scope_key=f"company:{company}", provider="gemini", model="scope-fixture", encrypted_key="not-a-real-key", enabled=True, data_sharing_allowed=True, updated_by=user.id))
+    db.commit()
+    branches = db.query(Branch).filter_by(company_id=1).all()
+    assert len(branches) == 2
+    for branch in branches:
+        ctx = context(db, user, 1, str(branch.id))
+        release_tenant = install_tenant(db, user, 1)
+        release_branch = install_branch(db, user, ctx)
+        try:
+            assert {row.scope_key for row in db.query(OperatorProvider).all()} == {"company:1"}
+        finally:
+            release_branch()
+            release_tenant()

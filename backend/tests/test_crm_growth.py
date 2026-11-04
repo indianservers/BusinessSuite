@@ -278,7 +278,11 @@ def test_read_only_actor_cannot_schedule_or_send(client,db,superuser_headers,mon
     h=superuser_headers;c=contact(client,h,full_name='Viewer customer',email='viewer-customer@example.com')
     viewer=scoped_headers(client,db,'growth_read_only',['crm_view'])
     actor=db.query(User).filter_by(email='growth_read_only@example.com').one()
-    db.add(BranchGrant(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch']),can_write=False))
+    grant = db.query(BranchGrant).filter_by(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch'])).one_or_none()
+    if grant is None:
+        grant = BranchGrant(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch']))
+        db.add(grant)
+    grant.can_write = False
     db.get(CRMContact,c['id']).owner_user_id=actor.id;db.commit()
     viewer['X-Suite-Branch']=h['X-Suite-Branch']
     listing=get(client,viewer,'/records',entity='contacts')

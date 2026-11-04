@@ -191,6 +191,15 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                     store_audit(AiAuditLog(**entry))
             for tid in sorted(task_ids):
                 db.connection().execute(AuditLogTask.__table__.insert().values(audit_log_id=row.id, task_id=tid))
+                branch = actor.get('access_branch')
+                company = getattr(request.state, 'observed_company_id', None)
+                if isinstance(branch, int) and company:
+                    from app.branches.models import BranchOwnership
+                    from app.branches.catalog import resource_key
+                    table = AuditLogTask.__table__
+                    db.connection().execute(BranchOwnership.__table__.insert().values(
+                        resource_table=table.name, resource_key=resource_key(table, {"audit_log_id":row.id,"task_id":tid}),
+                        company_id=company, branch_id=branch, source='request-audit'))
             if commit:
                 db.commit()
             else:

@@ -15,7 +15,7 @@ def scope(db, superuser_headers):
         db.add(company)
     company.email = None
     company.country = "India"
-    branch = Branch(company_id=1, name="Main", code="MAIN")
+    branch = db.query(Branch).filter_by(company_id=1).first() or Branch(company_id=1, name="Main", code="MAIN")
     db.add(branch)
     db.commit()
     return {**superuser_headers, "X-Suite-Organization":"1", "X-Suite-Branch":str(branch.id)}
@@ -25,6 +25,8 @@ def test_new_company_block_repair_write_and_deleted_detail_recovery(client, db, 
     response = client.get("/api/v1/access/setup", headers=scope)
     assert response.status_code == 200, response.text
     assert response.json()["ready"] is False
+    assert all(i["required"] and i["module"] == "company" for i in response.json()["items"])
+    assert all(i["required"] is False for i in response.json()["recommendations"])
     assert next(i for i in response.json()["items"] if i["id"] == "company")["canRepair"]
     endpoint = "/api/v1/crm/lead-management/leads"
     payload = {"values":{"full_name":"Setup readiness lead"}}
@@ -64,8 +66,9 @@ def test_stale_branch_does_not_block_setup_or_repair(client, db, scope):
 
 
 def test_no_active_branch_can_be_restored_without_a_valid_branch_selection(client, db, scope):
-    branch = db.query(Branch).filter_by(company_id=1).one()
-    branch.is_active = False
+    branch = db.get(Branch, int(scope["X-Suite-Branch"]))
+    for row in db.query(Branch).filter_by(company_id=1).all():
+        row.is_active = False
     db.commit()
     status = client.get("/api/v1/access/setup", headers=scope)
     assert status.status_code == 200, status.text
@@ -161,3 +164,98 @@ def test_profile_rejects_invalid_defaults_and_email(client, scope):
 ])
 def test_operation_and_repair_boundaries(method, path, blocked):
     assert is_business_write(method, path) is blocked
+
+
+def test_setup_guide_recommendations_are_scoped_and_optional(db, scope):
+    from app.access.setup import optional_requirements
+    from app.apps.crm.models import CRMLeadScoringRule
+    db.add(CRMLeadScoringRule(organization_id=2, name="Foreign rule", field="source", operator="equals", is_active=True))
+    db.commit()
+    assert optional_requirements(db, 1, set()) == []
+    checks = optional_requirements(db, 1, {"crm"})
+    assert all(i["module"] == "crm" and i["required"] is False for i in checks)
+    assert not next(i for i in checks if i["id"] == "crm-scoring")["ready"]
+    rule = CRMLeadScoringRule(organization_id=1, name="Local rule", field="source", operator="equals", is_active=True)
+    db.add(rule)
+    db.commit()
+    assert next(i for i in optional_requirements(db, 1, {"crm"}) if i["id"] == "crm-scoring")["ready"]
+    rule.is_active = False
+    db.commit()
+    assert not next(i for i in optional_requirements(db, 1, {"crm"}) if i["id"] == "crm-scoring")["ready"]
+
+
+def test_hrms_fam_recommendations_are_live_scoped_and_optional(db, scope):
+    from datetime import date
+    from app.access.setup import optional_requirements
+    from app.models.attendance import Holiday
+    from app.apps.fam.models import FAMCostCenter, FAMPaymentMode
+    from app.branches.models import BranchOwnership
+    branch_id = int(scope["X-Suite-Branch"])
+    other = Company(id=2, name="Other recommendation scope")
+    db.add(other)
+    db.flush()
+    foreign_branch = Branch(company_id=2, name="Other", code="OTHERGUIDE")
+    db.add(foreign_branch)
+    db.flush()
+    holiday = Holiday(name="Calendar setup test", holiday_date=date(date.today().year, 1, 1))
+    cost = FAMCostCenter(company_id=2, code="GUIDE", name="Guide cost center", active=True)
+    payment = FAMPaymentMode(company_id=2, name="Guide transfer", type="neft", active=True)
+    db.add_all([holiday, cost, payment])
+    db.flush()
+    owner = BranchOwnership(resource_table="holidays", resource_key=str(holiday.id), company_id=2,
+                            branch_id=foreign_branch.id, source="test")
+    db.add(owner)
+    db.commit()
+    def checks():
+        return {i["id"]: i for i in optional_requirements(db, 1, {"hrms", "fam"})}
+    status = checks()
+    assert set(status) == {"hrms-holidays", "fam-cost-centers", "fam-payment-modes"}
+    assert all(not i["ready"] and i["required"] is False for i in status.values())
+    assert all(i["module"] in {"hrms", "fam"} for i in status.values())
+    owner.company_id, owner.branch_id = 1, branch_id
+    cost.company_id = payment.company_id = 1
+    db.commit()
+    assert all(i["ready"] for i in checks().values())
+    holiday.holiday_date = date(date.today().year - 1, 1, 1)
+    cost.active = payment.active = False
+    db.commit()
+    assert all(not i["ready"] for i in checks().values())
+    holiday.holiday_date = date(date.today().year, 1, 1)
+    holiday.is_active = False
+    db.commit()
+    assert not checks()["hrms-holidays"]["ready"]
+    assert optional_requirements(db, 1, set()) == []
+
+
+@pytest.mark.parametrize("path,title", [
+    ("/api/v1/employees/", "Departments"),
+    ("/api/v1/attendance/bulk-entry", "Work shifts"),
+    ("/api/v1/leave/apply", "Leave types"),
+    ("/api/v1/payroll/run", "Salary components"),
+    ("/api/v1/payroll/runs/999999/worksheet/process", "Salary components"),
+    ("/api/v1/fam/vouchers/999999/post", "Open financial year"),
+])
+def test_live_hrms_finance_operations_require_module_setup(client, db, scope, path, title):
+    db.get(Company, 1).email = "office@setup.example.com"
+    db.commit()
+    payload = {"month": 5, "year": 2026, "force_run": True} if path == "/api/v1/payroll/run" else {}
+    response = client.post(path, headers=scope, json=payload)
+    assert response.status_code == 409, response.text
+    assert response.headers["x-suite-setup-required"] == "1"
+    assert title in response.json()["detail"]
+
+
+def test_shared_leave_type_readiness_uses_company_ownership(client, db, scope):
+    from app.access.setup import module_requirements
+    from app.models.leave import LeaveType
+    from app.models.security_boundary import SecurityResourceOwnership
+    db.get(Company, 1).email = "office@setup.example.test"
+    db.commit()
+    response = client.post("/api/v1/leave/types", headers=scope, json={
+        "name": "Setup leave", "code": "SETUP-LV", "days_allowed": 12})
+    assert response.status_code == 201, response.text
+    local = next(item for item in module_requirements(db, 1, {"hrms"}) if item["id"] == "leave-types")
+    assert local["ready"]
+    db.add(Company(id=2, name="Other setup company"))
+    db.flush()
+    assert not next(item for item in module_requirements(db, 2, {"hrms"}) if item["id"] == "leave-types")["ready"]

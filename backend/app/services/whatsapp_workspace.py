@@ -8,6 +8,8 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from app.services.whatsapp import WhatsAppGraph, MetaWhatsAppProvider, MetaError
+from app.services.whatsapp_media import metadata as media_metadata
+from app.services import whatsapp_replies
 from app.shared.integrations import protect, reveal
 from app.shared.whatsapp_models import WhatsAppConnection, WhatsAppContact, WhatsAppMessage, WhatsAppReceipt
 
@@ -214,7 +216,8 @@ def contact_data(row):
 def message_data(row):
     return {'id':row.id,'contactId':row.contact_id,'direction':row.direction,'kind':row.kind,'body':row.body,
         'template':row.template_json,'status':row.status,'errorCode':row.error_code,'createdAt':row.created_at,
-        'providerMessageId':row.provider_message_id,'crmMessageId':row.crm_message_id}
+        'providerMessageId':row.provider_message_id,'crmMessageId':row.crm_message_id,
+        'media':media_metadata(row),'replyTo':whatsapp_replies.metadata(row)}
 
 
 def update_status(db, row, state, error_code=None):
@@ -249,9 +252,18 @@ def send_message(db, user, data):
     contact_access(db, user, contact)
     template = data.template
     body = data.body.strip()
-    if not template and not body:
+    media_token = getattr(data, 'media', None)
+    reply_id=getattr(data,'replyTo',None)
+    if reply_id and template:
+        raise HTTPException(422,'Quoted replies require a free-form text or media reply')
+    if media_token and template:
+        raise HTTPException(422, 'Use either an attachment or an approved template')
+    if not template and not body and not media_token:
         raise HTTPException(422, 'Enter a message or choose an approved template')
-    payload_digest = hashlib.sha256(json.dumps({'to':recipient,'body':body,'template':template,'entityType':data.entityType,'entityId':data.entityId}, sort_keys=True).encode()).hexdigest()
+    digest_data={'to':recipient,'body':body,'template':template,'entityType':data.entityType,'entityId':data.entityId}
+    if media_token: digest_data['media']=media_token
+    if reply_id: digest_data['replyTo']=reply_id
+    payload_digest = hashlib.sha256(json.dumps(digest_data, sort_keys=True).encode()).hexdigest()
     existing = db.query(WhatsAppMessage).filter_by(organization_id=company, idempotency_key=data.requestId).first()
     if existing:
         if existing.payload_digest != payload_digest:
@@ -267,10 +279,18 @@ def send_message(db, user, data):
             raise HTTPException(409, 'Choose an approved Meta template and matching language')
     elif not service_window(contact):
         raise HTTPException(409, 'The 24-hour reply window is closed. Use an approved template with opt-in')
+    reply=whatsapp_replies.target(db,contact,connection,reply_id) if reply_id else None
+    media = None
+    if media_token:
+        from app.services.whatsapp_media import verify_upload
+        media=verify_upload(media_token,user,contact,connection)
+        if body and (media['kind'] in {'audio','sticker'} or len(body)>1024):
+            raise HTTPException(422, 'Audio/stickers cannot have captions; other media captions are limited to 1024 characters')
     if db.query(WhatsAppMessage.id).filter(WhatsAppMessage.organization_id == company, WhatsAppMessage.direction == 'outbound', WhatsAppMessage.created_at >= now()-timedelta(minutes=1)).count() >= 30:
         raise HTTPException(429, 'Organization WhatsApp limit reached; wait one minute', headers={'Retry-After':'60'})
+    content=template if template else {**({'media':media} if media else {}),**({'replyTo':reply} if reply else {})} or None
     row = WhatsAppMessage(organization_id=company, connection_id=connection.id, contact_id=contact.id,
-        direction='outbound', kind='template' if template else 'text', body=body or 'Template: '+template['name'], template_json=template,
+        direction='outbound', kind=media['kind'] if media else 'template' if template else 'text', body=body or ('['+media['kind']+' message]' if media else 'Template: '+template['name']), template_json=content,
         status='submitting', idempotency_key=data.requestId, payload_digest=payload_digest, actor_id=user.id)
     if data.entityType and data.entityId:
         from app.apps.crm.models import CRMMessage
@@ -290,7 +310,7 @@ def send_message(db, user, data):
             return existing
         raise HTTPException(409, 'Request already reserved; refresh its status') from None
     try:
-        state, provider_id = MetaWhatsAppProvider(connection_token(connection), connection.phone_number_id).send(to=recipient, body=body, template=template)
+        state, provider_id = MetaWhatsAppProvider(connection_token(connection), connection.phone_number_id).send(to=recipient, body=body, template=template, **({'media':media} if media else {}), **({'reply_to':reply['providerMessageId']} if reply else {}))
         row.provider_message_id = provider_id
         update_status(db, row, state)
         # Preserve delivery events that raced the provider response/local commit.
@@ -355,10 +375,28 @@ def ingest(db, payload):
                     match_whatsapp(db, contact, identity_indexes[key], apply=True)
                 kind = str(event.get('type', 'unknown'))[:30]
                 body = str(event.get('text', {}).get('body', ''))[:10000] if kind == 'text' else '['+kind+' message]'
+                if kind=='interactive':
+                    interactive=event.get('interactive') or {}
+                    choice=interactive.get(interactive.get('type','')) or {}
+                    if isinstance(choice,dict):body=' \u2014 '.join(str(choice[k]) for k in ('title','description') if choice.get(k))[:10000] or body
+                elif kind=='button':body=str((event.get('button') or {}).get('text') or body)[:10000]
+                elif kind=='location':
+                    location=event.get('location') or {}
+                    body='Location: '+', '.join(str(location[k]) for k in ('name','address','latitude','longitude') if location.get(k) is not None)[:9900]
+                elif kind=='contacts':body='Shared contacts: '+', '.join(str((c.get('name') or {}).get('formatted_name','Unnamed')) for c in (event.get('contacts') or []) if isinstance(c,dict))[:9900]
+                media=None
+                if kind in {'image','document','audio','video','sticker'}:
+                    from app.services.whatsapp_media import filename
+                    value_media=event.get(kind) or {}
+                    if isinstance(value_media,dict) and str(value_media.get('id','')).isdecimal():
+                        media={'id':str(value_media['id']), 'kind':kind, 'mimeType':str(value_media.get('mime_type',''))[:180], 'filename':filename(value_media.get('filename') or kind)}
+                        body=str(value_media.get('caption') or body)[:10000]
+                reply=whatsapp_replies.inbound(db,contact,connection,event)
+                content={**({'media':media} if media else {}),**({'replyTo':reply} if reply else {})} or None
                 try:
                     with db.begin_nested():
                         message = WhatsAppMessage(organization_id=company, connection_id=connection.id, contact_id=contact.id,
-                            direction='inbound', kind=kind, body=body, status='received', provider_message_id=provider_id)
+                            direction='inbound', kind=kind, body=body, status='received', provider_message_id=provider_id, template_json=content)
                         db.add(message)
                         db.flush()
                         stamp_inbound(db, message, branch)

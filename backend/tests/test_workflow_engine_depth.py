@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from app.db.init_db import init_db
 from app.core.security import get_password_hash
 from app.models.employee import Employee
@@ -122,6 +123,8 @@ def _ensure_user(db, email: str, role_name: str) -> User:
     from test_identity_utils import attach_test_identity
     employee = db.query(Employee).filter_by(employee_id="DEMO-EMP-001").one()
     attach_test_identity(db, user, employee.branch.company_id)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, user, employee.branch.company_id)
     db.flush()
     return user
 

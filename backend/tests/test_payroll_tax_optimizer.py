@@ -1,6 +1,7 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import TaxRegime, TaxSection, TaxSectionLimit, TaxSlab
 
@@ -71,7 +72,7 @@ def _setup_tax_optimizer_data(db, financial_year="2099-00"):
         db.flush()
         db.add(TaxSectionLimit(tax_section_id=section.id, financial_year=financial_year, limit_amount=limit))
 
-    db.commit()
+    commit_payroll_fixture(db)
     return employee, financial_year
 
 

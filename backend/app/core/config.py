@@ -7,6 +7,18 @@ from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
+    IMPORT_QUICKBOOKS_CLIENT_ID: str = ""
+    IMPORT_QUICKBOOKS_CLIENT_SECRET: str = ""
+    IMPORT_QUICKBOOKS_REDIRECT_URI: str = ""
+    IMPORT_ZOHO_CLIENT_ID: str = ""
+    IMPORT_ZOHO_CLIENT_SECRET: str = ""
+    IMPORT_ZOHO_REDIRECT_URI: str = ""
+
+    # Optional deployment payment account. Never enable for other organizations.
+    PAYMENT_GATEWAY_PROVIDER: str = "none"
+    PAYMENT_GATEWAY_ORGANIZATION_ID: int | None = None
+    RAZORPAY_KEY_ID: str = ""
+    RAZORPAY_KEY_SECRET: str = ""
     POWER_GOOGLE_CLIENT_ID: str = ""
     POWER_GOOGLE_CLIENT_SECRET: str = ""
     POWER_MICROSOFT_CLIENT_ID: str = ""
@@ -153,6 +165,15 @@ class Settings(BaseSettings):
     COMMUNICATION_EMAIL_RATE_LIMIT_PER_REQUEST: int = 50
 
     # File storage
+    FILES_GOOGLE_CLIENT_JSON: str = ""
+    FILES_GOOGLE_CLIENT_ID: str = ""
+    FILES_GOOGLE_CLIENT_SECRET: str = ""
+    FILES_MICROSOFT_CLIENT_ID: str = ""
+    FILES_MICROSOFT_CLIENT_SECRET: str = ""
+    FILES_BOX_CLIENT_ID: str = ""
+    FILES_BOX_CLIENT_SECRET: str = ""
+    FILES_DROPBOX_CLIENT_ID: str = ""
+    FILES_DROPBOX_CLIENT_SECRET: str = ""
     UPLOAD_DIR: str = "./uploads"
     STORAGE_BACKEND: str = "local"
     BLOB_READ_WRITE_TOKEN: str = ""

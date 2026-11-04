@@ -1,3 +1,5 @@
+import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import PhoneActions from "@/components/PhoneActions";
 import { ActionToolbar } from "@/components/actions";
 import RecordSectionNav from "@/components/RecordSectionNav";
@@ -117,6 +119,7 @@ interface EmployeeDetailPageProps {
 export default function EmployeeDetailPage({ employeeId, initialEditing = false, onClose }: EmployeeDetailPageProps = {}) {
   const { id: routeId } = useParams<{ id: string }>();
   const id = employeeId == null ? routeId : String(employeeId);
+  const customFieldForm=useCrmFieldForm("employees","edit",Number(id));
   const [popupEditing, setPopupEditing] = useState(initialEditing);
   const navigate = useNavigate();
   const [params, setRouteParams] = useSearchParams();
@@ -198,7 +201,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   };
 
   const updateMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => employeeApi.update(Number(id), payload),
+    mutationFn: (payload: Record<string, any>) => employeeApi.update(Number(id), {...payload,custom_fields:customFieldForm.validate()}),
     onSuccess: () => {
       toast({ title: "Employee updated" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
@@ -546,17 +549,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            {emp.profile_photo_url ? (
-              <img
-                src={assetUrl(emp.profile_photo_url)}
-                alt={initials}
-                className="h-20 w-20 rounded-full object-cover border-4 border-background shadow-lg"
-              />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl font-bold border-4 border-background shadow-lg">
-                {initials}
-              </div>
-            )}
+            <SuiteAvatar name={`${emp.first_name} ${emp.last_name}`} src={emp.profile_photo_url} kind="employee" size={80}/>
             <label className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs hover:bg-muted">
               <Camera className="h-3.5 w-3.5" />
               Photo
@@ -612,6 +605,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         {id:"call",kind:"call",prominent:true,tooltip:"Call this employee",disabled:!emp.phone_number,disabledReason:!emp.phone_number ? "No employee phone number is recorded" : undefined,href:`tel:${emp.phone_number_country_code || ""}${emp.phone_number || ""}`},
         {id:"profile",kind:"profile",prominent:true,onSelect:()=>setActiveTab("profile")},
       ]}/>
+      {!editing && <CrmFieldsReadOnly entity="employees" recordId={Number(id)}/>}
       {/* Tabs */}
       <RecordSectionNav value={activeTab} onChange={setActiveTab} label="Employee information" groups={[
         {label:"Overview", sections:TABS.filter(t=>["360","profile"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
@@ -647,6 +641,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                   updateMutation.mutate(payload);
                 }}
               >
+                <div className="sm:col-span-2"><CrmRecordFields state={customFieldForm}/></div>
                 {EDIT_FIELDS[activeTab].filter(([key]) => key !== "role_id" || (canChangeRole && !!emp.user_id)).map(([key, label, type]) => (
                   <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
                     <Label htmlFor={`edit-${key}`}>{label}</Label>

@@ -3,6 +3,7 @@ from app.services.metrics.queries import count_rows_before_page
 
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
@@ -2404,6 +2405,8 @@ def submit_sales_order(sales_order_id: int, db: Session = Depends(get_db), curre
         item.status = "approved"
         item.approved_by = current_user.id
     _audit(db, current_user, "sales_order", item.id, "submitted", before={"status": before}, after={"status": item.status})
+    from app.shared.pipeline_workspace import stage_entry
+    stage_entry(db, current_user, "srm", "sales_order", item.id, before, item.status)
     db.commit()
     db.refresh(item)
     return _serialize(item)
@@ -2425,6 +2428,8 @@ def approve_sales_order(sales_order_id: int, db: Session = Depends(get_db), curr
             approval.decided_at = datetime.now(timezone.utc)
             db.add(ApprovalHistory(request_id=approval.id, event_type="approved", actor_user_id=current_user.id, before_status="Pending", after_status="Approved"))
     _audit(db, current_user, "sales_order", item.id, "approved", before={"status": before}, after={"status": item.status})
+    from app.shared.pipeline_workspace import stage_entry
+    stage_entry(db, current_user, "srm", "sales_order", item.id, before, item.status)
     db.commit()
     db.refresh(item)
     return _serialize(item)
@@ -2435,6 +2440,7 @@ def confirm_sales_order(sales_order_id: int, db: Session = Depends(get_db), curr
     item = get_sales_order_for_user(db, sales_order_id, current_user)
     if item.status not in {"approved", "confirmed"}:
         raise HTTPException(status_code=400, detail="Only approved sales orders can be confirmed")
+    before = item.status
     item.status = "confirmed"
     issued_movements = _issue_inventory_for_sales_order(db, item, current_user)
     from app.shared.follow_ups import create_for_order
@@ -2469,6 +2475,8 @@ def confirm_sales_order(sales_order_id: int, db: Session = Depends(get_db), curr
     _audit(db, current_user, "sales_order", item.id, "confirmed", after={"engagement_id": engagement.id, "billing_plan_id": billing_plan.id})
     for movement in issued_movements:
         _audit(db, current_user, "inventory_movement", movement.id, movement.movement_type.upper(), None, _serialize(movement))
+    from app.shared.pipeline_workspace import stage_entry
+    stage_entry(db, current_user, "srm", "sales_order", item.id, before, item.status)
     db.commit()
     return _serialize(item) | {"engagement": _serialize(engagement), "billing_plan": _serialize(billing_plan)}
 
@@ -3012,6 +3020,9 @@ def _create_invoice_from_lines(
     )
     db.add(draft)
     db.flush()
+    from app.shared.form_defaults import effective as form_defaults
+    branch = getattr(user, "_suite_branch_id", None)
+    defaults = form_defaults(db, org_id, "srm", branch if isinstance(branch, int) else None)["values"]
     invoice = SRMInvoice(
         organization_id=org_id,
         invoice_number=_next_number(db, SRMInvoice, "INV", "invoice_number", org_id),
@@ -3021,7 +3032,7 @@ def _create_invoice_from_lines(
         customer_id=draft.customer_id,
         status="draft",
         issue_date=date.today(),
-        due_date=date.today() + timedelta(days=30),
+        due_date=date.today() + timedelta(days=defaults["payment_terms_days"]),
         currency=currency,
         subtotal=subtotal,
         discount_amount=discount,
@@ -3032,6 +3043,8 @@ def _create_invoice_from_lines(
     )
     db.add(invoice)
     db.flush()
+    from app.shared.form_defaults import capture_document_defaults
+    capture_document_defaults(db, org_id, "srm", "invoice", invoice.id, user)
     for line in lines:
         db.add(SRMInvoiceLine(
             invoice_id=invoice.id,
@@ -3356,7 +3369,9 @@ def send_invoice(invoice_id: int, db: Session = Depends(get_db), current_user: U
 @router.get("/invoices/{invoice_id}/pdf")
 def invoice_pdf(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
     invoice = _get_invoice(db, invoice_id, current_user)
-    return Response(content=invoice_document(db, invoice), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{invoice.invoice_number}.pdf"', "Cache-Control": "private, no-store"})
+    content = invoice_document(db, invoice)
+    db.commit()  # Persist the generated file locator; invoice values remain unchanged.
+    return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{invoice.invoice_number}.pdf"', "Cache-Control": "private, no-store"})
 
 
 @router.post("/receipts", status_code=201)
@@ -3402,11 +3417,19 @@ def confirm_receipt(receipt_id: int, db: Session = Depends(get_db), current_user
 
 @router.post("/receipts/{receipt_id}/allocate")
 def allocate_receipt(receipt_id: int, data: SRMReceiptAllocationRequest, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_create", "srm_admin"))):
-    receipt = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.id == receipt_id, scoped(SRMReceipt.organization_id, current_user)).with_for_update().first()
     lock_tenant(db, current_user)
+    receipt = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.id == receipt_id).with_for_update().populate_existing().first()
     invoice = invoice_for(db, data.invoice_id, current_user, lock=True)
     if not receipt or not invoice:
         raise HTTPException(status_code=404, detail="Receipt or invoice not found")
+    if data.request_id:
+        previous = db.query(SRMReceiptAllocation).filter_by(receipt_id=receipt.id, request_id=str(data.request_id)).first()
+        if previous:
+            if previous.invoice_id != invoice.id or previous.amount != data.amount:
+                raise HTTPException(409, "Allocation request key was already used with different details")
+            return {"receipt": _serialize(receipt), "invoice": _serialize(invoice), "allocation": _serialize(previous)}
+    if receipt.status not in {"draft", "confirmed", "partially_allocated", "allocated"}:
+        raise HTTPException(409, "Cancelled or reversed receipts cannot be allocated")
     from app.apps.srm.commercial_models import InvoiceContext, ReceiptContext
     invoice_ctx, receipt_ctx = db.get(InvoiceContext, invoice.id), db.get(ReceiptContext, receipt.id)
     invoice_seller = invoice_ctx.seller_id if invoice_ctx else (invoice.organization_id or 1)
@@ -3423,7 +3446,7 @@ def allocate_receipt(receipt_id: int, data: SRMReceiptAllocationRequest, db: Ses
         raise HTTPException(status_code=400, detail="Allocation amount exceeds invoice balance")
     if receipt.status == "draft":
         receipt.status = "confirmed"
-    allocation = SRMReceiptAllocation(receipt_id=receipt.id, invoice_id=invoice.id, amount=data.amount, allocated_by=current_user.id)
+    allocation = SRMReceiptAllocation(receipt_id=receipt.id, invoice_id=invoice.id, amount=data.amount, request_id=str(data.request_id) if data.request_id else None, allocated_by=current_user.id)
     db.add(allocation)
     receipt.unallocated_amount = _decimal(receipt.unallocated_amount) - data.amount
     receipt.status = "allocated" if receipt.unallocated_amount <= 0 else "partially_allocated"
@@ -3504,14 +3527,14 @@ def write_off_request(invoice_id: int, data: SRMWriteOffRequest | None = None, d
 def collections_aging(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_collection_view", "srm_collection_create", "srm_admin"))):
     from app.services.metrics.queries import business_day
     today = business_day(db,current_user)
-    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None, SRMInvoice.balance_amount > 0).all()
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.deleted_at == None, SRMInvoice.balance_amount > 0, SRMInvoice.status.notin_(["draft", "pending_approval", "cancelled", "written_off"])).all()
     buckets: dict[int, dict] = {}
     for invoice in invoices:
         customer_id = invoice.customer_id or 0
         code=(invoice.currency or "Unknown").strip().upper() or "Unknown"
-        bucket = buckets.setdefault((customer_id,code), {"customer_id": customer_id,"currency":code, "current_amount": 0, "days_1_30": 0, "days_31_60": 0, "days_61_90": 0, "days_90_plus": 0, "total_outstanding": 0})
+        bucket = buckets.setdefault((customer_id,code), {"customer_id": customer_id,"currency":code, **{key: Decimal("0.00") for key in ("current_amount", "days_1_30", "days_31_60", "days_61_90", "days_90_plus", "total_outstanding")}})
         overdue_days = (today - invoice.due_date).days if invoice.due_date else 0
-        amount = float(_decimal(invoice.balance_amount))
+        amount = _decimal(invoice.balance_amount)
         if overdue_days <= 0:
             bucket["current_amount"] += amount
         elif overdue_days <= 30:
@@ -3542,7 +3565,8 @@ def send_collection_reminder(data: SRMReminderRequest, db: Session = Depends(get
         raise HTTPException(404, 'An authorized invoice is required for a payment reminder')
     if data.customer_id and data.customer_id != invoice.customer_id:
         raise HTTPException(422, 'Customer does not match the invoice')
-    if invoice.status in {'paid', 'cancelled', 'draft'} or float(invoice.balance_amount or 0) <= 0:
+    from app.apps.srm.services.collections import reminder_block_reason
+    if reminder_block_reason(invoice):
         raise HTTPException(409, 'Only an issued invoice with an outstanding balance can be reminded')
     from app.apps.communication.customer_models import CustomerRecipient
     from app.apps.communication.customer_service import binding_matches, queue_delivery, preference_allowed
@@ -3636,12 +3660,32 @@ def reports(db: Session = Depends(get_db), current_user: User = Depends(RequireP
         "cash_margin_report":{"collected_total":scalar_currency(values["total_collected_value"]),"collected_by_currency":values["total_collected_value"],"cash_margin_total":scalar_currency(cash),"by_currency":cash}}
 
 
-def _dashboard_payload(db: Session, current_user: User) -> dict:
+def _dashboard_payload(db: Session, current_user: User, period: Literal["all", "3", "12", "custom"] = "all", start_date: date | None = None, end_date: date | None = None) -> dict:
     from app.services.metrics.sales import latest_profitability_query,invoice_statistics,scalar_currency
     from app.services.metrics.queries import business_context,business_day,amounts_by_currency
     org_id = _org(current_user)
     today = business_day(db,current_user)
+    period_start = None
+    period_end = None
+    if period == "custom":
+        if start_date is None or end_date is None:
+            raise HTTPException(status_code=422, detail="Custom reporting requires both start_date and end_date.")
+        if start_date > end_date:
+            raise HTTPException(status_code=422, detail="Start date must be on or before end date.")
+        period_start, period_end = start_date, end_date
+    elif start_date is not None or end_date is not None:
+        raise HTTPException(status_code=422, detail="Dates are only supported with period=custom.")
+    elif period != "all":
+        month_index = today.year * 12 + today.month - int(period)
+        period_start = date(month_index // 12, month_index % 12 + 1, 1)
+        period_end = today
     sales_orders = sales_order_query(db, current_user)
+    if period_start is not None:
+        from zoneinfo import ZoneInfo
+        zone = ZoneInfo(business_context(db, current_user)["timezone"])
+        start_instant = datetime.combine(period_start, datetime.min.time(), tzinfo=zone).astimezone(timezone.utc).replace(tzinfo=None)
+        end_instant = datetime.combine(period_end, datetime.max.time(), tzinfo=zone).astimezone(timezone.utc).replace(tzinfo=None)
+        sales_orders = sales_orders.filter(SRMSalesOrder.created_at >= start_instant, SRMSalesOrder.created_at <= end_instant)
     engagements = engagement_query(db, current_user)
     sales_order_ids = [item.id for item in sales_orders.with_entities(SRMSalesOrder.id).all()]
     engagement_ids = [item.id for item in engagements.with_entities(SRMEngagement.id).all()]
@@ -3665,6 +3709,12 @@ def _dashboard_payload(db: Session, current_user: User) -> dict:
     elif not current_user.is_superuser:
         billing_plan_query = billing_plan_query.filter(SRMBillingPlan.engagement_id == None)
 
+    # Preserve authorization and currency grouping while selecting an invoice cohort.
+    # Paid/balance amounts are current values, not historical cash flow snapshots.
+    if period_start is not None:
+        invoice_query = invoice_query.filter(SRMInvoice.issue_date >= period_start, SRMInvoice.issue_date <= period_end)
+        revenue_query = revenue_query.filter(SRMRevenueEvent.recognized_on >= period_start, SRMRevenueEvent.recognized_on <= period_end)
+
     total_invoiced = _decimal(invoice_query.with_entities(func.coalesce(func.sum(SRMInvoice.total_amount), 0)).scalar())
     total_collected = _decimal(invoice_query.with_entities(func.coalesce(func.sum(SRMInvoice.paid_amount), 0)).scalar())
     outstanding = _decimal(invoice_query.with_entities(func.coalesce(func.sum(SRMInvoice.balance_amount), 0)).scalar())
@@ -3672,7 +3722,7 @@ def _dashboard_payload(db: Session, current_user: User) -> dict:
     gross_margin = _decimal(snapshot_query.with_entities(func.coalesce(func.sum(SRMProfitabilitySnapshot.gross_margin_amount), 0)).scalar())
     cash_margin = _decimal(snapshot_query.with_entities(func.coalesce(func.sum(SRMProfitabilitySnapshot.cash_margin_amount), 0)).scalar())
 
-    recent_orders = sales_order_query(db, current_user).order_by(SRMSalesOrder.created_at.desc()).limit(5).all()
+    recent_orders = sales_orders.order_by(SRMSalesOrder.created_at.desc()).limit(5).all()
     recent_invoices = invoice_query.order_by(SRMInvoice.created_at.desc()).limit(5).all()
     overdue_invoices = invoice_query.filter(SRMInvoice.balance_amount > 0, SRMInvoice.due_date < today).order_by(SRMInvoice.due_date.asc()).limit(5).all()
 
@@ -3690,13 +3740,13 @@ def _dashboard_payload(db: Session, current_user: User) -> dict:
         _serialize(item) | {"overdue_days": (today - item.due_date).days if item.due_date else None}
         for item in overdue_invoices
     ]
-    linked_crm_orders = sales_order_query(db, current_user).filter(SRMSalesOrder.crm_deal_id != None).count()
+    linked_crm_orders = sales_orders.filter(SRMSalesOrder.crm_deal_id != None).count()
     linked_pms_engagements = engagement_query(db, current_user).filter(SRMEngagement.pms_project_id != None).count()
 
     payload = {
         "total_sales_orders": _count_query(sales_orders),
-        "pending_approvals": sales_order_query(db, current_user).filter(SRMSalesOrder.status == "pending_approval").count(),
-        "confirmed_sales_orders": sales_order_query(db, current_user).filter(SRMSalesOrder.status == "confirmed").count(),
+        "pending_approvals": sales_orders.filter(SRMSalesOrder.status == "pending_approval").count(),
+        "confirmed_sales_orders": sales_orders.filter(SRMSalesOrder.status == "confirmed").count(),
         "active_contracts": contract_query.filter(SRMContract.status == "active").count(),
         "active_engagements": engagement_query(db, current_user).filter(SRMEngagement.status.in_(["created", "project_pending", "project_created", "delivery_in_progress", "billing_in_progress"])).count(),
         "active_billing_plans": billing_plan_query.filter(SRMBillingPlan.status == "active").count(),
@@ -3736,6 +3786,15 @@ def _dashboard_payload(db: Session, current_user: User) -> dict:
     margin_values={"gross_margin":amounts_by_currency(margin_query,SRMEngagement.currency,SRMProfitabilitySnapshot.gross_margin_amount),"cash_margin":amounts_by_currency(margin_query,SRMEngagement.currency,SRMProfitabilitySnapshot.cash_margin_amount)}
     payload["currency_totals"]=currency_totals
     payload["context"]=business_context(db,current_user)
+    payload["reporting_period"] = {
+        "value": period,
+        "start_date": period_start.isoformat() if period_start else None,
+        "end_date": period_end.isoformat() if period_end else None,
+        "label": f"{period_start.isoformat()} to {period_end.isoformat()}" if period == "custom" else ("All time" if period == "all" else f"Last {period} calendar months through today"),
+        "invoice_date_field": "issue_date",
+        "sales_order_date_field": "created_at",
+        "balance_basis": "Current paid and outstanding balances of invoices issued in the selected period; overdue assessed today.",
+    }
     payload["currency_policy"]="No conversion. Invoice values are grouped by currency. Profit totals use only the latest snapshot per authorized engagement; historical snapshots do not preserve currency changes."
     payload["profitability_summary"].update({key:scalar_currency(rows) for key,rows in margin_values.items()})
     payload["profitability_summary"]["by_currency"]=margin_values
@@ -3821,33 +3880,42 @@ def _customer_360_payload(db: Session, current_user: User, customer_id: int | No
             "audit_trail": [],
         }
 
+    from app.shared.master_data import owner
+    from app.apps.srm.access import has_any_permission, SRM_INVOICE_PERMISSIONS, SRM_COLLECTION_PERMISSIONS, SRM_PROFITABILITY_PERMISSIONS
+    owner(db, current_user, 'company', customer_id, 'srm')
+    can_invoice = has_any_permission(current_user, SRM_INVOICE_PERMISSIONS | SRM_COLLECTION_PERMISSIONS)
+    can_collect = has_any_permission(current_user, SRM_COLLECTION_PERMISSIONS)
+    can_profit = has_any_permission(current_user, SRM_PROFITABILITY_PERMISSIONS)
     orders = sales_order_query(db, current_user).filter(SRMSalesOrder.customer_id == customer_id).all()
     engagements = engagement_query(db, current_user).filter(SRMEngagement.customer_id == customer_id).all()
     engagement_ids = [item.id for item in engagements]
     order_ids = [item.id for item in orders]
     contracts = db.query(SRMContract).filter(scoped(SRMContract.organization_id, current_user)).filter(SRMContract.customer_id == customer_id, SRMContract.deleted_at == None).all()
     billing_plans = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user)).filter(SRMBillingPlan.engagement_id.in_(engagement_ids)).all() if engagement_ids else []
-    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.customer_id == customer_id, SRMInvoice.deleted_at == None).all()
-    receipts = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.customer_id == customer_id).all()
-    reminders = db.query(SRMCollectionReminder).filter(scoped(SRMCollectionReminder.organization_id, current_user)).filter(SRMCollectionReminder.customer_id == customer_id).order_by(SRMCollectionReminder.created_at.desc()).limit(20).all()
-    aging = db.query(SRMCustomerAging).filter(scoped(SRMCustomerAging.organization_id, current_user)).filter(scoped(SRMCustomerAging.organization_id, current_user), SRMCustomerAging.customer_id == customer_id).first()
-    profitability_rows = db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user)).filter(SRMProfitabilitySnapshot.customer_id == customer_id).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(20).all()
+    invoices = authorized_invoice_query(db, current_user).filter(scoped(SRMInvoice.organization_id, current_user)).filter(SRMInvoice.customer_id == customer_id, SRMInvoice.deleted_at == None).all() if can_invoice else []
+    receipts = db.query(SRMReceipt).filter(scoped(SRMReceipt.organization_id, current_user)).filter(SRMReceipt.customer_id == customer_id).all() if can_collect else []
+    reminders = db.query(SRMCollectionReminder).filter(scoped(SRMCollectionReminder.organization_id, current_user)).filter(SRMCollectionReminder.customer_id == customer_id).order_by(SRMCollectionReminder.created_at.desc()).limit(20).all() if can_collect else []
+    aging = db.query(SRMCustomerAging).filter(scoped(SRMCustomerAging.organization_id, current_user)).filter(scoped(SRMCustomerAging.organization_id, current_user), SRMCustomerAging.customer_id == customer_id).first() if can_collect else None
+    profitability_rows = db.query(SRMProfitabilitySnapshot).filter(scoped(SRMProfitabilitySnapshot.organization_id, current_user)).filter(SRMProfitabilitySnapshot.customer_id == customer_id).order_by(SRMProfitabilitySnapshot.snapshot_at.desc()).limit(20).all() if can_profit else []
     audits = []
     if order_ids:
         audits.extend(db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(SRMAuditLog.entity_type == "sales_order", SRMAuditLog.entity_id.in_(order_ids)).order_by(SRMAuditLog.created_at.desc()).limit(20).all())
     if engagement_ids:
         audits.extend(db.query(SRMAuditLog).filter(scoped(SRMAuditLog.organization_id, current_user)).filter(SRMAuditLog.entity_type == "engagement", SRMAuditLog.entity_id.in_(engagement_ids)).order_by(SRMAuditLog.created_at.desc()).limit(20).all())
-    pms_projects = []
-    project_ids = [item.pms_project_id for item in engagements if item.pms_project_id]
-    if project_ids:
-        try:
-            from app.apps.project_management.models import PMSProject
+    from app.shared.record_360 import projects_for_customer
+    try:
+        pms_projects = projects_for_customer(db, current_user, customer_id)
+        pms_state = 'ready'
+    except HTTPException as exc:
+        if exc.status_code not in (403, 404):
+            raise
+        pms_projects, pms_state = [], 'restricted'
 
-            pms_projects = db.query(PMSProject).filter(PMSProject.id.in_(project_ids), PMSProject.deleted_at == None).all()
-        except Exception:
-            pms_projects = []
-
-    outstanding = sum(_decimal(item.balance_amount) for item in invoices)
+    outstanding_by_currency = {}
+    for invoice in invoices:
+        code = invoice.currency or 'Unknown'
+        outstanding_by_currency[code] = outstanding_by_currency.get(code, Decimal('0')) + _decimal(invoice.balance_amount)
+    outstanding = float(next(iter(outstanding_by_currency.values()))) if len(outstanding_by_currency) == 1 else 0 if not outstanding_by_currency else None
     crm_references = {
         "crm_deal_ids": sorted({item.crm_deal_id for item in [*orders, *engagements] if item.crm_deal_id}),
         "crm_quote_ids": sorted({item.crm_quote_id for item in [*orders, *engagements] if item.crm_quote_id}),
@@ -3862,7 +3930,7 @@ def _customer_360_payload(db: Session, current_user: User, customer_id: int | No
         reverse=True,
     )[:30]
     return {
-        "matched": bool(orders or engagements or contracts or invoices or receipts),
+        "matched": True,
         "filters": filters,
         "customer_id": customer_id,
         "crm_references": crm_references,
@@ -3872,8 +3940,10 @@ def _customer_360_payload(db: Session, current_user: User, customer_id: int | No
         "billing_plans": [_serialize(item) for item in billing_plans],
         "invoices": [_invoice_payload(item) for item in invoices],
         "receipts": [_serialize(item) for item in receipts],
-        "outstanding_amount": float(outstanding),
-        "aging": _serialize(aging),
+        "outstanding_amount": outstanding if can_invoice else None,
+        "outstanding_by_currency": [{"currency": key, "amount": float(value)} for key, value in sorted(outstanding_by_currency.items())],
+        "sections": {"invoices": "ready" if can_invoice else "restricted", "collections": "ready" if can_collect else "restricted", "profitability": "ready" if can_profit else "restricted", "projects": pms_state},
+        "aging": _serialize(aging) if len(outstanding_by_currency) <= 1 else None,
         "collection_reminders": [_serialize(item) for item in reminders],
         "profitability": [_profitability_payload(item) for item in profitability_rows],
         "pms_projects": [_serialize(item) for item in pms_projects],
@@ -3881,10 +3951,9 @@ def _customer_360_payload(db: Session, current_user: User, customer_id: int | No
         "audit_trail": [_serialize(item) for item in audits],
     }
 
-
 @router.get("/dashboard")
-def srm_dashboard(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_invoice_view", "srm_collection_view", "srm_admin"))):
-    return _dashboard_payload(db, current_user)
+def srm_dashboard(period: Literal["all", "3", "12", "custom"] = Query(default="all"), start_date: date | None = Query(default=None), end_date: date | None = Query(default=None), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_invoice_view", "srm_collection_view", "srm_admin"))):
+    return _dashboard_payload(db, current_user, period, start_date, end_date)
 
 
 @router.get("/customer-360")
@@ -3908,8 +3977,8 @@ def customer_360(customer_id: int, db: Session = Depends(get_db), current_user: 
 
 
 @router.get("/reports/dashboard")
-def dashboard(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_admin"))):
-    return _dashboard_payload(db, current_user)
+def dashboard(period: Literal["all", "3", "12", "custom"] = Query(default="all"), start_date: date | None = Query(default=None), end_date: date | None = Query(default=None), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_admin"))):
+    return _dashboard_payload(db, current_user, period, start_date, end_date)
 
 
 @router.get("/reports/lead-to-cash")
@@ -3923,7 +3992,7 @@ def lead_to_cash_report(db: Session = Depends(get_db), current_user: User = Depe
 
 @router.get("/settings")
 def list_settings(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_settings_manage", "srm_admin"))):
-    return [_serialize(item) for item in db.query(SRMSetting).order_by(SRMSetting.key).all()]
+    return [_serialize(item) for item in db.query(SRMSetting).filter(scoped(SRMSetting.organization_id, current_user)).order_by(SRMSetting.key).all()]
 
 
 @router.put("/settings/{key}")

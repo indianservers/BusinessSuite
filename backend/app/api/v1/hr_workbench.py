@@ -8,7 +8,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, select, exists
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db, RequirePermission
@@ -437,6 +437,7 @@ def person_action(ident:int,data:PersonAction,db:Session=Depends(get_db),user:Us
 
 
 class QuickEmployee(Strict):
+    custom_fields:dict[str,object]=Field(default_factory=dict,max_length=100)
     first_name:str=Field(min_length=1,max_length=160)
     last_name:str=Field(default="",max_length=160)
     date_of_joining:date
@@ -461,13 +462,23 @@ def duplicates(email:str=Query("",max_length=150),phone:str=Query("",max_length=
     return {"items":[summary(p,user) for p in duplicate_people(db,user,email,phone)]}
 
 
+def eligible_account_query(db, user, search):
+    """Account linking is company metadata, including users without a home branch."""
+    from app.common.models import CommonPerson
+    from app.access.models import AccessMembership
+    from app.models.user import Role
+    from app.apps.srm.services.commercial import tenant
+    users, people, memberships, employees, roles = User.__table__, CommonPerson.__table__, AccessMembership.__table__, Employee.__table__, Role.__table__
+    company = tenant(user)
+    same_company = or_(exists(select(1).where(people.c.user_id==users.c.id,people.c.organization_id==company)), exists(select(1).where(memberships.c.user_id==users.c.id,memberships.c.company_id==company,memberships.c.active.is_(True))))
+    revoked = exists(select(1).where(memberships.c.user_id==users.c.id,memberships.c.company_id==company,memberships.c.active.is_(False)))
+    return select(users.c.id,users.c.email).select_from(users.outerjoin(roles,roles.c.id==users.c.role_id)).where(users.c.is_active.is_(True),users.c.is_superuser.is_(False),~exists(select(1).where(employees.c.user_id==users.c.id)),same_company,~revoked,or_(users.c.role_id.is_(None),roles.c.name.notin_(["admin","super_admin"])),users.c.email.ilike("%"+search.strip()+"%"))
+
+
 @router.get("/account-options")
 def account_options(q:str=Query(min_length=2,max_length=150),db:Session=Depends(get_db),user:User=Depends(RequirePermission("employee_create"))):
-    from app.common.models import CommonPerson
-    from app.apps.srm.services.commercial import tenant
-    query=db.query(User).filter(User.is_active.is_(True),User.is_superuser.is_(False),~User.employee.has(),User.email.ilike("%"+q.strip()+"%"))
-    if not user.is_superuser:query=query.filter(User.id.in_(db.query(CommonPerson.user_id).filter(CommonPerson.organization_id==tenant(user))))
-    return {"items":[{"id":u.id,"email":u.email} for u in query.order_by(User.email).limit(20) if not u.role or u.role.name not in {"admin","super_admin"}]}
+    rows=db.connection().execute(eligible_account_query(db,user,q).order_by(User.__table__.c.email).limit(20)).mappings()
+    return {"items":[dict(row) for row in rows]}
 
 
 @router.post("/quick-add",status_code=201)
@@ -476,7 +487,7 @@ def quick_add(data:QuickEmployee,db:Session=Depends(get_db),user:User=Depends(Re
     from app.core.input_validation import national_phone
     from pydantic import ValidationError
     try:
-        values=EmployeeCreate(**data.model_dump(exclude={"existing_user_id"}),create_user_account=False).model_dump(exclude={"employee_id","create_user_account","user_email","user_password"})
+        values=EmployeeCreate(**data.model_dump(exclude={"existing_user_id"}),create_user_account=False).model_dump(exclude={"employee_id","create_user_account","user_email","user_password","custom_fields"})
     except ValidationError as exc:
         raise HTTPException(422,str(exc)) from None
     if not user.is_superuser and not values.get("branch_id"):
@@ -488,14 +499,19 @@ def quick_add(data:QuickEmployee,db:Session=Depends(get_db),user:User=Depends(Re
     if duplicate_people(db,user,values.get("personal_email"),values.get("phone_number")):raise HTTPException(409,"A likely matching employee exists. Review the existing employee before saving")
     account=None
     if data.existing_user_id:
-        account=db.query(User).filter(User.id==data.existing_user_id).with_for_update().first()
-        options=account_options(account.email if account else "missing",db,user)["items"]
-        if not account or not any(i["id"]==account.id for i in options):raise HTTPException(403,"Choose an eligible unlinked account within your organization")
+        eligible=eligible_account_query(db,user,"").where(User.__table__.c.id==data.existing_user_id)
+        account=db.connection().execute(eligible.with_for_update(of=User.__table__)).first()
+        # Recheck in a fresh statement after the account lock: another request
+        # could have linked an employee while this request waited for the lock.
+        if account is None or db.connection().execute(eligible).first() is None:raise HTTPException(403,"Choose an eligible unlinked account within your organization")
         from app.core.tenant_boundary import company_ids
         from app.apps.srm.services.commercial import tenant
         branch=db.get(Branch,values["branch_id"]) if values.get("branch_id") else None
         account_companies=company_ids(db,account)
         if account_companies and (branch.company_id if branch else tenant(user)) not in account_companies:raise HTTPException(403,"Existing account does not belong to the employee's selected organization")
+    from app.services.employee_custom_fields import save as save_custom_fields
+    from types import SimpleNamespace
+    save_custom_fields(db,user,SimpleNamespace(id=None),data.custom_fields,validate_only=True)
     row=Employee(**values,employee_id="EMP"+uuid.uuid4().hex[:12].upper(),user_id=account.id if account else None)
     db.add(row);db.flush()
     if account:
@@ -503,6 +519,8 @@ def quick_add(data:QuickEmployee,db:Session=Depends(get_db),user:User=Depends(Re
         HrmsIdentityService.sync_employee_identity(db,row)
     from app.crud.crud_onboarding import auto_start_onboarding_for_employee
     auto_start_onboarding_for_employee(db,row,created_by=user.id)
+    from app.services.employee_custom_fields import save as save_custom_fields
+    save_custom_fields(db,user,row,data.custom_fields)
     audit(db,user,row.id,"QUICK_ADD_EMPLOYEE","Minimal employee profile created",after={"linked_user_id":row.user_id})
     db.commit();return {"id":row.id,"employee_code":row.employee_id,"message":"Employee created; complete the remaining profile checklist"}
 

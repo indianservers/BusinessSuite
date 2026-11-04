@@ -53,3 +53,6 @@ def claim(db,application,tokens):
         item=db.query(ApplicationDocument).filter_by(claim_hash=hashlib.sha256(token.encode()).hexdigest()).with_for_update().first()
         if not item or item.application_id not in {None,application.id}:raise HTTPException(422,'Document token is invalid or already claimed')
         item.application_id=application.id
+        company = getattr(application, "organization_id", None)
+        if company and Path(item.storage_path).is_file():
+            persist_file(item.storage_path, db=db, company=company, module="interns", filename=item.name)

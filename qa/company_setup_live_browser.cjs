@@ -46,7 +46,7 @@ const root='http://127.0.0.1:1562/api/v1', origin='http://127.0.0.1:5200';
       await expect(page.getByLabel('Legal name',{exact:true})).not.toBeVisible();
       await page.getByLabel('Company email *',{exact:true}).fill('office@suiteqa.example.com');
       await page.getByRole('button',{name:'Save company profile',exact:true}).click();
-      await expect(page.getByText('Company profile saved.',{exact:true})).toBeVisible();
+      await expect(page.getByText('Changes saved. They apply immediately across Business Suite.',{exact:true})).toBeVisible();
       await expect(page.getByRole('complementary',{name:'Company setup'})).toHaveCount(0);
       assert.equal((await api('/access/setup')).ready,true);
       await page.reload();

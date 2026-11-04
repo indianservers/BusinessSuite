@@ -1,8 +1,9 @@
+import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 export default defineConfig({
   // Shared suite components must use the portal's router context too.
-  resolve: { dedupe: ["react", "react-dom", "react-router", "react-router-dom"] },
+  resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) }, dedupe: ["react", "react-dom", "react-router", "react-router-dom"] },
   plugins: [react()],
   server: {
     fs: { allow: [".."] },

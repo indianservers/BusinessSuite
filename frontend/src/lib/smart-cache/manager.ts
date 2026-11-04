@@ -106,7 +106,7 @@ export class RecordCacheManager {
     this.contextChanged();
     const info = policy(config.url || '');
     const identity = this.env.identity();
-    if ((config.method || 'get') !== 'get' || !info || !identity || !crypto.subtle || config.responseType && config.responseType !== 'json' || /^https?:/.test(config.url || '')) return fallback(config);
+    if (config.recordCache === false || (config.method || 'get') !== 'get' || !info || !identity || !crypto.subtle || config.responseType && config.responseType !== 'json' || /^https?:/.test(config.url || '')) return fallback(config);
     const generation = this.generation;
     const scope = await hash(stable([this.api.defaults.baseURL, identity]));
     if (generation !== this.generation || identity !== this.env.identity()) throw new axios.CanceledError('Cache context changed');

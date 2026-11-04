@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import io
 from datetime import datetime, timedelta, timezone
 
@@ -284,13 +285,13 @@ def test_conversion_reuses_contact_and_blocks_unqualified(
         ).status_code
         == 422
     )
-    contact = CRMContact(
-        organization_id=1,
-        first_name="Existing",
-        full_name="Existing Contact",
-        email="convert@example.com",
-    )
-    db.add(contact)
+    # Lead capture already links a canonical contact. Reuse that identity.
+    contact = db.query(CRMContact).filter_by(organization_id=1, email="convert@example.com").one()
+    # Simulate a legacy lead without an authoritative identity link so reuse
+    # must be chosen explicitly from the conversion preview.
+    from app.apps.crm.contact_identity import ContactIdentityLink
+    for identity in db.query(ContactIdentityLink).filter_by(lead_id=lead['id']).all():
+        db.delete(identity)
     db.commit()
     assert (
         client.patch(
@@ -727,7 +728,7 @@ def test_product_routing_and_duplicate_numbers_with_different_calling_codes(
         json={
             "values": {
                 "full_name": "Product Lead",
-                "phone": "9876543210",
+                "phone": "2025550123",
                 "phone_country_code": "+91",
             },
             "details": {
@@ -749,9 +750,32 @@ def test_product_routing_and_duplicate_numbers_with_different_calling_codes(
         json={
             "values": {
                 "full_name": "Different Country",
-                "phone": "9876543210",
+                "phone": "2025550123",
                 "phone_country_code": "+1",
             }
         },
     )
     assert response.status_code == 201, response.text
+
+
+def test_website_capture_keeps_configured_branch_after_admin_switch(client, db, superuser_headers):
+    from app.branches.models import BranchOwnership
+    user = db.query(User).filter_by(email="testadmin@test.com").one()
+    made = client.post("/api/v1/branches", headers=superuser_headers,
+        json={"name":"Website intake", "code":"WEB-INTAKE", "reason":"Route website enquiries to this branch"})
+    assert made.status_code == 201, made.text
+    branch_id = made.json()["id"]
+    destination = {**superuser_headers, "X-Suite-Branch":str(branch_id)}
+    configured = client.put(ROOT + "/capture-settings", headers=destination,
+        json={"enabled":True, "ownerId":user.id})
+    assert configured.status_code == 200, configured.text
+    # Subsequent requests by the same administrator must not change the intake destination.
+    assert client.get(ROOT + "/leads", headers=superuser_headers).status_code == 200
+    response = client.post(configured.json()["path"], data={"full_name":"Branch enquiry",
+        "email":"branch-enquiry@example.com", "message":"A synthetic branch enquiry", "consent":"yes"})
+    assert response.status_code == 200, response.text
+    lead = db.query(CRMLead).filter_by(email="branch-enquiry@example.com").one()
+    assert lead.organization_id == 1
+    assert db.query(BranchOwnership).filter_by(resource_table="crm_leads",resource_key=str(lead.id)).one().branch_id == branch_id
+    assert client.get(ROOT + f"/leads/{lead.id}", headers=superuser_headers).status_code == 404
+    assert client.get(ROOT + f"/leads/{lead.id}", headers=destination).status_code == 200

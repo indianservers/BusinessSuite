@@ -1,3 +1,4 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -110,6 +111,7 @@ type Draft = {
   start_date: string;
   due_date: string;
   story_points: string;
+  estimated_hours?: string;
   assignment: Selection;
   task_key: string;
   custom_fields: FieldDraft;
@@ -362,9 +364,9 @@ function PeoplePicker({
     </div>
   );
 }
-export default function TaskStudioPage() {
+export default function TaskStudioPage({embedded=false,initialTitle="",initialDescription="",draftScope="",onCreated,onClose,onBusyChange}:{onBusyChange?:(busy:boolean)=>void;embedded?:boolean;initialTitle?:string;initialDescription?:string;draftScope?:string;onCreated?:(task:PMSTask)=>Promise<void>;onClose?:()=>void}={}) {
   const { taskId } = useParams();
-  const id = Number(taskId) || 0;
+  const id = embedded?0:Number(taskId) || 0;
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -372,14 +374,15 @@ export default function TaskStudioPage() {
   const initial = (): Draft => ({
     projectId: Number(params.get("projectId")) || 0,
     parent_task_id: Number(params.get("parentTaskId")) || null,
-    title: params.get("title") || "",
-    description: "",
-    work_type: params.get("workType") || "Task",
-    priority: "Medium",
-    status: "To Do",
-    start_date: "",
-    due_date: params.get("dueDate") || "",
-    story_points: "",
+    title: initialTitle || params.get("title") || "",
+    description: initialDescription || params.get("description") || "",
+    work_type: params.get("workType") || params.get("work_type") || "Task",
+    priority: params.get("priority") || "Medium",
+    status: params.get("status") || "To Do",
+    start_date: params.get("start_date") || "",
+    due_date: params.get("dueDate") || params.get("due_date") || "",
+    story_points: params.get("story_points") || "",
+    estimated_hours: params.get("estimated_hours") || "",
     assignment: {
       ...emptySelection(),
       ...Object.fromEntries(
@@ -503,6 +506,7 @@ export default function TaskStudioPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(location.state?.notice || "");
   const [busy, setBusy] = useState(false);
+  useEffect(()=>onBusyChange?.(busy),[busy,onBusyChange]);
   const [adding, setAdding] = useState(false);
   const [revision, setRevision] = useState(0);
   const [loadRevision, setLoadRevision] = useState(0);
@@ -529,9 +533,10 @@ export default function TaskStudioPage() {
   const pickerRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const created = useRef<number>();
+  const savingRef=useRef(false);
   const uploaded = useRef(new Set<string>());
   const allowNavigation = useRef(false);
-  const draftKey = `pms-task-studio:${user?.id}:${id || "new"}`;
+  const draftKey = `pms-task-studio:${user?.id}:${id || "new"}${draftScope?":"+draftScope:""}`;
   const dirty =
     (!!saved && saved !== JSON.stringify(draft)) ||
     files.length > 0 ||
@@ -554,6 +559,7 @@ export default function TaskStudioPage() {
     Promise.all([
       api
         .get<StudioProject[]>(`${base}/projects`, {
+          recordCache: false,
           params: {
             people: params.get("people") || undefined,
             teams: params.get("teams") || undefined,
@@ -562,10 +568,10 @@ export default function TaskStudioPage() {
         })
         .then((r) => r.data),
       id
-        ? api.get<Detail>(`${base}/tasks/${id}`).then((r) => r.data)
+        ? api.get<Detail>(`${base}/tasks/${id}`, {recordCache:false}).then((r) => r.data)
         : Promise.resolve(undefined),
       id
-        ? api.get<FieldRecord>(fieldPath("task", id)).then((r) => r.data)
+        ? api.get<FieldRecord>(fieldPath("task", id), {recordCache:false}).then((r) => r.data)
         : Promise.resolve(undefined),
     ])
       .then(([p, record, fieldRecord]) => {
@@ -587,6 +593,7 @@ export default function TaskStudioPage() {
             start_date: t.start_date || "",
             due_date: t.due_date || "",
             story_points: t.story_points == null ? "" : String(t.story_points),
+            estimated_hours: t.estimated_hours == null ? "" : String(t.estimated_hours),
             task_key: t.task_key,
             custom_fields: Object.fromEntries(
               (fieldRecord?.fields || []).map((field) => [
@@ -763,6 +770,8 @@ export default function TaskStudioPage() {
     }
   }
   async function save() {
+    if(savingRef.current)return;
+    if(embedded&&draft.execution_mode==='individual'){setError("Use a shared task when creating from chat.");return;}
     if (extraDirty) {
       setError(
         "Save or discard the execution-panel changes before saving task details.",
@@ -792,6 +801,7 @@ export default function TaskStudioPage() {
       );
       return;
     }
+    savingRef.current=true;
     setBusy(true);
     setError("");
     try {
@@ -807,6 +817,7 @@ export default function TaskStudioPage() {
         due_date: draft.due_date || null,
         story_points:
           draft.story_points === "" ? null : Number(draft.story_points),
+        estimated_hours: draft.estimated_hours ? Number(draft.estimated_hours) : null,
         custom_fields: draft.custom_fields,
       };
       if (!id && draft.execution_mode === "individual") {
@@ -876,6 +887,7 @@ export default function TaskStudioPage() {
           );
         }
       }
+      if(embedded&&onCreated)await onCreated(record.task);
       localStorage.removeItem(draftKey);
       setDraftAvailable(false);
       setFiles([]);
@@ -883,6 +895,7 @@ export default function TaskStudioPage() {
       setNotice(
         id ? "Task and assignments updated." : "Task created successfully.",
       );
+      if(embedded){allowNavigation.current=true;return;}
       if (!id && createAnother) {
         const next = {
           ...initial(),
@@ -909,7 +922,7 @@ export default function TaskStudioPage() {
         `${created.current && !id ? "Task is saved. Retry to finish without creating a duplicate. " : ""}${workspaceError(e)}`,
       );
     } finally {
-      setBusy(false);
+      savingRef.current=false;setBusy(false);
     }
   }
   async function remove() {
@@ -961,7 +974,7 @@ export default function TaskStudioPage() {
       </main>
     );
   return (
-    <main className="task-studio" id="suite-main" tabIndex={-1}>
+    <main className={`task-studio${embedded?" wa-embedded-task":""}`} id={embedded?undefined:"suite-main"} tabIndex={-1}>
       <div className="ts-breadcrumb">
         <Link to="/dashboard">All applications</Link>
         <ChevronRight />
@@ -982,7 +995,7 @@ export default function TaskStudioPage() {
                 "Leave with unsaved changes? Save a draft to keep your work.",
               )
             )
-              navigate("/pms/tasks");
+              embedded?onClose?.():navigate("/pms/tasks");
           }}
         >
           <ArrowLeft size={18} />
@@ -1066,7 +1079,7 @@ export default function TaskStudioPage() {
           administrator for editing access.
         </p>
       )}
-      <CompactForm
+      <CompactForm compactTabs={!embedded}
         ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
@@ -1350,7 +1363,7 @@ export default function TaskStudioPage() {
                         <option value="shared">
                           Shared task: one task for selected collaborators
                         </option>
-                        <option value="individual">
+                        <option value="individual" disabled={embedded}>
                           Individual intern assignments: separate progress,
                           submission and review
                         </option>
@@ -1737,6 +1750,10 @@ export default function TaskStudioPage() {
                   </NativeSelect>
                 </label>
                 <label>
+                  Estimate (hours)
+                  <input type="number" min={0} step="0.25" aria-label="Estimate (hours)" value={draft.estimated_hours || ""} onChange={e=>set("estimated_hours",e.target.value)} />
+                </label>
+                <label>
                   Story points
                   <input
                     type="number"
@@ -1755,6 +1772,7 @@ export default function TaskStudioPage() {
               sub="Keep required project fields and supporting evidence together."
             >
               <CustomFieldsForm
+                placement={id?"edit":"create"}
                 entity="task"
                 projectId={draft.projectId}
                 workType={draft.work_type}
@@ -1991,7 +2009,7 @@ export default function TaskStudioPage() {
             <span role="status">
               {dirty ? "Unsaved changes" : "All task details saved"}
             </span>
-            {!id && (
+            {!id && !embedded && (
               <label>
                 <input
                   type="checkbox"

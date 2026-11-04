@@ -261,6 +261,12 @@ def test_http_timeout_keeps_worker_scope_until_it_finishes(monkeypatch):
 
 
 def test_early_throttle_retains_cors_and_security_headers(limited, monkeypatch):
+    # Keep all requests in one fixed window, even when a loaded suite crosses
+    # a wall-clock minute boundary. Counter rollover is tested separately.
+    monkeypatch.setattr(
+        "app.core.middleware.request_boundary.consume",
+        lambda db, specifications: consume(db, specifications, now=120),
+    )
     monkeypatch.setattr(settings, "RATE_LIMIT_PER_MINUTE", 1)
     monkeypatch.setattr(
         settings, "BACKEND_CORS_ORIGINS", ["https://portal.example.com"]

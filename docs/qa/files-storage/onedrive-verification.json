@@ -1,0 +1,17 @@
+{
+  "connected": true,
+  "account": "saisatish@indianservers.com",
+  "drive_type": "personal",
+  "quota": {
+    "deleted": 0,
+    "remaining": 0,
+    "state": "exceeded",
+    "total": 5368709120,
+    "used": 5368709120,
+    "storagePlanInformation": {
+      "upgradeAvailable": true
+    }
+  },
+  "upload_test": "blocked: Microsoft returned 507 quotaLimitReached",
+  "default_provider": "google_drive (unchanged)"
+}

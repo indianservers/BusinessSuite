@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.attendance import Attendance
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, PayrollComponent, Reimbursement
@@ -29,7 +30,7 @@ def _seed_attendance_for_weekdays(db, employee_id: int, month: int, year: int):
             check_out=datetime(year, month, day, 18, 0, tzinfo=timezone.utc),
             status="Present",
         ))
-    db.commit()
+    commit_payroll_fixture(db)
 
 
 def test_payroll_run_persists_component_lines_and_rich_payslip(client, db):
@@ -54,7 +55,7 @@ def test_payroll_run_persists_component_lines_and_rich_payslip(client, db):
         description="Client visit",
         status="Approved",
     ))
-    db.commit()
+    commit_payroll_fixture(db)
     _seed_attendance_for_weekdays(db, employee.id, 5, 2026)
     ensure_payroll_ready(db, 5, 2026)
 

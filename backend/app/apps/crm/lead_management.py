@@ -695,6 +695,7 @@ class DetailsPatch(Strict):
 
 
 class LeadPayload(Strict):
+    customFields: dict[str, Any] = Field(default_factory=dict, max_length=100)
     confirmShared: bool = False
     sharedReason: str | None = Field(None, max_length=250)
     catalog_lines: list[dict[str, Any]] | None = Field(default=None, max_length=100)
@@ -786,6 +787,8 @@ def create_lead(db, user, payload, settings):
     crm._assert_entity_permission("leads", user, "manage")
     org = crm._organization_id(db, user)
     data = checked_values(payload.values)
+    from app.apps.crm.custom_field_config import validate_values
+    validate_values(db,"leads",org,payload.customFields)
     details = payload.details.model_dump(exclude_unset=True, mode="json")
     if details.get("archived") and not details.get("archiveReason"):
         raise HTTPException(422, "Enter an archive reason")
@@ -811,6 +814,7 @@ def create_lead(db, user, payload, settings):
     lead = CRMLead(**data)
     db.add(lead)
     db.flush()
+    crm._save_custom_field_values(db, "leads", lead.id, org, user.id, payload.customFields)
     if not explicit_owner:
         crm._apply_territory_assignment(
             db, org, lead, override_manual=False, override_owner=True
@@ -976,6 +980,10 @@ def enable_capture(
     if not row:
         row = CRMLeadManagementConfig(organization_id=org, settings_json={})
         db.add(row)
+    branch_context = db.info.get("branch_context")
+    destination = branch_context.branch_id if branch_context else None
+    if payload.enabled and destination is None:
+        raise HTTPException(422, "Select a destination branch before enabling website enquiries")
     # Rotating the link also revokes previous public forms.
     row.settings_json = {
         **(row.settings_json or {}),
@@ -984,6 +992,7 @@ def enable_capture(
             "token": secrets.token_urlsafe(32),
             "ownerId": payload.ownerId,
             "adminId": user.id,
+            "branchId": destination,
         },
     }
     row.updated_by = user.id
@@ -1034,87 +1043,102 @@ def submit_capture(
         return public_page("Thank you", "<p>Your enquiry has been received.</p>")
     if consent != "yes":
         raise HTTPException(422, "Please agree to be contacted about this enquiry")
-    # A tenant-owned database lock makes the hourly intake cap consistent across workers.
-    db.query(CRMLeadManagementConfig).filter_by(
-        organization_id=org
-    ).with_for_update().first()
-    received = (
-        db.query(CRMTimelineEvent)
-        .filter(
-            CRMTimelineEvent.organization_id == org,
-            CRMTimelineEvent.event_type == "web_enquiry",
-            CRMTimelineEvent.occurred_at >= now() - timedelta(hours=1),
-        )
-        .count()
-    )
-    if received >= 100:
-        raise HTTPException(
-            429, "This form has received too many enquiries. Please try again later"
-        )
-    values = {
-        "full_name": full_name,
-        "email": email,
-        "company_name": company_name or None,
-        "source": "Website",
-        "notes": message,
-    }
-    checked_values(values)
-    existing_ids = duplicates(db, org, values)
-    if not existing_ids:
-        # Keep the responsible intake owner; assignment automation can be configured separately.
-        values["owner_user_id"] = capture["ownerId"]
-        lead = create_lead(
-            db,
-            actor,
-            LeadPayload(
-                values=values,
-                details=DetailsPatch(qualification=Qualification(need=message)),
-            ),
-            settings,
-        )
-        row = state(db, lead)
-        row.data_json = {
-            **row.data_json,
-            "enquiryInbox": True,
-            "enquiryPending": True,
-            "contactConsentAt": now().isoformat(),
-        }
-        event(
-            db,
-            lead,
-            actor,
-            "web_enquiry",
-            "Website enquiry received",
-            {"consent": True},
-        )
-    else:
-        lead = (
-            db.query(CRMLead)
-            .filter(CRMLead.id == existing_ids[0], CRMLead.organization_id == org)
-            .with_for_update()
-            .one()
-        )
-        row = state(db, lead)
-        row.data_json = {
-            **row.data_json,
-            "enquiryInbox": True,
-            "enquiryPending": True,
-            "contactConsentAt": now().isoformat(),
-        }
-        row.version += 1
-        event(
-            db,
-            lead,
-            actor,
-            "web_enquiry",
-            "Another website enquiry received",
-            {"consent": True},
-            body=message,
-        )
-    db.commit()
-    return public_page(
-        "Thank you", "<p>Your enquiry has been received. Our team will contact you.</p>"
-    )
+    from app.access.service import background_scope
+    if not capture.get("branchId"):
+        raise HTTPException(404, "This enquiry form is unavailable")
+    names = ("organization_id", "_suite_grants", "_suite_current_module", "_suite_permission_objects")
+    previous = {name: (hasattr(actor, name), getattr(actor, name, None)) for name in names}
+    actor.organization_id = org
+    try:
+        with background_scope(db, actor, "crm", "create", branch_id=capture["branchId"]):
+            # A tenant-owned database lock makes the hourly intake cap consistent across workers.
+            db.query(CRMLeadManagementConfig).filter_by(
+                organization_id=org
+            ).with_for_update().first()
+            received = (
+                db.query(CRMTimelineEvent)
+                .filter(
+                    CRMTimelineEvent.organization_id == org,
+                    CRMTimelineEvent.event_type == "web_enquiry",
+                    CRMTimelineEvent.occurred_at >= now() - timedelta(hours=1),
+                )
+                .count()
+            )
+            if received >= 100:
+                raise HTTPException(
+                    429, "This form has received too many enquiries. Please try again later"
+                )
+            values = {
+                "full_name": full_name,
+                "email": email,
+                "company_name": company_name or None,
+                "source": "Website",
+                "notes": message,
+            }
+            checked_values(values)
+            existing_ids = duplicates(db, org, values)
+            if not existing_ids:
+                # Keep the responsible intake owner; assignment automation can be configured separately.
+                values["owner_user_id"] = capture["ownerId"]
+                lead = create_lead(
+                    db,
+                    actor,
+                    LeadPayload(
+                        values=values,
+                        details=DetailsPatch(qualification=Qualification(need=message)),
+                    ),
+                    settings,
+                )
+                row = state(db, lead)
+                row.data_json = {
+                    **row.data_json,
+                    "enquiryInbox": True,
+                    "enquiryPending": True,
+                    "contactConsentAt": now().isoformat(),
+                }
+                event(
+                    db,
+                    lead,
+                    actor,
+                    "web_enquiry",
+                    "Website enquiry received",
+                    {"consent": True},
+                )
+            else:
+                lead = (
+                    db.query(CRMLead)
+                    .filter(CRMLead.id == existing_ids[0], CRMLead.organization_id == org)
+                    .with_for_update()
+                    .one()
+                )
+                row = state(db, lead)
+                row.data_json = {
+                    **row.data_json,
+                    "enquiryInbox": True,
+                    "enquiryPending": True,
+                    "contactConsentAt": now().isoformat(),
+                }
+                row.version += 1
+                event(
+                    db,
+                    lead,
+                    actor,
+                    "web_enquiry",
+                    "Another website enquiry received",
+                    {"consent": True},
+                    body=message,
+                )
+            db.commit()
+            return public_page(
+                "Thank you", "<p>Your enquiry has been received. Our team will contact you.</p>"
+            )
+    finally:
+        for name, (existed, value) in previous.items():
+            if existed:
+                setattr(actor, name, value)
+            else:
+                actor.__dict__.pop(name, None)
+
 
 
 @router.get("/leads")
@@ -1318,6 +1342,8 @@ def apply_patch(db, user, lead, payload, settings):
         )
     row = row or state(db, lead)
     data = checked_values(payload.values, True)
+    core()._validate_required_custom_fields(db, "leads", lead.id, lead.organization_id, payload.customFields)
+    core()._save_custom_field_values(db, "leads", lead.id, lead.organization_id, user.id, payload.customFields)
     details = {
         **copy.deepcopy(row.data_json),
         **payload.details.model_dump(exclude_unset=True, mode="json"),

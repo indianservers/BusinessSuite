@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from datetime import date
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, PayrollBankExport, PayrollRun
 from tests.payroll_test_utils import ensure_payroll_ready
@@ -25,7 +26,7 @@ def _ensure_salary(db, employee):
                 is_active=True,
             )
         )
-        db.commit()
+        commit_payroll_fixture(db)
 
 
 def test_bank_advice_preview_generate_and_download(client, db):
@@ -37,7 +38,7 @@ def test_bank_advice_preview_generate_and_download(client, db):
     employee.account_number = "1234567890"
     employee.ifsc_code = "HDFC0001234"
     _ensure_salary(db, employee)
-    db.commit()
+    commit_payroll_fixture(db)
     ensure_payroll_ready(db, 5, 2026)
 
     run_response = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
@@ -45,7 +46,7 @@ def test_bank_advice_preview_generate_and_download(client, db):
     run_id = run_response.json()["id"]
     run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
     run.status = "approved"
-    db.commit()
+    commit_payroll_fixture(db)
 
     preview = client.get(f"/api/v1/hrms/payroll/{run_id}/bank-advice/preview?bank_name=HDFC", headers=headers)
     assert preview.status_code == 200
@@ -89,7 +90,7 @@ def test_bank_advice_generation_blocks_invalid_bank_details(client, db):
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
     assert employee
     _ensure_salary(db, employee)
-    db.commit()
+    commit_payroll_fixture(db)
     ensure_payroll_ready(db, 6, 2026)
 
     run_response = client.post("/api/v1/payroll/run", json={"month": 6, "year": 2026}, headers=headers)
@@ -100,7 +101,7 @@ def test_bank_advice_generation_blocks_invalid_bank_details(client, db):
     employee.bank_name = None
     employee.account_number = None
     employee.ifsc_code = None
-    db.commit()
+    commit_payroll_fixture(db)
 
     export_response = client.post(
         f"/api/v1/hrms/payroll/{run_id}/bank-advice/generate",

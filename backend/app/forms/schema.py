@@ -15,6 +15,7 @@ FieldType = Literal[
     "number",
     "date",
     "select",
+    "combobox",
     "radio",
     "multiselect",
     "checkbox",
@@ -88,7 +89,7 @@ class Definition(Strict):
                     raise ValueError(
                         "Conditions must reference an answer field; uploads only support is-answered rules"
                     )
-            if f.type in {"select", "radio", "multiselect"} and (
+            if f.type in {"select", "combobox", "radio", "multiselect"} and (
                 not f.options
                 or any(not x.strip() or len(x) > 160 for x in f.options)
                 or len(set(f.options)) != len(f.options)
@@ -221,7 +222,7 @@ def clean_answers(definition, answers):
                         date.fromisoformat(value)
                     except ValueError:
                         valid = False
-                elif f.type in {"select", "radio"}:
+                elif f.type in {"select", "combobox", "radio"}:
                     valid = value in f.options
                 elif f.type == "phone":
                     valid = bool(re.fullmatch(r"[+()0-9 .-]{5,40}", value))

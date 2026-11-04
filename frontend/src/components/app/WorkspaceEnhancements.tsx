@@ -1,6 +1,6 @@
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, MessageSquare, Plus, X } from "lucide-react";
@@ -8,8 +8,8 @@ import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { usePMSRealtime } from "@/apps/project-management/realtime";
 import { tasksAPI } from "@/apps/project-management/services/api";
-import WorkspaceCollaboration from "@/apps/project-management/pages/WorkspaceCollaboration";
-import { TaskDrawer } from "@/apps/project-management/pages/WorkspaceWork";
+const WorkspaceCollaboration = lazy(() => import("@/apps/project-management/pages/WorkspaceCollaboration"));
+const TaskDrawer = lazy(() => import("@/apps/project-management/pages/WorkspaceWork").then(module => ({default: module.TaskDrawer})));
 import { type WorkTask, type WorkspaceMember, type WorkspaceProject, workspaceError } from "@/apps/project-management/pages/workspaceTypes";
 import "@/apps/project-management/pages/workspaces.css";
 
@@ -22,7 +22,7 @@ export default function WorkspaceEnhancements({ terminal = false }: { terminal?:
     <Dialog.Trigger asChild><button className={`workspace-team-trigger fixed ${terminal ? "top-20 right-4" : "bottom-5 right-5"} z-30 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-3 text-sm font-medium shadow-md hover:bg-accent`}><MessageSquare size={17} /><span>Team workspace</span></button></Dialog.Trigger>
     <Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/30" /><Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto border-l bg-background p-5 shadow-xl">
       <header className="mb-4 flex items-start justify-between gap-4"><div><Dialog.Title className="text-lg font-semibold">Team workspace</Dialog.Title><Dialog.Description className="mt-1 text-xs text-muted-foreground">Shared tasks, quick notes, and conversations. Available from every module.</Dialog.Description></div><Dialog.Close aria-label="Close team workspace" className="rounded-md p-2 hover:bg-muted"><X size={18} /></Dialog.Close></header>
-      {open && <TeamWork key={userId} />}
+      {open && <Suspense fallback={<p role="status">Loading team workspace…</p>}><TeamWork key={userId} /></Suspense>}
     </Dialog.Content></Dialog.Portal>
   </Dialog.Root>;
 }

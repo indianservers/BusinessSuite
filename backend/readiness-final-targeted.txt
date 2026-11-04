@@ -1,0 +1,15 @@
+bringing up nodes...
+bringing up nodes...
+
+.....F
+___________ test_baseline_covers_every_module_and_historical_schema ___________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_postgresql_configuration.py:44: in test_baseline_covers_every_module_and_historical_schema
+    assert {c.name for c in table.columns}.issubset({**coverage["columns"], **extensions}[table.name])
+E   AssertionError: assert False
+E    +  where False = <built-in method issubset of set object at 0x00000225F4968C80>(['body', 'created_at', 'deleted_at', 'filename', 'id', 'media_type', ...])
+E    +    where <built-in method issubset of set object at 0x00000225F4968C80> = {'body', 'created_at', 'deleted_at', 'filename', 'id', 'media_type', ...}.issubset
+.......................                                                  [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_postgresql_configuration.py::test_baseline_covers_every_module_and_historical_schema
+1 failed, 28 passed, 10 warnings in 49.73s

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import pytest
 
 
@@ -84,6 +85,7 @@ def test_create_branch_rejects_duplicate_name_in_company(client, superuser_heade
         json={"name": "Branch Parent"},
         headers=superuser_headers,
     ).json()
+    company["id"] = 1  # Operate within the authenticated fixture company.
     payload = {"name": "Mumbai", "code": "MUM", "company_id": company["id"]}
 
     first = client.post("/api/v1/company/branches/", json=payload, headers=superuser_headers)
@@ -103,11 +105,13 @@ def test_create_department_rejects_duplicate_code_in_branch(client, superuser_he
         json={"name": "Department Parent"},
         headers=superuser_headers,
     ).json()
+    company["id"] = 1  # Operate within the authenticated fixture company.
     branch = client.post(
         "/api/v1/company/branches/",
         json={"name": "HQ", "company_id": company["id"]},
         headers=superuser_headers,
     ).json()
+    superuser_headers = {**superuser_headers, "X-Suite-Branch":str(branch["id"])}
 
     first = client.post(
         "/api/v1/company/departments/",
@@ -130,11 +134,13 @@ def test_create_designation_rejects_duplicate_name_in_department(client, superus
         json={"name": "Designation Parent"},
         headers=superuser_headers,
     ).json()
+    company["id"] = 1  # Operate within the authenticated fixture company.
     branch = client.post(
         "/api/v1/company/branches/",
         json={"name": "HQ", "company_id": company["id"]},
         headers=superuser_headers,
     ).json()
+    superuser_headers = {**superuser_headers, "X-Suite-Branch":str(branch["id"])}
     department = client.post(
         "/api/v1/company/departments/",
         json={"name": "Engineering", "branch_id": branch["id"]},

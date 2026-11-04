@@ -7,6 +7,11 @@ context = ContextVar('request_audit_context', default=None)
 def set_audit_actor(user):
     value = context.get()
     if value is not None:
+        from sqlalchemy.orm import object_session
+        try:
+            value['storage_session'] = object_session(user)
+        except Exception:
+            pass
         value['actor'] = {'user_id': user.id, 'email': user.email, 'role': user.role.name if user.role else 'superuser' if user.is_superuser else 'unassigned', 'authenticated': True}
         if getattr(user, 'organization_id', None) is not None:
             value['actor']['access_branch_roles'] = getattr(user, '_suite_branch_roles_fingerprint', None)

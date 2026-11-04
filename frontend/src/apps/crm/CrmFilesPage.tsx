@@ -1,3 +1,4 @@
+import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -160,7 +161,7 @@ export default function CrmFilesPage() {
           group: f.folder_id ? String(f.folder_id) : "root",
           content: (
             <div className="flex justify-between text-xs">
-              <span>{Math.ceil(f.size / 1024)} KB</span>
+              <SuiteFileIcon name={f.name}/><span>{Math.ceil(f.size / 1024)} KB</span>
               <button onClick={() => void download(f)}>Download</button>
             </div>
           ),

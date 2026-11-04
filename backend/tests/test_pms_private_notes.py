@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 """Exercise the real HTTP contract and private-note authorization boundary."""
 import pytest
 from fastapi import FastAPI

@@ -21,6 +21,9 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    "app.shared.pipeline_workspace",
+    "app.shared.import_api",
+    "app.shared.payment_requests",
     "app.shared.master_data",
     "app.branches.api",
     "app.shared.data_transfer",
@@ -32,6 +35,7 @@ COMMON_ROUTER_MODULES = (
     "app.apps.power_apps.intelligence_api",
     "app.apps.power_apps.studio_api",
     "app.apps.power_apps.router",
+    "app.api.v1.file_storage",
     "app.access.api",
     "app.access.control",
     "app.shared.api",
@@ -59,6 +63,8 @@ COMMON_ROUTER_MODULES = (
 )
 
 COMMON_MODEL_MODULES = (
+    "app.shared.import_models",
+    "app.shared.payment_models",
     "app.shared.master_data_models",
     "app.shared.whatsapp_models",
     "app.branches.models",
@@ -70,6 +76,7 @@ COMMON_MODEL_MODULES = (
     "app.models.security_boundary",
     "app.access.models",
     "app.shared.models",
+    "app.models.file_storage",
     "app.models.platform",
     "app.forms.models",
     "app.apps.scheduling.models",
@@ -240,6 +247,9 @@ def build_api_router() -> APIRouter:
         from app.shared.follow_ups import router as follow_up_router
         register_routes(follow_up_router, "app.shared.follow_ups")
         api_router.include_router(follow_up_router)
+        from app.shared.record_360 import router as record_360_router
+        register_routes(record_360_router, "app.shared.record_360")
+        api_router.include_router(record_360_router)
     for app_module in iter_enabled_modules():
         for module_name in app_module.router_modules:
             module = import_module(module_name)

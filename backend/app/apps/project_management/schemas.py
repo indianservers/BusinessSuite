@@ -660,6 +660,7 @@ class PMSTaskUpdate(BaseModel):
 
 
 class PMSTaskResponse(PMSTaskBase):
+    assignee_name: Optional[str] = None
     # Managed batch execution rows can exceed the interactive composer limit.
     assignee_user_ids: Optional[list[int]] = None
     id: int
@@ -1070,12 +1071,14 @@ class KanbanTaskCard(PMSTaskResponse):
 
 
 class KanbanColumn(PMSBoardColumnResponse):
+    aging_days: int = 14
     """Kanban column with tasks."""
     tasks: Optional[List[KanbanTaskCard]] = []
     task_count: int = 0
 
 
 class KanbanBoard(PMSBoardResponse):
+    total_project_tasks: Optional[int] = None
     """Full Kanban board with columns and tasks."""
     columns: Optional[List[KanbanColumn]] = []
 

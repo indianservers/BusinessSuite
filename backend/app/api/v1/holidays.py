@@ -64,6 +64,29 @@ def _applies_to_branch(holiday: Holiday, branch_id: int | None) -> bool:
 
 def _mark_absent_attendance_as_holiday(db: Session, holiday: Holiday) -> None:
     branches = _parse_branches(holiday.applicable_branches)
+    context = db.info.get("branch_context")
+    if context and context.superuser:
+        # An explicitly configured multi-branch calendar is a control-plane
+        # operation. Bound its derived attendance update to writable branches
+        # and independently verified employee/attendance ownership.
+        from sqlalchemy import select, update, exists, cast, String
+        from app.models.company import Branch
+        from app.branches.models import BranchOwnership
+        targets = set(branches) if branches else set(context.writable)
+        if not targets <= set(context.writable):
+            raise HTTPException(403, "Holiday branches are outside the authorized writable scope")
+        employee, attendance, ownership = Employee.__table__, Attendance.__table__, BranchOwnership.__table__
+        employees = select(employee.c.id).where(employee.c.deleted_at.is_(None), employee.c.branch_id.in_(targets),
+            employee.c.branch_id.in_(select(Branch.id).where(Branch.company_id==context.company_id)),
+            exists(select(1).where(ownership.c.resource_table=="employees", ownership.c.resource_key==cast(employee.c.id,String),
+                ownership.c.company_id==context.company_id, ownership.c.branch_id.in_(targets))).correlate(employee))
+        owned = exists(select(1).where(ownership.c.resource_table==attendance.name, ownership.c.resource_key==cast(attendance.c.id,String),
+            ownership.c.company_id==context.company_id, ownership.c.branch_id.in_(targets))).correlate(attendance)
+        db.flush()
+        db.connection().execute(update(attendance).where(attendance.c.attendance_date==holiday.holiday_date,
+            attendance.c.status=="Absent", attendance.c.employee_id.in_(employees), owned).values(status="Holiday"))
+        db.expire_all()
+        return
     employee_query = db.query(Employee.id).filter(Employee.deleted_at.is_(None))
     if branches:
         employee_query = employee_query.filter(Employee.branch_id.in_(branches))

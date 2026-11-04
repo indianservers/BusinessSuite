@@ -1,6 +1,7 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import PayrollRun, PayrollRecord
 
@@ -29,7 +30,7 @@ def _seed_payroll_record(db, employee_id: int, month: int, year: int, gross: Dec
         net_salary=net,
     )
     db.add(record)
-    db.commit()
+    commit_payroll_fixture(db)
     db.refresh(run)
     db.refresh(record)
     return run, record
@@ -79,7 +80,7 @@ def test_payroll_lock_blocks_sensitive_mutations(client, db):
 
     locked_run = PayrollRun(month=5, year=2026, status="Locked", company_id=employee.branch.company_id)
     db.add(locked_run)
-    db.commit()
+    commit_payroll_fixture(db)
 
     salary = client.post(
         "/api/v1/payroll/salary",

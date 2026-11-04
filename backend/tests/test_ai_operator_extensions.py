@@ -208,7 +208,10 @@ def test_expanded_tools_reuse_pms_operations_and_replay_receipts(client, db, mod
     headers, _, project, task = setup_operator(client, db)
     first = PMSChecklistItem(task_id=task, title='QA review', position=0)
     second = PMSChecklistItem(task_id=task, title='Obsolete check', position=1)
-    db.add_all([first,second]); db.commit()
+    db.add_all([first,second])
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, first, second)
+    db.commit()
     first_id, second_id = first.id, second.id
     plan = {'summary':'Update estimates, complete QA and add a comment', 'steps':[
         {'tool':'update_task','task_id':task,'changes':{'title':'Updated title','description':'Acceptance criteria','estimated_hours':3.5,'story_points':8}},
@@ -237,11 +240,17 @@ def test_checklist_tools_reject_cross_task_items_and_stale_previews(client, db):
     headers, _, project, task = setup_operator(client, db)
     other = client.post(f'/api/v1/project-management/projects/{project}/tasks',headers=headers,json={'title':'Other','task_key':'OP-2'}).json()['id']
     item = PMSChecklistItem(task_id=other,title='Other check',position=0)
-    db.add(item);db.commit()
+    db.add(item)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, item)
+    db.commit()
     bad = {'summary':'Wrong item','steps':[{'tool':'remove_checklist','task_id':task,'item_id':item.id}]}
     assert preview(client,headers,project,task,local_plan=bad).status_code==422
     item = PMSChecklistItem(task_id=task,title='Review',position=0)
-    db.add(item);db.commit()
+    db.add(item)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, item)
+    db.commit()
     plan = {'summary':'Review and comment','steps':[{'tool':'update_checklist','task_id':task,'item_id':item.id,'is_completed':True},
         {'tool':'add_comment','task_id':task,'body':'Complete'}]}
     run = preview(client,headers,project,task,local_plan=plan).json()

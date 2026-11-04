@@ -1,13 +1,20 @@
 import pytest
 from app.apps.crm.models import CRMDeal
 from app.apps.srm.models import SRMProduct
-from app.models.company import Company
+from app.models.company import Company, Branch
 
 
 def seed(client, db, headers):
     if not db.get(Company, 1):
         db.add(Company(id=1, name="Deal catalog tenant"))
         db.commit()
+    # These are business writes: the tenant must satisfy the live setup gate.
+    company = db.get(Company, 1)
+    company.country = "India"
+    company.email = "deal-catalog@example.test"
+    if not db.query(Branch).filter(Branch.company_id == 1, Branch.is_active.is_(True)).first():
+        db.add(Branch(company_id=1, name="Deal catalog branch", code="DEAL-CATALOG", is_active=True))
+    db.commit()
     pipeline = client.post("/api/v1/crm/pipelines", headers=headers, json={"name": "Catalog pipeline"})
     assert pipeline.status_code == 201, pipeline.text
     stage = client.post(f"/api/v1/crm/pipelines/{pipeline.json()['id']}/stages", headers=headers, json={"name": "Discovery", "probability": 20})

@@ -1,3 +1,4 @@
+import { defaultText } from "@/lib/form-defaults";
 import type { BranchAvailabilityValue } from "@/shared/BranchAvailability";
 import type { Schedule } from "@/shared/follow-ups/ScheduleFields";
 import { useEffect, useState } from "react";
@@ -34,4 +35,4 @@ export const catalogApi = {
   save: (source: CatalogSource, item: Omit<CatalogItem, "id"> & { id?: number }, branchId?: number) => { const { id, ...data } = item; return id ? api.put<CatalogItem>(`/catalog/items/${item.kind}/${id}`, data, { params: { source } }) : api.post<CatalogItem>("/catalog/items", data, { params: { source }, ...(branchId ? { headers: { "X-Suite-Branch": String(branchId) } } : {}) }); },
 };
 export function catalogError(error: unknown): string { const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail; return typeof detail === "string" ? detail : "Unable to save or load the catalog. Check the fields and your access, then try again."; }
-export const money = (value: number, currency: string) => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(value); } catch { return `${currency} ${value.toFixed(2)}`; } };
+export const money = (value: number, currency: string) => { try { return new Intl.NumberFormat(defaultText("number_format"), { style: "currency", currency }).format(value); } catch { return `${currency} ${value.toFixed(2)}`; } };

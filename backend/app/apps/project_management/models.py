@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Boolean, Column, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint, Index, text
+from sqlalchemy import JSON, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint, Index, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import deferred, relationship
 
@@ -11,6 +11,25 @@ class PMSTaskWorkspaceState(Base):
     progress = Column(Integer, nullable=False, default=0)
     progress_mode = Column(String(20), nullable=False, default="manual")
     revision = Column(Integer, nullable=False, default=0)
+
+
+class PMSTaskRecordLink(Base):
+    """Explicit CRM associations; the original task and CRM identity remain authoritative."""
+    __tablename__ = 'pms_task_record_links'
+    __table_args__ = (
+        CheckConstraint('(contact_id IS NOT NULL AND lead_id IS NULL) OR (lead_id IS NOT NULL AND contact_id IS NULL)', name='ck_pms_task_record_target'),
+        UniqueConstraint('task_id', 'contact_id', name='uq_pms_task_contact'),
+        UniqueConstraint('task_id', 'lead_id', name='uq_pms_task_lead'),
+        Index('ix_pms_task_contact_scope', 'organization_id', 'contact_id', 'task_id'),
+        Index('ix_pms_task_lead_scope', 'organization_id', 'lead_id', 'task_id'),
+    )
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, nullable=False)
+    task_id = Column(Integer, ForeignKey('pms_tasks.id', ondelete='CASCADE'), nullable=False, index=True)
+    contact_id = Column(Integer, ForeignKey('crm_contacts.id', ondelete='RESTRICT'))
+    lead_id = Column(Integer, ForeignKey('crm_leads.id', ondelete='RESTRICT'))
+    linked_by = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class PMSTaskWatcher(Base):
@@ -147,6 +166,7 @@ class PMSNoteEvent(Base):
 
 class PMSNoteAttachment(Base):
     __tablename__ = "pms_private_note_attachments"
+    storage_path = Column(String(1000), nullable=True)
     id = Column(Integer, primary_key=True)
     note_id = Column(Integer, ForeignKey("pms_private_notes.id", ondelete="CASCADE"), nullable=False, index=True)
     filename = Column(String(255), nullable=False)

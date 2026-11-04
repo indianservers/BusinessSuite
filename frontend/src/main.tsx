@@ -45,7 +45,7 @@ const queryClient = new QueryClient({
 installRecordCache(api, queryClient);
 
 // Statistics caches must not survive an identity, tenant or permission-context switch.
-const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,u?.role,u?.is_superuser,u?.access?.grants])};
+const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,u?.primary_role??u?.role,u?.is_superuser,u?.access?.grants])};
 let activeStatisticsContext=statisticsContext();
 useAuthStore.subscribe(()=>{const next=statisticsContext();if(next!==activeStatisticsContext){activeStatisticsContext=next;void queryClient.cancelQueries();queryClient.clear()}});
 window.addEventListener("suite:organization-changed",()=>{void queryClient.cancelQueries();queryClient.clear()});

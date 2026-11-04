@@ -343,6 +343,10 @@ def update_rule(identity: int, data: RuleInput, db: Session = Depends(get_db), u
 
 
 class PreviewInput(BaseModel):
+    offerings: str=Field(default='',max_length=5000)
+    tag: str=Field(default='',max_length=100)
+    contact_type: Literal['lead','customer','vendor','employee','other']|None=None
+    expected_version: int|None=Field(default=None,gt=0)
     recipient_ids: list[int] = Field(default_factory=list, max_length=1000)
     scheduled_at: datetime | None = None
     approve_bulk: bool = False
@@ -354,9 +358,27 @@ def audience(db, user, rule, data):
         query = query.filter(CustomerRecipient.id.in_(data.recipient_ids))
     if rule.conditions.get('roles'):
         query = query.filter(CustomerRecipient.role.in_(rule.conditions['roles']))
+    recipients=query.order_by(CustomerRecipient.id).limit(1000).all()
+    allowed=None
+    from app.apps.crm import growth_audience,productivity as sales
+    from app.services.whatsapp_inbox_filters import matches_tag,classification
+    chosen=growth_audience.parse_offerings(data.offerings)
+    if chosen or data.tag.strip() or data.contact_type:
+        bindings={r.id:{('contact',r.crm_contact_id)} if r.crm_contact_id else set() for r in recipients}
+        for binding in db.query(CustomerBinding).filter(CustomerBinding.organization_id==company(user),CustomerBinding.recipient_id.in_(bindings),CustomerBinding.source_type.in_(['contact','lead'])).all():
+            bindings[binding.recipient_id].add((binding.source_type,binding.source_id))
+        matched=set();relations=growth_audience.offering_relations(db,user,'all') if chosen else None
+        for kind,entity in [('contact','contacts'),('lead','leads')]:
+            if not sales.allowed(user,entity,'view'):continue
+            ids={ident for links in bindings.values() for source,ident in links if source==kind}
+            model=sales.lm.core()._get_resource(entity).model
+            records=sales.rows(db,user,entity).filter(model.id.in_(ids))
+            if chosen:records=growth_audience.apply_audience(records,model,entity,relations,chosen,'any')
+            matched.update((kind,r.id) for r in records if matches_tag(r,data.tag) and (not data.contact_type or classification(r,kind)==data.contact_type))
+        allowed={ident for ident,links in bindings.items() if links.intersection(matched)}
     eligible, excluded = [], []
-    for recipient in query.order_by(CustomerRecipient.id).limit(1000):
-        (eligible if service.preference_allowed(db, recipient, rule.channel, rule.purpose) else excluded).append(recipient)
+    for recipient in recipients:
+        (eligible if (allowed is None or recipient.id in allowed) and service.preference_allowed(db, recipient, rule.channel, rule.purpose) else excluded).append(recipient)
     return eligible, excluded
 
 
@@ -370,6 +392,7 @@ def preview(identity: int, data: PreviewInput, db: Session = Depends(get_db), us
         try:
             context = service.template_values(eligible[0], {})
             sample = {'subject': service.render(rule.subject, context), 'body': service.render(rule.body, context)}
+            if rule.channel=='whatsapp':sample['template']=service.render_payload(rule.whatsapp_template,context)
         except ValueError as exc:
             error = str(exc)+'; source event values are available when the event occurs'
     return {'eligible': len(eligible), 'excluded': len(excluded), 'channel': rule.channel,
@@ -380,6 +403,8 @@ def preview(identity: int, data: PreviewInput, db: Session = Depends(get_db), us
 @router.post('/automations/{identity}/launch')
 def launch(identity: int, data: PreviewInput, db: Session = Depends(get_db), user=Depends(campaign)):
     rule = get(db, CustomerAutomation, identity, user)
+    if data.expected_version is not None and data.expected_version!=rule.version:
+        raise HTTPException(409,'Campaign changed after preview. Review its audience again.')
     if rule.trigger not in {'campaign', 'greeting', 'welcome'} or rule.status != 'active':
         raise HTTPException(409, 'Only active campaign, greeting or welcome rules can be launched manually')
     eligible, excluded = audience(db, user, rule, data)

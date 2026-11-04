@@ -59,3 +59,9 @@ frontend/public/models/operator-llm/
 
 # Interns Hub protected uploads (served only after ownership checks)
 backend/intern-hub-private/
+
+# Server-only OAuth application credentials.
+backend/.secrets/
+
+# Installed dependencies in generated workspaces
+**/node_modules/

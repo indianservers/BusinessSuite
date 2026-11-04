@@ -1,0 +1,26 @@
+[
+  {
+    "path": "/hrms/payroll/lwp-feed?month=2026-11",
+    "ms": 3080,
+    "status": 200,
+    "contentHash": "4b6ecd072c4bd8a366fe8e19b336100b775a37fe21981f3f05a22bad2f8b246a"
+  },
+  {
+    "path": "/project-management/people-workspace/actions/destinations?kind=projects",
+    "ms": 3221,
+    "status": 200,
+    "contentHash": "b53fd5177f312b27f46966095bc6fc47c0f5b07d5e00259a2d3bd25c10ff0435"
+  },
+  {
+    "path": "/follow-ups/options",
+    "ms": 2773,
+    "status": 200,
+    "contentHash": "e5d6f40e8523c96867e9d4bfbd375f6024f5e51984976b81f0174c36dfeb798a"
+  },
+  {
+    "path": "/crm/dashboard?period=month",
+    "ms": 328,
+    "status": 200,
+    "contentHash": "49e2caa6e5ddb39c89edcc35e31461134739f91d51f602b50affc7852ed8b706"
+  }
+]

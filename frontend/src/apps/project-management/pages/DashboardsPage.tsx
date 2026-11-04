@@ -958,6 +958,13 @@ export default function DashboardsPage() {
               </details>
             </div>
           </div>
+          <div aria-label="Active dashboard filters" className="flex flex-wrap items-center gap-2 py-2 text-xs">
+            <span className="text-muted-foreground">Dashboard scope:</span>
+            {Object.entries(config.filters).filter(([key,value])=>Array.isArray(value)&&value.length>0).map(([key,value])=><button key={key} className="rounded-full border bg-card px-3 py-1 hover:bg-muted" aria-label={`Remove ${key.replace(/_/g," ")} filter`} onClick={()=>changeConfig({...config,filters:{...config.filters,[key]:[]}})}>{key.replace(/_ids$/,"").replace(/_/g," ")}: {(value as unknown[]).length} selected ×</button>)}
+            {(config.filters.date_from||config.filters.date_to)&&<button className="rounded-full border bg-card px-3 py-1" aria-label="Remove dashboard date range" onClick={()=>changeConfig({...config,filters:{...config.filters,date_from:null,date_to:null}})}>{config.filters.date_field.replace(/_/g," ")}: {config.filters.date_from||"Any start"} → {config.filters.date_to||"Today"} ×</button>}
+            {config.filters.custom_field_id && <button className="rounded-full border bg-card px-3 py-1" onClick={()=>changeConfig({...config,filters:{...config.filters,custom_field_id:null,custom_field_value:""}})}>Custom field: {config.filters.custom_field_value || "Any value"} ×</button>}
+            <span className="text-muted-foreground">{config.filters.timezone} · Widgets may override these filters</span>
+          </div>
           {editing && saved?.can_edit && (
             <div className="db-edit-toolbar">
               <strong>Build your dashboard</strong>

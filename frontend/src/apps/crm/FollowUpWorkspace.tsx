@@ -146,7 +146,7 @@ export default function FollowUpWorkspace() {
 
   const columns = useMemo<GridColumn<Relationship>[]>(() => ([
 
-    { id: "name", title: "Relationship", width: 220, minWidth: 150, render: row => <button data-record-open className="fu-relationship"><strong>{row.name}</strong><small>{row.company || row.email || "No company recorded"}</small></button> },
+    { id: "name", title: "Relationship", width: 220, minWidth: 150, render: row => <button data-record-open className="fu-relationship suite-relationship"><SuiteAvatar name={row.name} kind={row.entity === "companies" ? "company" : "customer"} size={32}/><span><strong>{row.name}</strong><small>{row.company || row.email || "No company recorded"}</small></span></button> },
 
     { id: "entity", title: "Type / status", width: 148, render: row => <div className="fu-type"><span>{labels[row.entity]}</span><small>{row.status || "No status"}</small></div> },
 
@@ -196,7 +196,7 @@ export default function FollowUpWorkspace() {
     </section>{focus && <RelationshipPanel key={`${context}:${focus.key}`} record={focus} close={closeFocus} edit={() => setEditing(focus)} message={() => message(focus)} revision={revision} changed={refresh} />}</div>
 
     {draft&&<RecordMessageDraft record={draft.record} channel={draft.channel} close={()=>setDraft(undefined)}/>}
-    {editing && <Editor key={editing === "new" ? "new" : editing.key} initial={editing === "new" ? undefined : editing} owners={owners.data || []} close={() => setEditing(undefined)} saved={saved} />}
+    {editing && <FollowUpEditor key={editing === "new" ? "new" : editing.key} initial={editing === "new" ? undefined : editing} owners={owners.data || []} close={() => setEditing(undefined)} saved={saved} />}
 
     {bulk && <BulkEditor changed={refresh} action={bulk} records={selected} owners={owners.data || []} close={() => setBulk(undefined)} saved={message => { setNotice(message); setBulk(undefined); setSelected([]); refresh(); }} />}
 
@@ -206,7 +206,7 @@ export default function FollowUpWorkspace() {
 
 
 
-function Editor({ initial, owners, close, saved }: { initial?: Relationship; owners: Owner[]; close: () => void; saved: () => void }) {
+export function FollowUpEditor({ initial, owners, close, saved, initialChannel='call' }: { initial?: Relationship; owners: Owner[]; close: () => void; saved: () => void; initialChannel?: string }) {
 
   const user = useAuthStore(state => state.user);
 
@@ -217,7 +217,7 @@ function Editor({ initial, owners, close, saved }: { initial?: Relationship; own
   const [version, setVersion] = useState<string>();
   const [action, setAction] = useState("schedule"), [title, setTitle] = useState(initial ? `Follow up with ${initial.name}` : "Customer follow-up"), [due, setDue] = useState("");
 
-  const [channel, setChannel] = useState("call"), [notes, setNotes] = useState(""), [outcome, setOutcome] = useState("Connected"), [owner, setOwner] = useState(String(initial?.owner_id || "")), [priority, setPriority] = useState("Medium"), [next, setNext] = useState("");
+  const [channel, setChannel] = useState(initialChannel), [notes, setNotes] = useState(""), [outcome, setOutcome] = useState("Connected"), [owner, setOwner] = useState(String(initial?.owner_id || "")), [priority, setPriority] = useState("Medium"), [next, setNext] = useState("");
 
   const [reminder, setReminder] = useState(""), [offering, setOffering] = useState({ kind: "", id: "", name: "" });
 

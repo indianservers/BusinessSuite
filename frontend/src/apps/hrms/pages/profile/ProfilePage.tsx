@@ -1,3 +1,4 @@
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -379,13 +380,7 @@ export default function ProfilePage() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="relative h-20 w-20 overflow-hidden rounded-full border bg-muted">
-                {employee.data?.profile_photo_url ? (
-                  <img src={assetUrl(employee.data.profile_photo_url)} alt="Profile" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xl font-semibold text-muted-foreground">
-                    {employee.data?.first_name?.[0] || "U"}
-                  </div>
-                )}
+                <SuiteAvatar name={employee.data?.first_name || "Employee"} src={employee.data?.profile_photo_url} kind="employee" size={80}/>
               </div>
               <div>
                 <Label htmlFor="profile-photo" className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted">

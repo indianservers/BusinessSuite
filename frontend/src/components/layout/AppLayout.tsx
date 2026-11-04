@@ -1,3 +1,5 @@
+import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
+import SetupReadiness from "@/components/suite/SetupReadiness";
 import "@/components/visuals/suite-visuals.css";
 import { useMobile } from "@/components/mobile/useMobile";
 import { LoadingState } from "@/components/ui/state";
@@ -18,7 +20,9 @@ import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
 import "./mobile-workspaces.css";
 
-export default function AppLayout() {
+export default function AppLayout() { return <FormDefaultsGate><AppLayoutContent/></FormDefaultsGate>; }
+
+function AppLayoutContent() {
   const location = useLocation();
   const mobileLead = useMobile() && /^\/crm\/leads\/\d+\/?$/.test(location.pathname);
   const { user } = useAuthStore();
@@ -70,6 +74,7 @@ export default function AppLayout() {
         <main id="suite-main" tabIndex={-1} className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
           {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory ? null : <Breadcrumbs />}
           {!mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
+          <SetupReadiness embedded />
           <ErrorBoundary>
             <Suspense fallback={<LoadingState label="Loading page data" />}><Outlet /></Suspense>
           </ErrorBoundary>

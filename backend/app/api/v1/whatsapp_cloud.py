@@ -5,13 +5,14 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, UploadFile, File
 from pydantic import BaseModel, Field, SecretStr, model_validator
 from typing import Literal
-from datetime import timedelta
+from datetime import datetime, timedelta
 import secrets
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.deps import get_db, RequirePermission
 from app.apps.crm.models import CRMMessage
+from app.services.whatsapp import MetaError
 
 router = APIRouter(prefix="/integrations/whatsapp", tags=["WhatsApp Cloud"])
 
@@ -122,6 +123,8 @@ class SendInput(BaseModel):
     to: str = Field(min_length=7, max_length=30)
     body: str = Field(default='', max_length=4096)
     template: dict | None = None
+    media: str | None = Field(default=None, min_length=20, max_length=6000)
+    replyTo: int | None = Field(default=None,gt=0)
     entityType: Literal['lead','contact','deal'] | None = None
     entityId: int | None = Field(default=None, gt=0)
 
@@ -130,6 +133,10 @@ class SendInput(BaseModel):
         import re
         if bool(self.entityType) != bool(self.entityId):
             raise ValueError('Provide both CRM record type and ID')
+        if self.replyTo and self.template:
+            raise ValueError('Quoted replies require a free-form text or media reply within the service window')
+        if self.media and self.template:
+            raise ValueError('Choose either media or a template')
         if self.template:
             if set(self.template)-{'name','language','components'} or not re.fullmatch(r'[a-z0-9_]{1,512}', str(self.template.get('name',''))):
                 raise ValueError('Choose a valid Meta template name')
@@ -587,3 +594,62 @@ def link_conversation(contact_id: int, data: LinkInput, db: Session = Depends(ge
     row.entity_type, row.entity_id = data.entityType, data.entityId
     db.commit()
     return wa.contact_data(row)
+
+
+@router.post('/conversations/{contact_id}/media')
+async def upload_conversation_media(contact_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa, whatsapp_media as media
+    from app.shared.whatsapp_models import WhatsAppContact
+    contact=db.query(WhatsAppContact).filter_by(id=contact_id,organization_id=wa.organization(user),erased_at=None).first()
+    if not contact: raise HTTPException(404,'Conversation not found')
+    wa.contact_access(db,user,contact)
+    if contact.consent=='opted_out' or not wa.service_window(contact):
+        raise HTTPException(409,'Attachments require an open 24-hour reply window and a recipient who has not opted out')
+    connection=wa.live_connection(db,wa.organization(user))
+    try:
+        content=await file.read(16*1024*1024+1)
+        value=media.upload(connection,wa.connection_token(connection),content,file.content_type,file.filename)
+        return {**value,'token':media.upload_token(user,contact,connection,value)}
+    except MetaError as error:
+        provider_error(error)
+    finally:
+        await file.close()
+
+
+@router.get('/messages/{message_id}/media')
+def download_message_media(message_id: int, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services import whatsapp_workspace as wa, whatsapp_media as media
+    from app.shared.whatsapp_models import WhatsAppMessage,WhatsAppContact,WhatsAppConnection
+    from fastapi.responses import Response
+    from urllib.parse import quote
+    row=db.query(WhatsAppMessage).filter_by(id=message_id,organization_id=wa.organization(user)).first()
+    if not row: raise HTTPException(404,'Message not found')
+    contact=db.query(WhatsAppContact).filter_by(id=row.contact_id,organization_id=wa.organization(user),erased_at=None).first()
+    if not contact: raise HTTPException(404,'Conversation not found')
+    wa.contact_access(db,user,contact)
+    value=media.metadata(row)
+    if not value: raise HTTPException(404,'No media metadata was recorded for this message')
+    connection=db.query(WhatsAppConnection).filter_by(id=row.connection_id,organization_id=wa.organization(user)).first()
+    if not connection: raise HTTPException(404,'Sender connection not found')
+    try:
+        content,mime=media.download(connection,wa.connection_token(connection),value)
+        return Response(content,media_type=mime,headers={'Content-Disposition':"attachment; filename*=UTF-8''"+quote(media.filename(value.get('filename'))),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+    except MetaError as error:
+        provider_error(error)
+
+
+@router.get('/conversations/{contact_id}/context')
+def conversation_business_context(contact_id: int, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services.whatsapp_hub import context
+    return context(db,user,contact_id)
+
+
+@router.get('/analytics')
+def whatsapp_analytics(from_at: datetime | None = Query(None,alias='from'), until: datetime | None = Query(None), employee: int | None = Query(None,gt=0), team: int | None = Query(None,gt=0), db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view','crm_manage','crm_admin'))):
+    from app.services.whatsapp_hub import analytics
+    from app.services.whatsapp_workspace import now
+    end=until or now()
+    start=from_at or end-timedelta(days=30)
+    if start.utcoffset() is None or end.utcoffset() is None or start>=end or end-start>timedelta(days=366):
+        raise HTTPException(422,'Choose an increasing date range of at most 366 days with timezone offsets')
+    return analytics(db,user,start,end,employee,team)

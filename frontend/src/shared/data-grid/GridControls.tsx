@@ -411,6 +411,7 @@ export function GridToolbar({
   children,
   undo,
   reset,
+  searchPlaceholder,
 }: {
   search: string;
   setSearch: (s: string) => void;
@@ -423,6 +424,7 @@ export function GridToolbar({
   children: React.ReactNode;
   undo?: () => void;
   reset: () => void;
+  searchPlaceholder?: string;
 }) {
   return (
     <div className="udg-toolbar">
@@ -430,7 +432,7 @@ export function GridToolbar({
         <Search size={16} />
         <input
           aria-label="Search grid"
-          placeholder="Search all records…"
+          placeholder={searchPlaceholder || "Search all records…"}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

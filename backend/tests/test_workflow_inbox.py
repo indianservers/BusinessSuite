@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 from decimal import Decimal
 
@@ -22,7 +23,8 @@ def test_manager_workflow_inbox_shows_team_approvals(client, db):
     db.add(leave_type)
     db.flush()
     from app.models.security_boundary import SecurityResourceOwnership
-    db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
+    if db.get(SecurityResourceOwnership, ("leave_types", leave_type.id)) is None:
+        db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
     db.add(
         LeaveRequest(
             company_id=employee.branch.company_id,
@@ -70,7 +72,8 @@ def test_employee_workflow_inbox_shows_own_submissions_only(client, db):
     db.add(leave_type)
     db.flush()
     from app.models.security_boundary import SecurityResourceOwnership
-    db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
+    if db.get(SecurityResourceOwnership, ("leave_types", leave_type.id)) is None:
+        db.add(SecurityResourceOwnership(resource_table="leave_types", resource_id=leave_type.id, company_id=employee.branch.company_id))
     db.add(
         LeaveRequest(
             company_id=employee.branch.company_id,

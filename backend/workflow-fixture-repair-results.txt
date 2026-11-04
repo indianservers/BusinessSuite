@@ -1,0 +1,81 @@
+bringing up nodes...
+bringing up nodes...
+
+.......F
+___________ test_channels_threads_read_search_files_and_revocation ____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:83: in test_channels_threads_read_search_files_and_revocation
+    filemsg = send(client, path, oh, "", attachment_ids=[aid])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\test_pms_chat.py:23: in send
+    assert result.status_code == 200, result.text
+E   AssertionError: {"detail":"Relationship and ownership changes require validated record writes"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+.F
+_______________ test_groups_history_idempotency_mute_and_legacy _______________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:124: in test_groups_history_idempotency_mute_and_legacy
+    room = create(
+backend\tests\test_pms_chat.py:13: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"detail":"Choose active collaborators from this workspace"}
+E   assert 422 == 201
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+..F
+_ test_managed_hr_can_suspend_in_scope_with_edit_action_without_global_user_admin _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:175: in test_managed_hr_can_suspend_in_scope_with_edit_action_without_global_user_admin
+    assert panel.status_code==200,panel.text
+E   AssertionError: {"detail":"Module access revoked: hrms"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+_______ test_existing_account_link_is_reused_and_cannot_be_linked_twice _______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:196: in test_existing_account_link_is_reused_and_cannot_be_linked_twice
+    assert response.status_code==201,response.text
+E   AssertionError: {"detail":"Choose an eligible unlinked account within your organization"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+....F
+______ test_public_archive_pagination_foreign_parent_and_workspace_scope ______
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:273: in test_public_archive_pagination_foreign_parent_and_workspace_scope
+    assert client.post(base + "/read-all", headers=mh).status_code == 200
+E   AssertionError: assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+E    +    where <Response [403 Forbidden]> = post(('/api/v1/project-management/workspaces/1/chat' + '/read-all'), headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM3OTYxNzEsInN1YiI6IjMiLCJ0eXBlIjoiYWNjZXNzIn0.czGWhhVvmewKAOOsbN47mg-7vbzGKtULi7UMa90YVHc'})
+E    +      where post = <starlette.testclient.TestClient object at 0x0000021CC3C20080>.post
+...F
+____________ test_additive_migrations_repeat_and_history_backfill _____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:317: in test_additive_migrations_repeat_and_history_backfill
+    assert db.query(ChatMessage).filter_by(legacy_entry_id=entry_id).count() == 1
+E   assert 0 == 1
+E    +  where 0 = count()
+E    +    where count = <sqlalchemy.orm.query.Query object at 0x0000021CD3D56ED0>.count
+E    +      where <sqlalchemy.orm.query.Query object at 0x0000021CD3D56ED0> = filter_by(legacy_entry_id=1)
+E    +        where filter_by = <sqlalchemy.orm.query.Query object at 0x0000021CD8CE8920>.filter_by
+E    +          where <sqlalchemy.orm.query.Query object at 0x0000021CD8CE8920> = query(ChatMessage)
+E    +            where query = <sqlalchemy.orm.session.Session object at 0x0000021CD6991370>.query
+....F
+___________ test_attachment_ownership_atomicity_and_project_sharing ___________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:423: in test_attachment_ownership_atomicity_and_project_sharing
+    send(client, path, oh, "", attachment_ids=[uploaded["id"]])
+backend\tests\test_pms_chat.py:23: in send
+    assert result.status_code == 200, result.text
+E   AssertionError: {"detail":"Relationship and ownership changes require validated record writes"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+....                                                                     [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_pms_chat.py::test_channels_threads_read_search_files_and_revocation
+FAILED backend\tests\test_pms_chat.py::test_groups_history_idempotency_mute_and_legacy
+FAILED backend\tests\test_hr_workbench.py::test_managed_hr_can_suspend_in_scope_with_edit_action_without_global_user_admin
+FAILED backend\tests\test_hr_workbench.py::test_existing_account_link_is_reused_and_cannot_be_linked_twice
+FAILED backend\tests\test_pms_chat.py::test_public_archive_pagination_foreign_parent_and_workspace_scope
+FAILED backend\tests\test_pms_chat.py::test_additive_migrations_repeat_and_history_backfill
+FAILED backend\tests\test_pms_chat.py::test_attachment_ownership_atomicity_and_project_sharing
+7 failed, 25 passed, 151 warnings in 152.17s (0:02:32)

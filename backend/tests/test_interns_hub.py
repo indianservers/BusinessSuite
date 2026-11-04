@@ -18,15 +18,17 @@ def interns(db, client, monkeypatch, tmp_path):
     company = db.get(Company, 1) or Company(id=1, name="Hub Company")
     db.add(company)
     db.flush()
-    branch = Branch(name="HQ", company_id=company.id)
-    db.add(branch)
-    db.flush()
-    dept = Department(name="Marketing", branch_id=branch.id)
+    branch = db.query(Branch).filter_by(company_id=company.id,is_active=True).order_by(Branch.id).first()
+    if branch is None:
+        branch = Branch(name="HQ", company_id=company.id)
+        db.add(branch)
+        db.flush()
+    dept = Department(name="Marketing", branch_id=branch.id, organization_id=company.id)
     db.add(dept)
     db.flush()
-    desig = Designation(name="Marketing Intern", department_id=dept.id)
+    desig = Designation(name="Marketing Intern", department_id=dept.id, organization_id=company.id)
     db.add(desig)
-    manager = Employee(employee_id="MGR-HUB", first_name="Arjun", last_name="Mehta", date_of_joining=today())
+    manager = Employee(employee_id="MGR-HUB", first_name="Arjun", last_name="Mehta", date_of_joining=today(), branch_id=branch.id)
     db.add(manager)
     db.flush()
     records = []
@@ -36,6 +38,12 @@ def interns(db, client, monkeypatch, tmp_path):
         db.flush()
         employee = Employee(employee_id=f"INT-HUB-{index}", first_name="Riya" if not index else "Karan", last_name="Sharma", employment_type="Intern", date_of_joining=today()-timedelta(days=30), user_id=user.id, department_id=dept.id, designation_id=desig.id, branch_id=branch.id, reporting_manager_id=manager.id)
         db.add(employee)
+        from test_identity_utils import attach_test_identity, complete_workflow_company
+        attach_test_identity(db, user, company.id)
+        complete_workflow_company(db, company.id)
+        from app.branches.migration import backfill
+        db.flush()
+        backfill(db.connection(), company.id)
         db.commit()
         result = client.post("/api/v1/auth/login", json={"email":user.email,"password":"Intern@123456","module":"interns_hub"})
         assert result.status_code == 200, result.text
@@ -71,7 +79,10 @@ def test_login_scope_and_hrms_sync(client, db, interns, superuser_headers):
 def test_task_submission_review_certificate(client, db, interns, superuser_headers):
     from app.apps.project_management.models import PMSProject
     project=PMSProject(name="Intern Work",project_key="IW",organization_id=1)
-    db.add(project);db.commit()
+    db.add(project)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, project)
+    db.commit()
     employee, headers, _ = interns[0]
     other_headers = interns[1][1]
     task = client.post("/api/v1/interns-hub/admin/tasks", headers=superuser_headers, json={"project_id":project.id,"employee_id":employee.id,"title":"Create a social media post","description":"Build a campaign post","due_date":str(today()),"points":10})
@@ -143,7 +154,7 @@ def test_manager_cannot_manage_other_interns(client, db, interns):
     assert client.post("/api/v1/interns-hub/admin/tasks",headers=headers,json={"project_id":1,"employee_id":interns[0][0].id,"title":"Other intern task","description":"Forbidden","due_date":str(today())}).status_code == 403
 
 
-def test_hrms_provisions_intern_login(client, db, superuser_headers):
+def test_hrms_provisions_intern_login(client, db, superuser_headers, interns):
     # Account provisioning requires an actual company, as production bootstrap does.
     if not db.get(Company, 1):
         db.add(Company(id=1, name="Provisioning Company"))

@@ -119,7 +119,11 @@ def test_scoped_out_private_profile_is_never_recreated(client,db,superuser_heade
     db.add(user);db.flush()
     SharedIdentityService.ensure_person_for_user(db,user,organization_id=1)
     employee=Employee(user_id=user.id,employee_id="UNASSIGNED-PROFILE",first_name="Private",last_name="Person",date_of_joining=date(2026,1,1))
-    db.add(employee);own_workflow_records(db,employee);db.commit()
+    db.add(employee);db.flush()
+    from app.branches.models import BranchOwnership
+    db.add(BranchOwnership(resource_table="employees",resource_key=str(employee.id),company_id=1,branch_id=directory_identity.id,source="unassigned-profile-fixture"))
+    db.commit()
+    assert employee.branch_id is None
     before=db.query(CommonProfile).count()
     response=client.get(f"/api/v1/project-management/people-management/{user.id}",headers=superuser_headers)
     assert response.status_code==404,response.text
@@ -134,7 +138,8 @@ def test_pms_only_policy_can_use_shared_company_without_crm_access(client,db,sup
     company=client.post('/api/v1/master-data/companies',headers=superuser_headers,json={"name":"Shared across authorized modules","phone":"9345678901","phone_country_code":"+91"}).json()
     headers=_headers_for_permissions(client,db,"pms-only-master@example.com",["pms_admin"])
     user=db.query(User).filter_by(email="pms-only-master@example.com").one()
-    db.add(BranchGrant(company_id=1,user_id=user.id,branch_id=directory_identity.id,can_write=True))
+    if not db.query(BranchGrant).filter_by(company_id=1,user_id=user.id,branch_id=directory_identity.id).first():
+        db.add(BranchGrant(company_id=1,user_id=user.id,branch_id=directory_identity.id,can_write=True))
     db.add(AccessPolicy(user_id=user.id,company_id=1,status="active",grants={"project_management":{"enabled":True,"scope":"organization","actions":["view","create","edit"],"permissions":["pms_admin"]}}));db.commit()
     assert client.get('/api/v1/crm/companies',headers=headers).status_code==403
     response=client.get('/api/v1/master-data/companies',headers=headers,params={"source":"project_management"})

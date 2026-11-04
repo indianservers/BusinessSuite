@@ -1,3 +1,4 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -203,7 +204,7 @@ export default function LeavePage() {
       }).then((r) => r.data as { days: LeaveCalendarDay[]; total_leave_days: number; scope: string }),
   });
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ApplyForm>();
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ApplyForm>({ defaultValues: { leave_type_id: defaultId("leave_type_id", "hrms") } });
 
   const requestedFrom=watch("from_date"),requestedTo=watch("to_date"),requestedType=watch("leave_type_id"),requestedMode=watch("leave_mode");
   const requestedDays=requestedFrom&&requestedTo&&requestedTo>=requestedFrom?(requestedMode==="Half-day"?0.5:Math.round((Date.parse(requestedTo)-Date.parse(requestedFrom))/86400000)+1):0;

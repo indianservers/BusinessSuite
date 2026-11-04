@@ -1,0 +1,35 @@
+bringing up nodes...
+bringing up nodes...
+
+........................F
+____________ test_conversion_reuses_contact_and_blocks_unqualified ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:305: in test_conversion_reuses_contact_and_blocks_unqualified
+    assert preview.json()["matches"]["contacts"][0]["id"] == contact.id
+E   assert 1 == 2
+E    +  where 2 = <app.apps.crm.models.CRMContact object at 0x0000020CA7634EC0>.id
+........F
+_______________ test_lead_management_rbac_and_export_visibility _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:427: in test_lead_management_rbac_and_export_visibility
+    own = create(client, headers, email="own@example.com")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\test_crm_lead_management.py:21: in create
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Module access revoked: crm"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+.......................F
+___ test_product_routing_and_duplicate_numbers_with_different_calling_codes ___
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:758: in test_product_routing_and_duplicate_numbers_with_different_calling_codes
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Enter a valid phone number for the selected country"}
+E   assert 422 == 201
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+................................                                         [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_crm_lead_management.py::test_conversion_reuses_contact_and_blocks_unqualified
+FAILED backend\tests\test_crm_lead_management.py::test_lead_management_rbac_and_export_visibility
+FAILED backend\tests\test_crm_lead_management.py::test_product_routing_and_duplicate_numbers_with_different_calling_codes
+3 failed, 87 passed, 13 warnings in 94.82s (0:01:34)

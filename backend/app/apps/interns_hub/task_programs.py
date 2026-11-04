@@ -174,13 +174,16 @@ def create_pack(data: PackInput, db: Session = Depends(get_db), user=Depends(req
 @router.put("/packs/{identity}")
 def edit_pack(identity: int, data: PackInput, db: Session = Depends(get_db), user=Depends(require_admin)):
     row = pack_row(db, user, identity)
+    row = db.query(PMSInternTaskPack).filter_by(id=row.id).populate_existing().with_for_update().one()
     if program_project(db, user, row.project_id).is_archived:
         raise HTTPException(409, "Project is archived")
     if data.project_id != row.project_id:
         raise HTTPException(422, "Duplicate the pack to use another project")
-    count = db.query(PMSInternTaskPack).filter(PMSInternTaskPack.id == identity, PMSInternTaskPack.organization_id == tenant(user), PMSInternTaskPack.version == data.version).update({**data.model_dump(exclude={"version"}), "version": PMSInternTaskPack.version+1}, synchronize_session=False)
-    if not count:
+    if row.version != data.version:
         raise HTTPException(409, "Task pack changed. Reload before saving.")
+    for name, value in data.model_dump(exclude={"version"}).items():
+        setattr(row, name, value)
+    row.version += 1
     db.commit(); db.refresh(row)
     return pack_out(row)
 

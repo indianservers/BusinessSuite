@@ -1,7 +1,7 @@
+import type { RecordKind } from "@/shared/records/Record360Workspace";
 import PersonRecordPreview, { isPersonRecord } from "./PersonRecordPreview";
-import EmployeeQuickPreview from "@/apps/hrms/pages/employees/EmployeeQuickPreview";
 import { Fields, label, privateField } from "./RecordPreviewFields";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type MouseEvent } from "react";
 import { useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -9,6 +9,8 @@ import { FileText, Search, Maximize2, Minimize2, Sparkles, X } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 const eventName = "suite:record-preview";
+const Record360Workspace = lazy(() => import("@/shared/records/Record360Workspace"));
+const EmployeeQuickPreview = lazy(() => import("@/apps/hrms/pages/employees/EmployeeQuickPreview"));
 type Preview = { record: unknown; path: string };
 export function openRecordPreview(record: unknown, path?: string) {
   const value = record as { entity?: string } | undefined;
@@ -28,6 +30,9 @@ export function recordPreviewProps(record: unknown, path?: string) {
   };
 }
 export default function RecordQuickPreview() {
+  return <Suspense fallback={<p role="status">Loading record preview…</p>}><PreviewController /></Suspense>;
+}
+function PreviewController() {
   const opener = useRef<HTMLElement | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [details, setDetails] = useState<unknown>(null);
@@ -112,6 +117,13 @@ export default function RecordQuickPreview() {
     : selected;
   const empty = visible == null || (typeof visible === "object" && Object.keys(visible).length === 0);
   const displayTitle = typeof title === "string" ? title : "Record details";
+  const pmsKind = preview?.path.startsWith("/pms/") && record?.id ? record.task_key ? "task" : record.project_key ? "project" : undefined : undefined;
+  if(pmsKind && record?.id) return <Dialog open onOpenChange={open=>{if(!open)setPreview(null);}}><DialogContent className="r360-dialog"><DialogTitle>PMS record 360</DialogTitle><Record360Workspace key={`${pmsKind}:${record.id}`} kind={pmsKind} id={Number(record.id)} source="project_management"/></DialogContent></Dialog>;
+  const crm360 = preview?.path.match(/^\/crm\/(contacts|companies|accounts|customers|leads|deals)(?:\/|$)/);
+  if (crm360 && record?.id) {
+    const kind = ({contacts:"contact",companies:"company",accounts:"company",customers:"company",leads:"lead",deals:"deal"} as Record<string,RecordKind>)[crm360[1]];
+    return <Dialog open onOpenChange={open=>{if(!open)setPreview(null);}}><DialogContent className="r360-dialog" onCloseAutoFocus={event=>{event.preventDefault();opener.current?.focus();}}><DialogTitle>Record 360</DialogTitle><Record360Workspace key={`${kind}:${record.id}`} kind={kind} id={Number(record.id)}/></DialogContent></Dialog>;
+  }
   if (preview && record && isPersonRecord(record, preview.path)) {
     if (/^\/hrms\/employees\/?$/.test(preview.path) && record.id && record.first_name) return <EmployeeQuickPreview key={String(record.id)} employee={record as never} onClose={() => setPreview(null)}/>;
     const crm = preview.path.match(/^\/crm\/(contacts|leads)(?:\/|$)/);

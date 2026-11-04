@@ -423,7 +423,10 @@ def install_scope(db, user, company, grants):
                     "This legacy query requires an explicit central access scope adapter",
                 )
         if execution.is_select or execution.is_update or execution.is_delete:
-            execution.statement = execution.statement.options(*criteria)
+            # Relationship loads already carry these exact request-local filters.
+            # Preserve different filters; avoid compiling identical objects twice.
+            inherited = {id(option) for option in getattr(execution.statement, '_with_options', ())}
+            execution.statement = execution.statement.options(*(option for option in criteria if id(option) not in inherited))
 
     def validate(session, flush_context, instances):
         for item in session.new | session.dirty | session.deleted:

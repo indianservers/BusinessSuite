@@ -387,13 +387,17 @@ def install(db, user, company, *, verified_portal=False):
                 result = and_(*direct)
             elif links:
                 # Nullable links cannot make an unowned row visible.
-                result = and_(
-                    or_(*(access for _, access in links)),
-                    *(
-                        or_(column.is_(None), access) if column.nullable else access
-                        for column, access in links
-                    ),
-                )
+                checks = [
+                    or_(column.is_(None), access) if column.nullable else access
+                    for column, access in links
+                ]
+                # A required parent already proves that at least one parent is
+                # owned. Repeating the entire OR here doubles nested guard trees
+                # at each FK level without changing which rows are permitted.
+                # All-null optional parents still need the explicit ownership OR.
+                if all(column.nullable for column, _ in links):
+                    checks.insert(0, or_(*(access for _, access in links)))
+                result = and_(*checks)
             else:
                 if legacy_root(model):
                     from app.models.security_boundary import SecurityResourceOwnership
@@ -575,7 +579,15 @@ def install(db, user, company, *, verified_portal=False):
         ):
             denied("global_catalogue_delete", execution.bind_mapper.class_)
         if execution.is_select or execution.is_update or execution.is_delete:
-            execution.statement = execution.statement.options(*options)
+            # These predicates depend on the live user/company and attach guards
+            # for every mapped resource. Computing a cache key for that entire
+            # graph dominates small reads; compile the guarded statement directly.
+            # All ownership criteria and write validation still run unchanged.
+            execution.update_execution_options(compiled_cache=None)
+            # Eager loaders inherit options from the parent query. Applying the
+            # same objects again duplicates nested ownership subqueries.
+            inherited = {id(option) for option in getattr(execution.statement, '_with_options', ())}
+            execution.statement = execution.statement.options(*(option for option in options if id(option) not in inherited))
             if (
                 execution.is_select
                 and not execution.is_relationship_load

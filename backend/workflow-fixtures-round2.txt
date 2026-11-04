@@ -1,0 +1,38 @@
+bringing up nodes...
+bringing up nodes...
+
+..................F
+_______________ test_groups_history_idempotency_mute_and_legacy _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:124: in test_groups_history_idempotency_mute_and_legacy
+    room = create(
+backend\tests\test_pms_chat.py:13: in create
+    assert result.status_code == 201, result.text
+E   AssertionError: {"detail":"Choose active collaborators from this workspace"}
+E   assert 422 == 201
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+...........F
+____________ test_additive_migrations_repeat_and_history_backfill _____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:317: in test_additive_migrations_repeat_and_history_backfill
+    assert db.query(ChatMessage).filter_by(legacy_entry_id=entry_id).count() == 1
+E   assert 0 == 1
+E    +  where 0 = count()
+E    +    where count = <sqlalchemy.orm.query.Query object at 0x0000021756A4E810>.count
+E    +      where <sqlalchemy.orm.query.Query object at 0x0000021756A4E810> = filter_by(legacy_entry_id=1)
+E    +        where filter_by = <sqlalchemy.orm.query.Query object at 0x000002174B443650>.filter_by
+E    +          where <sqlalchemy.orm.query.Query object at 0x000002174B443650> = query(ChatMessage)
+E    +            where query = <sqlalchemy.orm.session.Session object at 0x00000217573045C0>.query
+......F
+___________ test_attachment_ownership_atomicity_and_project_sharing ___________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:445: in test_attachment_ownership_atomicity_and_project_sharing
+    client.get(base + "/project-files", headers=oh).json()["items"][0]["id"] == f.id
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+.................                                                        [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_pms_chat.py::test_groups_history_idempotency_mute_and_legacy
+FAILED backend\tests\test_pms_chat.py::test_additive_migrations_repeat_and_history_backfill
+FAILED backend\tests\test_pms_chat.py::test_attachment_ownership_atomicity_and_project_sharing
+3 failed, 52 passed, 162 warnings in 163.83s (0:02:43)

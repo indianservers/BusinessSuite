@@ -1,4 +1,4 @@
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import (
     PayrollPreRunCheck,
@@ -8,7 +8,7 @@ from app.models.payroll import (
     Reimbursement,
     SalaryRevisionRequest,
 )
-from tests.payroll_test_utils import ensure_payroll_ready
+from tests.payroll_test_utils import ensure_payroll_ready, commit_payroll_fixture
 
 
 def _login(client):
@@ -79,7 +79,7 @@ def test_payroll_readiness_checks_hrms_trust_blockers(client, db):
         total_deductions=1500,
         net_salary=-500,
     ))
-    db.commit()
+    commit_payroll_fixture(db)
 
     response = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026, "force_run": True}, headers=headers)
 
@@ -91,3 +91,44 @@ def test_payroll_readiness_checks_hrms_trust_blockers(client, db):
     assert "pending_reimbursements" in check_types
     assert "negative_net_salary" in check_types
     assert "tax_declaration_readiness" in check_types
+
+
+def test_default_branch_rerun_reuses_run_and_replaces_checks(client, db):
+    from app.models.company import Branch
+    from app.branches.models import BranchOwnership
+    init_db(db)
+    headers = _login(client)
+    ensure_payroll_ready(db, 5, 2026)
+    payload = {"month": 5, "year": 2026, "force_run": True}
+    first = client.post("/api/v1/payroll/run", headers=headers, json=payload)
+    assert first.status_code == 201, first.text
+    run_id = first.json()["id"]
+    branch_id = first.json()["branch_id"]
+    assert branch_id is not None
+    record_count = db.query(PayrollRecord).filter_by(payroll_run_id=run_id).count()
+    assert record_count > 0
+    first_count = db.query(PayrollPreRunCheck).filter_by(payroll_run_id=run_id).count()
+    repeated = client.post("/api/v1/payroll/run", headers=headers, json=payload)
+    assert repeated.status_code == 201, repeated.text
+    assert repeated.json()["id"] == run_id
+    assert db.query(PayrollRecord).filter_by(payroll_run_id=run_id).count() == record_count
+    checks = db.query(PayrollPreRunCheck).filter_by(payroll_run_id=run_id).all()
+    assert len(checks) == first_count
+    stamps = db.query(BranchOwnership).filter_by(resource_table=PayrollPreRunCheck.__tablename__).all()
+    assert {stamp.resource_key for stamp in stamps} == {str(check.id) for check in checks}
+    assert all(stamp.branch_id == branch_id for stamp in stamps)
+
+    sibling = Branch(company_id=first.json()["company_id"], name="Payroll sibling", code="PAY-SIB")
+    db.add(sibling)
+    commit_payroll_fixture(db)
+    sibling_run = client.post("/api/v1/payroll/run", headers={**headers, "X-Suite-Branch": str(sibling.id)}, json=payload)
+    assert sibling_run.status_code == 201, sibling_run.text
+    assert sibling_run.json()["id"] != run_id
+    assert sibling_run.json()["branch_id"] == sibling.id
+    assert db.query(PayrollPreRunCheck).filter_by(payroll_run_id=run_id).count() == first_count
+    forbidden = client.post("/api/v1/payroll/run", headers={**headers, "X-Suite-Branch": str(branch_id)},
+                            json={**payload, "branch_id": sibling.id})
+    assert forbidden.status_code == 403, forbidden.text
+    assert db.get(PayrollRun, run_id) is not None
+    assert db.get(PayrollRun, sibling_run.json()["id"]) is not None
+    assert db.query(PayrollRecord).filter_by(payroll_run_id=run_id).count() == record_count

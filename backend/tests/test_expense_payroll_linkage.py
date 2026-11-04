@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from datetime import date
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.expense import ExpenseClaim
 from app.models.payroll import PayrollRun, Reimbursement
@@ -41,7 +42,7 @@ def test_link_expense_claims_creates_traceable_reimbursement_and_skips_duplicate
         finance_approved_by=db.query(User.id).filter(User.email == "admin@aihrms.com").scalar(),
     )
     db.add(claim)
-    db.commit()
+    commit_payroll_fixture(db)
 
     first = client.post(
         "/api/v1/payroll/reimbursements/link-expense-claims",

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 """Polling must deliver committed changes only to accessible projects."""
 from app.apps.project_management.event_feed import append_event, read_events
 

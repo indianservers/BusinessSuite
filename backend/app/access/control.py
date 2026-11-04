@@ -321,6 +321,10 @@ def save_unit(
         if kind == "branches"
         else {"branch_id": data.branch_id, "head_employee_id": data.head_employee_id}
     )
+    if kind == "branches" and not unit_id:
+        from app.branches.service import create_owned_branch
+        record(db, actor, data.companyId, "branches_saved", data.model_dump(), request, before)
+        return create_owned_branch(db, actor, values, reason=data.reason)
     for key, value in values.items():
         setattr(item, key, value)
     item.updated_at = datetime.now(timezone.utc)

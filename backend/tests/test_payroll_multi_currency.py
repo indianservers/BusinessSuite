@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from datetime import date
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import (
     EmployeeSalary,
@@ -51,7 +52,9 @@ def _prepare_usd_employee(db) -> Employee:
         ))
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
     employee.salary_currency = "USD"
-    db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == employee.id).delete(synchronize_session=False)
+    for salary in db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == employee.id).all():
+        db.delete(salary)
+    db.flush()
     db.add(EmployeeSalary(
         employee_id=employee.id,
         ctc=Decimal("120000"),
@@ -60,7 +63,7 @@ def _prepare_usd_employee(db) -> Employee:
         effective_from=date(2026, 5, 1),
         is_active=True,
     ))
-    db.commit()
+    commit_payroll_fixture(db)
     return employee
 
 

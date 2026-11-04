@@ -1,0 +1,32 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const React = require('react');
+const { renderToStaticMarkup } = require('react-dom/server');
+const source = fs.readFileSync(path.join(__dirname, '../src/components/visuals/SuiteVisuals.tsx'), 'utf8');
+const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+const exportsObject = {};
+new Function('require', 'exports', code)(id => id.endsWith('.css') ? {} : id === '@/lib/utils' ? {assetUrl: value => value} : require(id), exportsObject);
+const render = (Component, props) => renderToStaticMarkup(React.createElement(Component, props));
+for (const kind of ['employee', 'customer', 'vendor', 'company']) {
+  const html = render(exportsObject.SuiteAvatar, { name: '<Test & record>', kind });
+  assert.ok(html.includes(`Generic ${kind} picture`));
+  assert.ok(!html.includes('<Test & record>'), 'Record names must be escaped');
+}
+assert.ok(render(exportsObject.SuiteAvatar, {name:'Employee',src:'/existing-photo.jpg'}).includes('src="/existing-photo.jpg"'), 'Keep existing photos');
+let failedPhoto;
+const hooked = {};
+new Function('require', 'exports', code)(id => id === 'react' ? {...React, useState: () => [failedPhoto, value => {failedPhoto = value;}]} : id.endsWith('.css') ? {} : id === '@/lib/utils' ? {assetUrl: value => value} : require(id), hooked);
+const imageProps = {name:'Employee',src:'/broken.jpg',kind:'employee'};
+hooked.SuiteAvatar(imageProps).props.children.props.onError();
+assert.equal(hooked.SuiteAvatar(imageProps).props.children.type, 'svg', 'A failed photo must show the generic picture');
+assert.equal(hooked.SuiteAvatar({...imageProps,src:'/replacement.jpg'}).props.children.type, 'img', 'A replacement photo should load after an earlier failure');
+const chart = render(exportsObject.SuiteDistribution, {records: [{status:'Active'}, {status:'Active'}, {status:null}], field:'status',label:'Status'});
+assert.ok(chart.includes('Active: 2 of 3'));
+assert.ok(chart.includes('Unspecified: 1 of 3'));
+assert.ok(chart.includes('Current loaded records only'));
+const many = render(exportsObject.SuiteDistribution, {records: Array.from({length:8}, (_,i)=>({status:`State ${i}`})),field:'status',label:'Status'});
+assert.ok(many.includes('Other: 3 of 8'), 'Overflow categories preserve the total');
+assert.ok(render(exportsObject.SuiteDistribution, {records:[],field:'status',label:'Status'}).includes('No loaded records to chart'));
+console.log('Suite visuals: portrait fallbacks, existing photos, escaping, chart counts, overflow and empty data passed.');

@@ -1,0 +1,25 @@
+{
+  "run": "CLOUDDOC-1793802357006",
+  "results": [
+    {
+      "name": "Native CRM quotation PDF generates, archives in Google Drive and downloads after cloud staging cleanup",
+      "status": "pass"
+    },
+    {
+      "name": "Private PMS note attachment uploads to Google Drive and downloads with native note permissions",
+      "status": "pass"
+    },
+    {
+      "name": "Private PMS note attachment delete and restore preserves original cloud content",
+      "status": "pass"
+    },
+    {
+      "name": "Generated spreadsheet is indexed as a verified Google Drive cloud object",
+      "status": "pass"
+    },
+    {
+      "name": "CRM browser upload form sends actual generated PDF to Google Drive",
+      "status": "pass"
+    }
+  ]
+}

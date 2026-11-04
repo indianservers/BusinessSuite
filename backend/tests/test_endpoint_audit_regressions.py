@@ -11,14 +11,16 @@ def test_global_search_matches_department(client, db, superuser_token):
     from app.db.init_db import init_db
     init_db(db)
     department = db.query(Department).first()
-    from test_identity_utils import attach_test_identity
+    from test_identity_utils import attach_test_identity, own_workflow_records
     actor = db.query(User).filter_by(email="testadmin@test.com").one()
     attach_test_identity(db, actor, department.branch.company_id)
     department.name = "Audit Engineering"
     db.flush()
-    db.add(Job(title="Release specialist", department_id=department.id, branch_id=department.branch_id))
+    job = Job(title="Release specialist", department_id=department.id, branch_id=department.branch_id)
+    db.add(job)
+    own_workflow_records(db, department, job, company_id=department.branch.company_id)
     db.commit()
-    response = client.get("/api/v1/reports/global-search?q=Audit", headers={"Authorization": f"Bearer {superuser_token}"})
+    response = client.get("/api/v1/reports/global-search?q=Audit", headers={"Authorization": f"Bearer {superuser_token}", "X-Suite-Company": str(department.branch.company_id), "X-Suite-Branch": str(department.branch_id)})
     assert response.status_code == 200, response.text
     assert any(item["title"] == "Release specialist" for item in response.json()["results"]), response.text
 

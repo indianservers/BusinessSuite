@@ -33,8 +33,9 @@ def can(user, *permissions):
     return bool(user.is_superuser or any(user_has_permission(user, p) for p in permissions))
 
 
-def scoped(db, model, user, identity):
-    row = db.query(model).filter(model.organization_id == tenant(user), model.id == identity).first()
+def scoped(db, model, user, identity, *, lock=False):
+    query = db.query(model).filter(model.organization_id == tenant(user), model.id == identity)
+    row = query.populate_existing().with_for_update().first() if lock else query.first()
     if not row:
         raise HTTPException(404, "Record not found")
     return row
@@ -99,14 +100,16 @@ def create_template(data: TemplateInput, db: Session = Depends(get_db), user=Dep
 
 @router.put("/templates/{identity}")
 def update_template(identity: int, data: TemplateInput, db: Session = Depends(get_db), user=Depends(editor)):
-    row = scoped(db, StudioTemplate, user, identity)
+    row = scoped(db, StudioTemplate, user, identity, lock=True)
     validate_template(data)
     if data.letterhead_id:
         scoped(db, StudioLetterhead, user, data.letterhead_id)
     changes = data.model_dump(exclude={"version"})
-    count = db.query(StudioTemplate).filter(StudioTemplate.id == identity, StudioTemplate.organization_id == tenant(user), StudioTemplate.version == data.version).update({**changes, "version": StudioTemplate.version + 1}, synchronize_session=False)
-    if not count:
+    if row.version != data.version:
         raise HTTPException(409, "Template changed. Reload before saving.")
+    for name, value in changes.items():
+        setattr(row, name, value)
+    row.version += 1
     db.commit()
     db.refresh(row)
     return template_out(row)
@@ -128,11 +131,13 @@ def create_head(data: LetterheadInput, db: Session = Depends(get_db), user=Depen
 
 @router.put("/letterheads/{identity}")
 def update_head(identity: int, data: LetterheadInput, db: Session = Depends(get_db), user=Depends(editor)):
-    row = scoped(db, StudioLetterhead, user, identity)
+    row = scoped(db, StudioLetterhead, user, identity, lock=True)
     validate_head(db, user, data)
-    count = db.query(StudioLetterhead).filter(StudioLetterhead.id == identity, StudioLetterhead.organization_id == tenant(user), StudioLetterhead.version == data.version).update({**data.model_dump(exclude={"version"}), "version": StudioLetterhead.version + 1}, synchronize_session=False)
-    if not count:
+    if row.version != data.version:
         raise HTTPException(409, "Letterhead changed. Reload before saving.")
+    for name, value in data.model_dump(exclude={"version"}).items():
+        setattr(row, name, value)
+    row.version += 1
     db.commit()
     db.refresh(row)
     return head_out(row)

@@ -1,0 +1,1251 @@
+bringing up nodes...
+bringing up nodes...
+
+..FFF....FFF.FF...FFFFFFFFFFF................F....F.FF...............F.. [ 57%]
+....F.F..F.FEEEE.FFFFFFFFFFF.F..FFFFF.FFF..F.F.F.FF...                   [100%]
+=================================== ERRORS ====================================
+_ ERROR at setup of test_shared_columns_native_create_update_batch_and_archive _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_custom_columns.py:18: in company
+    r=client.post(BASE+"/projects",headers=h[0],json={"name":"Audit","project_key":"COL","workspace_id":w.id});assert r.status_code==200,r.text
+                                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Complete company setup before continuing: Active branch"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+_____ ERROR at setup of test_scope_permissions_and_atomic_invalid_values ______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_custom_columns.py:18: in company
+    r=client.post(BASE+"/projects",headers=h[0],json={"name":"Audit","project_key":"COL","workspace_id":w.id});assert r.status_code==200,r.text
+                                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Complete company setup before continuing: Active branch"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+____________ ERROR at setup of test_typed_values_and_legacy_fields ____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_custom_columns.py:18: in company
+    r=client.post(BASE+"/projects",headers=h[0],json={"name":"Audit","project_key":"COL","workspace_id":w.id});assert r.status_code==200,r.text
+                                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Complete company setup before continuing: Active branch"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+_ ERROR at setup of test_project_clone_and_recurrence_preserve_custom_columns _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_custom_columns.py:18: in company
+    r=client.post(BASE+"/projects",headers=h[0],json={"name":"Audit","project_key":"COL","workspace_id":w.id});assert r.status_code==200,r.text
+                                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Complete company setup before continuing: Active branch"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+================================== FAILURES ===================================
+____________________________ test_create_employee _____________________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:40: in test_create_employee
+    assert response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+______________________________ test_get_employee ______________________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:61: in test_get_employee
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+____________________________ test_update_employee _____________________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:81: in test_update_employee
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+________________ test_employee_directory_filters_and_team_only ________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:208: in test_employee_directory_filters_and_team_only
+    assert len(items) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+____________________ test_create_employee_lifecycle_event _____________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:249: in test_create_employee_lifecycle_event
+    assert response.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_______________ test_lifecycle_event_can_apply_employee_changes _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:281: in test_lifecycle_event_can_apply_employee_changes
+    assert response.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+________________ test_hr_cannot_create_employee_login_account _________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:311: in test_hr_cannot_create_employee_login_account
+    assert "only admin" in response.json()["detail"].lower()
+E   AssertionError: assert 'only admin' in 'module access revoked: hrms'
+E    +  where 'module access revoked: hrms' = <built-in method lower of str object at 0x000001E44DE40D00>()
+E    +    where <built-in method lower of str object at 0x000001E44DE40D00> = 'Module access revoked: hrms'.lower
+____________ test_login_link_options_only_include_active_accounts _____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employees.py:323: in test_login_link_options_only_include_active_accounts
+    assert active.id in ids
+E   assert 2 in {1}
+E    +  where 2 = <app.models.user.User object at 0x000001E44C542600>.id
+______ test_suspend_access_does_not_terminate_employment_and_stale_guard ______
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:35: in test_suspend_access_does_not_terminate_employment_and_stale_guard
+    suspended=client.post(ROOT+f"/people/{person.id}/actions",headers=superuser_headers,json={"action":"suspend_access","version":panel["version"],"reason":"Temporary investigation"})
+                                                                                                                                  ^^^^^^^^^^^^^^^^
+E   KeyError: 'version'
+____ test_exit_checklist_reuses_employee_and_does_not_terminate_implicitly ____
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:64: in test_exit_checklist_reuses_employee_and_does_not_terminate_implicitly
+    assert started.status_code==201,started.text
+E   AssertionError: {"detail":"Employee not found in your permitted scope"}
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_____ test_unified_inbox_has_real_sources_waiting_time_and_bulk_failures ______
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:82: in test_unified_inbox_has_real_sources_waiting_time_and_bulk_failures
+    assert {i["kind"] for i in items}=={"expense","timesheet"}
+E   AssertionError: assert set() == {'expense', 'timesheet'}
+E     
+E     Extra items in the right set:
+E     'expense'
+E     'timesheet'
+E     Use -v to get more diff
+__________ test_scope_and_field_masking_do_not_leak_another_company ___________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:103: in test_scope_and_field_masking_do_not_leak_another_company
+    assert {p["id"] for p in response.json()["items"]}=={own.id,colleague.id}
+E   assert set() == {1, 2}
+E     
+E     Extra items in the right set:
+E     1
+E     2
+E     Use -v to get more diff
+______________ test_bulk_transfer_preview_and_future_application ______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:126: in test_bulk_transfer_preview_and_future_application
+    assert preview.json()["count"]==1 and len(preview.json()["failures"])==1
+E   assert (0 == 1)
+_____________ test_attendance_correction_respects_lock_and_breaks _____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:147: in test_attendance_correction_respects_lock_and_breaks
+    assert response.status_code==200,response.text
+E   AssertionError: {"detail":"Attendance record not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_ test_managed_hr_can_suspend_in_scope_with_edit_action_without_global_user_admin _
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:175: in test_managed_hr_can_suspend_in_scope_with_edit_action_without_global_user_admin
+    assert panel.status_code==200,panel.text
+E   AssertionError: {"detail":"Module access revoked: hrms"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+_______ test_existing_account_link_is_reused_and_cannot_be_linked_twice _______
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:196: in test_existing_account_link_is_reused_and_cannot_be_linked_twice
+    assert response.status_code==201,response.text
+E   AssertionError: {"detail":"Choose an eligible unlinked account within your organization"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+____________ test_unified_leave_decision_updates_original_balance _____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:211: in test_unified_leave_decision_updates_original_balance
+    assert response.json()["results"][0]["ok"],response.text
+E   AssertionError: {"results":[{"key":"leave:1","ok":false,"error":"Request changed, is outside scope, or approval permission is unavailable"}],"scope":"Permitted requests; each result is recorded independently"}
+E   assert False
+__________ test_roster_preview_blocks_leave_and_rejects_stale_review __________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:228: in test_roster_preview_blocks_leave_and_rejects_stale_review
+    assert preview.status_code==200,preview.text
+E   AssertionError: {"detail":"Shift not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+__________ test_payroll_variance_explains_actual_lines_and_currency ___________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hr_workbench.py:249: in test_payroll_variance_explains_actual_lines_and_currency
+    assert response.status_code==200,response.text
+E   AssertionError: {"detail":"Payroll run not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+____________ test_conversion_reuses_contact_and_blocks_unqualified ____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:304: in test_conversion_reuses_contact_and_blocks_unqualified
+    assert preview.json()["matches"]["contacts"][0]["id"] == contact.id
+E   assert 1 == 2
+E    +  where 2 = <app.apps.crm.models.CRMContact object at 0x00000187FD9D7F20>.id
+________ test_existing_lead_zero_version_edit_and_manual_score_reason _________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:400: in test_existing_lead_zero_version_edit_and_manual_score_reason
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Lead was not found in your permitted scope"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_______________ test_lead_management_rbac_and_export_visibility _______________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:426: in test_lead_management_rbac_and_export_visibility
+    own = create(client, headers, email="own@example.com")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\test_crm_lead_management.py:20: in create
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Module access revoked: crm"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+______ test_website_capture_is_tenant_owned_consent_gated_and_revocable _______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_utils.py", line 85, in create_collapsing_task_group
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\runner.py", line 353, in from_call
+    |     result: TResult | None = func()
+    |                              ^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\runner.py", line 245, in <lambda>
+    |     lambda: runtest_hook(item=item, **kwds),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_caller.py", line 197, in __call__
+    |     return self._hookexec(
+    |            ^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_manager.py", line 183, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 195, in _multicall
+    |     raise exception
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\logging.py", line 850, in pytest_runtest_call
+    |     yield
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\capture.py", line 900, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\skipping.py", line 268, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 147, in _multicall
+    |     res = hook_impl.function(*args)
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\runner.py", line 179, in pytest_runtest_call
+    |     item.runtest()
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\python.py", line 1720, in runtest
+    |     self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_caller.py", line 197, in __call__
+    |     return self._hookexec(
+    |            ^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_manager.py", line 183, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 195, in _multicall
+    |     raise exception
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 167, in _multicall
+    |     teardown.throw(exception)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 64, in run_old_style_hookwrapper
+    |     return result.get_result()
+    |            ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_result.py", line 103, in get_result
+    |     raise exc.with_traceback(tb)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 49, in run_old_style_hookwrapper
+    |     res = yield
+    |           ^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\pluggy\_execution.py", line 147, in _multicall
+    |     res = hook_impl.function(*args)
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\_pytest\python.py", line 166, in pytest_pyfunc_call
+    |     result = testfunction(**testargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_crm_lead_management.py", line 504, in test_website_capture_is_tenant_owned_consent_gated_and_revocable
+    |     assert client.post(path, data=values).status_code == 200
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 555, in post
+    |     return super().post(
+    |            ^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1203, in post
+    |     return self.request(
+    |            ^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 454, in request
+    |     return super().request(
+    |            ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 796, in request
+    |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 979, in send
+    |     response = self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1007, in _send_handling_auth
+    |     response = self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1042, in _send_handling_redirects
+    |     response = self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1075, in _send_single_request
+    |     response = transport.handle_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 356, in handle_request
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 353, in handle_request
+    |     portal.call(self.app, scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 340, in call
+    |     return cast(T_Retval, self.start_task_soon(func, *args).result())
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 456, in result
+    |     return self.__get_result()
+    |            ^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    |     raise self._exception
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 265, in _call_func
+    |     retval = await retval_or_awaitable
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\applications.py", line 1194, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_asgi.py", line 151, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_boundary.py", line 299, in __call__
+    |     return await asyncio.wait_for(asyncio.shield(worker), remaining)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\asyncio\tasks.py", line 520, in wait_for
+    |     return await fut
+    |            ^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\security_headers.py", line 7, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_id.py", line 14, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\audit.py", line 77, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\business_os.py", line 88, in dispatch
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 29, in __call__
+    |     await responder(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 130, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 46, in __call__
+    |     await self.app(scope, receive, self.send_with_compression)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\record_sync.py", line 98, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\rich_text.py", line 22, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\storage.py", line 54, in dispatch
+    |     response = await call_next(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2811, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    |     await self.original_router.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    |     await included_router._handle_selected(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1850, in _handle_selected
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    |     await self.original_router.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    |     await included_router._handle_selected(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1850, in _handle_selected
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    |     await self.original_router.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    |     await included_router._handle_selected(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1865, in _handle_selected
+    |     await original_route.handle(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1328, in handle
+    |     await effective_context.app(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 166, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 152, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 745, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 374, in run_endpoint_function
+    |     return await run_in_threadpool(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\concurrency.py", line 34, in run_in_threadpool
+    |     return await anyio.to_thread.run_sync(func)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\to_thread.py", line 65, in run_sync
+    |     return await get_async_backend().run_sync_in_worker_thread(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2706, in run_sync_in_worker_thread
+    |     return await future
+    |            ^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1100, in run
+    |     result = context.run(func, *args)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_api.py", line 244, in _run_sync_endpoint
+    |     return function(**arguments)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\crm\lead_management.py", line 1070, in submit_capture
+    |     lead = create_lead(
+    |            ^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\crm\lead_management.py", line 797, in create_lead
+    |     duplicate_guard(db, user, "crm", data.get("phone"), data.get("phone_country_code"), data.get("email"), payload.confirmShared, payload.sharedReason)
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\shared\master_data.py", line 253, in duplicate_guard
+    |     matches = permitted_matches(db, actor, source, phone, country_code, email, exclude_kind, exclude_id)
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\shared\master_data.py", line 207, in permitted_matches
+    |     q = db.query(model).filter(model.organization_id == actor.organization_id, model.deleted_at.is_(None))
+    |                                                         ^^^^^^^^^^^^^^^^^^^^^
+    | AttributeError: 'User' object has no attribute 'organization_id'
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\tests\test_crm_lead_management.py", line 504, in test_website_capture_is_tenant_owned_consent_gated_and_revocable
+    assert client.post(path, data=values).status_code == 200
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 555, in post
+    return super().post(
+           ^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1203, in post
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 454, in request
+    return super().request(
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 796, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 979, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1007, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1042, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\httpx2\_client.py", line 1075, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 356, in handle_request
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\testclient.py", line 353, in handle_request
+    portal.call(self.app, scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 340, in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\from_thread.py", line 265, in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\applications.py", line 1194, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_boundary.py", line 299, in __call__
+    return await asyncio.wait_for(asyncio.shield(worker), remaining)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\AppData\Local\Programs\Python\Python312\Lib\asyncio\tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\security_headers.py", line 7, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\request_id.py", line 14, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\audit.py", line 77, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\business_os.py", line 88, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 29, in __call__
+    await responder(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 130, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\gzip.py", line 46, in __call__
+    await self.app(scope, receive, self.send_with_compression)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\record_sync.py", line 98, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\rich_text.py", line 22, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\core\middleware\storage.py", line 54, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1850, in _handle_selected
+    await route.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1850, in _handle_selected
+    await route.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1839, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 2894, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1865, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 1328, in handle
+    await effective_context.app(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\routing.py", line 374, in run_endpoint_function
+    return await run_in_threadpool(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\starlette\concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\fastapi\telemetry\_api.py", line 244, in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\crm\lead_management.py", line 1070, in submit_capture
+    lead = create_lead(
+           ^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\apps\crm\lead_management.py", line 797, in create_lead
+    duplicate_guard(db, user, "crm", data.get("phone"), data.get("phone_country_code"), data.get("email"), payload.confirmShared, payload.sharedReason)
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\shared\master_data.py", line 253, in duplicate_guard
+    matches = permitted_matches(db, actor, source, phone, country_code, email, exclude_kind, exclude_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\app\shared\master_data.py", line 207, in permitted_matches
+    q = db.query(model).filter(model.organization_id == actor.organization_id, model.deleted_at.is_(None))
+                                                        ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'organization_id'
+
+The above exception was the direct cause of the following exception:
+backend\tests\test_crm_lead_management.py:504: in test_website_capture_is_tenant_owned_consent_gated_and_revocable
+    assert client.post(path, data=values).status_code == 200
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\testclient.py:555: in post
+    return super().post(
+backend\venv\Lib\site-packages\httpx2\_client.py:1203: in post
+    return self.request(
+backend\venv\Lib\site-packages\starlette\testclient.py:454: in request
+    return super().request(
+backend\venv\Lib\site-packages\httpx2\_client.py:796: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\httpx2\_client.py:979: in send
+    response = self._send_handling_auth(
+backend\venv\Lib\site-packages\httpx2\_client.py:1007: in _send_handling_auth
+    response = self._send_handling_redirects(
+backend\venv\Lib\site-packages\httpx2\_client.py:1042: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\httpx2\_client.py:1075: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\testclient.py:356: in handle_request
+    raise exc
+backend\venv\Lib\site-packages\starlette\testclient.py:353: in handle_request
+    portal.call(self.app, scope, receive, send)
+backend\venv\Lib\site-packages\anyio\from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+backend\venv\Lib\site-packages\anyio\from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\fastapi\applications.py:1194: in __call__
+    await super().__call__(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\applications.py:90: in __call__
+    await self.middleware_stack(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+backend\venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+backend\venv\Lib\site-packages\fastapi\telemetry\_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+backend\app\core\middleware\request_boundary.py:299: in __call__
+    return await asyncio.wait_for(asyncio.shield(worker), remaining)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python312\Lib\asyncio\tasks.py:520: in wait_for
+    return await fut
+           ^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\core\middleware\security_headers.py:7: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+backend\venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+backend\venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\core\middleware\request_id.py:14: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+backend\venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+backend\venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\core\middleware\audit.py:77: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+backend\venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+backend\venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\core\middleware\business_os.py:88: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+backend\venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+backend\venv\Lib\site-packages\starlette\middleware\gzip.py:29: in __call__
+    await responder(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\middleware\gzip.py:130: in __call__
+    await super().__call__(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\middleware\gzip.py:46: in __call__
+    await self.app(scope, receive, self.send_with_compression)
+backend\venv\Lib\site-packages\starlette\middleware\cors.py:88: in __call__
+    await self.app(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\core\middleware\record_sync.py:98: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+backend\venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+backend\venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\core\middleware\rich_text.py:22: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+backend\venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+backend\venv\Lib\site-packages\starlette\middleware\base.py:193: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\core\middleware\storage.py:54: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\starlette\middleware\base.py:168: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+backend\venv\Lib\site-packages\starlette\middleware\base.py:144: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+backend\venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+backend\venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+backend\venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\routing.py:660: in __call__
+    await self.middleware_stack(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:2811: in app
+    await route.handle(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:1850: in _handle_selected
+    await route.handle(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:1850: in _handle_selected
+    await route.handle(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:1865: in _handle_selected
+    await original_route.handle(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:1328: in handle
+    await effective_context.app(scope, receive, send)
+backend\venv\Lib\site-packages\fastapi\routing.py:166: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+backend\venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+backend\venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+backend\venv\Lib\site-packages\fastapi\routing.py:152: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\fastapi\routing.py:745: in app
+    raw_response = await run_endpoint_function(
+backend\venv\Lib\site-packages\fastapi\routing.py:374: in run_endpoint_function
+    return await run_in_threadpool(
+backend\venv\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+backend\venv\Lib\site-packages\anyio\_backends\_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\fastapi\telemetry\_api.py:244: in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+backend\app\apps\crm\lead_management.py:1070: in submit_capture
+    lead = create_lead(
+backend\app\apps\crm\lead_management.py:797: in create_lead
+    duplicate_guard(db, user, "crm", data.get("phone"), data.get("phone_country_code"), data.get("email"), payload.confirmShared, payload.sharedReason)
+backend\app\shared\master_data.py:253: in duplicate_guard
+    matches = permitted_matches(db, actor, source, phone, country_code, email, exclude_kind, exclude_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\app\shared\master_data.py:207: in permitted_matches
+    q = db.query(model).filter(model.organization_id == actor.organization_id, model.deleted_at.is_(None))
+                                                        ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'User' object has no attribute 'organization_id'
+------------------------------ Captured log call ------------------------------
+WARNING  app.core.security:security.py:48 Token verification failed: DecodeError
+WARNING  app.core.security:security.py:48 Token verification failed: DecodeError
+WARNING  app.core.security:security.py:48 Token verification failed: DecodeError
+ERROR    businesssuite.errors:main.py:196 request_failed request_id=8724ba14-27ff-4507-94bf-6b5450d676f1 error_type=AttributeError
+___ test_product_routing_and_duplicate_numbers_with_different_calling_codes ___
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:757: in test_product_routing_and_duplicate_numbers_with_different_calling_codes
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Enter a valid phone number for the selected country"}
+E   assert 422 == 201
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+_______________ test_viewer_cannot_mutate_dates_or_dependencies _______________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1967: in _exec_single_context
+    self.dialect.do_execute(
+backend\venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlite3.IntegrityError: UNIQUE constraint failed: suite_branch_grants.company_id, suite_branch_grants.user_id, suite_branch_grants.branch_id
+
+The above exception was the direct cause of the following exception:
+backend\tests\test_module_scheduling.py:162: in test_viewer_cannot_mutate_dates_or_dependencies
+    db.commit()
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:2030: in commit
+    trans.commit(_to_root=True)
+<string>:2: in commit
+    ???
+backend\venv\Lib\site-packages\sqlalchemy\orm\state_changes.py:137: in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:1311: in commit
+    self._prepare_impl()
+<string>:2: in _prepare_impl
+    ???
+backend\venv\Lib\site-packages\sqlalchemy\orm\state_changes.py:137: in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:1286: in _prepare_impl
+    self.session.flush()
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:4331: in flush
+    self._flush(objects)
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:4466: in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:121: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:4427: in _flush
+    flush_context.execute()
+backend\venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+backend\venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+backend\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+backend\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:1233: in _emit_insert_statements
+    result = connection.execute(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1419: in execute
+    return meth(
+backend\venv\Lib\site-packages\sqlalchemy\sql\elements.py:527: in _execute_on_connection
+    return connection._execute_clauseelement(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1641: in _execute_clauseelement
+    ret = self._execute_context(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1846: in _execute_context
+    return self._exec_single_context(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1986: in _exec_single_context
+    self._handle_dbapi_exception(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:2363: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1967: in _exec_single_context
+    self.dialect.do_execute(
+backend\venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: suite_branch_grants.company_id, suite_branch_grants.user_id, suite_branch_grants.branch_id
+E   [SQL: INSERT INTO suite_branch_grants (company_id, user_id, branch_id, can_write) VALUES (?, ?, ?, ?)]
+E   [parameters: (1, 1, 1, 0)]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)
+____ test_analytics_counts_shared_assignments_and_time_without_duplication ____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_analytics.py:32: in test_analytics_counts_shared_assignments_and_time_without_duplication
+    assert data['summary']['total']==3
+E   assert 0 == 3
+__________________ test_analytics_access_and_date_validation __________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_analytics.py:59: in test_analytics_access_and_date_validation
+    assert historical['summary']['total']==3
+E   assert 0 == 3
+__________ test_status_updates_record_completion_and_clear_on_reopen __________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_analytics.py:68: in test_status_updates_record_completion_and_clear_on_reopen
+    assert response.status_code==200,response.text
+E   AssertionError: {"detail":"Task not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+______________ test_combined_filters_counts_sort_and_pagination _______________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employee_directory_filters.py:25: in test_combined_filters_counts_sort_and_pagination
+    assert result.json()["total"] == 2
+E   assert 0 == 2
+_____ test_approved_leave_and_date_range_do_not_create_false_report_risk ______
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_management.py:148: in test_approved_leave_and_date_range_do_not_create_false_report_risk
+    assert row['expected_reports']==0 and not any('Missing' in risk for risk in row['risks'])
+E   assert (6 == 0)
+___________________ test_options_export_and_date_validation ___________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employee_directory_filters.py:39: in test_options_export_and_date_validation
+    assert options.json()["city"] == ["Bangalore", "Hyderabad"]
+E   AssertionError: assert [] == ['Bangalore', 'Hyderabad']
+E     
+E     Right contains 2 more items, first extra item: 'Bangalore'
+E     Use -v to get more diff
+___________________ test_search_account_and_deleted_filters ___________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_employee_directory_filters.py:58: in test_search_account_and_deleted_filters
+    assert result.json()["total"] == 1
+E   assert 0 == 1
+___________ test_channels_threads_read_search_files_and_revocation ____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:30: in test_channels_threads_read_search_files_and_revocation
+    assert (
+E   AssertionError: assert 404 == 403
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = post(('/api/v1/project-management/workspaces/1/chat' + '/conversations'), headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM3OTUxNzYsInN1YiI6IjMiLCJ0eXBlIjoiYWNjZXNzIn0.fOMQkC9EqJt_G29NLTmEb6IV8K_y_ZC4i6LjqwVRrqU'}, json={'kind': 'channel', 'name': 'denied'})
+E    +      where post = <starlette.testclient.TestClient object at 0x00000187E98E2810>.post
+______ test_public_archive_pagination_foreign_parent_and_workspace_scope ______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:214: in test_public_archive_pagination_foreign_parent_and_workspace_scope
+    assert client.post(path + "/join", headers=gh).status_code == 403
+E   AssertionError: assert 404 == 403
+E    +  where 404 = <Response [404 Not Found]>.status_code
+E    +    where <Response [404 Not Found]> = post(('/api/v1/project-management/workspaces/1/chat/conversations/1' + '/join'), headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM3OTUxNzksInN1YiI6IjQiLCJ0eXBlIjoiYWNjZXNzIn0.0mQCY_CPtmrca4eXzgDOirNtSqlFWygGOoJiDAPAV1M'})
+E    +      where post = <starlette.testclient.TestClient object at 0x000001878F562A20>.post
+_______________ test_group_owner_transfer_and_guest_management ________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_chat.py:379: in test_group_owner_transfer_and_guest_management
+    admin_id = next(
+E   StopIteration
+_________ test_stage_preview_corrections_loss_reason_and_reactivation _________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_productivity.py:100: in test_stage_preview_corrections_loss_reason_and_reactivation
+    assert plan.status_code==200,plan.text
+E   AssertionError: {"detail":"Deal not found in your permitted scope"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+____________ test_legacy_history_import_is_explicit_and_idempotent ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_management.py:160: in test_legacy_history_import_is_explicit_and_idempotent
+    assert r.json()=={'converted':1,'remaining':0,'errors':[]}
+E   AssertionError: assert {'converted':...remaining': 0} == {'converted':...remaining': 0}
+E     
+E     Omitting 2 identical items, use -vv to show
+E     Differing items:
+E     {'converted': 0} != {'converted': 1}
+E     Use -v to get more diff
+_____________ test_scoped_out_private_profile_is_never_recreated ______________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_cross_module_sharing.py:125: in test_scoped_out_private_profile_is_never_recreated
+    assert response.status_code==404,response.text
+E   AssertionError: {"id":2,"user_id":2,"email":"unassigned-profile@example.com","name":"unassigned-profile","photo_url":null,"role":"User","status":"active","availability":"Available","available_from":null,"employment_status":"Active","workspaces":[],"projects":[],"access_sources":[{"source":"Organization role","role":"User","explanation":"Organization permissions are limited by the assigned company and scope.","scope":"organization role scope","policy_status":"Legacy role permissions","module_enabled":null,"capabilities":[]}],"permissions":{"memberships":false,"profile":true,"suspend":true,"reactivate":true,"offboard":true,"terminate":true},"unavailable_reasons":{"memberships":"A scoped workspace or organization administrator is required.","profile":"Profile fields require HR profile-edit permission within the person's assigned scope.","reactivate":"A Super Admin must reactivate an account disabled outside this organization's scoped PMS lifecycle.","terminate":"Employment termination requires an authorized Admin/HR role and a linked HR employee record.","lifecycle":"Only authorized organization Admin/HR roles can change another non-Super-Admin account. Accounts spanning organizations require a Super Admin."},"profile":{"values":{"phone_number_country_code":null,"phone_number":null,"preferred_display_name":null,"first_name":"Private","last_name":"Person","timezone":"Asia/Kolkata","bio":null},"version":"af32ebec50df1072a94a02a0","canEdit":true,"field_permissions":{"preferred_display_name":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"first_name":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"phone_number_country_code":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"last_name":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"timezone":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"bio":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"phone_number":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"}}},"suspension":null,"history":[]}
+E   assert 200 == 404
+E    +  where 200 = <Response [200 OK]>.status_code
+_______________________ test_fam_branch_create_and_list _______________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_fam_branches.py:15: in test_fam_branch_create_and_list
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Branch access administration is required"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+________ test_fam_srm_posting_rbac_blocks_readonly_users_from_posting _________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_fam_srm_posting_rbac.py:19: in test_fam_srm_posting_rbac_blocks_readonly_users_from_posting
+    assert missing.status_code == 404
+E   assert 403 == 404
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+------------------------------ Captured log call ------------------------------
+WARNING  businesssuite.security:tenant_boundary.py:426 security_event=company_access_denied actor=2 company=1 action=privilege_write resource=users
+______________________ test_hrms_provisions_intern_login ______________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_interns_hub.py:161: in test_hrms_provisions_intern_login
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Complete company setup before continuing: Departments, Designations"}
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+___ test_revoked_financial_permission_and_changed_tenant_cannot_use_history ___
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_assistant.py:357: in test_revoked_financial_permission_and_changed_tenant_cannot_use_history
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Resource is outside the authorized company or writable scope"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+------------------------------ Captured log call ------------------------------
+WARNING  businesssuite.security:tenant_boundary.py:426 security_event=company_access_denied actor=2 company=1 action=privilege_write resource=users
+____ test_intern_cannot_submit_scores_and_dashboard_uses_selected_project _____
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_management.py:188: in test_intern_cannot_submit_scores_and_dashboard_uses_selected_project
+    assert client.get(ROOT+'/dashboard',headers=p['headers']).json()['average_score']==50
+E   assert None == 50
+_______________ test_learning_global_courses_are_tenant_scoped ________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_management.py:198: in test_learning_global_courses_are_tenant_scoped
+    assert 'Own course' in titles and 'Other tenant course' not in titles
+E   AssertionError: assert ('Own course' in [])
+___________ test_groups_are_distinct_from_people_persist_and_filter ___________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_my_work.py:42: in test_groups_are_distinct_from_people_persist_and_filter
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+_____________ test_project_trash_restore_permissions_and_children _____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_project_trash.py:15: in test_project_trash_restore_permissions_and_children
+    row = next(p for p in client.get(BASE+"/projects", headers=headers).json() if p["id"] == pid)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   StopIteration
+_____________ test_savepoint_preview_safety_scope_and_permissions _____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_recovery.py:133: in test_savepoint_preview_safety_scope_and_permissions
+    tid = task(client, pid, mh)
+          ^^^^^^^^^^^^^^^^^^^^^
+backend\tests\test_pms_recovery.py:41: in task
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Project access denied"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+____________ test_event_endpoint_rechecks_membership_after_removal ____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_serverless_files.py:51: in test_event_endpoint_rechecks_membership_after_removal
+    assert events.status_code == 200, events.text
+E   AssertionError: {"detail":"Module access revoked: project_management"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+___ test_employee_sensitive_fields_are_masked_for_manager_but_visible_to_hr ___
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_sensitive_masking.py:32: in test_employee_sensitive_fields_are_masked_for_manager_but_visible_to_hr
+    assert manager_detail.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_ test_company_names_are_available_to_regular_members_across_their_workspaces _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_suite_navigation.py:46: in test_company_names_are_available_to_regular_members_across_their_workspaces
+    primary.name = "Primary member company"
+    ^^^^^^^^^^^^
+E   AttributeError: 'NoneType' object has no attribute 'name'
+________________ test_payroll_pdf_exports_and_formula_preview _________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_top_gap_closure.py:33: in test_payroll_pdf_exports_and_formula_preview
+    assert pdf.status_code == 200
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+______________ test_manager_workflow_inbox_shows_team_approvals _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1967: in _exec_single_context
+    self.dialect.do_execute(
+backend\venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlite3.IntegrityError: UNIQUE constraint failed: security_resource_ownership.resource_table, security_resource_ownership.resource_id
+
+The above exception was the direct cause of the following exception:
+backend\tests\test_workflow_inbox.py:41: in test_manager_workflow_inbox_shows_team_approvals
+    db.flush()
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:4331: in flush
+    self._flush(objects)
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:4466: in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+backend\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:121: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+backend\venv\Lib\site-packages\sqlalchemy\orm\session.py:4427: in _flush
+    flush_context.execute()
+backend\venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+backend\venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+backend\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+backend\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:1048: in _emit_insert_statements
+    result = connection.execute(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1419: in execute
+    return meth(
+backend\venv\Lib\site-packages\sqlalchemy\sql\elements.py:527: in _execute_on_connection
+    return connection._execute_clauseelement(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1641: in _execute_clauseelement
+    ret = self._execute_context(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1846: in _execute_context
+    return self._exec_single_context(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1986: in _exec_single_context
+    self._handle_dbapi_exception(
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:2363: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+backend\venv\Lib\site-packages\sqlalchemy\engine\base.py:1967: in _exec_single_context
+    self.dialect.do_execute(
+backend\venv\Lib\site-packages\sqlalchemy\engine\default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: security_resource_ownership.resource_table, security_resource_ownership.resource_id
+E   [SQL: INSERT INTO security_resource_ownership (resource_table, resource_id, company_id) VALUES (?, ?, ?)]
+E   [parameters: ('leave_types', 9, 1)]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)
+___________ test_backup_supervisor_scope_and_view_only_permissions ____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_workforce_operations.py:195: in test_backup_supervisor_scope_and_view_only_permissions
+    assert client.get(ROOT + "/people", headers=headers).json()["total"] == 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'total'
+=========================== short test summary info ===========================
+FAILED backend\tests\test_employees.py::test_create_employee - assert 409 == 201
+FAILED backend\tests\test_employees.py::test_get_employee - assert 404 == 200
+FAILED backend\tests\test_employees.py::test_update_employee - assert 404 == 200
+FAILED backend\tests\test_employees.py::test_employee_directory_filters_and_team_only
+FAILED backend\tests\test_employees.py::test_create_employee_lifecycle_event
+FAILED backend\tests\test_employees.py::test_lifecycle_event_can_apply_employee_changes
+FAILED backend\tests\test_employees.py::test_hr_cannot_create_employee_login_account
+FAILED backend\tests\test_employees.py::test_login_link_options_only_include_active_accounts
+FAILED backend\tests\test_hr_workbench.py::test_suspend_access_does_not_terminate_employment_and_stale_guard
+FAILED backend\tests\test_hr_workbench.py::test_exit_checklist_reuses_employee_and_does_not_terminate_implicitly
+FAILED backend\tests\test_hr_workbench.py::test_unified_inbox_has_real_sources_waiting_time_and_bulk_failures
+FAILED backend\tests\test_hr_workbench.py::test_scope_and_field_masking_do_not_leak_another_company
+FAILED backend\tests\test_hr_workbench.py::test_bulk_transfer_preview_and_future_application
+FAILED backend\tests\test_hr_workbench.py::test_attendance_correction_respects_lock_and_breaks
+FAILED backend\tests\test_hr_workbench.py::test_managed_hr_can_suspend_in_scope_with_edit_action_without_global_user_admin
+FAILED backend\tests\test_hr_workbench.py::test_existing_account_link_is_reused_and_cannot_be_linked_twice
+FAILED backend\tests\test_hr_workbench.py::test_unified_leave_decision_updates_original_balance
+FAILED backend\tests\test_hr_workbench.py::test_roster_preview_blocks_leave_and_rejects_stale_review
+FAILED backend\tests\test_hr_workbench.py::test_payroll_variance_explains_actual_lines_and_currency
+FAILED backend\tests\test_crm_lead_management.py::test_conversion_reuses_contact_and_blocks_unqualified
+FAILED backend\tests\test_crm_lead_management.py::test_existing_lead_zero_version_edit_and_manual_score_reason
+FAILED backend\tests\test_crm_lead_management.py::test_lead_management_rbac_and_export_visibility
+FAILED backend\tests\test_crm_lead_management.py::test_website_capture_is_tenant_owned_consent_gated_and_revocable
+FAILED backend\tests\test_crm_lead_management.py::test_product_routing_and_duplicate_numbers_with_different_calling_codes
+FAILED backend\tests\test_module_scheduling.py::test_viewer_cannot_mutate_dates_or_dependencies
+FAILED backend\tests\test_pms_analytics.py::test_analytics_counts_shared_assignments_and_time_without_duplication
+FAILED backend\tests\test_pms_analytics.py::test_analytics_access_and_date_validation
+FAILED backend\tests\test_pms_analytics.py::test_status_updates_record_completion_and_clear_on_reopen
+FAILED backend\tests\test_employee_directory_filters.py::test_combined_filters_counts_sort_and_pagination
+FAILED backend\tests\test_intern_management.py::test_approved_leave_and_date_range_do_not_create_false_report_risk
+FAILED backend\tests\test_employee_directory_filters.py::test_options_export_and_date_validation
+FAILED backend\tests\test_employee_directory_filters.py::test_search_account_and_deleted_filters
+FAILED backend\tests\test_pms_chat.py::test_channels_threads_read_search_files_and_revocation
+FAILED backend\tests\test_pms_chat.py::test_public_archive_pagination_foreign_parent_and_workspace_scope
+FAILED backend\tests\test_pms_chat.py::test_group_owner_transfer_and_guest_management
+FAILED backend\tests\test_crm_productivity.py::test_stage_preview_corrections_loss_reason_and_reactivation
+FAILED backend\tests\test_intern_management.py::test_legacy_history_import_is_explicit_and_idempotent
+FAILED backend\tests\test_cross_module_sharing.py::test_scoped_out_private_profile_is_never_recreated
+FAILED backend\tests\test_fam_branches.py::test_fam_branch_create_and_list - ...
+FAILED backend\tests\test_fam_srm_posting_rbac.py::test_fam_srm_posting_rbac_blocks_readonly_users_from_posting
+FAILED backend\tests\test_interns_hub.py::test_hrms_provisions_intern_login
+FAILED backend\tests\test_pms_assistant.py::test_revoked_financial_permission_and_changed_tenant_cannot_use_history
+FAILED backend\tests\test_intern_management.py::test_intern_cannot_submit_scores_and_dashboard_uses_selected_project
+FAILED backend\tests\test_intern_management.py::test_learning_global_courses_are_tenant_scoped
+FAILED backend\tests\test_pms_my_work.py::test_groups_are_distinct_from_people_persist_and_filter
+FAILED backend\tests\test_pms_project_trash.py::test_project_trash_restore_permissions_and_children
+FAILED backend\tests\test_pms_recovery.py::test_savepoint_preview_safety_scope_and_permissions
+FAILED backend\tests\test_serverless_files.py::test_event_endpoint_rechecks_membership_after_removal
+FAILED backend\tests\test_sensitive_masking.py::test_employee_sensitive_fields_are_masked_for_manager_but_visible_to_hr
+FAILED backend\tests\test_suite_navigation.py::test_company_names_are_available_to_regular_members_across_their_workspaces
+FAILED backend\tests\test_top_gap_closure.py::test_payroll_pdf_exports_and_formula_preview
+FAILED backend\tests\test_workflow_inbox.py::test_manager_workflow_inbox_shows_team_approvals
+FAILED backend\tests\test_workforce_operations.py::test_backup_supervisor_scope_and_view_only_permissions
+ERROR backend\tests\test_pms_custom_columns.py::test_shared_columns_native_create_update_batch_and_archive
+ERROR backend\tests\test_pms_custom_columns.py::test_scope_permissions_and_atomic_invalid_values
+ERROR backend\tests\test_pms_custom_columns.py::test_typed_values_and_legacy_fields
+ERROR backend\tests\test_pms_custom_columns.py::test_project_clone_and_recurrence_preserve_custom_columns
+53 failed, 69 passed, 60 warnings, 4 errors in 528.17s (0:08:48)

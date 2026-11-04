@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 from io import BytesIO
 from uuid import uuid4
@@ -21,7 +22,8 @@ def studio(client, db, superuser_headers):
         company = Company(id=1, name="Example Company", address="12 Innovation Road", city="Hyderabad", email="hr@example.com")
         db.add(company)
     db.flush()
-    branch = Branch(name="Main", company_id=1)
+    company.address = company.address or "12 Innovation Road"
+    branch = db.query(Branch).filter_by(company_id=1,is_active=True).order_by(Branch.id).first() or Branch(name="Main", company_id=1)
     db.add(branch); db.flush()
     employee = Employee(employee_id="DOC-001", first_name="Ananya", last_name="Rao", branch_id=branch.id, date_of_joining=date(2026, 6, 1))
     db.add(employee); db.commit()

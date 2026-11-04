@@ -100,14 +100,24 @@ def ensure(client, mid, setup, private, callback, save):
     """Reconcile by callback identity before creating; checkpoint each owned resource."""
     state = private.setdefault("state", {})
     auth = private["secrets"]
-    for retired in list(private.get("retired_channels",[])):
+    for retired in list(private.get("retired_channels", [])):
         if retired.get("resource_id"):
-            client.request("POST",("/drive/v3" if mid=="google_drive" else "/calendar/v3")+"/channels/stop",{"id":retired["id"],"resourceId":retired["resource_id"]},allow=(404,))
-        private["retired_channels"].remove(retired); save()
+            client.request(
+                "POST",
+                ("/drive/v3" if mid == "google_drive" else "/calendar/v3")
+                + "/channels/stop",
+                {"id": retired["id"], "resourceId": retired["resource_id"]},
+                allow=(404,),
+            )
+        private["retired_channels"].remove(retired)
+        save()
     delivery = mode(mid, setup)
-    if mid=="hubspot" and delivery=="native_journal":
-        from app.apps.power_apps.integrations.native_hubspot import ensure as ensure_journal
-        return ensure_journal(client,setup,private,save)
+    if mid == "hubspot" and delivery == "native_journal":
+        from app.apps.power_apps.integrations.native_hubspot import (
+            ensure as ensure_journal,
+        )
+
+        return ensure_journal(client, setup, private, save)
     if delivery in {"native_polling", "native_stream"} or mid == "http":
         state.setdefault("registered_at", iso_after(0))
         save()
@@ -319,10 +329,12 @@ def ensure(client, mid, setup, private, callback, save):
         else:
             path = "/calendar/v3/calendars/" + q(setup["calendar_id"]) + "/events/watch"
             query = None
-        state["requested_expires_at"]=iso_after(6*86400)
+        state["requested_expires_at"] = iso_after(6 * 86400)
         save()
         found = client.request(
-            "POST", path, {
+            "POST",
+            path,
+            {
                 "id": channel,
                 "type": "web_hook",
                 "address": callback,
@@ -457,7 +469,7 @@ def renew(client, mid, setup, private, callback, save):
         # Overlap new and old channels. Retired channels are removed after the new
         # channel is durably recorded, so a failed renewal doesn't stop the old one.
         old = {k: state[k] for k in ("id", "resource_id") if k in state}
-        private.setdefault("retired_channels",[]).append(old)
+        private.setdefault("retired_channels", []).append(old)
         import uuid
 
         private["epoch"] = str(uuid.uuid4())
@@ -476,45 +488,85 @@ def renew(client, mid, setup, private, callback, save):
 
 
 def remove(client, mid, setup, private, *, shared_in_use=False):
-    if mid=="hubspot" and mode(mid,setup)=="native_journal":
-        from app.apps.power_apps.integrations.native_hubspot import remove as remove_journal
-        return remove_journal(client,private,shared_in_use)
+    if mid == "hubspot" and mode(mid, setup) == "native_journal":
+        from app.apps.power_apps.integrations.native_hubspot import (
+            remove as remove_journal,
+        )
+
+        return remove_journal(client, private, shared_in_use)
     state = private.get("state", {})
     id = state.get("id")
     if mid in {"gmail", "google_forms"}:
         return remove_pubsub(client, mid, setup, private, shared_in_use)
     if not id and state.get("registration_started"):
-        callback=state.get("callback")
-        found=None
+        callback = state.get("callback")
+        found = None
         if mid in GRAPH:
-            rows,_=client.collection("/v1.0/subscriptions")
-            found=next((r for r in rows if r.get("notificationUrl")==callback and r.get("clientState")==private["secrets"]["verification"]),None)
-        elif mid=="github":
-            state["path"]=f"/repos/{q(setup['owner'])}/{q(setup['repository'])}/hooks"
-            rows=client.request("GET",state["path"],query={"per_page":100})
-            found=next((r for r in rows if r.get("config",{}).get("url")==callback),None)
-        elif mid=="clickup":
-            rows=client.request("GET",f"/api/v2/team/{q(setup['team_id'])}/webhook").get("webhooks",[])
-            found=next((r for r in rows if r.get("endpoint")==callback),None)
-        elif mid=="box":
-            rows=client.request("GET","/2.0/webhooks",query={"limit":1000}).get("entries",[])
-            found=next((r for r in rows if r.get("address")==callback),None)
-        elif mid=="airtable":
-            state["path"]=f"/v0/bases/{q(setup['base_id'])}/webhooks"
-            rows=client.request("GET",state["path"]).get("webhooks",[])
-            found=next((r for r in rows if r.get("notificationUrl")==callback),None)
-        elif mid=="jira":
-            rows=client.request("GET","/rest/webhooks/1.0/webhook")
-            found=next((r for r in _records(rows,"values") if r.get("url")==callback),None)
-            if found and not found.get("id"): found={**found,"id":found["self"].rstrip("/").split("/")[-1]}
-        elif mid in {"google_drive","google_calendar"}:
-            if state.get("requested_expires_at",iso_after(1))<=iso_after(0): return
-            raise IntegrationFailure("reconcile","Awaiting authenticated channel sync data before Google watch cleanup")
-        elif mid in {"slack","whatsapp_business","zoho_crm"}:
-            found={"id":setup.get("app_id") if mid=="slack" else setup.get("business_account_id") if mid=="whatsapp_business" else str(int(hashlib.sha256(callback.encode()).hexdigest()[:12],16))}
-        id=str(found["id"]) if found else None
-    if mid=="salesforce" and state.get("client_id") and not id: id="stream"
-    if not id: return
+            rows, _ = client.collection("/v1.0/subscriptions")
+            found = next(
+                (
+                    r
+                    for r in rows
+                    if r.get("notificationUrl") == callback
+                    and r.get("clientState") == private["secrets"]["verification"]
+                ),
+                None,
+            )
+        elif mid == "github":
+            state["path"] = f"/repos/{q(setup['owner'])}/{q(setup['repository'])}/hooks"
+            rows = client.request("GET", state["path"], query={"per_page": 100})
+            found = next(
+                (r for r in rows if r.get("config", {}).get("url") == callback), None
+            )
+        elif mid == "clickup":
+            rows = client.request(
+                "GET", f"/api/v2/team/{q(setup['team_id'])}/webhook"
+            ).get("webhooks", [])
+            found = next((r for r in rows if r.get("endpoint") == callback), None)
+        elif mid == "box":
+            rows = client.request("GET", "/2.0/webhooks", query={"limit": 1000}).get(
+                "entries", []
+            )
+            found = next((r for r in rows if r.get("address") == callback), None)
+        elif mid == "airtable":
+            state["path"] = f"/v0/bases/{q(setup['base_id'])}/webhooks"
+            rows = client.request("GET", state["path"]).get("webhooks", [])
+            found = next(
+                (r for r in rows if r.get("notificationUrl") == callback), None
+            )
+        elif mid == "jira":
+            rows = client.request("GET", "/rest/webhooks/1.0/webhook")
+            found = next(
+                (r for r in _records(rows, "values") if r.get("url") == callback), None
+            )
+            if found and not found.get("id"):
+                found = {**found, "id": found["self"].rstrip("/").split("/")[-1]}
+        elif mid in {"google_drive", "google_calendar"}:
+            if state.get("requested_expires_at", iso_after(1)) <= iso_after(0):
+                return
+            raise IntegrationFailure(
+                "reconcile",
+                "Awaiting authenticated channel sync data before Google watch cleanup",
+            )
+        elif mid in {"slack", "whatsapp_business", "zoho_crm"}:
+            found = {
+                "id": (
+                    setup.get("app_id")
+                    if mid == "slack"
+                    else (
+                        setup.get("business_account_id")
+                        if mid == "whatsapp_business"
+                        else str(
+                            int(hashlib.sha256(callback.encode()).hexdigest()[:12], 16)
+                        )
+                    )
+                )
+            }
+        id = str(found["id"]) if found else None
+    if mid == "salesforce" and state.get("client_id") and not id:
+        id = "stream"
+    if not id:
+        return
     if mid in GRAPH:
         client.request("DELETE", "/v1.0/subscriptions/" + q(id), allow=(404, 410))
     elif mid == "github":

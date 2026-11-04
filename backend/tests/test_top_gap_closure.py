@@ -1,7 +1,8 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import PayrollRecord, PayrollRun, SalaryComponent, SalaryStructure, SalaryStructureComponent
 from app.models.timesheet import Project, Timesheet

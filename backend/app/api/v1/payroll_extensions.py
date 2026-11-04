@@ -575,7 +575,8 @@ def validate_bank_details(run_id: Optional[int] = Query(None), db: Session = Dep
     if run_id:
         employee_ids = {row[0] for row in db.query(PayrollRecord.employee_id).filter(PayrollRecord.payroll_run_id == run_id).all()}
         employees = [employee for employee in employees if employee.id in employee_ids]
-    db.query(PayrollBankValidation).filter(PayrollBankValidation.payroll_run_id == run_id).delete(synchronize_session=False)
+    for validation in db.query(PayrollBankValidation).filter(PayrollBankValidation.payroll_run_id == run_id).all():
+        db.delete(validation)
     seen_accounts: dict[str, int] = {}
     results = []
     for employee in employees:
@@ -1110,7 +1111,8 @@ def generate_gratuity_accruals(run_id: int, db: Session = Depends(get_db), curre
     if wage_days_divisor <= 0:
         raise HTTPException(status_code=400, detail="Active GratuityRule has invalid wage_days_divisor")
 
-    db.query(GratuityAccrual).filter(GratuityAccrual.payroll_run_id == run_id).delete(synchronize_session=False)
+    for accrual in db.query(GratuityAccrual).filter(GratuityAccrual.payroll_run_id == run_id).all():
+        db.delete(accrual)
     records = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id).all()
     employees = {
         employee.id: employee

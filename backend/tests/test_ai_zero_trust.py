@@ -38,8 +38,22 @@ def secured(client, db):
         status="New",
     )
     db.add(lead)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, lead)
     db.commit()
     return headers, user, project, task, lead
+
+
+def sealed_history(client, db, headers, lead, title, content):
+    """Use the real capture API so history has ownership and a source-bound seal."""
+    from app.ai_agents.models import AiAgent
+    agent = db.query(AiAgent).filter_by(code="crm_lead_qualification").one()
+    created = client.post("/api/v1/ai-agents/conversations", headers=headers, json={"agent_id": agent.id, "module": "CRM", "title": title, "related_entity_type": "lead", "related_entity_id": str(lead.id)})
+    assert created.status_code == 200, created.text
+    ident = created.json()["id"]
+    message = client.post(f"/api/v1/ai-agents/conversations/{ident}/messages", headers=headers, json={"content": content})
+    assert message.status_code == 200, message.text
+    return db.get(AiConversation, ident)
 
 
 @pytest.mark.parametrize(
@@ -299,23 +313,7 @@ def test_company_and_permission_changes_hide_cached_history(client, db, secured)
     headers, user, _, _, lead = secured
     from app.ai_agents.models import AiAgent, AiMessage
 
-    agent = db.query(AiAgent).filter_by(code="crm_lead_qualification").one()
-    conversation = AiConversation(
-        user_id=user.id,
-        agent_id=agent.id,
-        module="CRM",
-        title="Private authorized history",
-    )
-    db.add(conversation)
-    db.flush()
-    db.add(
-        AiMessage(
-            conversation_id=conversation.id,
-            role="assistant",
-            content="Restricted historical answer",
-        )
-    )
-    db.commit()
+    conversation = sealed_history(client, db, headers, lead, "Private authorized history", "Restricted historical answer")
     response = client.get(
         f"/api/v1/ai-agents/conversations/{conversation.id}", headers=headers
     )
@@ -507,23 +505,7 @@ def test_owner_reassignment_invalidates_cached_history(
     headers, user, _, _, lead = secured
     from app.ai_agents.models import AiAgent, AiMessage
 
-    agent = db.query(AiAgent).filter_by(code="crm_lead_qualification").one()
-    row = AiConversation(
-        user_id=user.id,
-        agent_id=agent.id,
-        module="CRM",
-        title="Ownership sensitive history",
-    )
-    db.add(row)
-    db.flush()
-    db.add(
-        AiMessage(
-            conversation_id=row.id,
-            role="assistant",
-            content="Previously authorized customer details",
-        )
-    )
-    db.commit()
+    row = sealed_history(client, db, headers, lead, "Ownership sensitive history", "Previously authorized customer details")
     assert (
         client.get(
             f"/api/v1/ai-agents/conversations/{row.id}", headers=headers

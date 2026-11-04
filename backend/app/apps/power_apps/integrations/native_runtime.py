@@ -119,7 +119,11 @@ def prepare(db, row, trigger, state, module_id, setup, enabled, provider_secrets
             "retired": retained,
             "secrets": {
                 "verification": secrets.token_urlsafe(24),
-                **{key:value for key,value in previous.get("secrets",{}).items() if key in specs.SECRET_FIELDS.get(module_id,{})},
+                **{
+                    key: value
+                    for key, value in previous.get("secrets", {}).items()
+                    if key in specs.SECRET_FIELDS.get(module_id, {})
+                },
                 **provider_secrets,
             },
         }
@@ -128,12 +132,18 @@ def prepare(db, row, trigger, state, module_id, setup, enabled, provider_secrets
         private["secrets"]["verification"] = secrets.token_urlsafe(24)
     missing = [
         key
-        for key in specs.secret_fields(module_id,setup)
+        for key in specs.secret_fields(module_id, setup)
         if not private["secrets"].get(key)
     ]
     if "cloud_service_account" in provider_secrets:
-        private["secrets"].pop("cloud_access_token",None)
-        private["secrets"].pop("cloud_token_until",None)
+        private["secrets"].pop("cloud_access_token", None)
+        private["secrets"].pop("cloud_token_until", None)
+    if (
+        module_id == "hubspot"
+        and {"client_id", "client_secret"} & provider_secrets.keys()
+    ):
+        private["secrets"].pop("journal_access_token", None)
+        private["secrets"].pop("journal_token_until", None)
     if missing and enabled:
         raise HTTPException(
             422, "Provide native provider credentials: " + ", ".join(missing)
@@ -219,13 +229,26 @@ def public_config(trigger):
     }
 
 
-def _store_delivery(db,trigger,native,message_id,payload):
+def _store_delivery(db, trigger, native, message_id, payload):
     from app.apps.power_apps.runtime_triggers import trigger_identity
     from app.access.service import background_scope
-    actor=trigger_identity(db,trigger)
-    with background_scope(db,actor,"power_apps","create",branch_id=trigger.config.get("branch_id")):
+
+    actor = trigger_identity(db, trigger)
+    with background_scope(
+        db, actor, "power_apps", "create", branch_id=trigger.config.get("branch_id")
+    ):
         with db.begin_nested():
-            db.add(NativeDelivery(**scope_values(trigger),trigger_id=trigger.id,epoch=native["epoch"],message_id=message_id,encrypted_payload=payload,status="pending",next_at=now()))
+            db.add(
+                NativeDelivery(
+                    **scope_values(trigger),
+                    trigger_id=trigger.id,
+                    epoch=native["epoch"],
+                    message_id=message_id,
+                    encrypted_payload=payload,
+                    status="pending",
+                    next_at=now()
+                )
+            )
             db.flush()
 
 
@@ -267,8 +290,11 @@ def receive(db, *, endpoint=None, module_id=None, app_id=None, query, headers, b
             if answer is not None:
                 return answer
             events.verify(mid, private, headers, body, data)
-        except (AttributeError,TypeError,ValueError,KeyError):
-            if endpoint: raise HTTPException(401,"Invalid native provider notification") from None
+        except (AttributeError, TypeError, ValueError, KeyError):
+            if endpoint:
+                raise HTTPException(
+                    401, "Invalid native provider notification"
+                ) from None
             continue
         except HTTPException as exc:
             if endpoint:
@@ -277,7 +303,7 @@ def receive(db, *, endpoint=None, module_id=None, app_id=None, query, headers, b
                 continue
             raise
         accepted = True
-        if not trigger.enabled:
+        if not trigger.enabled and mid not in {"google_drive", "google_calendar"}:
             continue
         # Hint bodies can repeat across real changes (Graph doesn't provide event
         # IDs). Deduplicate hints briefly; hydrated revision IDs deduplicate runs.
@@ -286,6 +312,7 @@ def receive(db, *, endpoint=None, module_id=None, app_id=None, query, headers, b
             "google_calendar",
             "airtable",
             "jira",
+            "zoho_crm",
         }
         identity = body + (str(int(time.time() // 10)).encode() if hint else b"")
         if mid in {"google_drive", "google_calendar"}:
@@ -341,7 +368,7 @@ def receive(db, *, endpoint=None, module_id=None, app_id=None, query, headers, b
             .decode()
         )
         try:
-            _store_delivery(db,trigger,native,message_id,payload)
+            _store_delivery(db, trigger, native, message_id, payload)
         except IntegrityError:
             continue
         if not native.get("lease_until") or native["lease_until"] <= now().isoformat():
@@ -374,6 +401,7 @@ def _shared_in_use(db, trigger, mid, setup):
         ):
             continue
         keys = {
+            "hubspot": ["object_type", "watched_fields"],
             "slack": ["app_id"],
             "whatsapp_business": ["business_account_id"],
             "google_forms": ["form_id"],
@@ -395,10 +423,43 @@ def _matching(trigger, event):
     return True
 
 
+def _adopt_google_sync(db, trigger, private):
+    state = private.get("state", {})
+    if state.get("id") or not state.get("registration_started"):
+        return
+    deliveries = (
+        db.query(NativeDelivery)
+        .filter(
+            NativeDelivery.trigger_id == trigger.id,
+            NativeDelivery.encrypted_payload.is_not(None),
+        )
+        .order_by(NativeDelivery.id.desc())
+        .limit(50)
+        .all()
+    )
+    for delivery in deliveries:
+        payload = json.loads(cipher().decrypt(delivery.encrypted_payload.encode()))
+        headers = payload.get("headers", {})
+        if headers.get("x-goog-channel-id") == private["epoch"] and headers.get(
+            "x-goog-resource-id"
+        ):
+            state.update(
+                id=private["epoch"],
+                resource_id=headers["x-goog-resource-id"],
+                expires_at=state.get(
+                    "requested_expires_at", subscriptions.iso_after(3600)
+                ),
+            )
+            return
+
+
 def _source_poll(client, mid, setup, private):
-    if mid=="hubspot" and specs.mode(mid,setup)=="native_journal":
+    if mid == "outlook" and private["state"].get("needs_resync"):
+        return sources.recover_mail(client, setup, private), []
+    if mid == "hubspot" and specs.mode(mid, setup) == "native_journal":
         from app.apps.power_apps.integrations.native_hubspot import poll
-        return poll(client,setup,private),[]
+
+        return poll(client, setup, private), []
     if (
         mid in {"dropbox", "google_drive", "onedrive"}
         or mid == "sharepoint"
@@ -593,6 +654,8 @@ def tick(db, limit=1):
                 # Retire old publications/connections before provisioning replacements.
                 while private.get("retired"):
                     retired = private["retired"][0]
+                    if retired["module_id"] in {"google_drive", "google_calendar"}:
+                        _adopt_google_sync(db, trigger, retired["private"])
                     old_conn = vault.connection(
                         db,
                         actor,
@@ -610,6 +673,8 @@ def tick(db, limit=1):
                     )
                     private["retired"].pop(0)
                     checkpoint()
+                if mid in {"google_drive", "google_calendar"}:
+                    _adopt_google_sync(db, trigger, private)
                 if removing:
                     subscriptions.remove(
                         client,
@@ -671,6 +736,20 @@ def tick(db, limit=1):
                     if specs.mode(mid, setup) == "native_webhook"
                     else ""
                 )
+                if (
+                    mid in specs.GRAPH
+                    and private["state"].get("needs_reauthorize")
+                    and private["state"].get("id")
+                ):
+                    client.request(
+                        "POST",
+                        "/v1.0/subscriptions/"
+                        + subscriptions.q(private["state"]["id"])
+                        + "/reauthorize",
+                        {},
+                    )
+                    private["state"].pop("needs_reauthorize", None)
+                    checkpoint()
                 subscriptions.ensure(client, mid, setup, private, callback, checkpoint)
                 queued = []
                 processed = []

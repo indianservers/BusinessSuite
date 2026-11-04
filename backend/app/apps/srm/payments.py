@@ -4,7 +4,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
@@ -15,14 +15,45 @@ from app.apps.srm.services.commercial import require, invoice_for, invoice_query
 router = APIRouter()
 
 
-def summary(db, invoice):
-    ctx = db.get(InvoiceContext, invoice.id)
+def summary(db, invoice, contexts=None):
+    from app.apps.srm.services.collections import collection_on_hold
+    ctx = db.get(InvoiceContext, invoice.id) if contexts is None else contexts.get(invoice.id)
     return {"id": invoice.id, "invoice_number": invoice.invoice_number, "customer_id": invoice.customer_id,
         "seller_id": ctx.seller_id if ctx else (invoice.organization_id or 1), "currency": invoice.currency,
         "total_amount": invoice.total_amount, "paid_amount": invoice.paid_amount, "balance_amount": invoice.balance_amount,
         "document_status": "cancelled" if invoice.status == "cancelled" else "draft" if invoice.status in {"draft", "pending_approval"} else "issued",
         "payment_status": "not_payable" if invoice.status == "cancelled" else "paid" if invoice.balance_amount == 0 else "partially_paid" if invoice.paid_amount else "unpaid",
-        "delivery_status": "sent" if invoice.sent_at else "not_sent", "project_id": ctx.project_id if ctx else None}
+        "delivery_status": "sent" if invoice.sent_at else "not_sent", "project_id": ctx.project_id if ctx else None,
+        "collection_hold": collection_on_hold(invoice), "collection_hold_reason": invoice.collection_hold_reason,
+        "collection_resume_at": invoice.collection_resume_at}
+
+
+class CollectionControlInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    hold: bool
+    reason: str = Field(min_length=3, max_length=500)
+    resume_at: datetime | None = None
+
+
+@router.put("/collections/{invoice_id}/control")
+def collection_control(invoice_id: int, data: CollectionControlInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.apps.srm.api.router import _audit
+    require(user, "srm_collection_create", "srm_admin")
+    invoice = invoice_for(db, invoice_id, user, lock=True)
+    if data.resume_at and (not data.hold or data.resume_at.tzinfo is None or data.resume_at <= datetime.now(timezone.utc)):
+        raise HTTPException(422, "A scheduled resume requires a hold and a future timestamp with timezone")
+    before = {"hold": invoice.collection_hold, "reason": invoice.collection_hold_reason}
+    invoice.collection_hold = data.hold
+    invoice.collection_hold_reason = data.reason
+    invoice.collection_resume_at = data.resume_at if data.hold else None
+    # Pending intents are deferred by the shared delivery policy so resuming a
+    # dispute can safely continue them. Delivered history remains immutable.
+    db.add(SRMInvoiceHistory(invoice_id=invoice.id, from_status=invoice.status, to_status=invoice.status,
+        actor_user_id=user.id, notes=f"Collections {'paused' if data.hold else 'resumed'}: {data.reason}"))
+    _audit(db, user, 'invoice', invoice.id, 'collection_control_updated', before=before,
+        after={"hold": data.hold, "reason": data.reason, "resume_at": data.resume_at.isoformat() if data.resume_at else None})
+    db.commit()
+    return summary(db, invoice)
 
 
 @router.get("/business/collection-invoices")
@@ -30,12 +61,13 @@ def collection_invoices(db: Session = Depends(get_db), user: User = Depends(get_
     require(user, "srm_collection_view", "srm_collection_create", "srm_admin")
     names = {p.name for p in (permission_objects(user))}
     rows = invoice_query(db, user).order_by(SRMInvoice.id.desc()).limit(200).all()
-    return {"items": [summary(db, r) for r in rows], "can_record": user.is_superuser or bool(names.intersection({"srm_collection_create", "srm_admin"}))}
+    contexts = {row.invoice_id: row for row in db.query(InvoiceContext).filter(InvoiceContext.invoice_id.in_([r.id for r in rows])).all()} if rows else {}
+    return {"items": [summary(db, r, contexts) for r in rows], "can_record": user.is_superuser or bool(names.intersection({"srm_collection_create", "srm_admin"}))}
 
 
 class PaymentInput(BaseModel):
     request_id: UUID
-    amount: Decimal
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
     reference: str = Field("", max_length=120)
     payment_method: str = Field("bank_transfer", max_length=60)
     receipt_date: date | None = None
@@ -48,6 +80,9 @@ def record_payment(invoice_id: int, data: PaymentInput, db: Session = Depends(ge
     invoice = invoice_for(db, invoice_id, user, lock=True)
     previous = db.query(ReceiptContext).filter_by(invoice_id=invoice_id, request_id=str(data.request_id)).first()
     if previous:
+        receipt = db.get(SRMReceipt, previous.receipt_id)
+        if receipt.amount != data.amount or (receipt.reference_number or "") != data.reference or receipt.payment_method != data.payment_method or (data.receipt_date and receipt.receipt_date != data.receipt_date):
+            raise HTTPException(409, "Payment request key was already used with different details")
         return {"receipt_id": previous.receipt_id, "invoice": summary(db, invoice), "reversed": bool(previous.reversed_at)}
     amount = money(data.amount).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
     if amount <= 0 or amount > Decimal(invoice.balance_amount or 0) or invoice.status in {"draft", "pending_approval", "cancelled"}:

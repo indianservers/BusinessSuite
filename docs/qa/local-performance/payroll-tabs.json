@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "tab": "Inputs",
+      "requests": [
+        "/api/v1/payroll/employee-options",
+        "/api/v1/payroll/setup/pay-groups",
+        "/api/v1/statutory-compliance/legal-entities",
+        "/api/v1/payroll/setup/periods",
+        "/api/v1/hrms/payroll/lwp-feed"
+      ]
+    },
+    {
+      "tab": "Statutory",
+      "requests": [
+        "/api/v1/payroll/statutory/pf-rules",
+        "/api/v1/payroll/statutory/esi-rules",
+        "/api/v1/payroll/statutory/pt-slabs",
+        "/api/v1/payroll/statutory/lwf-slabs",
+        "/api/v1/payroll/statutory/gratuity-rules",
+        "/api/v1/payroll/statutory/challans"
+      ]
+    },
+    {
+      "tab": "Payslip Viewer",
+      "requests": [
+        "/api/v1/employees/"
+      ]
+    },
+    {
+      "tab": "Payroll Tools",
+      "requests": [
+        "/api/v1/payroll/department-options",
+        "/api/v1/payroll/components",
+        "/api/v1/payroll/payslip-queries",
+        "/api/v1/payroll/salary-advances",
+        "/api/v1/payroll/bonus-policies"
+      ]
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,24 @@
+Actual app and Google Drive acceptance checks
+
+PASS Google Drive folders configured and cloud routing enabled for all seven modules
+PASS CRM create uploads verified bytes to its Google Drive folder
+PASS CRM read downloads original bytes through native authorized link
+PASS CRM update moves app folder without changing original cloud file or bytes
+PASS PMS task create uploads verified bytes to its Google Drive folder
+PASS PMS read downloads original bytes through native authorized link
+PASS PMS update preserves attachment content and Google Drive locator
+PASS HRMS employee document create uses its Google Drive folder
+PASS Actual generated spreadsheet export downloads successfully with storage archiving
+PASS CRM delete hides QA attachment and denies its native download while retaining cloud data
+PASS PMS delete hides QA attachment and denies its native download while retaining cloud data
+PASS Actual Settings UI shows cloud folders and Google Drive file register without JavaScript errors
+PASS Native CRM quotation PDF generates, archives in Google Drive and downloads after cloud staging cleanup
+PASS Private PMS note attachment uploads to Google Drive and downloads with native note permissions
+PASS Private PMS note attachment delete and restore preserves original cloud content
+PASS Generated spreadsheet is indexed as a verified Google Drive cloud object
+PASS CRM browser upload form sends actual generated PDF to Google Drive
+
+Preservation: 200 of 200 existing files unchanged.
+Google Drive account: andhraguy@gmail.com. Cloud routing enabled with module folders under Business Suite.
+Delete checks soft-delete native attachments and preserve cloud originals.
+PASS Actual PMS project browser form uploads PNG image to Google Drive. Total: 18 cloud acceptance checks passed.

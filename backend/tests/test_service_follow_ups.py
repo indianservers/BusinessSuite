@@ -12,6 +12,8 @@ def setup(db):
     u = User(email='follow-up@example.com', hashed_password='unused', is_active=True, is_superuser=True)
     db.add(u)
     db.flush()
+    from tests.tenant_test_utils import assign_company
+    assign_company(db, u, 1)
     c = CRMCompany(organization_id=1, name='Service customer')
     p = SRMProduct(organization_id=1, sku='FOLLOW-SERVICE', item_name='Consultation', product_type='service', active=True, track_inventory=False)
     db.add_all([c, p])
@@ -66,6 +68,22 @@ def test_reminders_are_persistent_and_duplicate_safe(db, setup):
     dispatch(db)
     assert db.query(FollowUpReminder).count() == 2
     assert statistics(db, u)['Overdue'] == 1
+
+
+@pytest.mark.parametrize('status', ['Accepted', 'Rejected', 'Declined', 'Cancelled', 'Superseded', 'Expired'])
+def test_terminal_quote_stops_follow_up_notifications(db, setup, status):
+    from app.apps.crm.models import CRMQuotation
+    u, c, p = setup
+    quote = CRMQuotation(organization_id=1, quote_number='FOLLOW-QUOTE', company_id=c.id,
+        issue_date=datetime.now().date(), expiry_date=datetime.now().date(), status=status)
+    db.add(quote)
+    db.flush()
+    row = create(db, u, data(c, p, type='date', due_at=datetime.now(timezone.utc)-timedelta(hours=1)))
+    row.quotation_id = quote.id
+    db.flush()
+    dispatch(db)
+    assert db.query(FollowUpReminder).count() == 0
+    assert row.status == 'Scheduled'  # Preserve the task and its history for review.
 
 def test_cross_tenant_links_and_visibility(db, setup):
     u, c, p = setup
@@ -150,6 +168,8 @@ def test_pos_order_creates_follow_up_once_on_retry(client, db, superuser_headers
     from tests.tenant_test_utils import assign_company
     from app.main import app
     u = db.query(User).filter_by(email='testadmin@test.com').one()
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, u)
     assign_company(db, u, 1)
     b = Branch(company_id=1, name='POS follow-up', code='POSFU')
     db.add(b)

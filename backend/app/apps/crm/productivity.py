@@ -319,6 +319,7 @@ def save_shared_view(data:SharedView,db:Session=Depends(get_db),user:User=Depend
 def stage_requirements(db,deal,stage,values=None):
     values=values or {}
     settings=lm.config(db,deal.organization_id).get("dealStageGuidance",{}).get(str(stage.id),{})
+    settings={**settings,**(stage.policy_json or {})}
     required=[f for f in settings.get("required",[]) if f in {"company_id","contact_id","amount","expected_close_date","next_follow_up_at","lead_source"}]
     missing=[f for f in required if values.get(f,getattr(deal,f,None)) in (None,"",0)]
     if stage.is_lost or (stage.stage_type or "").lower()=="lost":
@@ -331,7 +332,7 @@ def deal_stage_plan(ident:int,db:Session=Depends(get_db),user:User=Depends(Requi
     record=rows(db,user,"deals").filter(CRMDeal.id==ident).first()
     if not record:raise HTTPException(404,"Deal not found in your permitted scope")
     stages=db.query(CRMPipelineStage).filter_by(pipeline_id=record.pipeline_id,organization_id=record.organization_id,deleted_at=None).order_by(CRMPipelineStage.position).all()
-    return {"version": record.version, "current_stage_id":record.stage_id,"values":{f:str(getattr(record,f) or "") for f in ("company_id","contact_id","amount","expected_close_date","next_follow_up_at","lead_source")},"stages":[{"id":s.id,"name":s.name,"is_won":s.is_won,"is_lost":s.is_lost,"probability":s.probability,**stage_requirements(db,record,s)} for s in stages]}
+    return {"version": record.version, "current_stage_id":record.stage_id,"values":{f:str(getattr(record,f) or "") for f in ("company_id","contact_id","amount","expected_close_date","next_follow_up_at","lead_source")},"stages":[{"id":s.id,"name":s.name,"is_won":s.is_won,"is_lost":s.is_lost,"probability":s.probability,"approval_required":bool((s.policy_json or {}).get("approval_required")),**stage_requirements(db,record,s)} for s in stages]}
 
 
 class StageMove(Strict):

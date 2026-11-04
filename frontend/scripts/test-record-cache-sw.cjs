@@ -12,7 +12,7 @@ const path = require('node:path');
   keys:async()=>[...entries.keys()].map(url=>new Request(url)),
   delete:async request=>entries.delete(key(request)),
  };
- const caches={open:async()=>{if(storageDenied)throw Error('Storage disabled');return cache;},keys:async()=>['business-suite-shell-v3','another-app-cache','business-suite-shell-v4'],delete:async name=>{deleted.push(name);return true;},match:cache.match};
+ const caches={open:async()=>{if(storageDenied)throw Error('Storage disabled');return cache;},keys:async()=>['business-suite-shell-v3','another-app-cache','business-suite-shell-v4','business-suite-shell-v5'],delete:async name=>{deleted.push(name);return true;},match:cache.match};
  const fetch=async request=>{requests++;if(offline)throw Error('Offline');const url=new URL(key(request));return new Response(url.pathname==='/'?'shell':'asset',{headers:{'cache-control':url.pathname.includes('app-config')||url.pathname.includes('private')?'no-store':'public, max-age=0'}});};
  const sandbox={self:{location:{origin},addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting(){},clients:{claim(){}}},caches,fetch,URL,Response};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../public/sw.js'),'utf8'),sandbox);
@@ -21,7 +21,7 @@ const path = require('node:path');
  await lifecycle('install');
  assert.ok(entries.has(origin+'/'),'offline shell is eligible');
  assert.ok(!entries.has(origin+'/app-config.js'),'no-store shell responses must not persist');
- await lifecycle('activate');assert.deepEqual(deleted,['business-suite-shell-v3'],'other apps caches are preserved');
+ await lifecycle('activate');assert.deepEqual(deleted,['business-suite-shell-v3','business-suite-shell-v4'],'other apps caches are preserved');
  const beforeApi=requests;assert.equal(await read('/api/v1/employees'),undefined);assert.equal(requests,beforeApi,'authenticated API responses bypass service worker cache');
  const beforeAsset=requests;assert.equal(await (await read('/assets/app-hash.js')).text(),'asset');assert.equal(await (await read('/assets/app-hash.js')).text(),'asset');assert.equal(requests,beforeAsset+1,'hashed assets reuse cache');
  const beforePrivate=requests;await read('/assets/private-hash.js');await read('/assets/private-hash.js');assert.equal(requests,beforePrivate+2,'no-store asset responses are not cached');

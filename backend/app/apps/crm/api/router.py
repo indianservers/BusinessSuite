@@ -27,7 +27,8 @@ from urllib.parse import urlparse
 import httpx
 from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
+from app.core.storage import FileResponse, persist_file
 from app.core.reorder import OrderInput, apply_order
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import asc, case, desc, func, or_
@@ -590,6 +591,8 @@ CUSTOM_FIELD_TYPES = {
     "datetime",
     "dropdown",
     "multi_select",
+    "radio",
+    "combobox",
     "checkbox",
     "email",
     "phone",
@@ -2827,6 +2830,8 @@ def _custom_fields_for(db: Session, entity: str, record_id: int, organization_id
 def _custom_field_columns_for_rows(db: Session, entity: str, rows: list[Any], organization_id: int) -> list[dict[str, Any]]:
     if not rows:
         return []
+    from app.branches.presentation import prefetch_branch_names
+    prefetch_branch_names(db,rows)
     if entity not in CUSTOM_FIELD_SUPPORTED_ENTITIES:
         return [_serialize(row) for row in rows]
     fields = _custom_field_definitions(db, entity, organization_id, include_hidden=False)
@@ -2879,11 +2884,12 @@ def _custom_field_storage(field: CRMCustomField, value: Any) -> dict[str, Any]:
         "value_boolean": None,
         "value_json": None,
     }
-    if value is None or value == "":
+    if value is None or value == "" or isinstance(value, list) and not value:
         if field.is_required:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} is required")
         return data
-    options = [str(item) for item in (field.options_json or [])] if isinstance(field.options_json, list) else []
+    from app.apps.crm.custom_field_config import option_values
+    options = [str(item) for item in option_values(field.options_json)]
     if field_type in {"number", "currency", "decimal", "integer", "user", "owner"}:
         try:
             data["value_number"] = Decimal(str(value))
@@ -2905,7 +2911,7 @@ def _custom_field_storage(field: CRMCustomField, value: Any) -> dict[str, Any]:
             data["value_boolean"] = value
         else:
             data["value_boolean"] = str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
-    elif field_type in {"dropdown", "select"}:
+    elif field_type in {"dropdown", "select", "radio", "combobox"}:
         text = str(value)
         if options and text not in options:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} must be one of: {', '.join(options)}")
@@ -2987,7 +2993,7 @@ def _validate_required_custom_fields(db: Session, entity: str, record_id: int | 
                 .filter(CRMCustomFieldValue.custom_field_id == field.id, CRMCustomFieldValue.record_id == record_id)
                 .first()
             )
-            if _custom_field_value(existing) not in {None, ""}:
+            if _custom_field_value(existing) is not None and _custom_field_value(existing) != "" and _custom_field_value(existing) != []:
                 continue
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{field.label} is required")
 
@@ -3548,7 +3554,7 @@ def _upload_path_from_url(url: str | None) -> str | None:
 
 
 def _quotation_pdf_file_path(quotation: CRMQuotation) -> tuple[str, str, str]:
-    file_name = f"{_safe_file_part(quotation.quote_number)}-{quotation.id}.pdf"
+    file_name = f"{_safe_file_part(quotation.quote_number)}-{quotation.id}-v{quotation.version_number or 1}-{secrets.token_hex(8)}.pdf"
     pdf_dir = os.path.join(settings.UPLOAD_DIR, "crm", "quotations", str(quotation.organization_id or "global"))
     os.makedirs(pdf_dir, exist_ok=True)
     file_path = os.path.join(pdf_dir, file_name)
@@ -3570,8 +3576,13 @@ def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_i
     contact = _get_record(db, _get_resource("contacts"), quotation.contact_id, organization_id) if quotation.contact_id else None
     items = db.query(CRMQuotationItem).filter(CRMQuotationItem.quotation_id == quotation.id).all()
     currency = quotation.currency or "INR"
+    from app.shared.form_defaults import document_defaults, document_date, document_money
+    defaults = document_defaults(db, organization_id, "crm", "quotation", quotation.id)
+    layout = defaults.get("quote_template", "standard")
+    format_money = lambda value, code: document_money(value, code, defaults)
 
     styles = getSampleStyleSheet()
+    if layout == "compact": styles["Normal"].fontSize = 9; styles["Normal"].leading = 11
     styles.add(ParagraphStyle(name="Right", parent=styles["Normal"], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name="Small", parent=styles["Normal"], fontSize=8, leading=10, textColor=colors.HexColor("#475569")))
     styles.add(ParagraphStyle(name="Section", parent=styles["Heading3"], fontSize=11, leading=14, spaceAfter=6, textColor=colors.HexColor("#0f172a")))
@@ -3609,8 +3620,8 @@ def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_i
         customer_lines.append("Customer details not linked")
     quote_meta = [
         f"<b>Quotation No:</b> {_pdf_markup(quotation.quote_number)}",
-        f"<b>Issue Date:</b> {_pdf_markup(quotation.issue_date.isoformat() if quotation.issue_date else None)}",
-        f"<b>Expiry Date:</b> {_pdf_markup(quotation.expiry_date.isoformat() if quotation.expiry_date else None)}",
+        f"<b>Issue Date:</b> {_pdf_markup(document_date(quotation.issue_date, defaults))}",
+        f"<b>Expiry Date:</b> {_pdf_markup(document_date(quotation.expiry_date, defaults))}",
         f"<b>Status:</b> {_pdf_markup(quotation.status)}",
     ]
     details = Table(
@@ -3640,13 +3651,13 @@ def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_i
         table_data.append([
             Paragraph(f"<b>{_pdf_markup(item.name)}</b><br/><font size='8'>{_pdf_markup(item.description, '')}</font>", styles["Small"]),
             _pdf_text(item.quantity, "0"),
-            _money(rate, currency),
-            _money(discount, currency),
-            Paragraph(f"{tax_rate}%<br/>{_money(tax, currency)}", styles["Small"]),
-            _money(total, currency),
+            format_money(rate, currency),
+            format_money(discount, currency),
+            Paragraph(f"{tax_rate}%<br/>{format_money(tax, currency)}", styles["Small"]),
+            format_money(total, currency),
         ])
     if len(table_data) == 1:
-        table_data.append([Paragraph("No line items recorded", styles["Small"]), "0", _money(0, currency), _money(0, currency), _money(0, currency), _money(quotation.total_amount, currency)])
+        table_data.append([Paragraph("No line items recorded", styles["Small"]), "0", format_money(0, currency), format_money(0, currency), format_money(0, currency), format_money(quotation.total_amount, currency)])
 
     item_table = Table(table_data, colWidths=[2.55 * inch, 0.45 * inch, 0.95 * inch, 0.95 * inch, 0.95 * inch, 0.95 * inch], repeatRows=1)
     item_table.setStyle(TableStyle([
@@ -3667,10 +3678,10 @@ def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_i
     total = quotation.total_amount if quotation.total_amount is not None else computed_total
     totals = Table(
         [
-            ["Subtotal", _money(subtotal, currency)],
-            ["Discount", _money(discount, currency)],
-            ["Tax", _money(tax, currency)],
-            [Paragraph("<b>Total</b>", styles["Normal"]), Paragraph(f"<b>{_money(total, currency)}</b>", styles["Right"])],
+            ["Subtotal", format_money(subtotal, currency)],
+            ["Discount", format_money(discount, currency)],
+            ["Tax", format_money(tax, currency)],
+            [Paragraph("<b>Total</b>", styles["Normal"]), Paragraph(f"<b>{format_money(total, currency)}</b>", styles["Right"])],
         ],
         colWidths=[1.4 * inch, 1.4 * inch],
         hAlign="RIGHT",
@@ -3682,10 +3693,21 @@ def _generate_quotation_pdf(db: Session, quotation: CRMQuotation, organization_i
     story.extend([Paragraph("Terms and Conditions", styles["Section"]), Paragraph(_pdf_markup(terms), styles["Small"]), Spacer(1, 0.35 * inch)])
     signature = Table([["", "Authorized Signature"], ["", "Name / Date"]], colWidths=[4.2 * inch, 2.4 * inch])
     signature.setStyle(TableStyle([("LINEABOVE", (1, 0), (1, 0), 0.8, colors.HexColor("#0f172a")), ("ALIGN", (1, 0), (1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("TEXTCOLOR", (0, 1), (1, 1), colors.HexColor("#64748b"))]))
+    if layout == "detailed":
+        story.append(Paragraph(f"Payment terms: {defaults.get('payment_terms_days', 30)} days", styles["Small"]))
+    if defaults.get("bank_details"):
+        bank = defaults["bank_details"]
+        story.append(Paragraph(_pdf_markup("Bank: " + " · ".join(str(bank.get(key) or "") for key in ("bank_name", "branch_name", "account_number_masked", "ifsc"))), styles["Small"]))
+    if defaults.get("payment_method"):
+        story.append(Paragraph(_pdf_markup("Payment method: " + defaults["payment_method"]), styles["Small"]))
     story.append(signature)
 
     doc = SimpleDocTemplate(file_path, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36, title=f"Quotation {quotation.quote_number}")
-    doc.build(story)
+    def document_metadata(canvas, _doc):
+        from reportlab.pdfbase.pdfdoc import PDFString
+        canvas._doc.Catalog.Lang = PDFString(defaults.get("language", "en"))
+    doc.build(story, onFirstPage=document_metadata, onLaterPages=document_metadata)
+    persist_file(file_path, db=db, company=organization_id, module="crm", filename=file_name)
 
     quotation.pdf_url = file_url
     quotation.pdf_file_name = file_name
@@ -3712,20 +3734,35 @@ def _decimal_value(value: Any) -> Decimal:
 
 
 def _apply_quote_line_calculation(line: CRMQuotationItem) -> None:
-    quantity = _decimal_value(line.quantity or 1)
-    unit_price = _decimal_value(line.unit_price)
-    base = quantity * unit_price
-    discount_value = _decimal_value(getattr(line, "discount_value", None) if getattr(line, "discount_value", None) is not None else line.discount_amount)
+    from app.apps.srm.services.commercial import money
+    cent = Decimal("0.01")
+    quantity = money(line.quantity if line.quantity is not None else 1).quantize(cent, rounding=ROUND_HALF_UP)
+    unit_price = money(line.unit_price).quantize(cent, rounding=ROUND_HALF_UP)
+    if quantity <= 0:
+        raise HTTPException(422, "Quotation quantity must be positive")
+    base = (quantity * unit_price).quantize(cent, rounding=ROUND_HALF_UP)
+    discount_value = money(getattr(line, "discount_value", None) if getattr(line, "discount_value", None) is not None else line.discount_amount).quantize(cent, rounding=ROUND_HALF_UP)
     if str(getattr(line, "discount_type", "") or "").lower() in {"percent", "percentage"}:
         discount_amount = base * discount_value / Decimal("100")
     else:
         discount_amount = discount_value
+    discount_amount = discount_amount.quantize(cent, rounding=ROUND_HALF_UP)
+    if discount_amount > base or (str(getattr(line, "discount_type", "") or "").lower() in {"percent", "percentage"} and discount_value > 100):
+        raise HTTPException(422, "Quotation discount cannot exceed the line value")
     taxable = base - discount_amount
-    tax_rate = _decimal_value(getattr(line, "tax_rate", 0))
-    tax_amount = taxable * tax_rate / Decimal("100")
+    tax_rate = money(getattr(line, "tax_rate", 0)).quantize(cent, rounding=ROUND_HALF_UP)
+    if tax_rate > 100:
+        raise HTTPException(422, "Quotation tax rate must be between 0 and 100")
+    tax_amount = (taxable * tax_rate / Decimal("100")).quantize(cent, rounding=ROUND_HALF_UP)
     total = taxable + tax_amount
-    cost = _decimal_value(getattr(line, "estimated_cost", 0))
+    if base > Decimal("9999999999.99") or total > Decimal("9999999999.99"):
+        raise HTTPException(422, "Quotation amount exceeds supported limits")
+    cost = money(getattr(line, "estimated_cost", 0)).quantize(cent, rounding=ROUND_HALF_UP)
     margin = total - cost
+    line.quantity = quantity
+    line.unit_price = unit_price
+    line.tax_rate = tax_rate
+    line.estimated_cost = cost
     line.discount_amount = discount_amount
     line.discount_value = discount_value
     line.line_total = total
@@ -3742,12 +3779,15 @@ def _recalculate_quote(db: Session, quotation: CRMQuotation) -> dict[str, Any]:
     estimated_cost = Decimal("0")
     for line in _quote_lines(db, quotation.id):
         _apply_quote_line_calculation(line)
-        subtotal += _decimal_value(line.quantity or 1) * _decimal_value(line.unit_price)
+        base = (_decimal_value(line.quantity) * _decimal_value(line.unit_price)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        subtotal += base
         discount_total += _decimal_value(line.discount_amount)
-        tax_total += (_decimal_value(line.quantity or 1) * _decimal_value(line.unit_price) - _decimal_value(line.discount_amount)) * _decimal_value(getattr(line, "tax_rate", 0)) / Decimal("100")
+        tax_total += _decimal_value(line.line_total) - (base - _decimal_value(line.discount_amount))
         grand_total += _decimal_value(line.line_total)
         estimated_cost += _decimal_value(line.estimated_cost)
     margin = grand_total - estimated_cost
+    if subtotal > Decimal("9999999999.99") or grand_total > Decimal("9999999999.99"):
+        raise HTTPException(422, "Quotation amount exceeds supported limits")
     quotation.subtotal = subtotal
     quotation.discount_amount = discount_total
     quotation.discount_total = discount_total
@@ -4457,12 +4497,34 @@ def _duplicate_groups(db: Session, organization_id: int, resource_name: str, tar
         if left_root != right_root:
             parent[right_root] = left_root
 
-    for index, left in enumerate(records):
-        for right in records[index + 1 :]:
-            score, reasons, fields = _duplicate_pair_reasons(left, right, resource_name, custom_values)
-            if score:
-                union(left.id, right.id)
-                pair_meta[(left.id, right.id)] = {"score": score, "reasons": reasons, "fields": fields}
+    def compare(left, right):
+        score, reasons, fields = _duplicate_pair_reasons(left, right, resource_name, custom_values)
+        if score:
+            union(left.id, right.id)
+            pair_meta[(left.id, right.id)] = {"score": score, "reasons": reasons, "fields": fields}
+        return bool(score)
+
+    if target_id is None:
+        for index, left in enumerate(records):
+            for right in records[index + 1 :]:
+                compare(left, right)
+    else:
+        # A record detail only needs its connected component. Follow matching
+        # neighbours transitively, retaining the same pairs/reasons as a full scan.
+        pending = [target_id] if target_id in records_by_id else []
+        reached = set(pending)
+        compared = set()
+        for current in pending:
+            for candidate in records:
+                if current == candidate.id:
+                    continue
+                key = tuple(sorted((current, candidate.id)))
+                if key in compared:
+                    continue
+                compared.add(key)
+                if compare(records_by_id[key[0]], records_by_id[key[1]]) and candidate.id not in reached:
+                    reached.add(candidate.id)
+                    pending.append(candidate.id)
 
     grouped_ids: dict[int, list[int]] = {}
     for record in records:
@@ -4548,6 +4610,9 @@ def _merge_related_records(db: Session, organization_id: int, resource_name: str
         for model, label in ((CRMActivity, "activities"), (CRMEmailLog, "emails"), (CRMMessage, "messages"), (CRMNoteMention, "mentions"), (CRMEnrichmentLog, "enrichment"), (CRMApprovalRequest, "approvals")):
             update_count(label, move_related(db.query(model).filter(model.organization_id == organization_id, model.entity_type == entity_type, model.entity_id.in_(loser_ids)), model, {"entity_id": winner_id}))
         update_count("timeline", move_related(db.query(CRMTimelineEvent).filter(CRMTimelineEvent.organization_id == organization_id, CRMTimelineEvent.record_type == entity_type, CRMTimelineEvent.record_id.in_(loser_ids)), CRMTimelineEvent, {"record_id": winner_id}))
+    if resource_name == "leads":
+        from app.apps.project_management.task_record_links import merge_links
+        merge_links(db, 'lead', winner_id, loser_ids)
     if resource_name == "contacts":
         from app.apps.crm.contact_identity import ContactIdentityLink, add_tags, tags as contact_tags
         from app.shared.master_data_merge import merge_contact_extensions
@@ -6171,7 +6236,7 @@ def list_custom_fields(
     entityType: str | None = None,
     entity: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS)),
 ):
     organization_id = _organization_id(db, current_user)
     query = _base_query(db, _get_resource("custom-fields"), organization_id)
@@ -6179,6 +6244,17 @@ def list_custom_fields(
         query = query.filter(CRMCustomField.entity == _normalize_custom_field_entity(entityType or entity))
     rows = query.order_by(asc(CRMCustomField.entity), asc(CRMCustomField.position), asc(CRMCustomField.label)).all()
     return {"items": [_serialize(row) for row in rows], "total": len(rows), "page": 1, "per_page": len(rows), "pages": 1 if rows else 0}
+
+
+@router.post("/custom-fields/reorder")
+def reorder_custom_fields(payload: OrderInput, entity: str, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("crm_manage", "crm_admin"))):
+    _assert_entity_permission("custom-fields", current_user, "manage")
+    org = _organization_id(db, current_user)
+    canonical = _normalize_custom_field_entity(entity)
+    rows = _base_query(db, _get_resource("custom-fields"), org).filter(CRMCustomField.entity == canonical).order_by(CRMCustomField.position, CRMCustomField.label).with_for_update().all()
+    apply_order(rows, payload, "position")
+    db.commit()
+    return {"items": [_serialize(row) for row in rows]}
 
 
 @router.post("/quotes/{quote_id}/lines/reorder")
@@ -6389,12 +6465,35 @@ def new_quote_version(
 ):
     _assert_entity_permission("quotations", current_user, "manage")
     quote = _get_record(db, _get_resource("quotations"), quote_id, _organization_id(db, current_user))
-    snapshot = _quote_payload(db, quote)
+    # Keep each revision self-contained without recursively embedding every
+    # earlier revision and its snapshots in the next one.
+    snapshot = {key: value for key, value in _quote_payload(db, quote).items() if key != "versions"}
     version = CRMQuoteVersion(organization_id=quote.organization_id, quote_id=quote.id, version_number=(quote.version_number or 1), snapshot_json=snapshot, created_by_user_id=current_user.id)
     db.add(version)
     quote.version_number = (quote.version_number or 1) + 1
     quote.status = "Draft"
     quote.approval_status = "not_submitted"
+    quote.approved_by = None
+    quote.approved_at = None
+    quote.sent_at = None
+    quote.accepted_at = None
+    quote.declined_at = None
+    quote.pdf_url = None
+    quote.pdf_file_name = None
+    quote.pdf_status = None
+    quote.pdf_generated_at = None
+    quote.pdf_generated_by_user_id = None
+    quote.updated_by_user_id = current_user.id
+    quote.updated_at = datetime.now(timezone.utc)
+    for approval in db.query(CRMQuoteApproval).filter_by(quote_id=quote.id, status="pending"):
+        approval.status = "superseded"
+        approval.decided_at = datetime.now(timezone.utc)
+    _create_crm_audit_log(db, user_id=current_user.id, entity_type="quotations", entity_id=quote.id,
+        action="QUOTATION_REVISED", old_values={"version_number": version.version_number},
+        new_values={"version_number": quote.version_number}, description="Prior revision retained; fresh approval required")
+    _create_timeline_activity(db, organization_id=quote.organization_id or _organization_id(db, current_user),
+        entity_type="quotation", entity_id=quote.id, activity_type="quotation_revised",
+        title=f"Quotation revision {quote.version_number}", body="Previous revision retained in version history.", user_id=current_user.id)
     db.commit()
     db.refresh(version)
     db.refresh(quote)
@@ -6672,6 +6771,116 @@ def _win_loss_payload(db: Session, organization_id: int, deals: list[CRMDeal], s
             for deal in closed
         ],
     }
+
+
+@router.put("/pipelines/{pipeline_id}/configuration")
+def save_pipeline_configuration(
+    pipeline_id: int,
+    payload: CRMRecordPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_pipeline_manage", "crm_manage", "crm_admin")),
+):
+    """Commit the horizontal editor as one transaction, with stale-draft detection."""
+    _assert_entity_permission("pipelines", current_user, "manage")
+    org = _organization_id(db, current_user)
+    pipeline = _get_record(db, _get_resource("pipelines"), pipeline_id, org)
+    db.query(CRMPipeline).filter_by(id=pipeline.id, organization_id=org).with_for_update().one()
+    existing = db.query(CRMPipelineStage).filter_by(pipeline_id=pipeline.id, organization_id=org, deleted_at=None).order_by(CRMPipelineStage.position, CRMPipelineStage.id).with_for_update().all()
+    raw = payload.model_dump()
+    fields = ("name", "probability", "color", "is_won", "is_lost", "position")
+    expected = raw.get("expected_stages")
+    if isinstance(expected,list) and any(isinstance(row,dict) and "policy_json" in row for row in expected): fields = (*fields,"policy_json")
+    snapshot = [{"id": row.id, **{key: getattr(row, key) for key in fields}} for row in existing]
+    expected_matches = isinstance(expected, list) and len(expected) == len(snapshot) and all(isinstance(row, dict) for row in expected) and {str(row.get("id")): row for row in expected} == {str(row["id"]): row for row in snapshot}
+    if not expected_matches or raw.get("expected_name") != pipeline.name:
+        raise HTTPException(409, "Pipeline changed while you were editing. Reload settings before saving.")
+    name = str(raw.get("name") or "").strip()
+    drafts = raw.get("stages")
+    if not name or len(name) > 160 or not isinstance(drafts, list) or not drafts or len(drafts) > 100:
+        raise HTTPException(422, "Enter a pipeline name and between 1 and 100 stages")
+    if any(not isinstance(row, dict) for row in drafts) or not isinstance(raw.get("remap", {}), dict):
+        raise HTTPException(422, "Invalid stage configuration")
+    names = [str(row.get("name") or "").strip() for row in drafts]
+    if any(not value or len(value) > 120 for value in names) or len({value.casefold() for value in names}) != len(names):
+        raise HTTPException(422, "Stage names must be nonempty and unique (120 characters maximum)")
+    by_id = {str(row.id): row for row in existing}
+    keys = [str(row.get("id") or "") for row in drafts]
+    if len(set(keys)) != len(keys) or any(key not in by_id and not key.startswith("new:") for key in keys):
+        raise HTTPException(422, "Stages must belong to this pipeline")
+    retained = set(keys) & set(by_id)
+    removed = set(by_id) - retained
+    remap = raw.get("remap") or {}
+    from app.apps.crm.deal_workspace import StagePolicy
+    policies = {}
+    for draft in drafts:
+        try:
+            previous_policy = (by_id.get(str(draft.get("id"))).policy_json or {}) if str(draft.get("id")) in by_id else {}
+            policies[str(draft.get("id"))] = StagePolicy.model_validate({**previous_policy, "required": draft.get("required", previous_policy.get("required", [])), "approval_required": draft.get("approval_required",previous_policy.get("approval_required",False)), "stagnation_days":draft.get("aging_days",previous_policy.get("stagnation_days",14)), "wip_limit":draft.get("wip_limit",previous_policy.get("wip_limit")), "notify_owner":draft.get("notify_owner",previous_policy.get("notify_owner",False))}).model_dump()
+        except Exception: raise HTTPException(422, "Invalid stage requirements, capacity or aging threshold")
+        probability = draft.get("probability", 0)
+        if not isinstance(probability, (int, float)) or not 0 <= probability <= 100 or int(probability) != probability:
+            raise HTTPException(422, "Probability must be an integer from 0 to 100")
+        if draft.get("outcome", "open") not in {"open", "won", "lost"}:
+            raise HTTPException(422, "Invalid stage outcome")
+        if draft.get("color") and (not isinstance(draft["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", draft["color"])):
+            raise HTTPException(422, "Use a six-digit hex stage color")
+    def outcome(row):
+        return "won" if row.is_won else "lost" if row.is_lost else "open"
+    drafts_by_id = dict(zip(keys, drafts))
+    moves = []
+    for key, stage in by_id.items():
+        deals = db.query(CRMDeal).filter_by(organization_id=org, pipeline_id=pipeline.id, stage_id=stage.id).all()
+        if key in retained:
+            if deals and outcome(stage) != drafts_by_id[key].get("outcome", "open"):
+                raise HTTPException(409, "Cannot change the outcome of a stage containing deals. Move those deals through their workflow first.")
+        elif deals:
+            target = str(remap.get(key) or "")
+            if target not in retained or drafts_by_id[target].get("outcome", "open") != outcome(stage):
+                raise HTTPException(409, "Choose a retained replacement stage with the same outcome for existing deals")
+            moves.append((stage, by_id[target], deals))
+    # Keep transition policies valid; a configuration edit must not silently bypass them.
+    for stage in existing:
+        allowed = (stage.policy_json or {}).get("allowed_stage_ids", [])
+        if str(stage.id) in retained and any(str(ident) in removed for ident in allowed):
+            raise HTTPException(409, "Update stage transition policies before deleting a referenced stage")
+    now = datetime.now(timezone.utc)
+    # Temporary names allow swapping two names under the unique pipeline/name constraint.
+    for row in existing:
+        row.name = f"__pipeline_edit_{row.id}_{now.timestamp()}"
+    db.flush()
+    for index, draft in enumerate(drafts):
+        key = str(draft["id"])
+        row = by_id.get(key)
+        if row is None:
+            row = CRMPipelineStage(pipeline_id=pipeline.id, organization_id=org, created_by_user_id=current_user.id)
+            db.add(row)
+        row.name = names[index]
+        row.probability = int(draft.get("probability", 0))
+        row.position = row.order_index = index + 1
+        row.color = draft.get("color") or "#278a48"
+        row.policy_json = policies[key]
+        row.stage_type = draft.get("outcome", "open")
+        row.is_won = row.stage_type == "won"
+        row.is_lost = row.stage_type == "lost"
+        row.updated_by_user_id = current_user.id
+        row.updated_at = now
+    for key in removed:
+        by_id[key].deleted_at = now
+        by_id[key].active = False
+    for source, target, deals in moves:
+        for deal in deals:
+            deal.stage_id = target.id
+            deal.updated_by_user_id = current_user.id
+            deal.updated_at = now
+            if hasattr(deal, "version"):
+                deal.version = (deal.version or 1) + 1
+            _create_crm_audit_log(db, user_id=current_user.id, entity_type="deals", entity_id=deal.id, action="UPDATE", old_values={"stage_id": source.id}, new_values={"stage_id": target.id}, description="Pipeline editor stage remap")
+    pipeline.name = name
+    pipeline.updated_by_user_id = current_user.id
+    pipeline.updated_at = now
+    _create_crm_audit_log(db, user_id=current_user.id, entity_type="pipelines", entity_id=pipeline.id, action="UPDATE", old_values={"stages": snapshot}, new_values={"name": name, "stages": drafts, "remap": remap}, description="Pipeline configuration saved")
+    db.commit()
+    return {"message": "Pipeline saved", "id": pipeline.id}
 
 
 @router.post("/pipeline-stages/reorder")
@@ -8367,7 +8576,10 @@ def replace_deal_contacts(
 ):
     organization_id = _organization_id(db, current_user)
     deal = _get_record(db, _get_resource("deals"), deal_id, organization_id)
-    db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.deal_id == deal.id).delete(synchronize_session=False)
+    _assert_record_visible(db, _get_resource("deals"), deal_id, organization_id, current_user)
+    # Unit-of-work deletion preserves branch ownership and relationship validation.
+    for contact_link in db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.deal_id == deal.id).all():
+        db.delete(contact_link)
     db.flush()
     _create_deal_contact_links_from_payload(db, deal, [item.model_dump(exclude_unset=True) for item in payload.contacts], organization_id, current_user.id)
     _sync_deal_primary_contact(db, deal)
@@ -8698,7 +8910,8 @@ def create_record(
     if resource.model in {CRMProduct, CRMService}:
         from app.shared.catalog import save_legacy
         return save_legacy(db, current_user, "products" if resource.model is CRMProduct else "services", _validate_and_build(resource, payload.model_dump(exclude_unset=True), partial=False))
-    raw_payload = payload.model_dump()
+    from app.shared.form_defaults import creation_values
+    raw_payload = creation_values(db, current_user, entity, payload.model_dump())
     branch_capture = None
     if resource.model in {CRMContact, CRMCompany}:
         from app.shared.branch_availability import capture_availability
@@ -8740,6 +8953,8 @@ def create_record(
     if "organization_id" in columns:
         data["organization_id"] = organization_id
     if resource.model is CRMCustomField:
+        from app.apps.crm.custom_field_config import validate_config
+        validate_config(data)
         existing = (
             _base_query(db, resource, organization_id, include_deleted=True)
             .filter(CRMCustomField.entity == data.get("entity"), CRMCustomField.field_key == data.get("field_key"))
@@ -8795,6 +9010,9 @@ def create_record(
             raise
         _assert_record_visible(db, resource, existing.id, organization_id, current_user, include_deleted=True)
         return _serialize(existing)
+    if resource.model is CRMQuotation:
+        from app.shared.form_defaults import capture_document_defaults
+        capture_document_defaults(db, organization_id, "crm", "quotation", record.id, current_user)
     if resource.model in {CRMActivity, CRMTask, CRMNote, CRMCallLog, CRMMeeting, CRMEmailLog} and getattr(record, "deal_id", None):
         linked = _get_record(db, _get_resource("deals"), record.deal_id, organization_id)
         linked.last_activity_at = datetime.now(timezone.utc)
@@ -8829,7 +9047,10 @@ def create_record(
     if branch_capture is not None:
         from app.shared.branch_availability import save_profile_availability
         save_profile_availability(db, current_user, record, branch_capture, action="create")
-    if resource.model is CRMDeal: db.flush()
+    if resource.model is CRMDeal:
+        from app.shared.pipeline_workspace import stage_entry
+        stage_entry(db, current_user, "crm", "deal", record.id, None, record.stage_id, record.owner_user_id, f"pipeline:{record.pipeline_id}")
+        db.flush()
     else: db.commit()
     db.refresh(record)
     _create_related_timeline_event(db, entity, _serialize(record), organization_id, current_user.id)
@@ -8915,6 +9136,9 @@ def update_record(
         _sync_activity_link_fields(data)
     if "organization_id" in data and data["organization_id"] != organization_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot move CRM records across organizations")
+    if resource.model is CRMCustomField:
+        from app.apps.crm.custom_field_config import validate_config
+        validate_config(data, record)
     if resource.model is CRMCustomField and ("entity" in data or "field_key" in data):
         next_entity = data.get("entity", record.entity)
         next_key = data.get("field_key", record.field_key)
@@ -8972,7 +9196,9 @@ def update_record(
     if canonical in CUSTOM_FIELD_SUPPORTED_ENTITIES:
         _save_custom_field_values(db, canonical, record.id, organization_id, current_user.id, custom_values)
     if resource.model is CRMDeal and deal_contacts_payload is not None:
-        db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.deal_id == record.id).delete(synchronize_session=False)
+        # Unit-of-work deletion preserves branch ownership and relationship validation.
+        for contact_link in db.query(CRMDealContact).filter(CRMDealContact.organization_id == organization_id, CRMDealContact.deal_id == record.id).all():
+            db.delete(contact_link)
         db.flush()
         _create_deal_contact_links_from_payload(db, record, deal_contacts_payload, organization_id, current_user.id)
         _sync_deal_primary_contact(db, record)
@@ -9022,6 +9248,9 @@ def update_record(
     if resource.model is CRMDeal and changed_audit:
         from app.apps.crm.deal_workspace import notify_watchers
         notify_watchers(db, record, current_user)
+    if resource.model is CRMDeal and before.get("stage_id") != record.stage_id:
+        from app.shared.pipeline_workspace import stage_entry
+        stage_entry(db, current_user, "crm", "deal", record.id, before.get("stage_id"), record.stage_id, record.owner_user_id, f"pipeline:{record.pipeline_id}")
     for event_type in _event_types_for_update(canonical, before, record, data):
         _enqueue_webhook_event(db, organization_id, event_type, _serialize(record), current_user.id, {"changedFields": sorted(data)})
     db.commit()
@@ -9075,10 +9304,11 @@ def delete_record(
             remap_stage = _get_record(db, _get_resource("pipeline-stages"), remap_stage_id, organization_id)
             if remap_stage.pipeline_id != record.pipeline_id:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Remap stage must belong to the same pipeline")
-            _base_query(db, _get_resource("deals"), organization_id).filter(CRMDeal.stage_id == record.id).update(
-                {"stage_id": remap_stage.id, "pipeline_id": remap_stage.pipeline_id, "updated_by_user_id": current_user.id, "updated_at": datetime.now(timezone.utc)},
-                synchronize_session=False,
-            )
+            for deal in _base_query(db, _get_resource("deals"), organization_id).filter(CRMDeal.stage_id == record.id).with_for_update().all():
+                deal.stage_id = remap_stage.id
+                deal.pipeline_id = remap_stage.pipeline_id
+                deal.updated_by_user_id = current_user.id
+                deal.updated_at = datetime.now(timezone.utc)
     columns = _columns(resource.model)
     if resource.soft_delete and "deleted_at" in columns:
         record.deleted_at = datetime.now(timezone.utc)

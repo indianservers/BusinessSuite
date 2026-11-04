@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from test_identity_utils import attach_test_identity
 from datetime import date, timedelta
 
@@ -133,3 +134,25 @@ def test_holiday_bulk_create_and_write_permissions(client, db, superuser_headers
     read = client.get("/api/v1/holidays", params={"year": holiday_date.year}, headers=reader_headers)
     assert read.status_code == 200
     assert {"Holiday One", "Holiday Two"}.issubset({item["name"] for item in read.json()})
+
+
+def test_holiday_cross_company_targets_are_rejected_atomically(client, db, superuser_headers):
+    from app.models.company import Company
+    from test_identity_utils import own_workflow_records
+    foreign = Company(name="Foreign calendar company")
+    db.add(foreign); db.flush()
+    branch = Branch(company_id=foreign.id, name="Foreign calendar branch")
+    db.add(branch); db.flush()
+    employee = Employee(employee_id="FOREIGN-HOLIDAY",first_name="Foreign",last_name="Calendar",
+        date_of_joining=date.today(),branch_id=branch.id)
+    db.add(employee); db.flush()
+    attendance = Attendance(employee_id=employee.id,attendance_date=date.today(),status="Absent")
+    db.add(attendance)
+    own_workflow_records(db,employee,attendance,company_id=foreign.id)
+    db.commit()
+    response = client.post("/api/v1/holidays", headers=superuser_headers, json={"name":"Invalid foreign holiday",
+        "holiday_date":str(date.today()),"holiday_type":"Regional","applicable_branches":[branch.id]})
+    assert response.status_code == 403, response.text
+    db.refresh(attendance)
+    assert attendance.status == "Absent"
+    assert db.query(Holiday).filter_by(name="Invalid foreign holiday").count() == 0

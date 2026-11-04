@@ -115,7 +115,9 @@ def test_company_reader_cannot_create_or_access_hr(client, db, superuser_headers
     from app.branches.models import BranchGrant
     headers = _headers_for_permissions(client, db, "company-reader@example.com", ["crm_companies_view"])
     user = db.query(User).filter_by(email="company-reader@example.com").one()
-    db.add(BranchGrant(company_id=1,user_id=user.id,branch_id=directory_identity.id,can_write=False));db.commit()
+    grant = db.query(BranchGrant).filter_by(company_id=1,user_id=user.id,branch_id=directory_identity.id).one()
+    grant.can_write = False
+    db.commit()
     response = client.get(ROOT + "/companies", headers=headers)
     assert response.status_code == 200, response.text
     assert response.json()["canCreate"] is False

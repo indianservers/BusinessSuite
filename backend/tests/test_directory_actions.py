@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from tests.test_people_workspace import directory_data, studio, account, middleware_database, organization_context, ROOT
 from app.apps.project_management.models import PMSWorkspaceMember, PMSWorkspaceTeam, PMSWorkspaceTeamMember, PMSTask
 from app.apps.project_management.models import PMSProjectMember

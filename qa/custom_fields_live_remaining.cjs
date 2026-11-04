@@ -1,0 +1,3 @@
+const {spawn}=require('node:child_process');
+const jobs=[['qa/custom_fields_live_quote.cjs',[],{}],['qa/custom_fields_live_suite.cjs',['additional'],{CF_CHECK_FILTER:'Lead drawer edit|Classic lead edit|CRM task detail'}],['qa/custom_fields_live_suite.cjs',['hr-pms'],{CF_CHECK_FILTER:'PMS task inline'}],['qa/custom_fields_live_custom.cjs',[],{}],['qa/custom_fields_live.cjs',['crm'],{CF_CHECK_FILTER:'Contact create|deals detail'}]];
+(async()=>{for(const [file,args,env] of jobs){console.log('RUN',file,args.join(' '));const code=await new Promise(r=>{const p=spawn(process.execPath,[file,...args],{stdio:'inherit',env:{...process.env,CF_CHECK_FILTER:'',...env}});p.on('exit',r);});console.log('EXIT',code);}})().catch(e=>{console.error(e);process.exitCode=1;});

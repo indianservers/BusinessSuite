@@ -65,7 +65,10 @@ class NativeClient:
     ):
         host = host or self.host
         if host != self.host and bearer is None:
-            raise IntegrationFailure("credential","A native infrastructure request requires its own credential")
+            raise IntegrationFailure(
+                "credential",
+                "A native infrastructure request requires its own credential",
+            )
         if host not in self.hosts or not path.startswith("/") or path.startswith("//"):
             raise IntegrationFailure("egress", "Native request origin is not approved")
         url = "https://" + host + path

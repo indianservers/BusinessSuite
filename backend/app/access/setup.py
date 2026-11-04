@@ -98,9 +98,16 @@ def module_requirements(db, company_id, modules):
             ("leave-types", "Leave types", "Before applying for leave", "/settings/leaveTypes", LeaveType),
             ("salary-components", "Salary components", "Before payroll processing", "/settings/salaryComponents", SalaryComponent),
         ]:
-            add(key, title, description, destination, select(model.id).where(model.is_active.is_(True),
-                cast(model.id, String).in_(select(BranchOwnership.resource_key).where(
-                    BranchOwnership.resource_table == model.__tablename__, BranchOwnership.company_id == company_id))))
+            from app.branches.catalog import SHARED
+            from app.models.security_boundary import SecurityResourceOwnership
+            if model.__tablename__ in SHARED:
+                owned = model.id.in_(select(SecurityResourceOwnership.resource_id).where(
+                    SecurityResourceOwnership.resource_table == model.__tablename__,
+                    SecurityResourceOwnership.company_id == company_id))
+            else:
+                owned = cast(model.id, String).in_(select(BranchOwnership.resource_key).where(
+                    BranchOwnership.resource_table == model.__tablename__, BranchOwnership.company_id == company_id))
+            add(key, title, description, destination, select(model.id).where(model.is_active.is_(True), owned))
     if "crm" in modules:
         from app.apps.crm.models import CRMPipeline, CRMPipelineStage
         add("pipeline", "Sales pipeline & stages", "Before creating deals", "/settings/crm-pipelines",
@@ -126,13 +133,57 @@ def module_requirements(db, company_id, modules):
     return items
 
 
+def optional_requirements(db, company_id, modules):
+    """Recommendations never participate in business-write enforcement."""
+    specs = []
+    if "crm" in modules:
+        from app.apps.crm.models import CRMLeadScoringRule, CRMCustomField
+        specs += [
+            ("crm", "scoring", "Prioritize leads", "Add active scoring rules to help your team qualify leads.", "/settings/crm-scoring", CRMLeadScoringRule, CRMLeadScoringRule.is_active.is_(True)),
+            ("crm", "custom-fields", "Capture your sales details", "Add custom fields when your sales process needs extra information.", "/settings/crm", CRMCustomField, CRMCustomField.is_active.is_(True) & CRMCustomField.deleted_at.is_(None)),
+        ]
+    if "srm" in modules:
+        from app.apps.srm.models import SRMProductCategory
+        specs.append(("srm", "categories", "Organize your catalog", "Group inventory products into active categories for easier browsing.", "/srm/inventory/stock-groups", SRMProductCategory, SRMProductCategory.active.is_(True)))
+    if "project_management" in modules:
+        from app.apps.project_management.models import PMSCustomField
+        specs.append(("project_management", "custom-fields", "Tailor project tracking", "Add custom fields when tasks need information beyond the standard fields.", "/pms/custom-fields", PMSCustomField, PMSCustomField.archived.is_(False)))
+    if "hrms" in modules:
+        from datetime import date
+        from app.models.attendance import Holiday
+        year = date.today().year
+        specs.append(("hrms", "holidays", "Plan your holiday calendar", "If your company observes holidays, add this year's dates for attendance planning. A calendar without holidays is also valid.", "/settings/holidays", Holiday,
+                      Holiday.is_active.is_(True) & (Holiday.holiday_date >= date(year, 1, 1)) & (Holiday.holiday_date <= date(year, 12, 31))))
+    if "fam" in modules:
+        from app.apps.fam.models import FAMCostCenter, FAMPaymentMode
+        specs += [
+            ("fam", "cost-centers", "Track costs by team or activity", "Add active cost centers when you need separate expense and profitability reporting.", "/settings/cost-centers", FAMCostCenter, FAMCostCenter.active.is_(True)),
+            ("fam", "payment-modes", "Configure payment methods", "Add active payment modes to standardize how receipts and payments are recorded.", "/settings/payment-modes", FAMPaymentMode, FAMPaymentMode.active.is_(True)),
+        ]
+    items = []
+    for module, key, title, description, destination, model, predicate in specs:
+        if hasattr(model, "company_id"):
+            scope = model.company_id == company_id
+        elif hasattr(model, "organization_id"):
+            scope = model.organization_id == company_id
+        else:
+            scope = cast(model.id, String).in_(select(BranchOwnership.resource_key).where(
+                BranchOwnership.resource_table == model.__tablename__, BranchOwnership.company_id == company_id))
+        items.append(dict(id=f"{module}-{key}", module=module, required=False, title=title,
+                          description=description, destination=destination,
+                          ready=bool(db.connection().execute(select(model.id).where(scope, predicate).limit(1)).first())))
+    return items
+
+
+
 def operation_requirements(method, path):
     path = path.rstrip("/")
     if method == "POST":
         if path == "/api/v1/employees": return "hrms", {"departments", "designations"}
         if path == "/api/v1/leave/apply": return "hrms", {"leave-types"}
         if path.startswith("/api/v1/attendance/compute/") or path == "/api/v1/attendance/bulk-entry": return "hrms", {"shifts"}
-        if path == "/api/v1/payroll/runs" or (path.startswith("/api/v1/payroll/runs/") and path.endswith("/process")): return "hrms", {"salary-components"}
+        if path in {"/api/v1/payroll/run", "/api/v1/payroll/runs"} or re.fullmatch(r"/api/v1/payroll/runs/\d+/(?:worksheet/)?process", path):
+            return "hrms", {"salary-components"}
         if path == "/api/v1/crm/deals": return "crm", {"pipeline"}
         if path == "/api/v1/project-management/projects": return "project_management", {"workspace"}
         if re.fullmatch(r"/api/v1/fam/vouchers/\d+/post", path): return "fam", {"financial-year", "ledgers"}
@@ -192,11 +243,17 @@ def readiness(db: Session = Depends(get_db), user: User = Depends(get_current_us
         item["canRepair"] = bool(can_edit_company(ctx) if key in {"company-profile", "business-defaults"} else allows(option, ctx))
     modules = {key for key, grant in ctx["grants"].items() if grant.get("enabled")}
     module_items = module_requirements(db, user.organization_id, modules)
+    module_by_id = {"pipeline": "crm", "workspace": "project_management", "warehouse": "srm", "financial-year": "fam", "ledgers": "fam"}
+    for item in items:
+        item.update(module="company", required=True)
     for item in module_items:
+        item.update(module=module_by_id.get(item["id"], "hrms"), required=True)
+    recommendations = optional_requirements(db, user.organization_id, modules)
+    for item in module_items + recommendations:
         key = item["destination"].rsplit("/", 1)[-1]
         option = next((o for o in OPTIONS if o[0] == key), None)
         item["canRepair"] = bool(allows(option, ctx) if option else ctx["admin"])
-    return {"companyId": user.organization_id, "ready": all(i["ready"] for i in items), "items": items, "moduleItems": module_items}
+    return {"companyId": user.organization_id, "ready": all(i["ready"] for i in items), "items": items, "moduleItems": module_items, "recommendations": recommendations}
 
 
 def protect_last_company_admin(db, membership, active, is_admin):

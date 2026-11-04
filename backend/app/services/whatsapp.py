@@ -79,7 +79,7 @@ class MetaWhatsAppProvider:
     def __init__(self, token=None, phone_number_id=None):
         self.token, self.phone_number_id = token, phone_number_id
 
-    def send(self, *, channel='whatsapp', to, body='', template=None):
+    def send(self, *, channel='whatsapp', to, body='', template=None, media=None, reply_to=None):
         if channel != 'whatsapp': raise MetaError('Meta transport supports WhatsApp only')
         token = self.token if self.token is not None else settings.CRM_WHATSAPP_ACCESS_TOKEN
         phone = self.phone_number_id or settings.CRM_WHATSAPP_PHONE_NUMBER_ID
@@ -88,7 +88,19 @@ class MetaWhatsAppProvider:
         number = re.sub(r'[\s()+-]', '', to)
         if not re.fullmatch(r'[1-9]\d{6,14}', number): raise MetaError('Use an international recipient number including country code')
         payload = {'messaging_product':'whatsapp','to':number}
-        if template:
+        if reply_to:
+            payload['context']={'message_id':reply_to}
+        if media:
+            kind = media['kind']
+            if kind not in {'image','document','audio','video','sticker'} or not str(media.get('id','')).isdecimal():
+                raise MetaError('Invalid WhatsApp media')
+            item = {'id':media['id']}
+            if kind in {'image','document','video'} and body:
+                if len(body)>1024: raise MetaError('Media captions may contain at most 1024 characters')
+                item['caption']=body
+            if kind=='document': item['filename']=media.get('filename','attachment')
+            payload.update(type=kind, **{kind:item})
+        elif template:
             payload.update(type='template', template=template)
         else:
             if not body.strip() or len(body)>4096: raise MetaError('WhatsApp text must contain 1–4096 characters')

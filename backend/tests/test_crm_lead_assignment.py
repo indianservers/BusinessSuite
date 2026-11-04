@@ -1,11 +1,12 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 
 from app.apps.crm.models import CRMActivity, CRMLead, CRMTimelineEvent
-from app.common.models import CommonPerson
 from app.core.security import get_password_hash
 from app.models.employee import Employee
 from app.models.notification import Notification
 from app.models.user import Permission, Role, User
+from test_identity_utils import attach_test_identity, attach_workflow_branch
 
 ROOT = "/api/v1/crm/lead-management"
 
@@ -30,7 +31,13 @@ def employee_account(
     )
     db.add(user)
     db.flush()
+    person = attach_test_identity(db, user, company_id=organization)
+    person.display_name = f"Priya {suffix}"
+    person.primary_email = user.email
+    person.status = "active"
+    branch = attach_workflow_branch(db, user, company_id=organization)
     employee = Employee(
+        branch_id=branch.id,
         employee_id=f"EMP-{suffix}",
         user_id=user.id,
         first_name="Priya",
@@ -39,15 +46,6 @@ def employee_account(
         status=status,
     )
     db.add(employee)
-    db.add(
-        CommonPerson(
-            user_id=user.id,
-            organization_id=organization,
-            display_name=f"Priya {suffix}",
-            primary_email=user.email,
-            status="active",
-        )
-    )
     db.commit()
     return user, employee
 
@@ -163,7 +161,8 @@ def test_ineligible_employees_cannot_be_assigned_through_workbench_or_classic_ap
 ):
     no_crm, _ = employee_account(db, "hr-only", permissions=("employees_view",))
     inactive, _ = employee_account(db, "terminated", status="Terminated")
-    foreign, _ = employee_account(db, "foreign", organization=2)
+    foreign, foreign_employee = employee_account(db, "foreign", organization=2)
+    assert foreign.person.organization_id == foreign_employee.branch.company_id == 2
     disabled, _ = employee_account(db, "disabled")
     disabled.is_active = False
     db.commit()
@@ -255,3 +254,61 @@ def test_crm_admin_permission_allows_assignment_even_with_custom_role_name(
         json={"values": {"full_name": "Admin Assigned", "owner_user_id": recipient.id}},
     )
     assert response.status_code == 201, response.text
+
+
+def test_directory_and_unrelated_edits_preserve_existing_ineligible_owner(
+    client, db, superuser_headers
+):
+    owner, employee = employee_account(db, "existing-owner")
+    response = client.post(
+        ROOT + "/leads", headers=superuser_headers,
+        json={"values": {"full_name": "Existing assignment", "owner_user_id": owner.id,
+                         "notes": "Preserve existing prospect notes", "estimated_value": 1250}},
+    )
+    assert response.status_code == 201, response.text
+    lead_id = response.json()["id"]
+    response = client.post(
+        ROOT + f"/leads/{lead_id}/sequence", headers=superuser_headers,
+        json={"name": "Standard follow-up"},
+    )
+    assert response.status_code == 200, response.text
+    assignments = {
+        row.id: row.owner_user_id
+        for row in db.query(CRMActivity).filter_by(lead_id=lead_id).all()
+    }
+    assert assignments and owner.id in assignments.values()
+    assert {row.owner_user_id for row in db.query(CRMActivity).filter_by(
+        lead_id=lead_id, status="Pending"
+    ).all()} == {owner.id}
+    employee.status = "Terminated"
+    db.commit()
+    notice_count = db.query(Notification).filter_by(event_type="lead_assignment").count()
+    event_count = db.query(CRMTimelineEvent).filter_by(
+        record_id=lead_id, event_type="assignment"
+    ).count()
+
+    response = client.get(ROOT + "/settings", headers=superuser_headers)
+    assert response.status_code == 200, response.text
+    assert owner.id not in {row["id"] for row in response.json()["owners"]}
+    assert db.get(CRMLead, lead_id).owner_user_id == owner.id
+    response = client.patch(
+        ROOT + f"/leads/{lead_id}", headers=superuser_headers,
+        json={"values": {"full_name": "Updated lead name"}},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["owner_user_id"] == owner.id
+    db.expire_all()
+    saved_lead = db.get(CRMLead, lead_id)
+    assert saved_lead.owner_user_id == owner.id
+    assert saved_lead.notes == "Preserve existing prospect notes"
+    assert saved_lead.estimated_value == 1250
+    assert {
+        row.id: row.owner_user_id
+        for row in db.query(CRMActivity).filter(
+            CRMActivity.lead_id == lead_id, CRMActivity.id.in_(assignments)
+        ).all()
+    } == assignments
+    assert db.query(Notification).filter_by(event_type="lead_assignment").count() == notice_count
+    assert db.query(CRMTimelineEvent).filter_by(
+        record_id=lead_id, event_type="assignment"
+    ).count() == event_count

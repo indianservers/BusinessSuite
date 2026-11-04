@@ -1,0 +1,56 @@
+bringing up nodes...
+bringing up nodes...
+
+.............F
+____________ test_create_branch_rejects_duplicate_name_in_company _____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_company.py:98: in test_create_branch_rejects_duplicate_name_in_company
+    assert first.status_code == 201
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+___________ test_create_department_rejects_duplicate_code_in_branch ___________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_company.py:114: in test_create_department_rejects_duplicate_code_in_branch
+    superuser_headers = {**superuser_headers, "X-Suite-Branch":str(branch["id"])}
+                                                                   ^^^^^^^^^^^^
+E   KeyError: 'id'
+F
+________ test_create_designation_rejects_duplicate_name_in_department _________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_company.py:143: in test_create_designation_rejects_duplicate_name_in_department
+    superuser_headers = {**superuser_headers, "X-Suite-Branch":str(branch["id"])}
+                                                                   ^^^^^^^^^^^^
+E   KeyError: 'id'
+F
+______________________ test_org_structure_crud_endpoints ______________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_org_structure_api.py:23: in test_org_structure_crud_endpoints
+    assert branch.status_code == 201
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+__________ test_org_structure_get_all_allows_any_authenticated_user ___________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_org_structure_api.py:105: in test_org_structure_get_all_allows_any_authenticated_user
+    assert created.status_code == 201
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+_____ test_portfolio_dashboard_is_accessible_scoped_and_calculates_health _____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_project_access.py:1161: in test_portfolio_dashboard_is_accessible_scoped_and_calculates_health
+    assert projects["items"][0]["client_name"] == "Acme Portfolio"
+E   AssertionError: assert 'Acme' == 'Acme Portfolio'
+E     
+E     - Acme Portfolio
+E     + Acme
+.......................................                                  [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_company.py::test_create_branch_rejects_duplicate_name_in_company
+FAILED backend\tests\test_company.py::test_create_department_rejects_duplicate_code_in_branch
+FAILED backend\tests\test_company.py::test_create_designation_rejects_duplicate_name_in_department
+FAILED backend\tests\test_org_structure_api.py::test_org_structure_crud_endpoints
+FAILED backend\tests\test_org_structure_api.py::test_org_structure_get_all_allows_any_authenticated_user
+FAILED backend\tests\test_pms_project_access.py::test_portfolio_dashboard_is_accessible_scoped_and_calculates_health
+6 failed, 52 passed, 17 warnings in 108.89s (0:01:48)

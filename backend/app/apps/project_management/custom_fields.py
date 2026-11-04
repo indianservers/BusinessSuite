@@ -20,7 +20,9 @@ router=APIRouter()
 class FieldInput(BaseModel):
     model_config=ConfigDict(extra="forbid")
     name:str=Field(min_length=1,max_length=120)
-    field_type:Literal["text","long_text","number","money","date","checkbox","dropdown","email","phone","website","rating","progress"]
+    field_type:Literal["text","long_text","number","money","date","checkbox","dropdown","radio","combobox","email","phone","website","rating","progress"]
+    places:list[Literal["create","edit","quick_create","detail"]]=Field(default_factory=lambda:["create","edit","quick_create","detail"])
+    section:str=Field(default="Additional information",max_length=120)
     options:list[str]=Field(default_factory=list,max_length=50)
     task_type:str=Field(default="",max_length=40)
     entity_type:Literal["task","project","both"]="task"
@@ -32,6 +34,8 @@ class LibraryFieldInput(FieldInput):
 class EditFieldInput(BaseModel):
     model_config=ConfigDict(extra="forbid")
     name:str=Field(min_length=1,max_length=120)
+    places:list[Literal["create","edit","quick_create","detail"]]=Field(default_factory=lambda:["create","edit","quick_create","detail"])
+    section:str=Field(default="Additional information",max_length=120)
     options:list[str]=Field(default_factory=list,max_length=50)
     archived:bool|None=None
 
@@ -50,8 +54,16 @@ def shared_manager(user):
     return user.is_superuser or has_any_permission(user,{"pms_admin"})
 
 
+def field_options(field):
+    raw=json.loads(field.options_json)
+    return raw.get("values",[]) if isinstance(raw,dict) else raw
+
+def field_ui(field):
+    raw=json.loads(field.options_json)
+    return raw.get("ui",{}) if isinstance(raw,dict) else {}
+
 def field_data(field):
-    return {"id":field.id,"name":field.name,"field_type":field.field_type,"options":json.loads(field.options_json),"task_type":field.task_type,"created_at":field.created_at,"project_id":field.project_id,"entity_type":field.entity_type,"archived":field.archived,"scope":"project" if field.project_id else "company"}
+    return {**field_ui(field),"id":field.id,"name":field.name,"field_type":field.field_type,"options":field_options(field),"task_type":field.task_type,"created_at":field.created_at,"project_id":field.project_id,"entity_type":field.entity_type,"archived":field.archived,"scope":"project" if field.project_id else "company"}
 
 
 def library_query(db,user):
@@ -73,7 +85,7 @@ def manage_field(db,user,field):
 def validate_definition(data):
     name=data.name.strip();options=[o.strip() for o in data.options]
     if not name or any(not o or len(o)>120 for o in options) or len(options)!=len(set(options)):raise HTTPException(422,"Use a name and unique, non-empty options of up to 120 characters")
-    if (data.field_type=="dropdown")!=bool(options):raise HTTPException(422,"Only dropdown fields require options")
+    if (data.field_type in {"dropdown","radio","combobox"})!=bool(options):raise HTTPException(422,"Choice fields require options; other fields do not use options")
     if data.entity_type=="project" and data.task_type:raise HTTPException(422,"Task-type scope applies only to task fields")
     return name,options
 
@@ -91,7 +103,7 @@ def persist_definition(db,user,data,project=None):
     q=db.query(PMSCustomField).filter(PMSCustomField.project_id==project.id) if project else db.query(PMSCustomField).filter(PMSCustomField.scope_key==scope)
     if q.count()>=100:raise HTTPException(422,"This location already has 100 custom fields")
     if q.filter(PMSCustomField.name==name).first():raise HTTPException(409,"A field with this name already exists in this location")
-    row=PMSCustomField(project_id=project.id if project else None,organization_id=company,scope_key=scope,entity_type=data.entity_type,name=name,task_type=data.task_type,field_type=data.field_type,options_json=json.dumps(options),archived=False)
+    row=PMSCustomField(project_id=project.id if project else None,organization_id=company,scope_key=scope,entity_type=data.entity_type,name=name,task_type=data.task_type,field_type=data.field_type,options_json=json.dumps({"values":options,"ui":{"places":data.places,"section":data.section}}),archived=False)
     db.add(row)
     try:db.commit()
     except IntegrityError:db.rollback();raise HTTPException(409,"A field with this name already exists")
@@ -131,11 +143,14 @@ def edit_definition(db,user,field,data):
     duplicate=library_query(db,user).filter(PMSCustomField.id!=field.id,PMSCustomField.name==name,PMSCustomField.project_id==field.project_id)
     if not field.project_id:duplicate=duplicate.filter(PMSCustomField.organization_id==field.organization_id)
     if duplicate.first():raise HTTPException(409,"A field with this name already exists")
-    if field.field_type=="dropdown":
+    if field.field_type in {"dropdown","radio","combobox"}:
         used=[]
         for model in [PMSCustomFieldValue,PMSProjectCustomFieldValue]:used.extend(json.loads(r.value_json) for r in db.query(model).filter_by(field_id=field.id))
         if any(v is not None and v not in options for v in used):raise HTTPException(409,"Keep dropdown options already used by records")
-    field.name,field.options_json=name,json.dumps(options)
+    ui=field_ui(field)
+    if "places" in data.model_fields_set:ui["places"]=data.places
+    if "section" in data.model_fields_set:ui["section"]=data.section
+    field.name,field.options_json=name,json.dumps({"values":options,"ui":ui})
     if data.archived is not None:field.archived=data.archived
     try:db.commit()
     except IntegrityError:db.rollback();raise HTTPException(409,"A field with this name already exists")
@@ -177,7 +192,7 @@ def validate_value(field,data):
             except ValueError:
                 valid = False
         elif field.field_type == "checkbox": valid = type(value) is bool
-        elif field.field_type == "dropdown": valid = isinstance(value, str) and value in json.loads(field.options_json)
+        elif field.field_type in {"dropdown", "radio", "combobox"}: valid = isinstance(value, str) and value in field_options(field)
         elif field.field_type == "date":
             try:
                 valid = isinstance(value, str) and date.fromisoformat(value).isoformat() == value

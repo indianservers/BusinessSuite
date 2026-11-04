@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from tests.test_pms_automations import setup_workspace
 from tests.test_pms_workspaces import middleware_database, BASE, account
 from tests.test_pms_recovery import isolated_audit
@@ -106,11 +107,9 @@ def test_builder_layout_cas_history_and_source_security(client, db):
 
 def test_shared_configuration_does_not_grant_underlying_records(client, db):
     wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
-    outsider, xh = account(db, "dashboard-outsider@example.invalid", True)
-    from tests.tenant_test_utils import assign_company
-    assign_company(db, owner, 77)
-    assign_company(db, outsider, 77)
-    db.get(PMSWorkspace, wid).organization_id = 77
+    outsider, xh = account(db, "dashboard-outsider@example.invalid")
+    # Both accounts already belong to the same company. Sharing configuration
+    # must not grant the outsider membership in the underlying project.
     db.add(PMSTask(project_id=pid, title="Secret project task", task_key="DASH-SECRET"))
     db.commit()
     config = template_config("tasks").model_dump(mode="json")

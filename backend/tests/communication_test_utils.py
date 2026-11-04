@@ -48,10 +48,12 @@ def communication_headers(client, db, email: str = "communication-admin@example.
     if not db.query(Branch).filter_by(company_id=company_id).first():
         db.add(Branch(company_id=company_id, name='Communication test branch', code='COMM', is_active=True))
     db.add(BranchPolicy(user_id=user.id, company_id=company_id, all_branches=True, use_home_branch=False))
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db, user, company_id)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Branch":str(branch.id)}
 
 
 def create_template(client, headers):

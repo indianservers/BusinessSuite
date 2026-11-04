@@ -445,6 +445,13 @@ def leave_calendar(
         .all()
     )
 
+    from app.shared.form_defaults import effective as form_defaults
+    branch = getattr(current_user, "_suite_branch_id", None)
+    defaults = form_defaults(db, current_user.organization_id, "hrms", branch if isinstance(branch, int) else None)["values"]
+    if defaults["holiday_calendar"] == "branch":
+        branch_id = branch if isinstance(branch, int) else getattr(current_user.employee, "branch_id", None)
+        holidays = [holiday for holiday in holidays if not holiday.applicable_branches or branch_id in holiday.applicable_branches]
+
     day_map = {}
     current = from_date
     while current <= to_date:

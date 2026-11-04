@@ -516,10 +516,11 @@ def persist_payroll_readiness_checks(
     actor_user_id: int,
     force_run: bool = False,
 ) -> None:
-    db.query(PayrollPreRunCheck).filter(
+    for check in db.query(PayrollPreRunCheck).filter(
         PayrollPreRunCheck.payroll_run_id == payroll_run.id,
         PayrollPreRunCheck.check_type.in_(PAYROLL_READINESS_CHECK_TYPES),
-    ).delete(synchronize_session=False)
+    ).all():
+        db.delete(check)
     issues = summary.get("issues") or {}
 
     for employee_id in issues.get("missing_salary", {}).get("employee_ids", []):
@@ -776,10 +777,11 @@ def run_payroll(
     total_net = Decimal("0")
     missing_exchange_employee_ids: set[int] = set()
 
-    db.query(PayrollPreRunCheck).filter(
+    for check in db.query(PayrollPreRunCheck).filter(
         PayrollPreRunCheck.payroll_run_id == payroll_run.id,
         PayrollPreRunCheck.check_type == "currency_exchange_rate",
-    ).delete(synchronize_session=False)
+    ).all():
+        db.delete(check)
     db.flush()
 
     for emp in employees:
@@ -995,9 +997,10 @@ def run_payroll(
             )
         ).first()
         if existing:
-            db.query(PayrollStatutoryContributionLine).filter(
+            for contribution in db.query(PayrollStatutoryContributionLine).filter(
                 PayrollStatutoryContributionLine.payroll_record_id == existing.id,
-            ).delete(synchronize_session=False)
+            ).all():
+                db.delete(contribution)
             db.delete(existing)
             db.flush()
 
@@ -1117,16 +1120,12 @@ def run_payroll(
         for reimbursement in approved_reimbursements:
             reimbursement.payroll_record_id = record.id
             reimbursement.status = "Paid"
-            db.query(ExpenseClaim).filter(
+            for claim in db.query(ExpenseClaim).filter(
                 ExpenseClaim.payroll_reimbursement_id == reimbursement.id,
-            ).update(
-                {
-                    "payroll_run_id": payroll_run.id,
-                    "reimbursed_at": datetime.now(timezone.utc),
-                    "status": "reimbursed",
-                },
-                synchronize_session=False,
-            )
+            ).all():
+                claim.payroll_run_id = payroll_run.id
+                claim.reimbursed_at = datetime.now(timezone.utc)
+                claim.status = "reimbursed"
         for advance in approved_advances:
             advance.payroll_record_id = record.id
             advance.status = "Recovered"
@@ -1136,29 +1135,21 @@ def run_payroll(
         for line in encashment_lines:
             line.payroll_record_id = record.id
             line.status = "Paid"
-            db.query(LeaveEncashmentRequest).filter(
+            for request in db.query(LeaveEncashmentRequest).filter(
                 LeaveEncashmentRequest.leave_encashment_line_id == line.id,
-            ).update(
-                {
-                    "status": "paid",
-                    "payroll_run_id": payroll_run.id,
-                },
-                synchronize_session=False,
-            )
+            ).all():
+                request.status = "paid"
+                request.payroll_run_id = payroll_run.id
         if attendance_input and lop_days > 0:
             payroll_month = f"{year:04d}-{month:02d}"
-            db.query(PayrollLWPEntry).filter(
+            for entry in db.query(PayrollLWPEntry).filter(
                 PayrollLWPEntry.employee_id == emp.id,
                 PayrollLWPEntry.payroll_month == payroll_month,
                 PayrollLWPEntry.payroll_run_id.is_(None),
-            ).update(
-                {
-                    "payroll_run_id": payroll_run.id,
-                    "payroll_attendance_input_id": attendance_input.id,
-                    "amount_deducted": _money(lop_deduction),
-                },
-                synchronize_session=False,
-            )
+            ).all():
+                entry.payroll_run_id = payroll_run.id
+                entry.payroll_attendance_input_id = attendance_input.id
+                entry.amount_deducted = _money(lop_deduction)
 
         total_gross += gross
         total_deductions += total_ded
@@ -1191,7 +1182,8 @@ def calculate_payroll_variance(db: Session, payroll_run_id: int) -> List[Payroll
         PayrollRun.deleted_at.is_(None),
     ).first()
 
-    db.query(PayrollVarianceItem).filter(PayrollVarianceItem.payroll_run_id == payroll_run_id).delete()
+    for item in db.query(PayrollVarianceItem).filter(PayrollVarianceItem.payroll_run_id == payroll_run_id).all():
+        db.delete(item)
     db.flush()
 
     items: List[PayrollVarianceItem] = []

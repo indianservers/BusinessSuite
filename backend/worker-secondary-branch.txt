@@ -1,0 +1,18 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____ test_worker_preserves_nondefault_branch_for_approval_and_execution ______
+backend\tests\test_ai_operator_jobs.py:54: in test_worker_preserves_nondefault_branch_for_approval_and_execution
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Configure and enable this provider for the project's workspace in AI settings"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+------------------------------ Captured log call ------------------------------
+WARNING  passlib.handlers.bcrypt:bcrypt.py:622 (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+=========================== short test summary info ===========================
+FAILED backend\tests\test_ai_operator_jobs.py::test_worker_preserves_nondefault_branch_for_approval_and_execution
+1 failed, 13 warnings in 11.18s

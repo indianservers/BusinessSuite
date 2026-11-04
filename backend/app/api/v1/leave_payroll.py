@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func, case, cast, Date as SQLDate, Numeric, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import RequirePermission, get_current_user, get_db
@@ -157,6 +157,10 @@ def _encashment_rate(db: Session, employee_id: int) -> Decimal:
         .order_by(EmployeeSalary.effective_from.desc(), EmployeeSalary.id.desc())
         .first()
     )
+    return _salary_daily_rate(salary)
+
+
+def _salary_daily_rate(salary) -> Decimal:
     if not salary:
         return Decimal("0")
     monthly = _money((salary.ctc or Decimal("0")) / Decimal("12"))
@@ -368,45 +372,32 @@ def _calculate_lwp_feed(db: Session, month: str, employee_ids: list[int] | None 
     if employee_ids:
         employee_query = employee_query.filter(Employee.id.in_(employee_ids))
     employees = employee_query.order_by(Employee.first_name, Employee.last_name).all()
+    if not employees:
+        return []
+    ids = [employee.id for employee in employees]
     working_days = Decimal(str(sum(1 for offset in range((period_end - period_start).days + 1) if date.fromordinal(period_start.toordinal() + offset).weekday() < 5)))
     holidays = Decimal(str(db.query(Holiday).filter(Holiday.is_active == True, Holiday.holiday_date >= period_start, Holiday.holiday_date <= period_end).count()))
+    overlap_start = case((LeaveRequest.from_date < period_start, period_start), else_=LeaveRequest.from_date)
+    overlap_end = case((LeaveRequest.to_date > period_end, period_end), else_=LeaveRequest.to_date)
+    duration = (func.julianday(overlap_end)-func.julianday(overlap_start)+1) if db.get_bind().dialect.name == 'sqlite' else (cast(overlap_end,SQLDate)-cast(overlap_start,SQLDate)+1)
+    marker = func.lower(func.coalesce(LeaveType.name,'')+' '+func.coalesce(LeaveType.code,''))
+    leave_totals = dict(db.query(LeaveRequest.employee_id,func.sum(case((LeaveRequest.is_half_day.is_(True),Decimal('0.5')),else_=cast(duration,Numeric(12,2))))).join(LeaveType,LeaveType.id==LeaveRequest.leave_type_id).filter(
+        LeaveRequest.employee_id.in_(ids),LeaveRequest.status=='Approved',LeaveRequest.from_date<=period_end,LeaveRequest.to_date>=period_start,
+        or_(*(marker.contains(token) for token in ('lop','lwp','loss of pay','unpaid','without pay'))),
+    ).group_by(LeaveRequest.employee_id).all())
+    attendance_totals = dict(db.query(Attendance.employee_id,func.count(Attendance.id)).filter(Attendance.employee_id.in_(ids),Attendance.attendance_date>=period_start,Attendance.attendance_date<=period_end,Attendance.status.in_(['Absent','LWP','Leave Without Pay'])).group_by(Attendance.employee_id).all()) if include_attendance else {}
+    manual_totals = dict(db.query(LOPAdjustment.employee_id,func.sum(LOPAdjustment.adjustment_days)).join(PayrollPeriod,PayrollPeriod.id==LOPAdjustment.period_id).filter(PayrollPeriod.month==period_start.month,PayrollPeriod.year==period_start.year,LOPAdjustment.employee_id.in_(ids),LOPAdjustment.status=='Approved').group_by(LOPAdjustment.employee_id).all())
+    salaries = db.query(EmployeeSalary.employee_id,EmployeeSalary.ctc,EmployeeSalary.basic,func.row_number().over(partition_by=EmployeeSalary.employee_id,order_by=(EmployeeSalary.effective_from.desc(),EmployeeSalary.id.desc())).label('position')).filter(EmployeeSalary.employee_id.in_(ids),EmployeeSalary.is_active.is_(True)).subquery()
+    rates = {row.employee_id:_salary_daily_rate(row) for row in db.query(salaries.c.employee_id,salaries.c.ctc,salaries.c.basic).filter(salaries.c.position==1)}
     rows = []
     for employee in employees:
-        leave_days = Decimal("0")
-        leaves = db.query(LeaveRequest).filter(
-            LeaveRequest.employee_id == employee.id,
-            LeaveRequest.status == "Approved",
-            LeaveRequest.from_date <= period_end,
-            LeaveRequest.to_date >= period_start,
-        ).all()
-        for leave in leaves:
-            if not _is_unpaid_leave_type(leave.leave_type):
-                continue
-            overlap_start = max(leave.from_date, period_start)
-            overlap_end = min(leave.to_date, period_end)
-            leave_days += Decimal("0.5") if leave.is_half_day else Decimal(str((overlap_end - overlap_start).days + 1))
-
-        attendance_days = Decimal("0")
-        if include_attendance:
-            absent_rows = db.query(Attendance).filter(
-                Attendance.employee_id == employee.id,
-                Attendance.attendance_date >= period_start,
-                Attendance.attendance_date <= period_end,
-                Attendance.status.in_(["Absent", "LWP", "Leave Without Pay"]),
-            ).all()
-            attendance_days = Decimal(str(len(absent_rows)))
-
-        manual_days = Decimal(
-            db.query(func.coalesce(func.sum(LOPAdjustment.adjustment_days), 0))
-            .join(PayrollPeriod, PayrollPeriod.id == LOPAdjustment.period_id)
-            .filter(PayrollPeriod.month == period_start.month, PayrollPeriod.year == period_start.year, LOPAdjustment.employee_id == employee.id, LOPAdjustment.status == "Approved")
-            .scalar()
-            or 0
-        )
+        leave_days = Decimal(str(leave_totals.get(employee.id) or 0))
+        attendance_days = Decimal(str(attendance_totals.get(employee.id) or 0))
+        manual_days = Decimal(str(manual_totals.get(employee.id) or 0))
         lwp_days = _days(leave_days + attendance_days + manual_days)
         if lwp_days <= 0:
             continue
-        rate = _encashment_rate(db, employee.id)
+        rate = rates.get(employee.id,Decimal('0'))
         rows.append(
             {
                 "employeeId": employee.id,

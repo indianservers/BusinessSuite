@@ -8,7 +8,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
@@ -316,6 +316,13 @@ def invitations(workspace_id: int, db: Session = Depends(get_db), user: User = D
     workspace_member(db, workspace_id, user, True)
     rows = db.query(PMSWorkspaceInvitation).filter_by(workspace_id=workspace_id).order_by(PMSWorkspaceInvitation.id.desc()).all()
     existing_emails = {e[0].lower() for e in db.query(User.email).filter(func.lower(User.email).in_([i.email for i in rows])).all()}
+    # Accepted legacy members may have no company/branch login membership. Their
+    # account existence is already disclosed by membership in this authorized
+    # workspace; do not search unrelated tenant accounts for pending invitations.
+    if any(i.status == "accepted" for i in rows):
+        users, members = User.__table__, PMSWorkspaceMember.__table__
+        accepted = [i.email for i in rows if i.status == "accepted"]
+        existing_emails.update(db.connection().execute(select(func.lower(users.c.email)).select_from(users.join(members, members.c.user_id == users.c.id)).where(members.c.workspace_id == workspace_id, func.lower(users.c.email).in_(accepted))).scalars())
     return [{"id": i.id, "email": i.email, "role": i.role, "account_exists": i.email in existing_emails, "status": "expired" if i.status == "pending" and i.expires_at <= datetime.utcnow() else i.status, "expires_at": i.expires_at,
              "token": share_token(i) if i.status == "pending" and i.expires_at > datetime.utcnow() and hmac.compare_digest(hashlib.sha256(share_token(i).encode()).hexdigest(), i.token_hash) else None} for i in rows]
 

@@ -38,11 +38,29 @@ def seed_customer_360(db):
         SRMAuditLog(entity_type="sales_order", entity_id=order.id, action="crm_won_handoff", after_json={"crm_deal_id": 9001}),
         SRMAuditLog(entity_type="engagement", entity_id=engagement.id, action="pms_project_created", after_json={"pms_project_id": project.id}),
     ])
+    from app.apps.crm.models import CRMCompany
+    buyer = db.get(CRMCompany, 701)
+    if not buyer:
+        buyer = CRMCompany(id=701, organization_id=1, name='Customer 360 buyer')
+        db.add(buyer)
+    from test_identity_utils import own_workflow_records
+    db.flush()
+    rows = [buyer, order, contract, project, engagement]
+    for model in (SRMBillingPlan, SRMInvoice, SRMReceipt, SRMCustomerAging, SRMCollectionReminder, SRMProfitabilitySnapshot, SRMAuditLog):
+        rows.extend(db.query(model).all())
+    own_workflow_records(db, *rows)
     db.commit()
     return order, engagement
 
 
 def test_srm_customer_360_returns_linked_commercial_delivery_collection_data(client, db, superuser_headers):
+    from app.models.user import User
+    from tests.tenant_test_utils import assign_company
+    from test_identity_utils import attach_workflow_branch
+    actor = db.query(User).filter_by(email='testadmin@test.com').one()
+    assign_company(db, actor, 1)
+    attach_workflow_branch(db, actor)
+    db.commit()
     order, engagement = seed_customer_360(db)
 
     response = client.get("/api/v1/srm/customer-360", headers=superuser_headers, params={"customer_id": 701})

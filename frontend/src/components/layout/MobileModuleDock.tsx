@@ -50,7 +50,7 @@ export const mobileModuleMenus: Record<string, Item[]> = {
 
     item("Projects", FolderKanban, "/pms/projects", [["Create project", "/pms/projects/new"], ["Browse projects", "/pms/projects"], ["Workspace boards", "/pms/workspaces"], ["Project timeline", "/pms/gantt"]]),
 
-    item("Tasks", ListTodo, "/pms/tasks", [["Create task", "/pms/tasks/new"], ["All tasks", "/pms/tasks"], ["Backlog & sprints", "/pms/backlog"], ["Task calendar", "/pms/calendar"]]),
+    item("Tasks", ListTodo, "/pms/tasks", [["Create task", "/pms/tasks/new"], ["All tasks", "/pms/tasks"], ["Tasks & follow-ups", "/pms/tasks-follow-ups"], ["Backlog & sprints", "/pms/backlog"], ["Task calendar", "/pms/calendar"]]),
 
     item("Reports", BarChart3, "/pms/reports", [["Project progress", "/pms/analytics/projects"], ["Team workload", "/pms/workload"], ["Team performance", "/pms/analytics/team"], ["Reports & exports", "/pms/reports"]]),
 

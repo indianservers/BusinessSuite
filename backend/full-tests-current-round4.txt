@@ -1,0 +1,758 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  1%]
+........................................................................ [  3%]
+........................................................................ [  5%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 13%]
+........................................................................ [ 15%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 30%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+.......................s................................................ [ 36%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 46%]
+........................................................................ [ 48%]
+....................................s................................... [ 50%]
+..................F
+____________ test_conversion_reuses_contact_and_blocks_unqualified ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:305: in test_conversion_reuses_contact_and_blocks_unqualified
+    assert preview.json()["matches"]["contacts"][0]["id"] == contact.id
+E   assert 1 == 2
+E    +  where 2 = <app.apps.crm.models.CRMContact object at 0x000002700DC44E60>.id
+.F
+___ test_revoked_financial_permission_and_changed_tenant_cannot_use_history ___
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_assistant.py:373: in test_revoked_financial_permission_and_changed_tenant_cannot_use_history
+    assert (
+E   AssertionError: assert 403 == 404
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+E    +    where <Response [403 Forbidden]> = get('/api/v1/ai-operator/assistant/conversations/2', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM4MDE4MzQsInN1YiI6IjIiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMiJ9.1ncfVYnUmXd2d8J7QrLVkYdkCytz8bdhzBduIUjMZ0Q', 'X-Suite-Branch': '1'})
+E    +      where get = <starlette.testclient.TestClient object at 0x000001B1C8123DD0>.get
+..F
+_______________ test_lead_management_rbac_and_export_visibility _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:427: in test_lead_management_rbac_and_export_visibility
+    own = create(client, headers, email="own@example.com")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\test_crm_lead_management.py:21: in create
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Module access revoked: crm"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+.........F
+___ test_product_routing_and_duplicate_numbers_with_different_calling_codes ___
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:758: in test_product_routing_and_duplicate_numbers_with_different_calling_codes
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Enter a valid phone number for the selected country"}
+E   assert 422 == 201
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+.................................................................s...... [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+.....................................s.................................. [ 58%]
+....................F
+_____ test_collaborators_retain_access_checks_and_internal_notifications ______
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_deal_workspace.py:127: in test_collaborators_retain_access_checks_and_internal_notifications
+    attach_workflow_branch(db, colleague)
+E   AssertionError: {"detail":"Choose an active CRM user in this organization"}
+E   assert 422 == 200
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+.....F
+_ test_readonly_deal_access_does_not_expose_restricted_notes_or_allow_mutation _
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_deal_workspace.py:180: in test_readonly_deal_access_does_not_expose_restricted_notes_or_allow_mutation
+    reader = db.query(User).filter_by(email="dealreader@example.com").one()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Module access revoked: crm"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+.....F
+____ test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks _____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_suite_operator.py:152: in test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks
+    assert resolve_provider(db, invited, 'gemini', workspace.id).id == source.id
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert <app.ai_operator.models.OperatorProvider object at 0x000001C36F520980> is None
+E    +  where <app.ai_operator.models.OperatorProvider object at 0x000001C36F520980> = resolve_provider(<sqlalchemy.orm.session.Session object at 0x000001C378861340>, <app.models.user.User object at 0x000001C378860080>, 'gemini', 3)
+E    +    where 3 = <app.apps.project_management.models.PMSWorkspace object at 0x000001C378536270>.id
+........................................................................ [ 61%]
+..............................................F
+_____ test_project_member_removal_revokes_existing_realtime_subscription ______
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_cross_module_audit.py:123: in test_project_member_removal_revokes_existing_realtime_subscription
+    await pms_realtime_manager.broadcast({"projectId":project.id,"organizationId":1})
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert 0 == 1
+E    +  where 0 = len([])
+E    +    where [] = <tests.test_cross_module_audit.test_project_member_removal_revokes_existing_realtime_subscription.<locals>.Socket object at 0x000001C36FB75070>.messages
+....F
+________ test_realtime_checks_inactive_identity_and_current_membership ________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_cross_module_audit.py:182: in test_realtime_checks_inactive_identity_and_current_membership
+    assert len(socket.messages)==1
+    ^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+backend\tests\test_cross_module_audit.py:174: in exercise
+    await manager.connect(socket,user_id=user.id,organization_id=1,accessible_project_ids={project.id})
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert 0 == 1
+E    +  where 0 = len([])
+E    +    where [] = <tests.test_cross_module_audit.test_realtime_checks_inactive_identity_and_current_membership.<locals>.Socket object at 0x000001C379695310>.messages
+....s..F
+____________ test_subscription_seats_and_shared_quota_enforcement _____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_enterprise_control.py:629: in test_subscription_seats_and_shared_quota_enforcement
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Active seats exceed the selected plan; adjust membership first"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+........................................................................ [ 65%]
+..............F
+_______________ test_company_branch_department_and_stale_update _______________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_control_center.py:47: in test_company_branch_department_and_stale_update
+    assert branch.status_code == 201, branch.text
+E   AssertionError: {"detail":"Record belongs to another company"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+..................F
+___________ test_application_requires_approval_before_login[False] ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_applications.py:47: in test_application_requires_approval_before_login
+    assert admin_list.json()[0]["identity_last4"]=="1234"
+           ^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+.......F
+____________ test_application_requires_approval_before_login[True] ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_applications.py:47: in test_application_requires_approval_before_login
+    assert admin_list.json()[0]["identity_last4"]=="1234"
+           ^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+.F
+_ test_bulk_intake_with_legacy_all_header_uses_default_branch[Correction Requested] _
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_applications.py:110: in test_bulk_intake_with_legacy_all_header_uses_default_branch
+    resource_key=str(application.id), branch_id=branch.id).count() == 1
+E   AssertionError: assert 0 == 1
+E    +  where 0 = count()
+E    +    where count = <sqlalchemy.orm.query.Query object at 0x00000270157BEC60>.count
+E    +      where <sqlalchemy.orm.query.Query object at 0x00000270157BEC60> = filter_by(resource_table='intern_hub_applications', resource_key='1', branch_id=2)
+E    +        where filter_by = <sqlalchemy.orm.query.Query object at 0x0000027014FE91F0>.filter_by
+E    +          where <sqlalchemy.orm.query.Query object at 0x0000027014FE91F0> = query(<class 'app.branches.models.BranchOwnership'>)
+E    +            where query = <sqlalchemy.orm.session.Session object at 0x0000027014084FE0>.query
+E    +        and   'intern_hub_applications' = <app.apps.interns_hub.models.InternApplication object at 0x00000270157BDEB0>.__tablename__
+E    +        and   '1' = str(1)
+E    +          where 1 = <app.apps.interns_hub.models.InternApplication object at 0x00000270157BDEB0>.id
+E    +        and   2 = <app.models.company.Branch object at 0x00000270115E8B30>.id
+F
+____ test_bulk_intake_with_legacy_all_header_uses_default_branch[Approved] ____
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_applications.py:110: in test_bulk_intake_with_legacy_all_header_uses_default_branch
+    resource_key=str(application.id), branch_id=branch.id).count() == 1
+E   AssertionError: assert 0 == 1
+E    +  where 0 = count()
+E    +    where count = <sqlalchemy.orm.query.Query object at 0x0000027013DCC440>.count
+E    +      where <sqlalchemy.orm.query.Query object at 0x0000027013DCC440> = filter_by(resource_table='intern_hub_applications', resource_key='1', branch_id=2)
+E    +        where filter_by = <sqlalchemy.orm.query.Query object at 0x0000027014C92780>.filter_by
+E    +          where <sqlalchemy.orm.query.Query object at 0x0000027014C92780> = query(<class 'app.branches.models.BranchOwnership'>)
+E    +            where query = <sqlalchemy.orm.session.Session object at 0x0000027014087E60>.query
+E    +        and   'intern_hub_applications' = <app.apps.interns_hub.models.InternApplication object at 0x000002701430B560>.__tablename__
+E    +        and   '1' = str(1)
+E    +          where 1 = <app.apps.interns_hub.models.InternApplication object at 0x000002701430B560>.id
+E    +        and   2 = <app.models.company.Branch object at 0x00000270157BC470>.id
+.........F
+____________ test_superadmin_can_be_selected_as_reporting_manager _____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_intern_applications.py:224: in test_superadmin_can_be_selected_as_reporting_manager
+    assert client.post(base + "/applications", json=application_payload).status_code == 201
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert False
+E    +  where False = any(<generator object test_superadmin_can_be_selected_as_reporting_manager.<locals>.<genexpr> at 0x000002701467D970>)
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+............................................s........................... [ 72%]
+........................................................................ [ 74%]
+..................s.ss..............................F
+_____________________ test_restore_rejects_merged_contact _____________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_record_management.py:58: in test_restore_rejects_merged_contact
+    second = create_record(client, h, "contacts")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\test_crm_record_management.py:17: in create_record
+    return post(client, headers, f"crm/{entity}", person)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\test_crm_associations_merge.py:30: in post
+    assert response.status_code in (200, 201), response.text
+E   AssertionError: {"detail":{"code":"duplicate_contact","message":"This email is already associated with another contact.","matches":[{"id":2,"kind":"contact","name":"Customer Person","phone":null,"email":"customer@example.com","url":"/crm/contacts/2"}],"canCreateSeparate":true}}
+E   assert 409 in (200, 201)
+E    +  where 409 = <Response [409 Conflict]>.status_code
+..F
+_____ test_directory_paginates_20000_people_without_loading_every_profile _____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_workforce_operations.py:175: in test_directory_paginates_20000_people_without_loading_every_profile
+    assert response.json()["total"] == 20000 and len(response.json()["items"]) == 50
+E   assert (0 == 20000)
+.F
+___________ test_backup_supervisor_scope_and_view_only_permissions ____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_workforce_operations.py:196: in test_backup_supervisor_scope_and_view_only_permissions
+    assert client.get(ROOT + "/people", headers=headers).json()["total"] == 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'total'
+.........F
+_____________ test_scoped_out_private_profile_is_never_recreated ______________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_cross_module_sharing.py:125: in test_scoped_out_private_profile_is_never_recreated
+    assert response.status_code==404,response.text
+E   AssertionError: {"id":2,"user_id":2,"email":"unassigned-profile@example.com","name":"unassigned-profile","photo_url":null,"role":"User","status":"active","availability":"Available","available_from":null,"employment_status":"Active","workspaces":[],"projects":[],"access_sources":[{"source":"Organization role","role":"User","explanation":"Organization permissions are limited by the assigned company and scope.","scope":"organization role scope","policy_status":"Legacy role permissions","module_enabled":null,"capabilities":[]}],"permissions":{"memberships":false,"profile":true,"suspend":true,"reactivate":true,"offboard":true,"terminate":true},"unavailable_reasons":{"memberships":"A scoped workspace or organization administrator is required.","profile":"Profile fields require HR profile-edit permission within the person's assigned scope.","reactivate":"A Super Admin must reactivate an account disabled outside this organization's scoped PMS lifecycle.","terminate":"Employment termination requires an authorized Admin/HR role and a linked HR employee record.","lifecycle":"Only authorized organization Admin/HR roles can change another non-Super-Admin account. Accounts spanning organizations require a Super Admin."},"profile":{"values":{"bio":null,"phone_number":null,"first_name":"Private","phone_number_country_code":null,"last_name":"Person","timezone":"Asia/Kolkata","preferred_display_name":null},"version":"af32ebec50df1072a94a02a0","canEdit":true,"field_permissions":{"bio":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"phone_number_country_code":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"first_name":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"phone_number":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"last_name":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"timezone":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"},"preferred_display_name":{"can_view":true,"can_edit":true,"reason":"Editable with your profile permission"}}},"suspension":null,"history":[]}
+E   assert 200 == 404
+E    +  where 200 = <Response [200 OK]>.status_code
+........................................................................ [ 78%]
+.....F
+______________ test_duplicate_warning_normalized_and_scope_safe _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_productivity.py:50: in test_duplicate_warning_normalized_and_scope_safe
+    assert warning.json()["matched"] and warning.json()["items"]==[]
+E   AssertionError: assert (True and [{'email': 'd...543210', ...}] == []
+E     
+E     Left contains one more item: {'email': 'duplicate@example.com', 'id': 1, 'name': 'Existing', 'phone': '9876543210', ...}
+E     Use -v to get more diff)
+...............................................................s........ [ 80%]
+...............................F
+______________________ test_hrms_provisions_intern_login ______________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_interns_hub.py:161: in test_hrms_provisions_intern_login
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Complete company setup before continuing: Departments, Designations"}
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+........................................................................ [ 82%]
+.........................................F
+_______ test_employee_sensitive_field_update_creates_masked_hash_audit ________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_field_audit_privacy.py:38: in test_employee_sensitive_field_update_creates_masked_hash_audit
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Employee not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+..............................................................F
+__________ test_employee_login_has_no_shared_default_password[None] ___________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_security_employee_passwords.py:9: in test_employee_login_has_no_shared_default_password
+    department = client.post('/api/v1/company/departments/', headers=superuser_headers,
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert 409 == 422
+E    +  where 409 = <Response [409 Conflict]>.status_code
+F
+_______ test_employee_login_has_no_shared_default_password[Welcome@123] _______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_security_employee_passwords.py:9: in test_employee_login_has_no_shared_default_password
+    department = client.post('/api/v1/company/departments/', headers=superuser_headers,
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert 409 == 422
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+__________ test_employee_login_has_no_shared_default_password[short] __________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_security_employee_passwords.py:9: in test_employee_login_has_no_shared_default_password
+    department = client.post('/api/v1/company/departments/', headers=superuser_headers,
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   assert 409 == 422
+E    +  where 409 = <Response [409 Conflict]>.status_code
+F
+_______ test_employee_password_has_byte_limit_and_least_privilege_role ________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_security_employee_passwords.py:15: in test_employee_password_has_byte_limit_and_least_privilege_role
+    ???
+E   AssertionError: assert 409 == 400
+E    +  where 409 = <Response [409 Conflict]>.status_code
+E    +    where <Response [409 Conflict]> = post('/api/v1/employees/', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM4MDI3NDEsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.qcfcCNoXtdaZohD02-wYxqnomZVcDzytrXJng3_GSk0'}, json={'create_user_account': True, 'date_of_joining': '2026-11-04', 'first_name': 'Synthetic', 'last_name': 'Password QA', ...})
+E    +      where post = <starlette.testclient.TestClient object at 0x000001B1D9CC75C0>.post
+..............F
+_____ test_pf_ecr_portal_ready_export_has_structured_status_and_calendar ______
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_statutory_portal_exports.py:105: in test_pf_ecr_portal_ready_export_has_structured_status_and_calendar
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Payroll run not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+.F
+_______________ test_pf_ecr_reports_missing_uan_with_error_code _______________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_statutory_portal_exports.py:127: in test_pf_ecr_reports_missing_uan_with_error_code
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+..F
+__ test_notification_summary_and_app_filter_are_personal_and_company_scoped ___
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_suite_navigation.py:33: in test_notification_summary_and_app_filter_are_personal_and_company_scoped
+    assert sum(group["count"] for group in summary.json()["groups"]) == 3
+E   assert 0 == 3
+E    +  where 0 = sum(<generator object test_notification_summary_and_app_filter_are_personal_and_company_scoped.<locals>.<genexpr> at 0x000001B1D3664040>)
+.F
+_ test_company_names_are_available_to_regular_members_across_their_workspaces _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_suite_navigation.py:46: in test_company_names_are_available_to_regular_members_across_their_workspaces
+    primary.name = "Primary member company"
+    ^^^^^^^^^^^^
+E   AttributeError: 'NoneType' object has no attribute 'name'
+F
+__________ test_tds_24q_reports_missing_pan_and_invalid_employer_tan __________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_statutory_portal_exports.py:141: in test_tds_24q_reports_missing_pan_and_invalid_employer_tan
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+F
+_________________ test_governed_metric_filters_and_drilldowns _________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_advanced_analytics_domain_pack.py:48: in test_governed_metric_filters_and_drilldowns
+    assert pay_equity.json()["summary"]["groups"] >= 1
+E   assert 0 >= 1
+F
+________________ test_tds_24q_reports_reconciliation_mismatch _________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_statutory_portal_exports.py:165: in test_tds_24q_reports_reconciliation_mismatch
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+........F
+____________ test_domain_pack_enablement_and_manufacturing_records ____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_advanced_analytics_domain_pack.py:121: in test_domain_pack_enablement_and_manufacturing_records
+    assert incident.status_code == 201
+E   assert 400 == 201
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+.....F
+_______ test_workflow_sequential_conditional_delegated_action_and_audit _______
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_workflow_engine_depth.py:215: in test_workflow_sequential_conditional_delegated_action_and_audit
+    assert tasks.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+...F
+________________ test_approval_visibility_inherits_quote_scope ________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_quote_approval.py:86: in test_approval_visibility_inherits_quote_scope
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Module access revoked: crm"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+......................F
+______________ test_shift_roster_publish_swap_and_employee_view _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_operational_foundations.py:69: in test_shift_roster_publish_swap_and_employee_view
+    ???
+backend\tests\test_hrms_operational_foundations.py:31: in _create_employee_user
+    "user_password": "Employee@123",
+E   AssertionError: {"detail":"Complete company setup before continuing: Designations"}
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+_________________ test_exit_asset_helpdesk_and_announcements __________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_operational_foundations.py:121: in test_exit_asset_helpdesk_and_announcements
+    ???
+backend\tests\test_hrms_operational_foundations.py:31: in _create_employee_user
+    "user_password": "Employee@123",
+E   AssertionError: {"detail":"Complete company setup before continuing: Designations"}
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+...........................................F
+________ test_approval_os_create_inbox_decide_history_and_notification ________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_approval_os.py:67: in test_approval_os_create_inbox_decide_history_and_notification
+    assert inbox.status_code == 200, inbox.text
+E   AssertionError: {"detail":"Module access revoked: approvals"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+______________ test_approval_os_aggregates_workflow_engine_tasks ______________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_approval_os.py:119: in test_approval_os_aggregates_workflow_engine_tasks
+    assert inbox.status_code == 200, inbox.text
+E   AssertionError: {"detail":"Module access revoked: approvals"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+....s.......F
+_________________ test_admin_can_view_and_analyze_audit_logs __________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_attendance_logging.py:54: in test_admin_can_view_and_analyze_audit_logs
+    assert len(errors.json()) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+E    +    where [] = json()
+E    +      where json = <Response [200 OK]>.json
+F
+_______ test_employee_can_punch_and_today_returns_summary_with_punches ________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_attendance_punch_api.py:57: in test_employee_can_punch_and_today_returns_summary_with_punches
+    assert punch_in.status_code == 201
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+_ test_manager_can_view_reportee_team_attendance_and_regularization_notifies_manager _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_attendance_punch_api.py:98: in test_manager_can_view_reportee_team_attendance_and_regularization_notifies_manager
+    assert view_reportee.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+....F
+____________ test_requested_condition_operator_vocabulary_executes ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_conditions.py:33: in test_requested_condition_operator_vocabulary_executes
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+.....................F
+____________________ test_global_search_matches_department ____________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_endpoint_audit_regressions.py:23: in test_global_search_matches_department
+    assert any(item["title"] == "Release specialist" for item in response.json()["results"]), response.text
+E   AssertionError: {"query":"Audit","results":[]}
+E   assert False
+E    +  where False = any(<generator object test_global_search_matches_department.<locals>.<genexpr> at 0x000001B1D3F42190>)
+.F
+______________ test_dei_analytics_representation_and_pay_equity _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_custom_forms_dei.py:104: in test_dei_analytics_representation_and_pay_equity
+    assert data["pay_equity"]["average_gross_by_gender_identity"][0]["average_gross_salary"] >= 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+......F
+____________ test_fam_opening_balances_must_balance_before_posting ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_fam_opening_balances.py:32: in test_fam_opening_balances_must_balance_before_posting
+    assert posted.status_code == 200, posted.text
+E   AssertionError: {"detail":"Record is outside the selected branch or writable scope"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+..............F
+____________________ test_pf_ecr_and_esi_export_generation ____________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_compliance_exports.py:48: in test_pf_ecr_and_esi_export_generation
+    assert run_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+___________________ test_pf_generation_reports_missing_uan ____________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_compliance_exports.py:91: in test_pf_generation_reports_missing_uan
+    assert run_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+___________ test_holiday_calendar_crud_filters_and_attendance_sync ____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_holiday_calendar_api.py:73: in test_holiday_calendar_crud_filters_and_attendance_sync
+    assert db.query(Attendance).filter_by(employee_id=employee_one.id, attendance_date=holiday_date).first().status == "Holiday"
+E   AssertionError: assert 'Absent' == 'Holiday'
+E     
+E     - Holiday
+E     + Absent
+........F
+________________ test_employee_creation_auto_starts_onboarding ________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_onboarding.py:49: in test_employee_creation_auto_starts_onboarding
+    assert employee_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+F
+_______________________ test_skip_task_requires_reason ________________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_onboarding.py:111: in test_skip_task_requires_reason
+    assert employee.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+....F
+___ test_payroll_export_validation_flags_bank_and_statutory_identifier_gaps ___
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_market_ready_readiness.py:83: in test_payroll_export_validation_flags_bank_and_statutory_identifier_gaps
+    assert run.status_code == 201, run.text
+E   AssertionError: {"detail":"Complete company setup before continuing: Salary components"}
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+................s............ss........F
+________ test_employee_permission_does_not_grant_other_company_records ________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_security_employee_scope.py:22: in test_employee_permission_does_not_grant_other_company_records
+    own_workflow_records(db,own,company_id=companies[0].id)
+E   assert set() == {1}
+E     
+E     Extra items in the right set:
+E     1
+E     Use -v to get more diff
+........F
+_ test_private_task_attachment_survives_instance_loss_and_preserves_permissions _
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_serverless_files.py:15: in test_private_task_attachment_survives_instance_loss_and_preserves_permissions
+    assert project.status_code == 200, project.text
+E   AssertionError: {"detail":"Complete company setup before continuing: Project workspace"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+...F
+____________ test_event_endpoint_rechecks_membership_after_removal ____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_serverless_files.py:51: in test_event_endpoint_rechecks_membership_after_removal
+    assert events.status_code == 200, events.text
+E   AssertionError: {"detail":"Module access revoked: project_management"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+ss....................F
+______ test_srm_approved_timesheets_create_invoice_and_prevent_rebilling ______
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_srm_timesheet_to_invoice.py:35: in test_srm_approved_timesheets_create_invoice_and_prevent_rebilling
+    assert invoice.status_code == 201, invoice.text
+E   AssertionError: {"detail":"All selected time logs must be approved and billable"}
+E   assert 400 == 201
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+F
+__________________ test_payroll_database_backlog_foundations __________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_strong_database_backlog.py:129: in test_payroll_database_backlog_foundations
+    assert unlock.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+.....F
+________________ test_payroll_pdf_exports_and_formula_preview _________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_top_gap_closure.py:34: in test_payroll_pdf_exports_and_formula_preview
+    assert pdf.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+.....F
+_____ test_attendance_workflow_recruitment_lms_engagement_and_utilization _____
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_top_gap_closure.py:106: in test_attendance_workflow_recruitment_lms_engagement_and_utilization
+    assert any(item["project_code"] == "UTIL" and item["billable_utilization_percent"] == 80 for item in report.json())
+E   assert False
+E    +  where False = any(<generator object test_attendance_workflow_recruitment_lms_engagement_and_utilization.<locals>.<genexpr> at 0x0000027014C893C0>)
+..........F
+_______________ test_admin_profiles_crud_permissions_and_audit ________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_admin_profiles.py:11: in test_admin_profiles_crud_permissions_and_audit
+    assert perms.status_code == 201
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+.......F
+________________ test_ai_context_excludes_hidden_custom_fields ________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_ai_context_security.py:17: in test_ai_context_excludes_hidden_custom_fields
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"AI context record not found or not accessible"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+...............F
+______________ test_logs_list_detail_and_retry_failed_execution _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_logs.py:6: in test_logs_list_detail_and_retry_failed_execution
+    workflow = create_workflow(client, headers)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\automation_test_utils.py:40: in create_workflow
+    assert response.status_code == 201, response.text
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+......s....F
+___________ test_crm_phase_2_lost_analysis_breaks_down_lost_reasons ___________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lost_analysis.py:5: in test_crm_phase_2_lost_analysis_breaks_down_lost_reasons
+    lost = client.post(f"/api/v1/crm/deals/{deal.json()['id']}/mark-lost", headers=superuser_headers, json={"lostReason": "Budget frozen"})
+                                            ^^^^^^^^^^^^^^^^^
+E   KeyError: 'id'
+.F
+__________________ test_crm_price_book_and_item_api_database __________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_price_books.py:28: in test_crm_price_book_and_item_api_database
+    assert item.status_code == 201, item.text
+E   AssertionError: {"detail":"Catalog item not found"}
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+......F
+_______________ test_crm_phase_2_sales_performance_backend_rbac _______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_sales_performance_rbac.py:28: in test_crm_phase_2_sales_performance_backend_rbac
+    assert client.get("/api/v1/crm/sales-performance", headers=allowed).status_code == 200
+E   AssertionError: assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+E    +    where <Response [403 Forbidden]> = get('/api/v1/crm/sales-performance', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM4MDI5MTAsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.hNp_P19kVLt4WVdU5NUdI-ws2uQFkCRicacgQF5B4Xg'})
+E    +      where get = <starlette.testclient.TestClient object at 0x0000027008C71A30>.get
+.F
+____________ test_accepted_crm_quote_converts_to_srm_idempotently _____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_quote_to_srm_conversion.py:33: in test_accepted_crm_quote_converts_to_srm_idempotently
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"CRM record not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+............F
+___________________ test_layout_sections_and_field_reorder ____________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_customization_layouts.py:13: in test_layout_sections_and_field_reorder
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+........s.s............F
+_______________________ test_fam_branch_create_and_list _______________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_fam_branches.py:15: in test_fam_branch_create_and_list
+    "gstin": "29AAPFU0939F1ZR",
+E   AssertionError: {"detail":"Branch access administration is required"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+........................................................................ [ 98%]
+........F
+_____________ test_probation_manager_review_hr_confirm_and_letter _____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_probation.py:77: in test_probation_manager_review_hr_confirm_and_letter
+    assert confirmed.status_code == 200, confirmed.text
+E   AssertionError: {"detail":"Employee not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+..........F
+______________________ test_fixed_api_reads_do_not_crash ______________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_api_read_sweep.py:41: in test_fixed_api_reads_do_not_crash
+    assert not failures, json.dumps(failures,indent=2)
+E   AssertionError: [
+E       {
+E         "path": "/api/v1/_audit-test/error",
+E         "status": 500,
+E         "error": "ValueError: secret-password-should-not-appear"
+E       }
+E     ]
+E   assert not [{'error': 'ValueError: secret-password-should-not-appear', 'path': '/api/v1/_audit-test/error', 'status': 500}]
+------------------------------ Captured log call ------------------------------
+ERROR    businesssuite.errors:main.py:196 request_failed request_id=df2af0cd-53bd-40a7-8950-d8386d9c6855 error_type=ValueError
+F
+_________________ test_automation_execution_depth_is_limited __________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_recursion_protection.py:6: in test_automation_execution_depth_is_limited
+    workflow = create_workflow(client, headers)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\automation_test_utils.py:40: in create_workflow
+    assert response.status_code == 201, response.text
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+F
+_________________ test_workflow_create_activate_test_and_log __________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_workflows.py:7: in test_workflow_create_activate_test_and_log
+    workflow = create_workflow(client, headers)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\automation_test_utils.py:40: in create_workflow
+    assert response.status_code == 201, response.text
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+................s........s...F
+______________ test_srm_collection_aging_buckets_overdue_invoice ______________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_srm_collection_aging.py:16: in test_srm_collection_aging_buckets_overdue_invoice
+    bucket = response.json()[0]
+             ^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+............s......                                                      [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_crm_lead_management.py::test_conversion_reuses_contact_and_blocks_unqualified
+FAILED backend\tests\test_pms_assistant.py::test_revoked_financial_permission_and_changed_tenant_cannot_use_history
+FAILED backend\tests\test_crm_lead_management.py::test_lead_management_rbac_and_export_visibility
+FAILED backend\tests\test_crm_lead_management.py::test_product_routing_and_duplicate_numbers_with_different_calling_codes
+FAILED backend\tests\test_crm_deal_workspace.py::test_collaborators_retain_access_checks_and_internal_notifications
+FAILED backend\tests\test_crm_deal_workspace.py::test_readonly_deal_access_does_not_expose_restricted_notes_or_allow_mutation
+FAILED backend\tests\test_suite_operator.py::test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks
+FAILED backend\tests\test_cross_module_audit.py::test_project_member_removal_revokes_existing_realtime_subscription
+FAILED backend\tests\test_cross_module_audit.py::test_realtime_checks_inactive_identity_and_current_membership
+FAILED backend\tests\test_enterprise_control.py::test_subscription_seats_and_shared_quota_enforcement
+FAILED backend\tests\test_control_center.py::test_company_branch_department_and_stale_update
+FAILED backend\tests\test_intern_applications.py::test_application_requires_approval_before_login[False]
+FAILED backend\tests\test_intern_applications.py::test_application_requires_approval_before_login[True]
+FAILED backend\tests\test_intern_applications.py::test_bulk_intake_with_legacy_all_header_uses_default_branch[Correction Requested]
+FAILED backend\tests\test_intern_applications.py::test_bulk_intake_with_legacy_all_header_uses_default_branch[Approved]
+FAILED backend\tests\test_intern_applications.py::test_superadmin_can_be_selected_as_reporting_manager
+FAILED backend\tests\test_crm_record_management.py::test_restore_rejects_merged_contact
+FAILED backend\tests\test_workforce_operations.py::test_directory_paginates_20000_people_without_loading_every_profile
+FAILED backend\tests\test_workforce_operations.py::test_backup_supervisor_scope_and_view_only_permissions
+FAILED backend\tests\test_cross_module_sharing.py::test_scoped_out_private_profile_is_never_recreated
+FAILED backend\tests\test_crm_productivity.py::test_duplicate_warning_normalized_and_scope_safe
+FAILED backend\tests\test_interns_hub.py::test_hrms_provisions_intern_login
+FAILED backend\tests\test_field_audit_privacy.py::test_employee_sensitive_field_update_creates_masked_hash_audit
+FAILED backend\tests\test_security_employee_passwords.py::test_employee_login_has_no_shared_default_password[None]
+FAILED backend\tests\test_security_employee_passwords.py::test_employee_login_has_no_shared_default_password[Welcome@123]
+FAILED backend\tests\test_security_employee_passwords.py::test_employee_login_has_no_shared_default_password[short]
+FAILED backend\tests\test_security_employee_passwords.py::test_employee_password_has_byte_limit_and_least_privilege_role
+FAILED backend\tests\test_statutory_portal_exports.py::test_pf_ecr_portal_ready_export_has_structured_status_and_calendar
+FAILED backend\tests\test_statutory_portal_exports.py::test_pf_ecr_reports_missing_uan_with_error_code
+FAILED backend\tests\test_suite_navigation.py::test_notification_summary_and_app_filter_are_personal_and_company_scoped
+FAILED backend\tests\test_suite_navigation.py::test_company_names_are_available_to_regular_members_across_their_workspaces
+FAILED backend\tests\test_statutory_portal_exports.py::test_tds_24q_reports_missing_pan_and_invalid_employer_tan
+FAILED backend\tests\test_advanced_analytics_domain_pack.py::test_governed_metric_filters_and_drilldowns
+FAILED backend\tests\test_statutory_portal_exports.py::test_tds_24q_reports_reconciliation_mismatch
+FAILED backend\tests\test_advanced_analytics_domain_pack.py::test_domain_pack_enablement_and_manufacturing_records
+FAILED backend\tests\test_workflow_engine_depth.py::test_workflow_sequential_conditional_delegated_action_and_audit
+FAILED backend\tests\test_crm_quote_approval.py::test_approval_visibility_inherits_quote_scope
+FAILED backend\tests\test_hrms_operational_foundations.py::test_shift_roster_publish_swap_and_employee_view
+FAILED backend\tests\test_hrms_operational_foundations.py::test_exit_asset_helpdesk_and_announcements
+FAILED backend\tests\test_approval_os.py::test_approval_os_create_inbox_decide_history_and_notification
+FAILED backend\tests\test_approval_os.py::test_approval_os_aggregates_workflow_engine_tasks
+FAILED backend\tests\test_attendance_logging.py::test_admin_can_view_and_analyze_audit_logs
+FAILED backend\tests\test_attendance_punch_api.py::test_employee_can_punch_and_today_returns_summary_with_punches
+FAILED backend\tests\test_attendance_punch_api.py::test_manager_can_view_reportee_team_attendance_and_regularization_notifies_manager
+FAILED backend\tests\test_automation_conditions.py::test_requested_condition_operator_vocabulary_executes
+FAILED backend\tests\test_endpoint_audit_regressions.py::test_global_search_matches_department
+FAILED backend\tests\test_custom_forms_dei.py::test_dei_analytics_representation_and_pay_equity
+FAILED backend\tests\test_fam_opening_balances.py::test_fam_opening_balances_must_balance_before_posting
+FAILED backend\tests\test_hrms_compliance_exports.py::test_pf_ecr_and_esi_export_generation
+FAILED backend\tests\test_hrms_compliance_exports.py::test_pf_generation_reports_missing_uan
+FAILED backend\tests\test_holiday_calendar_api.py::test_holiday_calendar_crud_filters_and_attendance_sync
+FAILED backend\tests\test_onboarding.py::test_employee_creation_auto_starts_onboarding
+FAILED backend\tests\test_onboarding.py::test_skip_task_requires_reason - ass...
+FAILED backend\tests\test_hrms_market_ready_readiness.py::test_payroll_export_validation_flags_bank_and_statutory_identifier_gaps
+FAILED backend\tests\test_security_employee_scope.py::test_employee_permission_does_not_grant_other_company_records
+FAILED backend\tests\test_serverless_files.py::test_private_task_attachment_survives_instance_loss_and_preserves_permissions
+FAILED backend\tests\test_serverless_files.py::test_event_endpoint_rechecks_membership_after_removal
+FAILED backend\tests\test_srm_timesheet_to_invoice.py::test_srm_approved_timesheets_create_invoice_and_prevent_rebilling
+FAILED backend\tests\test_strong_database_backlog.py::test_payroll_database_backlog_foundations
+FAILED backend\tests\test_top_gap_closure.py::test_payroll_pdf_exports_and_formula_preview
+FAILED backend\tests\test_top_gap_closure.py::test_attendance_workflow_recruitment_lms_engagement_and_utilization
+FAILED backend\tests\test_admin_profiles.py::test_admin_profiles_crud_permissions_and_audit
+FAILED backend\tests\test_ai_context_security.py::test_ai_context_excludes_hidden_custom_fields
+FAILED backend\tests\test_automation_logs.py::test_logs_list_detail_and_retry_failed_execution
+FAILED backend\tests\test_crm_lost_analysis.py::test_crm_phase_2_lost_analysis_breaks_down_lost_reasons
+FAILED backend\tests\test_crm_price_books.py::test_crm_price_book_and_item_api_database
+FAILED backend\tests\test_crm_sales_performance_rbac.py::test_crm_phase_2_sales_performance_backend_rbac
+FAILED backend\tests\test_crm_quote_to_srm_conversion.py::test_accepted_crm_quote_converts_to_srm_idempotently
+FAILED backend\tests\test_customization_layouts.py::test_layout_sections_and_field_reorder
+FAILED backend\tests\test_fam_branches.py::test_fam_branch_create_and_list - ...
+FAILED backend\tests\test_hrms_probation.py::test_probation_manager_review_hr_confirm_and_letter
+FAILED backend\tests\test_api_read_sweep.py::test_fixed_api_reads_do_not_crash
+FAILED backend\tests\test_automation_recursion_protection.py::test_automation_execution_depth_is_limited
+FAILED backend\tests\test_automation_workflows.py::test_workflow_create_activate_test_and_log
+FAILED backend\tests\test_srm_collection_aging.py::test_srm_collection_aging_buckets_overdue_invoice
+75 failed, 3634 passed, 22 skipped, 3195 warnings in 1700.00s (0:28:19)

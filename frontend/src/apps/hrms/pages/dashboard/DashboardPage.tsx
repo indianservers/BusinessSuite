@@ -1,3 +1,4 @@
+import { SuiteMetric } from "@/components/visuals/SuiteVisuals";
 import {Button} from "@/components/ui/button";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useQuery } from "@tanstack/react-query";
@@ -40,42 +41,10 @@ function StatCard({
   color?: string;
   href?: string;
 }) {
-  const colorMap: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-    green: "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-    yellow: "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
-    red: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-    purple: "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-  };
-
-  const content = (
-    <Card className="stat-card" title={subtitle||title}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
-            {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-            {trend && (
-              <div className="flex items-center gap-1 text-xs">
-                {trend.value >= 0 ? (
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                )}
-                <span className={trend.value >= 0 ? "text-green-600" : "text-red-600"}>
-                  {Math.abs(trend.value)}% {trend.label}
-                </span>
-              </div>
-            )}
-          </div>
-          <div className={`rounded-xl p-3 ${colorMap[color]}`}>
-            <Icon className="h-6 w-6" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const content = <Card className="stat-card" title={subtitle || title}><SuiteMetric label={title} value={value} icon={Icon}>
+    {subtitle && <p className="mt-2 text-xs text-muted-foreground">{subtitle}</p>}
+    {trend && <span className={`mt-2 inline-flex items-center gap-1 text-xs ${trend.value >= 0 ? "text-green-600" : "text-red-600"}`}>{trend.value >= 0 ? <TrendingUp size={13}/> : <TrendingDown size={13}/>} {Math.abs(trend.value)}% {trend.label}</span>}
+  </SuiteMetric></Card>;
   return href ? <Link to={href} className="block transition-transform hover:-translate-y-1">{content}</Link> : content;
 }
 

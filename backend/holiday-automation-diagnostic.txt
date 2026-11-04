@@ -1,0 +1,20 @@
+F..                                                                      [100%]
+================================== FAILURES ===================================
+____________ test_requested_condition_operator_vocabulary_executes ____________
+backend\tests\test_automation_conditions.py:43: in test_requested_condition_operator_vocabulary_executes
+    assert response.json()["status"] == "success", response.text
+E   AssertionError: {"id":1,"workflow_id":1,"module_name":"crm","record_type":"deal","record_id":200,"trigger_type":"stage_changed","status":"failed","depth":0,"request_json":{"record":{"amount":3000,"owner_id":7,"stage":"proposal","notes":"ready"},"module_name":"crm","record_type":"deal","record_id":200,"trigger_type":"stage_changed","depth":0},"result_json":{"conditions_matched":false,"actions":[]},"error_message":"Linked record ownership is unresolved or outside this company","created_at":"2026-11-04T13:49:34"}
+E   assert 'failed' == 'success'
+E     
+E     - success
+E     + failed
+------------------------------ Captured log call ------------------------------
+WARNING  passlib.handlers.bcrypt:bcrypt.py:622 (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+=========================== short test summary info ===========================
+FAILED backend\tests\test_automation_conditions.py::test_requested_condition_operator_vocabulary_executes
+1 failed, 2 passed, 2 warnings in 6.30s

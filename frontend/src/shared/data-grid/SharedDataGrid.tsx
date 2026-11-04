@@ -1,3 +1,4 @@
+import { defaultText } from "@/lib/form-defaults";
 import { SuiteDistribution, SuiteIllustration } from "@/components/visuals/SuiteVisuals";
 import { useMobile } from "@/components/mobile/useMobile";
 import PhoneActions, { isPhoneField } from "@/components/PhoneActions";
@@ -112,11 +113,11 @@ const errorText = (e: unknown) => {
     ?.data?.detail;
   return typeof detail === "string"
     ? detail
-    : "The grid request could not be completed. Check your connection and filter values, then retry.";
+    : e instanceof Error && e.message ? e.message : "The grid request could not be completed. Check your connection and filter values, then retry.";
 };
 const formatMoney = (value: number, currency?: string) => {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(defaultText("number_format"), {
       style: "currency",
       currency: currency || "INR",
       maximumFractionDigits: 2,
@@ -162,7 +163,15 @@ export function GroupingPanel({
   columns,
   query,
   change,
+  loadedOnly,
+  expandAll,
+  collapseAll,
+  expanding,
 }: {
+  loadedOnly?: boolean;
+  expandAll?: () => void;
+  collapseAll?: () => void;
+  expanding?: boolean;
   columns: { id: string; title: string; groupable?: boolean }[];
   query: GridQuery;
   change: (query: GridQuery) => void;
@@ -196,7 +205,7 @@ export function GroupingPanel({
         ))}
       </SortableContext>
       {!query.grouping.length && (
-        <small>Drag a column here to group the full dataset</small>
+        <small>{loadedOnly ? "Drag a column here to group loaded rows" : "Drag a column here to group the full dataset"}</small>
       )}
       <NativeSelect
         aria-label="Add grouping column"
@@ -225,6 +234,10 @@ export function GroupingPanel({
             </option>
           ))}
       </NativeSelect>
+      {query.grouping.length > 0 && <>
+        <button type="button" className="udg-control" disabled={expanding} onClick={expandAll}>{expanding ? "Expanding…" : "Expand loaded groups"}</button>
+        <button type="button" className="udg-control" onClick={collapseAll}>Collapse all</button>
+      </>}
     </div>
   );
 }
@@ -240,7 +253,9 @@ function Header<T>({
   move,
   resizeHandler,
   resizeKey,
+  selectionOffset,
 }: {
+  selectionOffset: number;
   column: Column<Node<T>, unknown>;
   definition: GridColumn<T>;
   style: CSSProperties;
@@ -258,7 +273,7 @@ function Header<T>({
   return (
     <div
       role="columnheader"
-      aria-colindex={column.getIndex() + 2}
+      aria-colindex={column.getIndex() + 1 + selectionOffset}
       aria-sort={sort ? (sort === "asc" ? "ascending" : "descending") : "none"}
       className={`udg-th udg-align-${definition.align || (["number", "currency"].includes(definition.type || "") ? "right" : "left")}`}
       data-column={column.id}
@@ -965,6 +980,20 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       });
     }
   }
+  const [expandingAll, setExpandingAll] = useState(false);
+  async function expandLoadedGroups() {
+    if (expandingAll) return;
+    setExpandingAll(true);
+    const originalSignature = currentQuery.current;
+    try {
+      const groups = table.getRowModel().rows.filter(row => row.original.group);
+      for (const row of groups) {
+        if (originalSignature !== currentQuery.current) return;
+        if (!children[row.id]) await loadBranch(row.original.group!.path, row.id);
+      }
+      if (originalSignature === currentQuery.current) setExpanded(previous => ({ ...(typeof previous === "object" ? previous : {}), ...Object.fromEntries(groups.map(row => [row.id, true])) }));
+    } finally { setExpandingAll(false); }
+  }
   async function expand(id: string, group: GridGroup) {
     const row = table.getRow(id);
     if (!row.getIsExpanded() && !children[id]) await loadBranch(group.path, id);
@@ -1348,7 +1377,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       return (
         <div
           role="gridcell"
-          aria-colindex={ordered.findIndex((c) => c.id === column.id) + 2}
+          aria-colindex={ordered.findIndex((c) => c.id === column.id) + 1 + (selectionWidth ? 1 : 0)}
           key={column.id}
           data-row-id={node.id}
           data-cell-id={column.id}
@@ -1396,6 +1425,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       <Header
         key={column.id}
         column={column}
+        selectionOffset={selectionWidth ? 1 : 0}
         definition={columns.find((c) => c.id === column.id)!}
         style={style(column, true)}
         source={dataSource}
@@ -1425,6 +1455,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     const text = /^[\s]*[=+@-]/.test(value) ? "'" + value : value;
     return /[\t\n\r"]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
+  const chartColumn = columns.find(column => column.type === "status");
   return (
     <section
       className="udg"
@@ -1464,9 +1495,10 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               ))}
             </div>
           )}
-      {columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
+      {visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
       <GridToolbar
         search={search}
+        searchPlaceholder={props.dataScope === "loaded" ? "Search loaded records…" : undefined}
         setSearch={setSearch}
         filterCount={filterRules(query.filters).length}
         openFilters={() => setFilterOpen(true)}
@@ -1594,6 +1626,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       {selection.length > 0 && (
         <div className="udg-selection-bar">
           <strong>{selection.length} selected</strong>
+          {props.bulkToolbar}
           {(props.bulkActions || []).map(action => <button type="button" key={action.id} className={`udg-control ${action.danger ? "udg-danger" : ""}`}
             disabled={!!bulkBusy || !selectedRecords.length || selectedRecords.length !== selection.length || action.disabled?.(selectedRecords)}
             onClick={() => void runBulkAction(action)}>{bulkBusy === action.id ? "Applying…" : action.label}</button>)}
@@ -1632,12 +1665,13 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         collisionDetection={closestCenter}
         onDragEnd={dragEnd}
       >
-        <GroupingPanel columns={columns} query={query} change={changeQuery} />
+        <GroupingPanel columns={columns} query={query} change={changeQuery} loadedOnly={props.dataScope === "loaded"}
+          expandAll={() => void expandLoadedGroups()} collapseAll={() => setExpanded({})} expanding={expandingAll}/>
         {layout.view === "grid" ? (
           <div
             className="udg-scroll"
             ref={scroll}
-            style={{ height: props.height || 540 }}
+            style={{ height: props.height || Math.min(540, Math.max(240, (request.isPending ? 8 : modelRows.length) * effectiveRowHeight + 40)) }}
             role="grid"
             aria-label={props.title || "Records"}
             aria-rowcount={(result?.total || 0) + 1}
@@ -2091,7 +2125,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       </DndContext>
       <div className="udg-summary-footer">
         <strong>{result?.total.toLocaleString() || 0} matching records</strong>
-        <span>Full filtered dataset</span>
+        <span>{props.dataScope === "loaded" ? "Loaded records only" : "Full filtered dataset"}</span>
         {result?.aggregates?.map((a) => (
           <span key={a.currency}>
             <b>{a.currency}</b> Sum {formatMoney(a.sum, a.currency)} · Average{" "}

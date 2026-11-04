@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 """Upgrade/downgrade preserves legacy rows in an isolated database."""
 import importlib.util
 from pathlib import Path

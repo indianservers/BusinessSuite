@@ -1,6 +1,8 @@
-import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-import DashboardsPage from "./pages/DashboardsPage";
 import React from "react";
+const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
+const DashboardsPage = React.lazy(() => import("./pages/DashboardsPage"));
 import type { FrontendRoute } from "@/appRegistry";
 const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/WorkforceOperationsPage"));
 const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
@@ -37,6 +39,8 @@ const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
 const KanbanBoard = React.lazy(() => import("./pages/KanbanBoard"));
 const ProjectsList = React.lazy(() => import("./pages/ProjectsList"));
 const CreateProjectPage = React.lazy(() => import("./pages/CreateProjectPage"));
+const Record360Page = React.lazy(() => import("@/shared/records/Record360Page"));
+const TasksFollowUpsPage = React.lazy(() => import("./pages/TasksFollowUpsPage"));
 const TaskExperiencePage = React.lazy(() => import("./pages/TaskExperiencePage"));
 const TasksReferencePage = React.lazy(() => import("./pages/TasksReferencePage"));
 const TaskListPage = React.lazy(() => import("./pages/TaskListPage"));
@@ -80,6 +84,13 @@ const AssignmentControlsPage=React.lazy(()=>import("./pages/AssignmentControlsPa
 const WorkReviewsPage = React.lazy(() => import("./pages/WorkReviewsPage"));
 const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
+  {path:"pms/import-data",element:<ImportWorkspace module="pms"/>},
+ {path:"pms/tasks-follow-ups",element:<TasksFollowUpsPage/>},
+ {path:"pms/customers/:id/360",element:<Record360Page/>},
+ {path:"pms/follow-ups",element:<FollowUpsPage/>},
+ {path:"pms/follow-ups/directory",element:<FollowUpsPage/>},
+ {path:"pms/follow-ups/calendar",element:<FollowUpsPage/>},
+ {path:"pms/follow-ups/:id",element:<FollowUpsPage/>},
  {path:"pms/products-services",element:<SharedCatalogPage source="pms"/>},
  {path:"pms/products",element:<SharedCatalogPage source="pms"/>},
  {path:"pms/management",element:<ManagementHomePage/>},

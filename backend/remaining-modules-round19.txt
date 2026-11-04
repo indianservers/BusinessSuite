@@ -1,0 +1,26 @@
+bringing up nodes...
+bringing up nodes...
+
+....F
+____________ test_requested_condition_operator_vocabulary_executes ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_conditions.py:43: in test_requested_condition_operator_vocabulary_executes
+    assert response.json()["status"] == "success"
+E   AssertionError: assert 'failed' == 'success'
+E     
+E     - success
+E     + failed
+.F
+___________ test_holiday_calendar_crud_filters_and_attendance_sync ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_holiday_calendar_api.py:73: in test_holiday_calendar_crud_filters_and_attendance_sync
+    assert db.query(Attendance).filter_by(employee_id=employee_one.id, attendance_date=holiday_date).first().status == "Holiday"
+E   AssertionError: assert 'Absent' == 'Holiday'
+E     
+E     - Holiday
+E     + Absent
+.....................                                                    [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_automation_conditions.py::test_requested_condition_operator_vocabulary_executes
+FAILED backend\tests\test_holiday_calendar_api.py::test_holiday_calendar_crud_filters_and_attendance_sync
+2 failed, 26 passed, 8 warnings in 37.98s

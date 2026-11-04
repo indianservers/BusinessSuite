@@ -1,3 +1,8 @@
+import {ProductPicker} from '@/apps/crm/GrowthWorkspace';
+import type {OfferingFilter} from './whatsapp/InboxFilters';
+import {whatsappBase,type Template} from './whatsapp/types';
+import CampaignTemplatePicker,{CampaignTemplatePreview} from './whatsapp/CampaignTemplatePicker';
+import {useCenterScope} from './center/shared';
 import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect,useState } from "react";
@@ -73,6 +78,19 @@ const presets: Record<string, Partial<typeof initialRule>> = {
     trigger: "invoice.due",
     subject: "Payment reminder: {{reference}}",
     body: "Hello {{name}}, {{amount}} {{currency}} is pending for invoice {{reference}}, due {{due_date}}.",
+    conditions: { roles: ["billing", "primary"], days_before: 0 },
+  },
+  "Payment due in 3 days": {
+    trigger: "invoice.due",
+    subject: "Upcoming payment: {{reference}}",
+    body: "Hello {{name}}, {{amount}} {{currency}} remains for invoice {{reference}}, due {{due_date}}. Please let us know if you need assistance.",
+    conditions: { roles: ["billing", "primary"], days_before: 3 },
+  },
+  "Payment 3 days overdue": {
+    trigger: "invoice.due",
+    subject: "Payment follow-up: {{reference}}",
+    body: "Hello {{name}}, invoice {{reference}} was due {{due_date}}. The outstanding amount is {{amount}} {{currency}}. Please contact accounts if there is a query.",
+    conditions: { roles: ["billing", "primary"], days_before: -3 },
   },
   "Delivery update": {
     trigger: "shipment.changed",
@@ -117,13 +135,14 @@ function Field({
   );
 }
 
-export default function CustomerCommunications() {
+export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnly?:boolean}={}) {
+  const scope=useCenterScope();
   const [queryParams]=useSearchParams();
   const [tab, setTab] = useState(queryParams.get("customerTab")||"overview");
   useEffect(()=>{if(queryParams.get("customerTab"))setTab(queryParams.get("customerTab")!);},[queryParams.get("customerTab")]);
   const [recipient, setRecipient] = useState<Row>(initialRecipient);
   const [recipientEdit, setRecipientEdit] = useState<number | null>(null);
-  const [rule, setRule] = useState<Row>(initialRule);
+  const [rule, setRule] = useState<Row>(whatsappOnly?{...initialRule,channel:'whatsapp',trigger:'campaign',purpose:'marketing'}:initialRule);
   const [ruleEdit, setRuleEdit] = useState<number | null>(null);
   const [steps, setSteps] = useState("0");
   const [statuses, setStatuses] = useState("");
@@ -137,6 +156,10 @@ export default function CustomerCommunications() {
   const [preview, setPreview] = useState<Row | null>(null);
   const [schedule, setSchedule] = useState("");
   const [approveBulk, setApproveBulk] = useState(false);
+  const [campaignOfferings,setCampaignOfferings]=useState<OfferingFilter[]>([]),[campaignTag,setCampaignTag]=useState(''),[campaignType,setCampaignType]=useState('');
+  const [audienceIds,setAudienceIds]=useState<number[]>([]),[audienceSearch,setAudienceSearch]=useState(''),[previewVersion,setPreviewVersion]=useState<number>();
+  useEffect(()=>{setPreview(null);},[audienceIds,campaignOfferings,campaignTag,campaignType]);
+  const audienceParams=()=>({recipient_ids:audienceIds,offerings:campaignOfferings.length?JSON.stringify(campaignOfferings.map(p=>({kind:p.kind,id:Number(p.id)}))):'',tag:campaignTag.trim(),contact_type:campaignType||undefined});
   const [previewRule, setPreviewRule] = useState<number | null>(null);
   const [shipment, setShipment] = useState<Row>({
     sales_order_id: "",
@@ -150,41 +173,42 @@ export default function CustomerCommunications() {
   const [settingsEdit, setSettingsEdit] = useState<Row | null>(null);
   const { toast } = useToast();
   const qc = useQueryClient();
+  const campaignTemplates=useQuery({queryKey:['whatsapp',scope,'campaign-templates'],enabled:whatsappOnly||rule.channel==='whatsapp',queryFn:async()=>(await api.get<{items:Template[]}>(whatsappBase+'/templates')).data.items});
   const dashboard = useQuery({
-    queryKey: ["customer-comms", "dashboard"],
+    queryKey: ["customer-comms", scope, "dashboard"],
     queryFn: () => load("/dashboard"),
     refetchInterval: 15000,
   });
   const recipients = useQuery({
-    queryKey: ["customer-comms", "recipients"],
+    queryKey: ["customer-comms", scope, "recipients"],
     queryFn: () => load("/recipients"),
   });
   const rules = useQuery({
-    queryKey: ["customer-comms", "rules"],
+    queryKey: ["customer-comms", scope, "rules"],
     queryFn: () => load("/automations"),
   });
   const deliveries = useQuery({
-    queryKey: ["customer-comms", "deliveries"],
+    queryKey: ["customer-comms", scope, "deliveries"],
     queryFn: () => load("/deliveries"),
     refetchInterval: 15000,
   });
   const shipments = useQuery({
-    queryKey: ["customer-comms", "shipments"],
+    queryKey: ["customer-comms", scope, "shipments"],
     queryFn: () => load("/shipments"),
     enabled: tab === "logistics",
   });
   const settings = useQuery({
-    queryKey: ["customer-comms", "settings"],
+    queryKey: ["customer-comms", scope, "settings"],
     queryFn: () => load("/settings"),
   });
   const history = useQuery({
-    queryKey: ["customer-comms", "history", selected],
+    queryKey: ["customer-comms", scope, "history", selected],
     queryFn: () => load(`/recipients/${selected}/history`),
     enabled: !!selected,
     refetchInterval: 15000,
   });
   const bindings = useQuery({
-    queryKey: ["customer-comms", "bindings", selected],
+    queryKey: ["customer-comms", scope, "bindings", selected],
     queryFn: () => load(`/recipients/${selected}/bindings`),
     enabled: !!selected,
   });
@@ -208,7 +232,7 @@ export default function CustomerCommunications() {
   return (
     <div className="space-y-5" data-testid="customer-communications">
       <div>
-        <h2 className="text-xl font-semibold">Customer communications</h2>
+        <h2 className="text-xl font-semibold">{whatsappOnly?'WhatsApp campaigns':'Customer communications'}</h2>
         <p className="text-sm text-muted-foreground">
           Keep customers informed about services, orders, payments and
           deliveries.
@@ -225,7 +249,7 @@ export default function CustomerCommunications() {
           "deliveries",
           "logistics",
           "settings",
-        ].map((t) => (
+        ].filter(t=>!whatsappOnly||['customers','automations','deliveries'].includes(t)).map((t) => (
           <Button
             key={t}
             size="sm"
@@ -683,7 +707,7 @@ export default function CustomerCommunications() {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      setRule({ ...initialRule, ...preset, name });
+                      setRule({ ...initialRule, ...preset, name, ...(whatsappOnly?{channel:'whatsapp',trigger:'campaign',purpose:'marketing'}:{}) });
                       setRuleEdit(null);
                       setSteps("0");
                       setStatuses("");
@@ -718,6 +742,7 @@ export default function CustomerCommunications() {
                       },
                       ruleEdit ? "put" : "post",
                     );
+                    setPreview(null);
                     setRuleEdit(result.id);
                     setRule(result);
                     return result;
@@ -735,7 +760,7 @@ export default function CustomerCommunications() {
                   {[
                     ["trigger", rules.data?.triggers ?? []],
                     ["purpose", purposes],
-                    ["channel", ["email", "whatsapp"]],
+                    ["channel", whatsappOnly?["whatsapp"]:["email", "whatsapp"]],
                     ["status", ["draft", "active", "paused"]],
                   ].map(([key, options]) => (
                     <Field key={String(key)} title={label(String(key))}>
@@ -755,7 +780,7 @@ export default function CustomerCommunications() {
                     </Field>
                   ))}
                 </div>
-                <Field title="Subject">
+                <Field title={rule.channel==='whatsapp'?"Campaign reference":"Subject"}>
                   <Input
                     required
                     value={rule.subject}
@@ -764,29 +789,21 @@ export default function CustomerCommunications() {
                     }
                   />
                 </Field>
-                <Field title="Message">
+                {rule.channel!=="whatsapp"&&<Field title="Message">
                   <textarea
                     required
                     className="min-h-28 rounded border bg-background p-3"
                     value={rule.body}
                     onChange={(e) => setRule({ ...rule, body: e.target.value })}
                   />
-                </Field>
+                </Field>}
+                {rule.channel==="whatsapp"&&<p className="text-sm">The approved template below is the customer message.</p>}
                 <p className="text-xs text-muted-foreground">
                   Variables: name, reference, status, due_date, amount,
                   currency, tracking_url. Use double braces, e.g. {"{{name}}"}.
                 </p>
                 {rule.channel === "whatsapp" && (
-                  <Field title="Approved WhatsApp template payload">
-                    <textarea
-                      className="min-h-24 rounded border bg-background p-2 font-mono text-xs"
-                      placeholder={
-                        '{"name":"service_reminder","language":{"code":"en"}}'
-                      }
-                      value={waTemplate}
-                      onChange={(e) => setWaTemplate(e.target.value)}
-                    />
-                  </Field>
+                  <CampaignTemplatePicker value={waTemplate} onChange={setWaTemplate}/>
                 )}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field title="Step delays in minutes (comma separated)">
@@ -867,7 +884,8 @@ export default function CustomerCommunications() {
             </CardContent>
           </Card>
           <div className="space-y-4">
-            {rules.data?.items.map((r: Row) => (
+            <section className="space-y-2 rounded border p-3"><h3>Campaign audience</h3><div className="grid gap-2 sm:grid-cols-2"><label>Lead / customer type<NativeSelect aria-label="Campaign contact type" value={campaignType} onChange={e=>setCampaignType(e.target.value)}><option value="">Any type</option>{['lead','customer','vendor','employee','other'].map(t=><option key={t}>{t}</option>)}</NativeSelect></label><label>CRM tag<input aria-label="Campaign CRM tag" className="w-full rounded border p-2" value={campaignTag} maxLength={100} onChange={e=>setCampaignTag(e.target.value)}/></label><div><ProductPicker kind="" id="" name="" change={(kind,id,name)=>{if(id&&campaignOfferings.length<50&&!campaignOfferings.some(v=>v.kind===kind&&v.id===id))setCampaignOfferings([...campaignOfferings,{kind,id,name}]);}}/>{campaignOfferings.map(p=><button type="button" key={p.kind+p.id} onClick={()=>setCampaignOfferings(campaignOfferings.filter(v=>v!==p))}>{p.name} ×</button>)}</div><small>Type, tag and product filters use authorized CRM contact/lead links; unlinked recipients are excluded. Products match any selection.</small></div><p className="text-sm">{audienceIds.length?`${audienceIds.length} selected recipients`:'All active recipients in this branch'}. Consent and exclusions are checked by preview and again before delivery.</p><input aria-label="Search campaign audience" className="w-full rounded border p-2" placeholder="Search name, phone, email or role" value={audienceSearch} onChange={e=>setAudienceSearch(e.target.value)}/><div className="max-h-48 overflow-auto">{recipients.data?.items.filter((r:Row)=>(r.name+' '+r.phone+' '+r.email+' '+r.role).toLowerCase().includes(audienceSearch.toLowerCase())).map((r:Row)=><label className="flex items-center gap-2" key={r.id}><input type="checkbox" checked={audienceIds.includes(r.id)} onChange={e=>setAudienceIds(e.target.checked?[...audienceIds,r.id]:audienceIds.filter(id=>id!==r.id))}/>{r.name} · {r.phone||r.email} · {r.role}</label>)}</div><button type="button" onClick={()=>setAudienceIds([])}>Use all active recipients</button></section>
+            {rules.data?.items.filter((r:Row)=>!whatsappOnly||r.channel==='whatsapp').map((r: Row) => (
               <Card key={r.id}>
                 <CardContent className="space-y-2 p-4">
                   <div className="flex justify-between gap-2">
@@ -908,10 +926,10 @@ export default function CustomerCommunications() {
                         run(async () => {
                           const result = await save(
                             `/automations/${r.id}/preview`,
-                            {},
+                            audienceParams(),
                           );
                           setPreview(result);
-                          setPreviewRule(r.id);
+                          setPreviewRule(r.id);setPreviewVersion(r.version);
                           return result;
                         })
                       }
@@ -935,10 +953,10 @@ export default function CustomerCommunications() {
                   </p>
                   {preview.sample && (
                     <div className="rounded bg-muted p-3">
-                      <strong>{preview.sample.subject}</strong>
+                      {preview.channel==='whatsapp'?<CampaignTemplatePreview templates={campaignTemplates.data||[]} payload={preview.sample.template}/>:<><strong>{preview.sample.subject}</strong>
                       <p className="whitespace-pre-wrap">
                         {preview.sample.body}
-                      </p>
+                      </p></>}
                     </div>
                   )}
                   {preview.sample_error && (
@@ -964,6 +982,7 @@ export default function CustomerCommunications() {
                     onClick={() =>
                       run(() =>
                         save(`/automations/${previewRule}/launch`, {
+                          ...audienceParams(),expected_version:previewVersion,
                           scheduled_at: schedule
                             ? new Date(schedule).toISOString()
                             : null,
@@ -992,7 +1011,7 @@ export default function CustomerCommunications() {
             uncertain outcomes before retrying.
           </p>
           {!deliveries.data?.items.length && <p>No messages queued yet.</p>}
-          {deliveries.data?.items.map((d: Row) => (
+          {deliveries.data?.items.filter((d:Row)=>!whatsappOnly||d.channel==='whatsapp').map((d: Row) => (
             <Card key={d.id}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div>

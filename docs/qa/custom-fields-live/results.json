@@ -1,0 +1,2770 @@
+{
+  "run": "CFQA90615674",
+  "fields": {
+    "leads": {
+      "create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 1,
+        "organization_id": 1,
+        "entity": "leads",
+        "field_key": "cfqa90615674_leads_create",
+        "field_name": "CFQA90615674 leads create",
+        "label": "CFQA90615674 leads create",
+        "field_type": "radio",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:16.493503+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:16.493503+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "leads",
+        "fieldName": "CFQA90615674 leads create",
+        "fieldKey": "cfqa90615674_leads_create",
+        "fieldType": "radio",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "edit": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 2,
+        "organization_id": 1,
+        "entity": "leads",
+        "field_key": "cfqa90615674_leads_edit",
+        "field_name": "CFQA90615674 leads edit",
+        "label": "CFQA90615674 leads edit",
+        "field_type": "combobox",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:16.827731+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:16.827731+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "leads",
+        "fieldName": "CFQA90615674 leads edit",
+        "fieldKey": "cfqa90615674_leads_edit",
+        "fieldType": "combobox",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "quick_create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 3,
+        "organization_id": 1,
+        "entity": "leads",
+        "field_key": "cfqa90615674_leads_quick_create",
+        "field_name": "CFQA90615674 leads quick_create",
+        "label": "CFQA90615674 leads quick_create",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:17.142012+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:17.142012+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "leads",
+        "fieldName": "CFQA90615674 leads quick_create",
+        "fieldKey": "cfqa90615674_leads_quick_create",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "detail": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 4,
+        "organization_id": 1,
+        "entity": "leads",
+        "field_key": "cfqa90615674_leads_detail",
+        "field_name": "CFQA90615674 leads detail",
+        "label": "CFQA90615674 leads detail",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:18.599144+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:18.599144+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "leads",
+        "fieldName": "CFQA90615674 leads detail",
+        "fieldKey": "cfqa90615674_leads_detail",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      }
+    },
+    "contacts": {
+      "create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 5,
+        "organization_id": 1,
+        "entity": "contacts",
+        "field_key": "cfqa90615674_contacts_create",
+        "field_name": "CFQA90615674 contacts create",
+        "label": "CFQA90615674 contacts create",
+        "field_type": "radio",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:19.322472+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:19.322472+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "contacts",
+        "fieldName": "CFQA90615674 contacts create",
+        "fieldKey": "cfqa90615674_contacts_create",
+        "fieldType": "radio",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "edit": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 6,
+        "organization_id": 1,
+        "entity": "contacts",
+        "field_key": "cfqa90615674_contacts_edit",
+        "field_name": "CFQA90615674 contacts edit",
+        "label": "CFQA90615674 contacts edit",
+        "field_type": "combobox",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:19.888395+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:19.888395+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "contacts",
+        "fieldName": "CFQA90615674 contacts edit",
+        "fieldKey": "cfqa90615674_contacts_edit",
+        "fieldType": "combobox",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "quick_create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 7,
+        "organization_id": 1,
+        "entity": "contacts",
+        "field_key": "cfqa90615674_contacts_quick_create",
+        "field_name": "CFQA90615674 contacts quick_create",
+        "label": "CFQA90615674 contacts quick_create",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:20.310322+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:20.310322+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "contacts",
+        "fieldName": "CFQA90615674 contacts quick_create",
+        "fieldKey": "cfqa90615674_contacts_quick_create",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "detail": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 8,
+        "organization_id": 1,
+        "entity": "contacts",
+        "field_key": "cfqa90615674_contacts_detail",
+        "field_name": "CFQA90615674 contacts detail",
+        "label": "CFQA90615674 contacts detail",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:20.686933+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:20.686933+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "contacts",
+        "fieldName": "CFQA90615674 contacts detail",
+        "fieldKey": "cfqa90615674_contacts_detail",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      }
+    },
+    "companies": {
+      "create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 9,
+        "organization_id": 1,
+        "entity": "companies",
+        "field_key": "cfqa90615674_companies_create",
+        "field_name": "CFQA90615674 companies create",
+        "label": "CFQA90615674 companies create",
+        "field_type": "radio",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:21.249004+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:21.249004+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "companies",
+        "fieldName": "CFQA90615674 companies create",
+        "fieldKey": "cfqa90615674_companies_create",
+        "fieldType": "radio",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "edit": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 10,
+        "organization_id": 1,
+        "entity": "companies",
+        "field_key": "cfqa90615674_companies_edit",
+        "field_name": "CFQA90615674 companies edit",
+        "label": "CFQA90615674 companies edit",
+        "field_type": "combobox",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:21.570532+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:21.570532+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "companies",
+        "fieldName": "CFQA90615674 companies edit",
+        "fieldKey": "cfqa90615674_companies_edit",
+        "fieldType": "combobox",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "quick_create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 11,
+        "organization_id": 1,
+        "entity": "companies",
+        "field_key": "cfqa90615674_companies_quick_create",
+        "field_name": "CFQA90615674 companies quick_create",
+        "label": "CFQA90615674 companies quick_create",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:22.704981+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:22.704981+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "companies",
+        "fieldName": "CFQA90615674 companies quick_create",
+        "fieldKey": "cfqa90615674_companies_quick_create",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "detail": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 12,
+        "organization_id": 1,
+        "entity": "companies",
+        "field_key": "cfqa90615674_companies_detail",
+        "field_name": "CFQA90615674 companies detail",
+        "label": "CFQA90615674 companies detail",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:23.065484+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:23.065484+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "companies",
+        "fieldName": "CFQA90615674 companies detail",
+        "fieldKey": "cfqa90615674_companies_detail",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      }
+    },
+    "deals": {
+      "create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 13,
+        "organization_id": 1,
+        "entity": "deals",
+        "field_key": "cfqa90615674_deals_create",
+        "field_name": "CFQA90615674 deals create",
+        "label": "CFQA90615674 deals create",
+        "field_type": "radio",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:23.697142+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:23.697142+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "deals",
+        "fieldName": "CFQA90615674 deals create",
+        "fieldKey": "cfqa90615674_deals_create",
+        "fieldType": "radio",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "edit": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 14,
+        "organization_id": 1,
+        "entity": "deals",
+        "field_key": "cfqa90615674_deals_edit",
+        "field_name": "CFQA90615674 deals edit",
+        "label": "CFQA90615674 deals edit",
+        "field_type": "combobox",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:24.123668+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:24.123668+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "deals",
+        "fieldName": "CFQA90615674 deals edit",
+        "fieldKey": "cfqa90615674_deals_edit",
+        "fieldType": "combobox",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "quick_create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 15,
+        "organization_id": 1,
+        "entity": "deals",
+        "field_key": "cfqa90615674_deals_quick_create",
+        "field_name": "CFQA90615674 deals quick_create",
+        "label": "CFQA90615674 deals quick_create",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:24.466082+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:24.466082+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "deals",
+        "fieldName": "CFQA90615674 deals quick_create",
+        "fieldKey": "cfqa90615674_deals_quick_create",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "detail": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 16,
+        "organization_id": 1,
+        "entity": "deals",
+        "field_key": "cfqa90615674_deals_detail",
+        "field_name": "CFQA90615674 deals detail",
+        "label": "CFQA90615674 deals detail",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:24.861717+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:24.861717+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "deals",
+        "fieldName": "CFQA90615674 deals detail",
+        "fieldKey": "cfqa90615674_deals_detail",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      }
+    },
+    "quotations": {
+      "create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 17,
+        "organization_id": 1,
+        "entity": "quotations",
+        "field_key": "cfqa90615674_quotations_create",
+        "field_name": "CFQA90615674 quotations create",
+        "label": "CFQA90615674 quotations create",
+        "field_type": "radio",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:25.608792+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:25.608792+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "quotations",
+        "fieldName": "CFQA90615674 quotations create",
+        "fieldKey": "cfqa90615674_quotations_create",
+        "fieldType": "radio",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "edit": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 18,
+        "organization_id": 1,
+        "entity": "quotations",
+        "field_key": "cfqa90615674_quotations_edit",
+        "field_name": "CFQA90615674 quotations edit",
+        "label": "CFQA90615674 quotations edit",
+        "field_type": "combobox",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:25.979608+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:25.979608+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "quotations",
+        "fieldName": "CFQA90615674 quotations edit",
+        "fieldKey": "cfqa90615674_quotations_edit",
+        "fieldType": "combobox",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "quick_create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 19,
+        "organization_id": 1,
+        "entity": "quotations",
+        "field_key": "cfqa90615674_quotations_quick_create",
+        "field_name": "CFQA90615674 quotations quick_create",
+        "label": "CFQA90615674 quotations quick_create",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:27.166760+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:27.166760+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "quotations",
+        "fieldName": "CFQA90615674 quotations quick_create",
+        "fieldKey": "cfqa90615674_quotations_quick_create",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "detail": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 20,
+        "organization_id": 1,
+        "entity": "quotations",
+        "field_key": "cfqa90615674_quotations_detail",
+        "field_name": "CFQA90615674 quotations detail",
+        "label": "CFQA90615674 quotations detail",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:27.570611+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:27.570611+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "quotations",
+        "fieldName": "CFQA90615674 quotations detail",
+        "fieldKey": "cfqa90615674_quotations_detail",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      }
+    },
+    "tasks": {
+      "create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 21,
+        "organization_id": 1,
+        "entity": "tasks",
+        "field_key": "cfqa90615674_tasks_create",
+        "field_name": "CFQA90615674 tasks create",
+        "label": "CFQA90615674 tasks create",
+        "field_type": "radio",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:28.133770+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:28.133770+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "tasks",
+        "fieldName": "CFQA90615674 tasks create",
+        "fieldKey": "cfqa90615674_tasks_create",
+        "fieldType": "radio",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "edit": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 22,
+        "organization_id": 1,
+        "entity": "tasks",
+        "field_key": "cfqa90615674_tasks_edit",
+        "field_name": "CFQA90615674 tasks edit",
+        "label": "CFQA90615674 tasks edit",
+        "field_type": "combobox",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:28.529733+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:28.529733+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "tasks",
+        "fieldName": "CFQA90615674 tasks edit",
+        "fieldKey": "cfqa90615674_tasks_edit",
+        "fieldType": "combobox",
+        "options": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "quick_create": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 23,
+        "organization_id": 1,
+        "entity": "tasks",
+        "field_key": "cfqa90615674_tasks_quick_create",
+        "field_name": "CFQA90615674 tasks quick_create",
+        "label": "CFQA90615674 tasks quick_create",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:28.893449+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:28.893449+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "tasks",
+        "fieldName": "CFQA90615674 tasks quick_create",
+        "fieldKey": "cfqa90615674_tasks_quick_create",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      },
+      "detail": {
+        "phone_validation_issues": {},
+        "branchName": null,
+        "id": 24,
+        "organization_id": 1,
+        "entity": "tasks",
+        "field_key": "cfqa90615674_tasks_detail",
+        "field_name": "CFQA90615674 tasks detail",
+        "label": "CFQA90615674 tasks detail",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "is_required": false,
+        "is_unique": false,
+        "is_visible": true,
+        "is_filterable": false,
+        "is_active": true,
+        "position": 0,
+        "created_by_user_id": 1,
+        "updated_by_user_id": 1,
+        "created_at": "2026-11-04T11:10:29.241774+00:00",
+        "updated_at": null,
+        "deleted_at": null,
+        "organizationId": 1,
+        "createdBy": 1,
+        "updatedBy": 1,
+        "createdAt": "2026-11-04T11:10:29.241774+00:00",
+        "updatedAt": null,
+        "deletedAt": null,
+        "isActive": true,
+        "entityType": "tasks",
+        "fieldName": "CFQA90615674 tasks detail",
+        "fieldKey": "cfqa90615674_tasks_detail",
+        "fieldType": "text",
+        "options": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ],
+            "section": "CFQA90615674"
+          }
+        },
+        "isRequired": false,
+        "isUnique": false,
+        "isVisible": true,
+        "isFilterable": false,
+        "displayOrder": 0
+      }
+    },
+    "employees": {
+      "create": {
+        "module": "employees",
+        "section": "General",
+        "field_key": "cfqa90615674_create",
+        "label": "CFQA90615674 employees create",
+        "field_type": "radio",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "create"
+            ]
+          }
+        },
+        "validation_json": null,
+        "is_required": false,
+        "is_sensitive": false,
+        "visible_to_roles": null,
+        "editable_by_roles": null,
+        "display_order": 100,
+        "is_active": true,
+        "id": 1,
+        "created_at": "2026-11-04T11:21:05.567035Z"
+      },
+      "edit": {
+        "module": "employees",
+        "section": "General",
+        "field_key": "cfqa90615674_edit",
+        "label": "CFQA90615674 employees edit",
+        "field_type": "combobox",
+        "options_json": {
+          "values": [
+            "Audit",
+            "Tax"
+          ],
+          "ui": {
+            "places": [
+              "edit"
+            ]
+          }
+        },
+        "validation_json": null,
+        "is_required": false,
+        "is_sensitive": false,
+        "visible_to_roles": null,
+        "editable_by_roles": null,
+        "display_order": 100,
+        "is_active": true,
+        "id": 2,
+        "created_at": "2026-11-04T11:21:08.125085Z"
+      },
+      "quick_create": {
+        "module": "employees",
+        "section": "General",
+        "field_key": "cfqa90615674_quick_create",
+        "label": "CFQA90615674 employees quick_create",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "quick_create"
+            ]
+          }
+        },
+        "validation_json": null,
+        "is_required": false,
+        "is_sensitive": false,
+        "visible_to_roles": null,
+        "editable_by_roles": null,
+        "display_order": 100,
+        "is_active": true,
+        "id": 3,
+        "created_at": "2026-11-04T11:21:11.641203Z"
+      },
+      "detail": {
+        "module": "employees",
+        "section": "General",
+        "field_key": "cfqa90615674_detail",
+        "label": "CFQA90615674 employees detail",
+        "field_type": "text",
+        "options_json": {
+          "values": [],
+          "ui": {
+            "places": [
+              "detail"
+            ]
+          }
+        },
+        "validation_json": null,
+        "is_required": false,
+        "is_sensitive": false,
+        "visible_to_roles": null,
+        "editable_by_roles": null,
+        "display_order": 100,
+        "is_active": true,
+        "id": 4,
+        "created_at": "2026-11-04T11:21:13.135185Z"
+      }
+    },
+    "pms_project": {
+      "create": {
+        "places": [
+          "create"
+        ],
+        "section": "Additional information",
+        "id": 1,
+        "name": "CFQA90615674 pms_project create",
+        "field_type": "radio",
+        "options": [
+          "Audit",
+          "Tax"
+        ],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:24.994790+00:00",
+        "project_id": null,
+        "entity_type": "project",
+        "archived": false,
+        "scope": "company"
+      },
+      "edit": {
+        "places": [
+          "edit"
+        ],
+        "section": "Additional information",
+        "id": 2,
+        "name": "CFQA90615674 pms_project edit",
+        "field_type": "combobox",
+        "options": [
+          "Audit",
+          "Tax"
+        ],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:28.387204+00:00",
+        "project_id": null,
+        "entity_type": "project",
+        "archived": false,
+        "scope": "company"
+      },
+      "quick_create": {
+        "places": [
+          "quick_create"
+        ],
+        "section": "Additional information",
+        "id": 3,
+        "name": "CFQA90615674 pms_project quick_create",
+        "field_type": "text",
+        "options": [],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:30.011858+00:00",
+        "project_id": null,
+        "entity_type": "project",
+        "archived": false,
+        "scope": "company"
+      },
+      "detail": {
+        "places": [
+          "detail"
+        ],
+        "section": "Additional information",
+        "id": 4,
+        "name": "CFQA90615674 pms_project detail",
+        "field_type": "text",
+        "options": [],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:34.838365+00:00",
+        "project_id": null,
+        "entity_type": "project",
+        "archived": false,
+        "scope": "company"
+      }
+    },
+    "pms_task": {
+      "create": {
+        "places": [
+          "create"
+        ],
+        "section": "Additional information",
+        "id": 5,
+        "name": "CFQA90615674 pms_task create",
+        "field_type": "radio",
+        "options": [
+          "Audit",
+          "Tax"
+        ],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:35.613077+00:00",
+        "project_id": null,
+        "entity_type": "task",
+        "archived": false,
+        "scope": "company"
+      },
+      "edit": {
+        "places": [
+          "edit"
+        ],
+        "section": "Additional information",
+        "id": 6,
+        "name": "CFQA90615674 pms_task edit",
+        "field_type": "combobox",
+        "options": [
+          "Audit",
+          "Tax"
+        ],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:35.973766+00:00",
+        "project_id": null,
+        "entity_type": "task",
+        "archived": false,
+        "scope": "company"
+      },
+      "quick_create": {
+        "places": [
+          "quick_create"
+        ],
+        "section": "Additional information",
+        "id": 7,
+        "name": "CFQA90615674 pms_task quick_create",
+        "field_type": "text",
+        "options": [],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:36.357816+00:00",
+        "project_id": null,
+        "entity_type": "task",
+        "archived": false,
+        "scope": "company"
+      },
+      "detail": {
+        "places": [
+          "detail"
+        ],
+        "section": "Additional information",
+        "id": 8,
+        "name": "CFQA90615674 pms_task detail",
+        "field_type": "text",
+        "options": [],
+        "task_type": "",
+        "created_at": "2026-11-04T11:21:36.830000+00:00",
+        "project_id": null,
+        "entity_type": "task",
+        "archived": false,
+        "scope": "company"
+      }
+    },
+    "custom": {
+      "create": {
+        "id": 1,
+        "module_name": "cfqa90615674",
+        "field_api_name": "create",
+        "field_label": "CFQA90615674 custom create",
+        "field_type": "radio",
+        "required": false,
+        "unique": false,
+        "default_value": null,
+        "help_text": null,
+        "options_source": null,
+        "lookup_module": null,
+        "formula_expression": null,
+        "rollup_config_json": null,
+        "validation_json": {
+          "places": [
+            "create"
+          ],
+          "options": [
+            {
+              "value": "Audit",
+              "label": "Audit"
+            },
+            {
+              "value": "Tax",
+              "label": "Tax"
+            }
+          ]
+        },
+        "visible": true,
+        "editable": true,
+        "created_by": 1,
+        "created_at": "2026-11-04T12:02:17.346672+00:00",
+        "updated_at": null
+      },
+      "edit": {
+        "id": 2,
+        "module_name": "cfqa90615674",
+        "field_api_name": "edit",
+        "field_label": "CFQA90615674 custom edit",
+        "field_type": "combobox",
+        "required": false,
+        "unique": false,
+        "default_value": null,
+        "help_text": null,
+        "options_source": null,
+        "lookup_module": null,
+        "formula_expression": null,
+        "rollup_config_json": null,
+        "validation_json": {
+          "places": [
+            "edit"
+          ],
+          "options": [
+            {
+              "value": "Audit",
+              "label": "Audit"
+            },
+            {
+              "value": "Tax",
+              "label": "Tax"
+            }
+          ]
+        },
+        "visible": true,
+        "editable": true,
+        "created_by": 1,
+        "created_at": "2026-11-04T12:02:17.640979+00:00",
+        "updated_at": null
+      },
+      "quick_create": {
+        "id": 3,
+        "module_name": "cfqa90615674",
+        "field_api_name": "quick_create",
+        "field_label": "CFQA90615674 custom quick_create",
+        "field_type": "text",
+        "required": false,
+        "unique": false,
+        "default_value": null,
+        "help_text": null,
+        "options_source": null,
+        "lookup_module": null,
+        "formula_expression": null,
+        "rollup_config_json": null,
+        "validation_json": {
+          "places": [
+            "quick_create"
+          ]
+        },
+        "visible": true,
+        "editable": true,
+        "created_by": 1,
+        "created_at": "2026-11-04T12:02:17.870309+00:00",
+        "updated_at": null
+      },
+      "detail": {
+        "id": 4,
+        "module_name": "cfqa90615674",
+        "field_api_name": "detail",
+        "field_label": "CFQA90615674 custom detail",
+        "field_type": "text",
+        "required": false,
+        "unique": false,
+        "default_value": null,
+        "help_text": null,
+        "options_source": null,
+        "lookup_module": null,
+        "formula_expression": null,
+        "rollup_config_json": null,
+        "validation_json": {
+          "places": [
+            "detail"
+          ]
+        },
+        "visible": true,
+        "editable": true,
+        "created_by": 1,
+        "created_at": "2026-11-04T12:02:18.110872+00:00",
+        "updated_at": null
+      }
+    }
+  },
+  "records": {
+    "company": {
+      "branch_availability": {
+        "scope": "selected",
+        "branch_ids": [
+          6
+        ]
+      },
+      "id": 289,
+      "name": "CFQA90615674 Company",
+      "email": null,
+      "phone": null,
+      "phone_country_code": null,
+      "website": null,
+      "industry": null,
+      "status": "Active",
+      "country": "India",
+      "vendorClassification": null,
+      "paymentTerms": null,
+      "gstNumber": "",
+      "roles": [
+        "Prospect"
+      ],
+      "tags": [],
+      "notes": null,
+      "entityKind": "Company",
+      "legalName": null,
+      "tradeName": null,
+      "businessType": null,
+      "addresses": [],
+      "taxRegistrations": [],
+      "primaryContactId": null,
+      "version": "2026-11-04T11:10:31.627495+00:00",
+      "seeded": true
+    },
+    "contact": {
+      "id": 880,
+      "name": "CFQA90615674 Contact",
+      "email": null,
+      "phone": null,
+      "phoneCountryCode": null,
+      "organization": "CFQA90615674 Company",
+      "companyId": 289,
+      "ownerId": 1,
+      "status": "Active",
+      "tags": [],
+      "lastInteraction": null,
+      "nextFollowUp": null,
+      "createdAt": "2026-11-04T11:10:32.051227+00:00",
+      "updatedAt": "2026-11-04T11:10:32.376095+00:00",
+      "version": "2026-11-04T11:10:32.376095+00:00",
+      "deletedAt": null,
+      "notes": null,
+      "roles": [],
+      "lifecycleStage": "Other",
+      "seeded": true
+    },
+    "lead": {
+      "phone_validation_issues": {},
+      "branchName": "Main Branch",
+      "id": 783,
+      "organization_id": 1,
+      "owner_user_id": 1,
+      "branch_id": 6,
+      "department_id": null,
+      "assigned_team_id": null,
+      "territory_id": null,
+      "first_name": "CFQA90615674",
+      "last_name": "Lead",
+      "full_name": "CFQA90615674 Lead",
+      "email": null,
+      "phone": null,
+      "phone_country_code": null,
+      "alternate_phone": null,
+      "alternate_phone_country_code": null,
+      "company_name": "CFQA90615674 Company",
+      "job_title": null,
+      "source": "Other",
+      "status": "New",
+      "rating": "Cold",
+      "lead_score": 0,
+      "lead_score_label": "Cold",
+      "lead_score_mode": "automatic",
+      "last_score_calculated_at": "2026-11-04T11:10:33.192636+00:00",
+      "industry": null,
+      "website": null,
+      "linkedin_url": null,
+      "company_website": null,
+      "employee_count": null,
+      "email_verification_status": null,
+      "social_profiles_json": null,
+      "city": null,
+      "state": null,
+      "country": "India",
+      "address": null,
+      "estimated_value": null,
+      "expected_close_date": null,
+      "last_contacted_at": null,
+      "next_follow_up_at": null,
+      "is_converted": false,
+      "converted_at": null,
+      "converted_contact_id": null,
+      "converted_company_id": null,
+      "converted_deal_id": null,
+      "tags_text": null,
+      "notes": null,
+      "created_by_user_id": 1,
+      "updated_by_user_id": 1,
+      "created_at": "2026-11-04T11:10:32.597491+00:00",
+      "updated_at": "2026-11-04T11:10:32.597491+00:00",
+      "deleted_at": null,
+      "organizationId": 1,
+      "ownerId": 1,
+      "branchId": 6,
+      "departmentId": null,
+      "assignedTeamId": null,
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-11-04T11:10:32.597491+00:00",
+      "updatedAt": "2026-11-04T11:10:32.597491+00:00",
+      "deletedAt": null,
+      "leadScore": 0,
+      "scoreLabel": "Cold",
+      "leadScoreMode": "automatic",
+      "lastScoreCalculatedAt": "2026-11-04T11:10:33.192636+00:00",
+      "expectedCloseDate": null,
+      "territoryId": null,
+      "details": {
+        "stageEnteredAt": "2026-11-04T11:10:33.359783+00:00",
+        "enquiryInbox": false,
+        "enquiryPending": false
+      },
+      "version": 1,
+      "signals": {
+        "overdue": false,
+        "slaBreached": false,
+        "stale": false,
+        "active": true,
+        "slaDeadline": "2026-11-05T11:10:32.597491+00:00",
+        "ageDays": 0,
+        "nextAction": "Make first contact",
+        "priority": 10,
+        "followUpLabel": "Not scheduled"
+      },
+      "seeded": true
+    },
+    "pipeline": {
+      "phone_validation_issues": {},
+      "branchName": null,
+      "id": 2,
+      "organization_id": 1,
+      "name": "CFQA90615674 Pipeline",
+      "description": null,
+      "is_default": false,
+      "active": true,
+      "created_by_user_id": 1,
+      "updated_by_user_id": 1,
+      "created_at": "2026-11-04T11:10:35.210605+00:00",
+      "updated_at": null,
+      "deleted_at": null,
+      "organizationId": 1,
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-11-04T11:10:35.210605+00:00",
+      "updatedAt": null,
+      "deletedAt": null
+    },
+    "stage": {
+      "phone_validation_issues": {},
+      "branchName": null,
+      "id": 8,
+      "pipeline_id": 2,
+      "name": "CFQA90615674 Discovery",
+      "probability": 10,
+      "position": 1,
+      "order_index": 0,
+      "stage_type": "open",
+      "color": null,
+      "policy_json": null,
+      "active": true,
+      "is_won": false,
+      "is_lost": false,
+      "organization_id": 1,
+      "created_by_user_id": 1,
+      "updated_by_user_id": 1,
+      "created_at": "2026-11-04T11:10:35.662110+00:00",
+      "updated_at": null,
+      "deleted_at": null,
+      "organizationId": 1,
+      "pipelineId": 2,
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-11-04T11:10:35.662110+00:00",
+      "updatedAt": null,
+      "deletedAt": null,
+      "orderIndex": 0,
+      "stageType": "open",
+      "displayOrder": 1
+    },
+    "deal": {
+      "phone_validation_issues": {},
+      "branchName": "Main Branch",
+      "id": 260,
+      "organization_id": 1,
+      "owner_user_id": 1,
+      "branch_id": 6,
+      "department_id": null,
+      "assigned_team_id": null,
+      "territory_id": null,
+      "company_id": 289,
+      "contact_id": 880,
+      "pipeline_id": 2,
+      "stage_id": 8,
+      "name": "CFQA90615674 Deal",
+      "description": null,
+      "amount": 1000,
+      "currency": "INR",
+      "catalog_items": null,
+      "priority": "Medium",
+      "deal_type": "New Business",
+      "industry": null,
+      "internal_reference": null,
+      "planning": null,
+      "version": 1,
+      "probability": 10,
+      "expected_revenue": 100,
+      "expected_close_date": null,
+      "actual_close_date": null,
+      "status": "Open",
+      "loss_reason": null,
+      "lost_reason": null,
+      "win_reason": null,
+      "lead_source": null,
+      "source": null,
+      "won_at": null,
+      "lost_at": null,
+      "closed_at": null,
+      "discount_amount": null,
+      "position": 0,
+      "next_follow_up_at": null,
+      "last_activity_at": null,
+      "tags_text": null,
+      "created_by_user_id": 1,
+      "updated_by_user_id": 1,
+      "created_at": "2026-11-04T11:10:36.144324+00:00",
+      "updated_at": null,
+      "deleted_at": null,
+      "organizationId": 1,
+      "ownerId": 1,
+      "branchId": 6,
+      "departmentId": null,
+      "assignedTeamId": null,
+      "companyId": 289,
+      "contactId": 880,
+      "pipelineId": 2,
+      "stageId": 8,
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-11-04T11:10:36.144324+00:00",
+      "updatedAt": null,
+      "deletedAt": null,
+      "wonAt": null,
+      "lostAt": null,
+      "closedAt": null,
+      "lostReason": null,
+      "winReason": null,
+      "expectedCloseDate": null,
+      "actualCloseDate": null,
+      "expectedRevenue": 100,
+      "leadSource": null,
+      "discountAmount": null,
+      "territoryId": null,
+      "displayOrder": 0,
+      "seeded": true
+    },
+    "task": {
+      "phone_validation_issues": {},
+      "branchName": "Main Branch",
+      "task_details": null,
+      "import_key": null,
+      "id": 38,
+      "organization_id": 1,
+      "owner_user_id": 1,
+      "branch_id": 6,
+      "department_id": null,
+      "assigned_team_id": null,
+      "lead_id": null,
+      "contact_id": null,
+      "company_id": null,
+      "deal_id": null,
+      "title": "CFQA90615674 CRM task",
+      "description": null,
+      "status": "To Do",
+      "priority": "Medium",
+      "due_date": null,
+      "reminder_at": null,
+      "completed_at": null,
+      "created_by_user_id": 1,
+      "updated_by_user_id": 1,
+      "created_at": "2026-11-04T11:10:39.910925+00:00",
+      "updated_at": null,
+      "deleted_at": null,
+      "organizationId": 1,
+      "ownerId": 1,
+      "branchId": 6,
+      "departmentId": null,
+      "assignedTeamId": null,
+      "companyId": null,
+      "contactId": null,
+      "leadId": null,
+      "dealId": null,
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-11-04T11:10:39.910925+00:00",
+      "updatedAt": null,
+      "deletedAt": null,
+      "dueDate": null,
+      "seeded": true
+    },
+    "quote": {
+      "phone_validation_issues": {},
+      "branchName": "Main Branch",
+      "id": 19,
+      "organization_id": 1,
+      "deal_id": 260,
+      "company_id": 289,
+      "account_id": 289,
+      "contact_id": null,
+      "owner_user_id": 1,
+      "owner_id": null,
+      "branch_id": 6,
+      "department_id": null,
+      "assigned_team_id": null,
+      "quote_number": "CFQA90615674-Q1",
+      "issue_date": "2026-11-04",
+      "quote_date": "2026-11-04",
+      "expiry_date": "2026-12-04",
+      "valid_until": "2026-12-04",
+      "status": "Draft",
+      "approval_status": "not_submitted",
+      "currency": "INR",
+      "subtotal": 0,
+      "discount_amount": null,
+      "discount_total": 0,
+      "tax_amount": null,
+      "tax_total": 0,
+      "total_amount": 0,
+      "grand_total": 0,
+      "estimated_cost": 0,
+      "expected_margin": 0,
+      "margin_percentage": 0,
+      "version_number": 1,
+      "terms": null,
+      "terms_and_conditions": null,
+      "notes": null,
+      "approved_by": null,
+      "approved_at": null,
+      "sent_at": null,
+      "accepted_at": null,
+      "declined_at": null,
+      "converted_srm_sales_order_id": null,
+      "converted_srm_contract_id": null,
+      "converted_srm_engagement_id": null,
+      "pdf_url": null,
+      "pdf_file_name": null,
+      "pdf_status": null,
+      "pdf_generated_at": null,
+      "pdf_generated_by_user_id": null,
+      "created_by_user_id": 1,
+      "updated_by_user_id": 1,
+      "created_at": "2026-11-04T11:11:42.117976+00:00",
+      "updated_at": null,
+      "organizationId": 1,
+      "ownerId": null,
+      "branchId": 6,
+      "departmentId": null,
+      "assignedTeamId": null,
+      "companyId": 289,
+      "contactId": null,
+      "dealId": 260,
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-11-04T11:11:42.117976+00:00",
+      "updatedAt": null,
+      "pdfUrl": null,
+      "pdfFileName": null,
+      "pdfStatus": null,
+      "pdfGeneratedAt": null,
+      "pdfGeneratedBy": null,
+      "sentAt": null,
+      "quoteNumber": "CFQA90615674-Q1",
+      "issueDate": "2026-11-04",
+      "expiryDate": "2026-12-04",
+      "quoteDate": "2026-11-04",
+      "validUntil": "2026-12-04",
+      "accountId": 289,
+      "approvalStatus": "not_submitted",
+      "discountAmount": null,
+      "taxAmount": null,
+      "totalAmount": 0,
+      "discountTotal": 0,
+      "taxTotal": 0,
+      "grandTotal": 0,
+      "estimatedCost": 0,
+      "expectedMargin": 0,
+      "marginPercentage": 0,
+      "versionNumber": 1,
+      "termsAndConditions": null,
+      "approvedBy": null,
+      "approvedAt": null,
+      "acceptedAt": null,
+      "declinedAt": null,
+      "convertedSrmSalesOrderId": null,
+      "convertedSrmContractId": null,
+      "convertedSrmEngagementId": null,
+      "seeded": true
+    },
+    "employee": {
+      "first_name": "CFQA90615674",
+      "middle_name": null,
+      "last_name": "Placement QA",
+      "gender": null,
+      "date_of_birth": null,
+      "marital_status": null,
+      "blood_group": null,
+      "nationality": "Indian",
+      "religion": null,
+      "category": null,
+      "gender_identity": null,
+      "disability_status": null,
+      "veteran_status": null,
+      "work_email": null,
+      "personal_email": null,
+      "phone_number": null,
+      "phone_number_country_code": null,
+      "alternate_phone": null,
+      "alternate_phone_country_code": null,
+      "office_extension": null,
+      "emergency_contact_name": null,
+      "emergency_contact_number": null,
+      "emergency_contact_number_country_code": null,
+      "emergency_contact_relation": null,
+      "present_address": null,
+      "permanent_address": null,
+      "present_city": null,
+      "present_state": null,
+      "present_pincode": null,
+      "permanent_city": null,
+      "permanent_state": null,
+      "permanent_pincode": null,
+      "date_of_joining": "2026-11-04",
+      "date_of_confirmation": null,
+      "branch_id": 6,
+      "department_id": null,
+      "designation_id": null,
+      "business_unit_id": null,
+      "cost_center_id": null,
+      "location_id": null,
+      "grade_band_id": null,
+      "position_id": null,
+      "reporting_manager_id": null,
+      "employment_type": "Full-time",
+      "worker_type": "Employee",
+      "status": "Active",
+      "work_location": "Office",
+      "shift_id": null,
+      "probation_period_months": 6,
+      "desk_code": null,
+      "timezone": "Asia/Kolkata",
+      "manager_chain_path": null,
+      "bank_name": null,
+      "bank_branch": null,
+      "account_number": null,
+      "account_type": "Savings",
+      "ifsc_code": null,
+      "pan_number": null,
+      "aadhaar_number": null,
+      "uan_number": null,
+      "pf_number": null,
+      "esic_number": null,
+      "salary_currency": "INR",
+      "preferred_display_name": null,
+      "directory_visibility": "public",
+      "skills_tags": null,
+      "profile_completeness": 0,
+      "bio": null,
+      "interests": null,
+      "research_work": null,
+      "family_information": null,
+      "health_information": null,
+      "restricted_fields": [],
+      "phone_validation_issues": {},
+      "id": 550,
+      "employee_id": "EMP00550",
+      "user_id": null,
+      "profile_photo_url": null,
+      "educations": [],
+      "experiences": [],
+      "skills": [],
+      "documents": [],
+      "lifecycle_events": []
+    },
+    "workspace": {
+      "id": 5,
+      "name": "CFQA90615674 Workspace",
+      "role": "Owner"
+    },
+    "project": {
+      "workspace_id": 5,
+      "name": "CFQA90615674 Project",
+      "project_key": "Q0615674",
+      "description": null,
+      "client_id": null,
+      "manager_user_id": null,
+      "owner_user_id": 1,
+      "department_id": null,
+      "branch_id": 6,
+      "category": null,
+      "status": "Draft",
+      "priority": "Medium",
+      "health": "Good",
+      "start_date": null,
+      "due_date": null,
+      "planned_start_date": null,
+      "planned_end_date": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "budget_amount": null,
+      "estimated_hours": null,
+      "estimated_cost": null,
+      "actual_cost": null,
+      "billing_status": "Unbilled",
+      "progress_percent": 0,
+      "is_client_visible": false,
+      "is_template": false,
+      "is_archived": false,
+      "can_manage_tasks": false,
+      "can_upload_files": false,
+      "can_manage_members": false,
+      "can_edit_project": false,
+      "id": 82,
+      "organization_id": 1,
+      "completed_at": null,
+      "created_at": "2026-11-04T11:21:38.594526Z",
+      "updated_at": null
+    },
+    "pmsTask": {
+      "assignee_user_ids": [],
+      "title": "CFQA90615674 Task",
+      "description": null,
+      "task_key": "Q0615674",
+      "work_type": "Task",
+      "epic_key": null,
+      "initiative": null,
+      "component": null,
+      "severity": null,
+      "environment": null,
+      "affected_version": null,
+      "fix_version": null,
+      "release_name": null,
+      "status": "To Do",
+      "priority": "Medium",
+      "assignee_user_id": null,
+      "reporter_user_id": 1,
+      "milestone_id": null,
+      "sprint_id": null,
+      "epic_id": null,
+      "component_id": null,
+      "release_id": null,
+      "parent_task_id": null,
+      "start_date": null,
+      "due_date": null,
+      "estimated_hours": null,
+      "actual_hours": null,
+      "original_estimate_hours": null,
+      "remaining_estimate_hours": null,
+      "story_points": null,
+      "rank": 1,
+      "security_level": "Internal",
+      "development_branch": null,
+      "development_commits": 0,
+      "development_prs": 0,
+      "development_deployments": 0,
+      "development_build": "Pending",
+      "position": 0,
+      "is_client_visible": false,
+      "is_blocking": false,
+      "recurrence_rule": null,
+      "recurrence_interval": 1,
+      "recurrence_until": null,
+      "assignee_name": null,
+      "id": 2437,
+      "project_id": 82,
+      "board_id": 79,
+      "column_id": 466,
+      "subtask_count": 0,
+      "completed_subtask_count": 0,
+      "attachment_count": 0,
+      "completed_at": null,
+      "created_at": "2026-11-04T11:21:40.010689Z",
+      "updated_at": null
+    },
+    "customModule": {
+      "id": 1,
+      "module_api_name": "cfqa90615674",
+      "module_label": "CFQA90615674",
+      "plural_label": "CFQA90615674 records",
+      "icon": null,
+      "description": null,
+      "enabled": true,
+      "owner_field_enabled": true,
+      "timeline_enabled": true,
+      "activities_enabled": true,
+      "created_by": 1,
+      "created_at": "2026-11-04T12:02:16.998595+00:00",
+      "updated_at": null
+    },
+    "custom": {
+      "id": 1,
+      "module_api_name": "cfqa90615674",
+      "owner_user_id": 1,
+      "values_json": {
+        "create": "Tax",
+        "edit": "Tax",
+        "quick_create": "saved quick",
+        "detail": "saved detail"
+      },
+      "created_by": 1,
+      "updated_by": null,
+      "deleted_at": null,
+      "created_at": "2026-11-04T12:02:18.319333+00:00",
+      "updated_at": null
+    },
+    "quickTask": {
+      "phone_validation_issues": {},
+      "branchName": "Main Branch",
+      "task_details": null,
+      "import_key": null,
+      "id": 39,
+      "organization_id": 1,
+      "owner_user_id": 1,
+      "branch_id": 6,
+      "department_id": null,
+      "assigned_team_id": null,
+      "lead_id": null,
+      "contact_id": null,
+      "company_id": null,
+      "deal_id": null,
+      "title": "CFQA90615674 Quick task",
+      "description": null,
+      "status": "To Do",
+      "priority": "Medium",
+      "due_date": null,
+      "reminder_at": null,
+      "completed_at": null,
+      "created_by_user_id": 1,
+      "updated_by_user_id": 1,
+      "created_at": "2026-11-04T12:03:36.883957+00:00",
+      "updated_at": null,
+      "deleted_at": null,
+      "organizationId": 1,
+      "ownerId": 1,
+      "branchId": 6,
+      "departmentId": null,
+      "assignedTeamId": null,
+      "companyId": null,
+      "contactId": null,
+      "leadId": null,
+      "dealId": null,
+      "createdBy": 1,
+      "updatedBy": 1,
+      "createdAt": "2026-11-04T12:03:36.883957+00:00",
+      "updatedAt": null,
+      "deletedAt": null,
+      "dueDate": null
+    }
+  },
+  "checks": [
+    {
+      "name": "companies detail",
+      "entity": "companies",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "deals detail",
+      "entity": "deals",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "quotations detail",
+      "entity": "quotations",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "Lead create",
+      "entity": "leads",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Contact create",
+      "entity": "contacts",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Company create",
+      "entity": "companies",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "leads detail",
+      "entity": "leads",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "contacts detail",
+      "entity": "contacts",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "Global quick-add contacts",
+      "entity": "contacts",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Global quick-add companies",
+      "entity": "companies",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Employee full create",
+      "entity": "employees",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Employee quick-add",
+      "entity": "employees",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Global quick-add leads",
+      "entity": "leads",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Employee edit",
+      "entity": "employees",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "Employee detail",
+      "entity": "employees",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "Global quick-add deals",
+      "entity": "deals",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Project full create",
+      "entity": "pms_project",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Project edit",
+      "entity": "pms_project",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "Global quick-add tasks",
+      "entity": "tasks",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Project detail",
+      "entity": "pms_project",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "Project quick-add",
+      "entity": "pms_project",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Contact edit",
+      "entity": "contacts",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "PMS task full create",
+      "entity": "pms_task",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "PMS task edit",
+      "entity": "pms_task",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "PMS task detail",
+      "entity": "pms_task",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "PMS task inline quick-add",
+      "entity": "pms_task",
+      "place": "quick_create",
+      "status": "pass"
+    },
+    {
+      "name": "Contact edit preserves hidden values",
+      "status": "pass"
+    },
+    {
+      "name": "Company edit",
+      "entity": "companies",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "Deal full create",
+      "entity": "deals",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Deal edit",
+      "entity": "deals",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "CRM task full create",
+      "entity": "tasks",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "CRM task edit",
+      "entity": "tasks",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "Quote create",
+      "entity": "quotations",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Quote builder edit",
+      "entity": "quotations",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "Lead drawer edit",
+      "entity": "leads",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "Classic lead create",
+      "entity": "leads",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Classic lead edit",
+      "entity": "leads",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "CRM task detail",
+      "entity": "tasks",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "Settings UI changes placement without deleting stored value",
+      "status": "pass"
+    },
+    {
+      "name": "Custom module detail",
+      "entity": "custom",
+      "place": "detail",
+      "status": "pass"
+    },
+    {
+      "name": "Custom module edit",
+      "entity": "custom",
+      "place": "edit",
+      "status": "pass"
+    },
+    {
+      "name": "Custom module edit preserves hidden values",
+      "status": "pass"
+    },
+    {
+      "name": "Custom module create",
+      "entity": "custom",
+      "place": "create",
+      "status": "pass"
+    },
+    {
+      "name": "Quick-add textbox persists to actual record",
+      "status": "pass"
+    }
+  ],
+  "snapshots": {
+    "leads": [],
+    "contacts": [],
+    "companies": [],
+    "deals": [],
+    "quotations": [],
+    "tasks": []
+  },
+  "cleanup": {
+    "crmValueRowsPreserved": 25,
+    "definitionsArchived": true,
+    "recordsRetained": true,
+    "at": "2026-11-04T12:04:17.208Z"
+  },
+  "supersededChecks": [
+    {
+      "name": "Contact quick-add",
+      "entity": "contacts",
+      "place": "quick_create",
+      "status": "fail",
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Add contact', exact: true })\u001b[22m\n",
+      "supersededBy": "Global quick-add contacts"
+    },
+    {
+      "name": "Company quick-add",
+      "entity": "companies",
+      "place": "quick_create",
+      "status": "fail",
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Create company', exact: true })\u001b[22m\n",
+      "supersededBy": "Global quick-add companies"
+    }
+  ]
+}

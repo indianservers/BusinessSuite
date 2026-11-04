@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 import pytest
 
@@ -38,18 +39,14 @@ def account(db, name, employee=True, organization=1, intern=False):
     )
     db.add(user)
     db.flush()
-    db.add(
-        CommonPerson(
-            user_id=user.id,
-            organization_id=organization,
-            primary_email=user.email,
-            display_name=name,
-            status="active",
-        )
-    )
+    from test_identity_utils import attach_test_identity, attach_workflow_branch
+    identity = attach_test_identity(db, user, organization)
+    identity.display_name = name
+    branch = attach_workflow_branch(db, user, organization)
     person = None
     if employee:
         person = Employee(
+            branch_id=branch.id,
             employee_id=f"EMP-{name}",
             user_id=user.id,
             first_name="Profile",
@@ -74,9 +71,7 @@ def test_approved_form_becomes_complete_profile_intern_portal_and_shared_identit
         company = Company(id=1, name="Profile Company")
         db.add(company)
         db.flush()
-    branch = Branch(name="Profile HQ", company_id=1)
-    db.add(branch)
-    db.flush()
+    branch = db.query(Branch).filter_by(company_id=1, is_active=True).order_by(Branch.id).first()
     department = Department(name="Profile Engineering", branch_id=branch.id)
     db.add(department)
     db.flush()

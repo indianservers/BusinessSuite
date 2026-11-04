@@ -77,3 +77,18 @@ def test_invalid_form_bypass_is_atomic(client,db,superuser_headers,directory_ide
         result=client.post(ROOT+'/companies',headers=superuser_headers,json={'name':name,**extra})
         assert result.status_code==422,result.text
         assert db.query(CRMCompany).filter_by(name=name).count()==0
+
+
+def test_company_financial_and_communications_save_atomically(client,superuser_headers,directory_identity):
+    response=client.post(ROOT+'/companies',headers=superuser_headers,json={
+        'name':'Complete vendor form','roles':['Vendor'],'country':'IN',
+        'communicationChannels':[{'kind':'email','value':'complete-vendor@example.com','primary':True}],
+        'financialData':{'gstNumber':'27AAPFU0939F1ZV','bankAccounts':[
+            {'accountNumber':'000123456789','bankName':'Example Bank','country':'IN','currency':'INR','ifsc':'SBIN0001234','primary':True}]}})
+    assert response.status_code==201,response.text
+    company=client.get(ROOT+'/companies/'+str(response.json()['id']),headers=superuser_headers).json()
+    saved=client.get('/api/v1/crm/contact-directory/'+str(company['financialContactId'])+'/financial-data',headers=superuser_headers)
+    assert saved.status_code==200,saved.text
+    assert saved.json()['bankAccounts'][0]['accountNumber']=='000123456789'
+    assert saved.json()['gstNumber']=='27AAPFU0939F1ZV'
+    assert company['email']=='complete-vendor@example.com'

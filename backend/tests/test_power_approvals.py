@@ -681,6 +681,7 @@ def test_storage_tampering_is_detected_and_cannot_be_resealed_by_a_vote(
         .where(RequestState.id == r["id"])
         .values(fields={"amount": 999999})
     )
+    db.commit()  # Corruption must survive the rejected request's transaction rollback.
     db.expire_all()
     d = detail(client, actors[3], r)
     assert not d["evidence_valid"]

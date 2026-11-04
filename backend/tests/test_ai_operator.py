@@ -30,6 +30,9 @@ def setup_operator(client, db, provider="openai"):
         db.add(Company(id=1,name="AI test company"));db.commit()
     headers, user = auth_headers(client, db, email=f"operator-{uuid4().hex}@example.com",
         permissions=["ai_assistant", "ai_manage_settings", "settings_manage", "pms_manage_projects", "pms_manage_tasks"])
+    from test_identity_utils import provision_workflow_workspace
+    provision_workflow_workspace(db, user)
+    db.commit()
     p = client.post("/api/v1/project-management/projects", headers=headers, json={"name": "Operator", "project_key": "OP"})
     assert p.status_code == 200, p.text
     project = p.json()["id"]

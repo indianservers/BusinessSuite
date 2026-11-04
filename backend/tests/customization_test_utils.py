@@ -29,10 +29,12 @@ def customization_headers(client, db, email: str = "customization-admin@example.
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db, user)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Branch":str(branch.id)}
 
 
 def create_module(client, headers, module_api_name: str = "partner_projects"):

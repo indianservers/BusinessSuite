@@ -1,0 +1,15 @@
+bringing up nodes...
+bringing up nodes...
+
+...........................................................F
+____________________ test_global_search_matches_department ____________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_endpoint_audit_regressions.py:23: in test_global_search_matches_department
+    assert any(item["title"] == "Release specialist" for item in response.json()["results"]), response.text
+E   AssertionError: {"query":"Audit","results":[]}
+E   assert False
+E    +  where False = any(<generator object test_global_search_matches_department.<locals>.<genexpr> at 0x000001D543A82E90>)
+...............                                                          [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_endpoint_audit_regressions.py::test_global_search_matches_department
+1 failed, 74 passed, 31 warnings in 198.46s (0:03:18)

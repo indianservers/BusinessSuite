@@ -1,0 +1,17 @@
+{
+  "main": {
+    "bytes": 767173,
+    "gzip": 218742
+  },
+  "startup": {
+    "files": 6,
+    "bytes": 1609221,
+    "gzip": 460120
+  },
+  "deferredFeatures": 5,
+  "previousStartup": {
+    "files": 7,
+    "bytes": 2943293,
+    "gzip": 831924
+  }
+}

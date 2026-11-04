@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from test_identity_utils import attach_test_identity
 """Real persistence and API authorization: no commercial service mocks."""
 from uuid import uuid4
@@ -10,6 +11,8 @@ from tests.test_connected_commercial import setup_business, link
 
 def socket_identity(db, user):
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, user)
     permission = db.query(Permission).filter_by(name="pms_view").first()
     if not permission:
         permission = Permission(name="pms_view", module="project_management")
@@ -46,6 +49,8 @@ def test_commercial_role_matrix(client, db, superuser_headers, name, permissions
     user=User(email=f"{name}@audit.invalid",hashed_password="unused",role_id=role.id,is_active=active,is_superuser=False)
     db.add(user); db.flush()
     attach_test_identity(db, user, company_id=2 if name == "other_tenant" else 1)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, user, company_id=2 if name == "other_tenant" else 1)
     if membership:
         db.add(PMSProjectMember(project_id=project.id,user_id=user.id,role=membership))
     if name == "removed":
@@ -64,7 +69,7 @@ def test_commercial_role_matrix(client, db, superuser_headers, name, permissions
     if not view:
         history = client.get(f"/api/v1/srm/business/customers/{buyer.id}/history",headers=headers)
         if name in {"outsider", "removed"}:
-            # Shared business directory is allowed; protected invoices and projects must be absent.
+            # Shared customer visibility does not grant project or invoice access.
             assert history.status_code == 200
             assert history.json()["invoices"] == [] and history.json()["projects"] == []
         else:

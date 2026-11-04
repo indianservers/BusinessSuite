@@ -98,7 +98,15 @@ def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = 
     count, size = db.query(func.count(PMSNoteAttachment.id), func.coalesce(func.sum(PMSNoteAttachment.size), 0)).filter_by(note_id=note_id).one()
     if count >= 20 or size + len(body) > 50 * 1024 * 1024:
         raise HTTPException(413, "Note attachment limit reached (20 files or 50 MB, including removed files kept for undo)")
-    row = PMSNoteAttachment(note_id=note_id, filename=name, media_type=media_type, size=len(body), body=body)
+    from pathlib import Path
+    from uuid import uuid4
+    from app.core.config import settings
+    from app.core.storage import persist_file
+    path = Path(settings.UPLOAD_DIR) / "_private" / "pms-note-attachments" / str(note_id) / (uuid4().hex + Path(name).suffix)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(body)
+    persist_file(str(path), db=db, module="pms", filename=name)
+    row = PMSNoteAttachment(note_id=note_id, filename=name, media_type=media_type, size=len(body), body=b"", storage_path=str(path))
     db.add(row); db.commit(); db.refresh(row)
     return attachment_result(row)
 
@@ -106,6 +114,12 @@ def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = 
 @router.get("/notes/{note_id}/attachments/{attachment_id}/download")
 def download_attachment(note_id: int, attachment_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     row = attachment(db, note_id, attachment_id, user)
+    if row.storage_path:
+        from app.core.storage import materialize_file
+        from fastapi.responses import FileResponse
+        path = materialize_file(row.storage_path, db=db)
+        db.commit()
+        return FileResponse(path, media_type=row.media_type, filename=row.filename, headers={"Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff", "Content-Security-Policy":"sandbox"})
     return Response(row.body, media_type=row.media_type, headers={"Cache-Control": "private, no-store",
                     "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox",
                     "Content-Disposition": f"attachment; filename*=UTF-8''{quote(row.filename, safe='')}"})

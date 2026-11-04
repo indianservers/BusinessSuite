@@ -34,6 +34,7 @@ def authorize(actor, source, write=False, entity="companies", action=None):
     names = permission_names(actor)
     read = {"crm": {"crm_view", "crm_manage", "crm_admin", f"crm_{entity}_view", f"crm_{entity}_manage"}, "srm": {"srm_view", "srm_manage", "srm_admin", "srm_invoice_view", "srm_invoice_create"}, "project_management": {"pms_view", "pms_manage_projects", "pms_admin"}, "hrms": {"employee_view", "employee_update", "employee_create"}}
     edit = {"crm": {"crm_manage", "crm_admin", f"crm_{entity}_manage"}, "srm": {"srm_manage", "srm_admin"}, "project_management": {"pms_manage_projects", "pms_admin"}, "hrms": {"employee_update", "employee_create"}}
+    read['project_management'].add('pms_manage_tasks')
     if entity == "companies":
         read["crm"].update({"crm_accounts_view", "crm_accounts_manage"})
         edit["crm"].add("crm_accounts_manage")
@@ -59,9 +60,10 @@ def companies(db, actor, source="crm", deleted=False):
     elif source == "project_management":
         from app.apps.project_management.access import accessible_project_query, user_permission_names, PMS_GLOBAL_MANAGE_PROJECTS
         from app.apps.project_management.models import PMSProject
-        from app.apps.srm.commercial_models import ProjectCommercial
+        from app.apps.srm.commercial_models import ProjectCommercial, CustomerLink
         if not actor.is_superuser and not user_permission_names(actor).intersection(PMS_GLOBAL_MANAGE_PROJECTS):
-            q = q.filter(or_(CRMCompany.created_by_user_id == actor.id, CRMCompany.id.in_(select(ProjectCommercial.customer_id).where(ProjectCommercial.project_id.in_(accessible_project_query(db, actor).with_entities(PMSProject.id))))))
+            projects = accessible_project_query(db, actor)
+            q = q.filter(or_(CRMCompany.created_by_user_id == actor.id, CRMCompany.id.in_(select(ProjectCommercial.customer_id).where(ProjectCommercial.project_id.in_(projects.with_entities(PMSProject.id)))), CRMCompany.id.in_(select(CustomerLink.customer_id).where(CustomerLink.organization_id == actor.organization_id, CustomerLink.source_type == 'pms_client', CustomerLink.source_id.in_(projects.with_entities(PMSProject.client_id))))))
     else:
         # Employment/legal employer selectors use app.models.company.Company;
         # business company association requires independent CRM authorization.
@@ -387,7 +389,10 @@ def form_options(source: Source = "crm", db: Session = Depends(get_db), actor: U
     except HTTPException: authorize(actor, source, entity="contacts")
     from app.models.company import Company as TenantCompany
     company = db.get(TenantCompany, actor.organization_id)
-    return {"country": company.country if company else "IN", "currency": company.default_currency if company else "INR"}
+    from app.shared.form_defaults import effective
+    branch = getattr(actor, "_suite_branch_id", None)
+    values = effective(db, actor.organization_id, "project_management" if source == "pms" else source, branch if isinstance(branch, int) else None)["values"]
+    return {"country": values["country"], "currency": values["currency"], "phone_country_code": values["phone_country_code"]}
 
 
 @router.get("/contacts")
@@ -408,6 +413,7 @@ def list_contacts(source: Source = "crm", search: str = Query("", max_length=180
 
 
 class PrimaryContact(BaseModel):
+    customFields: dict[str, object] = Field(default_factory=dict, max_length=100)
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=180)
     email: str | None = Field(None, max_length=150)
@@ -416,6 +422,7 @@ class PrimaryContact(BaseModel):
 
 
 class CompanyInput(BaseModel):
+    customFields: dict[str, object] = Field(default_factory=dict, max_length=100)
     branch_availability: BranchAvailability | None = None
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=180)
@@ -468,6 +475,12 @@ def save_roles(db, actor, row, kind, roles):
 
 
 def write_company(db, actor, source, data, row=None):
+    authorize(actor, source, True, action="edit" if row else "create")
+    from app.apps.crm.custom_field_config import validate_values
+    validate_values(db,"companies",crm()._organization_id(db,actor),data.customFields,row.id if row else None)
+    if data.newPrimaryContact:
+        authorize(actor,source,True,"contacts")
+        validate_values(db,"contacts",crm()._organization_id(db,actor),data.newPrimaryContact.customFields)
     is_new = row is None
     if data.branch_availability is not None:
         resolve_availability(db, actor, data.branch_availability, source, "edit" if row else "create", lambda: authorize(actor, source, True, action="edit" if row else "create"))
@@ -578,6 +591,7 @@ def write_company(db, actor, source, data, row=None):
             raise HTTPException(422, str(exc))
         primary = CRMContact(organization_id=actor.organization_id, company_id=row.id, company_name=row.name, full_name=item.name, first_name=item.name.split(" ", 1)[0], email=contact_email, phone=contact_phone, phone_country_code=item.phone_country_code if contact_phone else None, owner_user_id=actor.id, created_by_user_id=actor.id, lifecycle_stage="Prospect")
         db.add(primary); db.flush()
+        crm()._save_custom_field_values(db,"contacts",primary.id,primary.organization_id,actor.id,item.customFields)
     if primary:
         details.primary_contact_id = primary.id
         if not db.get(CompanyContactLink, (row.id, primary.id)):
@@ -617,7 +631,24 @@ def write_company(db, actor, source, data, row=None):
         finally:
             if previous_defer is None: db.info.pop("defer_master_commit", None)
             else: db.info["defer_master_commit"] = previous_defer
+    from app.apps.crm.api.router import _validate_required_custom_fields, _save_custom_field_values
+    _validate_required_custom_fields(db, "companies", row.id, row.organization_id, data.customFields)
+    _save_custom_field_values(db, "companies", row.id, row.organization_id, actor.id, data.customFields)
     return row
+
+
+@router.get("/companies/custom-fields")
+def company_custom_fields(source: Source = "crm", entity: Literal["companies","contacts"] = "companies", record_id: int | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    authorize(actor, source, entity=entity)
+    module = crm()
+    org = module._organization_id(db, actor)
+    fields = module._custom_field_definitions(db, entity, org)
+    values = []
+    if record_id:
+        row = owner(db,actor,"contact" if entity=="contacts" else "company",record_id,source)
+        if not row: raise HTTPException(404, "Company not found")
+        values = module._custom_fields_for(db, entity, row.id, org)
+    return {"items": [module._serialize(field) for field in fields], "customFields": values}
 
 
 @router.post("/companies", status_code=201)

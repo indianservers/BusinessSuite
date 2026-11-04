@@ -1,0 +1,19 @@
+{
+  "name": "CLOUDUI-PMS-1793802700740.png",
+  "status": "pass",
+  "file": {
+    "id": 16,
+    "module": "pms",
+    "filename": "CLOUDUI-PMS-1793802700740.png",
+    "size": 68,
+    "content_type": "image/png",
+    "provider": "google_drive",
+    "status": "cloud",
+    "folder_id": "1Jw_Ndwl2f_cOEdqV8iEaX0qyF2pjrWWo",
+    "remote_id": "1O3flpvasLqahbDAGBUu2ssryzKoHkFHa",
+    "sha256": "6b1048f8a6d40bac0b2954c18fefa40c4ea7a96120fc2e54b7317c0e43c2bbec",
+    "error": null,
+    "created_at": "2026-11-04T14:31:46.788176+00:00",
+    "version_count": 1
+  }
+}

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from tests.test_pms_workspaces import account, middleware_database, BASE
 from app.apps.project_management.models import PMSWorkspaceMember
 
@@ -8,7 +9,10 @@ def setup_workspace(client, db):
     member, mh = account(db, "auto-member@test.com")
     guest, gh = account(db, "auto-guest@test.com")
     wid = client.post(BASE + "/workspaces", json={"name": "Automation"}, headers=oh).json()["id"]
-    db.add_all([PMSWorkspaceMember(workspace_id=wid, user_id=admin.id, role="Admin"), PMSWorkspaceMember(workspace_id=wid, user_id=member.id, role="Member"), PMSWorkspaceMember(workspace_id=wid, user_id=guest.id, role="Guest")])
+    memberships=[PMSWorkspaceMember(workspace_id=wid, user_id=admin.id, role="Admin"), PMSWorkspaceMember(workspace_id=wid, user_id=member.id, role="Member"), PMSWorkspaceMember(workspace_id=wid, user_id=guest.id, role="Guest")]
+    db.add_all(memberships)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, *memberships)
     db.commit()
     pid = client.post(BASE + "/projects", json={"name": "Rules", "project_key": "AUTO", "workspace_id": wid}, headers=oh).json()["id"]
     return wid, pid, owner, oh, ah, member, mh, guest, gh

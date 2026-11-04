@@ -157,7 +157,11 @@ def test_viewer_cannot_mutate_dates_or_dependencies(client, db, superuser_header
     from app.branches.models import BranchGrant
     from app.models.company import Branch
     branch=db.query(Branch).filter_by(company_id=1).first()
-    db.add(BranchGrant(company_id=1,user_id=user.id,branch_id=branch.id,can_write=False))
+    grant = db.query(BranchGrant).filter_by(company_id=1,user_id=user.id,branch_id=branch.id).first()
+    if grant:
+        grant.can_write = False
+    else:
+        db.add(BranchGrant(company_id=1,user_id=user.id,branch_id=branch.id,can_write=False))
     for row in rows: row.owner_user_id = user.id
     db.commit()
     url = "/api/v1/scheduling/crm/calendar"

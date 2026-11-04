@@ -1366,21 +1366,25 @@ def create_opening_balance(payload: OpeningBalancePayload, request: Request, db:
 @router.post("/opening-balances/post")
 def post_opening_balances(request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_OPENING_MANAGE_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    items = db.query(FAMOpeningBalance).filter(FAMOpeningBalance.company_id == company_id, FAMOpeningBalance.posted == False).all()
+    items = db.query(FAMOpeningBalance).filter(FAMOpeningBalance.company_id == company_id, FAMOpeningBalance.posted == False).order_by(FAMOpeningBalance.ledger_id).with_for_update().all()
     debit = sum(Decimal(item.debit_amount or 0) for item in items)
     credit = sum(Decimal(item.credit_amount or 0) for item in items)
     if debit != credit:
         raise HTTPException(status_code=409, detail="Opening balances must balance before posting")
-    for item in items:
-        item.posted = True
-        ledger = db.query(FAMLedger).filter(FAMLedger.id == item.ledger_id, FAMLedger.company_id == company_id).first()
-        if ledger:
-            ledger.opening_balance_dr = item.debit_amount
-            ledger.opening_balance_cr = item.credit_amount
-            ledger.current_balance_dr = item.debit_amount
-            ledger.current_balance_cr = item.credit_amount
-    audit(db, request, current_user, company_id, "opening_balance", None, "POST", None, {"count": len(items), "debit": float(debit), "credit": float(credit)})
-    db.commit()
+    db.info["fam_opening_post_targets"] = {item.ledger_id for item in items}
+    try:
+        for item in items:
+            item.posted = True
+            ledger = db.query(FAMLedger).filter(FAMLedger.id == item.ledger_id, FAMLedger.company_id == company_id).populate_existing().with_for_update().first()
+            if ledger:
+                ledger.opening_balance_dr = Decimal(ledger.opening_balance_dr or 0) + item.debit_amount
+                ledger.opening_balance_cr = Decimal(ledger.opening_balance_cr or 0) + item.credit_amount
+                ledger.current_balance_dr = Decimal(ledger.current_balance_dr or 0) + item.debit_amount
+                ledger.current_balance_cr = Decimal(ledger.current_balance_cr or 0) + item.credit_amount
+        audit(db, request, current_user, company_id, "opening_balance", None, "POST", None, {"count": len(items), "debit": float(debit), "credit": float(credit)})
+        db.commit()
+    finally:
+        db.info.pop("fam_opening_post_targets", None)
     return {"posted": True, "count": len(items), "debitTotal": float(debit), "creditTotal": float(credit)}
 
 
@@ -2545,7 +2549,8 @@ def get_gstr1(db: Session = Depends(get_db), current_user: User = Depends(Requir
 def prepare_gstr1(payload: GSTReturnPreparePayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_GST_RETURN_PREPARE_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     period = get_or_create_return_period(db, company_id, payload, "gstr1", current_user)
-    db.query(FAMGSTR1Record).filter(FAMGSTR1Record.return_period_id == period.id).delete()
+    for previous in db.query(FAMGSTR1Record).filter(FAMGSTR1Record.return_period_id == period.id).all():
+        db.delete(previous)
     register = gst_register(db, company_id, {"outward", "export"})
     totals = register["totals"]
     record = FAMGSTR1Record(company_id=company_id, return_period_id=period.id, section="summary", taxable_value=totals["taxable_value"], cgst_amount=totals["cgst_amount"], sgst_amount=totals["sgst_amount"], igst_amount=totals["igst_amount"], cess_amount=totals["cess_amount"], record_count=register["total"], source_json={"note": "Prepared from GST transaction lines; portal filing not integrated."})
@@ -2568,7 +2573,8 @@ def get_gstr3b(db: Session = Depends(get_db), current_user: User = Depends(Requi
 def prepare_gstr3b(payload: GSTReturnPreparePayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_GST_RETURN_PREPARE_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
     period = get_or_create_return_period(db, company_id, payload, "gstr3b", current_user)
-    db.query(FAMGSTR3BRecord).filter(FAMGSTR3BRecord.return_period_id == period.id).delete()
+    for previous in db.query(FAMGSTR3BRecord).filter(FAMGSTR3BRecord.return_period_id == period.id).all():
+        db.delete(previous)
     outward = gst_register(db, company_id, {"outward", "export"})
     inward = gst_register(db, company_id, {"inward", "rcm", "import"})
     records = []

@@ -83,7 +83,11 @@ def test_audience_permissions_hide_records_and_catalog_and_reject_writes(client,
     own=contact(client,h,full_name='Visible owner',email='visible-owner@example.com')
     viewer=scoped_headers(client,db,'audience_viewer',['crm_view'])
     actor=db.query(User).filter_by(email='audience_viewer@example.com').one()
-    db.add(BranchGrant(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch']),can_write=False))
+    grant = db.query(BranchGrant).filter_by(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch'])).one_or_none()
+    if grant is None:
+        grant = BranchGrant(user_id=actor.id,company_id=1,branch_id=int(h['X-Suite-Branch']))
+        db.add(grant)
+    grant.can_write = False
     db.get(CRMContact,own['id']).owner_user_id=actor.id;db.commit()
     viewer['X-Suite-Branch']=h['X-Suite-Branch']
     result=get(client,viewer,'/records',entity='contacts',include_analytics=True)

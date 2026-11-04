@@ -114,3 +114,4 @@ def test_scheduler_accepts_only_its_secret(client, monkeypatch):
     response = client.get("/api/v1/internal/intern-correction-reminders", headers={"Authorization": "Bearer synthetic-cron-secret"})
     assert response.status_code == 200
     assert response.json()["status"] == "disabled"
+from tests.rich_text_test_utils import organization_context

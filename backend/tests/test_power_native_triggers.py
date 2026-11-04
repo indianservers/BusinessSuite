@@ -95,7 +95,9 @@ def test_github_native_setup_verified_inbox_dedup_and_cleanup(
     native.tick(db)
     assert trigger.config["native"]["phase"] == "active", trigger.config
     assert sum(method == "POST" for method, _, _ in calls) == 1
-    assert not db.query(ConnectorGate).one().leases, db.query(ConnectorGate).one().leases
+    assert not db.query(ConnectorGate).one().leases, (
+        db.query(ConnectorGate).one().leases
+    )
     private = native.read_private(trigger)
     body = json.dumps(
         {
@@ -131,10 +133,19 @@ def test_github_native_setup_verified_inbox_dedup_and_cleanup(
         assert response.status_code == 200, response.text
     assert db.query(NativeDelivery).count() == 1
     db.refresh(trigger)
-    assert trigger.next_at.replace(tzinfo=timezone.utc)<=now(), (trigger.next_at,now(),trigger.config)
+    assert trigger.next_at.replace(tzinfo=timezone.utc) <= now(), (
+        trigger.next_at,
+        now(),
+        trigger.config,
+    )
     native.tick(db)
     drain(db)
-    assert db.query(PowerExecution).filter_by(resource_id=row["id"]).count() == 1, (trigger.config["native"],native.read_private(trigger)["state"],db.query(ConnectorGate).one().leases,[(d.status,d.attempts) for d in db.query(NativeDelivery).all()])
+    assert db.query(PowerExecution).filter_by(resource_id=row["id"]).count() == 1, (
+        trigger.config["native"],
+        native.read_private(trigger)["state"],
+        db.query(ConnectorGate).one().leases,
+        [(d.status, d.attempts) for d in db.query(NativeDelivery).all()],
+    )
     assert db.query(NativeDelivery).one().encrypted_payload is None
     listing = client.get(f"{ROOT}/{row['id']}/triggers", headers=actors[0]).text
     assert private["secrets"]["verification"] not in listing
@@ -378,3 +389,361 @@ def test_pubsub_setup_preserves_iam_and_history_on_renewal(monkeypatch):
 
 
 from fastapi import HTTPException
+
+SETUPS = {
+    "gmail": {"cloud_project_id": "project-example"},
+    "google_forms": {"cloud_project_id": "project-example", "form_id": "form"},
+    "google_drive": {},
+    "google_calendar": {"calendar_id": "calendar"},
+    "outlook": {},
+    "onedrive": {"drive_id": "drive"},
+    "sharepoint": {"site_id": "site", "list_id": "list"},
+    "microsoft_calendar": {},
+    "microsoft_teams": {"team_id": "team", "channel_id": "channel"},
+    "github": {"owner": "owner", "repository": "repo", "event": "push"},
+    "clickup": {"team_id": "team", "event": "task_created"},
+    "box": {"folder_id": "folder", "event": "file_uploaded"},
+    "airtable": {"base_id": "base", "table_id": "table"},
+    "zoho_crm": {"module": "Leads"},
+    "jira": {},
+    "slack": {"app_id": "app", "event": "mention_received"},
+    "whatsapp_business": {
+        "app_id": "app",
+        "business_account_id": "business",
+        "api_version": "v26.0",
+    },
+    "dropbox": {},
+    "notion": {},
+    "hubspot": {"object_type": "contacts"},
+    "salesforce": {"event": "platform_event"},
+    "http": {},
+}
+
+
+@pytest.mark.parametrize("mid", sorted(SETUPS))
+def test_every_remaining_module_automatically_configures_its_native_source(
+    mid, monkeypatch
+):
+    from app.apps.power_apps.integrations import native_hubspot
+
+    monkeypatch.setattr(subscriptions, "cloud_token", lambda *args: "cloud-token")
+    monkeypatch.setattr(native_hubspot, "token", lambda *args: "journal-token")
+    calls = []
+
+    class Client:
+        conn = NS(id=1)
+
+        def collection(self, path, *args, **kw):
+            calls.append(("GET", path, None))
+            return [], {}
+
+        def request(self, method, path, body=None, **kw):
+            calls.append((method, path, body))
+            if path.endswith(":getIamPolicy"):
+                return {"bindings": []}
+            if path.endswith("/startPageToken"):
+                return {"startPageToken": "cursor"}
+            if path.endswith("/auth.test"):
+                return {"team_id": "workspace"}
+            if path.endswith("/apps.manifest.export"):
+                return {
+                    "manifest": {
+                        "display_information": {"name": "Existing app"},
+                        "settings": {},
+                    }
+                }
+            if path.endswith("/apps.manifest.update"):
+                manifest = json.loads(body["manifest"])
+                assert manifest["display_information"]["name"] == "Existing app"
+                assert (
+                    manifest["settings"]["event_subscriptions"]["request_url"]
+                    == "https://callback.example/native"
+                )
+                return {"ok": True}
+            if path.endswith("/account-info/v3/details"):
+                return {"portalId": 7}
+            if path.endswith("/latest"):
+                return {"_status": 404}
+            if method == "GET":
+                if mid in {"github", "jira"}:
+                    return []
+                return {
+                    "webhooks": [],
+                    "entries": [],
+                    "data": [],
+                    "watches": [],
+                    "results": [],
+                }
+            if mid == "gmail" and path.endswith("/watch"):
+                return {
+                    "historyId": "1",
+                    "expiration": str(int((time.time() + 86400) * 1000)),
+                }
+            if mid == "google_forms" and "/forms/" in path:
+                return {
+                    "id": "watch",
+                    "expireTime": (
+                        datetime.now(timezone.utc) + timedelta(days=7)
+                    ).isoformat(),
+                }
+            if mid in {"google_drive", "google_calendar"} and path.endswith("/watch"):
+                return {
+                    "id": body["id"],
+                    "resourceId": "resource",
+                    "expiration": str(int((time.time() + 86400) * 1000)),
+                }
+            if mid == "clickup":
+                return {"webhook": {"id": "hook", "secret": "provider-hook-secret"}}
+            if mid == "airtable":
+                return {
+                    "id": "hook",
+                    "macSecretBase64": base64.b64encode(b"mac").decode(),
+                    "expirationTime": (
+                        datetime.now(timezone.utc) + timedelta(days=7)
+                    ).isoformat(),
+                }
+            if mid in subscriptions.GRAPH:
+                return {"id": "hook", "expirationDateTime": body["expirationDateTime"]}
+            return {"id": "hook", "watch": [{"status": "success"}], "success": True}
+
+    private = {
+        "epoch": "epoch",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "secrets": {
+            "verification": "verify",
+            "primary_signature_key": "box-key",
+            "configuration_token": "config-token",
+            "app_secret": "meta-secret",
+        },
+        "state": {},
+    }
+    subscriptions.ensure(
+        Client(),
+        mid,
+        {"event": "record_updated", **SETUPS[mid]},
+        private,
+        "https://callback.example/native",
+        lambda: None,
+    )
+    assert private["state"].get("id") or private["state"].get("registered_at")
+    if mid not in {"dropbox", "notion", "salesforce", "http"}:
+        assert any(method in {"POST", "PUT"} for method, _, _ in calls)
+
+
+def test_graph_expiring_subscription_is_renewed_without_duplicate_creation():
+    calls = []
+
+    class Client:
+        def request(self, method, path, body=None, **kwargs):
+            calls.append((method, path, body))
+            return {"expirationDateTime": body["expirationDateTime"]}
+
+    private = {
+        "epoch": "epoch",
+        "secrets": {},
+        "state": {
+            "id": "subscription",
+            "expires_at": datetime.now(timezone.utc).isoformat(),
+        },
+    }
+    subscriptions.ensure(
+        Client(), "outlook", {}, private, "https://callback", lambda: None
+    )
+    assert (
+        len(calls) == 1
+        and calls[0][0] == "PATCH"
+        and calls[0][1].endswith("/subscription")
+    )
+
+
+def test_salesforce_native_stream_uses_wrapped_bayeux_and_replay_cursor():
+    calls = []
+
+    class Client:
+        def request(self, method, path, body=None, **kw):
+            calls.append(body)
+            assert isinstance(body, list)
+            if body[0]["channel"] == "/meta/handshake":
+                return [
+                    {
+                        "channel": "/meta/handshake",
+                        "successful": True,
+                        "clientId": "client",
+                    }
+                ]
+            if body[0]["channel"] == "/meta/subscribe":
+                assert body[0]["ext"]["replay"]["/event/Order__e"] == 5
+                return [{"successful": True}]
+            return [
+                {
+                    "channel": "/event/Order__e",
+                    "data": {"event": {"replayId": 6}, "payload": {"Order": "order"}},
+                }
+            ]
+
+    private = {"state": {"replay_id": 5}}
+    result = native_sources.poll_stream(
+        Client(), {"api_version": "v68.0", "stream_channel": "/event/Order__e"}, private
+    )
+    assert (
+        len(result) == 1
+        and result[0]["event"] == "platform_event"
+        and private["state"]["replay_id"] == 6
+    )
+
+
+def test_hubspot_journal_binds_portal_and_does_not_forward_bearer_to_s3(monkeypatch):
+    from app.apps.power_apps.integrations import native_hubspot
+
+    monkeypatch.setattr(native_hubspot, "token", lambda *args: "app-token")
+
+    class Client:
+        def request(self, method, path, **kw):
+            assert kw["bearer"] == "app-token"
+            return {
+                "currentOffset": "next",
+                "url": "https://s3.amazonaws.com/bucket/journal.json?X-Amz-Signature=signed",
+            }
+
+    rows = [
+        {
+            "type": "crmObject",
+            "portalId": 7,
+            "objectTypeId": "0-1",
+            "objectId": 1,
+            "occurredAt": "2026-11-04T01:00:00Z",
+            "action": "CREATE",
+        },
+        {
+            "type": "crmObject",
+            "portalId": 99,
+            "objectTypeId": "0-1",
+            "objectId": 2,
+            "occurredAt": "2026-11-04T01:00:00Z",
+            "action": "CREATE",
+        },
+    ]
+
+    class Transport:
+        def __init__(self, policy):
+            assert policy.allowed_hosts == {"s3.amazonaws.com"}
+
+        def request(self, method, url, **kw):
+            assert "Authorization" not in kw["headers"]
+            return Response(
+                200,
+                {},
+                json.dumps({"offset": "next", "journalEvents": rows}).encode(),
+                1,
+            )
+
+    monkeypatch.setattr(adapters, "HTTP_FACTORY", Transport)
+    private = {
+        "started_at": "2026-11-04T00:00:00+00:00",
+        "secrets": {},
+        "state": {
+            "portal_id": 7,
+            "object_type_id": "0-1",
+            "journal_offset": "previous",
+        },
+    }
+    result = native_hubspot.poll(
+        Client(), {"object_type": "contacts", "event": "record_created"}, private
+    )
+    assert (
+        len(result) == 1
+        and result[0]["data"]["id"] == "1"
+        and private["state"]["journal_offset"] == "next"
+    )
+
+
+def test_native_inbox_migration_is_idempotent_and_indexed():
+    from sqlalchemy import create_engine, inspect
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    from app.apps.power_apps.integrations import native_schema
+
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        for table in ("companies", "users", "power_automation_triggers"):
+            conn.exec_driver_sql(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY)")
+        op = Operations(MigrationContext.configure(conn))
+        native_schema.upgrade(op)
+        native_schema.upgrade(op)
+        assert "power_native_deliveries" in inspect(conn).get_table_names()
+        assert {
+            i["name"] for i in inspect(conn).get_indexes("power_native_deliveries")
+        } == {"ix_power_native_delivery_due"}
+        native_schema.downgrade(op)
+        assert "power_native_deliveries" not in inspect(conn).get_table_names()
+
+
+@pytest.mark.parametrize("subtype", ["message_changed", "message_deleted"])
+def test_slack_edits_do_not_fire_incoming_message_trigger(subtype):
+    from app.apps.power_apps.integrations.native_events import normalize
+
+    assert (
+        normalize(
+            None,
+            "slack",
+            {"app_id": "A1"},
+            {"state": {"account_id": "T1"}},
+            {
+                "body": {
+                    "type": "event_callback",
+                    "team_id": "T1",
+                    "api_app_id": "A1",
+                    "event_id": "E1",
+                    "event": {"type": "message", "subtype": subtype},
+                }
+            },
+        )
+        == []
+    )
+
+
+def test_graph_calendar_callback_reads_only_selected_calendar():
+    from app.apps.power_apps.integrations.native_events import normalize
+
+    class Client:
+        def request(self, method, path, **kwargs):
+            assert path == "/v1.0/me/calendars/selected/events/event1"
+            return {"_status": 404}
+
+    assert (
+        normalize(
+            Client(),
+            "microsoft_calendar",
+            {"calendar_id": "selected"},
+            {"state": {}},
+            {
+                "body": {
+                    "value": [
+                        {"resourceData": {"id": "event1"}, "changeType": "created"}
+                    ]
+                }
+            },
+        )
+        == []
+    )
+
+
+def test_teams_deleted_messages_do_not_fire_incoming_trigger():
+    from app.apps.power_apps.integrations.native_events import normalize
+
+    assert (
+        normalize(
+            None,
+            "microsoft_teams",
+            {},
+            {"state": {}},
+            {
+                "body": {
+                    "value": [
+                        {"resourceData": {"id": "deleted"}, "changeType": "deleted"}
+                    ]
+                }
+            },
+        )
+        == []
+    )

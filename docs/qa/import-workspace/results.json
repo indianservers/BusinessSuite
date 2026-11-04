@@ -1,0 +1,52 @@
+[
+  {
+    "module": "crm",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "module": "srm",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "module": "hrms",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "module": "pms",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "module": "fam",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "module": "crm",
+    "width": 390,
+    "passed": true
+  },
+  {
+    "module": "srm",
+    "width": 390,
+    "passed": true
+  },
+  {
+    "module": "hrms",
+    "width": 390,
+    "passed": true
+  },
+  {
+    "module": "pms",
+    "width": 390,
+    "passed": true
+  },
+  {
+    "module": "fam",
+    "width": 390,
+    "passed": true
+  }
+]

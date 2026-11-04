@@ -141,9 +141,7 @@ export default function PlannerPage() {
       preferencesQuery.data
         ? {
             ...preferencesQuery.data.preferences,
-            timezone: preferencesQuery.data.revision
-              ? preferencesQuery.data.preferences.timezone
-              : calendarDefaults.timezone,
+            timezone: preferencesQuery.data.preferences.timezone,
           }
         : calendarDefaults,
     [preferencesQuery.data],

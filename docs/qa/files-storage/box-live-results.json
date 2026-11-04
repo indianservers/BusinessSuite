@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "module": "crm",
+      "id": 20,
+      "remote_id": "2570335494325",
+      "sha256_matches": true,
+      "staging_cleanup_and_cloud_materialize": "pass"
+    },
+    {
+      "module": "pms",
+      "id": 21,
+      "remote_id": "2570337210304",
+      "sha256_matches": true,
+      "staging_cleanup_and_cloud_materialize": "pass"
+    },
+    {
+      "module": "hrms",
+      "id": 22,
+      "remote_id": "2570333391990",
+      "sha256_matches": true,
+      "staging_cleanup_and_cloud_materialize": "pass"
+    }
+  ],
+  "routing": "Existing Google Drive routes preserved"
+}

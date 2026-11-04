@@ -4,6 +4,7 @@ from app.models.company import Company
 from app.models.notification import Notification
 from app.models.user import User
 from app.core.security import create_access_token
+from tests.rich_text_test_utils import organization_context
 
 
 def test_access_returns_names_only_for_member_companies(client, db, superuser_headers):

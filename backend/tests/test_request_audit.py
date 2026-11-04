@@ -26,7 +26,7 @@ def audit_database(db):
 
 
 if not any(getattr(route,'path','')=='/api/v1/_audit-test/error' for route in app.routes):
-    @app.get('/api/v1/_audit-test/error')
+    @app.get('/api/v1/_audit-test/error', include_in_schema=False)
     def audit_failure(user=Depends(get_current_user)):
         raise ValueError('secret-password-should-not-appear')
 
@@ -149,3 +149,4 @@ def test_audit_survives_business_transaction_rollback(tmp_path):
         row=db.query(AuditLog).one()
         assert row.request_id=='rollback-audit' and row.status_code==500
         assert 'secret' not in row.description
+from tests.rich_text_test_utils import organization_context

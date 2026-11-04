@@ -79,3 +79,30 @@ def assert_manager(db, user):
     _, _, _, manager = access(db, user, user.organization_id)
     if not manager:
         raise HTTPException(403, "Branch access administration is required")
+
+
+def create_owned_branch(db, user, values, *, reason):
+    """Create through the company control plane, including legacy API adapters."""
+    from sqlalchemy import select, func, or_
+    from app.models.company import Branch
+    from app.branches.models import BranchOwnership
+    assert_manager(db, user)
+    company = user.organization_id
+    if values.get("company_id") not in {None, company} or values.get("organization_id") not in {None, company}:
+        raise HTTPException(403, "Branch belongs to another company")
+    data = {key:value for key,value in values.items() if key in Branch.__table__.c and key not in {"id", "created_by", "created_at", "updated_at"}}
+    name = str(data.get("name", "")).strip()
+    if not name:
+        raise HTTPException(422, "Branch name is required")
+    duplicates = [func.lower(Branch.name) == name.casefold()]
+    if data.get("code"):
+        duplicates.append(func.lower(Branch.code) == data["code"].strip().casefold())
+    connection = db.connection()
+    if connection.execute(select(Branch.id).where(Branch.company_id==company, or_(*duplicates))).first():
+        raise HTTPException(409, "Branch name or code already exists in this company")
+    data.update(name=name, company_id=company, organization_id=company, created_by=user.id, is_active=True)
+    row = dict(connection.execute(Branch.__table__.insert().values(**data).returning(*Branch.__table__.c)).mappings().one())
+    connection.execute(BranchOwnership.__table__.insert().values(resource_table="branches", resource_key=str(row["id"]), company_id=company, branch_id=row["id"], source="branch-created"))
+    audit(db, user, company, "branch.create", reason, {"branch_id":row["id"], "name":name, "code":row.get("code")})
+    db.commit()
+    return row

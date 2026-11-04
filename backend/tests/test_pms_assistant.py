@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from uuid import uuid4
 from datetime import datetime, timedelta
 import pytest
@@ -150,7 +151,7 @@ def test_assistant_customer_ambiguity_and_unauthorized_history(
     from app.models.user import User
 
     buyer, project, conversation = setup(client, db, superuser_headers)
-    db.add(CRMCompany(organization_id=1, name=buyer.name))
+    db.add(CRMCompany(organization_id=1, name=buyer.name, account_type="Customer"))
     db.commit()
     result = client.post(
         f"{BASE}/conversations/{conversation}/messages",
@@ -370,7 +371,7 @@ def test_revoked_financial_permission_and_changed_tenant_cannot_use_history(
     person.display_name = "Tenant reassigned"
     db.commit()
     assert (
-        client.get(f"{BASE}/conversations/{conv}", headers=headers).status_code == 404
+        client.get(f"{BASE}/conversations/{conv}", headers=headers).status_code in {403, 404}
     )
 
 

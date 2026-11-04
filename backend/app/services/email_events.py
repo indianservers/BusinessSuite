@@ -83,6 +83,10 @@ EVENTS = {
 
 
 def record(db, table_name, identity):
+    cache = db.info.get("suite_email_lookup_cache")
+    key = ("record", table_name, identity)
+    if cache is not None and key in cache:
+        return cache[key]
     model = next((mapper.class_ for mapper in Base.registry.mappers if mapper.local_table.name == table_name), None)
     if model is None or not identity:
         return None
@@ -92,15 +96,25 @@ def record(db, table_name, identity):
     values = identity if isinstance(identity, tuple) else (identity,)
     row = db.query(*(getattr(model, column.name) for column in model.__table__.columns)).filter(
         *(getattr(model, key.name) == value for key, value in zip(keys, values))).first()
-    return row._mapping if row else None
+    result = row._mapping if row else None
+    if cache is not None:
+        cache[key] = result
+    return result
 
 
 def _user(db, identity, org):
+    cache = db.info.get("suite_email_lookup_cache")
+    key = ("user", identity, org)
+    if cache is not None and key in cache:
+        return cache[key]
     from app.models.user import User
     from app.services.email_dispatch import user_can_receive
     user = db.get(User, identity) if identity else None
     if user and user.is_active and user_can_receive(db, user.id, user.email, org):
-        return user.email, user.id, org
+        result = (user.email, user.id, org)
+        if cache is not None:
+            cache[key] = result
+        return result
 
 
 def _employee(db, identity, org):
@@ -274,30 +288,41 @@ def capture_email_events(db, context, instances):
 
 @event.listens_for(Session, "after_flush_postexec")
 def enqueue_email_events(db, context):
-    for obj, spec, key, new in db.info.pop("suite_email_events", []):
-        module, label, employee_fk, user_fks, watched, path = spec
-        status = str(getattr(obj, "status", None) or getattr(obj, "execution_status", None) or getattr(obj, "decision", "") or "")
-        if status.lower() in {"draft", "queued", "processing"}:
-            continue
-        subject = f"{label}: {status or ('created' if new else 'updated')}"
-        identity = getattr(obj, "id", None) or getattr(obj, "task_id", None)
-        body = f"{label} #{identity} has an update."
-        if status:
-            body += f"\nCurrent status: {status}."
-        if obj.__tablename__ == "suite_form_replies" and new:
-            body = f"A form submission has been received. Submission reference: {obj.id}."
-        if obj.__tablename__ == "interviews" and obj.scheduled_at:
-            body += f"\nInterview time: {obj.scheduled_at.isoformat()}. Contact your recruitment coordinator for joining details."
-        if obj.__tablename__ == "portal_users":
-            body += "\nYour portal uses an invitation token. Contact your administrator for portal access instructions."
-        body += f"\nSign in to review details: {settings.FRONTEND_PUBLIC_URL.rstrip('/')}{path}"
-        for address, user_id, org in recipients(db, obj, spec):
-            broadcast = obj.__tablename__ in {"announcements", "engagement_surveys"}
-            row = queue_email(db, recipient=address, user_id=user_id, organization_id=org,
-                subject=subject, body=body, module=module,
-                event_key=f"broadcast:{obj.__tablename__}:{obj.id}" if broadcast else f"event:{key}:{sha256(address.casefold().encode()).hexdigest()}")
-            if broadcast and row:
-                row.status = "broadcast"
+    # Cache only within this flush callback: ownership and eligibility are
+    # checked again after every subsequent flush and at dispatch time.
+    previous_cache = db.info.get("suite_email_lookup_cache")
+    db.info["suite_email_lookup_cache"] = {}
+    try:
+        for obj, spec, key, new in db.info.pop("suite_email_events", []):
+            module, label, employee_fk, user_fks, watched, path = spec
+            status = str(getattr(obj, "status", None) or getattr(obj, "execution_status", None) or getattr(obj, "decision", "") or "")
+            if status.lower() in {"draft", "queued", "processing"}:
+                continue
+            subject = f"{label}: {status or ('created' if new else 'updated')}"
+            identity = getattr(obj, "id", None) or getattr(obj, "task_id", None)
+            body = f"{label} #{identity} has an update."
+            if status:
+                body += f"\nCurrent status: {status}."
+            if obj.__tablename__ == "suite_form_replies" and new:
+                body = f"A form submission has been received. Submission reference: {obj.id}."
+            if obj.__tablename__ == "interviews" and obj.scheduled_at:
+                body += f"\nInterview time: {obj.scheduled_at.isoformat()}. Contact your recruitment coordinator for joining details."
+            if obj.__tablename__ == "portal_users":
+                body += "\nYour portal uses an invitation token. Contact your administrator for portal access instructions."
+            body += f"\nSign in to review details: {settings.FRONTEND_PUBLIC_URL.rstrip('/')}{path}"
+            for address, user_id, org in recipients(db, obj, spec):
+                broadcast = obj.__tablename__ in {"announcements", "engagement_surveys"}
+                row = queue_email(db, recipient=address, user_id=user_id, organization_id=org,
+                    subject=subject, body=body, module=module,
+                    event_key=f"broadcast:{obj.__tablename__}:{obj.id}" if broadcast else f"event:{key}:{sha256(address.casefold().encode()).hexdigest()}")
+                if broadcast and row:
+                    row.status = "broadcast"
+    finally:
+        if previous_cache is None:
+            db.info.pop("suite_email_lookup_cache", None)
+        else:
+            db.info["suite_email_lookup_cache"] = previous_cache
+
 
 
 @event.listens_for(Session, "after_soft_rollback")

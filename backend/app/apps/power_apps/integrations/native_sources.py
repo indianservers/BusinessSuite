@@ -26,7 +26,9 @@ def digest(value):
 def event(name, record, identity=None):
     return {
         "event": name,
-        "event_id": digest([name, identity]) if identity is not None else digest([name,record]),
+        "event_id": (
+            digest([name, identity]) if identity is not None else digest([name, record])
+        ),
         "data": record,
     }
 
@@ -499,15 +501,52 @@ def poll_files(client, mid, setup, private):
     return result
 
 
-def calendar_changes(setup,state,rows,initial=False,change=None):
-    inventory=state.setdefault("calendar",{}); result=[]
+def calendar_changes(setup, state, rows, initial=False, change=None):
+    inventory = state.setdefault("calendar", {})
+    result = []
     for row in rows:
-        id=row["id"]; old=inventory.get(id); record=compact(row)
-        name="event_deleted" if change=="deleted" or row.get("status")=="cancelled" or row.get("isCancelled") else "event_created" if change=="created" or old is None and change!="updated" else "event_updated"
-        if old and old.get("attendees")!=record.get("attendees") and setup["event"]=="attendee_response_changed": name="attendee_response_changed"
-        inventory[id]=record
-        if not initial and old!=record:
-            result.append(event(name,{"id":id,"calendar_id":setup.get("calendar_id"),"mailbox":setup.get("mailbox"),"current":record,"previous":old},[id,name,row.get("changeKey") or row.get("updated") or row.get("lastModifiedDateTime") or digest(record)]))
+        id = row["id"]
+        old = inventory.get(id)
+        record = compact(row)
+        name = (
+            "event_deleted"
+            if change == "deleted"
+            or row.get("status") == "cancelled"
+            or row.get("isCancelled")
+            else (
+                "event_created"
+                if change == "created" or old is None and change != "updated"
+                else "event_updated"
+            )
+        )
+        if (
+            old
+            and old.get("attendees") != record.get("attendees")
+            and setup["event"] == "attendee_response_changed"
+        ):
+            name = "attendee_response_changed"
+        inventory[id] = record
+        if not initial and old != record:
+            result.append(
+                event(
+                    name,
+                    {
+                        "id": id,
+                        "calendar_id": setup.get("calendar_id"),
+                        "mailbox": setup.get("mailbox"),
+                        "current": record,
+                        "previous": old,
+                    },
+                    [
+                        id,
+                        name,
+                        row.get("changeKey")
+                        or row.get("updated")
+                        or row.get("lastModifiedDateTime")
+                        or digest(record),
+                    ],
+                )
+            )
     return result
 
 
@@ -544,7 +583,7 @@ def poll_calendar(client, mid, setup, private):
         )
         initial = "calendar" not in state
     inventory = state.setdefault("calendar", {})
-    result = calendar_changes(setup,state,rows,initial)
+    result = calendar_changes(setup, state, rows, initial)
     if setup["event"] == "event_approaching":
         lead = setup.get("minutes_before", 15) * 60
         now = time.time()
@@ -586,93 +625,117 @@ def poll_calendar(client, mid, setup, private):
 
 
 def gmail_messages(client, setup, private):
+    return gmail_page(client, setup, private)
+
+
+def gmail_page(client, setup, private):
     state = private["state"]
-    page = None
-    events = []
-    latest = state["history_id"]
-    for _ in range(10):
+    result = []
+    if "history_pending" not in state:
         value = client.request(
             "GET",
             "/gmail/v1/users/me/history",
             query={
                 "startHistoryId": state["history_id"],
-                **({"pageToken": page} if page else {}),
+                "maxResults": 5,
+                **(
+                    {"pageToken": state["history_page"]}
+                    if state.get("history_page")
+                    else {}
+                ),
             },
             allow=(404,),
         )
         if value.get("_status") == 404:
             raise IntegrationFailure(
                 "cursor_expired",
-                "Gmail history expired; re-enable the trigger to establish a new baseline",
+                "Gmail history expired; publish a fresh trigger baseline",
             )
+        pending = []
         for history in value.get("history", []):
-            added = (
-                history.get("labelsAdded", [])
-                if setup["event"] == "label_added"
-                else history.get("messagesAdded", [])
-            )
-            for change in added:
-                id = change["message"]["id"]
-                message = client.request(
-                    "GET",
-                    "/gmail/v1/users/me/messages/" + q(id),
-                    query={"format": "full"},
-                    allow=(404,),
+            for change in history.get(
+                "labelsAdded" if setup["event"] == "label_added" else "messagesAdded",
+                [],
+            ):
+                pending.append(
+                    {
+                        "history_id": history["id"],
+                        "message_id": change["message"]["id"],
+                        "label_ids": change.get("labelIds"),
+                    }
                 )
-                if message.get("_status") == 404:
-                    continue
-                headers = {
-                    h["name"].casefold(): h["value"]
-                    for h in message.get("payload", {}).get("headers", [])
-                }
-
-                def attachments(part):
-                    found = []
-                    if part.get("filename") and part.get("body", {}).get(
-                        "attachmentId"
-                    ):
-                        found.append(
-                            {
-                                "filename": part["filename"],
-                                "attachment_id": part["body"]["attachmentId"],
-                                "mime_type": part.get("mimeType"),
-                            }
-                        )
-                    for child in part.get("parts", []):
-                        found.extend(attachments(child))
-                    return found
-
-                files = attachments(message.get("payload", {}))
-                labels = message.get("labelIds", [])
-                if (
-                    setup["event"] != "label_added"
-                    and "SENT" in labels
-                    and "INBOX" not in labels
-                ):
-                    continue
-                data = {
-                    "id": id,
-                    "thread_id": message.get("threadId"),
-                    "label_ids": change.get("labelIds",labels) if setup["event"]=="label_added" else labels,
-                    "sender": parseaddr(headers.get("from", ""))[1],
-                    "subject": headers.get("subject", ""),
-                    "has_attachments": bool(files),
-                    "attachments": files,
-                    "snippet": message.get("snippet", ""),
-                    "history_id": history["id"],
-                }
-                name = setup["event"]
-                if name == "attachment_received" and not files:
-                    continue
-                events.append(event(name, data, [history["id"], id, name]))
-        latest = value.get("historyId", latest)
-        page = value.get("nextPageToken")
-        if not page:
-            state["history_id"] = latest
-            return events
-    raise IntegrationFailure(
-        "pagination", "Gmail has too many unprocessed history pages"
-    )
+        if len(pending) > 1000:
+            raise IntegrationFailure("snapshot", "Narrow the Gmail history watch")
+        state.update(
+            history_pending=pending,
+            history_next=value.get("nextPageToken"),
+            history_latest=value.get("historyId", state["history_id"]),
+        )
+    pending = state["history_pending"]
+    for item in pending[:10]:
+        id = item["message_id"]
+        message = client.request(
+            "GET",
+            "/gmail/v1/users/me/messages/" + q(id),
+            query={"format": "full"},
+            allow=(404,),
+        )
+        if message.get("_status") == 404:
+            continue
+        headers = {
+            h["name"].casefold(): h["value"]
+            for h in message.get("payload", {}).get("headers", [])
+        }
+        files = []
+        parts = [message.get("payload", {})]
+        while parts:
+            part = parts.pop()
+            parts.extend(part.get("parts", []))
+            if part.get("filename") and part.get("body", {}).get("attachmentId"):
+                files.append(
+                    {
+                        "filename": part["filename"],
+                        "attachment_id": part["body"]["attachmentId"],
+                        "mime_type": part.get("mimeType"),
+                    }
+                )
+        labels = message.get("labelIds", [])
+        if (
+            setup["event"] != "label_added"
+            and "SENT" in labels
+            and "INBOX" not in labels
+        ):
+            continue
+        if setup["event"] == "attachment_received" and not files:
+            continue
+        data = {
+            "id": id,
+            "thread_id": message.get("threadId"),
+            "label_ids": (
+                item["label_ids"]
+                if setup["event"] == "label_added" and item["label_ids"] is not None
+                else labels
+            ),
+            "sender": parseaddr(headers.get("from", ""))[1],
+            "subject": headers.get("subject", ""),
+            "has_attachments": bool(files),
+            "attachments": files,
+            "snippet": message.get("snippet", ""),
+            "history_id": item["history_id"],
+        }
+        result.append(
+            event(setup["event"], data, [item["history_id"], id, setup["event"]])
+        )
+    state["history_pending"] = pending[10:]
+    if not state["history_pending"]:
+        state.pop("history_pending")
+        if state.get("history_next"):
+            state["history_page"] = state.pop("history_next")
+        else:
+            state["history_id"] = state.pop("history_latest")
+            state.pop("history_page", None)
+            state.pop("history_next", None)
+    return result
 
 
 def poll_pubsub(client, mid, setup, private):
@@ -686,7 +749,14 @@ def poll_pubsub(client, mid, setup, private):
         bearer=token,
     )
     received = value.get("receivedMessages", [])
-    if not received:
+    if (
+        not received
+        and not (
+            mid == "gmail"
+            and (state.get("history_pending") or state.get("history_page"))
+        )
+        and not (mid == "google_forms" and state.get("response_page"))
+    ):
         return [], []
     if mid == "gmail":
         result = gmail_messages(client, setup, private)
@@ -705,15 +775,21 @@ def poll_pubsub(client, mid, setup, private):
             )
         ]
     else:
-        rows, _ = client.collection(
+        value = client.request(
+            "GET",
             "/v1/forms/" + q(setup["form_id"]) + "/responses",
-            "responses",
             query={
-                "pageSize": 1000,
-                "filter": "timestamp > "
+                "pageSize": 50,
+                "filter": "timestamp >= "
                 + state.get("response_after", private["started_at"]),
+                **(
+                    {"pageToken": state["response_page"]}
+                    if state.get("response_page")
+                    else {}
+                ),
             },
         )
+        rows = value.get("responses", [])
         result = [
             event(
                 "response_received",
@@ -726,9 +802,18 @@ def poll_pubsub(client, mid, setup, private):
             for row in rows
         ]
         if rows:
-            state["response_after"] = max(
-                r.get("lastSubmittedTime", r["createTime"]) for r in rows
+            state["response_until"] = max(
+                [
+                    state.get("response_until", private["started_at"]),
+                    *(r.get("lastSubmittedTime", r["createTime"]) for r in rows),
+                ]
             )
+        if value.get("nextPageToken"):
+            state["response_page"] = value["nextPageToken"]
+        else:
+            state.pop("response_page", None)
+            if state.get("response_until"):
+                state["response_after"] = state.pop("response_until")
     return result, [r["ackId"] for r in received]
 
 
@@ -800,6 +885,66 @@ def poll_airtable(client, setup, private):
         state["cursor"] = value["cursor"]
         if not value.get("mightHaveMore"):
             break
+    return result
+
+
+def recover_mail(client, setup, private):
+    """Graph lifecycle 'missed' recovery via an authenticated message delta cursor."""
+    from app.apps.power_apps.integrations.native_events import normalize
+
+    state = private["state"]
+    user = "users/" + q(setup["mailbox"]) if setup.get("mailbox") else "me"
+    path = (
+        "/v1.0/"
+        + user
+        + "/mailFolders/"
+        + q(setup.get("folder_id", "inbox"))
+        + "/messages/delta"
+    )
+    next_url = state.get("mail_next") or state.get("mail_delta")
+    value = (
+        client.follow(next_url, path)
+        if next_url
+        else client.request(
+            "GET",
+            path,
+            query={"$top": 10, "$select": "id,receivedDateTime,lastModifiedDateTime"},
+        )
+    )
+    result = []
+    for row in value.get("value", []):
+        if row.get("@removed") or not row.get("id"):
+            continue
+        field = (
+            "lastModifiedDateTime"
+            if setup["event"] == "message_updated"
+            else "receivedDateTime"
+        )
+        if not row.get(field) or datetime.fromisoformat(
+            row[field].replace("Z", "+00:00")
+        ) < datetime.fromisoformat(private["started_at"]):
+            continue
+        notification = {
+            "changeType": (
+                "updated" if setup["event"] == "message_updated" else "created"
+            ),
+            "resourceData": {"id": row["id"]},
+        }
+        result.extend(
+            normalize(
+                client, "outlook", setup, private, {"body": {"value": [notification]}}
+            )
+        )
+    if value.get("@odata.nextLink"):
+        state["mail_next"] = value["@odata.nextLink"]
+    else:
+        if not value.get("@odata.deltaLink"):
+            raise IntegrationFailure(
+                "cursor", "Graph recovery did not return a delta cursor"
+            )
+        state["mail_delta"] = value["@odata.deltaLink"]
+        state.pop("mail_next", None)
+        state.pop("needs_resync", None)
     return result
 
 

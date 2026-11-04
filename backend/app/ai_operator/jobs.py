@@ -1,5 +1,6 @@
 """Database queue with leases, fenced claims and transactionally committed checkpoints."""
 from datetime import datetime, timedelta, timezone
+from contextlib import ExitStack
 from uuid import uuid4
 from sqlalchemy import or_, case
 from fastapi import HTTPException
@@ -194,6 +195,9 @@ from app.access.service import isolated_run_context
 @isolated_run_context
 def process_claim(db, job_id, token):
     savepoint = None
+    scopes = ExitStack()
+    scope_user = None
+    previous_permissions = None
     try:
         job, run, approval = lock_claim(db, job_id, token)
         if not job:
@@ -206,6 +210,23 @@ def process_claim(db, job_id, token):
         if job.failures >= 3:
             raise HTTPException(409, "RETRY_LIMIT_REACHED")
         user = db.get(User, run.user_id)
+        if not user or not user.is_active:
+            raise HTTPException(403, "Initiator unavailable")
+        from app.access.service import activate_run_context, background_scope, effective_objects
+        from app.branches.models import BranchOwnership
+        from sqlalchemy import select
+        activate_run_context(db, user, run)
+        branch_id = db.connection().execute(select(BranchOwnership.branch_id).where(BranchOwnership.resource_table==OperatorRun.__tablename__,BranchOwnership.resource_key==str(run.id))).scalar()
+        if branch_id is None:
+            raise HTTPException(403, "Run branch ownership is unavailable")
+        scope_user = user
+        previous_permissions = (getattr(user,"_suite_current_module",None),getattr(user,"_suite_permission_objects",None),getattr(user,"_suite_grants",None))
+        scopes.enter_context(background_scope(db,user,"project_management","edit",branch_id=branch_id))
+        # This worker checks both AI and PMS grants. Use their actual branch
+        # permissions together; neither module can substitute for the other.
+        user._suite_current_module = None
+        if getattr(user,"_suite_grants",None) is not None:
+            user._suite_permission_objects = effective_objects(db,user._suite_grants,None)
         authorize(db, user, run)
         if job.kind == "plan":
             run.status = "planning"
@@ -278,6 +299,10 @@ def process_claim(db, job_id, token):
         job.lease_token, job.lease_until = None, None
         db.commit()
         return "retry" if job.status == "queued" else "paused"
+    finally:
+        scopes.close()
+        if scope_user is not None and previous_permissions is not None:
+            scope_user._suite_current_module,scope_user._suite_permission_objects,scope_user._suite_grants = previous_permissions
 
 
 def process_batch(db, *, limit=20, time_budget=50):

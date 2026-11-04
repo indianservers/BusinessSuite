@@ -73,7 +73,8 @@ def edit_tag(tag_id: int, data: TagInput, db: Session = Depends(get_db), user: U
 def delete_tags(data: DeleteInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     tags = [managed_tag(db, tag_id, user) for tag_id in set(data.tag_ids)]
     ids = [tag.id for tag in tags]
-    db.query(PMSTaskTag).filter(PMSTaskTag.tag_id.in_(ids)).delete(synchronize_session=False)
+    for link in db.query(PMSTaskTag).filter(PMSTaskTag.tag_id.in_(ids)).all():
+        db.delete(link)
     for tag in tags:
         db.delete(tag)
     db.commit()

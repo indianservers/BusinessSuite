@@ -240,7 +240,7 @@ export default function WidgetContent({
             {data.change.toFixed(1)}% <small>vs previous period</small>
           </span>
         ) : (
-          <small>
+          <small title={data.message}>
             {widget.comparison
               ? "Comparison needs a date range and nonzero previous period."
               : data.message}
@@ -526,7 +526,7 @@ export default function WidgetContent({
         ))}
       </div>
     ) : (
-      <Empty message="No visible sprints. Configure sprint commitments to track progress." />
+      <div className="space-y-2 p-3 text-sm"><p className="text-muted-foreground">No visible sprints in this scope.</p><Link className="font-medium underline" to="/pms/sprints">Open sprints to configure commitments →</Link></div>
     );
   if (type === "radial" || type === "gauge") {
     const value = data.value;
@@ -730,6 +730,7 @@ export default function WidgetContent({
       </ScatterChart>
     );
   else if (type === "trend") {
+    if (series.length === 1) return <div className="space-y-2 p-2"><p className="text-xs text-muted-foreground">Activity on {String(series[0].name)}</p><div className="flex flex-wrap gap-4 text-sm"><span>Created <strong className="ml-1 text-xl">{series[0].created ?? 0}</strong></span><span>Completed <strong className="ml-1 text-xl">{series[0].completed ?? 0}</strong></span></div><p className="text-xs text-muted-foreground" title="Expand the date range to compare activity over time.">One date available.</p></div>;
     chart = (
       <AreaChart {...chartProps}>
         {grid}

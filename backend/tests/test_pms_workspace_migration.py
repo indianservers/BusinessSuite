@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 """Upgrade an existing project table and verify bootstrap compatibility."""
 import importlib.util
 from pathlib import Path

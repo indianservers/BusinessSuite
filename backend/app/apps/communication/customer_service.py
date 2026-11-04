@@ -73,6 +73,13 @@ def preference_allowed(db, recipient, channel, purpose):
     return bool(recipient.phone)
 
 
+def render_payload(value, context):
+    if isinstance(value,str):return render(value,context)
+    if isinstance(value,list):return [render_payload(v,context) for v in value]
+    if isinstance(value,dict):return {k:render_payload(v,context) for k,v in value.items()}
+    return value
+
+
 def template_values(recipient, snapshot):
     return {'name': recipient.name, 'reference': str(snapshot.get('order_number') or snapshot.get('invoice_number') or
         snapshot.get('contract_number') or snapshot.get('engagement_number') or snapshot.get('reference') or snapshot.get('id') or ''),
@@ -218,6 +225,15 @@ def check_delivery(db, row):
         if current != row.snapshot:
             return 'cancelled', 'Source changed since this message was queued'
         reminder = bool(row.reminder_id or rule and rule.trigger.endswith('.due'))
+        if reminder and row.source_type == 'invoice':
+            from app.apps.srm.services.collections import reminder_block_reason, collection_on_hold
+            reason = reminder_block_reason(obj)
+            if recipient.role not in {'billing', 'primary'}:
+                return 'blocked', 'Invoice reminders require an authorized billing recipient'
+            if collection_on_hold(obj):
+                return 'defer', reason
+            if reason:
+                return 'cancelled', reason
         if reminder and (str(current.get('status', '')).lower() in TERMINAL or row.source_type == 'invoice' and float(current.get('balance_amount') or 0) <= 0):
             return 'cancelled', 'Source is already settled or completed'
     if rule and rule.stop_on_reply and recipient.phone:
@@ -364,8 +380,10 @@ def schedule_due(db, limit=50):
                                 continue
                             if getattr(obj, 'deleted_at', None) or str(getattr(obj, 'status', '')).lower() in TERMINAL | {'draft'}:
                                 continue
-                            if kind == 'invoice' and float(obj.balance_amount or 0) <= 0:
-                                continue
+                            if kind == 'invoice':
+                                from app.apps.srm.services.collections import reminder_block_reason
+                                if recipient.role not in {'billing', 'primary'} or reminder_block_reason(obj):
+                                    continue
                             deadline = getattr(obj, field)
                             deadline = utc(deadline).astimezone(ZoneInfo(recipient.timezone)).date() if isinstance(deadline, datetime) else deadline
                             if not deadline or deadline != local_date + timedelta(days=int(rule.conditions.get('days_before', 0))):
@@ -447,15 +465,7 @@ def dispatch(db, row, user):
             if not row.whatsapp_template:
                 row.status, row.error = 'blocked', 'Select an approved WhatsApp template for automated messages'
                 return
-            def render_payload(value):
-                if isinstance(value, str):
-                    return render(value, context)
-                if isinstance(value, list):
-                    return [render_payload(v) for v in value]
-                if isinstance(value, dict):
-                    return {k: render_payload(v) for k, v in value.items()}
-                return value
-            template = render_payload(row.whatsapp_template)
+            template = render_payload(row.whatsapp_template, context)
             # send_message reserves its own provider idempotency key durably.
             row.status, row.attempted_at = 'reconciliation_required', now()
             row.attempts += 1

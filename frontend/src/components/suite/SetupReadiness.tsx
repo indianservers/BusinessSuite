@@ -4,12 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
+import SetupGuide from "./SetupGuide";
 import { Button } from "@/components/ui/button";
 
-type Item = {id: string; title: string; description: string; ready: boolean; destination: string; canRepair: boolean};
-type Readiness = {companyId: number; ready: boolean; items: Item[]; moduleItems?: Item[]};
+export type Item = {id: string; title: string; description: string; ready: boolean; destination: string; canRepair: boolean; module?: string; required?: boolean};
+type Readiness = {companyId: number; ready: boolean; items: Item[]; moduleItems?: Item[]; recommendations?: Item[]};
 
-export default function SetupReadiness() {
+export default function SetupReadiness({embedded = false}: {embedded?: boolean}) {
   const {user, isAuthenticated} = useAuthStore();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -22,17 +23,22 @@ export default function SetupReadiness() {
       return data;
     }, retry:false, staleTime:0, refetchOnWindowFocus:true, refetchInterval:60000});
   useEffect(() => {
+    if (embedded) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => { clearTimeout(timer); timer = setTimeout(() => void query.refetch(), 250); };
     const required = () => {refresh(); setOpen(true);};
     window.addEventListener("suite:record-mutated", refresh);
     window.addEventListener("suite:setup-required", required);
     return () => {clearTimeout(timer); window.removeEventListener("suite:record-mutated",refresh); window.removeEventListener("suite:setup-required",required);};
-  }, [query.refetch]);
+  }, [query.refetch, embedded]);
   useEffect(() => {setOpen(false);}, [company, location.pathname]);
   const pageItems = [...(query.data?.items || []), ...(query.data?.moduleItems || [])]
     .filter(item => location.pathname.replace(/\/$/, "") === item.destination);
-  if (!enabled || query.isPending || (query.data?.ready && !open && !pageItems.length)) return null;
+  const guidePath = location.pathname === "/pms/reports" && new URLSearchParams(location.search).get("operation") === "/pms/dashboards" ? "/pms/dashboards" : location.pathname.replace(/\/$/, "");
+  const guideModule = ({"/hrms":"hrms", "/hrms/dashboard":"hrms", "/hrms/manager-dashboard":"hrms", "/fam":"fam", "/fam/dashboard":"fam", "/crm":"crm", "/crm/dashboard":"crm", "/crm/sales-home":"crm", "/srm":"srm", "/srm/dashboard":"srm", "/pms":"project_management", "/pms/overview":"project_management", "/pms/dashboards":"project_management"} as Record<string,string>)[guidePath];
+  const showGuide = location.pathname === "/settings" || !!guideModule;
+  if (!enabled || (!embedded && (query.isPending || (query.data?.ready && !open && !pageItems.length)))) return null;
+  if (embedded) return showGuide ? <SetupGuide data={query.data} module={guideModule} loading={query.isPending} error={query.isError} refreshing={query.isFetching} refresh={()=>void query.refetch()}/> : null;
   const missing = query.data?.items.filter(i => !i.ready) || [];
   const moduleMissing = query.data?.moduleItems?.filter(i => !i.ready) || [];
   const renderItem = (item: Item) => <li key={item.id} className="rounded-lg border p-3">

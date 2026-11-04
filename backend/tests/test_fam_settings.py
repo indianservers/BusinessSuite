@@ -17,7 +17,7 @@ def test_fam_settings_get_update_and_audit(client, db):
         "base_currency": "INR",
         "financial_year_start_month": 4,
         "books_start_date": "2026-04-01",
-        "gstin": "29ABCDE1234F1Z5",
+        "gstin": "29AAPFU0939F1ZR",
         "pan": "ABCDE1234F",
         "tan": "BLRA12345B",
         "cin": "U72900KA2026PTC123456",

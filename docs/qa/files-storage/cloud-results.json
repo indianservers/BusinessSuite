@@ -1,0 +1,139 @@
+{
+  "fixtures": {
+    "run": "CLOUDCRUD-1793802218312",
+    "crm": {
+      "id": 4
+    },
+    "crmCloud": {
+      "id": 9,
+      "module": "crm",
+      "filename": "CLOUDCRUD-1793802218312-CRM.pdf",
+      "size": 71,
+      "content_type": "application/pdf",
+      "provider": "google_drive",
+      "status": "cloud",
+      "folder_id": "12OTGwAaGndZTt4UXNSpJ-zWjd3Q4RGOf",
+      "remote_id": "1MF0twWIaztthz70FYh_j5tqF8xnDI4c3",
+      "sha256": "2c954ff39cf82d7f752f21c2b5783b9d2f6afd32b59672d80cbc09ed2515adec",
+      "error": null,
+      "created_at": "2026-11-04T14:23:44.007619+00:00",
+      "version_count": 1
+    },
+    "pms": {
+      "folder_id": null,
+      "file_name": "88e201e77a5e4055af180b380d8f2a70_CLOUDCRUD-1793802218312-PMS.pdf",
+      "original_name": "CLOUDCRUD-1793802218312-PMS.pdf",
+      "mime_type": "application/pdf",
+      "size_bytes": 71,
+      "storage_path": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\backend\\uploads\\pms\\tasks\\2437\\88e201e77a5e4055af180b380d8f2a70_CLOUDCRUD-1793802218312-PMS.pdf",
+      "visibility": "Internal",
+      "id": 3,
+      "uploaded_by_user_id": 1,
+      "uploaded_by_name": "Platform Admin",
+      "project_id": 82,
+      "task_id": 2437,
+      "milestone_id": null,
+      "version_number": 1,
+      "download_url": "/project-management/attachments/3/download",
+      "preview_url": "/project-management/attachments/3/download",
+      "created_at": "2026-11-04T14:23:51.205368Z",
+      "updated_at": null
+    },
+    "pmsCloud": {
+      "id": 10,
+      "module": "pms",
+      "filename": "CLOUDCRUD-1793802218312-PMS.pdf",
+      "size": 71,
+      "content_type": "application/pdf",
+      "provider": "google_drive",
+      "status": "cloud",
+      "folder_id": "1Jw_Ndwl2f_cOEdqV8iEaX0qyF2pjrWWo",
+      "remote_id": "15H2fHvRIRIBQXUcgqeXYmOelW3lS8RRv",
+      "sha256": "2c954ff39cf82d7f752f21c2b5783b9d2f6afd32b59672d80cbc09ed2515adec",
+      "error": null,
+      "created_at": "2026-11-04T14:23:51.205368+00:00",
+      "version_count": 1
+    },
+    "hrms": {
+      "document_type": "Other",
+      "document_name": "CLOUDCRUD-1793802218312-HRMS.pdf",
+      "document_number": null,
+      "file_url": "http://localhost:1534/api/v1/files/blob?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXRoIjoiZW1wbG95ZWVfZG9jcy81NTAvYzYzZDZiNDNlYjM0NGE3OWI3YTMzNDRhMDUwYWQzNTUucGRmIiwicHVycG9zZSI6ImJsb2ItZG93bmxvYWQiLCJhdWQiOiJwcml2YXRlLWZpbGUiLCJhY2Nlc3NfdXNlciI6MSwiYWNjZXNzX2NvbXBhbnkiOjEsImFjY2Vzc19zZXNzaW9uIjozNTUsImFjY2Vzc19wb2xpY3lfdmVyc2lvbiI6bnVsbCwiYWNjZXNzX3JvbGVfaWQiOjEsImFjY2Vzc19wZXJtaXNzaW9ucyI6Ijc3OThjYTllMzU1MjU3MjQ5YWNlZjQ0ZjZiNDNiYWFkYWEzNGZjM2M5ZDQyNjMwZjcxZTRhNTZjOTM2OWEwOGMiLCJhY2Nlc3NfbW9kdWxlIjoiaHJtcyIsImFjY2Vzc19icmFuY2giOjYsImFjY2Vzc19icmFuY2hfcm9sZXMiOm51bGwsImV4cCI6MTc5MzgwMzE0MH0.JebU9YsxR796jfV8WUxcjQ8BL8VJZvGFJSW0SgXoRRg",
+      "expiry_date": null,
+      "id": 3,
+      "employee_id": 550,
+      "verification_status": "Pending",
+      "is_verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "verifier_name": null,
+      "verifier_company": null,
+      "verification_notes": null
+    },
+    "hrmsCloud": {
+      "id": 11,
+      "module": "hrms",
+      "filename": "CLOUDCRUD-1793802218312-HRMS.pdf",
+      "size": 71,
+      "content_type": "application/pdf",
+      "provider": "google_drive",
+      "status": "cloud",
+      "folder_id": "1PULpJrf6MMw5_8bDgs30YTaCCcHd7zZd",
+      "remote_id": "1oeHkKYpH4Fr0zT0u2Z_-Mlra_nrfj9mh",
+      "sha256": "2c954ff39cf82d7f752f21c2b5783b9d2f6afd32b59672d80cbc09ed2515adec",
+      "error": null,
+      "created_at": "2026-11-04T14:23:57.688957+00:00",
+      "version_count": 1
+    }
+  },
+  "results": [
+    {
+      "name": "Google Drive folders configured and cloud routing enabled for all seven modules",
+      "status": "pass"
+    },
+    {
+      "name": "CRM create uploads verified bytes to its Google Drive folder",
+      "status": "pass"
+    },
+    {
+      "name": "CRM read downloads original bytes through native authorized link",
+      "status": "pass"
+    },
+    {
+      "name": "CRM update moves app folder without changing original cloud file or bytes",
+      "status": "pass"
+    },
+    {
+      "name": "PMS task create uploads verified bytes to its Google Drive folder",
+      "status": "pass"
+    },
+    {
+      "name": "PMS read downloads original bytes through native authorized link",
+      "status": "pass"
+    },
+    {
+      "name": "PMS update preserves attachment content and Google Drive locator",
+      "status": "pass"
+    },
+    {
+      "name": "HRMS employee document create uses its Google Drive folder",
+      "status": "pass"
+    },
+    {
+      "name": "Actual generated spreadsheet export downloads successfully with storage archiving",
+      "status": "pass"
+    },
+    {
+      "name": "CRM delete hides QA attachment and denies its native download while retaining cloud data",
+      "status": "pass"
+    },
+    {
+      "name": "PMS delete hides QA attachment and denies its native download while retaining cloud data",
+      "status": "pass"
+    },
+    {
+      "name": "Actual Settings UI shows cloud folders and Google Drive file register without JavaScript errors",
+      "status": "pass"
+    }
+  ]
+}

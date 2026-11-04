@@ -109,7 +109,7 @@ def lock_tenant(db, user):
     else:
         # SQLite acquires the writer lock before reading numbering/source state.
         db.execute(
-            update(User).where(User.id == user.id).values(is_active=User.is_active)
+            update(Company).where(Company.id == tenant(user)).values(name=Company.name)
         )
 
 
@@ -351,6 +351,11 @@ def invoice_document(db, invoice):
     from reportlab.pdfgen import canvas
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
+    from app.shared.form_defaults import document_defaults, document_date, document_money
+    defaults = document_defaults(db, invoice.organization_id, "srm", "invoice", invoice.id)
+    layout = defaults.get("invoice_template", "standard")
+    font_size = 9 if layout == "compact" else 11
+    line_spacing = 15 if layout == "compact" else 24 if layout == "detailed" else 20
     ctx = db.get(InvoiceContext, invoice.id)
     buyer = (ctx.customer_snapshot or {}) if ctx else {}
     entity = (ctx.seller_snapshot or {}) if ctx else {}
@@ -369,20 +374,20 @@ def invoice_document(db, invoice):
         pending = str(text).replace("\n", " ")
         while pending:
             cut = 1
-            while cut < len(pending) and stringWidth(pending[:cut + 1], "Helvetica", 11) <= 510:
+            while cut < len(pending) and stringWidth(pending[:cut + 1], "Helvetica", font_size) <= 510:
                 cut += 1
             if cut < len(pending) and " " in pending[:cut]:
                 cut = pending.rfind(" ", 0, cut) or cut
             if y < 65:
                 pdf.showPage()
-                pdf.setFont("Helvetica", 11)
+                pdf.setFont("Helvetica", font_size)
                 y = 795
             pdf.drawString(42, y, pending[:cut])
-            y -= 20
+            y -= line_spacing
             pending = pending[cut:].lstrip()
 
     pdf.setTitle(str(invoice.invoice_number))
-    pdf.setFont("Helvetica", 11)
+    pdf.setFont("Helvetica", font_size)
     row(
         f"Invoice {invoice.invoice_number}"
         + (" — DRAFT" if not ctx or not ctx.issued_at else "")
@@ -395,15 +400,28 @@ def invoice_document(db, invoice):
         row(f"Seller GSTIN: {entity['gstin']}")
     row(f"Customer: {buyer.get('name', invoice.customer_id or 'Not linked')}")
     row(buyer.get("address") or "")
-    row(f"Date: {invoice.issue_date}    Due: {invoice.due_date}")
+    row(f"Date: {document_date(invoice.issue_date, defaults)}    Due: {document_date(invoice.due_date, defaults)}")
     for line in invoice.lines:
         row(
             f"{line.description} | {format(line.quantity.normalize(), 'f')} x {line.unit_price} | discount {line.discount_amount} | tax {line.tax_amount} | {line.line_total}"
         )
-    row(f"Total {invoice.currency} {invoice.total_amount}")
+    row("Total " + document_money(invoice.total_amount, invoice.currency, defaults))
     row(f"Paid {invoice.paid_amount}    Outstanding {invoice.balance_amount}")
+    if layout == "detailed":
+        row(f"Subtotal: {invoice.subtotal}    Discount: {invoice.discount_amount}    Tax: {invoice.tax_amount}")
+    if defaults.get("bank_details"):
+        bank = defaults["bank_details"]
+        row("Bank: " + " | ".join(str(bank.get(key) or "") for key in ("bank_name", "branch_name", "account_number_masked", "ifsc")))
+    if defaults.get("payment_method"): row("Payment method: " + defaults["payment_method"])
+    from reportlab.pdfbase.pdfdoc import PDFString
+    pdf._doc.Catalog.Lang = PDFString(defaults.get("language", "en"))
     pdf.save()
-    return output.getvalue()
+    content = output.getvalue()
+    from app.services.file_storage import retain_generated
+    path = retain_generated(db, "sales", f"{invoice.invoice_number}.pdf", content, company=invoice.organization_id, commit=False)
+    from app.core.audit_context import context
+    if context.get() is not None: context.get()["file_response_path"] = path
+    return content
 
 
 def delivery_payload(db, delivery):

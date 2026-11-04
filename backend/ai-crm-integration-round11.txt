@@ -1,0 +1,41 @@
+bringing up nodes...
+bringing up nodes...
+
+...........F
+____________ test_conversion_reuses_contact_and_blocks_unqualified ____________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:300: in test_conversion_reuses_contact_and_blocks_unqualified
+    assert (
+E   AssertionError: assert 400 == 409
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+E    +    where <Response [400 Bad Request]> = post(('/api/v1/crm/lead-management/leads/1' + '/convert'), headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM4MDE1MTcsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.Jj4rza7C73Z7WWhyKCKxDCse-SECHRwB5IYT-vkpHPY'}, json={})
+E    +      where post = <starlette.testclient.TestClient object at 0x000001DF3A094DD0>.post
+.......................F
+____ test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks _____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_suite_operator.py:152: in test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks
+    assert resolve_provider(db, invited, 'gemini', other.id) is None
+E   AssertionError: assert <app.ai_operator.models.OperatorProvider object at 0x000001CCB012B2C0> is None
+E    +  where <app.ai_operator.models.OperatorProvider object at 0x000001CCB012B2C0> = resolve_provider(<sqlalchemy.orm.session.Session object at 0x000001CCB14BDA90>, <app.models.user.User object at 0x000001CCB02E47D0>, 'gemini', 3)
+E    +    where 3 = <app.apps.project_management.models.PMSWorkspace object at 0x000001CCB17A7350>.id
+..................F
+_ test_commercial_role_matrix[outsider-permissions5-None-False-False-False-True] _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_cross_module_audit.py:73: in test_commercial_role_matrix
+    assert history.status_code in {403, 404}
+E   assert 200 in {403, 404}
+E    +  where 200 = <Response [200 OK]>.status_code
+.F
+_ test_commercial_role_matrix[removed-permissions6-None-False-False-False-True] _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_cross_module_audit.py:73: in test_commercial_role_matrix
+    assert history.status_code in {403, 404}
+E   assert 200 in {403, 404}
+E    +  where 200 = <Response [200 OK]>.status_code
+..............                                                           [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_crm_lead_management.py::test_conversion_reuses_contact_and_blocks_unqualified
+FAILED backend\tests\test_suite_operator.py::test_workspace_inheritance_is_opt_in_owner_bound_and_override_blocks
+FAILED backend\tests\test_cross_module_audit.py::test_commercial_role_matrix[outsider-permissions5-None-False-False-False-True]
+FAILED backend\tests\test_cross_module_audit.py::test_commercial_role_matrix[removed-permissions6-None-False-False-False-True]
+4 failed, 67 passed, 439 warnings in 156.18s (0:02:36)

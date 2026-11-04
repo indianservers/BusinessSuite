@@ -1,6 +1,27 @@
 import { consolidateNavigation, operationAliases, type WorkspaceNavigation } from "./navigation-workspaces";
 
 type MenuItem = { to: string; label: string; group?: string };
+
+// Only promote links already present in the caller's authorized navigation.
+// Root and /dashboard are aliases for a module's landing page, not submenus.
+export function moduleLandingNavigation<T extends MenuItem>(items: readonly T[], moduleKey: string) {
+  const root = `/${moduleKey}`;
+  const primaryPaths = [root, `${root}/dashboard`];
+  const primary = items.find(item => primaryPaths.includes(item.to));
+  const direct = primary ? [primary] : [];
+  // The PMS dashboard library is a separate destination from its workspace board.
+  const library = items.find(item => item.to === `${root}/dashboards`);
+  if (library) direct.push(library);
+  // ESS is the authorized HR landing page for employee roles.
+  if (!primary && moduleKey === "hrms") {
+    const personal = items.find(item => item.to === "/hrms/ess");
+    if (personal) direct.unshift(personal);
+  }
+  return {
+    direct,
+    grouped: items.filter(item => !primaryPaths.includes(item.to) && !direct.includes(item)),
+  };
+}
 const labels: Record<string, string> = {
   "/pms": "Workspace board", "/pms/tasks": "All tasks", "/pms/my-work": "My work",
   "/pms/work-hub": "Work pipeline", "/pms/live": "Live work board",

@@ -1,0 +1,43 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [ 61%]
+...................F
+______________________ test_bulk_actions_link_all_tasks _______________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_request_audit.py:104: in test_bulk_actions_link_all_tasks
+    assert result['total']==1
+E   assert 0 == 1
+..........F
+_________ test_invalid_group_rolls_back_and_individual_notifications __________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_my_work.py:65: in test_invalid_group_rolls_back_and_individual_notifications
+    assert good.status_code == 200, good.text
+E   AssertionError: {"detail":"Every assignee must be an active project collaborator"}
+E   assert 422 == 200
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+..F
+__________ test_full_page_group_responsibility_survives_detail_edits __________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_my_work.py:124: in test_full_page_group_responsibility_survives_detail_edits
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"This record conflicts with an existing record or referenced value. Refresh the form and check its identifiers."}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+..F
+____ test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume ____
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_people_workspace.py:462: in test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+    assert first.status_code == 201, first.text
+E   AssertionError: {"detail":"Request timed out. Check the result before retrying."}
+E   assert 504 == 201
+E    +  where 504 = <Response [504 Gateway Timeout]>.status_code
+------------------------------ Captured log call ------------------------------
+WARNING  businesssuite.security:request_boundary.py:310 security_event=request_rejected status=504 request_id=741863b7-053d-4457-8a11-bf6876d21d49
+.........                                                                [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_request_audit.py::test_bulk_actions_link_all_tasks
+FAILED backend\tests\test_pms_my_work.py::test_invalid_group_rolls_back_and_individual_notifications
+FAILED backend\tests\test_pms_my_work.py::test_full_page_group_responsibility_survives_detail_edits
+FAILED backend\tests\test_people_workspace.py::test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+4 failed, 114 passed, 160 warnings in 430.68s (0:07:10)

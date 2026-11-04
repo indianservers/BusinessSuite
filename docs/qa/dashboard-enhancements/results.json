@@ -1,0 +1,12 @@
+[
+  {
+    "module": "srm",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "module": "srm",
+    "width": 390,
+    "passed": true
+  }
+]

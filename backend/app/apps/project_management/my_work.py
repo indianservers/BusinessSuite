@@ -120,7 +120,9 @@ def save_assignment(task_id: int, data: AssignmentInput, db: Session = Depends(g
             groups.append((kind, group))
     try:
         update_task_operation(task.id, PMSTaskUpdate(assignee_user_ids=ids), db, user, commit=False)
-        db.query(PMSTaskGroupTarget).filter_by(task_id=task.id).delete(synchronize_session=False)
+        for previous in db.query(PMSTaskGroupTarget).filter_by(task_id=task.id).all():
+            db.delete(previous)
+        db.flush()
         for kind, group in groups:
             db.add(PMSTaskGroupTarget(task_id=task.id, kind=kind, target_id=group["id"], name=group["name"],
                 member_count=group.get("member_count", len(group["member_ids"])), assigned_by=user.id))

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import pytest
 import json
 from datetime import datetime, timezone
@@ -611,7 +612,8 @@ def test_governance_blocks_native_bypass_and_recovery_self_approval(
 def test_subscription_seats_and_shared_quota_enforcement(client, db, shared_setup):
     headers, user, lead = shared_setup
     body = plan_body()
-    body.update(seats=2, aiRequests=0, automationRuns=0, storageMb=1)
+    from app.enterprise.controls import active_seats
+    body.update(seats=active_seats(db, 1), aiRequests=0, automationRuns=0, storageMb=1)
     response = client.post(ROOT + "/plans", headers=headers, json=body)
     assert response.status_code == 200, response.text
     plan = response.json()

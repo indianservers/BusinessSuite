@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 """The deployment migration chain must contain the task collaboration schema."""
 from pathlib import Path
 import uuid

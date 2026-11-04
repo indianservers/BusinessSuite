@@ -1,3 +1,4 @@
+import GridRecordPane from "@/shared/data-grid/GridRecordPane";
 import { useEffect, useState, type ReactNode } from "react";
 import { Mail, Eye, Phone, Maximize2, X, Pencil } from "lucide-react";
 import { WhatsAppIcon } from "@/components/actions/BrandIcons";
@@ -27,8 +28,7 @@ export function RecordQuickActions({ record, onView, onMessage, onEdit }: { reco
 }
 
 export function RecordSidePane({ title, close, expand, children }: { title: string; close: () => void; expand: () => void; children: ReactNode }) {
-  useEffect(() => { const escape = (event: KeyboardEvent) => { if (event.key === "Escape" && !document.querySelector('[role="dialog"]')) close(); }; window.addEventListener("keydown", escape); return () => window.removeEventListener("keydown", escape); }, [close]);
-  return <aside className="record-side-pane" aria-label={`Details: ${title}`}><header><div><small>RECORD DETAILS</small><h2>{title}</h2></div><button title="Open larger popup" aria-label={`Expand ${title}`} onClick={expand}><Maximize2 size={16}/></button><button title="Close details" aria-label="Close record details" onClick={close}><X size={18}/></button></header><div className="record-pane-body">{children}</div></aside>;
+  return <GridRecordPane title={title} close={close} expand={expand} className="record-side-pane" contentClassName="record-pane-body">{children}</GridRecordPane>;
 }
 
 export function RecordMessageDraft({ record, channel, close }: { record: CommunicationRecord; channel: "email" | "whatsapp"; close: () => void }) {

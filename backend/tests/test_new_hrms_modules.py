@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from tests.security_file_fixtures import uploaded_reference
 from decimal import Decimal
 from app.db.init_db import init_db

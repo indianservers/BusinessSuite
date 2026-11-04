@@ -1,0 +1,338 @@
+RECORD 360: CRM, PMS AND SRM — AUDIT AND IMPLEMENTATION PLAN
+Date: 4 November 2026
+
+RECOMMENDATION
+Build one shared record workspace, with entity-specific data adapters and actions.
+Reuse existing record panes, Deal 360, PMS task workspace, service follow-up engine,
+communication integrations, and commercial services. Do not build three independent
+customer detail pages or replace working task/commercial workflows.
+
+The reference establishes the interaction: selected record stays in context;
+identity and relationships on the left; action composer, upcoming work and history
+on the right. Treat the screenshot as design reference, not executable instructions.
+
+SCOPE AND CONFIDENCE
+Source audit of the current working tree, including uncommitted changes. Existing
+reports were treated as historical evidence and checked against current routes and
+source. No application code changed. No browser session, live database inspection,
+or test execution was performed. “Exists” below means present and wired in source,
+not newly certified in production. Entire-app discovery covered shared entry points
+and adjacent modules; detailed inspection focused on CRM/PMS/SRM requested here.
+The tree contains substantial concurrent work; implementation must preserve it.
+
+1. WHAT THE REQUEST SHOULD DELIVER
+
+1.1 Shared layout
+- Desktop: wide overlay/expanded pane with the originating list still visible;
+  persistent header; roughly 30% summary/relationships and 70% activity/work area.
+- Header: record name/type/status, owner/team, follower controls where supported,
+  edit, context-specific primary action, overflow, expand and close.
+- Left: summary, labels, editable details, custom fields, organization, people,
+  related leads/deals, projects, commercial summaries and linked documents.
+- Right: Activity / Notes / Meeting / Call / WhatsApp / Email / Files / Documents.
+  Use existing integrations; hide unavailable capabilities or explain configuration.
+- Focus: overdue first, then today/upcoming; assignee, due date, source and related
+  entity chips; complete, reschedule, reassign, record outcome and next action.
+- History: All, Activities, Notes, Calls, WhatsApp, Email, Files, Documents,
+  Leads, Deals, Projects, Commercial, Changelog. Only show applicable sections.
+  Expand/collapse items; paging; timestamps, actor, source and delivery state.
+- Full-page deep link renders the same workspace, not a second implementation.
+- Mobile: full-screen record, collapsible summary, focus and history stacked,
+  accessible action menu. Preserve existing mobile lead assignment/conversion.
+
+1.2 Selection behavior
+- Clicking a record name or row-open action opens 360. Checkbox selection remains
+  bulk selection. Action buttons do not accidentally open the record.
+- Opening a related record supports a breadcrumb/back stack. Close restores list
+  filters, selected row, sorting, pagination and scroll; browser back works.
+- URL carries record type/ID, relevant tab and originating module. A copied link
+  must resolve with identical authorization, including when opened directly.
+
+2. VERIFIED INVENTORY: ALREADY IMPLEMENTED / IMPROVE / NEW
+
+A. Shared customer/company directory — IMPROVE
+Evidence: frontend/src/shared/master-data/CompaniesPage.tsx and CompanySelect.tsx.
+CRM accounts/customers/companies and SRM customers/companies reuse CompaniesPage.
+Single selection already opens RecordSidePane; popup and quick email/WhatsApp/edit
+actions exist. CompanyProfile has details, financial data, contacts, relationships,
+notes and purchases/payables. This is the best shared customer entry point.
+Gap: profile is not the reference's focus + composer + history workspace. Replace
+profile content with shared 360 adapters while retaining directory/grid behavior.
+
+B. CRM leads — IMPROVE
+Evidence: apps/crm/routes.tsx; leads/LeadManagementPage.tsx; LeadWorkflow.tsx;
+CRMRecordDetailPage.tsx; leads/MobileLeadDetails.tsx.
+Active /crm/leads uses LeadManagementPage; classic list is a separate route.
+Lead detail supports assignment, conversion, actions, custom fields, communication
+timeline and related records; specialized mobile layout is already present.
+Gap: list/workbench preview, full detail and mobile detail must share the same
+focus/history contract. Preserve lead qualification and conversion semantics.
+
+C. CRM contacts and Relationship Hub — IMPROVE
+Evidence: CRMWorkspacePage.tsx; UniversalContactsPage.tsx; CRMRecordsPage.tsx;
+CRMRecordDetailPage.tsx; components/PersonRecordPreview.tsx.
+Contacts have list previews and a routed detail view. Relationship Hub uses a
+separate contact-directory implementation with lifecycle roles and linked leads.
+Gap: unify content across these entry points; keep person identity distinct from
+company identity. Company commercial history is organization context, not proof
+that every invoice/activity belongs personally to the selected contact.
+
+D. CRM lead/contact/account full details — REUSE AND IMPROVE
+Evidence: CRMRecordDetailPage.tsx: record actions, RecordSections, Timeline,
+CommunicationTimeline, RelatedRecords, CustomerCommercialHistory.
+Data and many actions exist, but information is split into sections instead of a
+persistent summary alongside focus/history. Shared service follow-ups are embedded
+for accounts, not as a complete entity-specific focus stream for every record.
+CommunicationTimeline catches errors into an empty array: improve distinction
+between “no history”, “restricted”, and “failed to load”.
+
+E. CRM Deal 360 — CLOSEST EXISTING LAYOUT; REUSE
+Evidence: apps/crm/deals/Deal360Page.tsx and deals.css.
+Two-column summary/content, owner/collaborators/watchers, health, calls/meetings/
+tasks/notes/email, contacts, files, quotations, commercial handoff, paged events,
+history and task completion exist. This is a structural starting point.
+Gap: default focus/history composition and inline composer, cross-module work,
+consistent identity links and reusable shell. Its CustomerFollowUps receives only
+company_id, so displayed service follow-ups are company-wide, not deal-filtered.
+Keep “this deal” and “all customer work” explicit; add server-side entity filters.
+
+F. Legacy CRM Customer 360 page — REPLACE CONTENT
+Evidence: CRMWorkspacePage.tsx: Customer360Page and customer360For.
+Still derives cards from companies and returns '-' metrics and explanatory text
+as timeline entries. It is not the backend-backed customer aggregate needed here.
+Replace helper usage and previews; retain old URL as a customer browser/deep-link
+entry point. Do not let placeholder values appear as verified business facts.
+
+G. SRM Customer 360 — REAL AGGREGATE; IMPROVE
+Evidence: apps/srm/pages/SRMWorkspacePage.tsx: Customer360View/RecordList;
+backend/app/apps/srm/api/router.py: _customer_360_payload and /customer-360 routes.
+Returns orders, contracts, engagements, billing plans, invoices, receipts, aging,
+reminders, profitability, linked PMS projects, CRM reference IDs and audit timeline.
+Gap: search-first dashboard rather than selection-based record workspace; lists
+show at most six records without paging in RecordList. CRM references are IDs;
+there is no complete person/customer communication + task/follow-up feed.
+PMS projects are found through engagement links, so this alone cannot establish
+complete customer delivery history. A customer with no transactions currently has
+matched=false: profile existence must be independent of commercial activity.
+
+H. SRM commercial and POS entry points — IMPROVE
+Evidence: SRMCommercialDetailPage.tsx, SRMPOSPage.tsx, QuickAddCustomer.tsx,
+SharedInvoicePage.tsx, ConnectedCollectionsPage.tsx and srm/routes.tsx.
+Reuse customer selection, invoice/payment and commercial services. Link customer
+chips/identity actions to shared 360. In POS, opening a profile must retain cart,
+pricing and payment state. Do not change picker selection into navigation.
+
+I. PMS tasks — ALREADY IMPLEMENTED; EXTEND ACTIVE WORKSPACE
+Evidence: project-management/routes.tsx, pages/TaskExperiencePage.tsx,
+TasksReferencePage.tsx, WhatsAppTasksPage.tsx, TaskWorkspacePage.tsx, TaskDetail.tsx.
+/pms/tasks selects classic/WhatsApp task experiences. Both ordinary task-detail
+and project task-detail URLs route to TaskWorkspacePage; TaskDetail is explicitly
+available on /pms/tasks/:taskId/classic. Avoid improving only the older detail page.
+Active workspace has updates, follow-ups, discussion, checklist/review, files and
+history, permissions and version-aware actions. Follow-ups are dated update-entry
+records and can be marked done. Reuse these behaviors inside the proposed layout.
+Gap: customer/lead/contact context, shared focus contract, consistent entry points,
+and service follow-ups accessible alongside delivery work.
+
+J. PMS customer identity and project context — PARTIAL; EXTEND
+Evidence: backend/app/apps/project_management/models.py: PMSClient, PMSProject,
+PMSTask; backend/app/apps/srm/services/customer_identity.py.
+Projects have client_id; tasks inherit project context. Existing CustomerLink and
+client_write already map PMS clients to shared customers. Reuse this mapping.
+No direct CRM lead/contact/customer fields were found on the inspected PMSTask
+model. Add explicit validated task/entity relations where project inheritance is
+insufficient; do not assume customer ID equals PMS client ID.
+
+K. Shared service follow-ups — IMPLEMENTED FOR CRM/SRM; EXTEND TO PMS
+Evidence: shared/follow-ups/{FollowUpsPage,CustomerFollowUps,FollowUpGrid}.tsx;
+backend/app/shared/follow_ups.py; crm/routes.tsx; srm/routes.tsx.
+Persistent commitments, assignee/team, timezone/due date, recurrence, reminder
+receipts/retries, history, attachments, contextual IDs and completion/rescheduling
+exist. Customer ID is required, with optional lead/contact/deal/quotation/invoice.
+Gap: no PMS follow-up route in the inspected PMS route registry; no project/task
+context columns in the service model; CustomerFollowUps only filters by customer.
+Lead-only commitments without an established customer need an explicit policy.
+Do not create a fake customer just to schedule a lead follow-up.
+
+L. Adjacent shared surfaces — REUSE SELECTIVELY
+Communication Center and CustomerCommunications contain richer communication work;
+reuse its transport/status/consent model rather than implying mailto/wa.me drafts
+are sent messages. Existing RecordMessageDraft only opens an external draft.
+PersonPreviewDialog/PersonRecordPreview, workforce previews, PMS people management,
+HRMS Employee360Panel, FAM customer/vendor entries and global search are adjacent
+consumers. Reuse the shell where appropriate, but retain employee/financial domains.
+GlobalSearch already has PMS command results in current source: the June report's
+blanket claim that PMS record search is absent is not a reliable current baseline.
+Validate record links and visibility for current search providers during rollout.
+
+3. DATA AND ACCESS GAPS TO RESOLVE BEFORE BROAD ROLLOUT
+
+- Canonical identity: reuse CRMCompany/shared customer and CustomerLink; model
+  person/company roles and legacy aliases. Never join on names or numeric equality.
+  Use existing exact phone/email matching only for reviewed reconciliation, not
+  automatic cross-customer aggregation. Audit converted leads and merged records.
+- Relationship scope: selected-record history differs from customer-wide history.
+  Offer an explicit scope switch and indicate inherited project/customer context.
+- Access: SRM aggregate mixes authorized_invoice_query with organization-scoped
+  queries for other domains; PMS project query in this function has no visible
+  PMS visibility check. Verify branch, project membership, financial, collection
+  and profitability permissions per provider. This is a source concern, not a
+  confirmed exploit. Counts and monetary totals must use the same filtered set.
+- Partial failures: a PMS provider failure must not silently become an empty list.
+  Return section state and retry metadata without exposing inaccessible records.
+- Scale: SRM aggregate loads several full collections with .all(); timeline is
+  truncated to 30. Separate summary from cursor-paged lists/feed and focus data.
+- Event normalization: retain source type + source ID, event ID, occurred_at,
+  actor, action, entity references, visibility and source version. Preserve original
+  timestamps; deterministic secondary ordering; no duplicated transport/audit events.
+- Money: totals grouped by currency. No sum across currencies without an explicit
+  conversion basis. Financial details remain permission restricted.
+
+4. PROPOSED IMPLEMENTATION CONTRACT
+
+Frontend (new names are proposals):
+- shared/records/Record360Workspace: header, summary/relationship rail, composer,
+  focus and history. Reuse GridRecordPane, existing dialogs and action components.
+- Record360 adapters for lead, contact, company/customer, deal, project and task.
+- Record360Launcher used by grids, relationship chips, task headers, search results
+  and customer selectors' separate view actions. One rendering in pane and full page.
+- Existing CRM/SRM/PMS URLs stay valid; aliases resolve to canonical identities.
+  Avoid importing CRMWorkspacePage's large implementation into the shared shell.
+
+Backend (proposed API, not an existing endpoint):
+- GET /records/{entity_type}/{id}/360: identity, summary, relationship previews,
+  provider capabilities, section states and allowed actions.
+- GET /records/{entity_type}/{id}/focus: scoped actionable work, due/owner/source
+  filters and cursor. Include permission-filtered counts.
+- GET /records/{entity_type}/{id}/events: cursor, event-type filter and explicit
+  record/customer scope. Return stable normalized event IDs.
+- GET /records/{entity_type}/{id}/relations: relation type and pagination.
+- Mutations call existing source-domain services with their permission, version,
+  validation and audit rules. Aggregation is not a bypass around those services.
+- Add relation rows only after checking existing CustomerLink/communication binding
+  and commercial context facilities. Index tenant + relation target + source.
+  Follow-up context additions need compatible SQLite/PostgreSQL migrations.
+- Cache keys include user, organization, branch/workspace, entity, scope and filters.
+  Invalidate after actions and identity changes; cancel stale requests on selection.
+
+5. PMS TASKS AND FOLLOW-UPS: REQUIRED PRODUCT BEHAVIOR
+
+One Tasks & Follow-ups queue in PMS with Today, Overdue, Upcoming, Assigned to me,
+Assigned by me, Team, Completed and All; filters for customer, contact/lead, project,
+assignee, priority, due range and source. Calendar/list first; reuse existing task
+views rather than requiring a new task engine or another board implementation.
+
+Include three source types with distinct labels:
+1. PMS task: delivery/execution workflow, dependencies, progress/review remain PMS.
+2. PMS task follow-up entry: tied to the original task; complete via entry action.
+3. Shared customer/service follow-up: due commitment; complete/reschedule through
+   existing service APIs. Add validated optional project/task context when needed.
+CRM activities/tasks can be surfaced by an adapter where authorized; never clone
+them into PMS merely to display them.
+
+An item has one source of truth and one completion state. If an explicit workflow
+creates a PMS task from a service commitment, store a unique source link, display
+one combined focus item and define completion synchronization and retry behavior.
+Do not automatically equate task completion, successful contact and service outcome.
+
+Create from any 360 view pre-fills authorized context and assignment choices.
+Require title, due datetime/timezone and assignee according to source workflow;
+allow outcome/note plus next follow-up in one transaction where supported.
+Show reminders, recurrence and escalation state accurately. Customer-only service
+follow-ups remain supported; lead-only scheduling should use the lead workflow
+until a validated subject model is introduced. Existing records must not be lost.
+
+6. DELIVERY PHASES AND ACCEPTANCE GATES
+
+Phase 0 — Baseline and contract (2–3 engineering days)
+Owners: frontend + backend + QA.
+Walk every active CRM/PMS/SRM entry route with representative roles; inventory
+provider APIs and identity mappings; reconcile old reports; agree selected-record
+versus customer scope and annotate screenshot layout for lead/contact/customer/task.
+Gate: route matrix and canonical identity contract approved in project review;
+no duplicate backend model introduced without a reuse assessment.
+
+Phase 1 — Identity and aggregation (4–6 days; depends on Phase 0)
+Owners: backend + QA.
+Implement provider authorization, summary/focus/events contracts and paging;
+reuse CustomerLink, add necessary relations, indexes and migrations; preserve
+unmapped records with actionable reconciliation. Cover empty/restricted/failed states.
+Gate: cross-tenant, branch, project and financial negative tests pass; same-name
+customers and mismatched IDs cannot combine; lead without customer can open 360.
+
+Phase 2 — Shared shell and CRM rollout (4–6 days; depends on Phase 1 contracts)
+Owners: frontend + design + QA.
+Build responsive shell and launcher; migrate company profile, leads, contacts,
+Relationship Hub, account details and Deal 360. Replace customer360For content.
+Integrate existing action dialogs and focus/history sources.
+Gate: all CRM selection paths use consistent 360; no placeholder metrics; back,
+refresh, direct links, context actions, conversion and mobile assignment work.
+
+Phase 3 — PMS Tasks & Follow-ups (4–6 days; depends on Phases 1–2)
+Owners: frontend + backend + QA.
+Add queue/route/navigation, adapters, validated context relations, active task
+workspace/customer chips and project/client entry points. Reuse reminder engine
+where applicable; define completion mappings; preserve both task experiences.
+Gate: create/complete/reschedule from PMS and customer 360 reflects the same source
+record; no duplicate commitments; inherited and explicit relations are distinguishable.
+
+Phase 4 — SRM and adjacent navigation (3–5 days)
+Owners: frontend + backend + QA.
+Move SRM search to the shared customer workspace; integrate commercial record
+customer chips, orders, invoices, collections and POS view action. Add permission-
+scoped commercial lists and context-preserving deep links. Check FAM/search links.
+Gate: financially restricted users see no hidden figures/counts; transaction-free
+customer still opens; POS cart and payment state survive profile open/close.
+
+Phase 5 — Migration, UAT and rollout (3–5 days)
+Owners: QA + frontend/backend.
+Reconcile legacy identities without name-based joins; rollout behind per-module
+feature flags; monitor provider latency/error rates; retain old URL compatibility.
+Gate: no new task/follow-up workflow regressions, accessibility checks and role
+matrix complete; documented rollback switches views without reverting business data.
+
+Estimate: 20–31 engineering days of scoped effort, before live baseline findings;
+not a committed calendar schedule. Frontend shell work may overlap backend work
+after contracts stabilize. Staffing and reconciliation volume affect elapsed time.
+
+7. VALIDATION MATRIX
+
+- Identity: unconverted lead without company; individual customer; company with
+  several contacts; same name across tenants/branches; merged contact; converted
+  lead; unmapped PMS client; multiple projects; transaction-free customer.
+- Permissions: admin, sales owner, sales viewer, PMS project member/nonmember,
+  collections-only, invoice-only, no profitability permission, cross-branch user.
+  Verify direct URLs, provider endpoints, counts, exports and attachment downloads.
+- Actions: note, call outcome, meeting, task, follow-up, reschedule, completion,
+  reassignment, file upload, draft vs send, delivery failure, opt-out, recurrence,
+  reminder retry and duplicate submission. Stale versions yield a recoverable conflict.
+- UI: every list/popup/full route, related-record back stack, keyboard focus/Escape,
+  screen reader labels, narrow mobile viewport, draft preservation, slow requests,
+  rapid record switching, section failures and stale-cache isolation.
+- Timeline: stable paging at identical timestamps, correct timezone display,
+  no source duplicates, accurate creator/action, completed work retained in history.
+- Performance: agree a seeded representative dataset; proposed target p95 summary
+  API <=800ms and initial usable workspace <=2s in staging conditions; lazy-load
+  feeds, prevent N+1 joins, cap page sizes and record measured results. Targets are
+  acceptance proposals, not current measurements.
+- Existing tests to extend: backend/tests/test_srm_customer_360.py,
+  test_service_follow_ups.py, test_pms_workspace_activity.py,
+  test_customer_identity.py, test_customer_communications.py; browser suite
+  playwright/srm-customer-360.spec.ts and customer-communications.spec.ts.
+  Existing SRM UI test checks section rendering/errors; extend to real selected-
+  record interactions and permission/content assertions. Test presence is not a pass.
+
+8. PRIORITY ORDER
+P0: identity and authorization; remove misleading legacy 360 metrics; establish
+    reusable shell and selected-record scope.
+P1: CRM selection consistency; PMS Tasks & Follow-ups queue and context links;
+    focus/history aggregation; SRM shared customer workspace.
+P2: richer inline editing, follower preferences across additional entity types,
+    saved timeline filters, expand-all, layout preferences and advanced analytics.
+
+FIRST IMPLEMENTATION SLICE
+Company/customer selection in the shared CRM/SRM directory -> shared 360 shell ->
+real summary, source-scoped follow-ups and paged history -> existing task/note/
+communication actions -> PMS linked projects. Validate this vertical slice with
+two customers and restricted roles before migrating lead/contact/task variants.
+No implementation was started as part of this planning request.

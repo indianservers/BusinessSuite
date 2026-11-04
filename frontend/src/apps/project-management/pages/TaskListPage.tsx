@@ -705,7 +705,7 @@ export default function TaskListPage() {
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
       {selectedTaskIds.length ? (
-        <Card>
+        <Card className={layout === "gallery" ? "" : "lg:hidden"}>
           <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="text-sm font-medium">{selectedTaskIds.length} task{selectedTaskIds.length === 1 ? "" : "s"} selected</div>
             <div className="grid gap-2 sm:grid-cols-[180px_180px_auto_auto]">
@@ -741,17 +741,22 @@ export default function TaskListPage() {
               <div className={cn("overflow-x-auto", layout === "gallery" ? "hidden" : "hidden lg:block")}>
                 <LocalRecordGrid<PMSTaskListItem>
                   gridId="pms-advanced-tasks" rows={data.items} getRowId={task => String(task.id)}
-                  columns={visibleColumnList.map(column => ({
+                  columns={[...visibleColumnList.map(column => ({
                     id: column.key, title: column.label, width: column.key === "title" ? 320 : 170,
                     type: column.key === "status" || column.key === "priority" ? "status" as const : "text" as const,
-                    accessor: task => column.key === "task" ? task.task_key || task.id : column.key === "project" ? task.project_name : column.key === "assignee" ? task.assignee_name : column.key === "reporter" ? task.reporter_name : column.key === "epic" ? task.epic_name : column.key === "sprint" ? task.sprint_name : (task as unknown as Record<string, unknown>)[column.key],
-                    render: task => renderCell(task, column.key),
-                  }))}
+                    accessor: (task: PMSTaskListItem) => column.key === "task" ? task.task_key || task.id : column.key === "project" ? task.project_name : column.key === "assignee" ? task.assignee_name : column.key === "reporter" ? task.reporter_name : column.key === "epic" ? task.epic_name : column.key === "sprint" ? task.sprint_name : (task as unknown as Record<string, unknown>)[column.key],
+                    render: (task: PMSTaskListItem) => renderCell(task, column.key),
+                  })), { id: "actions", title: "Actions", width: 100, sortable: false, filterable: false, groupable: false,
+                    render: (task: PMSTaskListItem) => <RecordActions record={{...task,key:task.task_key}} canEdit={data.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><span>{menu}</span>}</RecordActions> }]}
                   initialQuery={{ grouping: groupByStatus ? ["status"] : [] }}
                   selectedIds={selectedTaskIds.map(String)}
                   onSelectionChange={(_, ids) => setSelectedTaskIds(ids.map(Number))}
                   onOpen={openTask}
-                  toolbarExtra={<span className="text-xs text-muted-foreground">Use the selected-task controls above to update status or priority.</span>}
+                  bulkToolbar={<>
+                    <NativeSelect aria-label="Bulk task status" value={bulkStatus} onChange={event => setBulkStatus(event.target.value)} disabled={bulkSaving} className="udg-control"><option value="">Change status…</option>{taskStatuses.map(status => <option key={status}>{status}</option>)}</NativeSelect>
+                    <NativeSelect aria-label="Bulk task priority" value={bulkPriority} onChange={event => setBulkPriority(event.target.value)} disabled={bulkSaving} className="udg-control"><option value="">Change priority…</option>{["Urgent","High","Medium","Low"].map(priority => <option key={priority}>{priority}</option>)}</NativeSelect>
+                    <button type="button" className="udg-control" disabled={bulkSaving || (!bulkStatus && !bulkPriority)} onClick={applyBulkUpdate}>{bulkSaving ? "Applying…" : "Apply changes"}</button>
+                  </>}
                   renderDetails={task => <div className="space-y-4"><h3 className="font-semibold">{task.title}</h3>{visibleColumnList.map(column => <div key={column.key}><small className="text-muted-foreground">{column.label}</small><div>{renderCell(task, column.key)}</div></div>)}</div>}
                   rowActions={[{ id: "task-actions", label: "Open task", run: openTask }]}
                   renderCard={task => <RecordActions record={{...task,key:task.task_key}} canEdit={data.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><div>{menu}<strong>{task.title}</strong></div>}</RecordActions>}

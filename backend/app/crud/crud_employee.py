@@ -100,7 +100,7 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
             db.flush()
 
         emp_data = obj_in.model_dump(
-            exclude={"create_user_account", "user_email", "user_password", "employee_id"}
+            exclude={"create_user_account", "user_email", "user_password", "employee_id", "custom_fields"}
         )
         db_emp = Employee(**emp_data, employee_id=emp_id, user_id=user.id if user else None)
         db.add(db_emp)
@@ -111,6 +111,9 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         from app.crud.crud_onboarding import auto_start_onboarding_for_employee
 
         auto_start_onboarding_for_employee(db, db_emp, created_by=created_by)
+        if created_by:
+            from app.services.employee_custom_fields import save as save_custom_fields
+            save_custom_fields(db, db.get(User, created_by), db_emp, obj_in.custom_fields)
         db.commit()
         db.refresh(db_emp)
         return db_emp

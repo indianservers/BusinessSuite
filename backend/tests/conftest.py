@@ -104,7 +104,13 @@ def db_engine():
 def db(db_engine):
     connection = db_engine.connect()
     transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
+    if connection.dialect.name == "sqlite":
+        # sqlite3 legacy transaction mode does not BEGIN for SAVEPOINT. Ensure
+        # releasing a session savepoint cannot commit outside the fixture.
+        connection.exec_driver_sql("BEGIN")
+    # API handlers commit and roll back normally; neither may end the fixture's
+    # outer transaction or leak rows into the next test.
+    session = TestingSessionLocal(bind=connection, join_transaction_mode="create_savepoint")
 
     yield session
 
@@ -118,8 +124,11 @@ def client(db):
     def override_get_db():
         try:
             yield db
-        finally:
-            pass
+        except BaseException:
+            # Match production get_db so failed flushes do not poison the
+            # shared test session used by subsequent requests and audit writes.
+            db.rollback()
+            raise
 
     app.dependency_overrides[get_db] = override_get_db
     previous_factory = getattr(app.state, "business_os_session_factory", None)
@@ -164,6 +173,9 @@ def superuser_token(client, db):
         role_id=role.id,
     )
     db.add(user)
+    from test_identity_utils import attach_test_identity, attach_workflow_branch
+    attach_test_identity(db, user)
+    attach_workflow_branch(db, user)
     db.commit()
 
     response = client.post("/api/v1/auth/login", json={

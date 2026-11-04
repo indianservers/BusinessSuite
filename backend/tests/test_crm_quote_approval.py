@@ -1,4 +1,5 @@
 from test_identity_utils import attach_test_identity
+from tests.rich_text_test_utils import organization_context
 from app.apps.crm.models import CRMQuoteApproval
 from datetime import datetime, timezone
 import pytest
@@ -71,6 +72,8 @@ def test_approval_visibility_inherits_quote_scope(client, db):
     user = User(email='approval-owner@example.com', hashed_password=get_password_hash('Password@123'), role=role, is_active=True)
     db.add(user)
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, user)
     db.flush()
     for number, org, owned in [('OWN', 1, True), ('OTHER', 1, False), ('FOREIGN', 2, True)]:
         quote = CRMQuotation(organization_id=org, quote_number=number, issue_date=date(2026,10,1), expiry_date=date(2026,10,31), owner_user_id=user.id if owned else None, created_by_user_id=user.id if owned else None)

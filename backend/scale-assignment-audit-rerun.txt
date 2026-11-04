@@ -1,0 +1,17 @@
+bringing up nodes...
+bringing up nodes...
+
+...............F
+____ test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume ____
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_people_workspace.py:462: in test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+    assert first.status_code == 201, first.text
+E   AssertionError: {"detail":"Request timed out. Check the result before retrying."}
+E   assert 504 == 201
+E    +  where 504 = <Response [504 Gateway Timeout]>.status_code
+------------------------------ Captured log call ------------------------------
+WARNING  businesssuite.security:request_boundary.py:310 security_event=request_rejected status=504 request_id=1458bb2e-52a2-4b83-9ec0-8a783f9c733a
+                                                                         [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_people_workspace.py::test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+1 failed, 15 passed, 66 warnings in 138.27s (0:02:18)

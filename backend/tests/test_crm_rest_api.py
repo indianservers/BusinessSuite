@@ -1,5 +1,7 @@
+from tests.rich_text_test_utils import organization_context
 from test_identity_utils import attach_test_identity
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 from app.apps.crm.models import CRMApprovalRequest, CRMCalendarIntegration, CRMContact, CRMDeal, CRMDealContact, CRMEnrichmentLog, CRMLead, CRMMessage, CRMNoteMention, CRMPipeline, CRMPipelineStage, CRMQuotationItem, CRMTask, CRMTerritoryUser, CRMWebhookDelivery
 from app.core.security import get_password_hash
@@ -80,10 +82,12 @@ def _crm_user_headers(client, db, email: str, role_name: str, permissions: list[
     )
     db.add(user)
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db, user)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
     assert response.status_code == 200
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}, user
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Branch": str(branch.id)}, user
 
 
 def test_crm_readiness_acceptance_flow_with_pipeline_quote_reports_and_audit(client, superuser_headers):
@@ -335,13 +339,17 @@ def test_crm_custom_field_values_are_persisted_and_org_scoped(client, superuser_
     )
     assert duplicate.status_code == 409
 
+    target = client.post("/api/v1/crm/leads", headers=superuser_headers, json={"firstName":"Custom", "fullName":"Custom value target"})
+    assert target.status_code == 201, target.text
+    target_id = target.json()["id"]
+
     value = client.post(
         "/api/v1/crm/custom-field-values",
         headers=superuser_headers,
         json={
             "customFieldId": field.json()["id"],
             "entity": "leads",
-            "recordId": 1001,
+            "recordId": target_id,
             "valueText": "Enterprise",
         },
     )
@@ -352,7 +360,7 @@ def test_crm_custom_field_values_are_persisted_and_org_scoped(client, superuser_
     listed = client.get(
         "/api/v1/crm/custom-field-values",
         headers=superuser_headers,
-        params={"entity": "leads", "record_id": 1001},
+        params={"entity": "leads", "record_id": target_id},
     )
     assert listed.status_code == 200
     assert listed.json()["total"] == 1
@@ -518,6 +526,9 @@ def test_crm_note_mentions_create_scoped_notifications(client, db, superuser_hea
             work_email="outsider@example.com",
         )
     )
+    attach_test_identity(db, teammate)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, teammate)
     db.commit()
 
     search = client.get("/api/v1/users/search", headers=superuser_headers, params={"q": "teammate"})
@@ -932,7 +943,7 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     actor_id = db.query(User).filter_by(email="testadmin@test.com").one().id
     def normalize_reference(url):
         return normalize_upload_references(url, db=db, actor_id=actor_id, company_id=1)
-    assert normalize_reference(detail.json()["pdfUrl"]).endswith("PDF-001-" + str(quote.json()["id"]) + ".pdf")
+    assert Path(normalize_reference(detail.json()["pdfUrl"])).name.startswith("PDF-001-" + str(quote.json()["id"]) + "-v1-")
 
     timeline = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}/related", headers=superuser_headers)
     assert any(item["record"].get("activityType") == "quotation_pdf" and item["title"] == "Quotation PDF generated" for item in timeline.json()["timeline"])
@@ -944,7 +955,9 @@ def test_crm_quotation_pdf_generation_uses_persisted_quote_data(client, db, supe
     )
     assert emailed.status_code == 201
     assert emailed.json()["status"] == "draft"
-    assert normalize_reference(emailed.json()["pdfUrl"]) == normalize_reference(detail.json()["pdfUrl"])
+    assert Path(normalize_reference(emailed.json()["pdfUrl"])).name.startswith("PDF-001-" + str(quote.json()["id"]) + "-v1-")
+    refreshed = client.get(f"/api/v1/crm/quotations/{quote.json()['id']}", headers=superuser_headers)
+    assert normalize_reference(emailed.json()["pdfUrl"]) == normalize_reference(refreshed.json()["pdfUrl"])
 
 
 def test_crm_multiple_pipelines_stage_management_and_remap(client, superuser_headers):
@@ -1140,6 +1153,9 @@ def test_crm_approval_workflow_submit_approve_and_final_gate(client, db, superus
         json={"name": "Negotiation", "position": 1},
     )
     assert stage.status_code == 201
+    won_stage = client.post(f"/api/v1/crm/pipelines/{pipeline.json()['id']}/stages", headers=superuser_headers,
+        json={"name":"Won", "stageType":"won", "isWon":True, "position":2})
+    assert won_stage.status_code == 201, won_stage.text
     deal = client.post(
         "/api/v1/crm/deals",
         headers=superuser_headers,
@@ -1171,7 +1187,7 @@ def test_crm_approval_workflow_submit_approve_and_final_gate(client, db, superus
     assert submitted.json()["status"] == "pending"
     assert submitted.json()["steps"][0]["status"] == "pending"
 
-    blocked = client.patch(f"/api/v1/crm/deals/{deal.json()['id']}", headers=superuser_headers, json={"status": "Won"})
+    blocked = client.patch(f"/api/v1/crm/deals/{deal.json()['id']}", headers=superuser_headers, json={"status": "Won", "stageId":won_stage.json()["id"]})
     assert blocked.status_code == 409
 
     pending = client.get("/api/v1/crm/approvals/my-pending", headers=superuser_headers)
@@ -1186,7 +1202,7 @@ def test_crm_approval_workflow_submit_approve_and_final_gate(client, db, superus
     assert approved.status_code == 200
     assert approved.json()["status"] == "approved"
 
-    won = client.patch(f"/api/v1/crm/deals/{deal.json()['id']}", headers=superuser_headers, json={"status": "Won"})
+    won = client.patch(f"/api/v1/crm/deals/{deal.json()['id']}", headers=superuser_headers, json={"status": "Won", "stageId":won_stage.json()["id"]})
     assert won.status_code == 200
     assert won.json()["status"] == "Won"
 
@@ -1216,7 +1232,7 @@ def test_crm_duplicate_detection_and_merge_relinks_related_records(client, super
     second = client.post(
         "/api/v1/crm/contacts",
         headers=superuser_headers,
-        json={"firstName": "Asha", "lastName": "R", "fullName": "Asha R", "email": "asha@example.com", "phone": "9000012345", "phone_country_code": "+91"},
+        json={"firstName": "Asha", "lastName": "R", "fullName": "Asha R", "email": "asha@example.com", "phone": "9000012345", "phone_country_code": "+91", "confirmShared": True, "sharedReason": "Synthetic duplicate for merge regression"},
     )
     assert second.status_code == 201
     winner_id = first.json()["id"]

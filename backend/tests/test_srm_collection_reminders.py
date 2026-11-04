@@ -1,9 +1,10 @@
 from app.apps.srm.models import SRMCollectionReminder
-from tests.srm_test_utils import create_sales_order
+from tests.srm_test_utils import create_sales_order, seed_invoice_parties
 from tests.rich_text_test_utils import organization_context
 
 
 def test_srm_collection_reminder_escalation_and_writeoff_request(client, db, superuser_headers):
+    seed_invoice_parties(db)
     from app.models.company import Branch
     if not db.query(Branch).filter_by(company_id=1).first():
         db.add(Branch(company_id=1, name='Synthetic collection branch', code='COLL', is_active=True))

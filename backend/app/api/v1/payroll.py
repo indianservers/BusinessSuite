@@ -2242,13 +2242,17 @@ def run_payroll(
     current_user: User = Depends(RequirePermission("payroll_run")),
 ):
     effective_company_id = data.company_id if data.company_id is not None else _current_company_id(current_user)
+    # Match the branch assigned to new runs when checking locks and finding reruns.
+    branch_context = db.info.get("branch_context")
+    effective_branch_id = (data.branch_id if data.branch_id is not None
+                           else branch_context.branch_id if branch_context else None)
     _ensure_not_locked_period(
         db,
         data.month,
         data.year,
         "rerun payroll",
         company_id=effective_company_id,
-        branch_id=data.branch_id,
+        branch_id=effective_branch_id,
         department_id=data.department_id,
         pay_group_id=data.pay_group_id,
         employee_category=data.employee_category,
@@ -2261,7 +2265,7 @@ def run_payroll(
             current_user.id,
             force_run=data.force_run,
             company_id=effective_company_id,
-            branch_id=data.branch_id,
+            branch_id=effective_branch_id,
             department_id=data.department_id,
             pay_group_id=data.pay_group_id,
             employee_category=data.employee_category,

@@ -496,9 +496,64 @@ def test_signed_relay_deduplicates_provider_event_and_rejects_bad_signature(
     client, db, actors
 ):
     conn = connect(client, actors[0], "slack")
-    row, configured = configure(
-        client, actors[0], "slack", {"connection_id": conn, "event": "mention_received"}
+    # Legacy published relay triggers remain readable; new setup uses native
+    # registration. Construct the legacy persisted contract explicitly.
+    from app.apps.power_apps.models import PowerResource
+    from app.apps.power_apps.runtime_models import AutomationDeployment
+    from app.apps.power_apps.runtime import scope_values
+    from app.ai_operator.providers import cipher
+    import secrets
+
+    setup = {"connection_id": conn, "event": "mention_received"}
+    row = publish(
+        client,
+        actors[0],
+        definition("integration_trigger_slack", setup=setup),
+        policy={"identity": "owner", "delegated_owner": True},
     )
+    resource = db.get(PowerResource, row["id"])
+    deployment = db.query(AutomationDeployment).filter_by(resource_id=resource.id).one()
+    saved_secret = secrets.token_urlsafe(32)
+    legacy = Trigger(
+        **scope_values(resource),
+        resource_id=resource.id,
+        kind="connector",
+        enabled=True,
+        endpoint=secrets.token_urlsafe(24),
+        encrypted_secret=cipher().encrypt(saved_secret.encode()).decode(),
+        config={
+            "module_id": "slack",
+            "setup": setup,
+            "version_id": deployment.version_id,
+            "schema": {"type": "object", "additionalProperties": True},
+        },
+    )
+    from app.access.service import background_scope
+    from app.models.user import User
+    from app.branches.models import BranchOwnership
+
+    owner = db.get(User, resource.owner_user_id)
+    owner.organization_id = resource.organization_id
+    ownership = (
+        db.query(BranchOwnership)
+        .filter_by(
+            resource_table="power_apps_resources",
+            resource_key=str(resource.id),
+            company_id=resource.organization_id,
+        )
+        .one()
+    )
+    legacy.config = {**legacy.config, "branch_id": ownership.branch_id}
+    with background_scope(
+        db, owner, "power_apps", "create", branch_id=ownership.branch_id
+    ):
+        db.add(legacy)
+        db.flush()
+    db.commit()
+    configured = {
+        "endpoint": "/api/v1/power-apps/hooks/" + legacy.endpoint,
+        "secret": saved_secret,
+    }
     body = json.dumps(
         {"event": "mention_received", "event_id": "external-1", "data": {"text": "Hi"}}
     ).encode()

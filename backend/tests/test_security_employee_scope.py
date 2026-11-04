@@ -15,7 +15,13 @@ def test_employee_permission_does_not_grant_other_company_records(client, db):
     db.add(user); db.flush()
     own = Employee(employee_id='SCOPE-OWN', first_name='Synthetic', last_name='Own', date_of_joining=date.today(), branch_id=branches[0].id, user_id=user.id)
     other = Employee(employee_id='SCOPE-OTHER', first_name='Canary', last_name='Other tenant', date_of_joining=date.today(), branch_id=branches[1].id)
-    db.add_all([own, other]); db.commit()
+    db.add_all([own, other]); db.flush()
+    from test_identity_utils import attach_test_identity, attach_workflow_branch, own_workflow_records
+    attach_test_identity(db,user,companies[0].id)
+    attach_workflow_branch(db,user,companies[0].id)
+    own_workflow_records(db,own,company_id=companies[0].id)
+    own_workflow_records(db,other,company_id=companies[1].id)
+    db.commit()
     headers = {'Authorization':'Bearer '+create_access_token(user.id)}
     result = client.get('/api/v1/employees/', headers=headers)
     assert result.status_code == 200, result.text
@@ -36,9 +42,15 @@ def test_document_policies_and_templates_do_not_cross_company_boundaries(client,
     role=Role(name='policy_security_test',permissions=[Permission(name='company_view'),Permission(name='company_manage')])
     user=User(email='synthetic-policy@example.com',hashed_password='unused',role=role,is_active=True)
     db.add(user);db.flush()
-    db.add(Employee(employee_id='POLICY-OWN',first_name='Synthetic',last_name='Policy',date_of_joining=date.today(),branch_id=branch.id,user_id=user.id))
+    employee=Employee(employee_id='POLICY-OWN',first_name='Synthetic',last_name='Policy',date_of_joining=date.today(),branch_id=branch.id,user_id=user.id)
+    db.add(employee)
     foreign_company=company.id+100
     db.add_all([CompanyPolicy(title='Own policy',organization_id=company.id),CompanyPolicy(title='FOREIGN POLICY CANARY',organization_id=foreign_company),DocumentTemplate(name='Own template',organization_id=company.id),DocumentTemplate(name='FOREIGN TEMPLATE CANARY',organization_id=foreign_company)])
+    db.commit()
+    from test_identity_utils import attach_test_identity, attach_workflow_branch, own_workflow_records
+    attach_test_identity(db,user,company.id)
+    attach_workflow_branch(db,user,company.id)
+    own_workflow_records(db,employee,*db.query(CompanyPolicy).filter_by(organization_id=company.id).all(),*db.query(DocumentTemplate).filter_by(organization_id=company.id).all(),company_id=company.id)
     db.commit()
     headers={'Authorization':'Bearer '+create_access_token(user.id)}
     policies=client.get('/api/v1/documents/policies',headers=headers)

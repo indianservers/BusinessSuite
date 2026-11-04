@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from app.core.deps import get_db, RequirePermission
 from app.access.catalog import permission_objects
 from app.apps.srm.services.commercial import tenant
@@ -35,7 +35,7 @@ def context(db, run_id, user):
     run = db.query(PayrollRun).filter(PayrollRun.id == run_id, PayrollRun.deleted_at.is_(None)).with_for_update().first()
     if not run or (not user.is_superuser and (run.company_id or 1) != tenant(user)):
         raise HTTPException(404, "Payroll run not found")
-    records = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id).order_by(PayrollRecord.id).all()
+    records = db.query(PayrollRecord).options(joinedload(PayrollRecord.employee),selectinload(PayrollRecord.components)).filter(PayrollRecord.payroll_run_id == run_id).order_by(PayrollRecord.id).all()
     fingerprint = hashlib.sha256(json.dumps([[r.id, r.employee_id, r.salary_currency, str(r.gross_salary), str(r.net_salary), str(r.total_deductions),
         str(r.updated_at), [(c.id, str(c.amount)) for c in sorted(r.components, key=lambda c: c.id)],
         r.employee.account_number if r.employee else None, r.employee.ifsc_code if r.employee else None] for r in records]).encode()).hexdigest()

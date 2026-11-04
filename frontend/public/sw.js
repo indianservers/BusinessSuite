@@ -1,4 +1,4 @@
-const CACHE_VERSION = "business-suite-shell-v4";
+const CACHE_VERSION = "business-suite-shell-v5";
 const SHELL_ASSETS = ["/", "/app-config.js", "/manifest.webmanifest"];
 self.addEventListener("message", event => { if (event.data?.type === "SKIP_WAITING") self.skipWaiting(); });
 self.addEventListener("install", event => {

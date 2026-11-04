@@ -1,3 +1,5 @@
+import PipelineDomainDetails from "@/shared/pipeline/PipelineDomainDetails";
+import PipelineBoard, { PipelineViewSwitch, PipelineSearch } from "@/shared/pipeline/PipelineBoard";
 import CompactActions from "@/components/actions/CompactActions";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -11,7 +13,7 @@ import {
 } from "@/shared/data-grid/types";
 import DealAnalytics from "./DealAnalytics";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Archive,
   Plus,
@@ -110,7 +112,8 @@ const modes = [
   ["forecast", "Forecast", TrendingUp],
 ] as const;
 
-export default function EnterpriseDealsPage() {
+export default function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | "kanban" }) {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const key = `crm-deal-workspace:${user?.access?.companyId}:${user?.id}`;
   const [gridQuery, setGridQuery] = useState<GridQuery>(() => ({
@@ -120,12 +123,12 @@ export default function EnterpriseDealsPage() {
   const [gridReady, setGridReady] = useState(false);
   const [selectedRecords, setSelectedRecords] = useState<Row[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(
-    () => window.matchMedia("(min-width: 900px)").matches,
+    () => initialView !== "kanban" && window.matchMedia("(min-width: 900px)").matches,
   );
   const [filters, setFilters] = useState<Filters>(empty),
     [search, setSearch] = useState("");
   const [forecastGroup, setForecastGroup] = useState("month");
-  const [mode, setMode] = useState("grid"),
+  const [mode, setMode] = useState<string>(initialView),
     [page, setPage] = useState(1),
     [reload, setReload] = useState(0);
   const [data, setData] = useState<Row>(),
@@ -135,6 +138,7 @@ export default function EnterpriseDealsPage() {
     [loading, setLoading] = useState(false),
     [lookupsError, setLookupsError] = useState("");
   const [lookupsLoading, setLookupsLoading] = useState(true);
+  const [captureStage,setCaptureStage]=useState<number>();
   const [create, setCreate] = useState(false),
     [editing, setEditing] = useState<number>(),
     [transition, setTransition] = useState<{ id: number; stage?: number }>();
@@ -230,6 +234,12 @@ export default function EnterpriseDealsPage() {
       active = false;
     };
   }, [reload]);
+  useEffect(() => {
+    if (mode === "kanban" && !filters.pipeline_id && options.pipelines?.length) {
+      const pipeline = options.pipelines.find(p => p.is_default) || options.pipelines[0];
+      setFilters(f => ({...f, pipeline_id: String(pipeline.id), stage_id: ""}));
+    }
+  }, [mode, filters.pipeline_id, options.pipelines]);
   const params = useMemo(
     () =>
       Object.fromEntries(
@@ -551,7 +561,7 @@ export default function EnterpriseDealsPage() {
     );
   }
   return (
-    <main className="ed-workspace" aria-busy={loading}>
+    <main className={`ed-workspace ${mode === "kanban" ? "ed-pipeline-workspace" : ""}`} aria-busy={loading}>
       <header className="ed-header">
         <div>
           <p className="ed-eyebrow">VYAPARACRM / SALES</p>
@@ -596,7 +606,7 @@ export default function EnterpriseDealsPage() {
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
-      <section className="ed-stats" aria-label="Deal statistics">
+      {mode !== "kanban" && <section className="ed-stats" aria-label="Deal statistics">
         {[
           ["Open deals", counts.open],
           ["Closing this month", counts.closing_month],
@@ -626,7 +636,7 @@ export default function EnterpriseDealsPage() {
             )}
           </div>
         ))}
-      </section>
+      </section>}
       <section className="ed-controls">
         <div className="ed-toolbar">
           {mode !== "grid" && (
@@ -1021,42 +1031,17 @@ export default function EnterpriseDealsPage() {
           {mode === "cards" && (
             <div className="ed-shared-cards">{rows.map(card)}</div>
           )}
-          {mode === "kanban" && (
-            <div className="ed-board">
-              {stageOptions.map((stage) => (
-                <section
-                  key={stage.id}
-                  onDragOver={(e) => {
-                    if (data?.can_manage) e.preventDefault();
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const id = Number(
-                      e.dataTransfer.getData("application/x-crm-deal"),
-                    );
-                    if (id && data?.can_manage)
-                      setTransition({ id, stage: stage.id });
-                  }}
-                >
-                  <header style={{ borderTopColor: stage.color || "#7c3aed" }}>
-                    <strong>{stage.name}</strong>
-                    {summary?.stages
-                      ?.filter((total: Row) => total.stage_id === stage.id)
-                      .map((total: Row) => (
-                        <small key={total.currency}>
-                          {total.count} deals ·{" "}
-                          {dealMoney(total.amount, total.currency)}
-                        </small>
-                      ))}
-                  </header>
-                  {rows.filter((row) => row.stage_id === stage.id).map(card)}
-                  {!rows.some((row) => row.stage_id === stage.id) && (
-                    <p className="ed-muted p-3">No deals on this page</p>
-                  )}
-                </section>
-              ))}
-            </div>
-          )}
+          {mode === "kanban" && <PipelineBoard
+            title={String(options.pipelines?.find(p=>String(p.id)===filters.pipeline_id)?.name||"Sales pipeline")} description="Build relationships, track every opportunity and keep the next conversation moving." label="Sales pipeline" viewState={filters} onApplyView={saved=>{const restored=Object.fromEntries(Object.keys(empty).map(key=>[key,key==="no_next"?!!saved[key]:String(saved[key]||"")])) as Filters;setFilters(restored);setSearch(restored.search);}} context={{module:"crm",scope:`pipeline:${filters.pipeline_id||"all"}`,kind:"deal"}} renderDetails={record=><PipelineDomainDetails module="crm" id={record.id}/>} onAdd={data?.can_manage?stageId=>{setCaptureStage(Number(stageId));setCreate(true);}:undefined} reorder={false} disabled={!data?.can_manage || loading}
+            loading={loading && !data}
+            notice={`Showing ${rows.length} of ${data?.total ?? rows.length} deals · page ${page}. Stage totals cover all matching deals.`}
+            toolbar={<><PipelineViewSwitch view="board" onChange={v => setMode(v === "board" ? "kanban" : "grid")}/>{data?.can_manage && <button type="button" className="pipeline-primary" onClick={() => {setCaptureStage(undefined);setCreate(true);}}><Plus size={14}/> Deal</button>}<PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/><div className="pipeline-toolbar-end"><select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}><option value="updated_at:desc">Sort: Recently updated</option><option value="next_follow_up_at:asc">Sort: Next activity</option><option value="amount:desc">Sort: Highest value</option><option value="name:asc">Sort: Name</option></select><select aria-label="Other deal views" value="kanban" onChange={e=>setMode(e.target.value)}><option value="kanban">Pipeline</option><option value="cards">Cards</option><option value="timeline">Timeline</option><option value="forecast">Forecast</option></select><button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}>Filter</button><select aria-label="Board pipeline" value={filters.pipeline_id} onChange={e=>setFilters(f=>({...f,pipeline_id:e.target.value,stage_id:""}))}>{(options.pipelines || []).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><Link to="/crm/pipeline-settings" className="ed-link-button" aria-label="Customize pipeline"><Settings2 size={15}/></Link></div></>}
+            stages={stageOptions.map(stage=>({id:String(stage.id),name:String(stage.name),canAdd:!stage.is_won&&!stage.is_lost,color:stage.color,probability:stage.probability,wipLimit:stage.wip_limit,agingDays:stage.stagnation_days||14,count:(summary?.stages||[]).filter((t:Row)=>t.stage_id===stage.id).reduce((sum:number,t:Row)=>sum+t.count,0),summary:<>{(summary?.stages || []).filter((total:Row)=>total.stage_id===stage.id).map((total:Row)=><span key={total.currency}>{total.count} deals · {dealMoney(total.amount,total.currency)}</span>)}{!(summary?.stages || []).some((total:Row)=>total.stage_id===stage.id)&&<span>0 deals</span>}</>}))}
+            records={rows.map(row=>({id:String(row.id),stageId:String(row.stage_id),title:String(row.name),priority:row.priority,description:row.description,subtitle:row.company_name||lookup("companies",row.company_id),value:dealMoney(row.amount,row.currency),owner:row.owner_name||lookup("deal-workspace/assignees",row.owner_user_id),ownerId:Number(row.owner_user_id)||undefined,nextActionAt:row.next_follow_up_at||undefined,isClosed:row.status==="Won"||row.status==="Lost",labelColor:stageOptions.find(s=>s.id===row.stage_id)?.color,activity:!row.next_follow_up_at?"missing":new Date(row.next_follow_up_at)<new Date()?"overdue":"scheduled",activityLabel:row.next_follow_up_at?`Next activity: ${new Date(row.next_follow_up_at).toLocaleString()}`:"No next activity"}))}
+            onOpen={record=>navigate(`/crm/deals/${record.id}`)}
+            onMove={({record,stageId})=>setTransition({id:Number(record.id),stage:Number(stageId)})}
+            actions={data?.can_manage ? stageOptions.filter(s=>s.is_won||s.is_lost).map(s=>({id:String(s.id),label:s.is_won?"Won":"Lost",tone:s.is_won?"success" as const:"danger" as const,onAction:(record:{id:string})=>setTransition({id:Number(record.id),stage:Number(s.id)})})):[]}
+          />}
           {mode === "list" && (
             <div className="ed-list">
               {rows.map((row) => (
@@ -1239,7 +1224,7 @@ export default function EnterpriseDealsPage() {
               }}
             />
           )}
-          {!rows.length && mode !== "forecast" && mode !== "grid" && (
+          {!rows.length && mode !== "forecast" && mode !== "grid" && mode !== "kanban" && (
             <div className="ed-empty">
               <h2>No deals match this view</h2>
               <p>Adjust the filters or capture a new opportunity.</p>
@@ -1288,6 +1273,8 @@ export default function EnterpriseDealsPage() {
       {(create || editing) && (
         <Suspense fallback={<p role="status">Loading capture...</p>}>
           <Capture
+            initialStageId={captureStage}
+            initialPipelineId={Number(filters.pipeline_id)||undefined}
             dealId={editing}
             close={() => {
               setCreate(false);

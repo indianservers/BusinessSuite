@@ -224,11 +224,8 @@ def create_branch(
 ):
     _active_company(db, data.company_id)
     _ensure_branch_unique(db, data, data.company_id)
-    branch = Branch(**data.model_dump())
-    db.add(branch)
-    db.commit()
-    db.refresh(branch)
-    return branch
+    from app.branches.service import create_owned_branch
+    return create_owned_branch(db, current_user, data.model_dump(), reason="Create branch from company settings")
 
 
 @router.put("/branches/{branch_id}", response_model=BranchSchema)

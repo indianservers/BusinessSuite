@@ -141,6 +141,8 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
                         user.__dict__.pop("organization_id", None)
                     else:
                         user.organization_id = previous_company
+        if db is not None and payload.get("access_company") is not None:
+            db.info["file_download_company"] = int(payload["access_company"])
         path = str(Path(settings.UPLOAD_DIR) / relative)
         storage_key(path)
         return path
@@ -148,7 +150,10 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
         raise HTTPException(403, "Invalid or expired file link") from None
 
 
-def persist_file(path: str) -> None:
+def persist_file(path: str, *, db=None, module=None, company=None, filename=None) -> None:
+    from app.services.file_storage import route_upload
+    if route_upload(str(path), db=db, company=company, module=module, filename=filename):
+        return
     if settings.STORAGE_BACKEND == "local":
         return
     storage_key(path)  # Reject traversal before contacting storage.
@@ -166,6 +171,10 @@ def persist_file(path: str) -> None:
 
 
 def upload_exists(path: str) -> bool:
+    from app.services.file_storage import locator, server_photo
+    row = locator(path)
+    if row and row.status == "cloud": return True
+    if server_photo(path) and Path(path).is_file(): return True
     if settings.STORAGE_BACKEND == "local":
         return Path(path).is_file()
     if settings.STORAGE_BACKEND == "vercel_blob":
@@ -186,8 +195,12 @@ def upload_exists(path: str) -> bool:
         raise
 
 
-def materialize_file(path: str) -> str:
+def materialize_file(path: str, *, db=None) -> str:
     """Fetch private inputs for PDF merging even on a different function instance."""
+    from app.services.file_storage import materialize, server_photo
+    cloud = materialize(path, db=db)
+    if cloud: return cloud
+    if server_photo(path) and Path(path).is_file(): return path
     if settings.STORAGE_BACKEND != "local":
         storage_key(path)
         Path(path).parent.mkdir(parents=True, exist_ok=True)
@@ -234,6 +247,14 @@ def signed_file_url(path: str) -> str:
 
 
 def FileResponse(path, *args, **kwargs):
+    from app.core.audit_context import context
+    if context.get() is not None: context.get()["file_response_path"] = str(path)
+    from app.services.file_storage import locator, server_photo
+    row = locator(str(path))
+    if row and row.status == "cloud":
+        return RedirectResponse(signed_file_url(str(path)), status_code=307, headers={"Cache-Control":"private, no-store"})
+    if server_photo(str(path)) and Path(path).is_file():
+        return LocalFileResponse(path, *args, **kwargs)
     if settings.STORAGE_BACKEND == "local":
         return LocalFileResponse(path, *args, **kwargs)
     return RedirectResponse(signed_file_url(str(path)), status_code=307,

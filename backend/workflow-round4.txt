@@ -1,0 +1,22 @@
+bringing up nodes...
+bringing up nodes...
+
+........................F
+____ test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume ____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_people_workspace.py:429: in test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+    assert response.json()["total"] == 20000 and len(response.json()["items"]) == 24
+E   assert (0 == 20000)
+.......F
+_________ test_crm_and_hrms_adapters_reuse_authorized_native_records __________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:251: in test_crm_and_hrms_adapters_reuse_authorized_native_records
+    assert response.status_code==201,(entity,response.text)
+E   AssertionError: ('employee', '{"detail":"Canonical API rejected action (HTTP 404)"}')
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+                                                                         [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_people_workspace.py::test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+FAILED backend\tests\test_communication_engine.py::test_crm_and_hrms_adapters_reuse_authorized_native_records
+2 failed, 31 passed, 149 warnings in 139.44s (0:02:19)

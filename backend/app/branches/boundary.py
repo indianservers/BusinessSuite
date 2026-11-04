@@ -177,7 +177,12 @@ def install(db, user, ctx, *, identity_administration=False):
                 else:
                     deny("Use validated record writes for branch-owned resources")
         if execution.is_select or execution.is_update:
-            execution.statement = execution.statement.options(*options)
+            # Branch guards are dynamic even when a superuser has no separate
+            # tenant listener. Avoid building cache keys for the full guard graph.
+            execution.update_execution_options(compiled_cache=None)
+            # Keep one copy of each current-context guard on relationship loads.
+            inherited = {id(option) for option in getattr(execution.statement, '_with_options', ())}
+            execution.statement = execution.statement.options(*(option for option in options if id(option) not in inherited))
 
     def validate(session, *args):
         for item in session.new | session.dirty | session.deleted:
@@ -206,7 +211,10 @@ def install(db, user, ctx, *, identity_administration=False):
                     deny("Record belongs to another company")
             if table.name == "fam_ledgers" and item.system_ledger:
                 changes = {c.name for c in table.c if state.attrs[c.name].history.has_changes()}
-                if item in session.new or item not in session.deleted and changes <= {"current_balance_dr", "current_balance_cr", "updated_at"}:
+                materialized = {"current_balance_dr", "current_balance_cr", "updated_at"}
+                if item.id in session.info.get("fam_opening_post_targets", set()):
+                    materialized |= {"opening_balance_dr", "opening_balance_cr"}
+                if item in session.new or item not in session.deleted and changes <= materialized:
                     continue
             if item not in session.new:
                 if not visible(type(item), state.identity):
@@ -282,7 +290,11 @@ def install(db, user, ctx, *, identity_administration=False):
 
     def bulk_insert(mapper, mappings, **kwargs):
         model = getattr(mapper, "class_", mapper)
-        items = [model(**values) for values in mappings]
+        from app.core.config import settings
+        rows = list(mappings)
+        if len(rows) > settings.SECURITY_MAX_BATCH:
+            raise HTTPException(422, "Batch exceeds the configured item limit")
+        items = [model(**values) for values in rows]
         db.add_all(items)
         db.flush()
 

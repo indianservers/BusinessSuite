@@ -1,0 +1,142 @@
+Unified commercial implementation delivery — 2026-11-04
+Status: PARTIAL IMPLEMENTATION. Full master-prompt acceptance is not certified.
+
+1. Existing components reused
+CRM quote versions/approvals/audit/timeline; shared customer and catalogue records;
+commercial invoice snapshots and authorization; SRM receipts/allocations; FAM
+posting/mapping; PMS milestone billing; shared follow-ups; customer communication
+consent, explicit bindings, scheduler, provider policy, retries and quiet hours;
+existing React Query invalidation and collection form.
+
+2. APIs and tables reused
+crm_companies, crm_contacts, crm_quotations, crm_quotation_items,
+crm_quote_versions, crm_quote_approvals, srm_products, srm_invoices,
+srm_receipts, srm_receipt_allocations, srm_invoice_history,
+fam_bill_references, fam_srm_mapping, business_invoice_contexts,
+business_milestone_billing_sources, service_follow_ups and
+communication_customer_automations/deliveries/bindings.
+Existing quote new-version/calculation/PDF paths, receipt allocation, payment,
+collection list/aging/reminder and communication automation APIs were extended.
+
+3. Additive schema and API
+No new business tables. Add collection_hold, collection_hold_reason and
+collection_resume_at to srm_invoices. Add nullable request_id and a unique
+(receipt_id, request_id) constraint to srm_receipt_allocations. These close
+verified dispute-control and retry gaps while retaining existing rows.
+Both migration histories call the same helper:
+  20261104_063_collections
+  pg_20261104_079_collections
+New API: PUT /api/v1/srm/collections/{invoice_id}/control, restricted to existing
+collection-create/admin permissions and the existing invoice visibility query.
+It records a reason and audit/history entry for hold/resume/scheduled resume.
+
+4. Workflows implemented or corrected
+- Retry-key allocation returns the existing allocation; changed payload => 409.
+- Cancelled/reversed receipts cannot be allocated; positive cent precision is
+  enforced for receipts, allocations and direct payments.
+- Direct payment retries reject reuse of a key with changed payment details.
+- Disputed collections pause reminders and permit manual or scheduled resume.
+- Queued reminders recheck current invoice, billing recipient and hold before
+  provider submission. Paid/stale messages are cancelled; holds defer delivery.
+- Invoice due rules exclude drafts, pending approvals, settled documents and
+  contacts outside billing/primary roles.
+- Shared CRM follow-up notifications stop for terminal quotation states and
+  noneligible invoices; follow-up records/history remain available.
+- Aging excludes unissued/cancelled/written-off invoices, keeps currencies
+  separate and accumulates Decimal amounts.
+- New quote revisions retain prior snapshots, clear prior approval/sending/PDF
+  metadata, supersede pending approvals and add audit/timeline entries.
+- Revision snapshots no longer recursively embed earlier version snapshots.
+- Quote discounts/tax round per line with ROUND_HALF_UP and validated bounds.
+- Regenerated quote PDF paths are unique and versioned; old files are retained.
+- Collection context loading and linked follow-up source checks use batching.
+- SRM settings reads explicitly apply tenant scope.
+- Existing collections UI now exposes payment method/date on desktop as well as
+  mobile, collection hold/resume controls and scheduled resume, with cache refresh.
+
+5. Cross-module integration
+All changes extend existing canonical records. Existing connected-commercial
+tests exercise customer snapshots, shared project/Sales invoice visibility,
+payments, authorized delivery and financial posting. Milestone billing continues
+to generate the same SRM invoice using an explicit source mapping. No separate
+CRM/Sales invoice engine or payment ledger was introduced.
+FAM-authoritative consolidation across EVERY direct finance mutation is NOT
+complete; do not infer that from the reused FAM posting test.
+
+6. Reminder configuration
+Use the existing Customer communications automation editor. Added presets for
+3 days before due, due date and 3 days overdue. Presets remain drafts until an
+authorized user configures/activates them. Existing invoice.due rules support
+conditions.days_before (3, 0, -3, -7, -15, -30), consented channels, quiet hours,
+weekdays, reply stops and durable delivery keys. Existing workers provide actual
+provider dispatch and outcomes; this work sent no live customer messages.
+Internal salesperson/accounts/manager escalations for the full default policy
+have not been implemented as an automatic six-stage policy.
+
+7. Verification
+- PostgreSQL focused final batch: 30 passed, 3 warnings (44.66 seconds), using
+  disposable business_suite_unified_commercial_test. Exercises real migration
+  history, holds, payload conflicts, permissions/tenant scope, partial allocation,
+  quote rounding/revisions, milestone invoices and reminder behavior.
+- SQLite regression subset: 37 passed, 2 warnings (17.11 seconds), including
+  migration-chain checks, quote calculations and shared follow-ups.
+- Shared follow-up tests after source-query batching: 22 passed, 2 warnings
+  (7.60 seconds).
+- TypeScript: npx tsc --noEmit passed.
+- git diff --check passed for implementation changes.
+- Final broader SQLite regression batch: 90 passed, 2 warnings (189.71 seconds).
+  Includes the new integrity tests plus existing commercial, FAM posting, PMS
+  milestone, invoice, customer communication, follow-up and migration tests.
+  Test counts overlap with the focused batches; they are not additive totals.
+Tests use synthetic recipients and test databases. No real provider message was
+sent. Sequential retry tests do not certify every concurrent-user race.
+
+8. Outstanding work and deployment state
+This is not the complete seven-phase enterprise implementation. Outstanding:
+- Full recurring billing execution and renewals, credit/debit notes, refunds and
+  adjustments across all modules.
+- FAM as the authoritative source for every balance-changing mutation, including
+  reverse synchronization of direct finance bill allocations.
+- Complete jurisdiction-aware numbering/tax policies, multi-currency exchange
+  adjustments, inclusive pricing and currencies requiring non-cent precision.
+- Full configurable six-stage escalation policy, catch-up after missed scheduler
+  dates, and comprehensive reminder recalculation after payment/source changes.
+- Legacy allocation callers must supply request_id to obtain retry protection;
+  keyless backward-compatible requests cannot distinguish a retry from another
+  intentional allocation.
+- Complete A–J browser workflows, responsive visual QA, keyboard/grid features,
+  all approval policies, real provider webhooks and concurrent stress testing.
+- An audit of every module/endpoint and the entire repository test suite remains
+  outstanding; inspection here focused on the shared commercial paths.
+- New migrations are tested but NOT applied to the configured application DB.
+  Read-only inspection confirmed canonical tables exist and the configured
+  application srm_invoices table does not yet have the new collection columns.
+  Deploy the migration chain with the code before enabling these paths.
+Existing unrelated uncommitted work was retained; nothing was committed/pushed.
+
+9. Files changed by this work (including additions)
+backend/app/apps/crm/api/router.py
+backend/app/apps/srm/api/router.py
+backend/app/apps/srm/models.py
+backend/app/apps/srm/payments.py
+backend/app/apps/srm/schemas.py
+backend/app/apps/srm/collection_schema.py
+backend/app/apps/srm/services/collections.py
+backend/app/apps/communication/customer_service.py
+backend/app/shared/follow_ups.py
+backend/alembic/versions/20261104_063_collection_controls.py
+backend/alembic_postgresql/versions/pg_20261104_079_collection_controls.py
+backend/tests/srm_test_utils.py
+backend/tests/test_customer_communications.py
+backend/tests/test_crm_quote_versioning.py
+backend/tests/test_crm_quote_calculation.py
+backend/tests/test_srm_collection_engine.py
+backend/tests/test_srm_collection_reminders.py
+backend/tests/test_srm_milestone_to_invoice.py
+backend/tests/test_service_follow_ups.py
+backend/tests/test_unified_collection_controls.py
+backend/tests/test_unified_quote_integrity.py
+frontend/src/apps/srm/pages/ConnectedCollectionsPage.tsx
+frontend/src/apps/communication/CustomerCommunications.tsx
+docs/unified-commercial-reuse-audit.txt
+docs/unified-commercial-delivery-report.txt

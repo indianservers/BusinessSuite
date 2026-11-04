@@ -223,7 +223,8 @@ def private_blob_file(token: str, db=Depends(get_db)):
     if settings.STORAGE_BACKEND not in {"local", "vercel_blob", "s3"}:
         raise HTTPException(404, "Not found")
     path = blob_token_path(token, db=db)
-    materialize_file(path)
+    path = materialize_file(path, db=db)
+    db.commit()  # Save provider refresh-token rotation.
     if not os.path.isfile(path):
         raise HTTPException(404,'File not found')
     return FileResponse(path, filename=os.path.basename(path), headers={

@@ -728,6 +728,8 @@ def test_managed_service_identity_revalidates_current_policy(client, db, actors)
     )
     db.add(service)
     db.flush()
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, service)
     policy = AccessPolicy(
         user_id=service.id,
         company_id=1,

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import json
 import pytest
 from app.core.security import create_access_token
@@ -11,9 +12,13 @@ BASE="/api/v1/project-management"
 def company(db,client):
  users=[User(email=f"column{i}@test.com",hashed_password="unused",is_superuser=i in (0,2),is_active=True) for i in range(3)]
  db.add_all(users);db.flush()
- for i,u in enumerate(users):assign_company(db,u,2 if i==2 else 1)
+ from test_identity_utils import attach_workflow_branch, own_workflow_records
+ for i,u in enumerate(users):
+  assign_company(db,u,2 if i==2 else 1)
+  attach_workflow_branch(db,u,2 if i==2 else 1)
  w=PMSWorkspace(name="Columns",organization_id=1);db.add(w);db.flush()
- db.add_all([PMSWorkspaceMember(workspace_id=w.id,user_id=u.id,role="Owner" if i==0 else "Member") for i,u in enumerate(users[:2])]);db.commit()
+ members=[PMSWorkspaceMember(workspace_id=w.id,user_id=u.id,role="Owner" if i==0 else "Member") for i,u in enumerate(users[:2])]
+ db.add_all(members);own_workflow_records(db,w,*members);db.commit()
  h=[{"Authorization":"Bearer "+create_access_token(str(u.id))} for u in users]
  r=client.post(BASE+"/projects",headers=h[0],json={"name":"Audit","project_key":"COL","workspace_id":w.id});assert r.status_code==200,r.text
  return h,w,r.json()

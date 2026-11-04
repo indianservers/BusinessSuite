@@ -1,4 +1,5 @@
 from pathlib import Path
+from tests.rich_text_test_utils import organization_context
 from tests.test_serverless_deployment import private_storage  # noqa: F401
 from app.core.security import create_access_token
 from app.models.user import User
@@ -11,6 +12,9 @@ BASE = "/api/v1/project-management"
 def test_private_task_attachment_survives_instance_loss_and_preserves_permissions(client, db, superuser_headers, private_storage, monkeypatch):
     import app.apps.project_management.api.router as routes
     monkeypatch.setattr(routes, "PMS_UPLOAD_ROOT", private_storage / "pms")
+    from test_identity_utils import provision_workflow_workspace
+    provision_workflow_workspace(db, db.query(User).filter_by(email="testadmin@test.com").one())
+    db.commit()
     project = client.post(BASE + "/projects", headers=superuser_headers, json={"name": "Cloud files", "project_key": "CFILE"})
     assert project.status_code == 200, project.text
     task = client.post(f"{BASE}/projects/{project.json()['id']}/tasks", headers=superuser_headers,
@@ -40,6 +44,8 @@ def test_event_endpoint_rechecks_membership_after_removal(client, db, superuser_
     db.add(teammate)
     from test_identity_utils import attach_test_identity
     attach_test_identity(db, teammate)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, teammate)
     db.flush()
     membership = PMSWorkspaceMember(workspace_id=workspace["id"], user_id=teammate.id, role="Member")
     db.add(membership)

@@ -6,6 +6,7 @@ export type Kind =
   | "url"
   | "number"
   | "date"
+  | "combobox"
   | "select"
   | "radio"
   | "multiselect"
@@ -106,6 +107,7 @@ export const kinds: [Kind, string, string][] = [
   ["number", "Number", "#"],
   ["date", "Date", "▦"],
   ["select", "Dropdown", "▾"],
+  ["combobox", "Searchable dropdown", "⌕"],
   ["radio", "Single choice", "◉"],
   ["multiselect", "Multiple choice", "☷"],
   ["checkbox", "Consent", "☑"],

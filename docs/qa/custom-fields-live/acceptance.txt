@@ -1,0 +1,70 @@
+Custom fields live acceptance â€” 4 November 2026
+
+Environment: full application at http://127.0.0.1:5198; real API at http://127.0.0.1:1534; organization 1 / branch 6. Playwright used actual routes and authenticated API responses. No request interception or mocked component fixture was used for these live checks.
+
+Result: 44/44 current acceptance checks passed. Earlier failure screenshots are retained for diagnosis; results.json records the latest check result. Two earlier quick-add check names are explicitly marked superseded by the corresponding global quick-add checks.
+
+Coverage: six supported CRM custom-field entities (leads, contacts, companies, deals, quotations and tasks), employees, PMS projects/tasks, and custom modules. Company role variants reuse CompanyEditor. Detail-only fields are shown read-only; edit/create/quick-add settings are evaluated separately. Custom modules have no quick-add entry point. Unregistered legacy components are outside the live route inventory.
+
+Fixes discovered in the live app: main contact and classic lead/account editors omitted fields; global CRM quick-add omitted fields; main versus quick-add placement was conflated; quotation create discarded field metadata through record normalization; actual PMS task detail and workspace project quick-add omitted fields; custom module record forms had no entry point. Superadmin New-menu permission gating also hid available actions. Field definition reads bypass the persistent record cache to avoid stale placement configuration. Task form bootstrap reads use current server data. Targeted duplicate scans now retain transitive matches without scanning all disconnected record pairs.
+
+Data preservation: only records and field definitions tagged CFQA90615674 were created/edited for save tests. Classic lead edit also opened an existing record without submitting it. Contact and custom-module edit round trips verified hidden values remain intact. The settings UI changed field placement and retained its stored value. An actual quick-add textbox value was saved and read back. Radio selection and combobox search were exercised.
+
+Cleanup: tagged CRM/employee definitions disabled; tagged PMS definitions archived; tagged custom module disabled. Records and values retained for audit. 25 CRM custom-value rows matched exactly before and after archiving. No business records or existing field definitions were deleted.
+
+Validation: TypeScript noEmit passed; 17 custom-field backend tests passed; record-cache regression suite passed. Production Vite build passed (dependency annotation/chunk warnings only). The previously failing lead-assignment fixture was corrected in the follow-up below.
+
+Acceptance checks:
+PASS companies detail
+PASS deals detail
+PASS quotations detail
+PASS Lead create
+PASS Contact create
+PASS Company create
+PASS leads detail
+PASS contacts detail
+PASS Global quick-add contacts
+PASS Global quick-add companies
+PASS Employee full create
+PASS Employee quick-add
+PASS Global quick-add leads
+PASS Employee edit
+PASS Employee detail
+PASS Global quick-add deals
+PASS Project full create
+PASS Project edit
+PASS Global quick-add tasks
+PASS Project detail
+PASS Project quick-add
+PASS Contact edit
+PASS PMS task full create
+PASS PMS task edit
+PASS PMS task detail
+PASS PMS task inline quick-add
+PASS Contact edit preserves hidden values
+PASS Company edit
+PASS Deal full create
+PASS Deal edit
+PASS CRM task full create
+PASS CRM task edit
+PASS Quote create
+PASS Quote builder edit
+PASS Lead drawer edit
+PASS Classic lead create
+PASS Classic lead edit
+PASS CRM task detail
+PASS Settings UI changes placement without deleting stored value
+PASS Custom module detail
+PASS Custom module edit
+PASS Custom module edit preserves hidden values
+PASS Custom module create
+PASS Quick-add textbox persists to actual record
+
+Scripts: qa/custom_fields_live*.cjs. State is in .tmp/custom-fields-live-state.json; cleanup archives tagged definitions and retains audit data. Do not rerun acceptance scripts against archived QA definitions without first restoring their active/archived flags.
+
+Lead-assignment follow-up — 4 November 2026
+The assignment test fixture now provisions its user identity and writable branch explicitly. Employee branch and person organization use the same requested company; foreign employees remain in their own company instead of being auto-provisioned into the local branch. No production assignment logic, stored owner identifiers, live data or schema was changed by this follow-up.
+
+Final assignment run: 7 passed. This includes all six original assignment tests and a new regression proving that directory reads and unrelated lead edits retain an existing owner after that employee becomes ineligible, preserve existing follow-up assignments, notes and estimated value, and do not create assignment notifications or assignment-history events.
+
+Broader sweep: 7 lead-workflow tests and 17 custom-field tests passed. Five failures outside lead assignment remain in the broader selection: contact conversion matching, lead-management RBAC/export fixture access, public website capture actor context, a phone fixture invalid for its calling code, and automation assignment-rule fixture access. The first broad run also included an overly strict new regression assertion comparing all activity rows after an edit; edits correctly append audit activity. The final regression checks all pre-existing activity IDs and owners while allowing that new audit row.

@@ -10,7 +10,9 @@ function identity(): string | null {
   if (!user || !accessToken || !isAuthenticated) return null;
   let session = '';
   try { session = JSON.parse(atob(accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sid || ''; } catch { return null; }
-  return stable([1, user.id, session, user.role, user.is_superuser, user.access, sessionStorage.getItem('suite-organization'), sessionStorage.getItem('suite-branch')]);
+  // App changes the displayed module role during navigation. The authenticated
+  // primary role and live grants remain the authorization identity.
+  return stable([1, user.id, session, user.primary_role ?? user.role, user.is_superuser, user.access, sessionStorage.getItem('suite-organization'), sessionStorage.getItem('suite-branch')]);
 }
 function replace(value: unknown, old: unknown, data: unknown): unknown {
   if (value === old) return data;

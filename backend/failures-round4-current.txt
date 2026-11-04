@@ -1,0 +1,271 @@
+bringing up nodes...
+bringing up nodes...
+
+...................F
+__ test_notification_summary_and_app_filter_are_personal_and_company_scoped ___
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_suite_navigation.py:33: in test_notification_summary_and_app_filter_are_personal_and_company_scoped
+    assert sum(group["count"] for group in summary.json()["groups"]) == 3
+E   assert 0 == 3
+E    +  where 0 = sum(<generator object test_notification_summary_and_app_filter_are_personal_and_company_scoped.<locals>.<genexpr> at 0x000002B6CED65D80>)
+F
+_ test_company_names_are_available_to_regular_members_across_their_workspaces _
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_suite_navigation.py:46: in test_company_names_are_available_to_regular_members_across_their_workspaces
+    primary.name = "Primary member company"
+    ^^^^^^^^^^^^
+E   AttributeError: 'NoneType' object has no attribute 'name'
+....F
+____________ test_domain_pack_enablement_and_manufacturing_records ____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_advanced_analytics_domain_pack.py:121: in test_domain_pack_enablement_and_manufacturing_records
+    assert incident.status_code == 201
+E   assert 400 == 201
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+.F
+_______ test_employee_can_punch_and_today_returns_summary_with_punches ________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_attendance_punch_api.py:57: in test_employee_can_punch_and_today_returns_summary_with_punches
+    assert punch_in.status_code == 201
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+_ test_manager_can_view_reportee_team_attendance_and_regularization_notifies_manager _
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_attendance_punch_api.py:98: in test_manager_can_view_reportee_team_attendance_and_regularization_notifies_manager
+    assert view_reportee.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+____________________ test_pf_ecr_and_esi_export_generation ____________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_compliance_exports.py:48: in test_pf_ecr_and_esi_export_generation
+    assert run_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+_ test_private_task_attachment_survives_instance_loss_and_preserves_permissions _
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_serverless_files.py:15: in test_private_task_attachment_survives_instance_loss_and_preserves_permissions
+    assert project.status_code == 200, project.text
+E   AssertionError: {"detail":"Complete company setup before continuing: Project workspace"}
+E   assert 409 == 200
+E    +  where 409 = <Response [409 Conflict]>.status_code
+F
+________ test_approval_os_create_inbox_decide_history_and_notification ________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_approval_os.py:67: in test_approval_os_create_inbox_decide_history_and_notification
+    assert inbox.status_code == 200, inbox.text
+E   AssertionError: {"detail":"Module access revoked: approvals"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+______________ test_approval_os_aggregates_workflow_engine_tasks ______________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_approval_os.py:119: in test_approval_os_aggregates_workflow_engine_tasks
+    assert inbox.status_code == 200, inbox.text
+E   AssertionError: {"detail":"Module access revoked: approvals"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+____________ test_event_endpoint_rechecks_membership_after_removal ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_serverless_files.py:51: in test_event_endpoint_rechecks_membership_after_removal
+    assert events.status_code == 200, events.text
+E   AssertionError: {"detail":"Module access revoked: project_management"}
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+___________________ test_pf_generation_reports_missing_uan ____________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_compliance_exports.py:91: in test_pf_generation_reports_missing_uan
+    assert run_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+F
+________________ test_employee_creation_auto_starts_onboarding ________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_onboarding.py:49: in test_employee_creation_auto_starts_onboarding
+    assert employee_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+F
+_______________________ test_skip_task_requires_reason ________________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_onboarding.py:111: in test_skip_task_requires_reason
+    assert employee.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.............F
+____________ test_requested_condition_operator_vocabulary_executes ____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_conditions.py:33: in test_requested_condition_operator_vocabulary_executes
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+___________ test_holiday_calendar_crud_filters_and_attendance_sync ____________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_holiday_calendar_api.py:73: in test_holiday_calendar_crud_filters_and_attendance_sync
+    assert db.query(Attendance).filter_by(employee_id=employee_one.id, attendance_date=holiday_date).first().status == "Holiday"
+E   AssertionError: assert 'Absent' == 'Holiday'
+E     
+E     - Holiday
+E     + Absent
+.F
+______ test_srm_approved_timesheets_create_invoice_and_prevent_rebilling ______
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_srm_timesheet_to_invoice.py:35: in test_srm_approved_timesheets_create_invoice_and_prevent_rebilling
+    assert invoice.status_code == 201, invoice.text
+E   AssertionError: {"detail":"All selected time logs must be approved and billable"}
+E   assert 400 == 201
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+F
+____________________ test_global_search_matches_department ____________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_endpoint_audit_regressions.py:23: in test_global_search_matches_department
+    assert any(item["title"] == "Release specialist" for item in response.json()["results"]), response.text
+E   AssertionError: {"query":"Audit","results":[]}
+E   assert False
+E    +  where False = any(<generator object test_global_search_matches_department.<locals>.<genexpr> at 0x000002366A596F60>)
+..F
+___ test_payroll_export_validation_flags_bank_and_statutory_identifier_gaps ___
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_market_ready_readiness.py:83: in test_payroll_export_validation_flags_bank_and_statutory_identifier_gaps
+    assert run.status_code == 201, run.text
+E   AssertionError: {"detail":"Complete company setup before continuing: Salary components"}
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+_______________ test_admin_profiles_crud_permissions_and_audit ________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_admin_profiles.py:11: in test_admin_profiles_crud_permissions_and_audit
+    assert perms.status_code == 201
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+________________ test_ai_context_excludes_hidden_custom_fields ________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_ai_context_security.py:17: in test_ai_context_excludes_hidden_custom_fields
+    own_workflow_records(db,lead,value)
+E   AssertionError: {"detail":"AI context record not found or not accessible"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+.F
+______________ test_logs_list_detail_and_retry_failed_execution _______________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_logs.py:6: in test_logs_list_detail_and_retry_failed_execution
+    workflow = create_workflow(client, headers)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\automation_test_utils.py:40: in create_workflow
+    assert response.status_code == 201, response.text
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+F
+__________________ test_crm_price_book_and_item_api_database __________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_price_books.py:28: in test_crm_price_book_and_item_api_database
+    assert item.status_code == 201, item.text
+E   AssertionError: {"detail":"Catalog item not found"}
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+F
+____________ test_accepted_crm_quote_converts_to_srm_idempotently _____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_quote_to_srm_conversion.py:33: in test_accepted_crm_quote_converts_to_srm_idempotently
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"CRM record not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+F
+___________ test_crm_phase_2_lost_analysis_breaks_down_lost_reasons ___________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lost_analysis.py:5: in test_crm_phase_2_lost_analysis_breaks_down_lost_reasons
+    lost = client.post(f"/api/v1/crm/deals/{deal.json()['id']}/mark-lost", headers=superuser_headers, json={"lostReason": "Budget frozen"})
+                                            ^^^^^^^^^^^^^^^^^
+E   KeyError: 'id'
+F
+_______________ test_crm_phase_2_sales_performance_backend_rbac _______________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_sales_performance_rbac.py:28: in test_crm_phase_2_sales_performance_backend_rbac
+    assert client.get("/api/v1/crm/sales-performance", headers=allowed).status_code == 200
+E   AssertionError: assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+E    +    where <Response [403 Forbidden]> = get('/api/v1/crm/sales-performance', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTM4MDMyMzUsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIiwic2lkIjoiMSJ9.TUr_YTibL9Xz72VLnj6PCZeL2U6kP4c7nTNAILDb3W4'})
+E    +      where get = <starlette.testclient.TestClient object at 0x000002366DC9F560>.get
+F
+_____________ test_probation_manager_review_hr_confirm_and_letter _____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_probation.py:77: in test_probation_manager_review_hr_confirm_and_letter
+    assert confirmed.json()["actionType"] == "confirm"
+E   AssertionError: {"detail":"Employee not found"}
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+F
+___________________ test_layout_sections_and_field_reorder ____________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_customization_layouts.py:13: in test_layout_sections_and_field_reorder
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+F
+_________________ test_workflow_create_activate_test_and_log __________________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_workflows.py:7: in test_workflow_create_activate_test_and_log
+    workflow = create_workflow(client, headers)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\automation_test_utils.py:40: in create_workflow
+    assert response.status_code == 201, response.text
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+F
+______________ test_srm_collection_aging_buckets_overdue_invoice ______________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_srm_collection_aging.py:16: in test_srm_collection_aging_buckets_overdue_invoice
+    bucket = response.json()[0]
+             ^^^^^^^^^^^^^^^^^^
+E   IndexError: list index out of range
+.F
+_________________ test_automation_execution_depth_is_limited __________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_automation_recursion_protection.py:6: in test_automation_execution_depth_is_limited
+    workflow = create_workflow(client, headers)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend\tests\automation_test_utils.py:40: in create_workflow
+    assert response.status_code == 201, response.text
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Use validated record writes for branch-owned resources"}
+.                                                                        [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_suite_navigation.py::test_notification_summary_and_app_filter_are_personal_and_company_scoped
+FAILED backend\tests\test_suite_navigation.py::test_company_names_are_available_to_regular_members_across_their_workspaces
+FAILED backend\tests\test_advanced_analytics_domain_pack.py::test_domain_pack_enablement_and_manufacturing_records
+FAILED backend\tests\test_attendance_punch_api.py::test_employee_can_punch_and_today_returns_summary_with_punches
+FAILED backend\tests\test_attendance_punch_api.py::test_manager_can_view_reportee_team_attendance_and_regularization_notifies_manager
+FAILED backend\tests\test_hrms_compliance_exports.py::test_pf_ecr_and_esi_export_generation
+FAILED backend\tests\test_serverless_files.py::test_private_task_attachment_survives_instance_loss_and_preserves_permissions
+FAILED backend\tests\test_approval_os.py::test_approval_os_create_inbox_decide_history_and_notification
+FAILED backend\tests\test_approval_os.py::test_approval_os_aggregates_workflow_engine_tasks
+FAILED backend\tests\test_serverless_files.py::test_event_endpoint_rechecks_membership_after_removal
+FAILED backend\tests\test_hrms_compliance_exports.py::test_pf_generation_reports_missing_uan
+FAILED backend\tests\test_onboarding.py::test_employee_creation_auto_starts_onboarding
+FAILED backend\tests\test_onboarding.py::test_skip_task_requires_reason - ass...
+FAILED backend\tests\test_automation_conditions.py::test_requested_condition_operator_vocabulary_executes
+FAILED backend\tests\test_holiday_calendar_api.py::test_holiday_calendar_crud_filters_and_attendance_sync
+FAILED backend\tests\test_srm_timesheet_to_invoice.py::test_srm_approved_timesheets_create_invoice_and_prevent_rebilling
+FAILED backend\tests\test_endpoint_audit_regressions.py::test_global_search_matches_department
+FAILED backend\tests\test_hrms_market_ready_readiness.py::test_payroll_export_validation_flags_bank_and_statutory_identifier_gaps
+FAILED backend\tests\test_admin_profiles.py::test_admin_profiles_crud_permissions_and_audit
+FAILED backend\tests\test_ai_context_security.py::test_ai_context_excludes_hidden_custom_fields
+FAILED backend\tests\test_automation_logs.py::test_logs_list_detail_and_retry_failed_execution
+FAILED backend\tests\test_crm_price_books.py::test_crm_price_book_and_item_api_database
+FAILED backend\tests\test_crm_quote_to_srm_conversion.py::test_accepted_crm_quote_converts_to_srm_idempotently
+FAILED backend\tests\test_crm_lost_analysis.py::test_crm_phase_2_lost_analysis_breaks_down_lost_reasons
+FAILED backend\tests\test_crm_sales_performance_rbac.py::test_crm_phase_2_sales_performance_backend_rbac
+FAILED backend\tests\test_hrms_probation.py::test_probation_manager_review_hr_confirm_and_letter
+FAILED backend\tests\test_customization_layouts.py::test_layout_sections_and_field_reorder
+FAILED backend\tests\test_automation_workflows.py::test_workflow_create_activate_test_and_log
+FAILED backend\tests\test_srm_collection_aging.py::test_srm_collection_aging_buckets_overdue_invoice
+FAILED backend\tests\test_automation_recursion_protection.py::test_automation_execution_depth_is_limited
+30 failed, 45 passed, 26 warnings in 206.47s (0:03:26)

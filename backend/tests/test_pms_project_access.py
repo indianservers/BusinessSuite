@@ -147,6 +147,9 @@ def _user(db, email: str, permission_names: list[str] | None = None) -> User:
     db.add(user)
     db.commit()
     db.refresh(user)
+    # Direct service tests use the legacy unscoped context; HTTP requests set
+    # this transient selection through the authenticated dependency.
+    user.organization_id = None
     return user
 
 
@@ -1095,6 +1098,9 @@ def test_dev_integrations_link_github_prs_and_hide_tokens(db):
 def test_portfolio_dashboard_is_accessible_scoped_and_calculates_health(db):
     manager = _user(db, "pms-portfolio-manager@example.com", ["pms_manage_projects"])
     outsider = _user(db, "pms-portfolio-outsider@example.com")
+    from test_identity_utils import attach_test_identity
+    attach_test_identity(db, manager)
+    manager.organization_id = 1
     client = create_client(
         PMSClientCreate(name="Acme Portfolio", company_name="Acme"),
         db=db,
@@ -1104,7 +1110,7 @@ def test_portfolio_dashboard_is_accessible_scoped_and_calculates_health(db):
         PMSProjectCreate(
             name="Portfolio Delivery",
             project_key="PD",
-            client_id=client.id,
+            client_id=client["id"],
             manager_user_id=manager.id,
             status="Active",
             start_date=date.today() - timedelta(days=45),
@@ -1152,7 +1158,7 @@ def test_portfolio_dashboard_is_accessible_scoped_and_calculates_health(db):
     assert summary["at_risk_projects"] == 1
 
     projects = get_portfolio_projects(ownerId=None, clientId=None, status=None, health="Blocked", db=db, current_user=manager)
-    assert projects["items"][0]["client_name"] == "Acme Portfolio"
+    assert projects["items"][0]["client_name"] == "Acme"
     assert projects["items"][0]["health"] == "Blocked"
     assert projects["items"][0]["overdue_tasks"] >= 1
 
@@ -1500,7 +1506,7 @@ def test_field_manager_edits_and_extended_types(db):
     assert used.value.status_code == 409
     renamed = edit_field(project.id, field["id"], EditFieldInput(name="Review", options=["Pending", "Done", "Blocked"]), db=db, user=manager)
     assert renamed["name"] == "Review"
-    for kind, valid, invalid in [("email", "a@example.com", "bad"), ("website", "https://example.com", "javascript:alert(1)"), ("phone", "2025550100", "abc"), ("rating", 5, 6), ("progress", 90, 101), ("money", 100.25, "bad"), ("long_text", "Long note", 4)]:
+    for kind, valid, invalid in [("email", "a@example.com", "bad"), ("website", "https://example.com", "javascript:alert(1)"), ("phone", "501234567", "abc"), ("rating", 5, 6), ("progress", 90, 101), ("money", 100.25, "bad"), ("long_text", "Long note", 4)]:
         entry = create_field(project.id, FieldInput(name=kind, field_type=kind), db=db, user=manager)
         save_value(task.id, entry["id"], ValueInput(value=valid,country_code="+971" if kind=="phone" else None), db=db, user=manager)
         with pytest.raises(HTTPException) as bad:

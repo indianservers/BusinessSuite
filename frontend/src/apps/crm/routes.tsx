@@ -1,9 +1,12 @@
-import FollowUpSummary from "@/shared/follow-ups/FollowUpSummary";
-import FollowUpsPage from "@/shared/follow-ups/FollowUpsPage";
-import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-import Deal360Page from "./deals/Deal360Page";
-import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
+const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+const FollowUpSummary = React.lazy(() => import("@/shared/follow-ups/FollowUpSummary"));
+const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
+const Deal360Page = React.lazy(() => import("./deals/Deal360Page"));
+const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
+const Record360Page = React.lazy(() => import("@/shared/records/Record360Page"));
+const PaymentRequestsPage = React.lazy(() => import("@/shared/payments/PaymentRequestsPage"));
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 
@@ -24,6 +27,9 @@ const CRMRecordsPage = React.lazy(() => import("./CRMRecordsPage"));
 const CRMMetadataPage = React.lazy(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
 const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
 export const crmRoutes: FrontendRoute[] = [
+  {path:"crm/import-data",element:<ImportWorkspace module="crm"/>},
+ {path:"crm/customers/:id/360",element:<React.Suspense fallback={<p>Loading customer…</p>}><Record360Page/></React.Suspense>},
+ {path:"crm/payment-requests",element:<PaymentRequestsPage/>},
  {path:"crm/birthdays",element:<CommunicationHubPage/>},
  {path:"crm/company-directory",element:<CentralSettingsRedirect section="shared-companies"/>},
   { path: "crm/records", element: <CRMRecordsPage /> },

@@ -5,7 +5,7 @@ import { MobileFilters } from "@/components/mobile/MobilePrimitives";
 import { useMobile } from "@/components/mobile/useMobile";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
-import MoveBoard from "@/components/interaction/MoveBoard";
+import MoveBoard from "@/shared/pipeline/PipelineMoveBoard";
 import { arrangeTask } from "../components/SprintMoveBoard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";

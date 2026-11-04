@@ -1,0 +1,93 @@
+RECORD 360 — LIVE POSTGRESQL AND RUNNING-APP VERIFICATION
+4 November 2026
+
+ENVIRONMENT AND MIGRATIONS
+Verified the actual local app: frontend localhost:5173, API 127.0.0.1:1534,
+PostgreSQL 127.0.0.1:5432/business_suite. Ran alembic upgrade head successfully.
+The database was already at pg_20261104_081_task_links, so no new DDL was necessary.
+Inspected the physical pms_task_record_links table: all five indexes/unique indexes,
+four foreign keys and ck_pms_task_record_target exist. No migration stamp shortcut,
+permission relaxation, credential reset or production deployment was used.
+Restarted the local API to load the backend fix. The local frontend is also running.
+
+LIVE FIXES
+1. Empty cursor-mode history returned total:null, leaving a blank section. The
+   shared workspace now uses items.length to show its empty-state message.
+2. A follow-up page repeated the same native task authorization for every row.
+   It now checks each distinct task once per response. There is no cross-request
+   authorization cache: every page/request rechecks current permissions.
+   Profiling also found that native permission lookups eagerly reloaded assignees
+   on already loaded tasks. The native lookup now uses lazy loading; intern
+   assignment checks still load assignments when needed. This preserves native
+   authorization while avoiding five redundant relationship queries on five rows.
+   The instrumented local check fell from about 62 to 20 seconds; profiling adds
+   overhead, so these figures are diagnostic and are not production latency claims.
+3. Link controls no longer wait for the work feed to finish refreshing after a
+   successful mutation. Reused the API's existing suite:record-mutated event for
+   cursor reset/refresh, and invalidated work/history without blocking controls.
+
+LIVE DATA AND HTTP CHECKS (NO MOCKS)
+Clearly labelled fixture: R360QA95526330 in Main Branch (6), organization 1.
+Customer 290; contact 883; lead 784; delivery project 83; task 2438; 28 follow-ups.
+These QA records remain available for inspection and do not represent real work.
+Direct contact/lead links are persisted and duplicate submissions are idempotent.
+CRM contact and lead feeds include the linked PMS task and its follow-ups.
+CRM, PMS and SRM customer adapters each return the same 29 linked work items.
+Traversed all 29 work items in six pages and all 61 history events in thirteen
+pages at page size five, with no duplicates or missing items. Cursor requests omit
+expensive totals. Queue pages do not overlap. Replaying a cursor with a different
+filter or selected branch returns 422. These checks passed again after API restart.
+Evidence: docs/qa/record-360/live/results.json
+
+LIVE ROLE CHECKS
+Used existing persisted memberships/policies; did not grant or change access.
+Existing demo credentials exercised normal login. Six older demo accounts have no
+verified company membership and are correctly denied (403).
+Existing read-only viewer 35 reads visible task summaries and links, can_manage is
+false, and link creation, unlink and picker access are denied (403). An unrelated
+QA task is hidden. Viewer 33 has an empty scoped queue and cannot open the QA task.
+Existing member 401 reads assigned project tasks with native manage permission;
+the unrelated QA task remains hidden (404). Intern 557 is denied PMS (403) by its
+current Interns Hub restriction. For existing policy accounts, short-lived tokens
+were generated in memory with the app's own token factory; no token was saved and
+no persistent session/grant was created for those policy checks.
+Evidence: docs/qa/record-360/live/roles.json and role-check.log
+Final policy rerun passed after the assignee-loading fix was loaded in the API,
+including explicit viewer create/unlink/picker denials. Cross-module HTTP checks
+and complete work/history traversal also passed again on that running process.
+
+BROWSER VERIFICATION
+Used the actual signed-in Chrome app in Main Branch. Verified PMS task contacts
+and leads, removed/relinked the QA lead through the existing picker, and verified
+the persisted result. Verified the task's second Focus page; CRM contact and lead
+360 pages; CRM contact page two (remaining follow-ups and the linked task); SRM
+customer 360; PMS customer 360; and PMS Tasks & Follow-ups search/source filters.
+Saved screenshots under docs/qa/record-360/live/.
+Real POS: opened Aurora Retail Pvt Ltd's shared customer 360, verified delivery
+work and related records, closed it and restored the original Walk-in selection.
+The pre-existing cart text was unchanged after restoration. No sale/payment posted.
+
+REGRESSION CHECKS
+Backend: broader suite 52 passed (record 360, paging, direct links, roles and PMS
+task workspace), plus the separately run new query-count regression: 1 passed.
+Includes a new
+regression that checks one native task authorization per follow-up page and a
+fresh check on the next request, plus the existing 6,006-task paging fixture.
+The query-count regression ensures a page of five tasks loads assignees once,
+instead of repeating the relationship query for each authorization lookup.
+Both record-360 browser harnesses passed; the link harness also asserts that three
+successful writes emit three mutation events and a denied write emits none.
+The empty-history regression uses total:null and no items.
+Final TypeScript and whitespace checks passed.
+
+LIMITS
+This verifies the local PostgreSQL app and existing access policies. It is not a
+production load/p95 certification. The 6,006-task stress fixture is an isolated
+backend regression; the live fixture deliberately adds only 28 follow-ups.
+No customer messages, sale or payment submissions were required.
+
+REPEATABLE CHECKS
+node qa/record_360_live.cjs verify
+From backend with PYTHONPATH=.: python scripts/verify_record_360_roles_live.py
+Use --policies-only to repeat current policy checks without repeating demo logins.
+The live scripts intentionally target these existing local QA fixtures/accounts.

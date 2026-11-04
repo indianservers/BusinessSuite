@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -14,6 +15,8 @@ def _employee(db, code="CORE001"):
         status="Active",
     )
     db.add(employee)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, employee)
     db.commit()
     return employee
 

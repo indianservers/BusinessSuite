@@ -4,12 +4,17 @@ from decimal import Decimal
 from app.models.employee import Employee
 from app.models.leave import LeaveBalance, LeaveRequest, LeaveType
 from app.models.payroll import EmployeeSalary, LeaveEncashmentRequest, PayrollLWPEntry, PayrollPeriod, PayrollRecord
-from tests.payroll_test_utils import ensure_payroll_ready
+from tests.payroll_test_utils import ensure_payroll_ready, init_payroll_test_db, commit_payroll_fixture
 
 
 def _employee(db, code: str = "LP-001") -> Employee:
+    from app.models.company import Branch, Company
+    init_payroll_test_db(db)
+    company = db.query(Company).filter_by(name="Demo Company").one()
+    branch = db.query(Branch).filter_by(company_id=company.id).order_by(Branch.id).first()
     employee = Employee(
         employee_id=code,
+        branch_id=branch.id,
         first_name="Leave",
         last_name="Payroll",
         date_of_joining=date(2024, 1, 1),
@@ -32,6 +37,7 @@ def _employee(db, code: str = "LP-001") -> Employee:
 
 def test_leave_encashment_request_approval_feeds_payroll(client, db, superuser_headers):
     employee = _employee(db)
+    superuser_headers.update({"X-Suite-Organization": str(employee.branch.company_id), "X-Suite-Branch": str(employee.branch_id)})
     leave_type = LeaveType(
         name="Earned Leave Payroll",
         code="EL-PAY",
@@ -52,7 +58,7 @@ def test_leave_encashment_request_approval_feeds_payroll(client, db, superuser_h
             carried_forward=Decimal("0"),
         )
     )
-    db.commit()
+    commit_payroll_fixture(db)
 
     create = client.post(
         "/api/v1/hrms/leave-encashment/request",
@@ -72,7 +78,7 @@ def test_leave_encashment_request_approval_feeds_payroll(client, db, superuser_h
     assert approve.json()["status"] == "approved"
 
     today = date.today()
-    ensure_payroll_ready(db, today.month, today.year, employees=[employee])
+    ensure_payroll_ready(db, today.month, today.year)
     run = client.post("/api/v1/payroll/run", json={"month": today.month, "year": today.year}, headers=superuser_headers)
     assert run.status_code == 201, run.text
 
@@ -85,6 +91,7 @@ def test_leave_encashment_request_approval_feeds_payroll(client, db, superuser_h
 
 def test_lwp_feed_sync_creates_payroll_deduction_input(client, db, superuser_headers):
     employee = _employee(db, "LP-002")
+    superuser_headers.update({"X-Suite-Organization": str(employee.branch.company_id), "X-Suite-Branch": str(employee.branch_id)})
     leave_type = LeaveType(
         name="Leave Without Pay",
         code="LWP-PAY",
@@ -106,7 +113,7 @@ def test_lwp_feed_sync_creates_payroll_deduction_input(client, db, superuser_hea
             status="Approved",
         )
     )
-    db.commit()
+    commit_payroll_fixture(db)
     month = f"{today.year:04d}-{today.month:02d}"
 
     feed = client.get("/api/v1/hrms/payroll/lwp-feed", params={"month": month}, headers=superuser_headers)
@@ -118,7 +125,7 @@ def test_lwp_feed_sync_creates_payroll_deduction_input(client, db, superuser_hea
     assert sync.json()["synced"] >= 1
     period = db.query(PayrollPeriod).filter_by(month=today.month, year=today.year).first()
     assert period is not None
-    ensure_payroll_ready(db, today.month, today.year, employees=[employee])
+    ensure_payroll_ready(db, today.month, today.year)
 
     run = client.post("/api/v1/payroll/run", json={"month": today.month, "year": today.year}, headers=superuser_headers)
     assert run.status_code == 201, run.text

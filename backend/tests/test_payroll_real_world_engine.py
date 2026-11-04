@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from datetime import date
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.attendance import Attendance
 from app.models.company import Department
 from app.models.employee import Employee
@@ -30,7 +31,7 @@ def _pay_group_period(db, code: str, month: int, year: int, **pay_group_kwargs):
         status="Locked",
     )
     db.add(period)
-    db.commit()
+    commit_payroll_fixture(db)
     return pay_group
 
 
@@ -46,7 +47,7 @@ def _salary(db, employee_id: int, *, ctc="600000", basic="20000", hra="10000", p
         effective_from=effective_from,
         is_active=True,
     ))
-    db.commit()
+    commit_payroll_fixture(db)
 
 
 def test_raw_half_day_attendance_counts_as_half_day(client, db):
@@ -60,7 +61,7 @@ def test_raw_half_day_attendance_counts_as_half_day(client, db):
         work_date = date(2026, 5, day)
         if work_date.weekday() < 5:
             db.add(Attendance(employee_id=employee.id, attendance_date=work_date, status="Half-day" if day == 1 else "Present"))
-    db.commit()
+    commit_payroll_fixture(db)
 
     response = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
     assert response.status_code == 201, response.json()
@@ -141,7 +142,7 @@ def test_department_scoped_run_only_includes_department_employees(client, db):
         status="Active",
     )
     db.add(other_employee)
-    db.commit()
+    commit_payroll_fixture(db)
     _salary(db, employee.id)
     _salary(db, other_employee.id)
     ensure_payroll_ready(db, 5, 2026, [employee, other_employee])

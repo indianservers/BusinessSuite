@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from decimal import Decimal
 from datetime import date
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.attendance import Attendance, OvertimeRequest
 from app.models.employee import Employee
 from app.models.leave import LeaveRequest, LeaveType
@@ -46,7 +47,7 @@ def test_reconcile_inputs_blocks_approval_until_locked_and_creates_worksheet(cli
     assert employee
     if not db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == employee.id, EmployeeSalary.is_active == True).first():
         db.add(EmployeeSalary(employee_id=employee.id, ctc=Decimal("600000"), basic=Decimal("20000"), hra=Decimal("10000"), effective_from=date(2026, 4, 1), is_active=True))
-        db.commit()
+        commit_payroll_fixture(db)
     period_id = _period(client, headers)
 
     db.add(Attendance(employee_id=employee.id, attendance_date=date(2026, 5, 4), status="Present"))
@@ -58,7 +59,7 @@ def test_reconcile_inputs_blocks_approval_until_locked_and_creates_worksheet(cli
     db.add(LeaveRequest(employee_id=employee.id, leave_type_id=paid.id, from_date=date(2026, 5, 6), to_date=date(2026, 5, 6), days_count=1, status="Approved"))
     db.add(LeaveRequest(employee_id=employee.id, leave_type_id=unpaid.id, from_date=date(2026, 5, 7), to_date=date(2026, 5, 7), days_count=1, status="Approved"))
     db.add(OvertimeRequest(employee_id=employee.id, date=date(2026, 5, 8), hours=Decimal("2.5"), status="Approved"))
-    db.commit()
+    commit_payroll_fixture(db)
 
     draft_reconcile = client.post(
         "/api/v1/payroll/inputs/reconcile-attendance",
@@ -74,6 +75,7 @@ def test_reconcile_inputs_blocks_approval_until_locked_and_creates_worksheet(cli
     assert Decimal(str(inputs.json()[0]["lop_days"])) == Decimal("1.0")
     ensure_payroll_ready(db, 5, 2026)
 
+
     run = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)
     assert run.status_code == 201
     blocked = client.put(
@@ -85,7 +87,7 @@ def test_reconcile_inputs_blocks_approval_until_locked_and_creates_worksheet(cli
     assert "attendance inputs" in blocked.json()["detail"]["message"]
     period = db.query(PayrollPeriod).filter(PayrollPeriod.id == period_id).first()
     period.status = "Open"
-    db.commit()
+    commit_payroll_fixture(db)
 
     locked_reconcile = client.post(
         "/api/v1/payroll/inputs/reconcile-attendance",
@@ -115,7 +117,7 @@ def test_payroll_input_lines_and_arrear_off_cycle_foundation(client, db):
     assert employee
     if not db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == employee.id, EmployeeSalary.is_active == True).first():
         db.add(EmployeeSalary(employee_id=employee.id, ctc=Decimal("600000"), basic=Decimal("20000"), hra=Decimal("10000"), effective_from=date(2026, 4, 1), is_active=True))
-        db.commit()
+        commit_payroll_fixture(db)
     period_id = _period(client, headers)
 
     lop = client.post(
@@ -142,7 +144,7 @@ def test_payroll_input_lines_and_arrear_off_cycle_foundation(client, db):
 
     leave_type = db.query(LeaveType).filter(LeaveType.code == "EL").first() or LeaveType(name="Earned Leave", code="EL", days_allowed=12, encashable=True)
     db.add(leave_type)
-    db.commit()
+    commit_payroll_fixture(db)
     encash_policy = client.post(
         "/api/v1/payroll/inputs/leave-encashment-policies",
         json={"name": "EL Encashment", "leave_type_id": leave_type.id, "max_days": "10", "effective_from": "2026-04-01"},

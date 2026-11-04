@@ -9,6 +9,7 @@ from app.apps.project_management.chat_models import ChatMessage
 from app.shared.communication.models import Revision
 from tests.tenant_test_utils import assign_company
 from tests.test_pms_workspaces import middleware_database
+from tests.rich_text_test_utils import organization_context
 
 BASE = "/api/v1/collaboration"
 
@@ -16,7 +17,11 @@ BASE = "/api/v1/collaboration"
 def team(db, client):
     users = [User(email=f"collab{i}@test.com", hashed_password="unused", is_superuser=i == 0, is_active=True) for i in range(4)]
     db.add_all(users); db.flush()
-    for i, user in enumerate(users): assign_company(db, user, 2 if i == 3 else 1)
+    from test_identity_utils import attach_workflow_branch
+    for i, user in enumerate(users):
+        company_id = 2 if i == 3 else 1
+        assign_company(db, user, company_id)
+        attach_workflow_branch(db, user, company_id)
     workspace = PMSWorkspace(name="Shared team", organization_id=1)
     db.add(workspace); db.flush()
     db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
@@ -238,7 +243,9 @@ def test_crm_and_hrms_adapters_reuse_authorized_native_records(client,db,team):
     pipeline=CRMPipeline(name="Communication QA");db.add_all([lead,pipeline]);db.flush()
     stage=CRMPipelineStage(pipeline_id=pipeline.id,name="Qualified");db.add(stage);db.flush()
     deal=CRMDeal(organization_id=1,name="Deal discussion",pipeline_id=pipeline.id,stage_id=stage.id,owner_user_id=users[0].id)
-    employee=Employee(employee_id="COLLAB-EMP",first_name="Team",last_name="Member",date_of_joining=date(2026,1,1),user_id=users[1].id,status="Active")
+    from app.models.company import Branch
+    branch = db.query(Branch).filter_by(company_id=1).order_by(Branch.id).first()
+    employee=Employee(branch_id=branch.id,employee_id="COLLAB-EMP",first_name="Team",last_name="Member",date_of_joining=date(2026,1,1),user_id=users[1].id,status="Active")
     db.add_all([deal,employee]);db.commit()
     for module,entity,ident in [("crm","lead",lead.id),("crm","deal",deal.id),("hrms","employee",employee.id)]:
         payload={"workspace_id":w.id,"module":module,"entity_type":entity,"entity_id":ident}

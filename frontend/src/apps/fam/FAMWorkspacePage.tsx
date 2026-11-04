@@ -1,3 +1,6 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import SuiteBarChart from "@/components/visuals/SuiteBarChart";
+import { SuiteHeading, SuiteMetric } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { ActionToolbar } from "@/components/actions";
@@ -159,7 +162,7 @@ const viewMeta: Record<FAMViewKind, ViewMeta> = {
 };
 
 function money(value: unknown) {
-  return Number(value || 0).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+  return Number(value || 0).toLocaleString("en-IN", { style: "currency", currency: defaultText("currency", "fam"), maximumFractionDigits: 0 });
 }
 
 function text(value: unknown) {
@@ -213,19 +216,7 @@ function downloadTextFile(fileName: string, content: string, contentType = "text
 function ExportButton({exportType,label}:{exportType:string;label?:string}) { return <DataExportButton label={label||"Export"} filename={exportType} load={async()=>{const job=await famApi.createExport({export_type:exportType,export_format:"csv",filters_json:{}}) as FAMRecord;if(job.status!=="ready")throw Error(text((job.error_json as FAMRecord|undefined)?.message||"Export is not ready"));const file=await famApi.downloadExport(String(job.id)) as FAMRecord;return new Blob([String(file.file_content||"")],{type:"text/csv"});}}/>;}
 
 function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetching?: boolean; onRefresh?: () => void }) {
-  const Icon = meta.icon;
-  return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
-          <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={meta.description}/></div>
-        </div>
-      </div>
-      {onRefresh ? <Button variant="outline" onClick={onRefresh} disabled={isFetching}><RefreshCw className="h-4 w-4" />Refresh</Button> : null}
-    </div>
-  );
+  return <SuiteHeading title={meta.title} icon={meta.icon} description={<RichTextContent legacyFormat="plain" value={meta.description}/>} actions={<>{onRefresh ? <Button variant="outline" onClick={onRefresh} disabled={isFetching}><RefreshCw className="h-4 w-4"/>Refresh</Button> : null}</>}/>;
 }
 
 function State({ label, isLoading, isError }: { label: string; isLoading?: boolean; isError?: boolean }) {
@@ -256,9 +247,10 @@ function DashboardView() {
 <ModuleWorkflows module="fam" />
       <div className="grid gap-3 md:grid-cols-4">
         {kpis.filter(([label]) => ["Cash and bank", "Receivables", "Payables", "Overdue AR"].includes(label)).map(([label, value]) => (
-          <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></CardContent></Card>
+          <Card key={label}><SuiteMetric label={label} value={value} icon={label === "Cash and bank" ? Landmark : label === "Overdue AR" ? AlertTriangle : Receipt}/></Card>
         ))}
       </div>
+      {!query.isLoading && !query.isError && !!data.baseCurrency && [data.totalIncome, data.totalExpenses].every(value => typeof value === "number" && Number.isFinite(value)) && <SuiteBarChart title="Income and expenses" unit={String(data.baseCurrency)} data={[{name:"Income",value:Number(data.totalIncome)},{name:"Expenses",value:Number(data.totalExpenses)}]}/>}
       <SecondaryDetails title="Financial summary and books status">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{kpis.filter(([label]) => !["Cash and bank", "Receivables", "Payables", "Overdue AR"].includes(label)).map(([label, value]) => <div key={label} className="border-b py-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p></div>)}</div>
       <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
@@ -683,7 +675,7 @@ function PaymentModesView() {
 function BankStatementsView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "bankStatements"], queryFn: famApi.bankStatements });
-  const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: 1, statement_period_start: "2026-06-01", statement_period_end: "2026-06-30", imported_file_name: "hdfc-june.csv", file_content: "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000" });
+  const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: defaultId("bank_account_id", "fam") || "", statement_period_start: "2026-06-01", statement_period_end: "2026-06-30", imported_file_name: "hdfc-june.csv", file_content: "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000" });
   const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
   return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader><CardContent className="space-y-3">{["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("period") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<ImportWizard title="Map bank statement" label="Choose Excel or CSV" fields={bankStatementFields} confirmLabel="Use mapped statement" onImport={async({rows,filename})=>{setDraft(current=>({...current,imported_file_name:filename.replace(/\.[^.]+$/,".csv"),file_content:csvText(rows)}));return {created:rows.length,message:"Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted."};}}/><Field label="CSV content"><textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={(event) => setDraft((current) => ({ ...current, file_content: event.target.value }))} /></Field><p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p><Button className="w-full" onClick={() => mutation.mutate()}>Import statement</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank statements</CardTitle></CardHeader><CardContent><State label="bank statements" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["id", "bank_account_id", "statement_period_start", "statement_period_end", "status", "imported_file_name"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/fam/bank-statements/${item.id}`}>Open statement #{text(item.id)}</Link></Button>)}</CardContent></Card></div>;
 }
@@ -723,7 +715,7 @@ function ContraView() {
 }
 
 function BankChargesView() {
-  const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: 1, expense_ledger_id: 1, amount: 250, charge_date: "2026-06-06", reference_number: "CHG-1", narration: "Monthly bank charges" });
+  const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: defaultId("bank_account_id", "fam") || "", expense_ledger_id: 1, amount: 250, charge_date: "2026-06-06", reference_number: "CHG-1", narration: "Monthly bank charges" });
   const mutation = useMutation({ mutationFn: () => famApi.postBankCharges(draft), onSuccess: () => toast({ title: "Bank charge voucher posted" }) });
   return <Card><CardHeader><CardTitle className="text-base">Post bank charges</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{["bank_account_id", "expense_ledger_id", "amount", "charge_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<div className="md:col-span-2"><Button onClick={() => mutation.mutate()}>Post bank charge</Button></div></CardContent></Card>;
 }
@@ -941,7 +933,7 @@ function defaultPurchaseBill(): FAMRecord {
     vendor_id: "",
     bill_number: `PB-${Date.now().toString().slice(-5)}`,
     bill_date: new Date().toLocaleDateString("en-CA"),
-    due_date: "",
+    due_date: defaultDateAfter("payment_terms_days", "fam"),
     gstin: "",
     place_of_supply: "",
     discount_total: 0,
@@ -1093,7 +1085,7 @@ function InventoryDashboardView() {
     : [["Items", text(data.items_count)], ["Warehouses", text(data.warehouses_count)], ["Stock value", money(data.total_stock_value)], ["Low stock", text(data.low_stock_count)]];
   const links: Array<[string, string]> = [["Accounting", "/srm/inventory/reconciliation"], ["Items", "/srm/inventory/items"], ["Warehouses", "/srm/inventory/warehouses"], ["Stock In", "/srm/inventory/stock-in"], ["Stock Out", "/srm/inventory/stock-out"], ["Transfers", "/srm/inventory/stock-transfers"], ["Adjustments", "/srm/inventory/stock-adjustments"], ["Summary", "/srm/inventory/stock-summary"], ["Valuation", "/srm/inventory/valuation"], ["AI", "/srm/inventory/ai"]];
   if (!isSrmInventory) {
-    return <div className="space-y-4"><State label="inventory dashboard" isLoading={dashboard.isLoading} isError={dashboard.isError} /><div className="grid gap-3 md:grid-cols-4">{kpis.map(([label, value]) => <Card key={label}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 text-lg font-semibold">{value}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Inventory workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{links.map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Source merge audit</CardTitle></CardHeader><CardContent><State label="source audit" isLoading={source.isLoading} isError={source.isError} /><DataTable rows={((source.data as FAMRecord | undefined)?.files as FAMRecord[] | undefined) || []} columns={["path", "exists"]} /></CardContent></Card></div>;
+    return <div className="space-y-4"><State label="inventory dashboard" isLoading={dashboard.isLoading} isError={dashboard.isError} /><div className="grid gap-3 md:grid-cols-4">{kpis.map(([label, value]) => <Card key={label}><SuiteMetric label={label} value={value} icon={label === "Cash and bank" ? Landmark : label === "Overdue AR" ? AlertTriangle : Receipt}/></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Inventory workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3">{links.map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Source merge audit</CardTitle></CardHeader><CardContent><State label="source audit" isLoading={source.isLoading} isError={source.isError} /><DataTable rows={((source.data as FAMRecord | undefined)?.files as FAMRecord[] | undefined) || []} columns={["path", "exists"]} /></CardContent></Card></div>;
   }
   return (
     <div className="space-y-4">
@@ -1611,7 +1603,7 @@ function InventoryPriceListsView() {
     price_list_name: "Retail price list",
     channel: "retail",
     customer_type: "cash",
-    currency: "INR",
+    currency: defaultText("currency", "fam"),
     effective_from: "2026-06-20",
     priority: 100,
     product_id: 1,
@@ -2037,7 +2029,7 @@ function InventoryReconciliationDetailView({ kind }: { kind: "gl" | "grni" | "co
 }
 
 function MetricGrid({ items }: { items: Array<[string, React.ReactNode]> }) {
-  return <div className="grid gap-3 sm:grid-cols-2">{items.map(([label, value]) => <div key={label} className="rounded-md border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p></div>)}</div>;
+  return <div className="grid gap-3 sm:grid-cols-2">{items.map(([label, value]) => <Card key={label}><SuiteMetric label={label} value={value} icon={BarChart3}/></Card>)}</div>;
 }
 
 function InventoryAIView() {

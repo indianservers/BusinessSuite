@@ -505,7 +505,7 @@ const pmsDeliveryOnlyPaths = [
 ];
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
-  if (["/pms/management", "/pms/my-work"].includes(pathname)) return true;
+  if (["/pms/management", "/pms/my-work", "/pms/tasks-follow-ups"].includes(pathname) || /^\/pms\/(?:follow-ups(?:\/[^/]+)?|customers\/\d+\/360)$/.test(pathname)) return true;
   if (["/pms/projects", "/pms/tasks", "/pms/products-services", "/pms/products"].includes(pathname) || /^\/pms\/projects\/\d+(?:\/(?:board|members))?$/.test(pathname)) return true;
   if (pathname === "/pms/members" || /^\/pms\/projects\/\d+\/members\/?$/.test(pathname)) return true;
   if (["/pms/people-work", "/pms/my-notices"].includes(pathname.replace(/\/$/, ""))) return true;
@@ -839,6 +839,7 @@ const crmNav: RoleNavItem[] = [
   { label: "Customers", icon: UserRound, to: "/crm/customers", group: "Core" },
   { label: "Companies", icon: Building2, to: "/crm/companies", group: "Core" },
   { label: "Vendors", icon: Users, to: "/crm/vendors", group: "Core" },
+  { label: "Payment requests", icon: DollarSign, to: "/crm/payment-requests", group: "Sales" },
   { label: "Deals", icon: DollarSign, to: "/crm/deals", group: "Sales" },
   { label: "Pipeline", icon: GitBranch, to: "/crm/pipeline", group: "Sales", badge: "Drag" },
   { label: "Pipeline templates", icon: LayoutGrid, to: "/crm/templates", group: "Sales" },
@@ -855,10 +856,6 @@ const crmNav: RoleNavItem[] = [
   { label: "Campaigns", icon: Megaphone, to: "/crm/campaigns", group: "Growth" },
   { label: "Consents", icon: ShieldCheck, to: "/crm/consents", group: "Growth" },
   { label: "WhatsApp", icon: MessageCircle, to: "/crm/whatsapp", group: "Growth" },
-  { label: "WhatsApp Received", icon: MessageCircle, to: "/crm/whatsapp/inbox", group: "Growth" },
-  { label: "WhatsApp Sent & Delivery", icon: Send, to: "/crm/whatsapp/sent", group: "Growth" },
-  { label: "WhatsApp Meta Templates", icon: FileText, to: "/crm/whatsapp/templates", group: "Growth" },
-  { label: "WhatsApp Business Profile", icon: MessageCircle, to: "/crm/whatsapp/profile", group: "Growth" },
   { label: "Auto Responses", icon: Send, to: "/crm/auto-responses", group: "Growth" },
   { label: "Delivery Logs", icon: ScrollText, to: "/crm/delivery-logs", group: "Growth" },
   { label: "Communication Timeline", icon: TableProperties, to: "/crm/communication-timeline", group: "Growth" },
@@ -901,6 +898,7 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Backlog Grooming", icon: ClipboardCheck, to: "/pms/backlog-grooming", group: "Planning & delivery" },
   { label: "Issues", icon: AlertTriangle, to: "/pms/issues", group: "Projects & tasks" },
   { label: "Tasks", icon: ListChecks, to: "/pms/tasks", group: "Projects & tasks" },
+  { label: "Tasks & Follow-ups", icon: Clock, to: "/pms/tasks-follow-ups", group: "Projects & tasks" },
   { label: "My Notes", icon: FileText, to: "/pms/notes", group: "Collaboration" },
   { label: "Issue Navigator", icon: Search, to: "/pms/navigator", group: "Projects & tasks" },
   { label: "Issue Navigator Pro", icon: FileSearch, to: "/pms/issue-navigator-pro", group: "Projects & tasks" },
@@ -979,6 +977,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Billing Plans", icon: CalendarDays, to: "/srm/billing-plans", group: "Billing" },
   { label: "Invoice Drafts", icon: FileText, to: "/srm/invoice-drafts", group: "Billing" },
   { label: "Invoices", icon: DollarSign, to: "/srm/invoices", group: "Billing" },
+  { label: "Payment requests", icon: DollarSign, to: "/srm/payment-requests", group: "Billing" },
   { label: "Collections", icon: Landmark, to: "/srm/collections", group: "Collections" },
   { label: "Revenue Recognition", icon: CheckCircle2, to: "/srm/revenue-recognition", group: "Revenue" },
   { label: "Profitability", icon: BarChart3, to: "/srm/profitability", group: "Revenue" },
@@ -1179,7 +1178,12 @@ function getDelegatedHrNav(role?: string | null): RoleNavItem[] {
 }
 
 export function getRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
-  return categorizeNavigation(getAvailableRoleNav(role, isSuperuser, pathname), getActiveModule(pathname));
+  const available = [...getAvailableRoleNav(role, isSuperuser, pathname)];
+  const root = pathname.split("/")[1];
+  if (["crm", "srm", "hrms", "pms", "fam"].includes(root) && available.length && canAccessRoute(`/${root}`, role, isSuperuser)) {
+    available.push({label:"Import data",icon:Upload,to:`/${root}/import-data`,group:"Settings & administration"});
+  }
+  return categorizeNavigation(available, getActiveModule(pathname));
 }
 
 function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname = window.location.pathname): RoleNavItem[] {
@@ -1221,7 +1225,7 @@ function getAvailableRoleNav(role?: string | null, isSuperuser = false, pathname
 
   if (activeModule === "project_management") {
     if (!installedApps.includes("project_management")) return [];
-    return isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : projectManagementNav.filter(item => ["/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/notes", "/pms/members", "/pms/people"].includes(item.to) && canAccessRoute(item.to, role, isSuperuser));
+    return isProjectManagementRole(role, isSuperuser) ? getPmsNavForRole(role, isSuperuser) : projectManagementNav.filter(item => ["/pms/workspaces", "/pms/projects", "/pms/tasks", "/pms/tasks-follow-ups", "/pms/notes", "/pms/members", "/pms/people"].includes(item.to) && canAccessRoute(item.to, role, isSuperuser));
   }
 
   if (activeModule === "srm") {
@@ -1362,6 +1366,7 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  if (/^\/(crm|srm|hrms|pms|fam)\/import-data\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
   if (pathname === "/settings" || pathname.startsWith("/settings/")) return true;
   if (["/dashboard", "/account", "/notifications", "/help"].includes(pathname.split(/[?#]/)[0])) return true;
   const access = useAuthStore.getState().user?.access;

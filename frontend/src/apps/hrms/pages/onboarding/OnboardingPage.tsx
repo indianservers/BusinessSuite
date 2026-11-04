@@ -18,7 +18,7 @@ export default function OnboardingPage() {
   usePageTitle("Onboarding");
   const qc = useQueryClient();
   const [templateName, setTemplateName] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
+  const [employeeId, setEmployeeId] = useState(()=>new URLSearchParams(window.location.search).get("employeeId")||"");
   const [templateId, setTemplateId] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
 

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 """CRM multi-item associations and non-destructive merge regressions."""
 import pytest
 from app.models.company import Company, Branch
@@ -39,7 +40,7 @@ def line(item):
 
 
 def contact(client, h, **values):
-    return post(client, h, 'crm/contacts', {'first_name':'Merge', 'full_name':'Merge Person', 'email':'merge@example.com', **values})
+    return post(client, h, 'crm/contacts', {'first_name':'Merge', 'full_name':'Merge Person', 'email':'merge@example.com', 'confirmShared':True, 'sharedReason':'Synthetic duplicate for merge regression', **values})
 
 
 def test_contact_multiple_items_create_edit_remove(client, superuser_headers):
@@ -150,14 +151,16 @@ def test_invalid_merge_rolls_back_and_invalid_associations_are_atomic(client, db
     savepoint = db.begin_nested()
     failed = client.post('/api/v1/crm/duplicates/merge',headers=h,json={'entityType':'contact','winnerId':first['id'],'loserIds':[second['id']],'fieldValues':{'phone':'bad','phone_country_code':'+91'}})
     assert failed.status_code == 422, failed.text
-    savepoint.rollback()
+    if savepoint.is_active:
+        savepoint.rollback()
     db.expire_all()
     assert db.get(CRMContact,second['id']).deleted_at is None
     assert db.get(CRMContact,first['id']).job_title is None
     savepoint = db.begin_nested()
     invalid = client.post('/api/v1/crm/contacts',headers=h,json={'first_name':'Invalid','full_name':'Invalid association','email':'atomic@example.com','catalog_lines':[{'kind':'product','item_id':999999,'quantity':1}]})
     assert invalid.status_code == 404, invalid.text
-    savepoint.rollback()
+    if savepoint.is_active:
+        savepoint.rollback()
     assert not db.query(CRMContact).filter_by(email='atomic@example.com').count()
 
 

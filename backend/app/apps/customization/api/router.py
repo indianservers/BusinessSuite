@@ -158,9 +158,27 @@ def list_fields(db: Session = Depends(get_db), current_user: User = Depends(Requ
     return {"items": [_serialize(item) for item in items], "total": len(items)}
 
 
+def _validate_field_presentation(data):
+    from app.apps.crm.custom_field_config import PLACES
+    validation=data.validation_json or {}
+    places=validation.get("places",sorted(PLACES))
+    if not isinstance(places,list) or any(not isinstance(p,str) or p not in PLACES for p in places):
+        raise HTTPException(422,"Invalid places where shown")
+    if data.required and not data.default_value and (not data.visible or not {"create","quick_create"}.issubset(places)):
+        raise HTTPException(422,"Required fields must appear in create and quick-add forms")
+    options=data.options or validation.get("options",[])
+    if not isinstance(options,list) or any(not isinstance(o,dict) or not isinstance(o.get("value"),str) or not o["value"].strip() for o in options):
+        raise HTTPException(422,"Invalid field options")
+    if len({o["value"] for o in options})!=len(options):
+        raise HTTPException(422,"Options must be unique")
+    if data.field_type in {"radio","combobox"} and not options:
+        raise HTTPException(422,"Choice fields require options")
+
+
 @customization_router.post("/fields", status_code=201)
 def create_field(data: FieldPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_fields_manage", "customization_manage"))):
     validate_api_name(data.field_api_name, "Field API name")
+    _validate_field_presentation(data)
     validate_field_metadata(data.field_type, data.formula_expression, data.rollup_config_json)
     if db.query(CustomizationField).filter(CustomizationField.module_name == data.module_name, CustomizationField.field_api_name == data.field_api_name).first():
         raise HTTPException(status_code=400, detail="Field API name already exists for module")
@@ -193,10 +211,28 @@ def update_field(field_id: int, data: FieldPayload, db: Session = Depends(get_db
     item = db.query(CustomizationField).filter(CustomizationField.id == field_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Field not found")
+    _validate_field_presentation(data)
     validate_field_metadata(data.field_type, data.formula_expression, data.rollup_config_json)
+    if (item.module_name,item.field_api_name,item.field_type)!=(data.module_name,data.field_api_name,data.field_type):
+        raise HTTPException(409,"Field module, identifier and type cannot change; existing values are preserved")
+    validation = dict(data.validation_json or {})
+    old_options = (item.validation_json or {}).get("options", [])
+    if data.options:
+        validation["options"] = data.options
+    new_options = validation.get("options", [])
+    if not {o["value"] for o in old_options}.issubset({o["value"] for o in new_options}):
+        raise HTTPException(409,"Keep options already available to existing records")
     before = _serialize(item)
-    for key, value in data.model_dump(exclude={"options"}).items():
+    for key, value in data.model_dump(exclude={"options","validation_json"}).items():
         setattr(item, key, value)
+    item.validation_json = validation
+    existing = {o.value:o for o in db.query(CustomizationFieldOption).filter_by(field_id=item.id).all()}
+    for index, option in enumerate(new_options):
+        if option["value"] not in existing:
+            db.add(CustomizationFieldOption(field_id=item.id,value=option["value"],label=option.get("label") or option["value"],order_index=index,active=True))
+        else:
+            existing[option["value"]].label=option.get("label") or option["value"]
+            existing[option["value"]].order_index=index
     _audit(db, current_user, "field", item.id, "updated", before=before, after=data.model_dump())
     db.commit()
     return _serialize(item)
@@ -318,7 +354,9 @@ def arrange_layout(layout_id: int, data: LayoutArrangementInput, db: Session = D
 def reorder_layout_fields(layout_id: int, data: LayoutReorderPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_layouts_manage", "customization_manage"))):
     if not db.query(CustomizationLayout).filter(CustomizationLayout.id == layout_id).first():
         raise HTTPException(status_code=404, detail="Layout not found")
-    db.query(CustomizationLayoutField).filter(CustomizationLayoutField.layout_id == layout_id).delete()
+    for previous in db.query(CustomizationLayoutField).filter(CustomizationLayoutField.layout_id == layout_id).all():
+        db.delete(previous)
+    db.flush()
     for index, field in enumerate(data.fields):
         if not db.query(CustomizationField).filter(CustomizationField.id == field["field_id"]).first():
             raise HTTPException(status_code=404, detail=f"Field {field['field_id']} not found")
@@ -484,9 +522,20 @@ def update_dynamic_record(module_api_name: str, record_id: int, data: DynamicRec
     item = db.query(CustomizationRecord).filter(CustomizationRecord.module_api_name == module_api_name, CustomizationRecord.id == record_id, CustomizationRecord.deleted_at == None).first()
     if not item:
         raise HTTPException(status_code=404, detail="Custom record not found")
-    validate_record_payload(db, module_api_name, data.values, record_id)
+    merged_values={**(item.values_json or {}),**data.values}
+    validate_record_payload(db, module_api_name, merged_values, record_id)
     before = _serialize(item)
-    item.values_json = data.values
+    item.values_json = merged_values
+    for field in db.query(CustomizationField).filter_by(module_name=module_api_name).all():
+        if field.field_api_name not in merged_values:
+            continue
+        value=merged_values[field.field_api_name]
+        stored=db.query(CustomizationRecordValue).filter_by(record_id=item.id,field_id=field.id).first()
+        if stored is None:
+            stored=CustomizationRecordValue(record_id=item.id,field_id=field.id)
+            db.add(stored)
+        stored.value_json=value
+        stored.value_text=str(value) if value is not None else None
     if data.owner_user_id is not None:
         item.owner_user_id = data.owner_user_id
     item.updated_by = current_user.id

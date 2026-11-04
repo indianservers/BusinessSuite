@@ -738,6 +738,9 @@ class SRMInvoice(Base):
     total_amount = Column(Numeric(14, 2), default=0)
     paid_amount = Column(Numeric(14, 2), default=0)
     balance_amount = Column(Numeric(14, 2), default=0)
+    collection_hold = Column(Boolean, nullable=False, default=False, server_default="false")
+    collection_hold_reason = Column(String(500))
+    collection_resume_at = Column(DateTime(timezone=True))
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -798,11 +801,13 @@ class SRMReceipt(Base):
 
 class SRMReceiptAllocation(Base):
     __tablename__ = "srm_receipt_allocations"
+    __table_args__ = (UniqueConstraint("receipt_id", "request_id", name="uq_srm_allocation_request"),)
 
     id = Column(Integer, primary_key=True, index=True)
     receipt_id = Column(Integer, ForeignKey("srm_receipts.id", ondelete="CASCADE"), nullable=False, index=True)
     invoice_id = Column(Integer, ForeignKey("srm_invoices.id", ondelete="CASCADE"), nullable=False, index=True)
     amount = Column(Numeric(14, 2), default=0)
+    request_id = Column(String(36), nullable=True)
     allocated_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     allocated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 

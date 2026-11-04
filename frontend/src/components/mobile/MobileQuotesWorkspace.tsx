@@ -1,3 +1,4 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import { useAuthStore } from "@/store/authStore";
 
 export default function MobileQuotesWorkspace() { const mobile=useMobile(); return mobile ? <QuoteWorkspace/> : <Navigate to="/crm/quotes" replace/>; }
 function QuoteWorkspace() {
- const [creating,setCreating]=useState(false),[step,setStep]=useState(0),[customer,setCustomer]=useState(""),[search,setSearch]=useState(""),[currency,setCurrency]=useState("INR"),[expiry,setExpiry]=useState(()=>new Date(Date.now()+14*86400000).toISOString().slice(0,10)),[lines,setLines]=useState<CatalogLine[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const [creating,setCreating]=useState(false),[step,setStep]=useState(0),[customer,setCustomer]=useState(""),[search,setSearch]=useState(""),[currency,setCurrency]=useState(()=>defaultText("currency", "srm")),[expiry,setExpiry]=useState(()=>defaultDateAfter("quote_validity_days", "srm")),[lines,setLines]=useState<CatalogLine[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const draft=useRef<{id?:number;added:number;number:string}>({added:0,number:`QT-${crypto.randomUUID().slice(0,8).toUpperCase()}`});
  const uid=useAuthStore(s=>s.user?.id);
  const quotes=useQuery({queryKey:["mobile-quotes",uid,search],queryFn:()=>crmApi.list("quotes",{search,per_page:30}).then(r=>r.data)});

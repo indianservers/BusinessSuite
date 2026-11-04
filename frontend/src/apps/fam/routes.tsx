@@ -1,6 +1,7 @@
-import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
+const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
+const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 import type { FAMViewKind } from "./types";
@@ -15,6 +16,7 @@ const route = (path: string, kind: FAMViewKind): FrontendRoute => ({
 
 
 export const famRoutes: FrontendRoute[] = [
+  {path:"fam/import-data",element:<ImportWorkspace module="fam"/>},
  { path: "fam/messages", element: <CommunicationWorkspace module="Finance" /> },
   { path: "fam/gantt", element: <ModuleGanttPage key="fam" module="fam" /> },
   route("fam", "dashboard"),

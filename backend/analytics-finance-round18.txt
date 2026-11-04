@@ -1,0 +1,30 @@
+bringing up nodes...
+bringing up nodes...
+
+...........F
+____________________ test_pf_ecr_and_esi_export_generation ____________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_compliance_exports.py:48: in test_pf_ecr_and_esi_export_generation
+    assert run_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+___________________ test_pf_generation_reports_missing_uan ____________________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_hrms_compliance_exports.py:91: in test_pf_generation_reports_missing_uan
+    assert run_response.status_code == 201
+E   assert 409 == 201
+E    +  where 409 = <Response [409 Conflict]>.status_code
+.F
+____________ test_domain_pack_enablement_and_manufacturing_records ____________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_advanced_analytics_domain_pack.py:121: in test_domain_pack_enablement_and_manufacturing_records
+    assert incident.status_code == 201
+E   assert 400 == 201
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+.......                                                                  [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_hrms_compliance_exports.py::test_pf_ecr_and_esi_export_generation
+FAILED backend\tests\test_hrms_compliance_exports.py::test_pf_generation_reports_missing_uan
+FAILED backend\tests\test_advanced_analytics_domain_pack.py::test_domain_pack_enablement_and_manufacturing_records
+3 failed, 20 passed, 8 warnings in 40.75s

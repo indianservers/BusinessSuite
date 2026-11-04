@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import { Link } from "react-router-dom";
 import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import {
@@ -11,7 +11,7 @@ import {
   Shield,
 } from "lucide-react";
 import { openPerson } from "./peopleTypes";
-import { type DirectoryPerson, initials } from "./peopleWorkspace";
+import { type DirectoryPerson } from "./peopleWorkspace";
 import PeopleAction from "./PeopleAction";
 export function DirectoryAvatar({
   person,
@@ -20,20 +20,7 @@ export function DirectoryAvatar({
   person: Pick<DirectoryPerson, "name" | "photo_url">;
   size?: "normal" | "small" | "large";
 }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [person.photo_url]);
-  return person.photo_url && !failed ? (
-    <img
-      className={`pd-avatar ${size}`}
-      src={person.photo_url}
-      alt={person.name}
-      onError={() => setFailed(true)}
-    />
-  ) : (
-    <span aria-label={person.name} className={`pd-avatar pd-initials ${size}`}>
-      {initials(person.name)}
-    </span>
-  );
+  return <span className={`pd-avatar ${size}`}><SuiteAvatar name={person.name} src={person.photo_url} kind="employee" size={size === "small" ? 32 : size === "large" ? 80 : 48}/></span>;
 }
 export default function DirectoryPersonCard({
   person,

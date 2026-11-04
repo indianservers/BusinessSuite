@@ -1,0 +1,15 @@
+bringing up nodes...
+bringing up nodes...
+
+..........................F
+_______________________ test_fam_branch_create_and_list _______________________
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_fam_branches.py:20: in test_fam_branch_create_and_list
+    assert response.status_code == 201, response.text
+E   AssertionError: {"detail":"Branch access administration is required"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+..............................                                           [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_fam_branches.py::test_fam_branch_create_and_list - ...
+1 failed, 56 passed, 121 warnings in 106.26s (0:01:46)

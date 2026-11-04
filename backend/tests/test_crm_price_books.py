@@ -2,9 +2,10 @@ from app.apps.crm.models import CRMPriceBook, CRMPriceBookItem, CRMProduct
 
 
 def test_crm_price_book_and_item_api_database(client, db, superuser_headers):
-    product = CRMProduct(organization_id=1, name="CRM Starter", sku="CRM-ST", product_code="CRM-ST", unit_price=25000, list_price=25000)
-    db.add(product)
-    db.commit()
+    created = client.post("/api/v1/catalog/items?source=crm", headers=superuser_headers,
+        json={"kind":"product", "name":"CRM Starter", "code":"CRM-ST", "price":25000, "currency":"INR", "tax":0})
+    assert created.status_code == 201, created.text
+    product_id = created.json()["id"]
 
     response = client.post("/api/v1/crm/price-books", headers=superuser_headers, json={
         "name": "India Standard",
@@ -20,7 +21,7 @@ def test_crm_price_book_and_item_api_database(client, db, superuser_headers):
     item = client.post("/api/v1/crm/price-book-items", headers=superuser_headers, json={
         "priceBookId": price_book_id,
         "itemType": "product",
-        "productId": product.id,
+        "productId": product_id,
         "currency": "INR",
         "listPrice": 25000,
         "sellingPrice": 22000,

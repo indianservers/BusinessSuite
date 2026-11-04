@@ -4,6 +4,9 @@ from app.shared.master_data_models import ContactChannel, BusinessRelationship, 
 
 
 def merge_contact_extensions(db, winner_id, loser_ids):
+    from app.apps.project_management.task_record_links import merge_links
+    from app.apps.project_management.models import PMSTaskRecordLink
+    merge_links(db, 'contact', winner_id, loser_ids)
     channels = {(x.kind, x.normalized_value): x for x in db.query(ContactChannel).filter_by(contact_id=winner_id)}
     primary_kinds = {x.kind for x in channels.values() if x.is_primary}
     for row in db.query(ContactChannel).filter(ContactChannel.contact_id.in_(loser_ids)).order_by(ContactChannel.id).all():
@@ -68,4 +71,4 @@ def merge_contact_extensions(db, winner_id, loser_ids):
             db.delete(source)
     for transaction in db.query(ContactFinancialTransaction).filter(ContactFinancialTransaction.contact_id.in_(loser_ids)).all():
         transaction.contact_id = winner_id
-    return {ContactChannel, BusinessRelationship, ContactBirthday, CompanyContactLink, ContactFinancialProfile, ContactFinancialTransaction}
+    return {ContactChannel, BusinessRelationship, ContactBirthday, CompanyContactLink, ContactFinancialProfile, ContactFinancialTransaction, PMSTaskRecordLink}

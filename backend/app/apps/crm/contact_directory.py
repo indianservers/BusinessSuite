@@ -222,6 +222,7 @@ def export_contacts(search: str = "", relationship: str = "", filters: str = Que
 
 
 class ContactEdit(BaseModel):
+    customFields: dict[str, object] = Field(default_factory=dict, max_length=100)
     branch_availability: BranchAvailability | None = None
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=180)
@@ -245,6 +246,8 @@ class ContactEdit(BaseModel):
 
 
 def apply_edit(db, actor, row, data):
+    from app.apps.crm.custom_field_config import validate_values
+    validate_values(db,"contacts",row.organization_id,data.customFields,row.id)
     from app.core.input_validation import email_address, national_phone, calling_code
     name = data.name.strip()
     if not name:
@@ -286,6 +289,10 @@ def apply_edit(db, actor, row, data):
         db.add(row)
         db.flush()
         save_profile(db, actor, row, data.financialData)
+    db.add(row)
+    db.flush()
+    core()._validate_required_custom_fields(db, "contacts", row.id, row.organization_id, data.customFields)
+    core()._save_custom_field_values(db, "contacts", row.id, row.organization_id, actor.id, data.customFields)
 
 
 @router.post("")

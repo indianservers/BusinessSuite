@@ -1,3 +1,4 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 export default function ExpenseClaimForm({ employeeId }: { employeeId: number }) {
   const userId = useAuthStore(s => s.user?.id), qc = useQueryClient();
   const draftKey = `hrms-expense-draft:${userId}:${employeeId}`;
-  const empty = { claim_type: "Travel", expense_date: new Date().toLocaleDateString("en-CA"), amount: "", currency: "INR", description: "" };
+  const empty = { claim_type: "Travel", expense_date: new Date().toLocaleDateString("en-CA"), amount: "", currency: defaultText("currency", "hrms"), description: "" };
   const [form, setForm] = useState(() => { try { return { ...empty, ...JSON.parse(sessionStorage.getItem(draftKey) || "{}").form }; } catch { return empty; } });
   const [pendingId, setPendingId] = useState<number | null>(() => { try { return JSON.parse(sessionStorage.getItem(draftKey) || "{}").pendingId || null; } catch { return null; } });
   const [file, setFile] = useState<File | null>(null);

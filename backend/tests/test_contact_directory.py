@@ -13,15 +13,18 @@ ROOT = "/api/v1/crm/contact-directory"
 
 @pytest.fixture(autouse=True)
 def directory_identity(db, superuser_headers):
-    from test_identity_utils import attach_test_identity
-    from app.models.company import Branch
-    from app.branches.migration import backfill
-    user = db.query(User).filter(User.email == "testadmin@test.com").one()
-    attach_test_identity(db, user)
-    branch = Branch(company_id=1, name="Directory branch", code="DIR")
-    db.add(branch); db.commit()
-    backfill(db.connection(), 1); db.commit()
-    return branch
+    from tests.rich_text_test_utils import workflow_seed_scope
+    with workflow_seed_scope(db):
+        from test_identity_utils import attach_test_identity
+        from app.models.company import Branch
+        from app.branches.migration import backfill
+        user = db.query(User).filter(User.email == "testadmin@test.com").one()
+        attach_test_identity(db, user)
+        branch = db.query(Branch).filter_by(company_id=1, is_active=True).order_by(Branch.id).first() or Branch(company_id=1, name="Directory branch", code="DIR")
+        db.add(branch); db.commit()
+        backfill(db.connection(), 1); db.commit()
+        superuser_headers['X-Suite-Branch'] = str(branch.id)
+        yield branch
 
 
 def new_contact(client, headers, **values):
@@ -170,7 +173,9 @@ def test_read_permission_does_not_grant_mutation_or_hr_access(client, db, superu
     row = new_contact(client, superuser_headers)
     reader = _headers_for_permissions(client, db, "contact-reader@example.com", ["crm_contacts_view"])
     user = db.query(User).filter(User.email == "contact-reader@example.com").one()
-    db.add(BranchGrant(company_id=1, user_id=user.id, branch_id=directory_identity.id, can_write=False)); db.commit()
+    grant = db.query(BranchGrant).filter_by(company_id=1, user_id=user.id, branch_id=directory_identity.id).one()
+    grant.can_write = False
+    db.commit()
     listing = client.get(ROOT, headers=reader)
     assert listing.status_code == 200, listing.text
     assert not listing.json()["canManage"]
@@ -237,7 +242,7 @@ def test_permanent_deletion_is_admin_only_and_protects_referenced_contacts(clien
     assert db.get(CRMContact, used["id"]) is not None
 
 def financial_details():
-    return {"gstNumber": "27ABCDE1234F1Z5", "bankAccounts": [
+    return {"gstNumber": "27AAPFU0939F1ZV", "bankAccounts": [
         {"holderName": "Ravi Kumar", "bankName": "Example Bank", "accountNumber": "001234567890", "ifsc": "SBIN0001234", "micr": "400002001", "primary": True},
         {"holderName": "Ravi Kumar", "bankName": "Other Bank", "accountNumber": "009876543210", "ifsc": "HDFC0001234", "primary": False}],
         "upiIds": [{"upiId": "ravi@bank", "mobile": "+919876543210", "primary": True}, {"upiId": "business@bank", "mobile": "9876543210"}]}
@@ -259,7 +264,7 @@ def test_financial_profile_roundtrip_conflict_and_optional(client, superuser_hea
     data["gstNumber"] = ""
     assert client.put(endpoint, headers=superuser_headers, json=data).status_code == 200
     assert client.put(endpoint, headers=superuser_headers, json=data).status_code == 409
-    for key, value in [("gstNumber", "INVALID"), ("bankAccounts", [{"accountNumber": "123", "ifsc": "BAD"}]), ("bankAccounts", [{"accountNumber": "123", "micr": "123"}]), ("upiIds", [{"upiId": "invalid"}])]:
+    for key, value in [("gstNumber", "INVALID"), ("gstNumber", "27ABCDE1234F1Z5"), ("bankAccounts", [{"accountNumber": "123", "ifsc": "BAD"}]), ("bankAccounts", [{"accountNumber": "123", "micr": "123"}]), ("upiIds", [{"upiId": "invalid"}])]:
         invalid = {**financial_details(), key: value, "version": 2}
         assert client.put(endpoint, headers=superuser_headers, json=invalid).status_code == 422
     blank = new_contact(client, superuser_headers, name="No financial data", email="optional@example.com")
@@ -294,7 +299,9 @@ def test_financial_access_scope_and_read_only(client, db, superuser_headers, dir
     row = new_contact(client, superuser_headers)
     reader = _headers_for_permissions(client, db, "financial-reader@example.com", ["crm_contacts_view"])
     actor = db.query(User).filter_by(email="financial-reader@example.com").one()
-    db.add(BranchGrant(company_id=1, user_id=actor.id, branch_id=directory_identity.id, can_write=False)); db.commit()
+    grant = db.query(BranchGrant).filter_by(company_id=1, user_id=actor.id, branch_id=directory_identity.id).one()
+    grant.can_write = False
+    db.commit()
     endpoint = f"{ROOT}/{row['id']}"
     # A contacts viewer still cannot see a record outside their visibility.
     assert client.get(endpoint + "/financial-data", headers=reader).status_code == 404
@@ -318,7 +325,7 @@ def test_financial_data_in_legacy_contact_capture(client, superuser_headers):
     data = client.get(f"{ROOT}/{ident}/financial-data", headers=superuser_headers).json()
     data.pop("canManage", None)
     data.pop("canVoid", None)
-    assert data["gstNumber"] == "27ABCDE1234F1Z5"
+    assert data["gstNumber"] == "27AAPFU0939F1ZV"
     assert data["bankAccounts"][0]["accountNumber"] == "001234567890"
     data["bankAccounts"][0]["micr"] = "500002001"
     response = client.patch(f"/api/v1/crm/contacts/{ident}", headers=superuser_headers, json={"financialData": data})
@@ -404,10 +411,10 @@ def test_shared_customer_vendor_financial_identity_and_columns(client, superuser
         assert grid.status_code == 200, grid.text
         saved = next(x for x in grid.json()["rows"] if x["id"] == ident)
         assert saved["financialContactId"] == contact and saved["bankAccountCount"] == 2 and saved["upiCount"] == 2
-        assert saved["gstNumber"] == "27ABCDE1234F1Z5"
+        assert saved["gstNumber"] == "27AAPFU0939F1ZV"
 
     exported = client.post("/api/v1/master-data/company-directory/export", headers=superuser_headers, params={"source":"crm","role":"Customer"}, json={"columns":["name","gstNumber","bankAccountCount","upiCount"]})
-    assert exported.status_code == 200 and "27ABCDE1234F1Z5" in exported.text, exported.text
+    assert exported.status_code == 200 and "27AAPFU0939F1ZV" in exported.text, exported.text
 
 
 def test_long_display_names_fit_canonical_identity_columns(client, superuser_headers):

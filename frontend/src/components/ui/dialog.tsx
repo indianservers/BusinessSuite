@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 export const Dialog = Primitive.Root;
 export const DialogTitle = Primitive.Title;
+export const DialogDescription = Primitive.Description;
 export function DialogHeader(props: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
@@ -23,6 +24,10 @@ export const DialogContent = React.forwardRef<
       ref={ref}
       aria-describedby={undefined}
       {...props}
+      onEscapeKeyDown={event => {
+        if (document.activeElement?.matches('[data-record-picker][aria-expanded="true"]')) { event.preventDefault(); return; }
+        props.onEscapeKeyDown?.(event);
+      }}
       className={cn(
         "fixed left-1/2 top-1/2 z-50 grid min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-background p-4 shadow-xl sm:p-6",
         className,

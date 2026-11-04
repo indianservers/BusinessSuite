@@ -3,74 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import OrderedList from "@/components/interaction/OrderedList";
 import { usePageTitle } from "@/hooks/use-page-title";
-type Field = {
-  id: number;
-  module: string;
-  label: string;
-  section: string;
-  field_type: string;
-  display_order: number;
-};
-export default function CustomFieldsPage() {
-  usePageTitle("Custom Fields");
-  const [module, setModule] = useState("employees");
-  const fields = useQuery({
-    queryKey: ["hr-custom-fields", module],
-    queryFn: () =>
-      api
-        .get<Field[]>("/custom-fields/definitions", { params: { module } })
-        .then((r) => r.data),
-  });
-  return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="page-title">Custom Fields</h1>
-        <p className="page-description">
-          Arrange the shared field order for each module. Changes are saved
-          immediately.
-        </p>
-      </div>
-      <label className="flex gap-3 items-center">
-        Module{" "}
-        <input
-          className="input max-w-xs"
-          value={module}
-          onChange={(e) => setModule(e.target.value)}
-        />
-      </label>
-      {fields.isError && (
-        <p role="alert">
-          Unable to load field definitions. Check your access and try again.
-        </p>
-      )}
-      {fields.isLoading ? (
-        <p role="status">Loading fields…</p>
-      ) : (
-        <OrderedList
-          label="Field order"
-          items={fields.data || []}
-          title={(f) => f.label}
-          render={(f) => (
-            <p className="text-xs text-muted-foreground">
-              {f.section} · {f.field_type}
-            </p>
-          )}
-          onReorder={async (ordered) => {
-            try {
-              await api.post(
-                "/custom-fields/definitions/reorder",
-                {
-                  ids: ordered.map((f) => f.id),
-                  previous_order: fields.data?.map((f) => f.id),
-                },
-                { params: { module } },
-              );
-            } finally {
-              await fields.refetch();
-            }
-          }}
-        />
-      )}
-    </div>
-  );
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import FieldControl, { fieldOptions, fieldSettings } from "@/shared/custom-fields/FieldControl";
+
+type Field = { id:number; module:string; field_key:string; label:string; section:string; field_type:string; display_order:number; options_json:unknown; is_required:boolean; is_sensitive:boolean; [key:string]:unknown };
+const places=[["create","Create form"],["edit","Edit form"],["quick_create","Quick-add form"],["detail","Record detail view"]];
+const blank=()=>({label:"",field_key:"",section:"Additional information",field_type:"text",options:"",places:places.map(([key])=>key),is_required:false,is_sensitive:false});
+export default function CustomFieldsPage(){
+ usePageTitle("Custom Fields");
+ const [module,setModule]=useState("employees"),[open,setOpen]=useState(false),[editing,setEditing]=useState<Field|null>(null),[draft,setDraft]=useState(blank),[preview,setPreview]=useState<unknown>(null),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const fields=useQuery({queryKey:["hr-custom-fields",module],queryFn:()=>api.get<Field[]>("/custom-fields/definitions",{params:{module}}).then(r=>r.data)});
+ function edit(field:Field|null){setEditing(field);const ui=field?fieldSettings(field):{};setDraft(field?{label:field.label,field_key:field.field_key,section:field.section,field_type:field.field_type,options:fieldOptions(field.options_json).join("\n"),places:Array.isArray(ui.places)?ui.places as string[]:places.map(([key])=>key),is_required:field.is_required,is_sensitive:field.is_sensitive}:blank());setPreview(null);setError("");setOpen(true);}
+ return <main className="space-y-5"><header className="flex flex-wrap justify-between gap-3"><div><h1 className="page-title">Custom fields</h1><p className="page-description">Configure the information your employee forms capture and where each field appears.</p></div><Button onClick={()=>edit(null)}>Add field</Button></header><label className="flex items-center gap-3 text-sm">Module<Input className="max-w-xs" value={module} onChange={e=>setModule(e.target.value)}/></label>{fields.isError&&<p role="alert">Unable to load field definitions.</p>}{fields.isLoading?<p role="status">Loading fields…</p>:<OrderedList label="Field order" items={fields.data||[]} title={f=>f.label} render={f=><div className="flex items-center justify-between gap-3"><p className="text-xs text-muted-foreground">{f.section} · {f.field_type}{f.is_required?" · Required":""}</p><Button variant="outline" size="sm" onClick={()=>edit(f)}>Edit</Button></div>} onReorder={async ordered=>{try{await api.post("/custom-fields/definitions/reorder",{ids:ordered.map(f=>f.id),previous_order:fields.data?.map(f=>f.id)},{params:{module}});}finally{await fields.refetch();}}}/>}
+ <Dialog open={open} onOpenChange={next=>{if(!busy)setOpen(next);}}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogTitle>{editing?"Edit":"Add"} custom field</DialogTitle><form onSubmit={async e=>{e.preventDefault();setBusy(true);setError("");try{if(draft.is_required&&!places.slice(0,3).filter(([key])=>key!=="edit").every(([key])=>draft.places.includes(key)))throw new Error("Required fields must appear in create and quick-add forms.");const payload={...editing,...draft,module,options_json:{...(editing?.options_json&&typeof editing.options_json==="object"&&!Array.isArray(editing.options_json)?editing.options_json:{}),values:fieldOptions(draft.options),ui:{...(editing?fieldSettings(editing):{}),places:draft.places}},display_order:editing?.display_order??(fields.data?.length||0)+1};const {places:_places,options:_options,id:_id,...body}=payload;if(editing)await api.put(`/custom-fields/definitions/${editing.id}`,body);else await api.post("/custom-fields/definitions",body);await fields.refetch();setOpen(false);}catch(e){const err=e as {response?:{data?:{detail?:string}};message?:string};setError(err.response?.data?.detail||err.message||"Could not save field.");}finally{setBusy(false);}}}><fieldset disabled={busy} className="space-y-5"><div className="grid gap-6 sm:grid-cols-2"><div className="space-y-4"><label className="block space-y-1 text-sm">Field name<Input required value={draft.label} onChange={e=>setDraft({...draft,label:e.target.value,field_key:editing?draft.field_key:e.target.value.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"")})}/></label><label className="block space-y-1 text-sm">Type<NativeSelect disabled={!!editing} className="h-10 w-full rounded border bg-background px-3" value={draft.field_type} onChange={e=>setDraft({...draft,field_type:e.target.value})}>{[...new Set([draft.field_type,"text","long_text","radio","dropdown","combobox","multi_select","number","currency","date","datetime","checkbox","email","phone","url"])].map(t=><option key={t}>{t}</option>)}</NativeSelect></label><label className="block space-y-1 text-sm">Section<Input value={draft.section} onChange={e=>setDraft({...draft,section:e.target.value})}/></label>{["radio","dropdown","combobox","multi_select"].includes(draft.field_type.toLowerCase())&&<label className="block space-y-1 text-sm">Options, one per line<textarea required className="min-h-28 w-full rounded border bg-background p-3" value={draft.options} onChange={e=>setDraft({...draft,options:e.target.value})}/></label>}<label className="flex gap-2 text-sm"><input type="checkbox" checked={draft.is_required} onChange={e=>setDraft({...draft,is_required:e.target.checked})}/>Required</label><label className="flex gap-2 text-sm"><input type="checkbox" checked={draft.is_sensitive} onChange={e=>setDraft({...draft,is_sensitive:e.target.checked})}/>Sensitive information</label></div><div className="space-y-4"><h3 className="text-sm font-semibold">Places where shown</h3>{places.map(([key,label])=><label key={key} className="flex gap-2 text-sm"><input type="checkbox" checked={draft.places.includes(key)} onChange={e=>setDraft({...draft,places:e.target.checked?[...draft.places,key]:draft.places.filter(v=>v!==key)})}/>{label}</label>)}<section className="space-y-2 rounded-lg border bg-muted/20 p-4"><p className="text-xs font-semibold uppercase text-muted-foreground">Live preview</p><p className="text-sm">{draft.label||"Your field"}</p><FieldControl field={{label:draft.label,field_type:draft.field_type.toLowerCase(),options:fieldOptions(draft.options)}} value={preview} onChange={setPreview}/></section></div></div>{error&&<p role="alert" className="text-sm text-destructive">{error}</p>}<footer className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={()=>setOpen(false)}>Cancel</Button><Button type="submit">{busy?"Saving…":"Save field"}</Button></footer></fieldset></form></DialogContent></Dialog></main>;
 }

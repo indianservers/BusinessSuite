@@ -93,7 +93,7 @@ def source_values(db,user,code,filters):
         return [("PMS / people-workspace/reference",stats(db,user)["teams"])]
     if code=="srm.orders.total":
         from app.apps.srm.api.router import srm_dashboard
-        return [("Sales / dashboard",srm_dashboard(db,user)["total_sales_orders"])]
+        return [("Sales / dashboard",srm_dashboard(period="all", start_date=None, end_date=None, db=db, current_user=user)["total_sales_orders"])]
     if code.startswith("crm."):
         from app.apps.crm.api.router import crm_dashboard
         key={"crm.contacts.total":"contacts","crm.leads.total":"leads","crm.deals.open":"openDeals","crm.pipeline.value":"pipelineByCurrency"}.get(code)

@@ -9,7 +9,7 @@ def create_record(client, headers, entity):
     company = post(client, headers, "crm/companies", {"name": "Customer company", "industry": "Software", "city": "Hyderabad"})
     if entity == "companies":
         return company
-    person = {"first_name": "Customer", "full_name": "Customer Person", "company_id": company["id"], "email": "customer@example.com"}
+    person = {"first_name": "Customer", "full_name": "Customer Person", "company_id": company["id"], "email": "customer@example.com", "confirmShared":True, "sharedReason":"Synthetic duplicate for recovery regression"}
     if entity in {"contacts", "leads"}:
         if entity == "leads":
             person.pop("company_id")

@@ -1,0 +1,46 @@
+[
+  {
+    "name": "Files & Storage is discoverable in Settings",
+    "status": "pass"
+  },
+  {
+    "name": "Google Drive default and all three provider cards render",
+    "status": "pass"
+  },
+  {
+    "name": "Settings save round trip",
+    "status": "pass"
+  },
+  {
+    "name": "Google Drive default restored",
+    "status": "pass"
+  },
+  {
+    "name": "Module folder scope and connection prerequisite",
+    "status": "pass"
+  },
+  {
+    "name": "Actual CRM file upload form",
+    "status": "pass"
+  },
+  {
+    "name": "Actual HRMS employee document upload",
+    "status": "pass"
+  },
+  {
+    "name": "Actual PMS task attachment upload",
+    "status": "pass"
+  },
+  {
+    "name": "Actual spreadsheet export retained",
+    "status": "pass"
+  },
+  {
+    "name": "Actual native uploads appear in Settings file register",
+    "status": "pass"
+  },
+  {
+    "name": "No browser JavaScript errors",
+    "status": "pass"
+  }
+]

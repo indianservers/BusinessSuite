@@ -1,5 +1,5 @@
 export const customFieldTypes = [
-  ["text", "Text"], ["long_text", "Text area (long text)"], ["dropdown", "Dropdown"],
+  ["text", "Text"], ["long_text", "Text area (long text)"], ["dropdown", "Dropdown"], ["radio", "Radio buttons"], ["combobox", "Searchable combobox"],
   ["number", "Number"], ["money", "Money (amount)"], ["date", "Date"],
   ["checkbox", "Checkbox"], ["email", "Email"], ["phone", "Phone"],
   ["website", "Website"], ["rating", "Rating (0–5)"], ["progress", "Progress (0–100%)"],

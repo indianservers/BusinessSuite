@@ -186,6 +186,14 @@ export const runtimeApi = (environment: string) => {
           options,
         )
         .then((r) => r.data),
+    reconcile: (id: number) =>
+      api
+        .post(
+          `/power-apps/automations/${id}/triggers/connector/reconcile`,
+          {},
+          options,
+        )
+        .then((r) => r.data),
     rotate: (id: number, kind = "webhook") =>
       api
         .post<{ secret: string }>(

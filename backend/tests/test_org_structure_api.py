@@ -10,7 +10,7 @@ def _login(client, email, password):
 
 
 def test_org_structure_crud_endpoints(client, db, superuser_headers):
-    company = Company(name="Org API Company", legal_name="Org API Company Pvt Ltd")
+    company = db.get(Company, 1)
     db.add(company)
     db.commit()
     db.refresh(company)
@@ -22,6 +22,7 @@ def test_org_structure_crud_endpoints(client, db, superuser_headers):
     )
     assert branch.status_code == 201
     branch_id = branch.json()["id"]
+    superuser_headers = {**superuser_headers, "X-Suite-Branch":str(branch_id)}
 
     department = client.post(
         "/api/v1/org/departments",
@@ -91,7 +92,7 @@ def test_org_structure_crud_endpoints(client, db, superuser_headers):
 
 
 def test_org_structure_get_all_allows_any_authenticated_user(client, db, superuser_headers):
-    company = Company(name="Org Read Company")
+    company = db.get(Company, 1)
     db.add(company)
     db.commit()
     db.refresh(company)
@@ -116,6 +117,8 @@ def test_org_structure_get_all_allows_any_authenticated_user(client, db, superus
     db.add(user)
     from test_identity_utils import attach_test_identity
     attach_test_identity(db, user, company.id)
+    from app.branches.models import BranchGrant
+    db.add(BranchGrant(company_id=company.id,user_id=user.id,branch_id=created.json()["id"],can_write=False))
     db.commit()
 
     headers = _login(client, "plain.employee@test.com", "User@123456")

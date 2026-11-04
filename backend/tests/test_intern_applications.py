@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import timedelta
 import pytest
 from app.apps.interns_hub.router import today
@@ -24,7 +25,7 @@ def test_application_requires_approval_before_login(client, db, superuser_header
     monkeypatch.setattr("app.apps.interns_hub.approval_email.notify_approval", notification)
     from app.models.company import Company, Branch, Department, Designation
     company=db.get(Company,1) or Company(id=1,name="Application Company");db.add(company);db.flush()
-    branch=Branch(name="HQ",company_id=company.id);db.add(branch);db.flush()
+    branch=db.query(Branch).filter_by(company_id=company.id,is_active=True).order_by(Branch.id).first()
     department=Department(name="Engineering",branch_id=branch.id);db.add(department);db.flush()
     designation=Designation(name="Development Intern",department_id=department.id);db.add(designation)
     manager=Employee(user_id=db.query(User).filter_by(email="testadmin@test.com").one().id,employee_id="APP-MANAGER",first_name="Team",last_name="Manager",branch_id=branch.id,date_of_joining=today());db.add(manager);db.commit()
@@ -99,8 +100,7 @@ def test_bulk_intake_with_legacy_all_header_uses_default_branch(client, db, supe
     from tests.tenant_test_utils import assign_company
     admin = db.query(User).filter_by(email="testadmin@test.com").one()
     assign_company(db, admin, 1)
-    branch = Branch(company_id=1, name="Main", code="MAIN", is_active=True)
-    db.add(branch)
+    branch = db.query(Branch).filter_by(company_id=1,is_active=True).order_by(Branch.id).first()
     db.commit()
     base = "/api/v1/interns-hub"
     submitted = client.post(f"{base}/applications", json=application_payload)
@@ -204,8 +204,7 @@ def test_superadmin_can_be_selected_as_reporting_manager(client, db, superuser_h
     db.add_all([inactive, ordinary])
     company = db.get(Company, 1) or Company(id=1, name="Application Company")
     db.add(company); db.flush()
-    branch = Branch(name="HQ", company_id=company.id)
-    db.add(branch); db.flush()
+    branch = db.query(Branch).filter_by(company_id=company.id,is_active=True).order_by(Branch.id).first()
     department = Department(name="Engineering", branch_id=branch.id)
     db.add(department); db.flush()
     designation = Designation(name="Intern", department_id=department.id)

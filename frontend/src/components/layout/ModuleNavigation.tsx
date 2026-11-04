@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CheckCircle2, BarChart3, BriefcaseBusiness, ChevronDown, ChevronsDownUp, ChevronsUpDown, CircleHelp, FolderKanban, LayoutDashboard, MessagesSquare, Search, Settings2, Sparkles, Star, Users, X } from "lucide-react";
 import { canAccessRoute, getRoleNav, type RoleNavItem } from "@/lib/roles";
 import { activeWorkspace, workspacePageHref } from "@/lib/navigation-workspaces";
-import { menuItems, menuLabel, menuMatches, menuPages } from "@/lib/navigation-menu";
+import { menuItems, menuLabel, menuMatches, menuPages, moduleLandingNavigation } from "@/lib/navigation-menu";
 import { useAuthStore } from "@/store/authStore";
 import { defaultSuitePreferences, suiteScope, useSuitePreferences } from "@/store/suitePreferences";
 import PMSPersonalNavigation from "./PMSPersonalNavigation";
@@ -42,14 +42,18 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       if (!available.some(item => item.to === to) && canAccessRoute(to, user?.role, user?.is_superuser)) available.push({ to, label, icon: Users, group: available.find(item => item.to === "/hrms/interns")?.group });
     }
   }
-  const consolidated = menuItems(available);
+  const landing = moduleLandingNavigation(available, moduleKey);
+  const consolidated = [...landing.direct, ...menuItems(landing.grouped)];
   const current = activeWorkspace(consolidated, location.pathname) || available.filter(item =>
     location.pathname === item.to.split("?")[0] || location.pathname.startsWith(item.to.split("?")[0] + "/"))
     .sort((a, b) => b.to.length - a.to.length)[0];
   const activeGroup = current?.group;
   const items = query.trim() ? available.filter(item => menuMatches(item, query)) : consolidated;
-  const groups = [...new Set(items.map(item => item.group || "Workspace"))];
-  const allGroups = [...new Set(consolidated.map(item => item.group || "Workspace"))];
+  const directItems = items.filter(item => landing.direct.some(link => link.to === item.to));
+  const groupedItems = items.filter(item => !landing.direct.some(link => link.to === item.to)
+    && !([`/${moduleKey}`, `/${moduleKey}/dashboard`].includes(item.to)));
+  const groups = [...new Set(groupedItems.map(item => item.group || "Workspace"))];
+  const allGroups = [...new Set(landing.grouped.map(item => item.group || "Workspace"))];
   const key = (group: string) => `menu-v2:${moduleKey}:${group}`;
   const previous = useRef(location.pathname);
   useEffect(() => { setQuery(""); setSubmenus({}); }, [moduleKey]);
@@ -80,8 +84,18 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
         <button type="button" aria-label="Collapse all menu categories" title="Collapse all categories" onClick={() => expandAll(false)}><ChevronsDownUp size={14} /></button>
       </div></div>
     </>}
+    {directItems.length > 0 && <ul className="module-menu-landing" aria-label="Application landing pages">{directItems.map(item => {
+      const primary = item.to === `/${moduleKey}` || item.to === `/${moduleKey}/dashboard`;
+      const selected = primary ? location.pathname === `/${moduleKey}` || location.pathname === `/${moduleKey}/dashboard` : isCurrent(item.to);
+      const label = menuLabel(item);
+      return <li key={item.to}><div className={`module-menu-row ${selected ? "is-active" : ""}`}>
+        <Link to={workspacePageHref(item.to, location.search, workspaceId)} onClick={onNavigate} title={label} aria-label={label} aria-current={selected ? "page" : undefined}>
+          <item.icon size={17}/>{!collapsed && <span>{label}</span>}
+        </Link>
+      </div></li>;
+    })}</ul>}
     <ul className="module-menu-categories">{groups.map((group, index) => {
-      const children = items.filter(item => (item.group || "Workspace") === group);
+      const children = groupedItems.filter(item => (item.group || "Workspace") === group);
       const expanded = collapsed || !!query.trim() || (preferences.groups[key(group)] ?? (activeGroup ? group === activeGroup : index === 0));
       const Icon = categoryIcon(group), panel = `${id}-category-${index}`;
       return <li className={`module-menu-category ${group === activeGroup ? "is-current" : ""}`} key={group}>

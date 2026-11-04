@@ -125,12 +125,17 @@ def directory(db, actor, can_assign, access_permissions=None):
     users = (
         db.query(User)
         .options(
-            joinedload(User.person), joinedload(User.role).joinedload(Role.permissions)
+            joinedload(User.person), joinedload(User.role).selectinload(Role.permissions),
+            joinedload(User.employee).joinedload(Employee.branch)
         )
         .all()
         if can_assign
         else [actor]
     )
+    from app.access.models import AccessPolicy
+    if "suite_access_policies" not in db.info:
+        db.info["suite_access_policies"] = {}
+    db.info["suite_access_policies"][organization_id] = {p.user_id:p for p in db.query(AccessPolicy).filter_by(company_id=organization_id).all()}
     employees_query = employee_directory_query(db)
     if not can_assign:
         employees_query = employees_query.filter(Employee.user_id == actor.id)

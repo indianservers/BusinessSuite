@@ -1,3 +1,4 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import SharedCompanySelect from "@/shared/master-data/CompanySelect";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -36,7 +37,7 @@ export function CommercialIdentityForm({
       seller_id: "",
       contact_id: "",
       team_id: "",
-      currency: "INR",
+      currency: defaultText("currency", "project_management"),
     },
   );
   const sellers = useQuery({

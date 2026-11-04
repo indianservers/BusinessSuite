@@ -274,7 +274,7 @@ def save_follow_up(data,db,user,commit=True):
         if not activity or activity.status not in sales.OPEN_ACTIVITY or activity.activity_type=='greeting_batch': raise HTTPException(409,'This follow-up changed. Refresh before updating it.')
         if data.activity_version:
             actual=activity.updated_at or activity.created_at
-            if actual and actual.replace(tzinfo=actual.tzinfo or timezone.utc)!=data.activity_version:raise HTTPException(409,'This follow-up changed. Refresh before updating it.')
+            if actual and actual.replace(tzinfo=actual.tzinfo or timezone.utc)!=data.activity_version.replace(tzinfo=data.activity_version.tzinfo or timezone.utc):raise HTTPException(409,'This follow-up changed. Refresh before updating it.')
     before = followup_snapshot(activity)
     completed_activity = None
     if data.action=='complete':
@@ -313,7 +313,7 @@ def pending(entity:Entity,record_id:int,db:Session=Depends(get_db),user:User=Dep
     model=crm()._get_resource(entity).model
     if not sales.rows(db,user,entity).filter(model.id==record_id).first(): raise HTTPException(404,'Record not found')
     rows=db.query(CRMActivity).filter_by(organization_id=crm()._organization_id(db,user),entity_type='account' if entity=='companies' else sales.record_kind(entity),entity_id=record_id).filter(CRMActivity.status.in_(sales.OPEN_ACTIVITY),CRMActivity.due_date.isnot(None)).order_by(CRMActivity.due_date,CRMActivity.id).all()
-    return {'items':[{'id':r.id,'title':r.title,'due_at':r.due_date,'channel':r.activity_type,'notes':r.description,'priority':r.priority,'owner_id':r.owner_user_id,'metadata':r.metadata_json or {},'version':r.updated_at or r.created_at} for r in rows]}
+    return {'items':[{'id':r.id,'title':r.title,'due_at':r.due_date.replace(tzinfo=r.due_date.tzinfo or timezone.utc),'channel':r.activity_type,'notes':r.description,'priority':r.priority,'owner_id':r.owner_user_id,'metadata':r.metadata_json or {},'version':(r.updated_at or r.created_at).replace(tzinfo=(r.updated_at or r.created_at).tzinfo or timezone.utc) if r.updated_at or r.created_at else None} for r in rows]}
 
 
 @router.get('/files/{entity}/{record_id}')

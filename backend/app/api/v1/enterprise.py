@@ -54,6 +54,8 @@ def global_configuration(user: User = Depends(get_current_user)):
 
 
 def _ensure_pack_enabled(db: Session, pack_key: str, company_id: int | None = None) -> DomainPackRegistry:
+    branch = db.info.get("branch_context")
+    company_id = company_id if company_id is not None else branch.company_id if branch else None
     item = db.query(DomainPackRegistry).filter(
         DomainPackRegistry.pack_key == pack_key,
         DomainPackRegistry.company_id == company_id,
@@ -351,6 +353,9 @@ def enable_domain_pack(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("settings_manage")),
 ):
+    branch = db.info.get("branch_context")
+    if data.company_id is None and branch:
+        data.company_id = branch.company_id
     if data.pack_key not in DOMAIN_PACK_CATALOG:
         raise HTTPException(status_code=400, detail="Unsupported domain pack")
     existing = db.query(DomainPackRegistry).filter(

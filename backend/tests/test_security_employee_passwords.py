@@ -3,6 +3,17 @@ import pytest
 from app.models.user import User
 
 
+@pytest.fixture(autouse=True)
+def employee_setup(client, superuser_headers):
+    branches = client.get('/api/v1/company/branches/', headers=superuser_headers).json()
+    department = client.post('/api/v1/company/departments/', headers=superuser_headers,
+        json={'name':'Password test department','branch_id':branches[0]['id']})
+    assert department.status_code == 201, department.text
+    designation = client.post('/api/v1/company/designations/', headers=superuser_headers,
+        json={'name':'Password test designation','department_id':department.json()['id']})
+    assert designation.status_code == 201, designation.text
+
+
 @pytest.mark.parametrize('password',[None,'Welcome@123','short'])
 def test_employee_login_has_no_shared_default_password(client,db,superuser_headers,password):
     response=client.post('/api/v1/employees/',headers=superuser_headers,json={'first_name':'Synthetic','last_name':'Password QA','date_of_joining':str(date.today()),'create_user_account':True,'user_email':'synthetic-password@example.com','user_password':password})

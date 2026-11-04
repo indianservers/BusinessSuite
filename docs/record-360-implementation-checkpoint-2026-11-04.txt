@@ -1,0 +1,146 @@
+RECORD 360 — IMPLEMENTATION AND VERIFICATION CHECKPOINT
+4 November 2026
+
+Delivered: the first working rollout across CRM, PMS and SRM. The core shared
+workspace and PMS task/follow-up integration are implemented. This does not certify
+every acceptance item in the larger original plan or a production deployment.
+
+PHASE 0 — BASELINE
+Inspected current routes and identity/access providers, preserving existing work.
+Reused CRMCompany, CustomerLink, ProjectCommercial, CRM activities/tasks/notes,
+PMS task update entries, service follow-ups and existing domain forms/actions.
+No new customer identity table, duplicate task engine or schema migration added.
+Fixed synthetic tenant/branch ownership in the SRM, service-follow-up and workspace
+activity test fixtures. No visibility rule was relaxed to make those tests pass.
+
+PHASE 1 — SHARED DATA CONTRACT
+Added backend/app/shared/record_360.py and registered it as a shared service, not
+as a separate product/module. The API is read-only:
+  GET /api/v1/record-360/{kind}/{id}?source=crm|srm|project_management
+  GET /api/v1/record-360/{kind}/{id}/work
+  GET /api/v1/record-360/{kind}/{id}/events
+  GET /api/v1/record-360/work/queue/items
+Kinds: company, contact, lead, deal, project, task.
+
+Identity uses explicit existing links. Primary record access, module policies and
+provider permissions are checked separately. PMS work also uses scoped_task so
+assignment restrictions remain effective. Same-name companies are not combined.
+Leads can open without a linked customer. A company with no transactions is still
+a valid profile. Counts are calculated from visible source items.
+
+History supports type filtering, numeric tie-breaking for equal timestamps and
+bounded page sizes. It includes CRM notes/files/activity/changes/calls/meetings,
+existing communication timeline events, service follow-up actions, PMS updates and
+task history, and authorized SRM invoice/order events.
+
+PHASE 2 — SHARED WORKSPACE AND CRM
+Added frontend/src/shared/records/Record360Workspace.tsx and record-360.css.
+The same component provides summary, relationships, action entry points, Focus,
+history filters, expansion, paging, retry and full-record navigation.
+
+Integrated the shell into:
+- Shared company/customer profile panes and popups, including module selectors.
+- Active CRM lead preview; preserved lead qualification/editing and scheduling.
+- Contact detail drawer, Relationship Hub preview and full CRM record details.
+- Deal 360, retaining its commercial workflow, collaborators and existing actions.
+- Generic CRM record previews and legacy contact/company record panels.
+- Mobile lead activity view; existing mobile conversion/assignment retained.
+
+The old CRM Customer 360 route uses the real shared directory. Removed the
+customer360For helper and its placeholder metrics/timeline text. Removed the
+customer-wide service-follow-up panel from the selected-deal header; shared focus
+filters deal work by deal ID instead.
+
+Existing CRM note/task/call/meeting forms are reused when provider permissions
+allow them. External email/WhatsApp drafts remain explicitly drafts. No automatic
+message sending was introduced. Summary/history caches include identity, company,
+branch, grants, source and record. Branch/access changes clear previous content
+and close composition state. Successful source mutations refresh the workspace.
+
+PHASE 3 — PMS TASKS AND FOLLOW-UPS
+New route: /pms/tasks-follow-ups, available from task views and PMS navigation.
+Queue views: Assigned to me, Assigned by me, Today, Overdue, Upcoming, Completed,
+All accessible work. Filters include source, search and URL project/customer scope.
+Queue items keep stable source IDs and navigate to their original workflows.
+
+Sources: PMS tasks, PMS task follow-up entries, shared service follow-ups, and
+authorized CRM tasks, lead/activity follow-ups and meetings. Secondary PMS task
+assignees count in Assigned to me. Completion retains original source semantics;
+PMS task review is not bypassed by a universal mark-complete action.
+
+Added PMS service-follow-up dashboard/directory/calendar/detail routes, reusing
+FollowUpsPage and its existing create/complete/reschedule/history behavior. PMS
+permissions can access service follow-ups through authorized shared customers.
+PMS customer scope now recognizes existing client-to-customer mappings as well as
+ProjectCommercial links. No CRM privilege is inferred from a PMS role.
+
+The active TaskWorkspacePage and generic PMS task/project previews use the shared
+360 component. Task updates, review, discussion, files and execution remain intact.
+Customer deep links work at /pms/customers/{id}/360. Follow-up links opened from
+CRM, PMS and SRM retain the appropriate module URL.
+
+PHASE 4 — SRM
+SRM Customer 360 now opens the shared customer directory and workspace.
+Customer links were added to commercial details and invoices. POS opens the shared
+profile in a modal; the POS component/cart stays mounted. Walk-in sales do not
+open a nonexistent customer profile.
+
+Hardened the legacy SRM aggregate: canonical customer scope is required; invoice,
+collection and profitability sections require their own permissions; linked PMS
+projects use PMS visibility. Restricted sections are indicated explicitly.
+Outstanding amounts are grouped by currency; a mixed-currency scalar is null.
+Customer profile existence no longer depends on having a commercial transaction.
+
+PHASE 5 — VERIFICATION CHECKPOINT
+Passed checks:
+- Initial shared backend contract: 5 tests passed before CRM integration.
+- CRM shell browser checks and full TypeScript check passed before PMS integration.
+- PMS integration: 29 focused backend tests and expanded browser checks passed.
+- SRM/identity/financial checks subsequently expanded to 37 tests passed.
+- Final focused backend suite: 39 passed, including the corrected existing PMS
+  workspace-activity test and CRM lead follow-up/call/meeting regression coverage.
+- Broader regression run: 84 passed, 1 skipped across shared identity/master data,
+  contact directory, customer identity, SRM/service follow-ups and PMS task suites.
+  This broad run preceded the last CRM activity-provider addition; the final
+  focused suite covers that addition. Counts overlap and must not be added.
+- Browser harness: source links, history failure/retry, filters, expand, paging,
+  existing editor/action dispatch, record switching, branch switching, PMS queue
+  view/source/search and 390px mobile overflow checks passed.
+- Full-app Playwright SRM customer selection and history error/retry: 2 passed.
+- Full TypeScript check passed; production Vite bundle built successfully.
+  Build output is in a temporary directory; no deployment was performed.
+  Existing large-chunk/dynamic-import warnings remain.
+
+Reproducible commands from frontend:
+  npm run test:record-360
+  node node_modules/typescript/bin/tsc --noEmit --pretty false
+  node node_modules/playwright/cli.js test --config playwright.config.ts srm-customer-360.spec.ts --workers=1
+
+Focused command from backend (use the repository Python environment):
+  python -m pytest tests/test_record_360.py tests/test_srm_customer_360.py tests/test_service_follow_ups.py tests/test_pms_workspace_activity.py -q
+
+Evidence:
+  docs/qa/record-360/customer-desktop.png
+  docs/qa/record-360/customer-mobile.png
+  docs/qa/record-360/pms-queue-mobile.png
+  docs/qa/record-360/production-build.log
+
+REMAINING WORK FROM THE LARGER PLAN
+These are follow-on phases, not completed or certified by this checkpoint:
+- Replace bounded page-based aggregation with cursor paging and SQL-projected
+  work feeds for large datasets. Current queue rejects a source above 5000 rows
+  and asks for a narrower scope; filtering/serialization is partly in Python.
+  Production p95 latency and load targets have not been measured.
+- Add explicit PMS task-to-lead/contact/deal associations where project/client
+  inheritance is insufficient. No synthetic customer is created for a lead.
+- Extend all newer Communication Center delivery/reply/automation sources into
+  the normalized timeline; the existing communication timeline is integrated.
+- Full relation pagination, follower preferences beyond existing deal behavior,
+  saved layouts/filters, richer inline composition and document-service adapters.
+- A universal focus-row completion/rescheduling dialog: today Open uses the
+  existing source workflow, preserving review/outcome validation.
+- Full live role-matrix UAT, real PostgreSQL integration, POS cart/payment UAT,
+  accessibility audit, feature-flag rollout and production monitoring.
+
+The implementation remains in the current working tree alongside the user's
+existing changes. No commit, push or production data migration was performed.

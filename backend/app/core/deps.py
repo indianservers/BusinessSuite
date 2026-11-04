@@ -117,8 +117,8 @@ def get_current_user(
             from app.branches.service import context as branch_context
             from app.branches.boundary import install as install_branch_boundary
             branch_discovery = request.url.path == "/api/v1/access/setup" or request.url.path.startswith(("/api/v1/access/settings", "/api/v1/branches"))
-            context = branch_context(db, user, user.organization_id, None if branch_discovery else request.headers.get("X-Suite-Branch"))
-            stack.callback(install_branch_boundary(db, user, context, identity_administration=request.url.path.startswith("/api/v1/access/")))
+            context = branch_context(db, user, user.organization_id, None if branch_discovery and not request.url.path.endswith("/settings/defaults/effective") else request.headers.get("X-Suite-Branch"))
+            stack.callback(install_branch_boundary(db, user, context, identity_administration=request.url.path.startswith(("/api/v1/access/", "/api/v1/auth/users", "/api/v1/employees/accounts"))))
             previous_branch = getattr(user, "_suite_branch_id", None)
             user._suite_branch_id = context.branch_id or ("all" if context.all_branches else None)
             stack.callback(lambda: setattr(user, "_suite_branch_id", previous_branch))

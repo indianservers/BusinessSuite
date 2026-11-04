@@ -1,3 +1,5 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -58,6 +60,7 @@ const schema = z.object({
   research_work: z.string().optional(),
   family_information: z.string().optional(),
   health_information: z.string().optional(),
+  cost_center_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
   shift_id: z.preprocess((v) => v === "" || Number.isNaN(v) ? null : v, z.number().optional().nullable()),
   create_user_account: z.boolean().default(false),
   user_email: z.string().email().optional().or(z.literal("")),
@@ -112,6 +115,7 @@ const stepFields: Array<Array<keyof FormData>> = [
 
 export default function AddEmployeePage() {
   const submitting=useRef(false);
+  const customFieldForm=useCrmFieldForm("employees","create");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
@@ -153,6 +157,7 @@ export default function AddEmployeePage() {
     queryFn: () => attendanceApi.listShifts().then((r) => r.data),
   });
 
+  const costCenters = useQuery({ queryKey: ["company-cost-centers"], queryFn: () => companyApi.costCenters().then(r => r.data as {id:number;name:string}[]) });
   const {
     control: editorControl,
     register,
@@ -165,7 +170,7 @@ export default function AddEmployeePage() {
     formState: { errors },
   } = useForm<z.input<typeof schema>, unknown, FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { employment_type: "Full-time", create_user_account: false, last_name: "", phone_number_country_code: "+91", alternate_phone_country_code: "+91", emergency_contact_number_country_code: "+91" },
+    defaultValues: { cost_center_id: defaultId("cost_center_id", "hrms"), branch_id: defaultId("branch_id", "hrms"), department_id: defaultId("department_id", "hrms"), shift_id: defaultId("shift_id", "hrms"), employment_type: defaultText("employment_type", "hrms"), create_user_account: false, last_name: "", phone_number_country_code: defaultText("phone_country_code", "hrms"), alternate_phone_country_code: defaultText("phone_country_code", "hrms"), emergency_contact_number_country_code: defaultText("phone_country_code", "hrms") },
     mode: "onBlur",
   });
 
@@ -176,7 +181,7 @@ export default function AddEmployeePage() {
 
   const mutation = useMutation({
     mutationFn: (data: FormData) =>
-      employeeApi.create(cleanEmployeePayload(data)),
+      employeeApi.create({...cleanEmployeePayload(data),custom_fields:customFieldForm.validate()}),
     onSuccess: (res) => {
       setSubmitError(null);
       toast({ title: "Employee created successfully!", variant: "default" });
@@ -455,6 +460,7 @@ export default function AddEmployeePage() {
                 </NativeSelect>
                 {errors.shift_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.shift_id.message}/></div>}
               </div>
+              <label className="space-y-2 text-sm">Cost centre<NativeSelect aria-label="Employee cost centre" {...register("cost_center_id", { setValueAs: value => value === "" ? null : Number(value) })} className="flex h-10 w-full rounded-md border bg-background px-3"><option value="">None</option>{costCenters.data?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
             </CardContent>
           </Card>
         )}
@@ -569,6 +575,7 @@ export default function AddEmployeePage() {
           </Card>
         )}
 
+        <CrmRecordFields state={customFieldForm}/>
         {/* Navigation buttons */}
         <div className="flex items-center justify-between mt-4">
           <Button

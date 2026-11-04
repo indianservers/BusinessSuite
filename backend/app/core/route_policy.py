@@ -11,6 +11,7 @@ from fastapi.routing import APIRoute, request_response
 from fastapi.dependencies.utils import get_parameterless_sub_dependant
 
 PUBLIC_CAPABILITIES = (
+    r"/files-storage/oauth/callback",
     r"/auth/homepage-banner(?:/assets/[^/]+)?",
     r"/integrations/whatsapp/webhook",
     r"/integrations/customer-email/[^/]+",

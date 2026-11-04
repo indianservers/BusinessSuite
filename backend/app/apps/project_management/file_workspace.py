@@ -59,7 +59,7 @@ def upload_project_file(project_id: int, file: UploadFile = File(...), folder_id
                 if size > PMS_MAX_ATTACHMENT_BYTES: raise HTTPException(413, "File exceeds the configured size limit")
                 output.write(chunk)
         if not size: raise HTTPException(400, "File cannot be empty")
-        persist_file(str(target))
+        persist_file(str(target), db=db, module="pms", filename=original)
         asset = PMSFileAsset(project_id=project.id, folder_id=folder_id, uploaded_by_user_id=user.id, file_name=filename, original_name=original, storage_path=str(target), mime_type=file.content_type or "application/octet-stream", size_bytes=size, visibility="Project Team")
         db.add(asset); db.flush()
         _record_activity(db, project.id, user, "attachment.added", "file", asset.id, f"Uploaded {original}", metadata={"folder_id": folder_id})

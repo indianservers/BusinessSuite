@@ -1,0 +1,152 @@
+bringing up nodes...
+bringing up nodes...
+
+E
+______ ERROR at setup of test_reactions_pins_saved_drafts_and_revisions _______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+____ ERROR at setup of test_followups_idempotency_assignment_and_task_sync ____
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+___ ERROR at setup of test_private_data_tenant_id_and_membership_tampering ____
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+________ ERROR at setup of test_context_allowlist_and_xss_sanitization ________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+_ ERROR at setup of test_context_is_canonical_and_record_access_is_rechecked __
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+______ ERROR at setup of test_events_preferences_reminders_and_presence _______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+.E
+___ ERROR at setup of test_private_meetings_use_calendar_and_replay_safely ____
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+_ ERROR at setup of test_existing_channels_groups_files_threads_and_revocation_still_work _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+__________ ERROR at setup of test_ai_never_executes_or_grants_access __________
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+E
+_ ERROR at setup of test_crm_and_hrms_adapters_reuse_authorized_native_records _
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_communication_engine.py:27: in team
+    db.add_all([PMSWorkspaceMember(workspace_id=workspace.id, user_id=users[i].id, role="Owner" if i == 0 else "Member") for i in range(3)])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: {"detail":"Select a destination branch before creating business records"}
+E   assert 403 == 201
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured log setup ------------------------------
+WARNING  businesssuite.security:boundary.py:223 branch_write_requires_destination table=pms_chat_conversations
+.F
+_________ test_shared_configuration_does_not_grant_underlying_records _________
+[gw2] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_pms_dashboard_builder.py:131: in test_shared_configuration_does_not_grant_underlying_records
+    assert result.json()["scope"]["visible_projects"] == 0
+E   assert 1 == 0
+............F
+__ test_profile_projects_include_ownership_and_task_work_without_tenant_leak __
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_people_workspace.py:240: in test_profile_projects_include_ownership_and_task_work_without_tenant_leak
+    assert {p["id"] for p in projects} == {owned.id, assigned.id}
+E   assert set() == {2, 3}
+E     
+E     Extra items in the right set:
+E     2
+E     3
+E     Use -v to get more diff
+...F
+____ test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume ____
+[gw1] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_people_workspace.py:429: in test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+    assert response.json()["total"] == 20000 and len(response.json()["items"]) == 24
+E   assert (0 == 20000)
+.                                                                        [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_pms_dashboard_builder.py::test_shared_configuration_does_not_grant_underlying_records
+FAILED backend\tests\test_people_workspace.py::test_profile_projects_include_ownership_and_task_work_without_tenant_leak
+FAILED backend\tests\test_people_workspace.py::test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume
+ERROR backend\tests\test_communication_engine.py::test_reactions_pins_saved_drafts_and_revisions
+ERROR backend\tests\test_communication_engine.py::test_followups_idempotency_assignment_and_task_sync
+ERROR backend\tests\test_communication_engine.py::test_private_data_tenant_id_and_membership_tampering
+ERROR backend\tests\test_communication_engine.py::test_context_allowlist_and_xss_sanitization
+ERROR backend\tests\test_communication_engine.py::test_context_is_canonical_and_record_access_is_rechecked
+ERROR backend\tests\test_communication_engine.py::test_events_preferences_reminders_and_presence
+ERROR backend\tests\test_communication_engine.py::test_private_meetings_use_calendar_and_replay_safely
+ERROR backend\tests\test_communication_engine.py::test_existing_channels_groups_files_threads_and_revocation_still_work
+ERROR backend\tests\test_communication_engine.py::test_ai_never_executes_or_grants_access
+ERROR backend\tests\test_communication_engine.py::test_crm_and_hrms_adapters_reuse_authorized_native_records
+3 failed, 18 passed, 46 warnings, 10 errors in 102.77s (0:01:42)

@@ -1,3 +1,4 @@
+import FieldControl from "@/shared/custom-fields/FieldControl";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -126,20 +127,22 @@ export default function FormResponse({
                       files
                     </small>
                   </>
+                ) : f.type === "combobox" ? (
+                  <FieldControl field={{label:f.label,field_type:"combobox",options:f.options,required:f.required}} value={answers[f.id]} onChange={value=>set(f.id,String(value??""))} disabled={disabled}/>
                 ) : f.type === "textarea" ? (
                   <textarea
                     id={f.id}
                     required={f.required}
                     maxLength={10000}
                     placeholder={f.placeholder}
-                    value={String(answers[f.id] || "")}
+                    value={String(answers[f.id] ?? "")}
                     onChange={(e) => set(f.id, e.target.value)}
                   />
                 ) : f.type === "select" ? (
                   <NativeSelect
                     id={f.id}
                     required={f.required}
-                    value={String(answers[f.id] || "")}
+                    value={String(answers[f.id] ?? "")}
                     onChange={(e) => set(f.id, e.target.value)}
                   >
                     <option value="">Choose an option</option>
@@ -203,7 +206,7 @@ export default function FormResponse({
                   <NativeSelect
                     id={f.id}
                     required={f.required}
-                    value={String(answers[f.id] || "")}
+                    value={String(answers[f.id] ?? "")}
                     onChange={(e) => set(f.id, e.target.value)}
                   >
                     <option value="">Choose a rating</option>

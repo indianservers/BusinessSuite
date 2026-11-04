@@ -1,3 +1,4 @@
+import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 import { ActionButton } from "@/components/actions";
 import RecordSections from "@/components/RecordSections";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -51,6 +52,8 @@ export default function SRMCommercialDetailPage({ kind }: { kind: DetailKind }) 
         <p className="text-sm text-muted-foreground">Linked commercial lifecycle record.</p>
       </div>
       {mobile && kind === "salesOrder" && query.data && <ol className="mobile-timeline" aria-label="Order progress">{[["Order",record.status],["Delivery",record.delivery_status],["Invoicing",record.invoice_status],["Payment",record.payment_status]].map(([label,status])=><li key={String(label)}><strong>{String(label)}</strong><small>{status ? formatValue(status) : "Status not provided"}</small></li>)}</ol>}
+      {kind === "salesOrder" && query.data && <PaymentRequestButton source="srm_order" sourceId={numericId}/>}
+      {!!record.customer_id && <Button variant="outline" asChild><Link to={`/srm/customers/${record.customer_id}/360`}>Open customer 360</Link></Button>}
       <RecordSections key={`${kind}-${numericId}`} label="Commercial record information" sections={[
         {id:"overview",label:"Overview",content:<>      <Card>
         <CardHeader>

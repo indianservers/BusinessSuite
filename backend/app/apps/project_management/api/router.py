@@ -2968,26 +2968,17 @@ def create_task_operation(
             "Blocked": "IN_PROGRESS",
             "Done": "DONE",
         }
-        target_status_key = status_to_key.get(task_data.get("status", "To Do"), "TODO")
-        column = db.query(PMSBoardColumn).filter(
-            PMSBoardColumn.board_id == board.id,
-            PMSBoardColumn.status_key == target_status_key,
-        ).first()
+        task_status = task_data.get("status", "To Do")
+        target_status_key = {"Backlog":"BACKLOG","To Do":"TODO","In Progress":"IN_PROGRESS","In Review":"IN_REVIEW","Done":"DONE"}.get(task_status,task_status.upper().replace(" ","_"))
+        existing_columns = db.query(PMSBoardColumn).filter_by(board_id=board.id).all()
+        if not existing_columns:
+            for position,(name,key) in enumerate([("Backlog","BACKLOG"),("To Do","TODO"),("In Progress","IN_PROGRESS"),("In Review","IN_REVIEW"),("Done","DONE")]):
+                db.add(PMSBoardColumn(board_id=board.id,name=name,status_key=key,position=position))
+            db.flush()
+        column = db.query(PMSBoardColumn).filter_by(board_id=board.id,status_key=target_status_key).first()
         if not column:
-            defaults = [
-                ("Backlog", "BACKLOG", 0),
-                ("To Do", "TODO", 1),
-                ("In Progress", "IN_PROGRESS", 2),
-                ("In Review", "IN_REVIEW", 3),
-                ("Done", "DONE", 4),
-            ]
-            for name, status_key, position in defaults:
-                db.add(PMSBoardColumn(board_id=board.id, name=name, status_key=status_key, position=position))
-            db.commit() if commit else db.flush()
-            column = db.query(PMSBoardColumn).filter(
-                PMSBoardColumn.board_id == board.id,
-                PMSBoardColumn.status_key == target_status_key,
-            ).first()
+            column = PMSBoardColumn(board_id=board.id,name=task_status,status_key=target_status_key,position=len(existing_columns) or 5)
+            db.add(column);db.flush()
         task_data["board_id"] = board.id
         task_data["column_id"] = column.id if column else None
         task_data["position"] = db.query(PMSTask).filter(
@@ -3000,6 +2991,7 @@ def create_task_operation(
             PMSTask.project_id == project_id,
             PMSTask.deleted_at == None,
         ).count() + 1
+    _assert_stage_capacity(db, project_id, task_data.get("status", "To Do"))
     db_task = PMSTask(**task_data)
     from ..custom_fields import apply_record_fields
     apply_record_fields(db, current_user, "task", db_task, custom_values, project, validate_only=True)
@@ -3007,6 +2999,8 @@ def create_task_operation(
     db.flush()
     apply_record_fields(db, current_user, "task", db_task, custom_values, project)
     apply_task_rules(db, db_task, project, current_user, "task.created")
+    from app.shared.pipeline_workspace import stage_entry
+    stage_entry(db,current_user,"project_management","task",db_task.id,None,db_task.status,db_task.assignee_user_id,f"project:{project.id}")
     from ..recovery import task_state, record_edit
     recovery_before = task_state(db_task)
     recovery_before["deleted_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
@@ -3841,6 +3835,14 @@ def remove_task_dependency(
     return {"message": "Dependency removed"}
 
 
+def _assert_stage_capacity(db, project_id, target_status, exclude_id=None):
+    db.query(PMSProject).filter_by(id=project_id).with_for_update().one()
+    key = {"To Do":"TODO","In Progress":"IN_PROGRESS","In Review":"IN_REVIEW","Done":"DONE","Backlog":"BACKLOG"}.get(target_status,target_status.upper().replace(" ","_"))
+    limits = db.query(PMSBoardColumn).join(PMSBoard,PMSBoard.id==PMSBoardColumn.board_id).filter(PMSBoard.project_id==project_id,PMSBoardColumn.status_key==key,PMSBoardColumn.wip_limit.isnot(None)).all()
+    occupied = db.query(PMSTask).filter(PMSTask.project_id==project_id,PMSTask.status==target_status,PMSTask.deleted_at.is_(None),PMSTask.id!=exclude_id).count()
+    if any(occupied>=column.wip_limit for column in limits): raise HTTPException(409,"The destination stage is at capacity")
+
+
 def _sync_task_column(db: Session, task: PMSTask) -> None:
     """Keep list/status edits and drag/drop boards on the same stored ordering."""
     if not task.board_id:
@@ -3914,6 +3916,8 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
             raise HTTPException(status_code=400, detail="Sprint does not belong to selected project")
         if sprint.status == "Active":
             sprint.scope_change_count = (sprint.scope_change_count or 0) + 1
+    if update_data.get("status") and update_data["status"] != task.status:
+        _assert_stage_capacity(db, project.id, update_data["status"], task.id)
     for field, value in update_data.items():
         setattr(task, field, value)
 
@@ -3977,6 +3981,8 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
         create_next_occurrence(db, task)
     if "status" in changed_fields:
         apply_task_rules(db, task, project, current_user, "task.status_changed")
+        from app.shared.pipeline_workspace import stage_entry
+        stage_entry(db, current_user, "project_management", "task", task.id, old_values.get("status"), task.status, task.assignee_user_id, f"project:{project.id}")
     db.add(task)
     db.flush()
     record_edit(db, project, task, current_user, recovery_before)
@@ -4215,7 +4221,7 @@ def upload_task_attachment(
         target_path.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail="Attachment cannot be empty")
 
-    persist_file(str(target_path))
+    persist_file(str(target_path), db=db, module="pms", filename=original_name)
     file_asset = PMSFileAsset(
         uploaded_by_user_id=current_user.id,
         project_id=project.id,
@@ -4686,9 +4692,36 @@ def remove_task_tag(
 
 
 # ============= KANBAN BOARD =============
+@router.get("/projects/{project_id}/boards")
+def list_project_boards(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    get_project_for_action(db, project_id, current_user, "browse")
+    return {"items": [{"id": b.id, "name": b.name, "board_type": b.board_type} for b in db.query(PMSBoard).filter_by(project_id=project_id).order_by(PMSBoard.id).all()]}
+
+
+class NamedBoardInput(BaseModel):
+    name: str = Field(min_length=1, max_length=140)
+    template: str = Field(default="delivery", pattern="^(delivery|support|simple)$")
+
+
+@router.post("/projects/{project_id}/boards", status_code=201)
+def create_project_board(project_id: int, data: NamedBoardInput, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = get_project_for_action(db, project_id, current_user, "edit_project")
+    db.query(PMSProject).filter_by(id=project.id).with_for_update().one()
+    if not data.name.strip(): raise HTTPException(422, "Name the board")
+    if db.query(PMSBoard).filter_by(project_id=project.id, name=data.name.strip()).first(): raise HTTPException(409, "A board with this name already exists")
+    templates = {"delivery": [("Backlog","BACKLOG"),("To Do","TODO"),("In Progress","IN_PROGRESS"),("In Review","IN_REVIEW"),("Done","DONE")], "support": [("New","BACKLOG"),("Queued","TODO"),("Investigating","IN_PROGRESS"),("Verification","IN_REVIEW"),("Resolved","DONE")], "simple": [("To Do","TODO"),("Doing","IN_PROGRESS"),("Done","DONE")]}
+    board = PMSBoard(project_id=project.id,name=data.name.strip(),board_type="Pipeline")
+    db.add(board);db.flush()
+    for index,(name,key) in enumerate(templates[data.template]): db.add(PMSBoardColumn(board_id=board.id,name=name,status_key=key,position=index))
+    _record_activity(db,project.id,current_user,"board.created","board",board.id,"Created named project board",metadata={"template":data.template})
+    db.commit()
+    return {"id":board.id,"name":board.name,"board_type":board.board_type}
+
+
 @router.get("/projects/{project_id}/board", response_model=KanbanBoard)
 def get_kanban_board(
     project_id: int,
+    board_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -4698,8 +4731,10 @@ def get_kanban_board(
     # Get or create default board
     board = db.query(PMSBoard).filter(
         PMSBoard.project_id == project_id
-    ).first()
+    ).filter(PMSBoard.id == board_id if board_id else True).order_by(PMSBoard.id).first()
 
+    if board_id and not board:
+        raise HTTPException(404, "Board not found in this project")
     if not board:
         # Create default board with standard columns
         board = PMSBoard(
@@ -4735,18 +4770,28 @@ def get_kanban_board(
         PMSBoardColumn.board_id == board.id
     ).order_by(PMSBoardColumn.position).all()
 
+    from app.shared.models import ServicePolicy
+    from app.apps.srm.services.commercial import tenant
+    guidance=db.query(ServicePolicy).filter_by(scope_key=f"pms-stage-guidance:{tenant(current_user)}:{project_id}:{board.id}",organization_id=tenant(current_user),kind="pms_stage_guidance").first()
+    guidance_values=guidance.values_json if guidance else {}
+    owner_ids=[ident for ident, in db.query(PMSTask.assignee_user_id).filter_by(project_id=project_id,deleted_at=None).distinct() if ident]
+    owners={u.id:_user_display_name(u) for u in db.query(User).filter(User.id.in_(owner_ids)).all()}
     columns_data = []
     for col in columns:
         tasks = db.query(PMSTask).filter(
             PMSTask.project_id == project_id,
-            PMSTask.column_id == col.id,
+            (PMSTask.status == {"BACKLOG":"Backlog","TODO":"To Do","IN_PROGRESS":"In Progress","IN_REVIEW":"In Review","DONE":"Done"}.get(col.status_key, col.name)) if board.board_type == "Pipeline" else PMSTask.column_id == col.id,
             PMSTask.deleted_at == None
         ).order_by(PMSTask.position).all()
         tags_by_task_id = _load_task_tags(db, [task.id for task in tasks])
         _attach_subtask_counts(db, tasks)
         for task in tasks:
             task.tags = tags_by_task_id.get(task.id, [])
+            task.assignee_name = owners.get(task.assignee_user_id)
 
+        serialized_tasks = tasks
+        if board.board_type == "Pipeline":
+            serialized_tasks = [{**PMSTaskResponse.model_validate(task).model_dump(), "column_id": col.id} for task in tasks]
         columns_data.append({
             "id": col.id,
             "board_id": col.board_id,
@@ -4754,20 +4799,105 @@ def get_kanban_board(
             "status_key": col.status_key,
             "position": col.position,
             "wip_limit": col.wip_limit,
+            "aging_days": guidance_values.get(col.status_key,{}).get("aging_days",14),
             "is_collapsed": col.is_collapsed,
             "color": col.color,
-            "tasks": tasks,
+            "tasks": serialized_tasks,
             "task_count": len(tasks)
         })
     
     return {
         "id": board.id,
+        "total_project_tasks": db.query(PMSTask).filter_by(project_id=project_id,deleted_at=None).count(),
         "project_id": board.project_id,
         "name": board.name,
         "board_type": board.board_type,
         "created_at": board.created_at,
         "columns": columns_data
     }
+
+
+@router.put("/projects/{project_id}/board/configuration")
+def save_board_configuration(project_id: int, payload: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Save names/order as a draft transaction; remaps use normal task validation."""
+    project = get_project_for_action(db, project_id, current_user, "edit_project")
+    db.query(PMSProject).filter_by(id=project.id).with_for_update().one()
+    board = db.query(PMSBoard).filter_by(project_id=project.id).filter(PMSBoard.id == int(payload["board_id"]) if payload.get("board_id") else True).order_by(PMSBoard.id).first()
+    if not board:
+        raise HTTPException(404, "Open the project board before configuring it")
+    columns = db.query(PMSBoardColumn).filter_by(board_id=board.id).order_by(PMSBoardColumn.position, PMSBoardColumn.id).all()
+    snapshot = [{"id": c.id, "name": c.name, "status_key": c.status_key, "position": c.position} for c in columns]
+    expected = payload.get("expected_stages")
+    expected_matches = isinstance(expected, list) and len(expected) == len(snapshot) and all(isinstance(row, dict) for row in expected) and {str(row.get("id")): row for row in expected} == {str(row["id"]): row for row in snapshot}
+    if payload.get("expected_name") != board.name or not expected_matches:
+        raise HTTPException(409, "Board changed while editing. Reload before saving.")
+    name = str(payload.get("name") or "").strip()
+    drafts = payload.get("stages")
+    if not name or len(name) > 140 or not isinstance(drafts, list) or not 1 <= len(drafts) <= 100:
+        raise HTTPException(422, "Enter a board name and between 1 and 100 stages")
+    if any(not isinstance(d, dict) for d in drafts) or not isinstance(payload.get("remap", {}), dict):
+        raise HTTPException(422, "Invalid stage configuration")
+    names = [str(d.get("name") or "").strip() for d in drafts]
+    if any(not n or len(n) > 100 for n in names) or len(set(n.casefold() for n in names)) != len(names):
+        raise HTTPException(422, "Stage names must be nonempty and unique")
+    by_id = {str(c.id): c for c in columns}
+    keys = [str(d.get("id") or "") for d in drafts]
+    if len(set(keys)) != len(keys) or any(k not in by_id and not k.startswith("new:") for k in keys):
+        raise HTTPException(422, "Invalid board stage")
+    standard = {"BACKLOG": "Backlog", "TODO": "To Do", "IN_PROGRESS": "In Progress", "IN_REVIEW": "In Review", "DONE": "Done"}
+    status_keys = [by_id[k].status_key if k in by_id and by_id[k].status_key in standard else {value:key for key,value in standard.items()}.get(names[i], names[i].upper().replace(" ", "_")) for i,k in enumerate(keys)]
+    if len(set(status_keys)) != len(status_keys) or any(len(k)>60 for k in status_keys):
+        raise HTTPException(422, "Stage system statuses must be unique (60 characters maximum)")
+    retained = set(keys) & set(by_id)
+    remap = payload.get("remap") or {}
+    for key in set(by_id) - retained:
+        if str(remap.get(key) or "") not in retained:
+            raise HTTPException(422, "Choose a retained replacement stage before deleting")
+    for draft in drafts:
+        days = draft.get("aging_days",14)
+        if type(days) is not int or not 1<=days<=365: raise HTTPException(422,"Aging threshold must be between 1 and 365 days")
+        limit = draft.get("wip_limit")
+        if limit is not None and (type(limit) is not int or not 1 <= limit <= 10000):
+            raise HTTPException(422, "Capacity must be between 1 and 10000")
+    with db.begin_nested():
+        for i,key in enumerate(keys):
+            column = by_id.get(key)
+            if column is None:
+                column = PMSBoardColumn(board_id=board.id)
+                db.add(column)
+            elif column.status_key not in standard and column.name != names[i]:
+                # Custom names are task statuses in the existing schema. Never turn
+                # a rename into a completion/reopening operation that skips guards.
+                if db.query(PMSTask).filter_by(project_id=project.id, column_id=column.id).first():
+                    raise HTTPException(409, "Move tasks out of this custom stage before renaming it")
+            column.name = names[i]
+            column.status_key = status_keys[i]
+            column.position = i
+            column.wip_limit = drafts[i].get("wip_limit")
+        db.flush()
+        for key in set(by_id) - retained:
+            destination = by_id[str(remap[key])]
+            target_status = standard.get(destination.status_key, destination.name)
+            for task in db.query(PMSTask).filter_by(project_id=project.id, column_id=by_id[key].id).all():
+                if task.deleted_at:
+                    task.column_id = destination.id
+                    task.status = target_status
+                else:
+                    update_task_operation(task.id, PMSTaskUpdate(status=target_status), db, current_user, commit=False)
+            db.flush()
+            db.delete(by_id[key])
+        from app.shared.models import ServicePolicy
+        from app.apps.srm.services.commercial import tenant
+        key=f"pms-stage-guidance:{tenant(current_user)}:{project.id}:{board.id}"
+        guidance=db.query(ServicePolicy).filter_by(scope_key=key,organization_id=tenant(current_user),kind="pms_stage_guidance").first()
+        values={status_keys[i]:{"aging_days":d.get("aging_days",14)} for i,d in enumerate(drafts)}
+        if guidance is None: db.add(ServicePolicy(scope_key=key,organization_id=tenant(current_user),module_key="project_management",kind="pms_stage_guidance",values_json=values,version=1,updated_by=current_user.id))
+        else: guidance.values_json=values;guidance.version+=1;guidance.updated_by=current_user.id
+        board.name = name
+        _record_activity(db, project.id, current_user, "board.configured", "board", board.id, "Updated project pipeline", metadata={"previous_stages": snapshot, "stages": drafts, "remap": remap})
+    db.commit()
+    _broadcast_realtime(current_user, "project.updated", project_id=project.id, message="Project pipeline updated")
+    return {"message": "Board saved", "id": board.id}
 
 
 @router.post("/projects/{project_id}/board/reorder")

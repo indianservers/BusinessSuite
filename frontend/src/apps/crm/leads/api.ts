@@ -106,6 +106,7 @@ export type Lead = {
   scoreReasons?: { name: string; matched: boolean; points: number }[];
 };
 export type LeadPatch = {
+  customFields?: Record<string, unknown>;
  confirmShared?:boolean;sharedReason?:string;
   catalog_lines?: {kind: "product" | "service"; item_id: number; pricing_id?: string | null; quantity: number; unit_price: number; discount: number}[];
   values?: Record<string, unknown>;

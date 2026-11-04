@@ -49,8 +49,28 @@ def create_custom_field_definition(
     ).first()
     if exists:
         raise HTTPException(status_code=400, detail="Custom field key already exists for this module")
+    from app.apps.crm.custom_field_config import validate_config
+    validate_config({"field_type":data.field_type.lower(),"is_required":data.is_required,"options_json":data.options_json})
     item = CustomFieldDefinition(**data.model_dump())
     db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.put("/definitions/{definition_id}", response_model=CustomFieldDefinitionSchema)
+def update_custom_field_definition(definition_id: int, data: CustomFieldDefinitionCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("settings_manage"))):
+    item = db.get(CustomFieldDefinition, definition_id)
+    if not item:
+        raise HTTPException(404, "Custom field definition not found")
+    if (item.module, item.field_key, item.field_type) != (data.module, data.field_key, data.field_type):
+        raise HTTPException(409, "Module, identifier and type stay fixed to preserve saved values")
+    from app.apps.crm.custom_field_config import option_values, validate_config
+    validate_config({"field_type": data.field_type.lower(), "is_required": data.is_required, "options_json": data.options_json})
+    if not set(option_values(item.options_json)).issubset(option_values(data.options_json)):
+        raise HTTPException(409, "Keep existing options to preserve saved values")
+    for key, value in data.model_dump().items():
+        setattr(item, key, value)
     db.commit()
     db.refresh(item)
     return item
@@ -68,6 +88,14 @@ def list_custom_field_definitions(
     return query.order_by(CustomFieldDefinition.module, CustomFieldDefinition.display_order, CustomFieldDefinition.label).all()
 
 
+def validate_platform_value(definition, value, required=None):
+    from types import SimpleNamespace
+    from app.apps.crm.api.router import _custom_field_storage
+    kind=definition.field_type.lower().replace(" ","_")
+    kind={"textarea":"long_text","longtext":"long_text","boolean":"checkbox","select":"dropdown","multiselect":"multi_select"}.get(kind,kind)
+    _custom_field_storage(SimpleNamespace(field_type=kind,options_json=definition.options_json,is_required=definition.is_required if required is None else required,label=definition.label),value)
+
+
 @router.put("/values", response_model=CustomFieldValueSchema)
 def upsert_custom_field_value(
     data: CustomFieldValueUpsert,
@@ -77,8 +105,7 @@ def upsert_custom_field_value(
     definition = db.query(CustomFieldDefinition).filter(CustomFieldDefinition.id == data.definition_id, CustomFieldDefinition.is_active == True).first()
     if not definition:
         raise HTTPException(status_code=404, detail="Custom field definition not found")
-    if definition.is_required and not (data.value_text or data.value_json):
-        raise HTTPException(status_code=400, detail="Value is required for this custom field")
+    validate_platform_value(definition,data.value_json if data.value_json is not None else data.value_text)
     item = db.query(CustomFieldValue).filter(
         CustomFieldValue.definition_id == data.definition_id,
         CustomFieldValue.entity_type == data.entity_type,
@@ -207,6 +234,8 @@ def submit_custom_form(
         required = form_field.is_required_override if form_field.is_required_override is not None else definition.is_required
         if required and definition.field_key not in data.values_json:
             missing.append(definition.field_key)
+        else:
+            validate_platform_value(definition,data.values_json.get(definition.field_key),required)
     if missing:
         raise HTTPException(status_code=400, detail=f"Missing required fields: {', '.join(missing)}")
 

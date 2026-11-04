@@ -37,8 +37,8 @@ export type Connector = {
       | "native_webhook"
       | "native_polling"
       | "native_pubsub"
-      | "native_stream";
-      
+      | "native_stream"
+      | "native_journal";
     provider_secret_fields?: Record<string, string>;
     setup_schema: Schema;
   }[];

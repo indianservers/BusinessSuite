@@ -1,0 +1,67 @@
+RECORD 360 — REMAINING PHASES
+4 November 2026
+
+PHASE 1 — DIRECT PMS LINKS TO CONTACTS AND LEADS
+Implemented task CRM links using existing task identity, CRM records, task permissions,
+branch/tenant scope, audit activity and SmartRecordPicker. Link/unlink controls sit in
+the shared task 360 workspace. Contact and lead 360 Focus includes directly linked
+tasks and their PMS follow-ups. Company views include authorized related links.
+Contact and lead merges repoint links and remove duplicates. No new task engine or
+customer identity was introduced. Archived/inaccessible records are hidden; viewers
+can read visible links but cannot edit them. The picker loads additional pages.
+
+Additive migrations: SQLite 20261104_065_task_links and PostgreSQL
+pg_20261104_081_task_links. Apply the appropriate migration chain before using these
+links against a deployed backend. No live migration or deployment was performed.
+
+PHASE 2 — LARGE-DATA PAGING
+Shared work/history feeds and PMS Tasks and Followups use bounded keyset queries,
+signed scope-bound cursors and Previous/Next navigation. SQL filters run before
+paging. Each source loads at most page size plus one candidates; there is no 5,000
+record truncation. Cursor requests avoid full totals. Project summaries show a
+bounded preview with a count and navigation to delivery work.
+History captures per-source maximum IDs so newly inserted/backdated events do not
+shift the current cursor session. Work remains live: due-date changes can move an
+item; local changes and refresh reset navigation. Legacy numbered requests remain
+compatible through bounded batches. Native date columns retain index-friendly
+ordering, including mixed calendar/timed/null dates and SQLite timestamp formats.
+Cursor scope includes tenant, user, branch, record, source, filters and page size.
+Retry resets stale cursors. Current native task access is rechecked on fetched rows.
+
+PHASE 3 — ROLE AND POS REGRESSION
+Exercised branch/tenant isolation, viewer read-only behavior, role policy parity,
+intern assignments and access revocation. POS reuses the shared customer 360 from
+the cart and payment dialog. Closing success, forbidden or failed profile loads
+preserves the selected customer, cart, discounts and entered payment/reference.
+Opening a profile does not submit a sale or payment; walk-in has no profile action.
+
+VERIFICATION
+Phase tests passed before subsequent phases. Focused backend tests cover direct
+links, idempotency, unlink, merges, migrations, HTTP permissions, 6,006 task paging,
+bounded loading, cursor tamper/scope, history inserts and mixed date boundaries.
+Full-app Playwright: 5 passed (three POS outcomes and two SRM customer cases).
+The older contact-directory fixture now explicitly selects its created branch;
+production visibility rules were preserved. Its workspace regression: 29 passed.
+Frontend TypeScript check and both record-360 browser harnesses passed. The final
+production Vite build passed in 40.63 seconds. Git diff whitespace checks passed.
+Final combined backend regression: 106 passed, 54 warnings in 338.03 seconds.
+Included record 360, paging, direct task links, roles, SRM customer profiles, service
+follow-ups, PMS activity/workspace, POS customer/catalog and contact directory suites.
+
+LIMITS
+SQLite migrations and PostgreSQL offline SQL compilation/head checks passed.
+No live PostgreSQL server or production load/p95 certification was available.
+The production build retains existing large-bundle warnings.
+
+KEY SOURCES
+backend/app/apps/project_management/task_record_links.py
+backend/app/apps/project_management/task_visibility.py
+backend/app/shared/record_paging.py
+backend/app/shared/record_work_filters.py
+backend/app/shared/record_360.py
+frontend/src/shared/records/TaskRecordLinks.tsx
+frontend/src/shared/records/useCursorPages.ts
+frontend/src/shared/records/Record360Workspace.tsx
+frontend/src/apps/project-management/pages/TasksFollowUpsPage.tsx
+playwright/record-360-pos.spec.ts
+docs/qa/record-360/remaining-phases-build.log

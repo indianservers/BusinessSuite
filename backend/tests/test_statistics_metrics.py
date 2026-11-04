@@ -16,9 +16,12 @@ ROOT="/api/v1/metrics"
 
 def test_approval_totals_cover_all_pages_and_exclude_other_organizations(client,db,population):
     from app.models.approval_os import ApprovalRequest
+    from app.apps.crm.models import CRMLead
     data,_,_=population;owner,member,outsider,h,*_=data
     for i in range(325):
-        db.add(ApprovalRequest(organization_id=1,source_module="crm",approval_type="Review",entity_type="lead",entity_id=i,title=f"Review {i}",assigned_to_user_id=owner.id,status="Pending",priority="High",sla_due_at=datetime.now(timezone.utc)-timedelta(days=1)))
+        lead = CRMLead(organization_id=1, first_name="Review", full_name=f"Review lead {i}")
+        db.add(lead); db.flush()
+        db.add(ApprovalRequest(organization_id=1,source_module="crm",approval_type="Review",entity_type="lead",entity_id=lead.id,title=f"Review {i}",assigned_to_user_id=owner.id,status="Pending",priority="High",sla_due_at=datetime.now(timezone.utc)-timedelta(days=1)))
     db.add(ApprovalRequest(organization_id=2,source_module="crm",approval_type="Review",entity_type="lead",entity_id=999,title="Other organization",assigned_to_user_id=owner.id,status="Pending"));db.commit()
     response=client.get("/api/v1/approval-os/inbox",headers=h,params={"scope":"all","page":7,"per_page":50})
     assert response.status_code==200,response.text
@@ -54,7 +57,7 @@ def population(db,studio):
     outsider.is_active=False
     invite=User(email="invited-metrics@example.com",hashed_password="fixture",is_active=False,person=CommonPerson(organization_id=1,primary_email="invited-metrics@example.com",display_name="Invitation"))
     db.add(invite);db.flush();db.add(AccessPolicy(user_id=invite.id,company_id=1,status="invited",grants={}))
-    branch=Branch(name="Metric HQ",company_id=1);db.add(branch);db.flush()
+    branch=db.get(Branch,member.employee.branch_id)
     records=[]
     for i,status in enumerate(["Probation","On Leave","Terminated","Active"]):
         row=Employee(employee_id=f"METRIC-{i}",first_name="Metric",last_name=str(i),status=status,branch_id=branch.id,date_of_joining=date(2026,1,1),deleted_at=datetime.now(timezone.utc) if i==3 else None)
@@ -206,7 +209,7 @@ def test_shared_memberships_count_unique_identities_and_global_scope_is_explicit
     assert dashboard.status_code==200,dashboard.text
     assert dashboard.json()["summary"]["Total users"]==4 and dashboard.json()["summary"]["Registered users"]==3
     assert len(dashboard.json()["context"]["organizations"])==2
-    switched={**h,"X-Suite-Organization":"2"}
+    switched={**h,"X-Suite-Organization":"2", "X-Suite-Branch":str(db.query(Branch).filter_by(company_id=2).first().id)}
     assert client.get(ROOT+"/values",headers=switched,params={"ids":"users.total_registered"}).json()["items"][0]["value"]==1
     # Membership in another company must not leak its projects into current-company totals.
     from app.apps.project_management.models import PMSProject,PMSWorkspace,PMSWorkspaceMember

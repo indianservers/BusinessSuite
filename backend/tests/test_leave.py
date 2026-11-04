@@ -1,4 +1,5 @@
-from test_identity_utils import attach_test_identity
+from tests.rich_text_test_utils import organization_context
+from test_identity_utils import attach_test_identity, attach_workflow_branch
 import pytest
 from datetime import date, timedelta
 from decimal import Decimal
@@ -23,6 +24,7 @@ def _create_employee_with_leave(db, client, headers):
     )
     db.add(user)
     attach_test_identity(db, user)
+    attach_workflow_branch(db, user)
     db.flush()
 
     emp = Employee(
@@ -233,6 +235,7 @@ def test_leave_calendar_scopes_manager_team_and_holidays(client, db):
     )
     db.add(manager_user)
     attach_test_identity(db, manager_user)
+    attach_workflow_branch(db, manager_user)
     db.flush()
     manager_emp = Employee(
         employee_id=f"CALMGR{id(db)}",
@@ -254,6 +257,7 @@ def test_leave_calendar_scopes_manager_team_and_holidays(client, db):
     )
     db.add(outsider_user)
     attach_test_identity(db, outsider_user)
+    attach_workflow_branch(db, outsider_user)
     db.flush()
     outsider_emp = Employee(
         employee_id=f"CALOUT{id(db)}",
@@ -405,7 +409,7 @@ def test_team_leave_calendar_scopes_manager_employee_and_hr(client, db, superuse
     hr_response = client.get(
         "/api/v1/leave/team-calendar",
         params={"year": leave_day.year, "month": leave_day.month, "department_id": str(other_department.id)},
-        headers=superuser_headers,
+        headers={**superuser_headers, "X-Suite-Organization":str(company.id), "X-Suite-Branch":str(branch.id)},
     )
     assert hr_response.status_code == 200
     assert [item["employee_id"] for item in hr_response.json()] == [outsider_emp.id]
@@ -508,6 +512,7 @@ def test_leave_request_requires_allocated_balance(client, db):
     )
     db.add(user)
     attach_test_identity(db, user)
+    attach_workflow_branch(db, user)
     db.flush()
     emp = Employee(
         employee_id=f"NOBAL{id(db)}",

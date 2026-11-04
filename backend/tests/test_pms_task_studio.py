@@ -15,9 +15,14 @@ def studio(client, db, middleware_database, organization_context):
     other, other_headers = account(db, "studio-outsider@test.com")
     # Production writes require a concrete branch destination.
     from app.branches.models import BranchGrant
-    branch=Branch(name="Studio HQ",company_id=1);db.add(branch);db.flush()
+    branch = db.query(Branch).filter_by(company_id=1, is_active=True).order_by(Branch.id).first()
+    if branch is None:
+        branch = Branch(name="Studio HQ", company_id=1)
+        db.add(branch)
+        db.flush()
     for user, request_headers in [(owner, headers), (member, member_headers), (other, other_headers)]:
-        db.add(BranchGrant(user_id=user.id,company_id=1,branch_id=branch.id,can_write=True))
+        if not db.query(BranchGrant).filter_by(user_id=user.id,company_id=1,branch_id=branch.id).first():
+            db.add(BranchGrant(user_id=user.id,company_id=1,branch_id=branch.id,can_write=True))
         request_headers.update({"X-Suite-Organization":"1","X-Suite-Branch":str(branch.id)})
     db.commit()
     wid = client.post(BASE + "/workspaces", json={"name":"Task Studio"}, headers=headers).json()["id"]

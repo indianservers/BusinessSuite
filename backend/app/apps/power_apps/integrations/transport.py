@@ -194,7 +194,9 @@ class HttpTransport:
         self.policy = policy
         self.connection_factory = connection_factory
 
-    def request(self, method, url, headers=None, body=None, timeout=10, redirects=0, return_redirect=False):
+    def request(self, method, url, headers=None, body=None, timeout=10, redirects=0, return_redirect=False, max_response_bytes=262144):
+        if not 1 <= max_response_bytes <= 64 * 1024 * 1024:
+            raise ValueError("Invalid response byte limit")
         headers = dict(headers or {})
         started = time.monotonic()
         original = None
@@ -219,11 +221,11 @@ class HttpTransport:
                     headers=headers,
                 )
                 response = conn.getresponse()
-                data = response.read(262145)
-                if len(data) > 262144:
+                data = response.read(max_response_bytes + 1)
+                if len(data) > max_response_bytes:
                     raise IntegrationFailure(
                         "response_size",
-                        "Response exceeds 256 KB",
+                        "Response exceeds the configured byte limit",
                         uncertain=method not in {"GET", "HEAD"},
                     )
                 result = Response(

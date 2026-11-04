@@ -1,3 +1,9 @@
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
+import { CurrencySelect } from "@/lib/validation/business";
+import CompaniesPage from "@/shared/master-data/CompaniesPage";
+import SalesPipeline from "../components/SalesPipeline";
+import { PipelineViewSwitch } from "@/shared/pipeline/PipelineBoard";
+import { SuiteHeading, SuiteMetric } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { ActionButton } from "@/components/actions";
@@ -11,7 +17,7 @@ import { InvoiceList, SharedCustomerSelect } from "@/apps/project-management/pag
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
-import { useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -212,7 +218,7 @@ function formatDate(value: unknown) {
   if (!value) return "-";
   const date = new Date(String(value));
   if (Number.isNaN(date.getTime())) return formatValue(value);
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return displayDate(String(value), "srm");
 }
 
 function recordDate(record: SRMRecord) {
@@ -286,34 +292,19 @@ function SectionState({ label, isLoading, isError, isEmpty, onRetry }: { label: 
 }
 
 function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetching?: boolean; onRefresh?: () => void }) {
-  const Icon = meta.icon;
-  return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
-          <div className="text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={meta.description}/></div>
-        </div>
-      </div>
-      {onRefresh ? (
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => { window.location.href = "/ai/copilot?module_name=srm"; }}>
-            <Sparkles className="h-4 w-4" />AI Copilot
-          </Button>
-          <Button variant="outline" onClick={onRefresh} disabled={isFetching}>
-            Refresh
-          </Button>
-        </div>
-      ) : null}
-    </div>
-  );
+  return <SuiteHeading title={meta.title} icon={meta.icon} description={<RichTextContent legacyFormat="plain" value={meta.description}/>} actions={onRefresh ? <><Button variant="outline" onClick={() => { window.location.href = "/ai/copilot?module_name=srm"; }}><Sparkles className="h-4 w-4"/>AI Copilot</Button><Button variant="outline" onClick={onRefresh} disabled={isFetching}>Refresh</Button></> : null}/>;
 }
 
 function DashboardView() {
-  const query = useQuery({ queryKey: ["srm", "dashboard"], queryFn: () => srmApi.dashboard() });
+  type ReportingPeriod = "all" | "3" | "12" | "custom";
+  const [selectedPeriod,setSelectedPeriod]=useState<ReportingPeriod>("all");
+  const [startDate,setStartDate]=useState("");
+  const [endDate,setEndDate]=useState("");
+  const [range,setRange]=useState<{period:ReportingPeriod;start?:string;end?:string}>({period:"all"});
+  const {period}=range;
+  const query = useQuery({ queryKey: ["srm", "dashboard", period, range.start, range.end], queryFn: () => srmApi.dashboard(period,range.start,range.end) });
+  const periodLabel = period === "custom" ? `${range.start} to ${range.end}` : period === "all" ? "All time" : `Last ${period} calendar months through today`;
+  const invalidDates = !!(startDate && endDate && startDate > endDate);
   const data = (query.data || {}) as SRMRecord;
   const canManage = useCanManageRevenue();
   const recentOrders = asList(data.recent_sales_orders);
@@ -323,7 +314,7 @@ function DashboardView() {
   const currencies=[...new Set(series.map(row=>String(row.currency||"Unknown")))];const eventTypes=[...new Set(series.map(row=>String(row.event_type)))];
   const seriesCurrency=chosenCurrency||currencies[0]||"",seriesType=chosenType||eventTypes[0]||"";
   const revenueTrend=useMemo(()=>buildRevenueTrend(series.filter(row=>row.currency===seriesCurrency&&row.event_type===seriesType)),[data.revenue_time_series,seriesCurrency,seriesType]);
-  const groupedMoney=(key:string)=>{const rows=asList((data.currency_totals as SRMRecord|undefined)?.[key]);return rows.length?rows.map(row=>`${row.currency} ${Number(row.amount).toLocaleString(undefined,{maximumFractionDigits:2})}`).join(" / "):"0 (no invoice records)"};
+  const groupedMoney=(key:string)=>{const rows=asList((data.currency_totals as SRMRecord|undefined)?.[key]);return rows.length?rows.map((row,index)=><span className="block break-words" key={`${row.currency}-${index}`}><span className="mr-2 text-sm font-medium text-muted-foreground">{String(row.currency || "Unknown")}</span>{Number(row.amount).toLocaleString(undefined,{maximumFractionDigits:2})}</span>):"0 (no invoice records)"};
   const orderPipeline = useMemo(() => buildOrderPipeline(data), [data]);
   const totalInvoiced = numberValue(data.total_invoiced_value);
   const collected = numberValue(data.total_collected_value);
@@ -344,8 +335,9 @@ function DashboardView() {
   return (
     <div className="space-y-4">
       <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
-      <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-        {latestDate ? <Badge variant="outline" className="h-9 rounded-md px-3 text-sm">{formatDate(latestDate)}</Badge> : null}
+      <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
+        {query.dataUpdatedAt > 0 && <span className="text-xs text-muted-foreground">Last refreshed: {new Date(query.dataUpdatedAt).toLocaleTimeString()}</span>}
+        {latestDate ? <Badge variant="outline" className="h-9 rounded-md px-3 text-sm">Latest transaction: {formatDate(latestDate)}</Badge> : null}
         {canManage ? (
           <Button asChild variant="outline" size="sm" className="h-9">
             <Link to="/srm/sales-orders"><Plus className="h-4 w-4" />Create order</Link>
@@ -355,24 +347,37 @@ function DashboardView() {
           <Link to="/srm/pos/terminal"><Store className="h-4 w-4" />Open POS</Link>
         </Button>
       </div>
-<ModuleWorkflows module="srm" />
+      <form className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3" onSubmit={event=>{event.preventDefault();if(startDate&&endDate&&!invalidDates)setRange({period:"custom",start:startDate,end:endDate});}}>
+        <label className="grid gap-1 text-sm">Reporting period<NativeSelect className="rounded border bg-background p-2" value={selectedPeriod} onChange={event=>{const value=event.target.value as ReportingPeriod;setSelectedPeriod(value);if(value!=="custom")setRange({period:value});}}><option value="all">All time</option><option value="3">Last 3 calendar months</option><option value="12">Last 12 calendar months</option><option value="custom">Custom date range</option></NativeSelect></label>
+        {selectedPeriod==="custom"&&<>
+          <label className="grid gap-1 text-sm">Start date<input className="min-w-0 rounded border bg-background p-2" type="date" required value={startDate} max={endDate||undefined} onChange={event=>setStartDate(event.target.value)}/></label>
+          <label className="grid gap-1 text-sm">End date<input className="min-w-0 rounded border bg-background p-2" type="date" required value={endDate} min={startDate||undefined} onChange={event=>setEndDate(event.target.value)}/></label>
+          <Button type="submit" disabled={!startDate||!endDate||invalidDates}>Apply date range</Button>
+          {invalidDates&&<p role="alert" className="w-full text-sm text-destructive">Start date must be on or before end date.</p>}
+          <p className="w-full text-xs text-muted-foreground">Both dates are included. Apply to update totals and revenue charts. Currently showing: {periodLabel}.</p>
+        </>}
+      </form>
       <SectionState label="dashboard" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
       {!query.isLoading && !query.isError ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <DashboardMetricCard icon={IndianRupee} label="Total invoiced" value={groupedMoney("total_invoiced_value")} detail="All time" />
-            <DashboardMetricCard icon={Wallet} label="Collected" value={groupedMoney("total_collected_value")} detail={collectionPercent !== null ? `${collectionPercent}% of invoiced` : "All time"} tone={collectionPercent === 100 ? "success" : "default"} />
-            <DashboardMetricCard icon={BarChart3} label="Outstanding" value={groupedMoney("outstanding_value")} detail="All time" />
-            <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={groupedMoney("overdue_value")} detail="All time" tone={overdue > 0 ? "danger" : "default"} />
+            <DashboardMetricCard icon={IndianRupee} label="Total invoiced" value={groupedMoney("total_invoiced_value")} detail={periodLabel} />
+            <DashboardMetricCard icon={Wallet} label="Collected" value={groupedMoney("total_collected_value")} detail={collectionPercent !== null ? `${collectionPercent}% of invoiced · ${periodLabel}` : periodLabel} tone={collectionPercent === 100 ? "success" : "default"} />
+            <DashboardMetricCard icon={BarChart3} label="Outstanding" value={groupedMoney("outstanding_value")} detail={periodLabel} />
+            <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={groupedMoney("overdue_value")} detail={periodLabel} tone={asList((data.currency_totals as SRMRecord|undefined)?.overdue_value).some(row=>numberValue(row.amount)>0) ? "danger" : "default"} />
           </div>
-<p className="text-xs text-muted-foreground">{String(data.currency_policy||"Currency units unavailable")}</p>
-<SecondaryDetails title="Revenue events and order pipeline"><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</NativeSelect></label><label>Event type<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</NativeSelect></label></div><p className="text-xs">Monthly totals for the selected event type and currency. Different commercial events are not combined into accounting revenue.</p>
+<p className="text-xs text-muted-foreground">{periodLabel}. KPI totals use invoice issue dates; paid and outstanding balances are current. {String(data.currency_policy||"Currency units unavailable")}</p>
+<section aria-labelledby="collection-priorities" className="space-y-3">
+  <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="collection-priorities" className="text-base font-semibold">Collection priorities</h2><Button asChild variant="outline" size="sm"><Link to="/srm/collections">Open collections</Link></Button></div>
+  {asList(data.collection_alerts).length ? <div className="divide-y rounded-lg border bg-card">{asList(data.collection_alerts).slice(0,5).map((invoice,index)=><div key={String(invoice.id||index)} className="flex flex-wrap items-center justify-between gap-3 p-3"><div><Link className="text-sm font-medium underline" to={invoice.id ? `/srm/invoices/${invoice.id}` : "/srm/invoices"}>{String(invoice.invoice_number||"Overdue invoice")}</Link><p className="text-xs text-muted-foreground">{String(invoice.customer_name || `Customer #${invoice.customer_id || "—"}`)} · {String(invoice.overdue_days ?? "—")} days overdue</p></div><strong className="text-sm text-destructive">{currencyMoney(invoice.balance_amount,invoice.currency)}</strong></div>)}</div> : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No overdue invoices in your permitted scope.</p>}
+</section>
+<section aria-label="Revenue events and order pipeline" className="space-y-3"><h2 className="text-base font-semibold">Revenue events and order pipeline</h2><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</NativeSelect></label><label>Event type<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</NativeSelect></label></div><p className="text-xs">Monthly totals for the selected period, event type and currency. The order pipeline uses order creation dates in the same period. KPI totals include invoices issued in the reporting period, with current paid and outstanding balances; overdue is assessed today. Event currency and type filter the chart only. Different commercial events are not combined into accounting revenue.</p>
           <div className="grid gap-4 xl:grid-cols-12">
-            <RevenuePerformanceCard records={revenueTrend} />
+            <RevenuePerformanceCard records={revenueTrend} currency={seriesCurrency} />
             <OrderPipelineCard items={orderPipeline} total={numberValue(data.total_sales_orders)} />
           </div>
 
-</SecondaryDetails>
+</section>
           <div className="grid gap-4 xl:grid-cols-12">
             <SalesOrdersCard records={recentOrders} />
             <InvoicesCard records={recentInvoices} />
@@ -380,13 +385,14 @@ function DashboardView() {
           </div>
         </>
       ) : null}
+      <details className="rounded-lg border"><summary className="cursor-pointer p-3 text-sm font-medium">Explore revenue workflows</summary><div className="p-3 pt-0"><ModuleWorkflows module="srm" /></div></details>
     </div>
   );
 }
 
 type DashboardMetricTone = "default" | "success" | "danger";
 
-function DashboardMetricCard({ icon: Icon, label, value, detail, tone = "default" }: { icon: ElementType; label: string; value: string; detail?: string; tone?: DashboardMetricTone }) {
+function DashboardMetricCard({ icon: Icon, label, value, detail, tone = "default" }: { icon: ElementType; label: string; value: ReactNode; detail?: string; tone?: DashboardMetricTone }) {
   const toneClass = tone === "success" ? "text-emerald-700 dark:text-emerald-300" : tone === "danger" ? "text-destructive" : "text-muted-foreground";
   return (
     <Card className="rounded-xl border-border/80 bg-card shadow-sm">
@@ -396,7 +402,7 @@ function DashboardMetricCard({ icon: Icon, label, value, detail, tone = "default
         </div>
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
+          <div className={`mt-1 text-2xl font-semibold tracking-tight ${tone === "danger" ? "text-destructive" : ""}`}>{value}</div>
           {detail ? <p className={`mt-1 text-xs ${toneClass}`}>{detail}</p> : null}
         </div>
       </CardContent>
@@ -423,7 +429,7 @@ function buildOrderPipeline(data: SRMRecord) {
   ].filter((item) => item.value > 0);
 }
 
-function RevenuePerformanceCard({ records }: { records: Array<{ date: string; label: string; amount: number }> }) {
+function RevenuePerformanceCard({ records, currency }: { records: Array<{ date: string; label: string; amount: number }>; currency: string }) {
   const hasData = records.some((record) => record.amount > 0);
   return (
     <Card className="rounded-xl shadow-sm xl:col-span-7">
@@ -438,8 +444,8 @@ function RevenuePerformanceCard({ records }: { records: Array<{ date: string; la
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={records} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
                   <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
-                  <YAxis tickLine={false} axisLine={false} fontSize={12} tickFormatter={(value) => `₹${Number(value).toLocaleString("en-IN")}`} />
-                  <Tooltip formatter={(value) => [money(value), "Revenue"]} labelFormatter={(label) => String(label)} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} tickFormatter={(value) => `${currency} ${Number(value).toLocaleString(undefined,{notation:"compact"})}`} />
+                  <Tooltip formatter={(value) => [currencyMoney(value,currency), "Event amount"]} labelFormatter={(label) => String(label)} />
                   <Area type="monotone" dataKey="amount" stroke="#2563eb" fill="#2563eb" fillOpacity={0.12} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -529,11 +535,11 @@ function InvoicesCard({ records }: { records: SRMRecord[] }) {
       render={(record, index) => (
         <tr key={String(record.id || index)} className="border-t">
           <td className="min-w-0 px-3 py-2">
-            <Link to="/srm/invoices" className="block truncate font-medium hover:text-primary">{formatValue(record.invoice_number || `Invoice ${index + 1}`)}</Link>
+            <Link to={record.id ? `/srm/invoices/${record.id}` : "/srm/invoices"} className="block truncate font-medium hover:text-primary">{formatValue(record.invoice_number || `Invoice ${index + 1}`)}</Link>
             <span className="block truncate text-xs text-muted-foreground">{formatValue(record.customer_id || record.title || record.created_at)}</span>
           </td>
           <td className="px-3 py-2"><Badge variant={statusTone(record.payment_status || record.status)}>{displayStatus(record.payment_status || record.status)}</Badge></td>
-          <td className="px-3 py-2 font-medium">{optionalMoney(record.balance_amount ?? record.total_amount)}</td>
+          <td className="px-3 py-2 font-medium">{currencyMoney(record.balance_amount ?? record.total_amount,record.currency)}</td>
           <td className="px-3 py-2">{formatDate(record.due_date)}</td>
         </tr>
       )}
@@ -678,84 +684,10 @@ function SalesInventoryLaunchpad() {
   );
 }
 
-function Customer360View() {
-  const [search, setSearch] = useState("");
-  const [submitted, setSubmitted] = useState("");
-  const params = useMemo(() => {
-    const value = submitted.trim();
-    if (!value) return {};
-    return { q: value };
-  }, [submitted]);
-  const query = useQuery({
-    queryKey: ["srm", "customer360", params],
-    queryFn: () => srmApi.customer360(params),
-    enabled: Boolean(submitted),
-  });
-  const data = (query.data || {}) as SRMRecord;
-  const hasResults = Boolean(data.matched);
-  return (
-    <div className="space-y-5">
-      <PageHeader meta={viewMeta.customer360} isFetching={query.isFetching} onRefresh={submitted ? () => query.refetch() : undefined} />
-      <Card>
-        <CardContent className="flex flex-col gap-3 p-4 md:flex-row">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              aria-label="Customer 360 search"
-              className="pl-9"
-              placeholder="Search by customer name, customer ID, CRM deal, sales order, or engagement"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") setSubmitted(search);
-              }}
-            />
-          </div>
-          <Button onClick={() => setSubmitted(search)}>Search Customer 360</Button>
-        </CardContent>
-      </Card>
-      {!submitted ? <SectionState label="Customer 360 data" isEmpty /> : null}
-      <SectionState label="Customer 360 data" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
-      {submitted && !query.isLoading && !query.isError && !hasResults ? <SectionState label="Customer 360 data" isEmpty /> : null}
-      {hasResults ? (
-        <>
-          <div className="grid gap-3 md:grid-cols-4">
-            <MetricCard label="Customer ID" value={data.customer_id} />
-            <MetricCard label="Outstanding" value={money(data.outstanding_amount)} />
-            <MetricCard label="Sales Orders" value={asList(data.sales_orders).length} />
-            <MetricCard label="Invoices" value={asList(data.invoices).length} />
-          </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <SummaryCard title="CRM References" data={(data.crm_references || {}) as SRMRecord} />
-            <SummaryCard title="Aging" data={(data.aging || {}) as SRMRecord} />
-            <RecordList title="Sales Orders" records={asList(data.sales_orders)} primaryKey="order_number" secondaryKey="status" amountKey="total_amount" />
-            <RecordList title="Contracts" records={asList(data.contracts)} primaryKey="contract_number" secondaryKey="status" amountKey="contract_value" />
-            <RecordList title="Engagements" records={asList(data.engagements)} primaryKey="engagement_number" secondaryKey="status" amountKey="budget_amount" />
-            <RecordList title="Billing Plans" records={asList(data.billing_plans)} primaryKey="name" secondaryKey="status" amountKey="total_amount" />
-            <RecordList title="Invoices" records={asList(data.invoices)} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
-            <RecordList title="Receipts" records={asList(data.receipts)} primaryKey="receipt_number" secondaryKey="status" amountKey="amount" />
-            <RecordList title="Collection Reminders" records={asList(data.collection_reminders)} primaryKey="reminder_type" secondaryKey="status" amountKey="invoice_id" />
-            <RecordList title="PMS Projects" records={asList(data.pms_projects)} primaryKey="project_key" secondaryKey="name" amountKey="budget_amount" />
-            <RecordList title="Profitability" records={asList(data.profitability)} primaryKey="status" secondaryKey="collection_status" amountKey="gross_margin" />
-            <RecordList title="Timeline / Audit Trail" records={asList(data.timeline || data.audit_trail)} primaryKey="action" secondaryKey="type" amountKey="entity_id" />
-          </div>
-        </>
-      ) : null}
-    </div>
-  );
-}
+function Customer360View() { return <CompaniesPage source="srm" role="Customer"/>; }
 
 function MetricCard({ label, value }: { label: string; value: unknown }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium uppercase text-muted-foreground">{label}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold">{formatValue(value)}</p>
-      </CardContent>
-    </Card>
-  );
+  return <Card><SuiteMetric label={label} value={formatValue(value)} icon={BarChart3}/></Card>;
 }
 
 function RecordList({ title, records, primaryKey, secondaryKey, amountKey }: { title: string; records: SRMRecord[]; primaryKey: string; secondaryKey: string; amountKey: string }) {
@@ -883,7 +815,7 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
     timesheetEngagementId: "",
     timeLogIds: "",
     hourlyRate: "1000",
-    currency: "INR",
+    currency: defaultText("currency", "srm"),
   });
   const update = (key: keyof typeof source, value: string) => setSource((current) => ({ ...current, [key]: value }));
   const timeLogIds = source.timeLogIds.split(",").map((value) => Number(value.trim())).filter((value) => Number.isFinite(value) && value > 0);
@@ -952,18 +884,18 @@ function SourceDraftControls({ action }: { action: ReturnType<typeof useRevenueA
   );
 }
 
-function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
+export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialContactId, onBusyChange }: { onBusyChange?:(busy:boolean)=>void;onCreated?: () => void; initialCustomerId?:number;initialContactId?:number }) {
   const createRef = useNewRecordFocus();
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [savedInvoice, setSavedInvoice] = useState<SRMRecord | null>(null);
   const [form, setForm] = useState({
     template: "services",
-    customer_id: "",
+    customer_id: initialCustomerId?String(initialCustomerId):"",
     sales_order_id: "",
     engagement_id: "",
-    currency: "INR",
+    currency: defaultText("currency", "srm"),
     issue_date: "",
-    due_date: "",
+    due_date: defaultDateAfter("payment_terms_days", "srm"),
     terms: "Due on receipt",
     notes: "",
   });
@@ -993,6 +925,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
       return srmApi.manualInvoice(compactRecord({
         request_id: requestId,
         customer_id: numericField(form.customer_id),
+        contact_id: initialContactId,
         sales_order_id: numericField(form.sales_order_id),
         engagement_id: numericField(form.engagement_id),
         currency: form.currency,
@@ -1016,13 +949,14 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
     },
   });
 
+  useEffect(()=>onBusyChange?.(create.isPending),[create.isPending,onBusyChange]);
   return (
     <Card ref={createRef} id="new-record">
       <CardHeader>
         <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
       </CardHeader>
       <CardContent>
-        <CompactForm className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
+        <CompactForm compactTabs={!initialCustomerId} className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); create.mutate(); }}>
           <div className="grid gap-3 md:grid-cols-4">
             <label className="space-y-2 text-sm">
               <span className="font-medium">Template</span>
@@ -1034,7 +968,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
             </label>
             <label className="space-y-2 text-sm">
               <span className="font-medium">Shared customer</span>
-              <SharedCustomerSelect value={form.customer_id} onChange={value => update("customer_id", value)} />
+              {initialCustomerId?<p>Linked customer #{initialCustomerId}{initialContactId?` · Contact #${initialContactId}`:""}</p>:<SharedCustomerSelect value={form.customer_id} onChange={value => update("customer_id", value)} />}
             </label>
             <label className="space-y-2 text-sm">
               <span className="font-medium">Sales order ID</span>
@@ -1048,7 +982,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
           <div className="grid gap-3 md:grid-cols-4">
             <label className="space-y-2 text-sm">
               <span className="font-medium">Currency</span>
-              <Input value={form.currency} onChange={(event) => update("currency", event.target.value.toUpperCase())} />
+              <CurrencySelect value={form.currency} onChange={currency => update("currency", currency)} />
             </label>
             <label className="space-y-2 text-sm">
               <span className="font-medium">Issue date</span>
@@ -1307,7 +1241,7 @@ function ProfitabilityView() {
 }
 
 function RevenueEventsView() {
-  const dashboard = useQuery({ queryKey: ["srm", "dashboard", "revenueEvents"], queryFn: srmApi.dashboard });
+  const dashboard = useQuery({ queryKey: ["srm", "dashboard", "revenueEvents"], queryFn: () => srmApi.dashboard() });
   const leadToCash = useQuery({ queryKey: ["srm", "leadToCash"], queryFn: srmApi.leadToCash });
   const events = asList((dashboard.data as SRMRecord | undefined)?.revenue_trend);
   return (
@@ -1812,7 +1746,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
   const [salesOrder, setSalesOrder] = useState({
     title: "",
     customer_id: "",
-    currency: "INR",
+    currency: defaultText("currency", "srm"),
     expected_start_date: "",
     expected_end_date: "",
     terms: "",
@@ -1830,7 +1764,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
     effective_date: "",
     expiry_date: "",
     contract_value: "0",
-    currency: "INR",
+    currency: defaultText("currency", "srm"),
     terms: "",
   });
   const [engagement, setEngagement] = useState({
@@ -1840,7 +1774,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
     customer_id: "",
     billing_type: "fixed_fee",
     budget_amount: "0",
-    currency: "INR",
+    currency: defaultText("currency", "srm"),
     planned_start_date: "",
     planned_end_date: "",
   });
@@ -1848,11 +1782,11 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
     engagement_id: "",
     name: "",
     billing_type: "fixed_fee",
-    currency: "INR",
+    currency: defaultText("currency", "srm"),
     total_amount: "0",
     recurrence_rule: "",
     milestone_name: "",
-    milestone_due_date: "",
+    milestone_due_date: defaultDateAfter("payment_terms_days", "srm"),
     milestone_amount: "0",
   });
   const mutation = useMutation({
@@ -1963,7 +1897,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
               <div className="grid gap-3 md:grid-cols-4">
                 <label className="space-y-2 text-sm md:col-span-2"><span className="font-medium">Title</span><Input value={salesOrder.title} onChange={(event) => setSalesOrder((current) => ({ ...current, title: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Customer ID</span><Input inputMode="numeric" value={salesOrder.customer_id} onChange={(event) => setSalesOrder((current) => ({ ...current, customer_id: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><Input value={salesOrder.currency} onChange={(event) => setSalesOrder((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={salesOrder.currency} onChange={currency => setSalesOrder((current) => ({ ...current, currency }))} /></label>
               </div>
               <div className="grid gap-3 md:grid-cols-6">
                 <label className="space-y-2 text-sm"><span className="font-medium">Product ID</span><Input inputMode="numeric" value={salesOrder.product_id} onChange={(event) => setSalesOrder((current) => ({ ...current, product_id: event.target.value }))} /></label>
@@ -1991,7 +1925,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
                 <label className="space-y-2 text-sm"><span className="font-medium">Effective</span><Input type="date" value={contract.effective_date} onChange={(event) => setContract((current) => ({ ...current, effective_date: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Expiry</span><Input type="date" value={contract.expiry_date} onChange={(event) => setContract((current) => ({ ...current, expiry_date: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Value</span><Input inputMode="decimal" value={contract.contract_value} onChange={(event) => setContract((current) => ({ ...current, contract_value: event.target.value }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><Input value={contract.currency} onChange={(event) => setContract((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={contract.currency} onChange={currency => setContract((current) => ({ ...current, currency }))} /></label>
               </div>
               <label className="space-y-2 text-sm"><span className="font-medium">Terms</span><Input value={contract.terms} onChange={(event) => setContract((current) => ({ ...current, terms: event.target.value }))} /></label>
             </>
@@ -2021,7 +1955,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
                 <label className="space-y-2 text-sm"><span className="font-medium">Total</span><Input inputMode="decimal" value={billingPlan.total_amount} onChange={(event) => setBillingPlan((current) => ({ ...current, total_amount: event.target.value }))} /></label>
               </div>
               <div className="grid gap-3 md:grid-cols-4">
-                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><Input value={billingPlan.currency} onChange={(event) => setBillingPlan((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={billingPlan.currency} onChange={currency => setBillingPlan((current) => ({ ...current, currency }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Recurrence</span><Input placeholder="monthly, quarterly" value={billingPlan.recurrence_rule} onChange={(event) => setBillingPlan((current) => ({ ...current, recurrence_rule: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Milestone</span><Input value={billingPlan.milestone_name} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_name: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Milestone amount</span><Input inputMode="decimal" value={billingPlan.milestone_amount} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_amount: event.target.value }))} /></label>
@@ -2039,6 +1973,9 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
 }
 
 function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta }) {
+  const [showCreate,setShowCreate] = useState(false);
+  const [recordView,setRecordView] = useState<"board"|"list">("board");
+  const boardSupported = ["salesOrders","contracts","engagements","billingPlans"].includes(kind);
   const queryClient = useQueryClient();
   const user = useAuthStore(state => state.user);
   const canManage = !!user?.is_superuser || ["admin", "super_admin", "srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(String(user?.role || "").toLowerCase());
@@ -2080,9 +2017,11 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
     <div className="space-y-5">
       <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       <ActionMessage message={!canManage ? "Read-only revenue access: create and workflow actions are hidden for this role." : undefined} />
-      {canManage ? <CommercialCreateCard kind={kind} onSaved={() => query.refetch()} /> : null}
+      {canManage && (!boardSupported || showCreate) ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
       <SectionState label={meta.title} isError={query.isError} onRetry={() => query.refetch()} />
-      {!query.isError ? (
+      {boardSupported && <div className="flex items-center gap-3"><PipelineViewSwitch view={recordView} onChange={setRecordView}/>{canManage&&<button type="button" className="pipeline-primary" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</button>}<span className="text-xs text-muted-foreground">{recordView === "board" ? "Pipeline" : "Record list"}</span></div>}
+      {boardSupported && recordView === "board" && !query.isError && <SalesPipeline kind={kind} onCreate={()=>setShowCreate(true)} records={records} canManage={canManage} loading={query.isLoading} onAction={async(name,id)=>{await action.mutateAsync({name,id});await query.refetch();}}/>}
+      {!query.isError && (!boardSupported || recordView === "list") ? (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">

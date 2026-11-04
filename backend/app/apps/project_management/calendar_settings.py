@@ -92,7 +92,13 @@ def prefs_output(row):
 
 @router.get('/planner/preferences')
 def preferences(db: Session=Depends(get_db), user: User=Depends(get_current_user)):
-    return prefs_output(db.get(PMSPlannerPreference, user.id))
+    row = db.get(PMSPlannerPreference, user.id)
+    if row: return prefs_output(row)
+    from app.shared.form_defaults import effective
+    branch = getattr(user, "_suite_branch_id", None)
+    values = effective(db, user.organization_id, "project_management", branch if isinstance(branch, int) else None)["values"]
+    defaults = Preferences(timezone=values["timezone"], week_start=values["week_start"], workdays=[WorkDay(day=day, enabled=(day + 1) % 7 in values["working_days"]) for day in range(7)])
+    return {"revision": 0, "preferences": defaults.model_dump()}
 
 @router.put('/planner/preferences')
 def save_preferences(data: PreferenceSave, db: Session=Depends(get_db), user: User=Depends(get_current_user)):
@@ -187,20 +193,23 @@ def create_event_operation(data,db,user,*,commit=True):
 
 @router.put('/planner/events/{event_id}')
 def edit_event(event_id:int,data:EventSave,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    event=db.query(PMSCalendarEvent).filter_by(id=event_id,owner_id=user.id).first()
+    event=db.query(PMSCalendarEvent).filter_by(id=event_id,owner_id=user.id).populate_existing().with_for_update().first()
     if not event: raise HTTPException(404,"Event not found")
     validate_scope(db,user,data)
     values=data.model_dump(exclude={'revision'});values.update(start_at=data.start_at.astimezone(UTC),end_at=data.end_at.astimezone(UTC),revision=data.revision+1)
-    if not db.execute(update(PMSCalendarEvent).where(PMSCalendarEvent.id==event_id,PMSCalendarEvent.owner_id==user.id,PMSCalendarEvent.revision==data.revision).values(**values)).rowcount:
+    if event.revision != data.revision:
         raise HTTPException(409,"Event changed. Reload before saving.")
+    for name, value in values.items():
+        setattr(event, name, value)
     db.commit();db.refresh(event)
     return event_output(event,user)
 
 @router.delete('/planner/events/{event_id}',status_code=204)
 def delete_event(event_id:int,revision:int=Query(ge=1),db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    event=db.query(PMSCalendarEvent).filter_by(id=event_id,owner_id=user.id).first()
+    event=db.query(PMSCalendarEvent).filter_by(id=event_id,owner_id=user.id).populate_existing().with_for_update().first()
     if not event: raise HTTPException(404,"Event not found")
-    if not db.query(PMSCalendarEvent).filter_by(id=event_id,owner_id=user.id,revision=revision).delete(): raise HTTPException(409,"Event changed. Reload before deleting.")
+    if event.revision != revision: raise HTTPException(409,"Event changed. Reload before deleting.")
+    db.delete(event)
     db.commit()
 
 @router.get('/planner/free-slots')

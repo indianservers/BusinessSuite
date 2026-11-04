@@ -40,18 +40,10 @@ export const srmRoutes = [
 export async function authenticate(page: Page, role: SRMRole) {
   const user = users[role];
   await installApiStubs(page, user);
-  await page.goto("/login", { waitUntil: "domcontentloaded" });
-  await page.evaluate(async (authUser) => {
-    const { useAuthStore } = await import("/src/store/authStore.ts");
-    useAuthStore.setState({
-      accessToken: "srm-token",
-      refreshToken: "srm-refresh",
-      user: authUser,
-      isAuthenticated: true,
-      isHydrated: true,
-    });
-    localStorage.clear();
-    localStorage.setItem("hrms-auth", JSON.stringify({
+  // Use the normal persisted session contract in both development and built apps.
+  // Importing /src/store/authStore.ts only works through the Vite dev server.
+  await page.addInitScript((authUser) => {
+    sessionStorage.setItem("hrms-auth", JSON.stringify({
       state: {
         accessToken: "srm-token",
         refreshToken: "srm-refresh",
@@ -61,6 +53,7 @@ export async function authenticate(page: Page, role: SRMRole) {
       version: 0,
     }));
   }, user);
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
 }
 
 export async function installApiStubs(page: Page, user = users.srm_admin) {

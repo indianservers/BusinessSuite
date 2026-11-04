@@ -1,3 +1,5 @@
+import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
+import Record360Workspace from "@/shared/records/Record360Workspace";
 import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import { SharedNumberConfirmation } from "@/shared/master-data/CompanySelect";
@@ -1067,14 +1069,17 @@ export default function LeadManagementPage() {
 }
 
 export function CaptureDialog({
+  placement="create",
   bootstrap,
   close,
   saved,
 }: {
+  placement?:"create"|"quick_create";
   bootstrap: Bootstrap;
   close: () => void;
   saved: (id: number) => void;
 }) {
+  const customFieldForm=useCrmFieldForm("leads",placement);
   const mobile = useMobile();
   const [expandedMobileCapture, setExpandedMobileCapture] = useState(false);
   const key = `lead-capture-draft-${bootstrap.userId}`;
@@ -1151,7 +1156,9 @@ export function CaptureDialog({
             setSaving(true);
             setError("");
             try {
+              const customFields=customFieldForm.validate();
               const response = await leadsApi.create({
+                customFields,
                 confirmShared:sharedConfirmed,sharedReason:sharedReason||undefined,
                 catalog_lines: catalogLines.map(linePayload),
                 values: Object.fromEntries(
@@ -1194,6 +1201,7 @@ export function CaptureDialog({
             {step === 3 && <><label className="lead-create-field">Assign to employee<span className="lead-create-control"><Building2 size={20}/><NativeSelect aria-label="Assign to employee" value={values.owner_user_id ?? defaultOwner} onChange={e => update("owner_user_id", e.target.value)}><option value="">{automaticRouting ? "Use automatic assignment rules" : "Assign to me"}</option>{bootstrap.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</NativeSelect></span></label><p className="lead-create-subtitle">Review your details, then create {values.full_name || "your new lead"}.</p>{!!bootstrap.unavailableEmployees?.length && <p className="lm-help">{bootstrap.unavailableEmployees.length} employees are unavailable for assignment because they are missing CRM access.</p>}</>}
             <SharedNumberConfirmation phone={values.phone} countryCode={values.phone_country_code} email={values.email} confirmed={sharedConfirmed} reason={sharedReason} onChange={(a,b)=>{setSharedConfirmed(a);setSharedReason(b);}}/>{duplicate?.matched && <div className="lm-error" role="status">{duplicate.message}{duplicate.items.map(item => <p key={item.id}><Link to={`/crm/leads?lead=${item.id}`} onClick={close}>Review {item.name}</Link></p>)}</div>}
             {step === 4 && <CatalogLinesEditor selectionOnly value={catalogLines} onChange={setCatalogLines} disabled={saving}/>}
+            <CrmRecordFields state={customFieldForm}/>
             {error && <ErrorNotice message={error}/>}
           </div>
           <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={() => setStep(step + 1)} disabled={saving}>Next<ArrowRight size={16}/></Button>}<Button type="submit" disabled={saving}>{saving ? "Saving…" : "Create lead"}</Button></div></footer>
@@ -1249,6 +1257,8 @@ export function LeadDrawer({
   const [booking, setBooking] = useState("");
   const [scheduling, setScheduling] = useState(false);
   const [loggingInteraction,setLoggingInteraction]=useState(false);
+  const customFieldForm=useCrmFieldForm("leads","edit",id,undefined,reload);
+  const [editingCustomFields,setEditingCustomFields]=useState(false);
   useRefreshableEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -1319,7 +1329,7 @@ export function LeadDrawer({
     );
     return act(
       () =>
-        leadsApi.update(id, { values, details: patch, version: lead.version }),
+        leadsApi.update(id, { values, details: patch, customFields: customFieldForm.validate(), version: lead.version }),
       "Lead saved",
     );
   };
@@ -1337,7 +1347,7 @@ export function LeadDrawer({
         if (!open) dismiss();
       }}
     >
-      <DialogContent className="lm-drawer wf-preview lm-person-preview">
+      <DialogContent className="lm-drawer wf-preview lm-person-preview r360-dialog">
         {loggingInteraction&&lead&&<CRMInteractionDialog record={{entity:"leads",id:lead.id,name:lead.full_name,timezone:lead.details.customerTimezone}} activities={lead.activities||[]} close={()=>setLoggingInteraction(false)} saved={()=>{setLoggingInteraction(false);changed();setReload(v=>v+1);}} next={next?()=>{setLoggingInteraction(false);changed();next();}:undefined}/>}
         {scheduling && lead && (
           <FollowUpDialog
@@ -1351,6 +1361,8 @@ export function LeadDrawer({
           />
         )}
         <PersonPreviewHeader name={lead?.full_name || "Lead details"} identifier={`#${id}`} status={lead?.status}/>
+        <Record360Workspace key={id} kind="lead" id={id} actions={<Button variant="outline" onClick={()=>setScheduling(true)}>Schedule lead follow-up</Button>}/>
+        <details><summary className="cursor-pointer font-semibold">Lead qualification & editing</summary>
         <div className="wfp-body wf-space">
         <div className="flex gap-2"><Button variant="outline" disabled={!previous||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the previous record?"))previous?.();}}>Previous</Button><Button variant="outline" disabled={!next||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the next record?"))next?.();}}>Next</Button></div>
         {!lead ? (
@@ -2083,7 +2095,8 @@ export function LeadDrawer({
                 >
                   Convert to customer
                 </Button>
-                <Button disabled={!dirty || busy} onClick={() => void save()}>
+                <div className="w-full space-y-3">{editingCustomFields?<><CrmRecordFields state={{...customFieldForm,setValues:next=>{customFieldForm.setValues(next);setDirty(true);}}}/><Button type="button" variant="ghost" onClick={()=>setEditingCustomFields(false)}>View saved fields</Button></>:<><CrmFieldsReadOnly key={reload} entity="leads" recordId={id}/>{customFieldForm.fields.length>0&&<Button type="button" variant="outline" onClick={()=>setEditingCustomFields(true)}>Edit custom fields</Button>}</>}</div>
+                <Button disabled={busy} onClick={() => void save()}>
                   Save changes
                 </Button>
               </footer>
@@ -2187,6 +2200,7 @@ export function LeadDrawer({
           </>
         )}
         </div>
+      </details>
       </DialogContent>
     </Dialog>
   );

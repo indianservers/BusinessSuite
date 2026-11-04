@@ -220,6 +220,7 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
+    custom_fields: dict[str, object] = Field(default_factory=dict, max_length=100)
     last_name: str = ""
     @field_validator('first_name','last_name',mode='before')
     @classmethod
@@ -253,6 +254,7 @@ class EmployeeCreate(EmployeeBase):
 
 
 class EmployeeUpdate(BaseModel):
+    custom_fields: dict[str, object] | None = None
     @field_validator('first_name','last_name',mode='before')
     @classmethod
     def valid_person_name(cls,value,info: ValidationInfo):

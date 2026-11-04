@@ -166,7 +166,10 @@ def list_branches(
 
 @router.post("/branches", response_model=BranchResponse, status_code=201)
 def create_branch(data: BranchCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("hr_admin"))):
-    return _create(branch_crud, db, data, current_user)
+    from app.branches.service import create_owned_branch
+    from types import SimpleNamespace
+    row = create_owned_branch(db, current_user, data.model_dump(), reason="Create branch from organization settings")
+    return to_org_response(SimpleNamespace(**row))
 
 
 @router.put("/branches/{item_id}", response_model=BranchResponse)

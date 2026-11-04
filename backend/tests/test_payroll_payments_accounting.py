@@ -1,7 +1,8 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from datetime import date
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary, PayrollPaymentBatch, PayrollJournalEntry
 from tests.payroll_test_utils import ensure_payroll_ready
@@ -16,7 +17,7 @@ def _login(client):
 def _ensure_salary(db, employee):
     if not db.query(EmployeeSalary).filter(EmployeeSalary.employee_id == employee.id, EmployeeSalary.is_active == True).first():
         db.add(EmployeeSalary(employee_id=employee.id, ctc=Decimal("600000"), basic=Decimal("20000"), hra=Decimal("10000"), effective_from=date(2026, 4, 1), is_active=True))
-        db.commit()
+        commit_payroll_fixture(db)
 
 
 def test_payment_batch_status_import_gl_and_statutory_validation(client, db):
@@ -27,7 +28,7 @@ def test_payment_batch_status_import_gl_and_statutory_validation(client, db):
     employee.account_number = "1234567890"
     employee.ifsc_code = "HDFC0001234"
     _ensure_salary(db, employee)
-    db.commit()
+    commit_payroll_fixture(db)
     ensure_payroll_ready(db, 5, 2026)
 
     run = client.post("/api/v1/payroll/run", json={"month": 5, "year": 2026}, headers=headers)

@@ -195,6 +195,8 @@ export type SharedDataGridProps<T> = {
   rowProps?: (row: T) => HTMLAttributes<HTMLDivElement>;
   renderDetails?: (row: T) => ReactNode;
   detailsEnabled?: boolean;
+  dataScope?: "all" | "loaded";
+  bulkToolbar?: ReactNode;
   bulkActions?: {
     id: string;
     label: string;

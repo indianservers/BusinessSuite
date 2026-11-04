@@ -1,3 +1,4 @@
+import SetupReadiness from "@/components/suite/SetupReadiness";
 import SettingsDirectory, { settingsCategory, scopeLabel, type SettingsOption } from "./settings/SettingsDirectory";
 
 import SettingsEditorFrame, { SettingsHistory } from "./settings/SettingsEditorFrame";
@@ -108,13 +109,14 @@ export default function SettingsHubPage() {
 
       {catalog.isSuccess && section && (!option || selected.isError) && <section className="settings-panel" role="alert"><h2>Setting unavailable</h2><p>Your current permissions do not allow this setting in this company.</p><Link to="/settings">Return to allowed settings</Link></section>}
 
+      {!section && catalog.isSuccess && <SetupReadiness embedded />}
       {!section && catalog.isSuccess && <SettingsDirectory options={catalog.data.options} userId={user?.id} companyId={catalog.data.companyId}/>}
 
       {section && option && selected.isPending && <p role="status">Checking access…</p>}
 
       {section && option && selected.isSuccess && <SettingsEditorFrame key={`${company}-${section}`} section={section}><div className="settings-section-context"><ShieldCheck size={16}/><span>{scopeLabel(option)}{!option.editable?" · Read only":" · Changes apply within this scope"}</span></div>
 
-        {section === "appearance" ? <HomepageBannerSettings key={String(company)}/> : ["company-profile","business-defaults"].includes(section) ? <CompanyProfile key={`${catalog.data?.companyId}-${section}`} defaultsOnly={section==="business-defaults"}/> : section==="branches" ? <Suspense fallback={<p role="status">Loading branches...</p>}><BranchSettings/></Suspense> : section==="users" ? <Suspense fallback={<p role="status">Loading users...</p>}><UsersAccess embedded/></Suspense> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : centralEditorKeys.has(section) ? <CentralSettingsEditor key={section} section={section}/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></section>}
+        {section === "appearance" ? <HomepageBannerSettings key={String(company)}/> : section === "company-profile" ? <CompanyProfile key={`${catalog.data?.companyId}-${section}`}/> : section==="branches" ? <Suspense fallback={<p role="status">Loading branches...</p>}><BranchSettings/></Suspense> : section==="users" ? <Suspense fallback={<p role="status">Loading users...</p>}><UsersAccess embedded/></Suspense> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : centralEditorKeys.has(section) ? <CentralSettingsEditor key={section} section={section}/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></section>}
 
         {option.historyAvailable?<SettingsHistory section={section}/>:catalog.data?.options.some(o=>o.id==="audit")&&!["account","preferences","audit"].includes(section)?<Link className="settings-history-link" to="/settings/audit">View company change history <ArrowRight size={15}/></Link>:null}
 

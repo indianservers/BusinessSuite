@@ -191,7 +191,11 @@ def create_candidate(
     current_user: User = Depends(RequirePermission("recruitment_manage")),
 ):
     candidate = Candidate(**data.model_dump())
+    from app.shared.pipeline_workspace import validate_hiring_move, stage_entry
+    validate_hiring_move(db,current_user,candidate,candidate.status or "Applied")
     db.add(candidate)
+    db.flush()
+    stage_entry(db,current_user,"hrms","candidate",candidate.id,None,candidate.status,scope=f"job:{candidate.job_id}")
     db.commit()
     db.refresh(candidate)
     return candidate
@@ -228,7 +232,11 @@ def update_candidate_status(
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
+    from app.shared.pipeline_workspace import validate_hiring_move, stage_entry
+    validate_hiring_move(db, current_user, candidate, status)
+    previous = candidate.status
     candidate.status = status
+    stage_entry(db, current_user, "hrms", "candidate", candidate.id, previous, status, None, f"job:{candidate.job_id}")
     db.commit()
     return {"message": f"Status updated to {status}"}
 
@@ -243,6 +251,9 @@ def convert_candidate_to_employee(
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
+    from app.shared.pipeline_workspace import validate_hiring_move, stage_entry
+    validate_hiring_move(db, current_user, candidate, "Hired")
+    previous_status = candidate.status
     employee = crud_employee.create_with_user(db, obj_in=EmployeeCreate(
         employee_id=data.employee_id,
         first_name=candidate.first_name,
@@ -258,6 +269,7 @@ def convert_candidate_to_employee(
         user_email=candidate.email if data.create_user_account else None,
     ))
     candidate.status = "Hired"
+    stage_entry(db, current_user, "hrms", "candidate", candidate.id, previous_status, "Hired", scope=f"job:{candidate.job_id}")
     db.commit()
     return employee
 

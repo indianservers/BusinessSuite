@@ -1,0 +1,10 @@
+.......F
+================================== FAILURES ===================================
+______________ test_duplicate_rule_scan_candidate_and_merge_log _______________
+backend\tests\test_admin_duplicates.py:16: in test_duplicate_rule_scan_candidate_and_merge_log
+    assert scan.json()["total"] >= 1
+E   assert 0 >= 1
+=========================== short test summary info ===========================
+FAILED backend\tests\test_admin_duplicates.py::test_duplicate_rule_scan_candidate_and_merge_log
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 7 passed, 5 warnings in 13.07s

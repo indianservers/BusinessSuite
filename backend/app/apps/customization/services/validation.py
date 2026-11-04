@@ -16,7 +16,7 @@ from app.apps.customization.models import CustomizationField, CustomizationRecor
 
 FIELD_TYPES = {
     "text", "textarea", "rich_text", "number", "decimal", "percentage", "currency", "date", "datetime",
-    "checkbox", "picklist", "multi_select", "lookup", "user_lookup", "file", "auto_number", "formula",
+    "checkbox", "picklist", "radio", "combobox", "multi_select", "lookup", "user_lookup", "file", "auto_number", "formula",
     "rollup", "email", "phone", "url",
 }
 
@@ -159,7 +159,7 @@ def validate_field_value(db: Session, field: CustomizationField, value: Any, rec
             parsed=urlsplit(value)
             if parsed.scheme not in {'http','https'} or not parsed.hostname or any(c.isspace() for c in value):raise ValueError()
         except (TypeError,ValueError):raise HTTPException(422,detail=f'{field.field_label} must be a complete HTTP or HTTPS URL') from None
-    if field.field_type == "picklist":
+    if field.field_type in {"picklist", "radio", "combobox"}:
         allowed = [item.get("value") for item in (field.validation_json or {}).get("options", [])]
         if allowed and value not in allowed:
             raise HTTPException(status_code=400, detail=f"{field.field_label} must be one of: {', '.join(allowed)}")
@@ -173,9 +173,15 @@ def validate_field_value(db: Session, field: CustomizationField, value: Any, rec
 
 
 def validate_record_payload(db: Session, module_name: str, values: dict[str, Any], record_id: int | None = None) -> None:
-    fields = db.query(CustomizationField).filter(CustomizationField.module_name == module_name, CustomizationField.visible == True).all()
+    fields = db.query(CustomizationField).filter(CustomizationField.module_name == module_name).all()
     field_map = {field.field_api_name: field for field in fields}
+    existing = db.get(CustomizationRecord,record_id) if record_id else None
+    previous = existing.values_json or {} if existing else {}
     for field in fields:
+        if not field.visible or not field.editable:
+            if field.field_api_name in values and values[field.field_api_name]!=previous.get(field.field_api_name):
+                raise HTTPException(403,f"{field.field_label} is read-only or hidden")
+            continue
         validate_field_value(db, field, values.get(field.field_api_name, field.default_value), record_id)
     companions=set()
     for field in fields:

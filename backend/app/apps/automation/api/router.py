@@ -85,8 +85,10 @@ def _workflow_payload(db: Session, workflow: AutomationWorkflow) -> dict[str, An
 
 
 def _replace_workflow_parts(db: Session, workflow_id: int, conditions: list[dict[str, Any]], actions: list[dict[str, Any]]) -> None:
-    db.query(AutomationCondition).filter(AutomationCondition.workflow_id == workflow_id).delete()
-    db.query(AutomationAction).filter(AutomationAction.workflow_id == workflow_id).delete()
+    for model in (AutomationCondition, AutomationAction):
+        for previous in db.query(model).filter(model.workflow_id == workflow_id).all():
+            db.delete(previous)
+    db.flush()
     for index, condition in enumerate(conditions):
         validate_condition_schema(condition)
         db.add(AutomationCondition(workflow_id=workflow_id, condition_json=condition, order_index=index))

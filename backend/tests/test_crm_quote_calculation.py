@@ -1,3 +1,6 @@
+from tests.test_contact_directory import directory_identity  # noqa: F401
+
+
 def test_crm_quote_calculation_updates_totals_and_margin(client, superuser_headers):
     quote = client.post("/api/v1/crm/quotes", headers=superuser_headers, json={
         "quoteNumber": "QT-CALC-001",

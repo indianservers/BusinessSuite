@@ -1,0 +1,13 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter,Routes,Route} from "react-router-dom";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
+import CRMSalesHome from "@/apps/crm/CRMSalesHome";
+import CRMWorkspacePage from "@/apps/crm/CRMWorkspacePage";
+import SRMWorkspacePage from "@/apps/srm/pages/SRMWorkspacePage";
+import ProjectDashboard from "@/apps/project-management/pages/ProjectDashboard";
+import DashboardsPage from "@/apps/project-management/pages/DashboardsPage";
+import {useAuthStore} from "@/store/authStore";
+import "@/index.css";
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"qa@example.test",role:"admin",is_superuser:true}});
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={[new URLSearchParams(location.search).get("module")==="pms"?"/pms/projects/1":new URLSearchParams(location.search).get("module")==="builder"?"/dashboard-ui-qa.html?dashboard=1":"/dashboard-ui-qa.html"]}><div className="mx-auto max-w-[1600px] p-4"><Routes><Route path="/dashboard-ui-qa.html" element={new URLSearchParams(location.search).get("module")==="crm"?<CRMWorkspacePage kind="dashboard"/>:new URLSearchParams(location.search).get("module")==="srm"?<SRMWorkspacePage kind="dashboard"/>:new URLSearchParams(location.search).get("module")==="builder"?<DashboardsPage/>:<CRMSalesHome/>}/><Route path="/pms/projects/:projectId" element={<ProjectDashboard/>}/></Routes></div></MemoryRouter></QueryClientProvider>);

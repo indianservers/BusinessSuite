@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from uuid import uuid4
 from datetime import timedelta
 from tests.test_intern_management import program, publish
@@ -165,6 +166,9 @@ def test_directory_paginates_20000_people_without_loading_every_profile(client, 
         "department_id": e.department_id} for i in range(20000)])
     db.commit()
     queries = []
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1, table_names={"employees"})
+    db.commit()
     def track(conn, cursor, statement, parameters, context, executemany):
         queries.append(statement)
     event.listen(db.bind, "before_cursor_execute", track)
@@ -188,6 +192,8 @@ def test_backup_supervisor_scope_and_view_only_permissions(client, db, program):
     db.add(account)
     from test_identity_utils import attach_test_identity
     attach_test_identity(db, account)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, account)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": account.email, "password": "Admin@123456"})
     assert response.status_code == 200, response.text

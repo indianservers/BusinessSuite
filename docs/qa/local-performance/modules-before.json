@@ -1,0 +1,4276 @@
+{
+  "origin": "http://127.0.0.1:5190",
+  "at": "2026-11-04T14:26:51.930Z",
+  "pages": [
+    {
+      "route": "/dashboard",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 482
+        },
+        {
+          "path": "/api/v1/auth/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 811
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 892
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 834
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 948
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 909
+        },
+        {
+          "path": "/api/v1/access/homepage-banner",
+          "method": "GET",
+          "status": 200,
+          "ms": 921
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1077
+        }
+      ],
+      "readyMs": 1891,
+      "pending": [],
+      "headings": [
+        "Your work starts here.",
+        "Your applications",
+        "Settings"
+      ],
+      "url": "/dashboard",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1077
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 948
+        },
+        {
+          "path": "/api/v1/access/homepage-banner",
+          "method": "GET",
+          "status": 200,
+          "ms": 921
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 909
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 892
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 834
+        },
+        {
+          "path": "/api/v1/auth/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 811
+        }
+      ]
+    },
+    {
+      "route": "/crm",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1683
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1790
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1836
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1958
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1999
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 2075
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "method": "GET",
+          "status": 200,
+          "ms": 2008
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 2934
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 3057
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 3067
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "method": "GET",
+          "status": 200,
+          "ms": 3403
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "method": "GET",
+          "status": 200,
+          "ms": 3579
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "method": "GET",
+          "status": 200,
+          "ms": 3578
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 4096
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 4197
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 4205
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 200,
+          "ms": 4265
+        }
+      ],
+      "readyMs": 5304,
+      "pending": [],
+      "headings": [
+        "CRM setup",
+        "CRM Dashboard",
+        "Follow-ups needing attention",
+        "Risk-aware pipeline",
+        "Priority deals",
+        "Forecast by owner",
+        "Sales velocity",
+        "Smart briefing",
+        "Today",
+        "Lead sources"
+      ],
+      "url": "/crm",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 200,
+          "ms": 4265
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 4205
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 4197
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 4096
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "method": "GET",
+          "status": 200,
+          "ms": 3579
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "method": "GET",
+          "status": 200,
+          "ms": 3578
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "method": "GET",
+          "status": 200,
+          "ms": 3403
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 3067
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 3057
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 2934
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 2075
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "method": "GET",
+          "status": 200,
+          "ms": 2008
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1999
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1958
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1836
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1790
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1683
+        }
+      ]
+    },
+    {
+      "route": "/crm/leads",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1714
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1730
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1744
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1874
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1923
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1972
+        },
+        {
+          "path": "/api/v1/crm/productivity/shared-views",
+          "method": "GET",
+          "status": 200,
+          "ms": 2164
+        },
+        {
+          "path": "/api/v1/crm/lead-management/settings",
+          "method": "GET",
+          "status": 200,
+          "ms": 2357
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 2703
+        }
+      ],
+      "readyMs": 3695,
+      "pending": [],
+      "headings": [
+        "Lead workbench 423"
+      ],
+      "url": "/crm/leads",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 2703
+        },
+        {
+          "path": "/api/v1/crm/lead-management/settings",
+          "method": "GET",
+          "status": 200,
+          "ms": 2357
+        },
+        {
+          "path": "/api/v1/crm/productivity/shared-views",
+          "method": "GET",
+          "status": 200,
+          "ms": 2164
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1972
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1923
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1874
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1744
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1730
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1714
+        }
+      ]
+    },
+    {
+      "route": "/crm/contacts",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 867
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 966
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1044
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1183
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1287
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1292
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 2549
+        },
+        {
+          "path": "/api/v1/master-data/contact-assignment-options",
+          "method": "GET",
+          "status": 200,
+          "ms": 2590
+        },
+        {
+          "path": "/api/v1/record-360/contact/159",
+          "method": "GET",
+          "status": 200,
+          "ms": 314
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 3270
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 792
+        },
+        {
+          "path": "/api/v1/crm/contacts/159/related",
+          "method": "GET",
+          "status": 200,
+          "ms": 1466
+        },
+        {
+          "path": "/api/v1/crm/custom-fields",
+          "method": "GET",
+          "status": 200,
+          "ms": 1176
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/work",
+          "method": "GET",
+          "status": 200,
+          "ms": 1286
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/events",
+          "method": "GET",
+          "status": 200,
+          "ms": 1546
+        },
+        {
+          "path": "/api/v1/crm/contacts/159",
+          "method": "GET",
+          "status": 200,
+          "ms": 1586
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 1174
+        }
+      ],
+      "readyMs": 5297,
+      "pending": [],
+      "headings": [
+        "Contacts",
+        "Arjun Mehta"
+      ],
+      "url": "/crm/contacts",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 3270
+        },
+        {
+          "path": "/api/v1/master-data/contact-assignment-options",
+          "method": "GET",
+          "status": 200,
+          "ms": 2590
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 2549
+        },
+        {
+          "path": "/api/v1/crm/contacts/159",
+          "method": "GET",
+          "status": 200,
+          "ms": 1586
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/events",
+          "method": "GET",
+          "status": 200,
+          "ms": 1546
+        },
+        {
+          "path": "/api/v1/crm/contacts/159/related",
+          "method": "GET",
+          "status": 200,
+          "ms": 1466
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1292
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1287
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/work",
+          "method": "GET",
+          "status": 200,
+          "ms": 1286
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1183
+        },
+        {
+          "path": "/api/v1/crm/custom-fields",
+          "method": "GET",
+          "status": 200,
+          "ms": 1176
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 1174
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1044
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 966
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 867
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 792
+        }
+      ]
+    },
+    {
+      "route": "/crm/deals",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1281
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1311
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1395
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1420
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1524
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1525
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 1741
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipelines",
+          "method": "GET",
+          "status": 200,
+          "ms": 1758
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/teams",
+          "method": "GET",
+          "status": 200,
+          "ms": 2099
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 2449
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/assignees",
+          "method": "GET",
+          "status": 200,
+          "ms": 2493
+        }
+      ],
+      "readyMs": 3327,
+      "pending": [],
+      "headings": [
+        "Deals",
+        "Deals"
+      ],
+      "url": "/crm/deals",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/deal-workspace/assignees",
+          "method": "GET",
+          "status": 200,
+          "ms": 2493
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 2449
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/teams",
+          "method": "GET",
+          "status": 200,
+          "ms": 2099
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipelines",
+          "method": "GET",
+          "status": 200,
+          "ms": 1758
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 1741
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1525
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1524
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1420
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1395
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1311
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1281
+        }
+      ]
+    },
+    {
+      "route": "/pms",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 546
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1803
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1696
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1822
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1717
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1975
+        },
+        {
+          "path": "/api/v1/project-management/workspace-invitations/mine",
+          "method": "GET",
+          "status": 200,
+          "ms": 2024
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 2381
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 988
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1003
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 936
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 1046
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1047
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1205
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 471
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200,
+          "ms": 483
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 782
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 894
+        }
+      ],
+      "readyMs": 20010,
+      "pending": [],
+      "headings": [],
+      "url": "/pms",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 2381
+        },
+        {
+          "path": "/api/v1/project-management/workspace-invitations/mine",
+          "method": "GET",
+          "status": 200,
+          "ms": 2024
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1975
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1822
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1803
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1717
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1696
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1205
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1047
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 1046
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1003
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 988
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 936
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 894
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 782
+        }
+      ]
+    },
+    {
+      "route": "/pms/projects",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1376
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1389
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1644
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1654
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1661
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1662
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1988
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2318
+        },
+        {
+          "path": "/api/v1/project-management/management/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 3239
+        }
+      ],
+      "readyMs": 4015,
+      "pending": [],
+      "headings": [
+        "PMS management home"
+      ],
+      "url": "/pms/projects",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/management/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 3239
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2318
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1988
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1662
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1661
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1654
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1644
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1389
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1376
+        }
+      ]
+    },
+    {
+      "route": "/pms/tasks",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 543
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1331
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1814
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1622
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1702
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1784
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1914
+        },
+        {
+          "path": "/api/v1/project-management/saved-views",
+          "method": "GET",
+          "status": 200,
+          "ms": 1937
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 3035
+        }
+      ],
+      "readyMs": 3945,
+      "pending": [],
+      "headings": [
+        "Tasks"
+      ],
+      "url": "/pms/tasks",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 3035
+        },
+        {
+          "path": "/api/v1/project-management/saved-views",
+          "method": "GET",
+          "status": 200,
+          "ms": 1937
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1914
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1814
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1784
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1702
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1622
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1331
+        }
+      ]
+    },
+    {
+      "route": "/pms/tasks-follow-ups",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1355
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1365
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1478
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1480
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1493
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1499
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1928
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2260
+        },
+        {
+          "path": "/api/v1/record-360/work/queue/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 2211
+        }
+      ],
+      "readyMs": 2867,
+      "pending": [],
+      "headings": [
+        "Tasks & Follow-ups"
+      ],
+      "url": "/pms/tasks-follow-ups",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2260
+        },
+        {
+          "path": "/api/v1/record-360/work/queue/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 2211
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1928
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1499
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1493
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1480
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1478
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1365
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1355
+        }
+      ]
+    },
+    {
+      "route": "/pms/people",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 630
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 720
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 770
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 905
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 919
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 919
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 2183
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2265
+        },
+        {
+          "path": "/api/v1/project-management/people-management/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 3008
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/reference",
+          "method": "GET",
+          "status": 200,
+          "ms": 3020
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/views",
+          "method": "GET",
+          "status": 200,
+          "ms": 3744
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 3923
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 4173
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/people",
+          "method": "GET",
+          "status": 200,
+          "ms": 5246
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/actions/destinations",
+          "method": "GET",
+          "status": 200,
+          "ms": 7529
+        }
+      ],
+      "readyMs": 8317,
+      "pending": [],
+      "headings": [
+        "People directory",
+        "Destinations",
+        "Teams (0)",
+        "Interns Batches (6)"
+      ],
+      "url": "/pms/people",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/people-workspace/actions/destinations",
+          "method": "GET",
+          "status": 200,
+          "ms": 7529
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/people",
+          "method": "GET",
+          "status": 200,
+          "ms": 5246
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 4173
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 3923
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/views",
+          "method": "GET",
+          "status": 200,
+          "ms": 3744
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/reference",
+          "method": "GET",
+          "status": 200,
+          "ms": 3020
+        },
+        {
+          "path": "/api/v1/project-management/people-management/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 3008
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2265
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 2183
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 919
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 919
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 905
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 770
+        }
+      ]
+    },
+    {
+      "route": "/pms/messages",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 733
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 779
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 838
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 429,
+          "ms": 852
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 861
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1015
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 2017
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 2042
+        },
+        {
+          "path": "/api/v1/collaboration/events",
+          "method": "GET",
+          "status": 429,
+          "ms": 1999
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces",
+          "method": "GET",
+          "status": 429,
+          "ms": 1999
+        }
+      ],
+      "readyMs": 2759,
+      "pending": [],
+      "headings": [
+        "Messages"
+      ],
+      "url": "/pms/messages",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 2042
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 2017
+        },
+        {
+          "path": "/api/v1/collaboration/events",
+          "method": "GET",
+          "status": 429,
+          "ms": 1999
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces",
+          "method": "GET",
+          "status": 429,
+          "ms": 1999
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1015
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 861
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 429,
+          "ms": 852
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 838
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 779
+        }
+      ]
+    },
+    {
+      "route": "/hrms",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 524
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 621
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 637
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 645
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 429,
+          "ms": 755
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 941
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 955
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 956
+        }
+      ],
+      "readyMs": 1629,
+      "pending": [],
+      "headings": [
+        "HRMS setup",
+        "HR daily work",
+        "Joiners to prepare",
+        "Exits requiring coordination"
+      ],
+      "url": "/hrms",
+      "alerts": [
+        "Setup status is unavailable. Check again to retry."
+      ],
+      "slowApi": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 956
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 955
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 941
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 429,
+          "ms": 755
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 645
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 637
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 621
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 524
+        }
+      ]
+    },
+    {
+      "route": "/hrms/employees",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 492
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 721
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 742
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 1803
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 429,
+          "ms": 1961
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 2141
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 2155
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 2193
+        },
+        {
+          "path": "/api/v1/employees/filter-options",
+          "method": "GET",
+          "status": 429,
+          "ms": 2454
+        },
+        {
+          "path": "/api/v1/company/designations/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2561
+        },
+        {
+          "path": "/api/v1/company/branches/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2564
+        },
+        {
+          "path": "/api/v1/employees/reporting-managers",
+          "method": "GET",
+          "status": 429,
+          "ms": 2668
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2751
+        },
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2752
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 429,
+          "ms": 132
+        },
+        {
+          "path": "/api/v1/employees/filter-options",
+          "method": "GET",
+          "status": 429,
+          "ms": 780
+        },
+        {
+          "path": "/api/v1/company/branches/",
+          "method": "GET",
+          "status": 429,
+          "ms": 785
+        },
+        {
+          "path": "/api/v1/company/designations/",
+          "method": "GET",
+          "status": 429,
+          "ms": 787
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 200,
+          "ms": 810
+        },
+        {
+          "path": "/api/v1/employees/reporting-managers",
+          "method": "GET",
+          "status": 200,
+          "ms": 833
+        },
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 200,
+          "ms": 661
+        }
+      ],
+      "readyMs": 5189,
+      "pending": [],
+      "headings": [
+        "People",
+        "Employees"
+      ],
+      "url": "/hrms/employees",
+      "alerts": [
+        "Could not load filter choices. Retry"
+      ],
+      "slowApi": [
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2752
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2751
+        },
+        {
+          "path": "/api/v1/employees/reporting-managers",
+          "method": "GET",
+          "status": 429,
+          "ms": 2668
+        },
+        {
+          "path": "/api/v1/company/branches/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2564
+        },
+        {
+          "path": "/api/v1/company/designations/",
+          "method": "GET",
+          "status": 429,
+          "ms": 2561
+        },
+        {
+          "path": "/api/v1/employees/filter-options",
+          "method": "GET",
+          "status": 429,
+          "ms": 2454
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 2193
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 2155
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 2141
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 429,
+          "ms": 1961
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 1803
+        },
+        {
+          "path": "/api/v1/employees/reporting-managers",
+          "method": "GET",
+          "status": 200,
+          "ms": 833
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 200,
+          "ms": 810
+        },
+        {
+          "path": "/api/v1/company/designations/",
+          "method": "GET",
+          "status": 429,
+          "ms": 787
+        },
+        {
+          "path": "/api/v1/company/branches/",
+          "method": "GET",
+          "status": 429,
+          "ms": 785
+        },
+        {
+          "path": "/api/v1/employees/filter-options",
+          "method": "GET",
+          "status": 429,
+          "ms": 780
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 742
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 721
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 492
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 429,
+          "ms": 132
+        }
+      ]
+    },
+    {
+      "route": "/hrms/attendance",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1223
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1267
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1470
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1843
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 1859
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 1874
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1906
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2199
+        },
+        {
+          "path": "/api/v1/attendance/locks",
+          "method": "GET",
+          "status": 200,
+          "ms": 2153
+        },
+        {
+          "path": "/api/v1/attendance/register",
+          "method": "GET",
+          "status": 200,
+          "ms": 2175
+        }
+      ],
+      "readyMs": 3000,
+      "pending": [],
+      "headings": [
+        "Attendance & Scheduling",
+        "Attendance"
+      ],
+      "url": "/hrms/attendance",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2199
+        },
+        {
+          "path": "/api/v1/attendance/register",
+          "method": "GET",
+          "status": 200,
+          "ms": 2175
+        },
+        {
+          "path": "/api/v1/attendance/locks",
+          "method": "GET",
+          "status": 200,
+          "ms": 2153
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1906
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 1874
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 1859
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1843
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1470
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1267
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1223
+        }
+      ]
+    },
+    {
+      "route": "/hrms/payroll",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 677
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1718
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1798
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1978
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 2015
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 2132
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 2167
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2515
+        },
+        {
+          "path": "/api/v1/payroll/setup/pay-groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 2718
+        },
+        {
+          "path": "/api/v1/payroll/runs",
+          "method": "GET",
+          "status": 200,
+          "ms": 2740
+        },
+        {
+          "path": "/api/v1/statutory-compliance/legal-entities",
+          "method": "GET",
+          "status": 200,
+          "ms": 2823
+        },
+        {
+          "path": "/api/v1/payroll/components",
+          "method": "GET",
+          "status": 200,
+          "ms": 2826
+        },
+        {
+          "path": "/api/v1/payroll/structures",
+          "method": "GET",
+          "status": 200,
+          "ms": 2841
+        },
+        {
+          "path": "/api/v1/payroll/salary-templates",
+          "method": "GET",
+          "status": 200,
+          "ms": 3167
+        },
+        {
+          "path": "/api/v1/payroll/setup/periods",
+          "method": "GET",
+          "status": 200,
+          "ms": 3487
+        },
+        {
+          "path": "/api/v1/payroll/tax/cycles",
+          "method": "GET",
+          "status": 200,
+          "ms": 3808
+        },
+        {
+          "path": "/api/v1/payroll/statutory/pf-rules",
+          "method": "GET",
+          "status": 200,
+          "ms": 3841
+        },
+        {
+          "path": "/api/v1/payroll/statutory/esi-rules",
+          "method": "GET",
+          "status": 200,
+          "ms": 3841
+        },
+        {
+          "path": "/api/v1/payroll/statutory/pt-slabs",
+          "method": "GET",
+          "status": 200,
+          "ms": 5005
+        },
+        {
+          "path": "/api/v1/payroll/statutory/lwf-slabs",
+          "method": "GET",
+          "status": 200,
+          "ms": 5398
+        },
+        {
+          "path": "/api/v1/payroll/statutory/gratuity-rules",
+          "method": "GET",
+          "status": 200,
+          "ms": 5489
+        },
+        {
+          "path": "/api/v1/payroll/statutory/challans",
+          "method": "GET",
+          "status": 200,
+          "ms": 5526
+        },
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 200,
+          "ms": 5580
+        },
+        {
+          "path": "/api/v1/payroll/runs/6/guided",
+          "method": "GET",
+          "status": 200,
+          "ms": 7470
+        },
+        {
+          "path": "/api/v1/hrms/payroll/lwp-feed",
+          "method": "GET",
+          "status": 200,
+          "ms": 11009
+        }
+      ],
+      "readyMs": 11743,
+      "pending": [],
+      "headings": [
+        "Payroll",
+        "Payroll",
+        "Guided payroll"
+      ],
+      "url": "/hrms/payroll",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/hrms/payroll/lwp-feed",
+          "method": "GET",
+          "status": 200,
+          "ms": 11009
+        },
+        {
+          "path": "/api/v1/payroll/runs/6/guided",
+          "method": "GET",
+          "status": 200,
+          "ms": 7470
+        },
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 200,
+          "ms": 5580
+        },
+        {
+          "path": "/api/v1/payroll/statutory/challans",
+          "method": "GET",
+          "status": 200,
+          "ms": 5526
+        },
+        {
+          "path": "/api/v1/payroll/statutory/gratuity-rules",
+          "method": "GET",
+          "status": 200,
+          "ms": 5489
+        },
+        {
+          "path": "/api/v1/payroll/statutory/lwf-slabs",
+          "method": "GET",
+          "status": 200,
+          "ms": 5398
+        },
+        {
+          "path": "/api/v1/payroll/statutory/pt-slabs",
+          "method": "GET",
+          "status": 200,
+          "ms": 5005
+        },
+        {
+          "path": "/api/v1/payroll/statutory/pf-rules",
+          "method": "GET",
+          "status": 200,
+          "ms": 3841
+        },
+        {
+          "path": "/api/v1/payroll/statutory/esi-rules",
+          "method": "GET",
+          "status": 200,
+          "ms": 3841
+        },
+        {
+          "path": "/api/v1/payroll/tax/cycles",
+          "method": "GET",
+          "status": 200,
+          "ms": 3808
+        },
+        {
+          "path": "/api/v1/payroll/setup/periods",
+          "method": "GET",
+          "status": 200,
+          "ms": 3487
+        },
+        {
+          "path": "/api/v1/payroll/salary-templates",
+          "method": "GET",
+          "status": 200,
+          "ms": 3167
+        },
+        {
+          "path": "/api/v1/payroll/structures",
+          "method": "GET",
+          "status": 200,
+          "ms": 2841
+        },
+        {
+          "path": "/api/v1/payroll/components",
+          "method": "GET",
+          "status": 200,
+          "ms": 2826
+        },
+        {
+          "path": "/api/v1/statutory-compliance/legal-entities",
+          "method": "GET",
+          "status": 200,
+          "ms": 2823
+        },
+        {
+          "path": "/api/v1/payroll/runs",
+          "method": "GET",
+          "status": 200,
+          "ms": 2740
+        },
+        {
+          "path": "/api/v1/payroll/setup/pay-groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 2718
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 2515
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 2167
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 2132
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 2015
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1978
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1798
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1718
+        }
+      ]
+    },
+    {
+      "route": "/srm",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1335
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1353
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1366
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1458
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1592
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1593
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "method": "GET",
+          "status": 200,
+          "ms": 1538
+        },
+        {
+          "path": "/api/v1/srm/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 2049
+        }
+      ],
+      "readyMs": 2849,
+      "pending": [],
+      "headings": [
+        "SRM setup",
+        "Sales Revenue Management",
+        "Collection priorities",
+        "Revenue events and order pipeline"
+      ],
+      "url": "/srm",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/srm/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 2049
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1593
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1592
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "method": "GET",
+          "status": 200,
+          "ms": 1538
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1458
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1366
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1353
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1335
+        }
+      ]
+    },
+    {
+      "route": "/srm/customer-360",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 805
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 847
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 872
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 928
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 978
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 983
+        },
+        {
+          "path": "/api/v1/master-data/company-directory/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 1311
+        }
+      ],
+      "readyMs": 2114,
+      "pending": [],
+      "headings": [
+        "Customers"
+      ],
+      "url": "/srm/customer-360",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/master-data/company-directory/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 1311
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 983
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 978
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 928
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 872
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 847
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 805
+        }
+      ]
+    },
+    {
+      "route": "/srm/inventory",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1759
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1876
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1879
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1918
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1953
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1954
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 2034
+        },
+        {
+          "path": "/api/v1/srm/inventory/warehouses",
+          "method": "GET",
+          "status": 200,
+          "ms": 2139
+        }
+      ],
+      "readyMs": 2952,
+      "pending": [],
+      "headings": [
+        "Inventory Management"
+      ],
+      "url": "/srm/inventory",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/srm/inventory/warehouses",
+          "method": "GET",
+          "status": 200,
+          "ms": 2139
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 2034
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1954
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1953
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1918
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1879
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1876
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1759
+        }
+      ]
+    },
+    {
+      "route": "/srm/pos",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 713
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 827
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 976
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1015
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1103
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1296
+        },
+        {
+          "path": "/api/v1/srm/business/customers",
+          "method": "GET",
+          "status": 200,
+          "ms": 1401
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 1413
+        },
+        {
+          "path": "/api/v1/srm/pos/held-bills",
+          "method": "GET",
+          "status": 200,
+          "ms": 2285
+        },
+        {
+          "path": "/api/v1/follow-ups/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 4602
+        }
+      ],
+      "readyMs": 5381,
+      "pending": [],
+      "headings": [
+        "Sales & Inventory POS"
+      ],
+      "url": "/srm/pos",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/follow-ups/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 4602
+        },
+        {
+          "path": "/api/v1/srm/pos/held-bills",
+          "method": "GET",
+          "status": 200,
+          "ms": 2285
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 1413
+        },
+        {
+          "path": "/api/v1/srm/business/customers",
+          "method": "GET",
+          "status": 200,
+          "ms": 1401
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1296
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1103
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1015
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 976
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 827
+        }
+      ]
+    },
+    {
+      "route": "/fam",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 617
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 661
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 671
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 925
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 986
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 997
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1083
+        },
+        {
+          "path": "/api/v1/fam/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 1474
+        }
+      ],
+      "readyMs": 2208,
+      "pending": [],
+      "headings": [
+        "Finance setup",
+        "FAM Dashboard"
+      ],
+      "url": "/fam",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/fam/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 1474
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1083
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 997
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 986
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 925
+        }
+      ]
+    },
+    {
+      "route": "/fam/ledgers",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 723
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 749
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1469
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1561
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1676
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 1677
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1823
+        },
+        {
+          "path": "/api/v1/fam/ledgers",
+          "method": "GET",
+          "status": 200,
+          "ms": 2015
+        }
+      ],
+      "readyMs": 2731,
+      "pending": [],
+      "headings": [
+        "Ledgers"
+      ],
+      "url": "/fam/ledgers",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/fam/ledgers",
+          "method": "GET",
+          "status": 200,
+          "ms": 2015
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1823
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 1677
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1676
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1561
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 1469
+        }
+      ]
+    },
+    {
+      "route": "/fam/reports",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 534
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 663
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 779
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 791
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 927
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 932
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1012
+        }
+      ],
+      "readyMs": 1646,
+      "pending": [],
+      "headings": [],
+      "url": "/fam/reports",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 1012
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 932
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 927
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 791
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 779
+        }
+      ]
+    },
+    {
+      "route": "/power-apps",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 594
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 624
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 706
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 767
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 808
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 790
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "method": "GET",
+          "status": 200,
+          "ms": 907
+        },
+        {
+          "path": "/api/v1/power-apps/activity",
+          "method": "GET",
+          "status": 200,
+          "ms": 912
+        },
+        {
+          "path": "/api/v1/power-apps/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 967
+        }
+      ],
+      "readyMs": 2537,
+      "pending": [],
+      "headings": [
+        "Your business, with superpowers.",
+        "Everything you need to build",
+        "Recent work",
+        "A head start for every idea",
+        "Recent activity"
+      ],
+      "url": "/power-apps",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/power-apps/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 967
+        },
+        {
+          "path": "/api/v1/power-apps/activity",
+          "method": "GET",
+          "status": 200,
+          "ms": 912
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "method": "GET",
+          "status": 200,
+          "ms": 907
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 808
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 790
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 767
+        }
+      ]
+    },
+    {
+      "route": "/power-apps/connectors",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 462
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 674
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 932
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 935
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1023
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 986
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/connections",
+          "method": "GET",
+          "status": 200,
+          "ms": 1014
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/monitor",
+          "method": "GET",
+          "status": 200,
+          "ms": 1133
+        }
+      ],
+      "readyMs": 1796,
+      "pending": [],
+      "headings": [
+        "Integration Studio",
+        "Start with webhooks",
+        "Explore integrations",
+        "Your connections",
+        "Recent provider requests"
+      ],
+      "url": "/power-apps/connectors",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/power-apps/integrations/monitor",
+          "method": "GET",
+          "status": 200,
+          "ms": 1133
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1023
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/connections",
+          "method": "GET",
+          "status": 200,
+          "ms": 1014
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 986
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 935
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 932
+        }
+      ]
+    },
+    {
+      "route": "/power-apps/automations",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 451
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 807
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 757
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 808
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 1373
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1374
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "method": "GET",
+          "status": 200,
+          "ms": 1494
+        },
+        {
+          "path": "/api/v1/power-apps/overview",
+          "method": "GET",
+          "status": 429,
+          "ms": 259
+        },
+        {
+          "path": "/api/v1/power-apps/activity",
+          "method": "GET",
+          "status": 429,
+          "ms": 268
+        },
+        {
+          "path": "/api/v1/power-apps/automations",
+          "method": "GET",
+          "status": 429,
+          "ms": 273
+        },
+        {
+          "path": "/api/v1/power-apps/automations/telegram/bots",
+          "method": "GET",
+          "status": 429,
+          "ms": 274
+        }
+      ],
+      "readyMs": 2667,
+      "pending": [],
+      "headings": [
+        "Automations",
+        "Ideas become workflows."
+      ],
+      "url": "/power-apps/automations",
+      "alerts": [
+        "Request limit reached. Try again shortly.Retry / reload",
+        "Request limit reached. Try again shortly.",
+        "Request limit reached. Try again shortly.Retry"
+      ],
+      "slowApi": [
+        {
+          "path": "/api/v1/power-apps/environments",
+          "method": "GET",
+          "status": 200,
+          "ms": 1494
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 1374
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 1373
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 808
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 807
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 757
+        },
+        {
+          "path": "/api/v1/power-apps/automations/telegram/bots",
+          "method": "GET",
+          "status": 429,
+          "ms": 274
+        },
+        {
+          "path": "/api/v1/power-apps/automations",
+          "method": "GET",
+          "status": 429,
+          "ms": 273
+        },
+        {
+          "path": "/api/v1/power-apps/activity",
+          "method": "GET",
+          "status": 429,
+          "ms": 268
+        },
+        {
+          "path": "/api/v1/power-apps/overview",
+          "method": "GET",
+          "status": 429,
+          "ms": 259
+        }
+      ]
+    },
+    {
+      "route": "/power-apps/approvals",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 345
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 346
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 360
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 511
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 637
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/requests",
+          "method": "GET",
+          "status": 429,
+          "ms": 650
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/people",
+          "method": "GET",
+          "status": 429,
+          "ms": 972
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/analytics",
+          "method": "GET",
+          "status": 429,
+          "ms": 1062
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/policies",
+          "method": "GET",
+          "status": 429,
+          "ms": 1064
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/templates",
+          "method": "GET",
+          "status": 429,
+          "ms": 1080
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/capabilities",
+          "method": "GET",
+          "status": 429,
+          "ms": 1170
+        }
+      ],
+      "readyMs": 1895,
+      "pending": [],
+      "headings": [
+        "Overview",
+        "Keep good work moving."
+      ],
+      "url": "/power-apps/approvals",
+      "alerts": [
+        "Request limit reached. Try again shortly.",
+        "Request limit reached. Try again shortly."
+      ],
+      "slowApi": [
+        {
+          "path": "/api/v1/power-apps/approvals/capabilities",
+          "method": "GET",
+          "status": 429,
+          "ms": 1170
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/templates",
+          "method": "GET",
+          "status": 429,
+          "ms": 1080
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/policies",
+          "method": "GET",
+          "status": 429,
+          "ms": 1064
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/analytics",
+          "method": "GET",
+          "status": 429,
+          "ms": 1062
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/people",
+          "method": "GET",
+          "status": 429,
+          "ms": 972
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/requests",
+          "method": "GET",
+          "status": 429,
+          "ms": 650
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 637
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 511
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 360
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 346
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 345
+        }
+      ]
+    },
+    {
+      "route": "/crm/communication-hub",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 1263
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 1273
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 1278
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 1279
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 1280
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 1296
+        },
+        {
+          "path": "/api/v1/communication/engagement/health-summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 1391
+        }
+      ],
+      "readyMs": 2091,
+      "pending": [],
+      "headings": [
+        "Communication Center",
+        "Start with the conversations that need you."
+      ],
+      "url": "/crm/communication-hub",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/communication/engagement/health-summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 1391
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 1296
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 1280
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 1279
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 1278
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 1273
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 1263
+        }
+      ]
+    },
+    {
+      "route": "/ai-agents",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 544
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 646
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 654
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 664
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 940
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 955
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 975
+        },
+        {
+          "path": "/api/v1/ai-agents",
+          "method": "GET",
+          "status": 429,
+          "ms": 1250
+        },
+        {
+          "path": "/api/v1/ai-agents/logs",
+          "method": "GET",
+          "status": 429,
+          "ms": 1252
+        },
+        {
+          "path": "/api/v1/ai-agents/approvals/pending",
+          "method": "GET",
+          "status": 429,
+          "ms": 1263
+        },
+        {
+          "path": "/api/v1/ai-agents/conversations",
+          "method": "GET",
+          "status": 429,
+          "ms": 1932
+        }
+      ],
+      "readyMs": 2617,
+      "pending": [],
+      "headings": [
+        "AI Agents"
+      ],
+      "url": "/ai-agents",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/ai-agents/conversations",
+          "method": "GET",
+          "status": 429,
+          "ms": 1932
+        },
+        {
+          "path": "/api/v1/ai-agents/approvals/pending",
+          "method": "GET",
+          "status": 429,
+          "ms": 1263
+        },
+        {
+          "path": "/api/v1/ai-agents/logs",
+          "method": "GET",
+          "status": 429,
+          "ms": 1252
+        },
+        {
+          "path": "/api/v1/ai-agents",
+          "method": "GET",
+          "status": 429,
+          "ms": 1250
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 975
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 955
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 940
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 664
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 654
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 646
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 544
+        }
+      ]
+    },
+    {
+      "route": "/settings",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 565
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 565
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 573
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 557
+        },
+        {
+          "path": "/api/v1/access/settings",
+          "method": "GET",
+          "status": 429,
+          "ms": 557
+        }
+      ],
+      "readyMs": 1193,
+      "pending": [],
+      "headings": [
+        "Settings"
+      ],
+      "url": "/settings",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 573
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 565
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 565
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 557
+        },
+        {
+          "path": "/api/v1/access/settings",
+          "method": "GET",
+          "status": 429,
+          "ms": 557
+        }
+      ]
+    },
+    {
+      "route": "/settings/branches",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 459
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 595
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 596
+        },
+        {
+          "path": "/api/v1/access/settings",
+          "method": "GET",
+          "status": 429,
+          "ms": 577
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 578
+        }
+      ],
+      "readyMs": 1207,
+      "pending": [],
+      "headings": [
+        "Settings"
+      ],
+      "url": "/settings/branches",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 596
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 595
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 578
+        },
+        {
+          "path": "/api/v1/access/settings",
+          "method": "GET",
+          "status": 429,
+          "ms": 577
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 459
+        }
+      ]
+    },
+    {
+      "route": "/customer-portal/login",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 619
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 626
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 633
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 637
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 736
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 749
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 1440
+        }
+      ],
+      "readyMs": 20006,
+      "pending": [],
+      "headings": [],
+      "url": "/customer-portal/login",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 429,
+          "ms": 1440
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 429,
+          "ms": 749
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 429,
+          "ms": 736
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 429,
+          "ms": 637
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 429,
+          "ms": 633
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 429,
+          "ms": 626
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 429,
+          "ms": 619
+        }
+      ]
+    }
+  ]
+}

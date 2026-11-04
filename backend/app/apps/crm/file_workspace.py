@@ -92,7 +92,7 @@ def upload(file: UploadFile = File(...), folder_id: int | None = Form(None), dea
                 if size > PMS_MAX_ATTACHMENT_BYTES: raise HTTPException(413, "File exceeds the configured size limit")
                 output.write(chunk)
         if not size: raise HTTPException(400, "Empty files cannot be uploaded")
-        persist_file(str(target))
+        persist_file(str(target), db=db, module="crm", filename=original)
         item = CRMFileAsset(organization_id=organization, uploaded_by_user_id=user.id, created_by_user_id=user.id, folder_id=folder_id, deal_id=deal_id, file_name=filename, original_name=original, mime_type=file.content_type, size_bytes=size, storage_path=str(target), visibility="Internal")
         db.add(item); db.commit(); db.refresh(item)
         return {"id": item.id}

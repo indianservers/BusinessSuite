@@ -1,8 +1,9 @@
+from tests.payroll_test_utils import commit_payroll_fixture
 from tests.security_file_fixtures import uploaded_reference
 from datetime import date
 from decimal import Decimal
 
-from app.db.init_db import init_db
+from tests.payroll_test_utils import init_payroll_test_db as init_db
 from app.models.employee import Employee
 from app.models.payroll import EmployeeSalary
 
@@ -72,7 +73,7 @@ def test_tax_declaration_proof_and_projection(client, db):
         effective_from=date(2026, 4, 1),
         is_active=True,
     ))
-    db.commit()
+    commit_payroll_fixture(db)
 
     cycle = client.post("/api/v1/payroll/tax/cycles", json={
         "name": "FY 2026-27",

@@ -1,3 +1,6 @@
+import { RecordCustomFields } from "../components/CustomFields";
+import Record360Workspace from "@/shared/records/Record360Workspace";
+import { Button } from "@/components/ui/button";
 import { ActionToolbar } from "@/components/actions";
 import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -168,7 +171,7 @@ export default function TaskWorkspacePage() {
   const detail = useQuery({
     queryKey: ["task-workspace", id, contextKey],
     queryFn: () =>
-      api.get<Workspace>(`${base}/tasks/${id}`).then((r) => r.data),
+      api.get<Workspace>(`${base}/tasks/${id}`, {recordCache:false}).then((r) => r.data),
     enabled: !!id,
   });
   const data = detail.data;
@@ -655,6 +658,7 @@ export default function TaskWorkspacePage() {
           <strong>{task.status}</strong>
         </div>
       </div>
+      <RecordCustomFields entity="task" id={id}/>
       <div className="tw-actionbar">
         <div className="tw-progress">
           <span>Progress</span>
@@ -689,6 +693,7 @@ export default function TaskWorkspacePage() {
           ))}
         </section>
       )}
+      <Record360Workspace key={id} kind="task" id={id} source="project_management" actions={<Button variant="outline" asChild><Link to="/pms/tasks-follow-ups">Tasks & Follow-ups</Link></Button>}/>
       <div className="tw-layout">
         <section className="tw-main">
           <RecordSectionNav value={tab} onChange={chooseTab} label="Task workspace sections" groups={[

@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import csv
@@ -121,7 +122,10 @@ def test_collaborators_retain_access_checks_and_internal_notifications(client, d
     from tests.tenant_test_utils import assign_company
     record = create(client, db, superuser_headers)
     colleague = User(email="dealwatcher@example.com", hashed_password="unused", is_active=True, is_superuser=True)
-    db.add(colleague); db.flush(); assign_company(db, colleague, 1); db.commit()
+    db.add(colleague); db.flush(); assign_company(db, colleague, 1)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, colleague)
+    db.commit()
     added = client.put(BASE + f"/{record['id']}/collaborators/{colleague.id}", headers=superuser_headers, json={"role": "Secondary Owner", "watching": True})
     assert added.status_code == 200, added.text
     people = client.get(BASE + f"/{record['id']}/collaborators", headers=superuser_headers)

@@ -17,10 +17,12 @@ def _headers_for_permissions(client, db, email: str, permissions: list[str]):
     user = User(email=email, hashed_password=get_password_hash("Sales@123456"), is_active=True, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user)
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db,user)
     db.commit()
     login = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
     assert login.status_code == 200
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+    return {"Authorization": f"Bearer {login.json()['access_token']}", "X-Suite-Branch":str(branch.id)}
 
 
 def test_crm_phase_2_sales_performance_backend_rbac(client, db):

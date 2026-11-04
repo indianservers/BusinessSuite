@@ -1,3 +1,4 @@
+import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
@@ -222,7 +223,7 @@ export default function FilesPage() {
           disabled: String(f.visibility) === "Work Evidence",
           content: (
             <div className="flex items-center justify-between text-xs">
-              <span>
+              <SuiteFileIcon name={f.original_name}/><span>
                 {Math.ceil(f.size_bytes / 1024)} KB · {f.visibility}
               </span>
               <button

@@ -1,5 +1,4 @@
 import { NativeSelect } from "@/components/ui/native-select";
-import { useMobile } from "@/components/mobile/useMobile";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { InvoiceList } from "@/apps/project-management/pages/ProjectBillingPage";
+import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 
 type Row = Record<string, any>;
 export function InvoicePaymentForm({
@@ -19,7 +19,6 @@ export function InvoicePaymentForm({
   invoice: Row;
   onSaved?: () => unknown;
 }) {
-  const mobile = useMobile();
   const [method,setMethod]=useState("bank_transfer"),[receiptDate,setReceiptDate]=useState(()=>new Date().toISOString().slice(0,10));
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
@@ -32,7 +31,8 @@ export function InvoicePaymentForm({
         request_id: requestId,
         amount,
         reference,
-        ...(mobile ? {payment_method:method,receipt_date:receiptDate} : {}),
+        payment_method: method,
+        receipt_date: receiptDate,
       }),
     onSuccess: (response) => {
       setReceipt(response.data.receipt_id);
@@ -46,13 +46,14 @@ export function InvoicePaymentForm({
         "shared-invoice",
         "customer-commercial-history",
         "srm",
+        "fam",
       ])
         queryClient.invalidateQueries({ queryKey: [key] });
     },
   });
   return (
     <details className="w-full">
-      <summary>Record payment</summary>
+      <summary>Payment and collection actions</summary>
       <p className="my-2 text-sm text-muted-foreground">
         Customer #{invoice.customer_id} · {invoice.currency} · Outstanding{" "}
         {invoice.balance_amount}. The receipt uses this invoice's seller and
@@ -94,7 +95,7 @@ export function InvoicePaymentForm({
             onChange={(e) => setReference(e.target.value)}
           />
         </div>
-        {mobile && <><label className="block text-sm">Payment method<NativeSelect className="block w-full rounded-lg border bg-background p-3" value={method} disabled={save.isPending} onChange={e=>setMethod(e.target.value)}>{["bank_transfer","upi","cash","card","cheque"].map(m=><option key={m} value={m}>{m.replace(/_/g,' ')}</option>)}</NativeSelect></label><label className="block text-sm">Received on<Input type="date" value={receiptDate} required disabled={save.isPending} onChange={e=>setReceiptDate(e.target.value)}/></label></>}
+        <><label className="block text-sm">Payment method<NativeSelect className="block w-full rounded-lg border bg-background p-3" value={method} disabled={save.isPending} onChange={e=>setMethod(e.target.value)}>{["bank_transfer","upi","cash","card","cheque"].map(m=><option key={m} value={m}>{m.replace(/_/g,' ')}</option>)}</NativeSelect></label><label className="block text-sm">Received on<Input type="date" value={receiptDate} required disabled={save.isPending} onChange={e=>setReceiptDate(e.target.value)}/></label></>
         <Button type="submit" disabled={save.isPending || !amount}>
           Record received payment
         </Button>
@@ -110,8 +111,39 @@ export function InvoicePaymentForm({
           Receipt #{receipt} saved and applied to this invoice.
         </p>
       )}
+      <CollectionControls invoice={invoice} onSaved={onSaved} />
     </details>
   );
+}
+
+function CollectionControls({ invoice, onSaved }: { invoice: Row; onSaved?: () => unknown }) {
+  const cache = useQueryClient();
+  const [reason, setReason] = useState("");
+  const [resumeAt, setResumeAt] = useState("");
+  const control = useMutation({
+    mutationFn: () => api.put(`/srm/collections/${invoice.id}/control`, {
+      hold: !invoice.collection_hold,
+      reason: reason.trim(),
+      resume_at: !invoice.collection_hold && resumeAt ? new Date(resumeAt).toISOString() : null,
+    }),
+    onSuccess: () => {
+      setReason("");
+      onSaved?.();
+      for (const key of ["collection-invoices", "shared-invoice", "customer-commercial-history", "srm", "fam"])
+        cache.invalidateQueries({ queryKey: [key] });
+    },
+  });
+  return <section className="mt-4 border-t pt-3" aria-label="Collection controls">
+    <p className="text-sm font-medium">{invoice.collection_hold ? "Collections on hold" : "Collection reminders active"}</p>
+    {invoice.collection_hold_reason && <p className="text-sm text-muted-foreground">{invoice.collection_hold_reason}</p>}
+    {invoice.collection_resume_at && <p className="text-sm">Scheduled resume: {new Date(invoice.collection_resume_at).toLocaleString()}</p>}
+    <form className="mt-2 flex flex-wrap items-end gap-3" onSubmit={e => { e.preventDefault(); control.mutate(); }}>
+      <label className="text-sm">Reason<Input required minLength={3} maxLength={500} value={reason} onChange={e=>setReason(e.target.value)} disabled={control.isPending} /></label>
+      {!invoice.collection_hold && <label className="text-sm">Resume at (optional)<Input type="datetime-local" value={resumeAt} onChange={e=>setResumeAt(e.target.value)} disabled={control.isPending}/></label>}
+      <Button type="submit" variant="outline" disabled={control.isPending || reason.trim().length < 3}>{invoice.collection_hold ? "Resume reminders" : "Pause collections / dispute"}</Button>
+    </form>
+    {control.isError && <p role="alert">{(control.error as any)?.response?.data?.detail || "Unable to update collection controls."}</p>}
+  </section>;
 }
 
 export default function ConnectedCollectionsPage() {
@@ -151,11 +183,11 @@ export default function ConnectedCollectionsPage() {
               query.data.can_record &&
               row.document_status === "issued" &&
               Number(row.balance_amount) > 0 ? (
-                <InvoicePaymentForm
+                <><PaymentRequestButton source="srm_invoice" sourceId={Number(row.id)}/><InvoicePaymentForm
                   key={`${uid}-${row.id}`}
                   invoice={row}
                   onSaved={() => query.refetch()}
-                />
+                /></>
               ) : null
             }
           />

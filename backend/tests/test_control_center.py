@@ -34,6 +34,7 @@ def test_company_branch_department_and_stale_update(
     )
     assert company.status_code == 201, company.text
     company_id = company.json()["id"]
+    headers = {**headers, "X-Suite-Organization":str(company_id)}
     branch = client.post(
         ROOT + "/units/branches",
         headers=headers,
@@ -45,6 +46,7 @@ def test_company_branch_department_and_stale_update(
         },
     )
     assert branch.status_code == 201, branch.text
+    headers = {**headers, "X-Suite-Branch":str(branch.json()["id"])}
     department = client.post(
         ROOT + "/units/departments",
         headers=headers,

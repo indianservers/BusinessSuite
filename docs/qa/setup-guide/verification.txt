@@ -1,0 +1,87 @@
+Setup guide verification - 2026-11-04
+
+Verified using Chromium against a disposable SQLite backend; no business data modified.
+
+Passed:
+- TypeScript: npx tsc --noEmit.
+- Backend setup regression tests: 27 passed.
+- Settings, CRM, SRM and PMS guides: correct scoped tasks, progress and refresh.
+- Dashboard aliases, including PMS Insights dashboard operation.
+- All 14 available setup links reached their configuration pages.
+- Missing company details block business writes with setup-required response.
+- Missing CRM pipeline, PMS workspace and SRM warehouse block their affected operations.
+- Repairing module prerequisites removes setup blocking; optional tasks do not block writes.
+- Non-admins see administrator guidance, no repair links, and cannot repair through direct API calls.
+- Company profile repair, reload and missing-detail recovery at 1440, 390 and 320 pixels.
+- All four guides verified at 390 pixels, without page or guide content overflow.
+- No browser page exceptions in the dashboard/link/guard run.
+
+Fixes during verification:
+- Confirmed DialogDescription export.
+- Added missing shared popover component required by custom-field controls.
+- Moved setup guide inside Settings and dashboard content areas to avoid sidebar overlap.
+- Preserved setup guide after PMS dashboard canonical route redirection.
+- Corrected guide text encoding and mobile progress row sizing.
+- Updated legacy browser test to match current save confirmation.
+
+Repeat with a fresh backend/scripts/serve_ux_qa.py fixture and local Vite on :5200:
+node qa/company_setup_live_browser.cjs
+node qa/setup_guide_browser.cjs
+
+Screenshots are in this directory.
+
+HRMS / FAM extension - 2026-11-04
+- HRMS main, dashboard and manager dashboard: shared guide with five mandatory module checks and optional current-year holidays.
+- FAM main and dashboard: shared guide with financial-year/ledger checks and optional cost centers/payment methods.
+- All ten module task destinations verified in Chromium.
+- Optional completion verified using persisted configuration and refreshed dashboard views.
+- Desktop and 390px mobile layout verified; no page or guide overflow.
+- Setup backend tests: 28 passed, including cross-company isolation, inactive settings and holiday-year filtering.
+- Frontend type check blocked by unrelated SRMCommercialDetailPage.tsx:56 unknown value rendered as ReactNode.
+- Repeat browser checks: node qa/hrms_fam_setup_guide_browser.cjs (disposable backend fixture and Vite :5200).
+
+Full setup-guide re-verification - 2026-11-04
+- Chromium: Settings, CRM, SRM, PMS, HRMS and FAM guides passed, including dashboard aliases.
+- All 17 missing-setup links in Settings followed successfully; all ten HRMS/FAM task destinations checked.
+- Correct module-scoped task counts, mandatory/optional labels, refresh and persisted completion.
+- Company-wide and operation-specific mandatory guards verified with real local HTTP requests.
+- Non-admin guidance and forbidden repair requests verified.
+- All six guide layouts checked on desktop and 390px mobile; no page or guide overflow.
+- Company repair, reload and missing-detail recovery passed at 1440px, 390px and 320px.
+- No page exceptions in the guide browser runs.
+- Backend setup suite: 34 passed. TypeScript: passed.
+
+Bug fixed during this run:
+- Salary-component setup enforcement referenced the obsolete POST /payroll/runs route.
+- Enforcement now covers POST /payroll/run and /payroll/runs/{id}/worksheet/process.
+- Added six real-endpoint regression cases and qa/setup_guide_additional_guards.cjs.
+
+Additional validation limitation:
+- The broader test_payroll_readiness_gate.py suite has existing fixture/setup failures.
+- With valid company and salary-component setup supplied during diagnosis, it reaches the separate branch-write rejection: Use validated record writes for branch-owned resources.
+- No unrelated payroll write or fixture changes retained.
+
+All runs used disposable local data. Screenshots refreshed in this directory.
+
+Payroll fixture and branch-write remediation - 2026-11-04
+Status: resolved. The earlier payroll regression limitations above are cleared.
+
+Changes:
+- Payroll cleanup uses scoped ORM deletes; expense, encashment and unpaid-leave links use validated ORM updates.
+- Bank-validation and gratuity cleanup also use scoped ORM deletes.
+- Default payroll-run lookups and lock checks use the selected branch, matching persisted run ownership.
+- Payroll test seeds now explicitly provision company essentials, active salary components and validated branch ownership.
+- Multi-currency fixtures use ORM deletes and discard deleted seeds before assigning ownership.
+- Test sessions use savepoints inside an explicit outer transaction. Failed request dependencies roll back like production, preventing poisoned sessions and cross-test data leakage.
+- Setup branch recovery selects its known fixture branch and deactivates all company branches before testing the no-active-branch condition.
+
+Final verification:
+- 94 passed, 2 warnings in 180.35 seconds: all test_payroll*.py files plus expense payroll linkage, HRMS leave payroll feeds, company setup and branch access.
+- Populated payroll reruns reuse the same run without duplicating payroll records/checks; sibling branch runs remain separate; forged branch writes are rejected without losing successful prior writes.
+- Live HTTP setup guards pass for employees, attendance, leave, payroll creation, payroll worksheet processing and finance posting.
+- Live repair cycle passes: missing salary component blocks force_run; adding one allows a run and stable rerun; deactivating it restores the setup-required block.
+
+Repeat the repair smoke test against the disposable serve_ux_qa.py fixture:
+node qa/payroll_setup_guard_recovery.cjs
+
+These checks used disposable SQLite databases. No production business data was modified.

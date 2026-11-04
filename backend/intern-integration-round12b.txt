@@ -1,0 +1,17 @@
+bringing up nodes...
+bringing up nodes...
+
+............................................F
+_______ test_website_capture_keeps_configured_branch_after_admin_switch _______
+[gw0] win32 -- Python 3.12.10 C:\Users\Sai Satish\Documents\GitHub\BusinessSuite\backend\venv\Scripts\python.exe
+backend\tests\test_crm_lead_management.py:776: in test_website_capture_keeps_configured_branch_after_admin_switch
+    assert response.status_code == 200, response.text
+E   AssertionError: {"detail":"Enter a valid email address without spaces"}
+E   assert 422 == 200
+E    +  where 422 = <Response [422 Unprocessable Content]>.status_code
+------------------------------ Captured log call ------------------------------
+WARNING  app.core.security:security.py:48 Token verification failed: DecodeError
+..................                                                       [100%]
+=========================== short test summary info ===========================
+FAILED backend\tests\test_crm_lead_management.py::test_website_capture_keeps_configured_branch_after_admin_switch
+1 failed, 62 passed, 24 warnings in 108.07s (0:01:48)

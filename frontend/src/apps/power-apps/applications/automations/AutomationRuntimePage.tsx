@@ -892,6 +892,16 @@ export default function AutomationRuntimePage() {
                     >
                       {t.enabled ? "Disable" : "Enable"}
                     </button>
+                    {t.kind === "connector" && Boolean(t.config.native) && (
+                      <button
+                        disabled={!can("publish") || busy}
+                        onClick={() =>
+                          void action(() => client.reconcile(workflowId))
+                        }
+                      >
+                        Retry native setup
+                      </button>
+                    )}
                   </article>
                 ))}
                 <label>
@@ -1005,6 +1015,7 @@ export default function AutomationRuntimePage() {
                       triggers.some(
                         (t) =>
                           t.kind === "connector" &&
+                          !t.config.native &&
                           ![
                             "telegram",
                             "google_sheets",

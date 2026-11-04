@@ -1,0 +1,92 @@
+BUSINESS SUITE — LOCAL LOADING SPEED IMPROVEMENTS
+4 November 2026
+
+DELIVERED
+The source changes are active in the local development app on port 5173. The API
+was restarted to load the backend changes. An optimized production preview is
+also running at http://127.0.0.1:5190, using the same API and database. The preview
+serves the tested build snapshot; development source changes continue on 5173.
+No database migration, access grant, visibility relaxation or deployment was needed.
+
+WHY LOADING WAS SLOW
+Several hidden feature pages were imported by startup routes or the global shell.
+In particular, the closed Team workspace pulled in task and collaboration screens,
+and the global record-preview host pulled in employee and record workspaces before
+any preview was opened. Route files also eagerly imported dashboards, imports,
+deal details and follow-up pages.
+Relationship loads also inherited access-filter objects and then attached the same
+objects again. The profiled assignment load had 4,556 options but only 2,278 unique
+objects. Repeated ownership subqueries made SQL compilation expensive.
+
+CHANGES
+Load route feature pages, team-workspace content and employee/record-preview
+content on demand, with existing Suspense/loading states. Preview event handlers
+remain mounted, so a first click can still open a preview.
+All three central access, company and branch boundary listeners now retain one copy
+of each identical current-request filter object. Different filter objects remain;
+no data or permission results are cached across requests. Simplified a redundant
+ownership OR when an already required parent proves ownership. Optional-only
+parents retain their explicit non-empty ownership requirement.
+Updated the SRM test helper to use the app's persisted-session contract instead of
+importing a development-only source module, so built-app tests can run normally.
+
+MEASURED RESULTS
+Previous saved production build versus the new tested build:
+  Main JavaScript: 1,982.78 kB -> 767.17 kB (about 61% smaller).
+  Main gzip: 554.70 kB -> 218.74 kB.
+  Initial JavaScript including preloads: 2,943,293 -> 1,609,221 bytes (45% smaller).
+  Initial gzip: 831,924 -> 460,120 bytes (45% smaller).
+The build manifest confirms five heavy features are outside the initial import
+graph: Deal360Page, DashboardsPage, WorkspaceCollaboration, WorkspaceWork and
+ImportWorkspace. A reusable build-budget check verifies this and a 900 kB main cap.
+
+Actual local HTTP timings, same viewer and Main Branch queue, two samples each:
+  Before: 5,042 ms and 4,864 ms.
+  After: 1,945 ms and 1,408 ms.
+The recorded mean falls from 4,953 to 1,677 ms, about three times faster.
+Admin API baseline samples were mostly 126–294 ms. This supports focusing on
+frontend startup and scoped viewer queries rather than assuming all APIs are slow.
+The app is a large Vite development workspace; the built preview avoids per-source
+development transformations. No measured comparison with Dropbox/Box/Google was
+performed and these local samples are not production p95/load certification.
+
+VALIDATION
+122 backend tests passed across company boundary, branch access/ownership, backend
+security enforcement, record paging and role checks. Two additional relationship
+loading regressions passed: cross-company parents stay hidden, and eager loads
+do not duplicate filter objects, with and without central access scope enabled.
+Existing live viewer/member/intern policy checks passed after API restart.
+TypeScript and production build passed (38.46 seconds for the final build).
+All five POS/customer-360 browser checks passed against the production preview
+(9.0 seconds). Both record-360 harnesses passed. Grid unit/browser checks passed,
+including search, preview/Escape, grouping, bulk actions and mobile details.
+The updated 360 harness also verifies that the first click opens the deferred
+global record preview and Escape closes it. The actual signed-in CRM contacts
+route loaded successfully in Chrome with no browser-console errors.
+Whitespace checks passed.
+
+ADDITIONAL TEST LIMIT
+The broader older CRM lead-workbench suite was attempted but is not a passing
+acceptance result: its existing mocks do not provide the current record-360 summary
+contract and some assertions target earlier detail controls. Experimental fixture
+updates were removed; that suite needs its own fixture/selector maintenance. Its
+failures are not included in the passing counts above. A development-server 360
+run also hit the eight-second cold-start expectation; the optimized production
+preview passed all five checks without changing that timeout.
+
+EVIDENCE
+docs/qa/record-360/live/loading-before.json
+docs/qa/record-360/live/loading-after.json
+docs/qa/record-360/live/loading-bundles.json
+docs/qa/record-360/live/queue-profile-before-speedup.txt
+docs/qa/record-360/live/queue-profile.txt
+docs/qa/record-360/live/speed-build-final.log
+docs/qa/record-360/live/speed-production-browser-tests.log
+docs/qa/record-360/live/roles.json
+
+REPEATABLE CHECKS
+Backend: python scripts/benchmark_loading_live.py after
+Backend: python scripts/profile_record_360_live.py
+Frontend: node scripts/check-loading-budget.cjs <manifest-enabled Vite build dir>
+Build: npx vite build --manifest --outDir <build dir>
+The local HTTP scripts intentionally use the existing local QA accounts/records.

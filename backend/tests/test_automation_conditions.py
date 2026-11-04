@@ -17,6 +17,14 @@ def test_invalid_condition_operator_is_rejected(client, db):
 
 def test_requested_condition_operator_vocabulary_executes(client, db):
     headers = automation_headers(client, db)
+    from app.apps.crm.models import CRMPipeline, CRMPipelineStage, CRMDeal
+    from test_identity_utils import own_workflow_records
+    pipeline = CRMPipeline(organization_id=1,name="Automation condition source")
+    db.add(pipeline); db.flush()
+    stage = CRMPipelineStage(organization_id=1,pipeline_id=pipeline.id,name="Proposal")
+    db.add(stage); db.flush()
+    record = CRMDeal(id=200,organization_id=1,pipeline_id=pipeline.id,stage_id=stage.id,name="Condition source",amount=3000)
+    db.add(record); own_workflow_records(db,record); db.commit()
     response = client.post("/api/v1/automation/workflows", headers=headers, json={
         "name": "Requested operators",
         "module_name": "crm",
@@ -40,4 +48,4 @@ def test_requested_condition_operator_vocabulary_executes(client, db):
         "record_id": 200,
     })
     assert response.status_code == 200, response.text
-    assert response.json()["status"] == "success"
+    assert response.json()["status"] == "success", response.text

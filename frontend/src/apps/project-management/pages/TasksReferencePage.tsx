@@ -1,3 +1,4 @@
+import { RecordCustomFields } from "../components/CustomFields";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
@@ -5,7 +6,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import Sidebar from "@/components/layout/Sidebar";
 import TaskThemeSwitcher from "../components/TaskThemeSwitcher";
-import MoveBoard from "@/components/interaction/MoveBoard";
+import MoveBoard from "@/shared/pipeline/PipelineMoveBoard";
 import { arrangeTask } from "../components/SprintMoveBoard";
 import { useEffect, useState } from "react";
 import {
@@ -1372,7 +1373,7 @@ export default function TasksReferencePage() {
                 Full details <ArrowUpRight size={14} />
               </Link>
             </div>
-            {opened && <section className="tr-preview-summary"><p>{opened.status} · {opened.priority} priority</p><p>{opened.project_name} · Due {opened.due_date || "not set"}</p><div><span>Assignees</span><TaskAssignees task={opened} /></div><RichTextContent value={opened.description || "No description yet."}/><Link className="tr-primary" to={`/pms/tasks/${opened.id}`} state={{from:routeLocation.pathname+routeLocation.search}}>Open Full Task <ArrowUpRight size={14}/></Link></section>}
+            {opened && <section className="tr-preview-summary"><RecordCustomFields entity="task" id={opened.id}/><p>{opened.status} · {opened.priority} priority</p><p>{opened.project_name} · Due {opened.due_date || "not set"}</p><div><span>Assignees</span><TaskAssignees task={opened} /></div><RichTextContent value={opened.description || "No description yet."}/><Link className="tr-primary" to={`/pms/tasks/${opened.id}`} state={{from:routeLocation.pathname+routeLocation.search}}>Open Full Task <ArrowUpRight size={14}/></Link></section>}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

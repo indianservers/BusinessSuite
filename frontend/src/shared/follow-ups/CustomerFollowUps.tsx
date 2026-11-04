@@ -2,13 +2,15 @@ import { ActionButton } from "@/components/actions";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
+import { useRecordScope } from "@/shared/records/Record360Workspace";
 export default function CustomerFollowUps({
   customerId,
 }: {
   customerId: number;
 }) {
+  const scope=useRecordScope();
   const q = useQuery({
-    queryKey: ["follow-ups", "customer", customerId],
+    queryKey: ["follow-ups", scope, "customer", customerId],
     queryFn: () =>
       api
         .get("/follow-ups", {

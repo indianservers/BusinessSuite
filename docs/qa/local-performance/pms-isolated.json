@@ -1,0 +1,181 @@
+{
+  "origin": "http://localhost:5173",
+  "at": "2026-11-04T15:11:02.990Z",
+  "pages": [
+    {
+      "route": "/pms",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 738
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 747
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 660
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 662
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 819
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1185
+        },
+        {
+          "path": "/api/v1/project-management/workspace-invitations/mine",
+          "method": "GET",
+          "status": 200,
+          "ms": 1439
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1551
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 179
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1483
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1419
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 1506
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1507
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1671
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 535
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200,
+          "ms": 596
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 450
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 534
+        }
+      ],
+      "readyMs": 5707,
+      "pending": [],
+      "headings": [],
+      "url": "/pms",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1671
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1551
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 1507
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 1506
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1483
+        },
+        {
+          "path": "/api/v1/project-management/workspace-invitations/mine",
+          "method": "GET",
+          "status": 200,
+          "ms": 1439
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1419
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1185
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 819
+        }
+      ]
+    }
+  ]
+}

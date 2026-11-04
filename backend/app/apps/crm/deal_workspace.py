@@ -44,7 +44,7 @@ def stage_choices(page: int = Query(1, ge=1), per_page: int = Query(100, ge=1, l
     q = db.query(CRMPipelineStage).join(CRMPipeline, CRMPipelineStage.pipeline_id == CRMPipeline.id).filter(CRMPipeline.organization_id == crm._organization_id(db, user), CRMPipeline.deleted_at.is_(None), CRMPipeline.active.is_(True), CRMPipelineStage.organization_id == crm._organization_id(db, user), CRMPipelineStage.deleted_at.is_(None), CRMPipelineStage.active.is_(True))
     if pipeline_id: q = q.filter(CRMPipelineStage.pipeline_id == pipeline_id)
     total = q.count()
-    return {"items": [{"id": item.id, "name": item.name, "pipeline_id": item.pipeline_id, "probability": item.probability, "is_won": item.is_won, "is_lost": item.is_lost, "stage_type": item.stage_type, "color": item.color} for item in q.order_by(CRMPipelineStage.pipeline_id, CRMPipelineStage.position, CRMPipelineStage.id).offset((page - 1) * per_page).limit(per_page)], "total": total, "page": page, "pages": (total + per_page - 1) // per_page}
+    return {"items": [{"id": item.id, "name": item.name, "pipeline_id": item.pipeline_id, "probability": item.probability, "is_won": item.is_won, "is_lost": item.is_lost, "stage_type": item.stage_type, "color": item.color,"wip_limit":(item.policy_json or {}).get("wip_limit"),"stagnation_days":(item.policy_json or {}).get("stagnation_days",14)} for item in q.order_by(CRMPipelineStage.pipeline_id, CRMPipelineStage.position, CRMPipelineStage.id).offset((page - 1) * per_page).limit(per_page)], "total": total, "page": page, "pages": (total + per_page - 1) // per_page}
 
 
 class Planning(BaseModel):
@@ -64,6 +64,8 @@ class StagePolicy(BaseModel):
     required: list[Literal["company_id", "contact_id", "amount", "expected_close_date", "next_follow_up_at", "lead_source"]] = Field(default_factory=list)
     approval_required: bool = False
     stagnation_days: int = Field(default=14, ge=1, le=365)
+    wip_limit: int | None = Field(default=None, ge=1, le=10000)
+    notify_owner: bool = False
 
 
 def guard(db, user, data, record=None):
@@ -144,6 +146,10 @@ def guard(db, user, data, record=None):
             raise HTTPException(422, "This stage transition is not allowed by the pipeline")
     if moving or (record and "status" in data and data["status"] != record.status):
         policy = stage.policy_json or {}
+        if policy.get("wip_limit"):
+            db.query(CRMPipelineStage).filter_by(id=stage.id).with_for_update().one()
+            occupied = db.query(CRMDeal).filter(CRMDeal.organization_id == org, CRMDeal.stage_id == stage.id, CRMDeal.deleted_at.is_(None), CRMDeal.id != getattr(record,"id",0)).count()
+            if occupied >= policy["wip_limit"]: raise HTTPException(409, "The destination stage is at capacity")
         missing = [key for key in policy.get("required", []) if data.get(key, getattr(record, key, None)) in (None, "", 0)]
         if missing:
             raise HTTPException(422, "Complete the stage requirements: " + ", ".join(key.replace("_", " ") for key in missing))

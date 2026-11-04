@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import pytest
 from datetime import date
 
@@ -26,6 +27,7 @@ def test_create_employee(client, superuser_headers, db):
     desig = Designation(name="Engineer", department_id=dept.id)
     db.add(desig)
     db.commit()
+    superuser_headers={**superuser_headers,"X-Suite-Organization":str(company.id),"X-Suite-Branch":str(branch.id)}
 
     response = client.post("/api/v1/employees/", json={
         "first_name": "John",
@@ -124,7 +126,7 @@ def test_employee_directory_filters_and_team_only(client, superuser_headers, db)
     from app.core.security import get_password_hash
     from app.models.company import Branch, Company, Department, Designation, WorkLocation
     from app.models.employee import Employee
-    from app.models.user import Role, User
+    from app.models.user import Role, User, Permission
 
     company = Company(name=f"Directory Corp {id(db)}")
     db.add(company)
@@ -142,7 +144,10 @@ def test_employee_directory_filters_and_team_only(client, superuser_headers, db)
     db.add(location)
     db.flush()
 
-    role = Role(name=f"directory_manager_{id(db)}", description="Manager")
+    permission=db.query(Permission).filter_by(name="employee_view").first()
+    if permission is None:
+        permission=Permission(name="employee_view",module="hrms");db.add(permission);db.flush()
+    role = Role(name=f"directory_manager_{id(db)}", description="Manager", permissions=[permission])
     db.add(role)
     db.flush()
     manager_user = User(
@@ -191,6 +196,7 @@ def test_employee_directory_filters_and_team_only(client, superuser_headers, db)
     )
     db.add_all([reportee, hidden])
     db.commit()
+    superuser_headers={**superuser_headers,"X-Suite-Organization":str(company.id),"X-Suite-Branch":str(branch.id)}
 
     filtered = client.get(
         "/api/v1/employees/directory",
@@ -316,6 +322,10 @@ def test_login_link_options_only_include_active_accounts(client, db, superuser_h
     active = User(email="active-link@example.com", hashed_password="unused", is_active=True)
     inactive = User(email="inactive-link@example.com", hashed_password="unused", is_active=False)
     db.add_all([active, inactive])
+    from test_identity_utils import attach_test_identity, attach_workflow_branch
+    for account in [active,inactive]:
+        attach_test_identity(db,account)
+        attach_workflow_branch(db,account)
     db.commit()
     response = client.get("/api/v1/employees/user-options", headers=superuser_headers)
     assert response.status_code == 200

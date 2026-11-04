@@ -82,6 +82,8 @@ def publish(db,user,data,*,process=True):
 
 
 def process_job(db,job_id,chunk_size=500):
+    from app.core.config import settings
+    chunk_size = max(1, min(chunk_size, settings.SECURITY_MAX_BATCH))
     job=db.query(InternDistribution).filter_by(id=job_id).with_for_update().first()
     if not job or job.status=="Completed":return job
     try:

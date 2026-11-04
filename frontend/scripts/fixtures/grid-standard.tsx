@@ -18,7 +18,7 @@ function Fixture() {
     <h1>Suite grid verification</h1>
     <section data-testid="shared"><SharedDataGrid gridId="test-shared" title="Work records" columns={columns} dataSource={source} getRowId={r => r.id}
       exportFormats={["csv", "clipboard"]} initialQuery={{ pageSize: 10 }}
-      bulkActions={[{ id: "done", label: "Mark done", run: records => setRows(current => current.map(r => records.some(item => item.id === r.id) ? { ...r, status: "Done" } : r)) }]}/></section>
+      bulkActions={[{ id: "done", label: "Mark done", run: records => setRows(current => current.map(r => records.some(item => item.id === r.id) ? { ...r, status: "Done" } : r)) }, { id: "failure", label: "Fail update", run: async () => { throw new Error("Update denied by record permission"); } }]}/></section>
     <section data-testid="adapter"><h2>Page-owned selection</h2>
       <button onClick={() => setClicks(n => n + 1)}>Existing bulk action ({selected.length})</button><output aria-label="Action count">{clicks}</output>
       <GridTable gridId="test-adapter"><thead><tr><th><input aria-label="Existing select all" type="checkbox" checked={selected.length === 2} onChange={e => setSelected(e.target.checked ? ["a", "b"] : [])}/></th><th>Employee</th><th>Status</th><th>Actions</th></tr></thead>

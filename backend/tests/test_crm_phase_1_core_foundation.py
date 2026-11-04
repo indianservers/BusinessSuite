@@ -45,14 +45,12 @@ def _headers_for_permissions(client, db, email: str, permissions: list[str]):
     db.add(user)
     db.flush()
     assign_company(db, user, 1)
-    branch = db.query(Branch).filter(Branch.company_id == 1, Branch.code == "CRM-PHASE1").first()
-    if branch:
-        from app.branches.models import BranchGrant
-        db.add(BranchGrant(user_id=user.id, company_id=1, branch_id=branch.id, can_write=any(name.endswith("_manage") or name == "crm_admin" for name in permissions)))
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db, user)
     db.commit()
     login = client.post("/api/v1/auth/login", json={"email": email, "password": "Sales@123456"})
     assert login.status_code == 200
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+    return {"Authorization": f"Bearer {login.json()['access_token']}", "X-Suite-Branch":str(branch.id)}
 
 
 def test_crm_phase_1_lead_qualification_conversion_timeline_and_dashboard(client, db, superuser_headers):

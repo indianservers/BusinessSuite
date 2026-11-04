@@ -28,4 +28,5 @@ def test_srm_receipt_allocation_updates_invoice_and_aging(client, db, superuser_
     assert any(row["customer_id"] == 101 and row["total_outstanding"] > 0 for row in aging.json())
 
     reminder = client.post("/api/v1/srm/collections/reminders/send", headers=superuser_headers, json={"customer_id": 101, "invoice_id": invoice["id"]})
-    assert reminder.status_code == 200, reminder.text
+    assert reminder.status_code == 409, reminder.text
+    assert 'opted-in billing recipient' in reminder.json()['detail']

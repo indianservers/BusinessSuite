@@ -144,6 +144,7 @@ export interface CreateChecklistItemInput {
 }
 
 export interface PMSTask {
+  assignee_name?: string;
   id: number;
   project_id: number;
   board_id?: number;
@@ -321,6 +322,7 @@ export interface CreateTaskInput {
 
 // ============= KANBAN TYPES =============
 export interface PMSBoardColumn {
+  aging_days?: number;
   id: number;
   board_id: number;
   name: string;
@@ -334,6 +336,7 @@ export interface PMSBoardColumn {
 }
 
 export interface PMSBoard {
+  total_project_tasks?: number;
   id: number;
   project_id: number;
   name: string;

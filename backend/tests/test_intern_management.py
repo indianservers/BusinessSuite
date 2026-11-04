@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import timedelta
 from uuid import uuid4
 import pytest
@@ -14,7 +15,10 @@ PMS='/api/v1/project-management'
 def program(client,db,interns,superuser_headers):
     admin=db.query(User).filter_by(email='testadmin@test.com').one()
     project=PMSProject(name='Intern delivery',project_key='IDEL',organization_id=1,manager_user_id=admin.id)
-    db.add(project);db.commit()
+    db.add(project)
+    from test_identity_utils import own_workflow_records
+    own_workflow_records(db, project)
+    db.commit()
     def batch(code,capacity=10):
         data=dict(name='Intern '+code,code=code,department_id=interns[0][0].department_id,manager_user_id=admin.id,mentor_user_id=admin.id,project_id=project.id,start_date=str(today()-timedelta(days=30)),end_date=str(today()+timedelta(days=60)),capacity=capacity,policy={'weights':{'quality':40,'timeliness':20,'reports':15,'completion':15,'communication':10},'completion':{'minimum_days':0,'minimum_tasks':1,'minimum_reports_percent':0}})
         r=client.post(ROOT+'/batches',headers=superuser_headers,json=data);assert r.status_code==201,r.text

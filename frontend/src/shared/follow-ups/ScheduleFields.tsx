@@ -1,3 +1,4 @@
+import { defaultText, defaultNumber, defaultOwner } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import { dateInputInZone, dateInputToIso } from "./time";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ export type Schedule = {
   due_at?: string;
   timezone: string;
   reminder_days: number;
+  reminder_minutes?: number;
   assigned_user_id?: number;
   assigned_team_id?: number;
   cancellation_policy?: string;
@@ -18,18 +20,20 @@ export type Schedule = {
   contact_method: string;
   notes: string;
 };
-export const defaultSchedule: Schedule = {
+export const newDefaultSchedule = (): Schedule => ({
   required: false,
   type: "days",
   reference: "purchase",
-  interval_days: 45,
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  reminder_days: 2,
-  priority: "Normal",
+  interval_days: Math.max(1, defaultNumber("follow_up_days")),
+  timezone: defaultText("timezone"),
+  reminder_days: 0,
+  reminder_minutes: defaultNumber("reminder_minutes"),
+  assigned_user_id: defaultOwner(),
+  priority: defaultText("task_priority") === "Medium" ? "Normal" : defaultText("task_priority"),
   purpose: "General",
   contact_method: "Call",
   notes: "",
-};
+});
 export function ScheduleFields({
   value,
   onChange,
@@ -123,13 +127,13 @@ export function ScheduleFields({
               ? date("Follow-up date & time", "due_at")
               : !template && date("Reference date & time", "reference_at")}
             <label className="text-xs">
-              Reminder (days before)
+              Reminder ({value.reminder_minutes === undefined ? "days" : "minutes"} before)
               <Input
                 type="number"
                 min={0}
-                max={365}
-                value={value.reminder_days}
-                onChange={(e) => patch("reminder_days", Number(e.target.value))}
+                max={value.reminder_minutes === undefined ? 365 : 525600}
+                value={value.reminder_minutes ?? value.reminder_days}
+                onChange={(e) => patch(value.reminder_minutes === undefined ? "reminder_days" : "reminder_minutes", Number(e.target.value))}
               />
             </label>
             {select("Priority", "priority", [

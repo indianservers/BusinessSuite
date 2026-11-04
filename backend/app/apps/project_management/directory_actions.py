@@ -31,22 +31,25 @@ class ActionInput(BaseModel):
     version: str | None = None
 
 
-def _destination(db, actor, kind, identity, write=False):
+def _destination(db, actor, kind, identity, write=False, _scoped_item=None):
     from .people_workspace import teams_query, batches_query
+    # Directory rows were already selected by these same scoped queries. Reuse
+    # them for read serialization; every write still fetches and authorizes anew.
+    item = None if write else _scoped_item
     if kind == "projects":
-        item = accessible_project_query(db, actor).filter(PMSProject.id == identity).first()
+        if item is None:item = accessible_project_query(db, actor).filter(PMSProject.id == identity).first()
         allowed = bool(item and can_access_project(db, item, actor, "manage_members"))
         if item and write and item.workspace_id:
             scoped_workspace(db, item.workspace_id, actor)
     elif kind == "teams":
-        item = teams_query(db, actor).filter(PMSWorkspaceTeam.id == identity).first()
+        if item is None:item = teams_query(db, actor).filter(PMSWorkspaceTeam.id == identity).first()
         try:
             if item: scoped_workspace(db, item.workspace_id, actor)
             allowed = bool(item)
         except HTTPException:
             allowed = False
     else:
-        item = batches_query(db, actor).filter(InternBatch.id == identity).first()
+        if item is None:item = batches_query(db, actor).filter(InternBatch.id == identity).first()
         allowed = bool(item and item.status not in {"Completed", "Archived"})
     if not item: raise HTTPException(404, "Destination is outside your authorized scope")
     if write and not allowed: raise HTTPException(403, "Destination administration access is required, or this batch is closed")
@@ -74,13 +77,33 @@ def destinations(kind: KINDS, q: str = Query("", max_length=150), preferred: str
     total = query.count()
     rows = []
     preferred_ids = [int(i) for i in preferred.split(",") if i.isdigit()][:30]
-    for item in query.order_by(case((model.id.in_(preferred_ids), 0), else_=1), model.name, model.id).offset((page-1)*30).limit(30):
-        _, allowed = _destination(db, actor, kind, item.id)
+    page_items = query.order_by(case((model.id.in_(preferred_ids), 0), else_=1), model.name, model.id).offset((page-1)*30).limit(30).all()
+    identities = [item.id for item in page_items]
+    membership = PMSProjectMember if kind == 'projects' else PMSWorkspaceTeamMember if kind == 'teams' else InternBatchMembership
+    destination = membership.project_id if kind == 'projects' else membership.team_id if kind == 'teams' else membership.batch_id
+    member_query = db.query(destination.label('destination'),membership.user_id.label('user_id')) if kind != 'batches' else db.query(destination.label('destination'),Employee.user_id.label('user_id')).join(Employee,Employee.id==membership.employee_id)
+    count_query = db.query(destination,func.count()).filter(destination.in_(identities))
+    member_query = member_query.filter(destination.in_(identities))
+    if kind == 'batches':
+        count_query = count_query.filter(InternBatchMembership.status=='Active')
+        member_query = member_query.filter(InternBatchMembership.status=='Active')
+    counts = dict(count_query.group_by(destination).all()) if identities else {}
+    person_id = membership.user_id if kind != 'batches' else Employee.user_id
+    ranked = member_query.filter(person_id.in_(scope(db,actor).with_entities(User.id))).add_columns(func.row_number().over(partition_by=destination,order_by=person_id).label('position')).subquery()
+    avatar_ids = {}
+    if identities:
+        for dest,identity in db.query(ranked.c.destination,ranked.c.user_id).filter(ranked.c.position<=3):
+            avatar_ids.setdefault(dest,[]).append(identity)
+    needed = {identity for values in avatar_ids.values() for identity in values}
+    needed.update(getattr(item,'lead_user_id',None) or getattr(item,'manager_user_id',None) for item in page_items)
+    needed.discard(None)
+    people = {person.id:person for person in load_users(scope(db,actor).filter(User.id.in_(needed))).all()} if needed else {}
+    for item in page_items:
+        _, allowed = _destination(db, actor, kind, item.id, _scoped_item=item)
         responsible_id = getattr(item, "lead_user_id", None) or getattr(item, "manager_user_id", None)
-        leader = load_users(scope(db, actor).filter(User.id == responsible_id)).first() if responsible_id else None
-        people_ids = db.query(PMSProjectMember.user_id).filter_by(project_id=item.id) if kind == "projects" else db.query(PMSWorkspaceTeamMember.user_id).filter_by(team_id=item.id) if kind == "teams" else db.query(Employee.user_id).join(InternBatchMembership, InternBatchMembership.employee_id == Employee.id).filter(InternBatchMembership.batch_id == item.id, InternBatchMembership.status == "Active")
-        avatars = load_users(scope(db, actor).filter(User.id.in_(people_ids))).limit(3).all()
-        count = _count(db, kind, item.id)
+        leader = people.get(responsible_id)
+        avatars = [people[identity] for identity in avatar_ids.get(item.id,[]) if identity in people]
+        count = counts.get(item.id,0)
         rows.append({"id": item.id, "name": item.name, "kind": kind, "members": count,
             "capacity": getattr(item, "capacity", None), "batch_type": getattr(item, "batch_type", None), "available": max(0, item.capacity-count) if kind == "batches" else None,
             "status": getattr(item, "status", None), "start_date": getattr(item, "start_date", None), "end_date": getattr(item, "end_date", None),

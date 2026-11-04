@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date, time, timedelta
 
 
@@ -9,6 +10,8 @@ def _create_employee_user(client, headers, code="OPS001"):
     branch = branches[0] if branches else client.post("/api/v1/company/branches/", headers=headers, json={"company_id": company["id"], "name": "Operations HQ", "code": "OPS"}).json()
     departments = client.get("/api/v1/company/departments/", headers=headers, params={"branch_id": branch["id"]}).json()
     department = departments[0] if departments else client.post("/api/v1/company/departments/", headers=headers, json={"branch_id": branch["id"], "name": "Operations", "code": "OPS"}).json()
+    designations = client.get("/api/v1/company/designations/", headers=headers, params={"department_id": department["id"]}).json()
+    designation = designations[0] if designations else client.post("/api/v1/company/designations/", headers=headers, json={"department_id":department["id"], "name":"Operations employee", "code":"OPS-EMP"}).json()
     email = f"{code.lower()}@example.com"
     response = client.post(
         "/api/v1/employees/",
@@ -17,6 +20,7 @@ def _create_employee_user(client, headers, code="OPS001"):
             "employee_id": code,
             "branch_id": branch["id"],
             "department_id": department["id"],
+            "designation_id": designation["id"],
             "first_name": "Ops",
             "last_name": "User",
             "work_email": email,

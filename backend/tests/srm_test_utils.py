@@ -30,6 +30,8 @@ def auth_headers_for(client, db, email: str, role_name: str, password: str = "Pa
 
 
 def create_sales_order(client, headers, title: str = "Enterprise onboarding"):
+    # The middleware factory is bound by conftest to this API test's isolated DB.
+    seed_invoice_parties(client.app.state.business_os_session_factory())
     response = client.post("/api/v1/srm/sales-orders", headers=headers, json={
         "title": title,
         "customer_id": 101,
@@ -62,14 +64,23 @@ def create_engagement_via_confirm(client, headers):
 
 def seed_invoice_parties(db, customer_ids=(101,)):
     """Real canonical counterparties for issue/snapshot tests; never delivery to real recipients."""
-    from app.models.company import Company
+    from app.models.company import Company, Branch
     from app.apps.crm.models import CRMCompany
     if not db.get(Company, 1):
         db.add(Company(id=1, name="Synthetic seller", legal_name="Synthetic seller Ltd", address="Test seller address"))
+    db.flush()
+    company = db.get(Company, 1)
+    company.legal_name = company.legal_name or "Synthetic seller Ltd"
+    company.address = company.address or "Test seller address"
+    company.email = company.email or "billing-fixture@example.test"
+    company.country = company.country or "India"
+    if not db.query(Branch).filter_by(company_id=1).first():
+        db.add(Branch(company_id=1, name="Synthetic billing branch", code="BILL-TEST", is_active=True))
+        db.flush()
     from test_identity_utils import own_workflow_records
     for ident in customer_ids:
         if not db.get(CRMCompany, ident):
-            buyer=CRMCompany(id=ident, organization_id=1, name=f"Synthetic customer {ident}", email="billing@example.com", address="Test customer address")
+            buyer=CRMCompany(id=ident, organization_id=1, account_type="Customer", name=f"Synthetic customer {ident}", email="billing@example.com", address="Test customer address")
             db.add(buyer)
             own_workflow_records(db,buyer)
     db.commit()

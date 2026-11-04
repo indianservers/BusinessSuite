@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from decimal import Decimal
 
 from app.db.init_db import init_db

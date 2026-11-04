@@ -1,399 +1,63 @@
+import ProjectQuickTask from "./ProjectQuickTask";
+import PipelineDomainDetails from "@/shared/pipeline/PipelineDomainDetails";
+import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Plus, Settings2 } from "lucide-react";
+import { api } from "@/services/api";
 import { NativeSelect } from "@/components/ui/native-select";
+import PipelineBoard, { PipelineSearch, PipelineViewSwitch } from "@/shared/pipeline/PipelineBoard";
+import PipelineStageEditor from "@/shared/pipeline/PipelineStageEditor";
 import { useRefreshableEffect } from "@/lib/page-refresh";
-/**
- * KaryaFlow - Kanban Board with Drag & Drop
- * Interactive Kanban board using DnD Kit for task management
- * This is the CORE Click & Drag feature
- */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  DndContext,
-  closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-  DragOverlay,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  Bolt,
-  ChevronDown,
-  Clock3,
-  Filter,
-  Loader,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Settings,
-  Sparkles,
-  Users,
-} from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useKanbanStore, useProjectStore, useTaskStore } from "../store";
 import { kanbanAPI, projectsAPI } from "../services/api";
+import { arrangeTask } from "../components/SprintMoveBoard";
 import { usePMSRealtime } from "../realtime";
+import type { PMSBoard, PMSProject } from "../types";
 
-import TaskViewPicker from "../components/TaskViewPicker";
-import KanbanColumn from "../components/KanbanColumn";
-import CreateTaskModal from "../components/CreateTaskModal";
-
-/**
- * Kanban Board Main Component
- * Implements drag-and-drop with click handling
- */
-const KanbanBoard: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
-  const projectIdNum = parseInt(projectId || "0");
-
-  const { board, setBoard, loading, setLoading } = useKanbanStore();
-  const { selectedProject, setSelectedProject } = useProjectStore();
-  const { tasks, setTasks, addTask } = useTaskStore();
-
-  const [activeId, setActiveId] = useState<number | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [query, setQuery] = useState("");
-  const [epicFilter, setEpicFilter] = useState("All epics");
-  const [groupBy, setGroupBy] = useState("Choices");
-  const [assigneeFilter, setAssigneeFilter] = useState<number | "all">("all");
-  const [priorityFilter, setPriorityFilter] = useState("All priorities");
-
-  // Configure sensors for drag & drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const loadBoard = useCallback(async (active = true) => {
-      if (!projectIdNum) return;
-      try {
-        setLoading(true);
-        if (!selectedProject || selectedProject.id !== projectIdNum) {
-          const project = await projectsAPI.get(projectIdNum);
-          if (active) setSelectedProject(project);
-        }
-        const boardData = await kanbanAPI.getBoard(projectIdNum);
-        if (!active) return;
-        setBoard(boardData);
-
-        // Flatten all tasks from columns
-        const allTasks = boardData.columns?.flatMap((col) => col.tasks || []) || [];
-        setTasks(allTasks);
-      } catch (err: any) {
-        setError("Failed to load Kanban board");
-        console.error("Error loading board:", err);
-      } finally {
-        if (active) {
-          setLoading(false);
-          setHasLoaded(true);
-        }
-      }
-    }, [projectIdNum, selectedProject, setBoard, setLoading, setSelectedProject, setTasks]);
-
-  // Load board and tasks
-  useRefreshableEffect(() => {
-    let active = true;
-    loadBoard(active);
-    return () => {
-      active = false;
-    };
-  }, [loadBoard]);
-
-  usePMSRealtime({
-    projectId: projectIdNum || undefined,
-    onEvent: (event) => {
-      if (event.type.startsWith("task.") || event.type === "sprint.updated" || event.type === "project.updated") {
-        loadBoard(true);
-      }
-    },
-    onFallbackPoll: () => loadBoard(true),
-    showToast: false,
-  });
-
-  // Handle drag start
-  const handleDragStart = (event: DragStartEvent) => {
-    if (selectedProject?.can_manage_tasks === false) return;
-    const { active } = event;
-    setActiveId(active.id as number);
-  };
-
-  const activeTask = useMemo(() => tasks.find((task) => task.id === activeId), [activeId, tasks]);
-  const filteredTasks = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return tasks.filter((task) => {
-      const searchable = `${task.task_key} ${task.title} ${task.description || ""}`.toLowerCase();
-      const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
-      const matchesAssignee = assigneeFilter === "all" || task.assignee_user_id === assigneeFilter;
-      const matchesPriority = priorityFilter === "All priorities" || task.priority === priorityFilter;
-      const matchesEpic =
-        epicFilter === "All epics" ||
-        (epicFilter === "Client Portal" && /client|approval|portal/i.test(task.title)) ||
-        (epicFilter === "Reliability" && /bug|blocked|fix|error|reliability/i.test(task.title)) ||
-        (epicFilter === "Operations" && !/client|approval|portal|bug|blocked|fix|error|reliability/i.test(task.title));
-      return matchesQuery && matchesAssignee && matchesPriority && matchesEpic;
-    });
-  }, [assigneeFilter, epicFilter, priorityFilter, query, tasks]);
-
-  const boardStats = useMemo(() => {
-    const total = filteredTasks.length;
-    const done = filteredTasks.filter((task) => task.status === "Done").length;
-    const points = filteredTasks.reduce((sum, task) => sum + (task.story_points || 0), 0);
-    const overdue = filteredTasks.filter((task) => task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done").length;
-    return { total, done, points, overdue, progress: total ? Math.round((done / total) * 100) : 0 };
-  }, [filteredTasks]);
-
-  const assigneeIds = useMemo(() => {
-    const ids = tasks.map((task) => task.assignee_user_id).filter((id): id is number => Boolean(id));
-    return Array.from(new Set(ids)).slice(0, 6);
-  }, [tasks]);
-
-  // Handle drag end (DROP) - Main reordering logic
-  const handleDragEnd = async (event: DragEndEvent) => {
-    if (selectedProject?.can_manage_tasks === false) return;
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (!over) return;
-
-    const activeTaskId = active.id as number;
-    const overElement = over.id as string | number;
-
-    // Determine target column and position
-    let targetColumnId: number | null = null;
-    let targetPosition: number = 0;
-
-    // If dropping over another task
-    if (typeof overElement === "number") {
-      const overTask = tasks.find((t) => t.id === overElement);
-      if (overTask) {
-        targetColumnId = overTask.column_id || null;
-        targetPosition = overTask.position || 0;
-      }
-    } else if (typeof overElement === "string" && overElement.startsWith("column-")) {
-      // Dropping over a column
-      targetColumnId = parseInt(overElement.replace("column-", ""));
-      targetPosition = 0;
-    }
-
-    if (!targetColumnId || !board) return;
-
-    try {
-      // Send reorder request to backend
-      await kanbanAPI.reorderTask(projectIdNum, {
-        task_id: activeTaskId,
-        column_id: targetColumnId,
-        position: targetPosition,
-      });
-
-      await loadBoard(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Failed to reorder task");
-      console.error("Error reordering task:", err);
-    }
-  };
-
-  if (!selectedProject && !loading && hasLoaded) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500">Project not found</p>
-      </div>
-    );
-  }
-
-  if (loading || !hasLoaded) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader className="animate-spin text-blue-600" size={32} />
-      </div>
-    );
-  }
-
-  if (!board) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500">Board not found</p>
-      </div>
-    );
-  }
-
-  const project = selectedProject;
-  if (!project) return null;
-
-  return (
-    <div className="min-h-screen bg-[#f7f8fb]">
-      <TaskViewPicker projectId={projectIdNum || undefined} />
-      <div className="border-b bg-white">
-        <div className="px-6 py-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span>Projects</span>
-                <span>/</span>
-                <span>{project.project_key}</span>
-                <Badge variant="outline" className="rounded-md">Scrum board</Badge>
-              </div>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Board</h1>
-              <p className="mt-1 text-sm text-muted-foreground">{project.name} sprint execution with realtime click-and-drag work movement.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="h-9 rounded-md bg-emerald-100 px-3 text-emerald-800 hover:bg-emerald-100">
-                {boardStats.progress}% complete
-              </Badge>
-              <Button variant="outline" size="sm"><Bolt className="h-4 w-4" />Automation</Button>
-              <Button variant="outline" size="sm"><Clock3 className="h-4 w-4" />4 days remaining</Button>
-              <Button size="sm">Complete sprint</Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9"><MoreHorizontal className="h-4 w-4" /></Button>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-1 flex-wrap items-center gap-3">
-              <div className="relative w-full sm:w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search board" className="h-10 pl-9" />
-              </div>
-              <div className="flex -space-x-2">
-                {assigneeIds.map((id, index) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setAssigneeFilter(assigneeFilter === id ? "all" : id)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-white text-xs font-semibold text-white shadow-sm ${assigneeFilter === id ? "ring-2 ring-blue-500" : ""}`}
-                    style={{ backgroundColor: ["#2563eb", "#16a34a", "#db2777", "#9333ea", "#ea580c", "#0891b2"][index % 6] }}
-                    title={`Assignee ${id}`}
-                  >
-                    U{id}
-                  </button>
-                ))}
-                <button type="button" onClick={() => setAssigneeFilter("all")} className="flex h-9 min-w-9 items-center justify-center rounded-full border-2 border-white bg-slate-100 px-2 text-xs font-semibold text-slate-600 shadow-sm">
-                  +3
-                </button>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => navigate("/pms/workspaces")}><Users className="h-4 w-4" />Workspace & members</Button>
-              <NativeSelect value={epicFilter} onChange={(event) => setEpicFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
-                <option>All epics</option>
-                <option>Client Portal</option>
-                <option>Reliability</option>
-                <option>Operations</option>
-              </NativeSelect>
-              <NativeSelect value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
-                <option>All priorities</option>
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
-                <option>Urgent</option>
-              </NativeSelect>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm"><Sparkles className="h-4 w-4" />AI suggest work</Button>
-              <Button variant="outline" size="sm"><Filter className="h-4 w-4" />Filter</Button>
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Group by</span>
-              <button type="button" className="inline-flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium" onClick={() => setGroupBy(groupBy === "Choices" ? "Assignee" : "Choices")}>
-                {groupBy}<ChevronDown className="h-4 w-4" />
-              </button>
-              <Button variant="ghost" size="icon" className="h-9 w-9"><Settings className="h-4 w-4" /></Button>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <SprintMetric label="Sprint scope" value={`${boardStats.total} work items`} />
-            <SprintMetric label="Story points" value={`${boardStats.points} pts`} />
-            <SprintMetric label="Done" value={`${boardStats.done} completed`} />
-            <SprintMetric label="Needs attention" value={`${boardStats.overdue} overdue`} danger={boardStats.overdue > 0} />
-          </div>
-        </div>
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <div className="bg-red-50 border-b border-red-200 px-6 py-4">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
-
-      {/* Kanban Board Container */}
-      <div className="overflow-x-auto p-6">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => setActiveId(null)}
-        >
-          <div className="flex min-h-[650px] gap-4">
-            {board.columns?.map((column) => (
-              <SortableContext
-                key={column.id}
-                items={
-                  tasks
-                    .filter((t) => filteredTasks.some((filtered) => filtered.id === t.id) && t.column_id === column.id)
-                    .map((t) => t.id) || []
-                }
-                strategy={verticalListSortingStrategy}
-              >
-                <KanbanColumn
-                  onChanged={()=>loadBoard(true)}
-                  column={column}
-                  tasks={filteredTasks.filter((t) => t.column_id === column.id)}
-                  onAddTask={() => setShowCreateModal(true)}
-                  readOnly={selectedProject?.can_manage_tasks === false}
-                  onOpenTask={(task) => navigate(`/pms/projects/${projectIdNum}/tasks/${task.id}`)}
-                />
-              </SortableContext>
-            ))}
-          </div>
-
-          {/* Drag overlay - shows what's being dragged */}
-          <DragOverlay>
-            {activeTask ? (
-              <div className="min-w-72 rounded-lg border bg-white p-4 shadow-2xl ring-2 ring-blue-500">
-                <p className="text-sm font-semibold text-slate-900">{activeTask.title}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{activeTask.task_key} is moving...</p>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
-
-      {/* Create Task Modal */}
-      <CreateTaskModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        projectId={projectIdNum}
-        onTaskCreated={(task, createAnother) => {
-          addTask(task);
-          if (!createAnother) setShowCreateModal(false);
-        }}
-      />
-    </div>
-  );
-};
-
-function SprintMetric({ label, value, danger = false }: { label: string; value: string; danger?: boolean }) {
-  return (
-    <div className="rounded-lg border bg-slate-50 px-3 py-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-sm font-semibold ${danger ? "text-red-700" : "text-slate-950"}`}>{value}</p>
-    </div>
-  );
+export default function KanbanBoard() {
+  const {projectId}=useParams(); const id=Number(projectId); const navigate=useNavigate();
+  const [board,setBoard]=useState<PMSBoard>();
+  const [boardId,setBoardId]=useState<number>(),[boards,setBoards]=useState<Array<{id:number;name:string}>>([]);
+  const [creating,setCreating]=useState(false),[newName,setNewName]=useState(""),[template,setTemplate]=useState("delivery");
+  const [creatingBusy,setCreatingBusy]=useState(false);
+  const [taskCreating,setTaskCreating]=useState(false),[taskStage,setTaskStage]=useState("To Do"),[taskBusy,setTaskBusy]=useState(false);
+  useEffect(()=>{setBoardId(undefined);},[id]);
+  const [project,setProject]=useState<PMSProject>();
+  const [loading,setLoading]=useState(true),[error,setError]=useState("");
+  const [query,setQuery]=useState(""),[priority,setPriority]=useState("");
+  const [editing,setEditing]=useState(false),[revision,setRevision]=useState(0);
+  const loadGeneration=useRef(0),inFlight=useRef<string>(),loadedKey=useRef("");
+  const load=useCallback(async()=>{
+    const key=`${id}:${boardId||"default"}`;
+    if(inFlight.current===key)return;
+    inFlight.current=key;
+    const generation=++loadGeneration.current;
+    if(loadedKey.current!==key)setLoading(true);
+    if(!id){setLoading(false);setError("Choose a project to open its board.");return;}
+    try {const [b,p]=await Promise.all([kanbanAPI.getBoard(id,boardId),projectsAPI.get(id)]);if(generation!==loadGeneration.current)return;loadedKey.current=key;setBoard(b);setProject(p);setError("");const choices=await api.get(`/project-management/projects/${id}/boards`);if(generation===loadGeneration.current)setBoards(choices.data.items||[{id:b.id,name:b.name}]);}
+    catch(e){if(generation!==loadGeneration.current)return;setError((e as {response?:{data?:{detail?:string}}}).response?.data?.detail||"Could not load project board.");}
+    finally {if(generation===loadGeneration.current){inFlight.current=undefined;setLoading(false);}}
+  },[id,boardId]);
+  useRefreshableEffect(()=>{void load();},[load]);
+  usePMSRealtime({projectId:id||undefined,onEvent:e=>{if(e.type.startsWith("task.")||e.type==="project.updated")void load();},onFallbackPoll:()=>void load(),showToast:false});
+  const allTasks=useMemo(()=>board?.columns?.flatMap(c=>c.tasks||[])||[],[board]);
+  const tasks=allTasks.filter(t=>(!query||`${t.task_key} ${t.title}`.toLowerCase().includes(query.toLowerCase()))&&(!priority||t.priority===priority));
+  const columns=[...(board?.columns||[])].sort((a,b)=>a.position-b.position);
+  const readOnly=project?.can_manage_tasks===false;
+  const newTask=(stageId?:string)=>{const c=columns.find(c=>String(c.id)===stageId);const status=c?({BACKLOG:"Backlog",TODO:"To Do",IN_PROGRESS:"In Progress",IN_REVIEW:"In Review",DONE:"Done"} as Record<string,string>)[c.status_key]||c.name:"To Do";setTaskStage(status);setTaskCreating(true);};
+  return <div className="space-y-3 bg-background p-4 min-w-0">
+    <header className="flex items-center justify-between gap-3"><div><p className="text-xs text-muted-foreground">Projects / {project?.project_key}</p><h1 className="sr-only">{project?.name||"Project"} · Board</h1></div><button type="button" className="text-sm text-primary" onClick={()=>navigate(`/pms/projects/${id}`)}>Project overview</button></header>
+    {error&&<p role="alert" className="pipeline-error">{error} <button type="button" onClick={()=>void load()}>Retry</button></p>}
+    {editing&&board&&<PipelineDrawer wide open={editing} onClose={()=>setEditing(false)} title="Customize project pipeline"><PipelineStageEditor key={`${board.id}:${revision}`} name={board.name} stages={columns.map(c=>({id:String(c.id),name:c.name,statusKey:c.status_key,count:c.task_count,wip_limit:c.wip_limit,aging_days:c.aging_days||14}))} onCancel={()=>setEditing(false)} onSave={async draft=>{await api.put(`/project-management/projects/${id}/board/configuration`,{...draft,board_id:board.id,expected_name:board.name,expected_stages:columns.map(c=>({id:c.id,name:c.name,status_key:c.status_key,position:c.position}))});await load();setRevision(v=>v+1);setEditing(false);}}/></PipelineDrawer>}
+    <PipelineBoard title={`${project?.name||"Project"} · Board`} description={`${project?.project_key||"Project delivery"} · Plan, collaborate and move work forward with a shared view of every stage.`} label="Project task pipeline" viewState={{search:query,priority}} onApplyView={v=>{setQuery(String(v.search||""));setPriority(String(v.priority||""));}} context={{module:"project_management",scope:`project:${id}:board:${board?.id||"default"}`,kind:"task"}} renderDetails={r=><PipelineDomainDetails module="project_management" id={r.id} canEdit={!readOnly}/>} onAdd={!readOnly?newTask:undefined} disabled={readOnly||!project||loading||!!boardId&&boardId!==board?.id} loading={loading} notice={`${Math.max(0,(board?.total_project_tasks||allTasks.length)-allTasks.length)} tasks in other project statuses. Counts and effort reflect this board and its filters.`}
+      toolbar={<><PipelineViewSwitch view="board" onChange={v=>{if(v==="list")navigate(`/pms/tasks?projectId=${id}`);}}/>{!readOnly&&<button type="button" className="pipeline-primary" onClick={()=>newTask()}><Plus size={14}/>Task</button>}<PipelineSearch value={query} onChange={setQuery} placeholder="Search tasks"/><div className="pipeline-toolbar-end"><NativeSelect aria-label="Task priority" value={priority} onChange={e=>setPriority(e.target.value)}><option value="">All priorities</option>{[...new Set(allTasks.map(t=>t.priority))].map(p=><option key={p}>{p}</option>)}</NativeSelect><select aria-label="Project pipeline" value={boardId||board?.id||""} onChange={e=>{setBoardId(Number(e.target.value));setEditing(false);}}>{(boards.length?boards:board?[{id:board.id,name:board.name}]:[]).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>{project?.can_edit_project&&<button type="button" onClick={()=>setCreating(true)}>New pipeline</button>}{project?.can_edit_project!==false&&!readOnly&&<button type="button" className="pipeline-icon-button" aria-label="Customize project pipeline" disabled={loading||!!boardId&&boardId!==board?.id} onClick={()=>setEditing(v=>!v)}><Settings2 size={16}/></button>}</div></>}
+      stages={columns.map(c=>({id:String(c.id),name:c.name,wipLimit:c.wip_limit,agingDays:c.aging_days||14,count:c.task_count,summary:`${tasks.filter(t=>t.column_id===c.id).length} tasks · ${tasks.filter(t=>t.column_id===c.id).reduce((sum,t)=>sum+(t.story_points||0),0)} pts${c.wip_limit?` · WIP ${c.wip_limit}`:""}`}))}
+      records={tasks.sort((a,b)=>a.position-b.position).map(t=>({id:String(t.id),stageId:String(t.column_id),title:t.title,subtitle:t.task_key,priority:t.priority,description:t.description,tags:t.tags?.map(tag=>typeof tag==="string"?tag:tag.name),attachmentCount:t.attachment_count,progress:t.subtask_count?{completed:t.completed_subtask_count||0,total:t.subtask_count,label:"Subtasks"}:undefined,isClosed:t.status==="Done"||t.status==="Cancelled",ownerId:t.assignee_user_id,nextActionAt:t.due_date,owner:t.assignee_name||(t.assignee_user_id?`U${t.assignee_user_id}`:undefined),value:t.story_points?`${t.story_points} points`:undefined,labelColor:t.priority==="High"||t.priority==="Urgent"?"#bc4248":undefined,activity:t.due_date&&new Date(`${t.due_date.slice(0,10)}T23:59:59`)<new Date()&&t.status!=="Done"?"overdue":undefined,activityLabel:"Task overdue"}))}
+      onOpen={r=>navigate(`/pms/projects/${id}/tasks/${r.id}`)}
+      onMove={async({record,stageId,beforeId})=>{const column=columns.find(c=>String(c.id)===stageId);if(!column)throw new Error("Destination column no longer exists. Refresh the board.");const status=({BACKLOG:"Backlog",TODO:"To Do",IN_PROGRESS:"In Progress",IN_REVIEW:"In Review",DONE:"Done"} as Record<string,string>)[column.status_key]||column.name;await arrangeTask(Number(record.id),{group_by:"status",status,before_id:beforeId?Number(beforeId):undefined});await load();}}
+      actions={readOnly?[]:columns.filter(c=>c.status_key==="DONE").map(c=>({id:String(c.id),label:"Complete",tone:"success",onAction:async record=>{await arrangeTask(Number(record.id),{group_by:"status",status:"Done"});await load();}}))}
+    />
+    <PipelineDrawer open={taskCreating} onClose={()=>{if(!taskBusy)setTaskCreating(false);}} title="Create task">{taskCreating&&<ProjectQuickTask projectId={id} projectName={project?.name||"Project"} initialStatus={taskStage} statuses={columns.map(c=>({BACKLOG:"Backlog",TODO:"To Do",IN_PROGRESS:"In Progress",IN_REVIEW:"In Review",DONE:"Done"} as Record<string,string>)[c.status_key]||c.name)} onBusy={setTaskBusy} onCreated={async()=>{setTaskCreating(false);await load();}} onFullForm={params=>navigate(`/pms/tasks/new?${params}`)}/>}</PipelineDrawer>
+    <PipelineDrawer open={creating} onClose={()=>setCreating(false)} title="Create a project pipeline"><form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();setCreatingBusy(true);try{const response=await api.post(`/project-management/projects/${id}/boards`,{name:newName,template});setBoards(b=>[...b,response.data]);setBoardId(response.data.id);setCreating(false);setNewName("");}catch(e){setError((e as {response?:{data?:{detail?:string}}}).response?.data?.detail||"Could not create pipeline");}finally{setCreatingBusy(false);}}}><p>Named boards show this project's existing tasks through their workflow statuses.</p><label>Pipeline name<input required maxLength={140} value={newName} onChange={e=>setNewName(e.target.value)}/></label><label>Template<select value={template} onChange={e=>setTemplate(e.target.value)}><option value="delivery">Delivery</option><option value="support">Support</option><option value="simple">Simple workflow</option></select></label><button type="submit" disabled={creatingBusy} className="pipeline-primary">Create pipeline</button></form></PipelineDrawer>
+  </div>;
 }
-
-export default KanbanBoard;
-

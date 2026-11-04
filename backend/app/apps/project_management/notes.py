@@ -437,7 +437,8 @@ def share_note(note_id: int, data: ShareInput, db: Session = Depends(get_db), us
 @router.delete("/notes/{note_id}/shares/{person_id}")
 def revoke_share(note_id: int, person_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     owned(db, note_id, user)
-    db.query(PMSNoteShare).filter_by(note_id=note_id, user_id=person_id).delete()
+    for share in db.query(PMSNoteShare).filter_by(note_id=note_id, user_id=person_id).all():
+        db.delete(share)
     db.add(PMSNoteEvent(note_id=note_id, actor_id=user.id, action="revoke_share"))
     db.commit(); return {"revoked": True}
 

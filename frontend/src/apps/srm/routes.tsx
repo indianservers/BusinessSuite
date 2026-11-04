@@ -1,9 +1,12 @@
-import { Navigate } from "react-router-dom";
-import FollowUpSummary from "@/shared/follow-ups/FollowUpSummary";
-import FollowUpsPage from "@/shared/follow-ups/FollowUpsPage";
-import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-import { CommunicationWorkspace } from "@/shared/communication";
 import React from "react";
+const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+import { Navigate } from "react-router-dom";
+const FollowUpSummary = React.lazy(() => import("@/shared/follow-ups/FollowUpSummary"));
+const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
+const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
+const Record360Page = React.lazy(() => import("@/shared/records/Record360Page"));
+const PaymentRequestsPage = React.lazy(() => import("@/shared/payments/PaymentRequestsPage"));
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 import type { SRMViewKind } from "./types";
@@ -38,6 +41,9 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 
 const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
 export const srmRoutes: FrontendRoute[] = [
+  {path:"srm/import-data",element:<ImportWorkspace module="srm"/>},
+ {path:"srm/customers/:id/360",element:<Record360Page/>},
+ {path:"srm/payment-requests",element:<PaymentRequestsPage/>},
  {path:"srm/customers",element:<CompaniesPage source="srm" role="Customer"/>},
  {path:"srm/vendors",element:<CompaniesPage source="srm" role="Vendor"/>},
  {path:"srm/suppliers",element:<Navigate to="/srm/vendors" replace/>},

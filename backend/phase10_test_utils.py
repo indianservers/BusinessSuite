@@ -34,10 +34,12 @@ def auth_headers(client, db, email="phase10-admin@example.com", role_name="crm_s
     db.flush()
     from tests.tenant_test_utils import assign_company
     assign_company(db, user, 1)
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db, user, 1)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Admin@123456"})
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}", "X-Suite-Branch": str(branch.id)}
 
 
 def invite_portal(client, db, headers, portal_type="customer", email="customer@example.com", customer_id=100, partner_id=200):
@@ -46,7 +48,10 @@ def invite_portal(client, db, headers, portal_type="customer", email="customer@e
         from app.apps.crm.models import CRMCompany
         # Provision a real, explicitly owned customer; arbitrary guessed IDs are denied.
         if not db.get(CRMCompany, customer_id):
-            db.add(CRMCompany(id=customer_id, organization_id=1, name=f"Portal customer {customer_id}"))
+            customer = CRMCompany(id=customer_id, organization_id=1, name=f"Portal customer {customer_id}")
+            db.add(customer)
+            from test_identity_utils import own_workflow_records
+            own_workflow_records(db, customer)
             db.commit()
         payload["customer_id"] = customer_id
     if portal_type == "partner":

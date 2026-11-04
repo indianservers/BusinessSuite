@@ -5,6 +5,9 @@ from app.core.tenant_boundary import GLOBAL_CATALOGUES, INTERNAL_TABLES, ACTOR_F
 # Existing company/module authorization continues to protect these definitions.
 # Transactional tables must never be added merely to make a screen work.
 SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
+    # Company-admin storage configuration and locator index. Native record
+    # permissions still authorize file contents through signed attachment links.
+    "file_storage_connections", "file_storage_policies", "file_storage_oauth_states", "file_storage_objects",
     "companies", "suite_access_memberships", "suite_access_policies", "suite_access_roles",
     "suite_access_templates", "suite_access_audit", "suite_branch_policies", "suite_branch_grants",
     "suite_accounting_branch_map", "suite_branch_ownership", "suite_branch_audit",
@@ -37,6 +40,9 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     # Company-wide singleton switches/plans, never branch business activity.
     # Their APIs retain AI-admin/global-configuration permission checks.
     "ai_security_settings", "tenant_subscriptions", "crm_lead_management_config",
+    # Provider credentials follow company/user/workspace scope_key authorization,
+    # not transaction branch ownership. Tenant and provider API checks still apply.
+    "ai_operator_providers",
 })
 
 # These links describe ownership, not actors, approvers, or a user assignment.

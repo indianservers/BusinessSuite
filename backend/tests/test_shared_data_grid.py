@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 import csv
 import io
 import json
@@ -138,6 +139,14 @@ def test_bulk_archive_preserves_history_and_rejects_stale_versions(client,db,hea
 
 def test_large_dataset_stays_paginated_and_facets_are_bounded(client,db,headers,deals):
     db.bulk_insert_mappings(CRMDeal,[{"name":f"Scale record {i}","organization_id":1,"pipeline_id":deals["pipeline_id"],"stage_id":deals["stage_id"],"amount":10,"probability":50,"currency":"INR","status":"Open"} for i in range(10000)])
+    db.commit()
+    from app.branches.models import BranchOwnership
+    from app.models.company import Branch
+    branch = db.query(Branch).filter_by(company_id=1).order_by(Branch.id).first()
+    ids = db.query(CRMDeal.id).filter(CRMDeal.organization_id==1, CRMDeal.name.like("Scale record %")).all()
+    db.execute(BranchOwnership.__table__.insert(), [
+        dict(company_id=1, branch_id=branch.id, resource_table="crm_deals", resource_key=str(row.id), source="grid-scale-fixture")
+        for row in ids])
     db.commit()
     response=query(client,headers,{"pageSize":200,"page":40});assert response.status_code==200,response.text
     assert response.json()["total"]==10125 and len(response.json()["rows"])==200

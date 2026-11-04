@@ -375,6 +375,14 @@ def test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume(
         .order_by(User.id)
         .all()
     )
+    # Bulk mapping bypasses ORM fixture listeners. These synthetic accounts
+    # explicitly belong to the same directory branch as the seed employee.
+    from app.branches.models import BranchGrant
+    branch_id = member.employee.branch_id
+    db.execute(BranchGrant.__table__.insert(), [
+        dict(company_id=1, branch_id=branch_id, user_id=u.id, can_write=False)
+        for u in accounts
+    ])
     db.bulk_insert_mappings(
         CommonPerson,
         [
@@ -394,6 +402,7 @@ def test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume(
         [
             {
                 "employee_id": f"DIR-SCALE-{i}",
+                "branch_id": branch_id,
                 "first_name": "Scale",
                 "last_name": str(i),
                 "user_id": u.id,
@@ -422,6 +431,9 @@ def test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume(
         ],
     )
     db.commit()
+    from app.branches.migration import backfill
+    backfill(db.connection(), 1, table_names={"employees", "intern_batch_memberships"})
+    db.commit()
     response = client.get(
         ROOT + "/people", headers=h, params={"page_size": 24, "page": 200, "q": "Scale"}
     )
@@ -449,11 +461,16 @@ def test_twenty_thousand_people_are_paginated_and_bulk_assignments_resume(
     )
     assert first.status_code == 201, first.text
     job = first.json()
+    from app.core.config import settings
     assert (
-        job["processed"] == 500 and job["total"] == 601 and job["status"] == "Pending"
+        job["processed"] == min(500, settings.SECURITY_MAX_BATCH) and job["total"] == 601 and job["status"] == "Pending"
     )
-    resumed = client.post(ROOT + f"/assignment-jobs/{job['id']}/continue", headers=h)
-    assert resumed.status_code == 200, resumed.text
+    for _ in range(601 // min(500, settings.SECURITY_MAX_BATCH) + 1):
+        resumed = client.post(ROOT + f"/assignment-jobs/{job['id']}/continue", headers=h)
+        assert resumed.status_code == 200, resumed.text
+        assert resumed.json()["status"] != "Failed", resumed.text
+        if resumed.json()["status"] == "Completed":
+            break
     assert (
         resumed.json()["processed"] == 601 and resumed.json()["status"] == "Completed"
     )

@@ -67,6 +67,7 @@ class Schedule(BaseModel):
     due_at: datetime | None = None
     timezone: str = 'Asia/Kolkata'
     reminder_days: int = Field(default=2, ge=0, le=365)
+    reminder_minutes: int | None = Field(default=None, ge=0, le=525600)
     assigned_team_id: int | None = Field(default=None, gt=0)
     assigned_user_id: int | None = Field(default=None, gt=0)
     priority: Literal['Low', 'Normal', 'High', 'Urgent'] = 'Normal'
@@ -123,10 +124,27 @@ def access(user, write=False, db=None):
     from app.apps.business_os.services.module_service import is_module_enabled
     suffixes = ['manage', 'admin', 'activities_manage'] if write else ['view', 'manage', 'admin', 'activities_view', 'activities_manage']
     grants = getattr(user, '_suite_grants', None)
-    modules = [module for module in ('crm', 'srm') if is_app_enabled(module) and (db is None or is_module_enabled(db, module, company_id=tenant(user))) and (user.is_superuser or grants is None or (grants.get(module) or {}).get('enabled'))]
+    modules = [module for module in ('crm', 'srm', 'project_management') if is_app_enabled(module) and (db is None or is_module_enabled(db, module, company_id=tenant(user))) and (user.is_superuser or grants is None or (grants.get(module) or {}).get('enabled'))]
     if not modules:
-        raise HTTPException(403, 'CRM or Sales access is required')
-    require(user, *[f'{module}_{suffix}' for module in modules for suffix in suffixes])
+        raise HTTPException(403, 'CRM, Sales or PMS access is required')
+    permissions = [f'{module}_{suffix}' for module in modules if module != 'project_management' for suffix in suffixes]
+    if 'project_management' in modules:
+        permissions += ['pms_manage_tasks', 'pms_manage_projects', 'pms_admin'] + ([] if write else ['pms_view'])
+    require(user, *permissions)
+
+
+def followup_customer(db, ident, user):
+    """Reuse each module's customer scope; a PMS role is not CRM visibility."""
+    from app.shared.master_data import owner
+    from app.shared.record_360 import module_access
+    for source in ('crm', 'srm', 'project_management'):
+        try:
+            module_access(db, user, source)
+            return owner(db, user, 'company', ident, source)
+        except HTTPException as exc:
+            if exc.status_code not in (403, 404):
+                raise
+    raise HTTPException(404, 'Customer is unavailable in your scope')
 
 def visible(db, user):
     from app.access.catalog import permission_names
@@ -192,7 +210,7 @@ def create(db, user, data, order_id=None, source_key=None):
         raise HTTPException(422, 'Enable follow-up scheduling')
     if not data.title.strip():
         raise HTTPException(422, 'Enter a title')
-    customer(db, data.customer_id, user)
+    followup_customer(db, data.customer_id, user)
     from app.apps.crm.api.router import _get_resource, _assert_record_visible, _assert_entity_permission
     for field, entity in [('lead_id', 'leads'), ('contact_id', 'contacts'), ('deal_id', 'deals'), ('quotation_id', 'quotations')]:
         ident = getattr(data, field)
@@ -257,15 +275,21 @@ def statistics(db=Depends(get_db), user=Depends(get_current_user)):
 def options(db=Depends(get_db), user=Depends(get_current_user)):
     access(user, db=db)
     from app.apps.crm.models import CRMCompany
-    candidates = db.query(CRMCompany).filter(CRMCompany.organization_id == tenant(user), CRMCompany.deleted_at.is_(None)).all()
-    customers = []
-    for c in candidates:
+    from app.shared.master_data import companies
+    from app.shared.record_360 import module_access
+    candidate_ids = db.query(CRMCompany.id).filter(CRMCompany.organization_id == tenant(user),CRMCompany.deleted_at.is_(None)).limit(5000)
+    customers_by_id = {}
+    for source in ('crm','srm','project_management'):
         try:
-            customer(db, c.id, user)
-            customers.append({'id': c.id, 'name': c.name})
-        except HTTPException:
-            pass
-    users = [{'id': u.id, 'name': u.email} for u in db.query(User).filter(User.is_active.is_(True)).all() if tenant(u) == tenant(user)]
+            module_access(db,user,source)
+            for identity,name in companies(db,user,source).filter(CRMCompany.id.in_(candidate_ids)).with_entities(CRMCompany.id,CRMCompany.name):
+                customers_by_id[identity]={'id':identity,'name':name}
+        except HTTPException as error:
+            if error.status_code not in (403,404):raise
+    customers = [customers_by_id[identity] for identity in sorted(customers_by_id)]
+    from sqlalchemy.orm import joinedload
+    from app.models.employee import Employee
+    users = [{'id': u.id, 'name': u.email} for u in db.query(User).options(joinedload(User.person),joinedload(User.employee).joinedload(Employee.branch)).filter(User.is_active.is_(True)).all() if tenant(u) == tenant(user)]
     from app.apps.crm.models import CRMTeam
     teams = [{'id': t.id, 'name': t.name} for t in db.query(CRMTeam).filter_by(organization_id=tenant(user), status='Active', deleted_at=None).all()]
     return {'customers': customers, 'employees': users, 'teams': teams}
@@ -365,12 +389,36 @@ def cancel_for_order(db, order_id, user):
 
 def dispatch(db):
     from app.models.notification import Notification, NotificationDeliveryLog
+    from app.apps.crm.models import CRMQuotation
+    from app.apps.srm.models import SRMInvoice
+    from app.apps.srm.services.collections import reminder_block_reason
+    from sqlalchemy import tuple_
     now = datetime.now(timezone.utc)
     rows = db.query(FollowUp).filter(FollowUp.status.in_(['Scheduled', 'Rescheduled'])).with_for_update(skip_locked=True).all()
+
+    def linked_sources(model, field):
+        keys = list({(getattr(row, field), row.organization_id) for row in rows if getattr(row, field)})
+        result = {}
+        for start in range(0, len(keys), 400):
+            for obj in db.query(model).filter(tuple_(model.id, model.organization_id).in_(keys[start:start+400])):
+                result[(obj.id, obj.organization_id)] = obj
+        return result
+
+    quotations = linked_sources(CRMQuotation, 'quotation_id')
+    invoices = linked_sources(SRMInvoice, 'invoice_id')
     for row in rows:
+        if row.quotation_id:
+            quote = quotations.get((row.quotation_id, row.organization_id))
+            if not quote or str(quote.status or '').lower() in {'accepted', 'rejected', 'declined', 'cancelled', 'superseded', 'expired'}:
+                continue
+        if row.invoice_id:
+            invoice = invoices.get((row.invoice_id, row.organization_id))
+            if not invoice or reminder_block_reason(invoice, now):
+                continue
         due = utc(row.due_at)
-        lead = row.configuration.get('reminder_days', 2)
-        if now < due - timedelta(days=lead):
+        lead = row.configuration.get('reminder_minutes')
+        lead = lead if lead is not None else row.configuration.get('reminder_days', 2) * 1440
+        if now < due - timedelta(minutes=lead):
             continue
         phase = 'overdue' if now > due else 'reminder'
         preference = db.query(FollowUpPreference).filter_by(organization_id=row.organization_id, user_id=row.assigned_user_id).first()

@@ -495,9 +495,10 @@ export const tagsAPI = {
 
 // ============= KANBAN BOARD (DRAG & DROP) =============
 export const kanbanAPI = {
-  getBoard: async (projectId: number) => {
+  getBoard: async (projectId: number, boardId?: number) => {
     const response = await api.get<PMSBoard>(
-      `${BASE_URL}/projects/${projectId}/board`
+      `${BASE_URL}/projects/${projectId}/board`,
+      { params: boardId ? { board_id: boardId } : undefined }
     );
     return response.data;
   },

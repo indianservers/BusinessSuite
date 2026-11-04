@@ -5,7 +5,7 @@ type Category = { name: string; paths: readonly string[] };
 const categories: Record<string, readonly Category[]> = {
   project_management: [
     { name: "Overview", paths: ["/pms", "/pms/overview", "/pms/management", "/pms/command-center", "/pms/workspace-tools"] },
-    { name: "Tasks & projects", paths: ["/pms/my-work", "/pms/tasks", "/pms/navigator", "/pms/issue-navigator-pro", "/pms/projects", "/pms/workspaces", "/pms/product-launch", "/pms/work-hub", "/pms/software", "/pms/issues", "/pms/releases"] },
+    { name: "Tasks & projects", paths: ["/pms/my-work", "/pms/tasks", "/pms/tasks-follow-ups", "/pms/follow-ups", "/pms/navigator", "/pms/issue-navigator-pro", "/pms/projects", "/pms/workspaces", "/pms/product-launch", "/pms/work-hub", "/pms/software", "/pms/issues", "/pms/releases"] },
     { name: "Planning & workload", paths: ["/pms/backlog", "/pms/backlog-grooming", "/pms/sprints", "/pms/sprint-lifecycle", "/pms/agile-execution", "/pms/calendar", "/pms/planner", "/pms/gantt", "/pms/timeline-plus", "/pms/dependency-timeline", "/pms/dependency-management", "/pms/roadmap", "/pms/dependencies", "/pms/workload", "/pms/capacity", "/pms/resource-utilization", "/pms/resource-planning", "/pms/risk-register", "/pms/goals"] },
     { name: "People & teams", paths: ["/pms/members", "/pms/people", "/pms/teams", "/pms/org-chart", "/pms/people-work"] },
     { name: "Collaboration", paths: ["/pms/live", "/pms/teams-live", "/pms/notes", "/pms/messages", "/pms/docs", "/pms/files", "/pms/my-notices", "/pms/client-portal", "/pms/time-tracking", "/pms/timesheets"] },
@@ -31,7 +31,7 @@ const categories: Record<string, readonly Category[]> = {
     { name: "Dashboard", paths: ["/crm", "/crm/dashboard"] },
     { name: "Customer growth", paths: ["/crm/product-customers", "/crm/customer-follow-ups", "/crm/greetings"] },
     { name: "Customers & leads", paths: ["/crm/records", "/crm/record-metadata", "/crm/leads", "/crm/contacts", "/crm/customers", "/crm/vendors", "/crm/companies", "/crm/customer-360", "/crm/lead-scoring", "/crm/duplicates", "/crm/territories"] },
-    { name: "Sales & pipeline", paths: ["/crm/deals", "/crm/pipeline", "/crm/templates", "/crm/lead-to-cash", "/crm/products-services", "/crm/products", "/crm/services", "/crm/quotations", "/crm/my-approvals"] },
+    { name: "Sales & pipeline", paths: ["/crm/payment-requests", "/crm/deals", "/crm/pipeline", "/crm/templates", "/crm/lead-to-cash", "/crm/products-services", "/crm/products", "/crm/services", "/crm/quotations", "/crm/my-approvals"] },
     { name: "Activities & planning", paths: ["/crm/follow-ups", "/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"] },
     { name: "Communication", paths: ["/crm/send-reminders", "/crm/birthdays", "/crm/campaigns", "/crm/webforms", "/crm/forms", "/crm/consents", "/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/whatsapp", "/crm/whatsapp/inbox", "/crm/whatsapp/sent", "/crm/whatsapp/templates", "/crm/whatsapp/profile", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline", "/crm/messages"] },
     { name: "Support & files", paths: ["/crm/tickets", "/crm/files"] },
@@ -47,7 +47,7 @@ const categories: Record<string, readonly Category[]> = {
     { name: "Products & pricing", paths: ["/srm/inventory/items", "/srm/inventory/products", "/srm/inventory/price-lists", "/srm/inventory/batches"] },
     { name: "Inventory & warehouses", paths: ["/srm/inventory/dashboard", "/srm/inventory/warehouses", "/srm/inventory/stock-summary", "/srm/inventory/opening-stock", "/srm/inventory/delivery-notes", "/srm/inventory/stock-transfers", "/srm/inventory/reconciliation"] },
     { name: "Purchasing & manufacturing", paths: ["/srm/inventory/purchase-orders", "/srm/inventory/manufacturing", "/srm/inventory/reorder-alerts", "/srm/inventory/gantt"] },
-    { name: "Billing & collections", paths: ["/srm/billing-plans", "/srm/invoice-drafts", "/srm/invoices", "/srm/collections"] },
+    { name: "Billing & collections", paths: ["/srm/payment-requests", "/srm/billing-plans", "/srm/invoice-drafts", "/srm/invoices", "/srm/collections"] },
     { name: "Reports & revenue", paths: ["/srm/reports", "/srm/revenue-recognition", "/srm/profitability", "/srm/inventory/gross-margin", "/srm/inventory/reports"] },
     { name: "Settings & administration", paths: ["/srm/settings", "/srm/forms", "/srm/sales-inventory/source", "/srm/inventory/source"] },
   ],
@@ -78,6 +78,7 @@ export function categorizeNavigation<T extends NavigationItem>(items: readonly T
   const sections = categories[module];
   if (!sections) return [...items];
   const grouped = items.map(item => {
+    if (/^\/(crm|srm|hrms|pms|fam)\/import-data$/.test(item.to)) return {...item,group:"Data management"};
     const path = item.to.split("?")[0].replace(/\/+$/, "");
     // Prefer the most specific route (e.g. CRM calendar integrations over calendar).
     const match = sections.flatMap(section => section.paths.map(prefix => ({ section, prefix })))

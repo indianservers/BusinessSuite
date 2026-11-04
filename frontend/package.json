@@ -4,9 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:record-360": "node scripts/test-record-360.cjs && node scripts/test-task-record-links.cjs",
     "test:quick-actions": "node scripts/test-quick-actions.cjs && node scripts/test-suite-actions.cjs",
     "train:operator": "node scripts/train-operator-router.mjs",
-    "dev": "vite",
+    "start": "node scripts/start-local.cjs",
+    "build:local": "node scripts/start-local.cjs --build-only",
+    "dev": "vite --port 5174 --strictPort",
     "build": "tsc && vite build",
     "build:lowmem": "tsc && node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

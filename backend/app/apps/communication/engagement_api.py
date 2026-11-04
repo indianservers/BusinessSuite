@@ -76,6 +76,7 @@ def header(row,branch,record,kind):
         'entityType':row.entity_type if kind=='whatsapp' else 'contact' if kind=='customer' and row.crm_contact_id else kind if kind in {'lead','contact'} else None,
         'entityId':row.entity_id if kind=='whatsapp' else row.crm_contact_id if kind=='customer' else row.id,
         'companyName':getattr(record,'company_name',None),'recordOwnerId':getattr(record,'owner_user_id',None),
+        'tags':[t.strip() for t in str(getattr(record,'tags_text','') or '').split(',') if t.strip()], 'priority':getattr(record,'priority',None),
         'consent':getattr(row,'consent',None), 'serviceWindowOpen':wa.service_window(row) if kind=='whatsapp' else None}
 
 
@@ -108,7 +109,7 @@ def events_for(db,user,kind,row,branch,record):
                 except HTTPException as error:
                     if error.status_code not in {403,404}: raise
     for message in db.query(WhatsAppMessage).filter(WhatsAppMessage.organization_id==company,WhatsAppMessage.contact_id.in_([c.id for c in contacts])).order_by(WhatsAppMessage.id.desc()).limit(300).all() if contacts else []:
-        events.append({'key':'wa:'+str(message.id),'channel':'whatsapp','id':message.id,'contactId':message.contact_id,'direction':message.direction,'body':message.body,'status':message.status,'createdAt':message.created_at,'errorCode':message.error_code})
+        events.append({'key':'wa:'+str(message.id),'channel':'whatsapp','id':message.id,'contactId':message.contact_id,'direction':message.direction,'body':message.body,'status':message.status,'createdAt':message.created_at,'errorCode':message.error_code,'media':wa.message_data(message).get('media'),'providerMessageId':message.provider_message_id,'replyTo':wa.message_data(message).get('replyTo')})
     if email_access(user):
         ids=[r.id for r in recipients]
         if ids:
@@ -128,19 +129,42 @@ def events_for(db,user,kind,row,branch,record):
 
 
 @router.get('/inbox')
-def inbox(search: str=Query('',max_length=160), before: int|None=Query(None,gt=0), db:Session=Depends(get_db), user=Depends(view)):
-    company=wa.organization(user);items=[];contacts=[]
-    if crm_access(user):
+def inbox(search: str=Query('',max_length=160), before: int|None=Query(None,gt=0), offerings: str=Query('',max_length=5000), tag: str=Query('',max_length=100), priority: Literal['High','Medium','Low','Urgent','Critical']|None=Query(None), channel:Literal['all','whatsapp','email']=Query('all'), queue:Literal['all','unread','mine','unassigned','awaiting','waiting','snoozed','resolved','pending','followups','unlinked']=Query('all'), owner:int|None=Query(None,gt=0), team:int|None=Query(None,gt=0), contact_type:Literal['lead','customer','vendor','employee','other']|None=Query(None), message_status:Literal['received','queued','pending','reserved','accepted','sent','delivered','read','failed','submitting','reconciliation_required']|None=Query(None), since:datetime|None=Query(None), until:datetime|None=Query(None), cursor:str=Query('',max_length=500), db:Session=Depends(get_db), user=Depends(view)):
+    company=wa.organization(user);items=[];contacts=[];next_cursor=None
+    advanced=channel=='whatsapp'
+    if any(at and at.utcoffset() is None for at in (since,until)) or since and until and since>=until:
+        raise HTTPException(422,'Choose a valid timezone-aware activity date range')
+    if crm_access(user) and channel!='email':
         query=db.query(WhatsAppContact).filter_by(organization_id=company,erased_at=None)
         if before: query=query.filter(WhatsAppContact.id<before)
-        rows=query.order_by(WhatsAppContact.id.desc()).limit(200).all()
-        for row in rows:
-            try:
-                wa.contact_access(db,user,row)
-                contacts.append(row)
-            except HTTPException as error:
-                if error.status_code not in {403,404}: raise
-        next_before=rows[-1].id if len(rows)==200 else None
+        from app.services import whatsapp_inbox_filters as filters
+        query=filters.apply(db,user,query,offerings,priority,team,advanced and queue=='followups')
+        if advanced:
+            query=filters.search(db,user,query,search)
+            query=filters.state(db,user,query,queue,owner,message_status)
+            if since:query=query.filter(WhatsAppContact.last_message_at>=since)
+            if until:query=query.filter(WhatsAppContact.last_message_at<until)
+            query=filters.cursor_query(query,cursor)
+        last_scanned=None;last_row=None
+        activity=func.coalesce(WhatsAppContact.last_message_at,datetime(1970,1,1,tzinfo=timezone.utc))
+        while len(contacts)<200:
+            batch=filters.cursor_query(query,filters.encode_cursor(last_row)) if advanced and last_row else query.filter(WhatsAppContact.id<last_scanned) if last_scanned else query
+            rows=batch.order_by(activity.desc(),WhatsAppContact.id.desc()).limit(200).all() if advanced else batch.order_by(WhatsAppContact.id.desc()).limit(200).all()
+            if not rows:break
+            for row in rows:
+                last_scanned=row.id;last_row=row
+                try:
+                    wa.contact_access(db,user,row)
+                    record=wa.record_access(db,user,row.entity_type,row.entity_id) if row.entity_id else None
+                    if filters.matches_tag(record,tag) and (not contact_type or filters.classification(record,row.entity_type)==contact_type):contacts.append(row)
+                except HTTPException as error:
+                    if error.status_code not in {403,404}:raise
+                if len(contacts)==200:break
+            if len(rows)<200:break
+        next_before=last_scanned if last_scanned and query.filter(WhatsAppContact.id<last_scanned).first() else None
+        if advanced:
+            next_cursor=filters.encode_cursor(last_row) if last_row and filters.cursor_query(query,filters.encode_cursor(last_row)).first() else None
+            next_before=None
     else: next_before=None
     readings={(r.kind,r.record_id):r for r in db.query(ConversationReading).filter_by(organization_id=company,user_id=user.id).all()}
     workflows={(r.kind,r.record_id):r for r in db.query(ConversationWorkflow).filter_by(organization_id=company).all()}
@@ -153,9 +177,9 @@ def inbox(search: str=Query('',max_length=160), before: int|None=Query(None,gt=0
         branch=wa.branch_ownership(db,row);record=wa.record_access(db,user,row.entity_type,row.entity_id) if row.entity_id else None
         item=header(row,branch,record,'whatsapp');message=latest.get(row.id)
         item.update(state_data(workflows.get(('whatsapp',row.id)),readings.get(('whatsapp',row.id))))
-        item.update(lastMessage=message.body[:180] if message else '',lastAt=message.created_at if message else row.last_message_at,lastDirection=message.direction if message else None,unread=unread.get(row.id,0),needsMatch=not bool(row.entity_id))
+        item.update(lastMessage=message.body[:180] if message else '',lastAt=row.last_message_at if advanced else message.created_at if message else row.last_message_at,lastDirection=message.direction if message else None,unread=unread.get(row.id,0),needsMatch=not bool(row.entity_id))
         items.append(item)
-    if email_access(user):
+    if channel!='whatsapp' and email_access(user) and not (offerings or tag.strip() or priority):
         represented_customers={(i['entityType'],i['entityId'],i['branchId']):i for i in items if i['entityId']}
         for recipient in db.query(CustomerRecipient).filter_by(organization_id=company,active=True).order_by(CustomerRecipient.id.desc()).limit(200).all():
             try:
@@ -199,13 +223,13 @@ def inbox(search: str=Query('',max_length=160), before: int|None=Query(None,gt=0
                 item.update(state_data(workflows.get(key),readings.get(key)))
                 item.update(lastMessage=email.subject,lastAt=email.created_at,lastDirection='outbound',unread=0,needsMatch=False)
                 items.append(item)
-    if search.strip():
+    if search.strip() and not advanced:
         term=search.strip().casefold();digits=re.sub(r'\D','',term)
         items=[item for item in items if term in ' '.join(str(item.get(k) or '') for k in ('name','phone','email','companyName')).casefold() or digits and digits in re.sub(r'\D','',item.get('phone') or '')]
     for item in items: item['lastAt']=wa.utc(item['lastAt'])
     items.sort(key=lambda i:i['lastAt'] or datetime.min.replace(tzinfo=timezone.utc),reverse=True)
     counts={'unread':sum(i['unread'] for i in items),'awaitingReply':sum(i['lastDirection']=='inbound' and i['status']!='resolved' for i in items),'unmatched':sum(i['needsMatch'] for i in items)}
-    return {'items':items,'counts':counts,'nextBefore':next_before,'userId':user.id}
+    return {'items':items,'counts':counts,'nextBefore':next_before,'nextCursor':next_cursor,'serverFiltered':advanced,'userId':user.id}
 
 
 @router.get('/conversations/{kind}/{identity}')
@@ -277,7 +301,7 @@ def snooze(kind:Kind,identity:int,data:SnoozeInput,db:Session=Depends(get_db),us
 class WorkflowInput(BaseModel):
     assignedUserId:int|None=Field(default=None,gt=0)
     handoverNote:str=Field(default='',max_length=3000)
-    status:Literal['open','resolved']='open'
+    status:Literal['open','pending','resolved']='open'
 
 
 @router.put('/conversations/{kind}/{identity}/workflow')
@@ -302,9 +326,10 @@ def workflow(kind:Kind,identity:int,data:WorkflowInput,db:Session=Depends(get_db
                 db.add(workflow);db.flush()
         except IntegrityError:
             workflow=query.with_for_update().one()
+    previous_status=workflow.status
     workflow.assigned_user_id=data.assignedUserId;workflow.handover_note=data.handoverNote.strip();workflow.status=data.status;workflow.updated_by=user.id
     from app.branches.service import audit
-    audit(db,user,company,'communication.handover','Conversation assignment/status updated',{'kind':kind,'record_id':identity,'assigned_user_id':data.assignedUserId,'status':data.status})
+    audit(db,user,company,'communication.handover','Conversation assignment/status updated',{'kind':kind,'record_id':identity,'assigned_user_id':data.assignedUserId,'status':data.status,'previous_status':previous_status,'handover_note':data.handoverNote.strip()})
     db.commit();return state_data(workflow,None)
 
 
@@ -372,7 +397,7 @@ def delivery_evidence(kind:Literal['whatsapp','email'],identity:int,db:Session=D
 
 @router.get('/health-summary')
 def summary(db:Session=Depends(get_db),user=Depends(view)):
-    result=inbox(search='',before=None,db=db,user=user)
+    result=inbox(search='',before=None,offerings='',tag='',priority=None,channel='all',queue='all',owner=None,team=None,contact_type=None,message_status=None,since=None,until=None,cursor='',db=db,user=user)
     failed=0
     if crm_access(user):
         ids=[i['id'] for i in result['items'] if i['kind']=='whatsapp']

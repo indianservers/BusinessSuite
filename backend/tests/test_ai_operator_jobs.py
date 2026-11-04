@@ -27,6 +27,55 @@ def approve(client, headers, run):
     assert response.json()["status"] == "queued"
 
 
+def test_worker_preserves_nondefault_branch_for_approval_and_execution(client, db, monkeypatch):
+    from app.models.company import Branch
+    from app.branches.models import BranchGrant, BranchOwnership
+    from app.ai_agents.models import AiActionApproval
+
+    original_headers, user, _, original_task = setup_operator(client, db)
+    branch = Branch(company_id=1, name="Secondary operator branch", code="OP-SECOND")
+    db.add(branch)
+    db.flush()
+    db.add(BranchGrant(user_id=user.id, company_id=1, branch_id=branch.id, can_write=True))
+    db.commit()
+    headers = {**original_headers, "X-Suite-Branch": str(branch.id)}
+    base = "/api/v1/project-management"
+    workspace = client.post(base + "/workspaces", headers=headers, json={"name": "Secondary workspace"})
+    assert workspace.status_code == 201, workspace.text
+    config = client.put("/api/v1/ai-operator/providers/openai", headers=headers,
+        params={"workspace_id": workspace.json()["id"]}, json={"model": "test-model",
+        "api_key": "unit-test-secret-key", "enabled": True, "data_sharing_allowed": True})
+    assert config.status_code == 200, config.text
+    project = client.post(base + "/projects", headers=headers, json={
+        "name": "Secondary project", "project_key": "OPS", "workspace_id": workspace.json()["id"]})
+    assert project.status_code in {200, 201}, project.text
+    task = client.post(base + f"/projects/{project.json()['id']}/tasks", headers=headers,
+                       json={"title": "Secondary review", "task_key": "OPS-1"})
+    assert task.status_code in {200, 201}, task.text
+    task_id = task.json()["id"]
+    mock_provider(monkeypatch, plan_for(task_id))
+    response = preview(client, headers, project.json()["id"], task_id, background=True)
+    assert response.status_code == 200, response.text
+    run_id = response.json()["id"]
+    process_batch(db, limit=1)
+    response = client.get(f"/api/v1/ai-operator/runs/{run_id}", headers=headers)
+    assert response.status_code == 200, response.text
+    run = response.json()
+    assert run["status"] == "awaiting_approval", run
+    approval = db.query(AiActionApproval).filter_by(user_id=user.id).one()
+    owner = db.query(BranchOwnership).filter_by(resource_table="ai_action_approvals", resource_key=str(approval.id)).one()
+    assert owner.branch_id == branch.id
+    wrong_branch = client.post(f"/api/v1/ai-operator/runs/{run_id}/approve", headers=original_headers,
+                               json={"plan_hash": run["plan_hash"]})
+    assert wrong_branch.status_code == 404, wrong_branch.text
+    approve(client, headers, run)
+    process_batch(db, limit=5)
+    db.expire_all()
+    assert db.get(OperatorRun, run_id).status == "succeeded"
+    assert db.get(PMSTask, task_id).priority == "High"
+    assert db.get(PMSTask, original_task).priority != "High"
+
+
 @pytest.mark.parametrize("execution_mode", ["atomic", "checkpointed"])
 def test_background_work_uses_durable_queue_and_after_commit_events(client, db, monkeypatch, execution_mode):
     headers, _, _, task, run, calls = queued_plan(client, db, monkeypatch, execution_mode=execution_mode)

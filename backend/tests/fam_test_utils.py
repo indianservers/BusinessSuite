@@ -21,14 +21,8 @@ def auth_headers_for(client, db, email: str, role_name: str, password: str = "Pa
     user = User(email=email, hashed_password=get_password_hash(password), is_active=True, is_superuser=False, role_id=role.id)
     db.add(user)
     attach_test_identity(db, user)
-    from app.models.company import Branch
-    from app.branches.models import BranchGrant
-    branch = db.query(Branch).filter_by(company_id=1).first()
-    if branch is None:
-        branch = Branch(company_id=1, name="Accounting workflow test", code="FAM-QA")
-        db.add(branch)
-        db.flush()
-    db.add(BranchGrant(user_id=user.id,company_id=1,branch_id=branch.id,can_write=True))
+    from test_identity_utils import attach_workflow_branch
+    branch = attach_workflow_branch(db, user)
     db.commit()
     payload = {"email": email, "password": password}
     if role_name in {"fam_admin", "fam_accountant", "fam_finance_manager", "fam_auditor", "fam_viewer", "fam_business_owner"}:
@@ -134,7 +128,7 @@ def party_payload(party_type="customer", code="CUST-001", name="Acme Customer"):
         "trade_name": name,
         "registration_type": "regular",
         "state_code": "29",
-        "gstin": "29ABCDE1234F1Z5",
+        "gstin": "29AAPFU0939F1ZR",
         "pan": "ABCDE1234F",
         "billing_address": "Bengaluru",
         "shipping_address": "Bengaluru",

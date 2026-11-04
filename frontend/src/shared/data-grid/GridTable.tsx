@@ -2,7 +2,7 @@ import { Children, Fragment, isValidElement, useId, useMemo, type HTMLAttributes
 import { useLocation } from "react-router-dom";
 import SharedDataGrid from "./SharedDataGrid";
 import { localGridSource } from "./local-source";
-import type { GridColumn } from "./types";
+import type { GridColumn, GridQuery } from "./types";
 
 type Element = ReactElement<Record<string, any>>;
 type RecordRow = { id: string; values: string[] };
@@ -16,6 +16,11 @@ export function gridCellText(node: ReactNode): string {
   if (!isValidElement(node)) return "";
   const p = node.props as Record<string, any>;
   if (p["aria-hidden"] === true || p["aria-hidden"] === "true") return "";
+  if (p.value != null) {
+    const selected = elements(p.children).find(option => option.type === "option" && String(option.props.value ?? gridCellText(option.props.children)) === String(p.value));
+    if (selected) return gridCellText(selected.props.children);
+    if (!p.children) return String(p.value);
+  }
   return gridCellText(p.children) || (p.value != null ? String(p.value) : p.label != null ? String(p.label) : "");
 }
 function contains(node: ReactNode, predicate: (element: Element) => boolean): boolean {
@@ -65,12 +70,16 @@ export default function GridTable({ children, gridId, allowExport = false, varia
     for (let i = 0; i < signature.length; i++) hash = Math.imul(hash ^ signature.charCodeAt(i), 16777619);
     const local = localGridSource(`${scope}:${instance}:${hash >>> 0}`, records, columns, row => row.id);
     // Existing page exports retain their authorization. A table adapter cannot infer export permission.
-    return allowExport ? local : { ...local, export: undefined };
+    return allowExport ? local : { ...local, export: undefined, load: async (query: GridQuery, signal?: AbortSignal) => {
+      const result = await local.load(query, signal);
+      return { ...result, permissions: { ...result.permissions, export: false } };
+    } };
   }, [scope, instance, signature, allowExport, headers.map(h => gridCellText(h.props.children)).join("|")]);
   if (!compatible) return <div className="udg-native" data-grid-id={gridId}><table {...attributes}>{children}</table></div>;
   const caption = gridCellText(sections.find(e => e.type === "caption")?.props.children).trim();
   return <div className="udg-table-adapter" data-source-table={gridId}>
     <SharedDataGrid<RecordRow> gridId={scope} title={attributes["aria-label"] || caption || "Records"}
+      dataScope="loaded"
       columns={columns} dataSource={source} getRowId={row => row.id}
       selectionEnabled={!hasSelection} exportFormats={["csv", "clipboard"]}
       initialLayout={{ pinning: { left: hasSelection ? ["column-0", "column-1"] : ["column-0"], right: [] }, rowHeight: 64 }}

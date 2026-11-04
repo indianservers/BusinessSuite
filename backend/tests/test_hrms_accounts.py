@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from datetime import date
 import json
 import pytest
@@ -16,8 +17,13 @@ def account(db):
     db.add(role); db.flush()
     user = User(email="managed@example.com", hashed_password=get_password_hash("Initial@123456"), role_id=role.id, is_active=True)
     db.add(user); db.flush()
-    employee = Employee(employee_id="MANAGED-01", first_name="Managed", last_name="Employee", user_id=user.id, date_of_joining=date(2026, 1, 1))
-    db.add(employee); db.commit()
+    from test_identity_utils import attach_test_identity, attach_workflow_branch, own_workflow_records
+    attach_test_identity(db, user)
+    branch = attach_workflow_branch(db, user)
+    employee = Employee(employee_id="MANAGED-01", first_name="Managed", last_name="Employee", branch_id=branch.id, user_id=user.id, date_of_joining=date(2026, 1, 1))
+    db.add(employee)
+    own_workflow_records(db, employee)
+    db.commit()
     return user
 
 

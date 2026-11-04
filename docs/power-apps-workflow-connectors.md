@@ -71,36 +71,109 @@ preserve unspecified columns and reject duplicate matching keys. They use a
 read-then-write sequence; concurrent edits outside this workflow are not an
 atomic database transaction.
 
-## Other provider events: signed relay setup
+## Native subscriptions and event sources
 
-The remaining event nodes implement authenticated relay ingress. They do **not**
-automatically create provider-native subscriptions, renew provider watches, or
-verify provider-specific webhook signatures. Configure a trusted relay to receive
-the provider's webhook/subscription, verify that provider's authentication, map
-the provider event to the selected catalog event, and forward this envelope:
+New connector triggers require no signed relay. Enabling **Connector events**
+queues native setup on the existing automation worker. Runtime shows pending,
+active, retrying, cleanup and disabled status. **Retry native setup** requests
+reconciliation. Disabling a trigger queues removal of its owned remote resources.
+Changing a published setup retires the previous registration before creating its
+replacement. Provider permissions are checked through the saved connection.
 
-```json
-{
-  "event": "mention_received",
-  "event_id": "stable-provider-event-id",
-  "data": {"text": "Hello", "channel": "C123"}
-}
-```
+Apply the additive migration before enabling these triggers: from the backend
+environment run `alembic upgrade head`. The configured PostgreSQL track includes
+`pg_20261104_077_native_events`; the legacy track includes
+`20261104_061_native_events`. Tests create isolated schemas and exercise the
+migration separately. No production migration is run by the implementation.
 
-Enabling the trigger returns its `/api/v1/power-apps/hooks/...` endpoint and a
-one-time signing secret. Send `X-Power-Timestamp` (Unix seconds), `X-Power-Nonce`
-(unique, 8–180 characters), and `X-Power-Signature` (hex HMAC-SHA256 of
-`timestamp + "." + nonce + "." + raw_body`). Timestamp tolerance is five minutes;
-request bodies are limited to 32 KB. Replay nonces are rejected and stable provider
-event IDs deduplicate separate deliveries. Optional equality filters apply to
-`data`. A saved connection remains required and is reauthorized at ingress.
-Provider-specific setup fields include mailbox/folder/label, drive/site/list,
-channel/chat, calendar, form, CRM object/pipeline/stage, project, repository/branch,
-and watched fields. The relay must normalize these selectors into the matching
-`data` keys. Text/subject contains fields filter the corresponding text; watched
-fields match `data.changed_fields`; a Gmail label matches `data.label_ids`.
-Rotate a relay secret from Runtime when required. A newly published workflow
-version must have its connector trigger configured again.
+Webhook delivery requires `BACKEND_PUBLIC_URL` to be an externally reachable HTTPS
+backend. Callbacks use `/api/v1/power-apps/native-hooks/{endpoint}`; Slack and Meta
+use an app callback under `/api/v1/power-apps/native-apps/{module}/{app_id}`.
+The worker registers these URLs automatically. No user bearer token is required
+on provider callbacks: their own signature, channel token or client-state protocol
+is validated. Graph validation tokens and Slack/Meta challenges are answered in
+their native formats. Raw signed bytes bypass rich-text request rewriting.
+
+Provider setup:
+
+- **Outlook, OneDrive, SharePoint, Microsoft Calendar and Teams:** Graph subscriptions
+  are created automatically, renewed with PATCH and deleted on disable. Configure
+  mailbox/folder, drive/site/list, calendar, or team/channel/chat as appropriate.
+  The account/app needs the matching Graph read permissions and tenant consent.
+  Graph lifecycle requests reauthorize or recreate subscriptions; missed mailbox
+  notifications can be recovered through the message delta API.
+- **Google Drive and Calendar:** native notification channels are created and
+  renewed with overlapping channels. Channel IDs/tokens/resource IDs are checked.
+  The worker follows Drive changes and Calendar sync cursors; calendar reminders
+  use the worker clock. Drive access is limited by the connection's OAuth scopes.
+- **Gmail and Google Forms:** enter a Google Cloud project ID and a service-account
+  JSON document in the write-only Runtime credential field. The service account
+  needs Pub/Sub administration/IAM permissions in that project; enable Pub/Sub and
+  the relevant Workspace API. Power Apps creates topics and pull subscriptions,
+  merges the publisher role into topic IAM without replacing unrelated bindings,
+  creates/renews mailbox/form watches, consumes history/responses, and acknowledges
+  Pub/Sub messages after durable run/cursor commits. Gmail OAuth and the topic must
+  use the same Google developer project. Form watches expire weekly and are renewed.
+- **GitHub:** repository Webhooks write permission is required. Power Apps creates
+  repository hooks and verifies `X-Hub-Signature-256` over raw bytes. A changed
+  unsigned delivery header cannot bypass duplicate protection.
+- **ClickUp:** select a Workspace and optional Space/List. The returned per-hook
+  secret is encrypted and validates the provider's `X-Signature` header.
+- **Box:** select a non-root folder and enter the app's primary webhook signing key
+  in Runtime. Power Apps creates/removes the v2 hook and validates Box signatures
+  and delivery timestamps. Folder `0` is not supported by Box v2 webhooks.
+- **Airtable:** select base/table and optionally a view or watched field IDs. Hook
+  creation, refresh, MAC-secret storage, payload-cursor reads and deletion are
+  automatic. Condition fields refer to Airtable field IDs. Creator-level access
+  and the provider's webhook scopes are required.
+- **Zoho CRM:** select a module. The token needs notification-management scopes.
+  Native notification watches are created, renewed and removed; callback channel
+  IDs and tokens are verified and changed records are fetched from Zoho.
+- **Jira:** an account able to administer webhooks is required. Native admin hooks
+  wake an authorized Jira REST read. Jira admin webhooks are unsigned, so callback
+  issue data is never trusted as workflow input; comments are fetched and verified
+  against the selected project and trigger start time.
+- **Slack:** enter an app ID, signing secret and app configuration access token in
+  Runtime. Power Apps exports the app manifest, preserves unrelated settings,
+  merges event subscriptions and manages the shared callback for its workflows.
+  Use a dedicated Events API app with the event read scopes already approved.
+  An existing foreign callback is rejected rather than overwritten. Notifications
+  must match the bot token's workspace and configured app ID.
+- **WhatsApp Business:** select app ID, API version, WABA and optional phone number;
+  enter the Meta app secret in Runtime. The worker configures the app subscription,
+  subscribes the WABA and sets its callback override. Native SHA-256 signatures,
+  verify-token challenges, WABA and phone bindings are checked.
+- **HubSpot:** the default journal mode creates v4 subscriptions and consumes native
+  journal files using encrypted developer-app client credentials. The connected
+  CRM account determines the portal binding. The app must have access to HubSpot's
+  journal beta and developer journal read/subscription read/write scopes. Signed
+  S3 journal downloads never receive the app bearer token. Select `polling` mode
+  for accounts without journal access; it uses direct CRM reads and snapshots.
+- **Salesforce:** record events use authorized REST snapshots. Platform events use
+  native CometD subscription, wrapped Bayeux messages and persisted replay IDs.
+  Select the API version and `/event/...` or `/data/...` channel; Salesforce must
+  grant Streaming API/channel access.
+- **Dropbox and Notion:** automatic native change reads are used because their
+  developer settings do not offer a general webhook-URL creation API. Dropbox
+  cursors cover file changes; Notion reads the selected page/data source or shared
+  page collection. No external event router is needed. First snapshots establish
+  a baseline; changes that occur and revert between polls cannot be observed.
+- **HTTP:** incoming JSON uses a generated callback bearer credential shown once.
+  Send it in `Authorization: Bearer ...`; use `Idempotency-Key` for explicit
+  delivery identities. Response-condition triggers use a read-only allowlisted
+  request and fire when the configured condition becomes true.
+
+Provider setup credentials stay encrypted and are never written into workflow
+definitions or public trigger responses. Authenticated notifications enter an
+encrypted, branch-owned durable inbox. Successful processing clears its payload
+but retains duplicate-protection metadata. Source cursors commit with workflow
+runs; stale workers are fenced after publication changes or disable operations.
+Native snapshot watches are bounded to 1,000 records/512 KB and provider pages
+are bounded; narrow the selected resource if these limits are exceeded. Calendar
+reminder lookahead uses 90 days. Provider retention windows still apply.
+
+Previously published relay configurations remain compatible. New setup selects
+native delivery and does not expose or require the relay signing protocol.
 
 ## Files and verification
 

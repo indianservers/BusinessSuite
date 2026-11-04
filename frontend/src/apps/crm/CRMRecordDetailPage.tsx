@@ -1,7 +1,10 @@
+import FieldControl, { fieldShown } from "@/shared/custom-fields/FieldControl";
+import Record360Workspace from "@/shared/records/Record360Workspace";
+import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 import GridTable from "@/shared/data-grid/GridTable";
 import { CompanyFinancialDataPanel, FinancialDataPanel } from "./FinancialDataTab";
 import { BirthdayEditor, ContactCommunicationPanel } from "@/shared/master-data/CommunicationEditor";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useRef } from "react";
 import { canAccessRoute } from "@/lib/roles";
 import MobileLeadDetails from "./leads/MobileLeadDetails";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -410,6 +413,16 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
                 {id:"delete",kind:"delete",danger:true,onSelect:deleteRecord,confirm:{title:`Move this ${config.singular.toLowerCase()} to Trash?`,description:"The record will be removed from active views. You can restore it from Relationship Hub.",label:"Move to Trash"}},
               ] : [];
 
+  const fullDetails = record ? (<RecordSections key={`${kind}-${recordId}`} label="CRM record information" sections={[
+            {id:"overview",label:"Overview",content:<><DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving}/><AICopilotPanel kind={kind} recordId={recordId}/></>},
+            {id:"details",label:"Details",content:<><FullDetails kind={kind} record={record} onSave={saveInlineField}/><CustomFields fields={record.customFields || []} onSave={saveCustomField}/></>},
+            ...(kind === "accounts" ? [{id:"financial",label:"Financial data",content:<CompanyFinancialDataPanel key={recordId} companyId={recordId}/>}]: []),
+            ...(kind === "contacts" ? [{id:"financial",label:"Financial data",content:<FinancialDataPanel key={recordId} contactId={recordId}/>}]: []),
+            ...(kind === "contacts" ? [{id:"communication",label:"Communication & birthday",content:<><ContactCommunicationPanel id={recordId}/><BirthdayEditor id={recordId}/></>}] : []),
+            {id:"activity",label:"Activity",content:<>{kind === "accounts" && <CustomerFollowUps customerId={recordId}/>}<CommunicationTimeline recordType={kind === "accounts" ? "account" : kind.replace(/s$/, "")} recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/>{["deals","quotations"].includes(kind) && <ApprovalTimeline approval={approval}/>}</>},
+            {id:"related",label:"Related",content:<>{["leads","contacts","accounts","deals"].includes(kind) && <CatalogAssociations source="crm" target={kind === "leads" ? "lead" : kind === "contacts" ? "contact" : kind === "deals" ? "deal" : "customer"} id={recordId} currency={kind === "deals" ? String(record.currency || "INR") : undefined}/>} {["accounts","contacts","deals"].includes(kind) && <CustomerCommercialHistory customerId={Number(record.shared_customer_id || (kind === "accounts" ? recordId : 0) || record.company_id || record.companyId || 0)}/>} {kind === "deals" && <CommercialHandoff related={record.related || {}}/>}<RelatedRecords related={record.related || {}}/></>},
+          ]}/>) : null;
+
   return (
     <div className="space-y-5">
       {!(mobile && kind === "leads") && <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -434,7 +447,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
             ai={<AskAiButton module="CRM" relatedEntityType={aiContext.entityType} relatedEntityId={recordId} defaultAgentCode={aiContext.agentCode} defaultPrompt={aiContext.prompt} buttonLabel="Ask AI"/>}
             insights={<AICopilotPanel kind={kind} recordId={recordId}/>}
             details={<>{["Contact", "Business", "CRM"].map(group => <details className="ml-detail-group" key={group} open={group === "Contact"}><summary>{group} information</summary><FullDetails kind={kind} record={record} onSave={saveInlineField} group={group}/>{group === "CRM" && <CustomFields fields={record.customFields || []} onSave={saveCustomField}/>}</details>)}</>}
-            activity={<><CommunicationTimeline recordType="lead" recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/></>}
+            activity={<><Record360Workspace key={recordId} kind="lead" id={recordId} onAction={setAction}/><CommunicationTimeline recordType="lead" recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/></>}
             related={<><CatalogAssociations source="crm" target="lead" id={recordId}/><RelatedRecords related={record.related || {}}/></>}
           /> : <>
           <header className="rounded-lg border bg-card p-5">
@@ -459,15 +472,9 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
             </div>
           </header>
 
-          <RecordSections key={`${kind}-${recordId}`} label="CRM record information" sections={[
-            {id:"overview",label:"Overview",content:<><DetailFields kind={kind} record={record} fields={config.keyFields} onSave={saveInlineField} saving={saving}/><AICopilotPanel kind={kind} recordId={recordId}/></>},
-            {id:"details",label:"Details",content:<><FullDetails kind={kind} record={record} onSave={saveInlineField}/><CustomFields fields={record.customFields || []} onSave={saveCustomField}/></>},
-            ...(kind === "accounts" ? [{id:"financial",label:"Financial data",content:<CompanyFinancialDataPanel key={recordId} companyId={recordId}/>}]: []),
-            ...(kind === "contacts" ? [{id:"financial",label:"Financial data",content:<FinancialDataPanel key={recordId} contactId={recordId}/>}]: []),
-            ...(kind === "contacts" ? [{id:"communication",label:"Communication & birthday",content:<><ContactCommunicationPanel id={recordId}/><BirthdayEditor id={recordId}/></>}] : []),
-            {id:"activity",label:"Activity",content:<>{kind === "accounts" && <CustomerFollowUps customerId={recordId}/>}<CommunicationTimeline recordType={kind === "accounts" ? "account" : kind.replace(/s$/, "")} recordId={recordId}/><Timeline events={record.timeline || []} onAction={setAction}/>{["deals","quotations"].includes(kind) && <ApprovalTimeline approval={approval}/>}</>},
-            {id:"related",label:"Related",content:<>{["leads","contacts","accounts","deals"].includes(kind) && <CatalogAssociations source="crm" target={kind === "leads" ? "lead" : kind === "contacts" ? "contact" : kind === "deals" ? "deal" : "customer"} id={recordId} currency={kind === "deals" ? String(record.currency || "INR") : undefined}/>} {["accounts","contacts","deals"].includes(kind) && <CustomerCommercialHistory customerId={Number(record.shared_customer_id || (kind === "accounts" ? recordId : 0) || record.company_id || record.companyId || 0)}/>} {kind === "deals" && <CommercialHandoff related={record.related || {}}/>}<RelatedRecords related={record.related || {}}/></>},
-          ]}/>
+          {kind === "quotations" && <PaymentRequestButton source="crm_quotation" sourceId={recordId}/>}
+          {kind === "quotations" ? fullDetails : <Record360Workspace key={`${kind}-${recordId}`} kind={kind === "accounts" ? "company" : kind === "leads" ? "lead" : kind === "contacts" ? "contact" : "deal"} id={recordId} onAction={setAction} details={fullDetails}/>}
+
           </>}
 
         </>
@@ -613,24 +620,15 @@ function CustomPhoneField({field,onSave}:{field:CustomFieldDetail;onSave:(field:
 }
 
 function CustomFields({ fields, onSave }: { fields: CustomFieldDetail[]; onSave: (field: CustomFieldDetail, value: CRMApiValue) => Promise<unknown> }) {
-  return (
-    <Card>
-      <CardHeader><CardTitle>Custom Fields</CardTitle></CardHeader>
-      <CardContent className="grid gap-2 md:grid-cols-2">
-        {fields.map((field) => String(field.field_type || field.fieldType)==='phone' ? <CustomPhoneField key={String(field.id)} field={field} onSave={onSave} /> : (
-          <InlineField
-            key={String(field.id)}
-            config={customFieldConfig(field)}
-            fieldKey={valueText(field.label || field.field_key)}
-            value={field.value}
-            onSave={(_, value) => onSave(field, value)}
-            saving={false}
-          />
-        ))}
-        {!fields.length ? <p className="text-sm text-muted-foreground">No custom fields configured for this record.</p> : null}
-      </CardContent>
-    </Card>
-  );
+  const shown = fields.filter(field => fieldShown(field, "detail"));
+  if (!shown.length) return null;
+  return <Card><CardHeader><CardTitle>Custom fields</CardTitle></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">{shown.map(field => <CustomFieldEditor key={`${field.id}:${JSON.stringify(field.value)}`} field={field} onSave={onSave}/>)}</CardContent></Card>;
+}
+function CustomFieldEditor({field,onSave}:{field:CustomFieldDetail;onSave:(field:CustomFieldDetail,value:CRMApiValue)=>Promise<unknown>}) {
+  const [value,setValue]=useState<unknown>(field.value);
+  const [busy,setBusy]=useState(false),[error,setError]=useState("");
+  const dirty=JSON.stringify(value??null)!==JSON.stringify(field.value??null);
+  return <div className="space-y-2 rounded-md border p-3"><p className="text-sm font-medium">{String(field.fieldName||field.label||field.field_key)}{Boolean(field.isRequired??field.is_required)&&" *"}</p><FieldControl field={field} value={value} onChange={setValue} disabled={busy||!fieldShown(field,"edit")}/>{error&&<p role="alert" className="text-sm text-destructive">{error}</p>}{dirty&&<div className="flex gap-2"><Button size="sm" type="button" disabled={busy} onClick={async()=>{setBusy(true);setError("");try{await onSave(field,value as CRMApiValue);}catch(e){setError(dealError(e));}finally{setBusy(false);}}}>Save</Button><Button size="sm" type="button" variant="ghost" disabled={busy} onClick={()=>setValue(field.value)}>Cancel</Button></div>}</div>;
 }
 
 function ApprovalTimeline({ approval }: { approval?: CRMApprovalRequest | null }) {
@@ -976,27 +974,29 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
   );
 }
 
-export function QuickActionModal({ action, kind, record, entity, recordId, onClose, onDone }: { action: QuickAction; kind: DetailKind; record: DetailRecord; entity: string; recordId: number; onClose: () => void; onDone: () => void }) {
-  const [draft, setDraft] = useState<CRMApiRecord>(() => defaultActionPayload(action, kind, record, entity, recordId));
+export function QuickActionModal({ action, kind, record, entity, recordId, onClose, onDone, initialValues }: { initialValues?: CRMApiRecord; action: QuickAction; kind: DetailKind; record: DetailRecord; entity: string; recordId: number; onClose: () => void; onDone: () => void }) {
+  const [draft, setDraft] = useState<CRMApiRecord>(() => ({...defaultActionPayload(action, kind, record, entity, recordId),...initialValues}));
   const [mentions, setMentions] = useState<MentionUser[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const saveLock=useRef(false);
   const [saving, setSaving] = useState(false);
   const targetEntity = actionEntity(action);
   const submit = () => {
+    if(saveLock.current)return;saveLock.current=true;
     setSaving(true);
     setError(null);
     crmApi
       .create(targetEntity, { ...draft, mentions: mentions.map((user) => ({ id: user.id })) })
       .then(onDone)
       .catch((err) => setError(dealError(err) || "Action could not be saved."))
-      .finally(() => setSaving(false));
+      .finally(() => {saveLock.current=false;setSaving(false);});
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+    <div role="dialog" aria-modal="true" aria-label={quickActionTitle(action)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <Card className="w-full max-w-xl">
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>{quickActionTitle(action)}</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="sm" disabled={saving} onClick={onClose}><X className="h-4 w-4" /></Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
@@ -1017,7 +1017,7 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
             ))}
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
             <Button onClick={submit} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
           </div>
         </CardContent>

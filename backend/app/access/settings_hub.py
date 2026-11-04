@@ -1,6 +1,6 @@
 """Server-owned settings discovery. Role labels never confer configuration access."""
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
 from app.access import service
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/settings", tags=["Shared Settings"])
 
 # id, label, group, description, destination, module, any required permission, org scope
 OPTIONS = [
+    ("files-storage", "Files & Storage", "Company", "Google Drive, OneDrive, Box or Dropbox for attachments, module folders and the file register.", None, None, (), True),
     ("shared-companies", "Shared companies", "Company", "Business company records shared across Business Suite.", None, "crm", ("crm_view", "crm_manage", "crm_admin", "crm_companies_view", "crm_companies_manage"), False),
     ("appearance", "Homepage Banner", "Appearance", "Banner image, crop, positioning and overlay for your company homepage.", None, None, (), True),
     ("account", "My account & security", "Personal", "Your account details and password.", None, None, (), False),
@@ -50,7 +51,7 @@ OPTIONS += [
     ("crm-scoring", "Lead scoring", "CRM", "Rules for lead qualification and scoring.", None, "crm", ("crm_admin",), True),
     ("crm-territories", "Sales territories", "CRM", "Sales territory definitions and assignments.", None, "crm", ("crm_admin",), True),
     ("crm-automation", "CRM automation", "CRM", "CRM triggers and automated actions.", None, "crm", ("crm_admin",), True),
-    ("business-defaults", "Business defaults", "Business defaults", "Company currency, timezone, financial year and working-week defaults.", None, None, (), False),
+    ("business-defaults", "Defaults", "Business defaults", "Starting values for new forms: currency, country, sales, tasks and HR, with module and branch overrides.", None, None, (), False),
     ("crm-pipelines", "CRM pipelines", "CRM", "Deal stages and sales pipelines.", None, "crm", ("crm_admin",), True),
     ("crm-approvals", "CRM approval rules", "CRM", "Approval rules for CRM operations.", None, "crm", ("crm_admin",), True),
     ("financial-years", "Financial years", "Finance", "Accounting periods and financial year configuration.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
@@ -61,8 +62,8 @@ OPTIONS += [
     ("tax-settings", "GST & tax settings", "Finance", "GST defaults and statutory configuration.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
     ("roles", "Roles & permission templates", "Company & access", "Custom module roles and reusable permission templates.", None, None, (), True),
 ]
-ADMIN_ONLY = {"appearance", "roles", "users", "security", "audit", "modules", "connections", "communication", "global"}
-GLOBAL_ONLY = {"api-credentials", "webhooks", "security", "connections", "communication", "global", "ai"}
+ADMIN_ONLY = {"files-storage", "appearance", "roles", "users", "security", "audit", "modules", "connections", "communication", "global"}
+GLOBAL_ONLY = {"files-storage", "api-credentials", "webhooks", "security", "connections", "communication", "global", "ai"}
 HR_SECTIONS = {"branches", "departments", "designations", "shifts", "holidays", "leaveTypes", "salaryComponents"}
 
 
@@ -233,10 +234,14 @@ def setting_history(key: str, db: Session = Depends(get_db), actor: User = Depen
         raise HTTPException(403, "Change history requires company configuration access")
     from app.access.models import AccessAudit
     defaults = {"default_timezone", "default_currency", "working_days_per_week", "fiscal_year_start_month"}
-    rows = db.query(AccessAudit).filter(AccessAudit.company_id == ctx["company"], AccessAudit.operation == "settings.company.updated").order_by(AccessAudit.created_at.desc(), AccessAudit.id.desc()).limit(200).all()
+    rows = db.query(AccessAudit).filter(AccessAudit.company_id == ctx["company"], AccessAudit.operation.in_(["settings.company.updated", "settings.defaults.updated"])).order_by(AccessAudit.created_at.desc(), AccessAudit.id.desc()).limit(200).all()
     result = []
     for row in rows:
-        changed = sorted(k for k in (row.after_json or {}) if k in Company.__table__.c and ((k in defaults) == (key == "business-defaults")))
+        if row.operation == "settings.defaults.updated":
+            if key != "business-defaults": continue
+            changed = sorted(k for k in set(row.before_json or {}) | set(row.after_json or {}) if (row.before_json or {}).get(k) != (row.after_json or {}).get(k))
+        else:
+            changed = sorted(k for k in (row.after_json or {}) if k in Company.__table__.c and ((k in defaults) == (key == "business-defaults")))
         if not changed:
             continue
         user = db.get(User, row.actor_id)
@@ -244,6 +249,83 @@ def setting_history(key: str, db: Session = Depends(get_db), actor: User = Depen
         if len(result) == 30:
             break
     return {"items": result}
+
+
+class DefaultsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    values: dict
+    version: int
+
+
+@router.get("/defaults/effective")
+def effective_form_defaults(module: str | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.form_defaults import effective
+    from app.branches.service import access
+    branch_id = getattr(actor, "_suite_branch_id", None)
+    branch_id = branch_id if isinstance(branch_id, int) else None
+    result = effective(db, actor.organization_id, module, branch_id)
+    allowed, _, all_branches, _ = access(db, actor, actor.organization_id)
+    if result["values"].get("branch_id") and not all_branches and result["values"]["branch_id"] not in allowed:
+        result["values"]["branch_id"] = None
+        result["values"]["department_id"] = None
+    modules = {}
+    if module is None:
+        from app.shared.form_defaults import MODULES
+        for name in MODULES:
+            values = effective(db, actor.organization_id, name, branch_id)["values"]
+            if values.get("branch_id") and not all_branches and values["branch_id"] not in allowed:
+                values["branch_id"] = None
+                values["department_id"] = None
+            modules[name] = values
+    return {**result, "modules": modules, "companyId": actor.organization_id, "branchId": branch_id, "module": module}
+
+
+@router.get("/defaults/configuration")
+def form_defaults_configuration(module: str | None = None, branch_id: int | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared import form_defaults as defaults
+    from app.shared.models import ServicePolicy
+    _, ctx = require_option(db, actor, "business-defaults")
+    defaults.check_branch(db, ctx["company"], branch_id)
+    key = defaults.scope_key(ctx["company"], module, branch_id)
+    row = db.query(ServicePolicy).filter_by(scope_key=key, organization_id=ctx["company"], kind="form_defaults").first()
+    inherited = defaults.effective(db, ctx["company"], module, branch_id, skip_scope=key)
+    return {"fields": defaults.FIELDS, "choices": defaults.choices(db, ctx["company"]), "overrides": row.values_json if row else {}, "version": row.version if row else 0, "inherited": inherited["values"], "effective": defaults.effective(db, ctx["company"], module, branch_id)["values"], "companyId": ctx["company"]}
+
+
+@router.put("/defaults/configuration")
+def update_form_defaults(data: DefaultsUpdate, request: Request, module: str | None = None, branch_id: int | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared import form_defaults as defaults
+    from app.shared.models import ServicePolicy
+    from sqlalchemy.exc import IntegrityError
+    _, ctx = require_option(db, actor, "business-defaults")
+    defaults.check_branch(db, ctx["company"], branch_id)
+    key = defaults.scope_key(ctx["company"], module, branch_id)
+    row = db.query(ServicePolicy).filter_by(scope_key=key, organization_id=ctx["company"], kind="form_defaults").with_for_update().first()
+    if data.version != (row.version if row else 0):
+        raise HTTPException(409, "Defaults changed since you opened them. Reload before saving.")
+    inherited = defaults.effective(db, ctx["company"], module, branch_id, skip_scope=key)["values"]
+    values = defaults.validate(db, ctx["company"], data.values, inherited)
+    before = dict(row.values_json) if row else {}
+    if row:
+        row.values_json = values
+        row.version += 1
+        row.updated_by = actor.id
+    else:
+        row = ServicePolicy(scope_key=key, organization_id=ctx["company"], module_key=module or "*", kind="form_defaults", values_json=values, version=1, updated_by=actor.id)
+        db.add(row)
+    # Keep existing consumers of the company columns in sync.
+    if module is None and branch_id is None:
+        company = db.get(Company, ctx["company"])
+        merged = {**inherited, **values}
+        for name, column in {"currency": "default_currency", "timezone": "default_timezone", "fiscal_year_start_month": "fiscal_year_start_month"}.items():
+            setattr(company, column, merged[name])
+        company.working_days_per_week = len(merged["working_days"])
+    service.audit(db, actor, ctx["company"], "settings.defaults.updated", key, before, values, request=request)
+    try: db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Defaults changed since you opened them. Reload before saving.")
+    return {"saved": True, "version": row.version}
 
 
 @router.get("/{key}")

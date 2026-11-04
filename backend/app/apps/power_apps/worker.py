@@ -39,13 +39,16 @@ def worker_tick(db, worker_id):
         poll_tick(db)
         from app.apps.power_apps.integrations.automation_triggers import poll_tick as connector_poll_tick
         connector_poll_tick(db)
-        from app.apps.power_apps.integrations.native_runtime import tick as native_tick
-        native_tick(db)
         from app.apps.power_apps.runtime_retention import purge_payloads
 
         purge_payloads(db)
         record.scheduler_at = now()
         db.commit()
+    from app.apps.power_apps.integrations.native_runtime import tick as native_tick
+    native_tick(db)
+    record = db.get(AutomationWorker, worker_id)
+    record.heartbeat_at = now()
+    db.commit()
     work = claim(db, worker_id)
     if not work:
         return False

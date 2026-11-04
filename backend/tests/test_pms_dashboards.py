@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from tests.test_pms_automations import setup_workspace
 from tests.test_pms_workspaces import middleware_database, BASE, account
 from app.apps.project_management.models import PMSWorkspace, PMSWorkspaceEntry
@@ -33,10 +34,9 @@ def test_org_shared_visibility_cross_org_and_owner_only(client, db):
     wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
     outsider, xh = account(db, "other-org@example.invalid", True)
     from tests.tenant_test_utils import assign_company
-    assign_company(db, owner, 77)
-    assign_company(db, member, 77)
     assign_company(db, outsider, 88)
-    db.get(PMSWorkspace, wid).organization_id = 77
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db, outsider, company_id=88)
     db.commit()
     payload = {"workspace_id": wid, "name": "Shared", "visibility": "organization"}
     created = client.post(BASE + "/dashboards", headers=oh, json=payload)

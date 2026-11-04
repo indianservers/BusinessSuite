@@ -1,12 +1,11 @@
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import { useId, useState, type ReactNode } from "react";
 import { Home, Layers, CalendarDays, MessageSquare, Copy, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { assetUrl } from "@/lib/utils";
 import "./workforce/workforce.css";
 export type PersonPreviewTab = { id: string; label: string; icon?: LucideIcon; content: ReactNode };
 export function PersonPreviewHeader({ name, identifier, status, photoUrl }: { name: string; identifier?: string; status?: ReactNode; photoUrl?: string | null }) {
-  const [failedPhoto, setFailedPhoto] = useState<string>();
-  return <header className="wfp-header"><div className="wfp-avatar">{photoUrl && photoUrl !== failedPhoto ? <img src={assetUrl(photoUrl)} alt="" onError={() => setFailedPhoto(photoUrl)} /> : name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase()}</div><div className="min-w-0"><DialogTitle className="wfp-title break-words">{name}</DialogTitle><div className="wfp-identity">{identifier && <><span className="break-all">{identifier}</span><button type="button" aria-label="Copy profile identifier" onClick={() => { void navigator.clipboard.writeText(identifier).catch(() => {}); }}><Copy size={16}/></button></>}{status && <span className="wfp-active" data-inactive={typeof status === "string" && /inactive|suspended|terminated|resigned|lost/i.test(status)}>{status}</span>}</div></div></header>;
+  return <header className="wfp-header"><div className="wfp-avatar"><SuiteAvatar name={name} src={photoUrl} size={72}/></div><div className="min-w-0"><DialogTitle className="wfp-title break-words">{name}</DialogTitle><div className="wfp-identity">{identifier && <><span className="break-all">{identifier}</span><button type="button" aria-label="Copy profile identifier" onClick={() => { void navigator.clipboard.writeText(identifier).catch(() => {}); }}><Copy size={16}/></button></>}{status && <span className="wfp-active" data-inactive={typeof status === "string" && /inactive|suspended|terminated|resigned|lost/i.test(status)}>{status}</span>}</div></div></header>;
 }
 export function PersonPreviewTabs({ tabs, value, onChange }: { tabs: PersonPreviewTab[]; value: string; onChange: (value: string) => void }) {
   const uid = useId();

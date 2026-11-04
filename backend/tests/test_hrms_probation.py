@@ -1,3 +1,4 @@
+from tests.rich_text_test_utils import organization_context
 from test_identity_utils import attach_test_identity
 from datetime import date
 
@@ -8,8 +9,7 @@ from app.models.user import Role, User
 
 def test_probation_manager_review_hr_confirm_and_letter(client, superuser_headers, db):
     from app.models.company import Branch
-    branch = Branch(name="Local probation branch", company_id=1)
-    db.add(branch); db.flush()
+    branch = db.query(Branch).filter_by(company_id=1,is_active=True).order_by(Branch.id).first()
     manager_role = Role(name="manager", description="Manager", is_system=True)
     db.add(manager_role)
     db.flush()

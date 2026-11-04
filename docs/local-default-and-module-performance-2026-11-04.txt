@@ -1,0 +1,71 @@
+Local optimized default and module performance — 2026-11-04
+
+Normal URL: http://localhost:5173. start-frontend.cmd now runs npm start,
+which fingerprints the frontend sources, type-checks and builds when changed,
+then serves the optimized dist with the existing backend proxy on port 1534.
+Unchanged starts skip compilation. Explicit development mode is available via
+start-frontend-dev.cmd on port 5174. No deployment or permission grants changed.
+
+Changes
+- Retained lazy route/preview/team-workspace loading and the shared record cache.
+- Batched payroll unpaid leave, attendance and salary calculations instead of
+  querying each employee separately; eagerly loaded guided payroll dependencies.
+- Payroll only fetches inputs/statutory/tax/tools data when its tab opens.
+- Batched PMS destination membership counts, visible avatars and leaders.
+- Follow-up customer options reuse native CRM/SRM/PMS authorized company queries.
+- Batched CRM branch-label ownership/name lookups; writes bypass read caches.
+- Removed an unused CRM dashboard contacts request.
+- Cache identity uses authenticated primary role rather than module display role;
+  tenant, branch, actor, session and live grants remain part of the identity.
+- PMS combines overlapping detail refreshes for the same workspace/role.
+
+Measured on this local database; timings vary with concurrent work
+Latest API comparison (identical canonical response hashes before/after):
+Payroll LWP preview: 3080ms -> 238ms.
+PMS destination options: 3221ms -> 345ms.
+Follow-up options: 2773ms -> 177ms.
+Comparable SPA page audit: payroll 9605ms -> 1349ms; FAM 5998ms -> 1444ms;
+CRM leads 3544ms -> 1866ms; PMS people 4019ms -> 2768ms.
+Initial JavaScript: 1,609,268 bytes total, main 767,220 bytes, with five heavy
+feature groups deferred. These are actual build measurements, not fixture timings.
+
+Validation
+- Production type-check/build and startup asset budget passed.
+- Startup confirmed "Optimized build is current; skipping compilation" on 5173.
+- Real API route audit: 32 pages across dashboard, CRM, PMS, HRMS, SRM, FAM,
+  Power Apps, communication, AI, settings, and customer/partner portal login.
+  Zero browser runtime errors and zero pending-request timeouts.
+- 70 backend tests passed (loading batches/options, branch display/access,
+  HR workspaces, payroll trust/readiness and CRM REST); one legacy provider-send
+  fixture excluded after its expected mock send received missing-provider 409.
+  Provider safeguards remain intact; no live outbound messages were sent.
+- Five production POS/customer-360 browser tests passed, including cart/payment
+  state preservation, denied/error responses, linked work and error recovery.
+- Live payroll Inputs, Statutory, Payslip Viewer and Tools data loading passed;
+  inactive tabs do not fetch their deferred datasets.
+- Live PostgreSQL CRM/PMS/SRM 360 task links, work/history paging, queue filters
+  and cursor scope rejection passed.
+- Live viewer mutation/link-picker/unlink denials, member assignment scope,
+  unrelated-task hiding and restricted-intern checks passed without grant edits.
+- Record-cache regression harness passed identity/scope/grant/logout isolation,
+  no-store/secrets, deduplication, offline/reconnect, rollback and race checks.
+
+Remaining findings / limits
+PMS board home still takes roughly 5.7–6.9 seconds to finish all requests in these
+runs; its workspace/member/overview and background refreshes remain a hotspot.
+Power Apps connectors measured 5.2 seconds during the full navigation audit and
+2.5 seconds on an isolated reload. Other audited pages mostly settled in 1–4s.
+The legacy PMS workspace 1 chat conversations endpoint returns 404 while its
+workspace list and board remain readable; this needs separate membership/legacy
+organization reconciliation. Chat authorization was not relaxed to conceal it.
+This is broad module/page and targeted workflow coverage, not certification of
+every route, financial posting, external provider, or every possible role combination.
+
+Evidence
+docs/qa/local-performance/modules-final.json
+docs/qa/local-performance/pms-final.json
+docs/qa/local-performance/slow-pages-cold.json
+docs/qa/local-performance/payroll-tabs.json
+docs/qa/local-performance/api-before.json
+docs/qa/local-performance/api-after.json
+docs/qa/record-360/live/roles.json

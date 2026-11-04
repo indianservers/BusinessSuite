@@ -1,7 +1,8 @@
-import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import React from "react";
+const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 const UserAccountsPage = React.lazy(() => import("@/apps/hrms/pages/employees/UserAccountsPage"));
-import { CommunicationWorkspace } from "@/shared/communication";
+const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
 const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
 import { Navigate, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
@@ -143,6 +144,7 @@ function LegacyHrmsRedirect() {
 
 const BirthdaysPage = React.lazy(()=>import("@/shared/master-data/BirthdaysPage"));
 export const hrmsRoutes: FrontendRoute[] = [
+  {path:"hrms/import-data",element:<ImportWorkspace module="hrms"/>},
  {path:"hrms/birthdays",element:<BirthdaysPage source="hrms"/>},
  { path: "hrms/messages", element: <CommunicationWorkspace module="HRMS" /> },
   { path: "hrms/leave/gantt", element: <ModuleGanttPage key="hrms" module="hrms" /> },

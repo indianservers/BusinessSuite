@@ -1,0 +1,2534 @@
+{
+  "origin": "http://localhost:5173",
+  "at": "2026-11-04T15:02:59.456Z",
+  "pages": [
+    {
+      "route": "/dashboard",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/business-os/modules",
+          "method": "GET",
+          "status": 200,
+          "ms": 441
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 481
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 771
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 752
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 757
+        },
+        {
+          "path": "/api/v1/access/homepage-banner",
+          "method": "GET",
+          "status": 200,
+          "ms": 769
+        },
+        {
+          "path": "/api/v1/auth/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 773
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 960
+        }
+      ],
+      "readyMs": 1973,
+      "pending": [],
+      "headings": [
+        "Your work starts here.",
+        "Your applications",
+        "Settings"
+      ],
+      "url": "/dashboard",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 960
+        },
+        {
+          "path": "/api/v1/auth/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 773
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 771
+        },
+        {
+          "path": "/api/v1/access/homepage-banner",
+          "method": "GET",
+          "status": 200,
+          "ms": 769
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 757
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 752
+        }
+      ]
+    },
+    {
+      "route": "/crm",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 409
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 444
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "method": "GET",
+          "status": 200,
+          "ms": 517
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 819
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 831
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 1914
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "method": "GET",
+          "status": 200,
+          "ms": 1922
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "method": "GET",
+          "status": 200,
+          "ms": 1940
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "method": "GET",
+          "status": 200,
+          "ms": 2168
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 2239
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 2247
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 200,
+          "ms": 2409
+        }
+      ],
+      "readyMs": 3122,
+      "pending": [],
+      "headings": [
+        "CRM setup",
+        "CRM Dashboard",
+        "Follow-ups needing attention",
+        "Risk-aware pipeline",
+        "Priority deals",
+        "Forecast by owner",
+        "Sales velocity",
+        "Smart briefing",
+        "Today",
+        "Lead sources"
+      ],
+      "url": "/crm",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 200,
+          "ms": 2409
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 2247
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 2239
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "method": "GET",
+          "status": 200,
+          "ms": 2168
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "method": "GET",
+          "status": 200,
+          "ms": 1940
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "method": "GET",
+          "status": 200,
+          "ms": 1922
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 1914
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 831
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 819
+        }
+      ]
+    },
+    {
+      "route": "/crm/leads",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 253
+        },
+        {
+          "path": "/api/v1/crm/productivity/shared-views",
+          "method": "GET",
+          "status": 200,
+          "ms": 433
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 437
+        },
+        {
+          "path": "/api/v1/crm/lead-management/settings",
+          "method": "GET",
+          "status": 200,
+          "ms": 754
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 987
+        }
+      ],
+      "readyMs": 1866,
+      "pending": [],
+      "headings": [
+        "Lead workbench 423"
+      ],
+      "url": "/crm/leads",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 200,
+          "ms": 987
+        },
+        {
+          "path": "/api/v1/crm/lead-management/settings",
+          "method": "GET",
+          "status": 200,
+          "ms": 754
+        }
+      ]
+    },
+    {
+      "route": "/crm/contacts",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 143
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 483
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 1385
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 1451
+        },
+        {
+          "path": "/api/v1/master-data/contact-assignment-options",
+          "method": "GET",
+          "status": 200,
+          "ms": 1463
+        },
+        {
+          "path": "/api/v1/record-360/contact/159",
+          "method": "GET",
+          "status": 200,
+          "ms": 571
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 727
+        },
+        {
+          "path": "/api/v1/crm/contacts/159/related",
+          "method": "GET",
+          "status": 200,
+          "ms": 845
+        },
+        {
+          "path": "/api/v1/crm/custom-fields",
+          "method": "GET",
+          "status": 200,
+          "ms": 895
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/work",
+          "method": "GET",
+          "status": 200,
+          "ms": 909
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/events",
+          "method": "GET",
+          "status": 200,
+          "ms": 1085
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 1655
+        },
+        {
+          "path": "/api/v1/crm/contacts/159",
+          "method": "GET",
+          "status": 200,
+          "ms": 1174
+        }
+      ],
+      "readyMs": 3669,
+      "pending": [],
+      "headings": [
+        "Contacts",
+        "Arjun Mehta"
+      ],
+      "url": "/crm/contacts",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 1655
+        },
+        {
+          "path": "/api/v1/master-data/contact-assignment-options",
+          "method": "GET",
+          "status": 200,
+          "ms": 1463
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 200,
+          "ms": 1451
+        },
+        {
+          "path": "/api/v1/crm/contacts",
+          "method": "GET",
+          "status": 200,
+          "ms": 1385
+        },
+        {
+          "path": "/api/v1/crm/contacts/159",
+          "method": "GET",
+          "status": 200,
+          "ms": 1174
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/events",
+          "method": "GET",
+          "status": 200,
+          "ms": 1085
+        },
+        {
+          "path": "/api/v1/record-360/contact/159/work",
+          "method": "GET",
+          "status": 200,
+          "ms": 909
+        },
+        {
+          "path": "/api/v1/crm/custom-fields",
+          "method": "GET",
+          "status": 200,
+          "ms": 895
+        },
+        {
+          "path": "/api/v1/crm/contacts/159/related",
+          "method": "GET",
+          "status": 200,
+          "ms": 845
+        }
+      ]
+    },
+    {
+      "route": "/crm/deals",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 873
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipelines",
+          "method": "GET",
+          "status": 200,
+          "ms": 1583
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 1591
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/teams",
+          "method": "GET",
+          "status": 200,
+          "ms": 1599
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1656
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/assignees",
+          "method": "GET",
+          "status": 200,
+          "ms": 1682
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 1898
+        }
+      ],
+      "readyMs": 2553,
+      "pending": [],
+      "headings": [
+        "Deals",
+        "Deals"
+      ],
+      "url": "/crm/deals",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 1898
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/assignees",
+          "method": "GET",
+          "status": 200,
+          "ms": 1682
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1656
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/teams",
+          "method": "GET",
+          "status": 200,
+          "ms": 1599
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipeline-stages",
+          "method": "GET",
+          "status": 200,
+          "ms": 1591
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipelines",
+          "method": "GET",
+          "status": 200,
+          "ms": 1583
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 873
+        }
+      ]
+    },
+    {
+      "route": "/pms",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 302
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 552
+        },
+        {
+          "path": "/api/v1/project-management/workspace-invitations/mine",
+          "method": "GET",
+          "status": 200,
+          "ms": 607
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 624
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1991
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 1991
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1930
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 2013
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 2115
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 2236
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 610
+        },
+        {
+          "path": "/api/v1/project-management/custom-fields/records",
+          "method": "POST",
+          "status": 200,
+          "ms": 621
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 304,
+          "ms": 1122
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1136
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1215
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 1221
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1248
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1646
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 585
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 304,
+          "ms": 739
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 199
+        }
+      ],
+      "readyMs": 6937,
+      "pending": [],
+      "headings": [],
+      "url": "/pms",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 2236
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 2115
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 2013
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1991
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/recovery/history",
+          "method": "GET",
+          "status": 200,
+          "ms": 1991
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1930
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1646
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1248
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 1221
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1215
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1136
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 304,
+          "ms": 1122
+        }
+      ]
+    },
+    {
+      "route": "/pms/projects",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1221
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1292
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1395
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1412
+        },
+        {
+          "path": "/api/v1/project-management/management/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 1681
+        }
+      ],
+      "readyMs": 2626,
+      "pending": [],
+      "headings": [
+        "PMS management home"
+      ],
+      "url": "/pms/projects",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/management/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 1681
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1412
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1395
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 1292
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 1221
+        }
+      ]
+    },
+    {
+      "route": "/pms/tasks",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 156
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 177
+        },
+        {
+          "path": "/api/v1/project-management/saved-views",
+          "method": "GET",
+          "status": 200,
+          "ms": 465
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 1085
+        }
+      ],
+      "readyMs": 2123,
+      "pending": [],
+      "headings": [
+        "Tasks"
+      ],
+      "url": "/pms/tasks",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/tasks",
+          "method": "GET",
+          "status": 200,
+          "ms": 1085
+        }
+      ]
+    },
+    {
+      "route": "/pms/tasks-follow-ups",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 751
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 979
+        },
+        {
+          "path": "/api/v1/record-360/work/queue/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 1043
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1061
+        }
+      ],
+      "readyMs": 1681,
+      "pending": [],
+      "headings": [
+        "Tasks & Follow-ups"
+      ],
+      "url": "/pms/tasks-follow-ups",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1061
+        },
+        {
+          "path": "/api/v1/record-360/work/queue/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 1043
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 979
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 751
+        }
+      ]
+    },
+    {
+      "route": "/pms/people",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 326
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 572
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 726
+        },
+        {
+          "path": "/api/v1/project-management/people-management/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 1150
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/actions/destinations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1301
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/reference",
+          "method": "GET",
+          "status": 200,
+          "ms": 1302
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/views",
+          "method": "GET",
+          "status": 200,
+          "ms": 1325
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 1388
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 1528
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/people",
+          "method": "GET",
+          "status": 200,
+          "ms": 1770
+        }
+      ],
+      "readyMs": 2768,
+      "pending": [],
+      "headings": [
+        "People directory",
+        "Destinations",
+        "Teams (0)",
+        "Interns Batches (6)"
+      ],
+      "url": "/pms/people",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/people-workspace/people",
+          "method": "GET",
+          "status": 200,
+          "ms": 1770
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 1528
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 200,
+          "ms": 1388
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/views",
+          "method": "GET",
+          "status": 200,
+          "ms": 1325
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/reference",
+          "method": "GET",
+          "status": 200,
+          "ms": 1302
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/actions/destinations",
+          "method": "GET",
+          "status": 200,
+          "ms": 1301
+        },
+        {
+          "path": "/api/v1/project-management/people-management/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 1150
+        }
+      ]
+    },
+    {
+      "route": "/pms/messages",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 242
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 956
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1049
+        },
+        {
+          "path": "/api/v1/collaboration/events",
+          "method": "GET",
+          "status": 200,
+          "ms": 1054
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1070
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+          "method": "GET",
+          "status": 404,
+          "ms": 101
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 478
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+          "method": "GET",
+          "status": 404,
+          "ms": 440
+        }
+      ],
+      "readyMs": 2445,
+      "pending": [],
+      "headings": [
+        "Messages",
+        "Messages",
+        "Your team, in one place."
+      ],
+      "url": "/pms/messages",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/collaboration/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 1070
+        },
+        {
+          "path": "/api/v1/collaboration/events",
+          "method": "GET",
+          "status": 200,
+          "ms": 1054
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1049
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "method": "GET",
+          "status": 200,
+          "ms": 956
+        },
+        {
+          "path": "/api/v1/collaboration/workspaces/1/chat/conversations",
+          "method": "GET",
+          "status": 404,
+          "ms": 101
+        }
+      ]
+    },
+    {
+      "route": "/hrms",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 135
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 590
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "method": "GET",
+          "status": 200,
+          "ms": 718
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 830
+        }
+      ],
+      "readyMs": 1454,
+      "pending": [],
+      "headings": [
+        "HRMS setup",
+        "HR daily work",
+        "Joiners to prepare",
+        "Exits requiring coordination"
+      ],
+      "url": "/hrms",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "method": "GET",
+          "status": 200,
+          "ms": 830
+        }
+      ]
+    },
+    {
+      "route": "/hrms/employees",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 262
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 295
+        },
+        {
+          "path": "/api/v1/company/branches/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1347
+        },
+        {
+          "path": "/api/v1/company/designations/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1348
+        },
+        {
+          "path": "/api/v1/employees/reporting-managers",
+          "method": "GET",
+          "status": 200,
+          "ms": 1351
+        },
+        {
+          "path": "/api/v1/employees/filter-options",
+          "method": "GET",
+          "status": 200,
+          "ms": 1351
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1535
+        },
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1547
+        }
+      ],
+      "readyMs": 2204,
+      "pending": [],
+      "headings": [
+        "People",
+        "Employees"
+      ],
+      "url": "/hrms/employees",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1547
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1535
+        },
+        {
+          "path": "/api/v1/employees/reporting-managers",
+          "method": "GET",
+          "status": 200,
+          "ms": 1351
+        },
+        {
+          "path": "/api/v1/employees/filter-options",
+          "method": "GET",
+          "status": 200,
+          "ms": 1351
+        },
+        {
+          "path": "/api/v1/company/designations/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1348
+        },
+        {
+          "path": "/api/v1/company/branches/",
+          "method": "GET",
+          "status": 200,
+          "ms": 1347
+        }
+      ]
+    },
+    {
+      "route": "/hrms/attendance",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 588
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 825
+        },
+        {
+          "path": "/api/v1/attendance/locks",
+          "method": "GET",
+          "status": 200,
+          "ms": 504
+        },
+        {
+          "path": "/api/v1/attendance/register",
+          "method": "GET",
+          "status": 200,
+          "ms": 527
+        }
+      ],
+      "readyMs": 1331,
+      "pending": [],
+      "headings": [
+        "Attendance & Scheduling",
+        "Attendance"
+      ],
+      "url": "/hrms/attendance",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 825
+        }
+      ]
+    },
+    {
+      "route": "/hrms/payroll",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 159
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 428
+        },
+        {
+          "path": "/api/v1/payroll/runs",
+          "method": "GET",
+          "status": 200,
+          "ms": 505
+        },
+        {
+          "path": "/api/v1/payroll/runs/6/guided",
+          "method": "GET",
+          "status": 200,
+          "ms": 243
+        }
+      ],
+      "readyMs": 1349,
+      "pending": [],
+      "headings": [
+        "Payroll",
+        "Payroll",
+        "Guided payroll"
+      ],
+      "url": "/hrms/payroll",
+      "alerts": [],
+      "slowApi": []
+    },
+    {
+      "route": "/srm",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 215
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 243
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "method": "GET",
+          "status": 200,
+          "ms": 395
+        },
+        {
+          "path": "/api/v1/srm/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 695
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 941
+        }
+      ],
+      "readyMs": 1321,
+      "pending": [],
+      "headings": [
+        "SRM setup",
+        "Sales Revenue Management",
+        "Collection priorities",
+        "Revenue events and order pipeline"
+      ],
+      "url": "/srm",
+      "alerts": [],
+      "slowApi": []
+    },
+    {
+      "route": "/srm/customer-360",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 484
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 583
+        },
+        {
+          "path": "/api/v1/master-data/company-directory/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 890
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 304,
+          "ms": 808
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 943
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 950
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1206
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 170
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 304,
+          "ms": 592
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 690
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 723
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 726
+        }
+      ],
+      "readyMs": 1458,
+      "pending": [],
+      "headings": [
+        "Customers"
+      ],
+      "url": "/srm/customer-360",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/master-data/company-directory/query",
+          "method": "GET",
+          "status": 200,
+          "ms": 890
+        }
+      ]
+    },
+    {
+      "route": "/srm/inventory",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 147
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 478
+        },
+        {
+          "path": "/api/v1/srm/inventory/warehouses",
+          "method": "GET",
+          "status": 200,
+          "ms": 1194
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 1197
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 428
+        }
+      ],
+      "readyMs": 1780,
+      "pending": [],
+      "headings": [
+        "Inventory Management"
+      ],
+      "url": "/srm/inventory",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 1197
+        },
+        {
+          "path": "/api/v1/srm/inventory/warehouses",
+          "method": "GET",
+          "status": 200,
+          "ms": 1194
+        }
+      ]
+    },
+    {
+      "route": "/srm/pos",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 149
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 592
+        },
+        {
+          "path": "/api/v1/srm/business/customers",
+          "method": "GET",
+          "status": 200,
+          "ms": 714
+        },
+        {
+          "path": "/api/v1/srm/inventory/items",
+          "method": "GET",
+          "status": 200,
+          "ms": 725
+        },
+        {
+          "path": "/api/v1/srm/pos/held-bills",
+          "method": "GET",
+          "status": 200,
+          "ms": 858
+        },
+        {
+          "path": "/api/v1/follow-ups/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 858
+        }
+      ],
+      "readyMs": 1461,
+      "pending": [],
+      "headings": [
+        "Sales & Inventory POS"
+      ],
+      "url": "/srm/pos",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/srm/pos/held-bills",
+          "method": "GET",
+          "status": 200,
+          "ms": 858
+        },
+        {
+          "path": "/api/v1/follow-ups/options",
+          "method": "GET",
+          "status": 200,
+          "ms": 858
+        }
+      ]
+    },
+    {
+      "route": "/fam",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 613
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 724
+        },
+        {
+          "path": "/api/v1/fam/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 880
+        }
+      ],
+      "readyMs": 1444,
+      "pending": [],
+      "headings": [
+        "Finance setup",
+        "FAM Dashboard"
+      ],
+      "url": "/fam",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/fam/dashboard",
+          "method": "GET",
+          "status": 200,
+          "ms": 880
+        }
+      ]
+    },
+    {
+      "route": "/fam/ledgers",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 146
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 435
+        },
+        {
+          "path": "/api/v1/fam/ledgers",
+          "method": "GET",
+          "status": 200,
+          "ms": 686
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 874
+        }
+      ],
+      "readyMs": 2448,
+      "pending": [],
+      "headings": [
+        "Ledgers"
+      ],
+      "url": "/fam/ledgers",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 874
+        }
+      ]
+    },
+    {
+      "route": "/fam/inventory/reports",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 152
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 434
+        },
+        {
+          "path": "/api/v1/fam/inventory/reports",
+          "method": "GET",
+          "status": 200,
+          "ms": 625
+        }
+      ],
+      "readyMs": 1110,
+      "pending": [],
+      "headings": [
+        "Inventory Reports"
+      ],
+      "url": "/fam/inventory/reports",
+      "alerts": [],
+      "slowApi": []
+    },
+    {
+      "route": "/power-apps",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 388
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 418
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "method": "GET",
+          "status": 200,
+          "ms": 422
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 423
+        },
+        {
+          "path": "/api/v1/power-apps/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 143
+        },
+        {
+          "path": "/api/v1/power-apps/activity",
+          "method": "GET",
+          "status": 200,
+          "ms": 424
+        }
+      ],
+      "readyMs": 1757,
+      "pending": [],
+      "headings": [
+        "Your business, with superpowers.",
+        "Everything you need to build",
+        "Recent work",
+        "A head start for every idea",
+        "Recent activity"
+      ],
+      "url": "/power-apps",
+      "alerts": [],
+      "slowApi": []
+    },
+    {
+      "route": "/power-apps/connectors",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 304,
+          "ms": 663
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 304,
+          "ms": 711
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/people",
+          "method": "GET",
+          "status": 304,
+          "ms": 1340
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 1529
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1770
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/monitor",
+          "method": "GET",
+          "status": 200,
+          "ms": 1793
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/connections",
+          "method": "GET",
+          "status": 200,
+          "ms": 1800
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "method": "GET",
+          "status": 304,
+          "ms": 1962
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 304,
+          "ms": 721
+        },
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 304,
+          "ms": 731
+        },
+        {
+          "path": "/api/v1/attendance/register",
+          "method": "GET",
+          "status": 304,
+          "ms": 818
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 304,
+          "ms": 811
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 177
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 781
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 780
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1041
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 304,
+          "ms": 559
+        }
+      ],
+      "readyMs": 5200,
+      "pending": [],
+      "headings": [
+        "Integration Studio",
+        "Start with webhooks",
+        "Explore integrations",
+        "Your connections",
+        "Recent provider requests"
+      ],
+      "url": "/power-apps/connectors",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/project-management/tasks",
+          "method": "GET",
+          "status": 304,
+          "ms": 1962
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/connections",
+          "method": "GET",
+          "status": 200,
+          "ms": 1800
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/monitor",
+          "method": "GET",
+          "status": 200,
+          "ms": 1793
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 1770
+        },
+        {
+          "path": "/api/v1/power-apps/integrations/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 1529
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/people",
+          "method": "GET",
+          "status": 304,
+          "ms": 1340
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1041
+        },
+        {
+          "path": "/api/v1/attendance/register",
+          "method": "GET",
+          "status": 304,
+          "ms": 818
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 304,
+          "ms": 811
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 781
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 780
+        }
+      ]
+    },
+    {
+      "route": "/power-apps/automations",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 148
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "method": "GET",
+          "status": 200,
+          "ms": 973
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 978
+        },
+        {
+          "path": "/api/v1/power-apps/activity",
+          "method": "GET",
+          "status": 200,
+          "ms": 562
+        },
+        {
+          "path": "/api/v1/power-apps/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 570
+        },
+        {
+          "path": "/api/v1/power-apps/automations/telegram/bots",
+          "method": "GET",
+          "status": 200,
+          "ms": 164
+        },
+        {
+          "path": "/api/v1/power-apps/automations",
+          "method": "GET",
+          "status": 200,
+          "ms": 437
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 678
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 692
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 715
+        }
+      ],
+      "readyMs": 2551,
+      "pending": [],
+      "headings": [
+        "Automations",
+        "Ideas become workflows."
+      ],
+      "url": "/power-apps/automations",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "method": "GET",
+          "status": 200,
+          "ms": 978
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "method": "GET",
+          "status": 200,
+          "ms": 973
+        }
+      ]
+    },
+    {
+      "route": "/power-apps/approvals",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 154
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/policies",
+          "method": "GET",
+          "status": 200,
+          "ms": 729
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/requests",
+          "method": "GET",
+          "status": 200,
+          "ms": 826
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/templates",
+          "method": "GET",
+          "status": 200,
+          "ms": 845
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/analytics",
+          "method": "GET",
+          "status": 200,
+          "ms": 1409
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/capabilities",
+          "method": "GET",
+          "status": 200,
+          "ms": 1421
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/people",
+          "method": "GET",
+          "status": 200,
+          "ms": 1452
+        },
+        {
+          "path": "/api/v1/access/me",
+          "method": "GET",
+          "status": 200,
+          "ms": 454
+        }
+      ],
+      "readyMs": 1998,
+      "pending": [],
+      "headings": [
+        "Overview",
+        "Keep good work moving."
+      ],
+      "url": "/power-apps/approvals",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/power-apps/approvals/people",
+          "method": "GET",
+          "status": 200,
+          "ms": 1452
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/capabilities",
+          "method": "GET",
+          "status": 200,
+          "ms": 1421
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/analytics",
+          "method": "GET",
+          "status": 200,
+          "ms": 1409
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/templates",
+          "method": "GET",
+          "status": 200,
+          "ms": 845
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/requests",
+          "method": "GET",
+          "status": 200,
+          "ms": 826
+        }
+      ]
+    },
+    {
+      "route": "/crm/communication-hub",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 142
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 489
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 554
+        },
+        {
+          "path": "/api/v1/communication/engagement/health-summary",
+          "method": "GET",
+          "status": 200,
+          "ms": 618
+        }
+      ],
+      "readyMs": 1224,
+      "pending": [],
+      "headings": [
+        "Communication Center",
+        "Start with the conversations that need you."
+      ],
+      "url": "/crm/communication-hub",
+      "alerts": [],
+      "slowApi": []
+    },
+    {
+      "route": "/ai-agents",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "method": "GET",
+          "status": 200,
+          "ms": 192
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 215
+        },
+        {
+          "path": "/api/v1/ai-agents/approvals/pending",
+          "method": "GET",
+          "status": 200,
+          "ms": 789
+        },
+        {
+          "path": "/api/v1/ai-agents/logs",
+          "method": "GET",
+          "status": 200,
+          "ms": 837
+        },
+        {
+          "path": "/api/v1/ai-agents/conversations",
+          "method": "GET",
+          "status": 200,
+          "ms": 864
+        },
+        {
+          "path": "/api/v1/ai-agents",
+          "method": "GET",
+          "status": 200,
+          "ms": 874
+        }
+      ],
+      "readyMs": 1442,
+      "pending": [],
+      "headings": [
+        "AI Agents"
+      ],
+      "url": "/ai-agents",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/ai-agents",
+          "method": "GET",
+          "status": 200,
+          "ms": 874
+        },
+        {
+          "path": "/api/v1/ai-agents/conversations",
+          "method": "GET",
+          "status": 200,
+          "ms": 864
+        },
+        {
+          "path": "/api/v1/ai-agents/logs",
+          "method": "GET",
+          "status": 200,
+          "ms": 837
+        },
+        {
+          "path": "/api/v1/ai-agents/approvals/pending",
+          "method": "GET",
+          "status": 200,
+          "ms": 789
+        }
+      ]
+    },
+    {
+      "route": "/settings",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/settings",
+          "method": "GET",
+          "status": 200,
+          "ms": 251
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 259
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 304,
+          "ms": 291
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/groups",
+          "method": "GET",
+          "status": 304,
+          "ms": 304
+        },
+        {
+          "path": "/api/v1/project-management/people-workspace/people",
+          "method": "GET",
+          "status": 304,
+          "ms": 1173
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "method": "GET",
+          "status": 304,
+          "ms": 1447
+        },
+        {
+          "path": "/api/v1/attendance/register",
+          "method": "GET",
+          "status": 304,
+          "ms": 897
+        },
+        {
+          "path": "/api/v1/company/departments/",
+          "method": "GET",
+          "status": 304,
+          "ms": 901
+        },
+        {
+          "path": "/api/v1/employees/",
+          "method": "GET",
+          "status": 304,
+          "ms": 903
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "method": "GET",
+          "status": 304,
+          "ms": 902
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/overview",
+          "method": "GET",
+          "status": 200,
+          "ms": 634
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/members",
+          "method": "GET",
+          "status": 200,
+          "ms": 709
+        },
+        {
+          "path": "/api/v1/project-management/workspaces/1/invitations",
+          "method": "GET",
+          "status": 200,
+          "ms": 912
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 819
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "method": "GET",
+          "status": 304,
+          "ms": 908
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 915
+        },
+        {
+          "path": "/api/v1/crm/lead-management/leads",
+          "method": "GET",
+          "status": 304,
+          "ms": 1253
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/grid/query",
+          "method": "GET",
+          "status": 304,
+          "ms": 1278
+        }
+      ],
+      "readyMs": 1099,
+      "pending": [],
+      "headings": [
+        "Settings",
+        "Let's get your workspace ready",
+        "Workspace setup",
+        "Personal2",
+        "Company8",
+        "People & HR7",
+        "Security4",
+        "Applications6",
+        "CRM6",
+        "Finance6",
+        "Communication1",
+        "Integrations4"
+      ],
+      "url": "/settings",
+      "alerts": [],
+      "slowApi": []
+    },
+    {
+      "route": "/settings/branches",
+      "errors": [],
+      "api": [
+        {
+          "path": "/api/v1/access/settings/branches",
+          "method": "GET",
+          "status": 200,
+          "ms": 746
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 769
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "method": "GET",
+          "status": 200,
+          "ms": 109
+        },
+        {
+          "path": "/api/v1/branches/ownership/inventory",
+          "method": "GET",
+          "status": 200,
+          "ms": 578
+        },
+        {
+          "path": "/api/v1/branches/access/users",
+          "method": "GET",
+          "status": 200,
+          "ms": 585
+        },
+        {
+          "path": "/api/v1/branches/manage",
+          "method": "GET",
+          "status": 200,
+          "ms": 585
+        }
+      ],
+      "readyMs": 1999,
+      "pending": [],
+      "headings": [
+        "Branches",
+        "Create a branch",
+        "Manage branches & recovery",
+        "Next: assign users and permissions"
+      ],
+      "url": "/settings/branches",
+      "alerts": [],
+      "slowApi": [
+        {
+          "path": "/api/v1/access/setup",
+          "method": "GET",
+          "status": 200,
+          "ms": 769
+        }
+      ]
+    },
+    {
+      "route": "/portal/customer/login",
+      "errors": [],
+      "api": [],
+      "readyMs": 447,
+      "pending": [],
+      "headings": [],
+      "url": "/portal/customer/login",
+      "alerts": [],
+      "slowApi": []
+    },
+    {
+      "route": "/portal/partner/login",
+      "errors": [],
+      "api": [],
+      "readyMs": 445,
+      "pending": [],
+      "headings": [],
+      "url": "/portal/partner/login",
+      "alerts": [],
+      "slowApi": []
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -530,12 +531,13 @@ class SRMReceiptCreate(BaseModel):
     payment_method: str = "bank_transfer"
     reference_number: str | None = None
     currency: str = "INR"
-    amount: Decimal = Decimal("0")
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
 
 
 class SRMReceiptAllocationRequest(BaseModel):
     invoice_id: int
-    amount: Decimal
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
+    request_id: UUID | None = None
 
 
 class SRMReminderRequest(BaseModel):
