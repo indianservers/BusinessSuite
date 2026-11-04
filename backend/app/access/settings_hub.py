@@ -289,7 +289,13 @@ def form_defaults_configuration(module: str | None = None, branch_id: int | None
     key = defaults.scope_key(ctx["company"], module, branch_id)
     row = db.query(ServicePolicy).filter_by(scope_key=key, organization_id=ctx["company"], kind="form_defaults").first()
     inherited = defaults.effective(db, ctx["company"], module, branch_id, skip_scope=key)
-    return {"fields": defaults.FIELDS, "choices": defaults.choices(db, ctx["company"]), "overrides": row.values_json if row else {}, "version": row.version if row else 0, "inherited": inherited["values"], "effective": defaults.effective(db, ctx["company"], module, branch_id)["values"], "companyId": ctx["company"]}
+    available = defaults.choices(db, ctx["company"])
+    from app.branches.service import access as branch_access
+    from app.models.company import Branch
+    from sqlalchemy import select
+    allowed, _, _, _ = branch_access(db, actor, ctx["company"])
+    available["branches"] = [{"value": row.id, "label": row.name} for row in db.connection().execute(select(Branch.id, Branch.name).where(Branch.company_id == ctx["company"], Branch.id.in_(allowed), Branch.is_active.is_(True)).order_by(Branch.name))]
+    return {"fields": defaults.FIELDS, "choices": available, "overrides": row.values_json if row else {}, "version": row.version if row else 0, "inherited": inherited["values"], "effective": defaults.effective(db, ctx["company"], module, branch_id)["values"], "companyId": ctx["company"]}
 
 
 @router.put("/defaults/configuration")

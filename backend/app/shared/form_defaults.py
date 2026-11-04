@@ -94,7 +94,10 @@ def validate(db, company_id, values, inherited):
         if kind == "reference":
             query, _ = refs[field["reference"]]
             model = query.column_descriptions[0]["entity"]
-            valid = type(value) is int and bool(query.filter(model.id == value).first())
+            if field["reference"] == "branches":
+                valid = type(value) is int and bool(db.connection().execute(select(Branch.id).where(Branch.id == value, Branch.company_id == company_id, Branch.is_active.is_(True))).first())
+            else:
+                valid = type(value) is int and bool(query.filter(model.id == value).first())
         elif kind == "select":
             valid = any(type(value) is type(option["value"]) and value == option["value"] for option in field["options"])
         elif kind == "number":
@@ -146,6 +149,10 @@ def creation_values(db, actor, entity, payload, module="crm"):
                 data["owner_user_id"] = values["owner_id"]
             elif values["owner_mode"] == "current_user":
                 data["owner_user_id"] = actor.id
+    if entity == "deals":
+        supplied_pipeline = data.get("pipeline_id", data.get("pipelineId"))
+        if supplied_pipeline != values.get("pipeline_id") and not {"stage_id", "stageId"}.intersection(payload):
+            data.pop("stage_id", None)
     if entity in {"quotes", "quotations"}:
         if not {"expiry_date", "valid_until", "expiryDate", "validUntil"}.intersection(data):
             data["expiry_date"] = (date.today() + timedelta(days=values["quote_validity_days"])).isoformat()
