@@ -40,7 +40,7 @@ try{
  // Scope changes preserve inheritance and let individual values be reset.
  await page.getByLabel('Defaults application',{exact:true}).selectOption('crm');
  await expect(page.getByRole('button',{name:'Currency',exact:true})).toContainText('USD');
- await page.getByRole('checkbox',{name:'Custom task priority'}).check();await page.getByLabel('Task priority',{exact:true}).selectOption('High');await page.getByRole('button',{name:'Save defaults',exact:true}).click();
+ await page.getByRole('button',{name:'CRM & tasks',exact:true}).click();await page.getByRole('checkbox',{name:'Custom task priority'}).check();await page.getByLabel('Task priority',{exact:true}).selectOption('High');await page.getByRole('button',{name:'Save defaults',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>globalThis.__saved['crm:'].values.task_priority)).toBe('High');
  await page.getByRole('checkbox',{name:'Custom task priority'}).uncheck();await page.getByRole('button',{name:'Save defaults',exact:true}).click();await expect.poll(()=>page.evaluate(()=>globalThis.__saved['crm:'].values.task_priority)).toBe(undefined);
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.resolve(root,'../outputs/defaults-settings-mobile.png'),fullPage:true});

@@ -27,6 +27,7 @@ function DefaultsEditor({ module, branch, changeScope }: { module: string; branc
   const [saved, setSaved] = useState<DefaultValues>({});
   const [version, setVersion] = useState(0);
   const [search, setSearch] = useState("");
+  const [activeGroup, setActiveGroup] = useState("General");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -56,7 +57,7 @@ function DefaultsEditor({ module, branch, changeScope }: { module: string; branc
       await Promise.all([qc.invalidateQueries({ queryKey: ["form-defaults"] }), qc.invalidateQueries({ queryKey: ["master-form-options"] }), qc.invalidateQueries({ queryKey: ["shared-settings"] })]);
     } catch (error) { setError(errorText(error)); } finally { setBusy(false); }
   }
-  const matching = data.fields.filter(field => `${field.label} ${field.group} ${field.help || ""}`.toLowerCase().includes(search.toLowerCase().trim()));
+  const matching = data.fields.filter(field => (search.trim() || field.group === activeGroup) && `${field.label} ${field.group} ${field.help || ""}`.toLowerCase().includes(search.toLowerCase().trim()));
   const groups = [...new Set(matching.map(field => field.group))];
   function control(field: Field) {
     const value = values[field.key]; const disabled = busy || !Object.prototype.hasOwnProperty.call(overrides, field.key);
@@ -78,6 +79,7 @@ function DefaultsEditor({ module, branch, changeScope }: { module: string; branc
     <p className="defaults-intro">Choose the starting values for new forms. You can change them while filling a form. Saved records and open drafts keep their values.</p>
     <div className="defaults-toolbar"><label>Application<NativeSelect searchable aria-label="Defaults application" disabled={busy} value={module} onChange={event => scope(event.target.value, branch)}>{modules.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</NativeSelect></label><label>Branch<NativeSelect searchable aria-label="Defaults branch" disabled={busy} value={branch} onChange={event => scope(module, event.target.value)}><option value="">All branches</option>{data.choices.branches.map(option => <option key={String(option.value)} value={String(option.value)}>{option.label}</option>)}</NativeSelect></label><label className="defaults-search"><Search size={16}/><input aria-label="Search defaults" placeholder="Find a default…" value={search} onChange={event => setSearch(event.target.value)}/></label></div>
     <p className="defaults-scope">{branch || module ? "Custom values here override company defaults. Turn Custom off to inherit." : "Set company-wide values. Turn Custom on to choose a value."}</p>
+    <nav className="defaults-categories" aria-label="Defaults categories">{[...new Set(data.fields.map(field => field.group))].map(group => <button type="button" key={group} aria-current={!search.trim() && activeGroup === group ? "page" : undefined} onClick={() => { setActiveGroup(group); setSearch(""); }}>{group}</button>)}</nav>
     {groups.map(group => <section className="defaults-group" key={group}><h2>{group}</h2><div>{matching.filter(field => field.group === group).map(field => <div className="defaults-row" key={field.key}><div><label id={`default-label-${field.key}`}>{field.label}</label>{field.help && <p>{field.help}</p>}</div><div className="defaults-control">{control(field)}</div><label className="defaults-override"><input type="checkbox" aria-label={`Custom ${field.label.toLowerCase()}`} checked={Object.prototype.hasOwnProperty.call(overrides, field.key)} disabled={busy} onChange={event => event.target.checked ? set(field.key, values[field.key]) : inherit(field.key)}/>Custom</label></div>)}</div></section>)}
     {!matching.length && <p role="status">No defaults match your search.</p>}
     <footer className="defaults-footer"><Button type="button" variant="outline" disabled={busy || !Object.keys(overrides).length} onClick={() => { setOverrides({}); setMessage(""); }}><RotateCcw size={15}/>Use inherited values</Button><span>{Object.keys(overrides).length} custom defaults{dirty ? " · Unsaved changes" : ""}</span><Button type="button" disabled={busy || !dirty} onClick={() => void save()}><Save size={15}/>{busy ? "Saving…" : "Save defaults"}</Button></footer>
