@@ -1,3 +1,4 @@
+import { defaultText } from "@/lib/form-defaults";
 import { E164PhoneInput } from "@/lib/validation/PhoneInput";
 import { CountrySelect, CurrencySelect, bankCodeError } from "@/lib/validation/business";
 import { useState } from "react";
@@ -23,7 +24,7 @@ async function loadFinancialData(contactId: number) {
 }
 
 
-export default function FinancialDataTab({contactId, value, onChange, readOnly = false, defaultCountry="IN", defaultCurrency="INR"}: {contactId?: number; value?: FinancialData; onChange?: (data: FinancialData) => void; readOnly?: boolean;defaultCountry?:string;defaultCurrency?:string}) {
+export default function FinancialDataTab({contactId, value, onChange, readOnly = false, defaultCountry=defaultText("country"), defaultCurrency=defaultText("currency")}: {contactId?: number; value?: FinancialData; onChange?: (data: FinancialData) => void; readOnly?: boolean;defaultCountry?:string;defaultCurrency?:string}) {
   const profile = useQuery<FinancialData & {canManage?: boolean; canVoid?: boolean}>({queryKey: ["contact-financial", masterScope(), contactId], enabled: !!contactId, queryFn: () => loadFinancialData(contactId!), staleTime: 0});
   const {canManage: _canManage, canVoid: _canVoid, ...storedData} = profile.data || {...emptyData, canManage: false};
   const data = value || storedData;

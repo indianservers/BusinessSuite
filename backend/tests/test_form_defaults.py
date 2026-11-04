@@ -52,7 +52,7 @@ def test_permissions_and_tenant_isolation(client,db):
     assert r.json()['values']['currency']=='EUR'
     other=Company(name='Other tenant',default_currency='GBP');db.add(other);db.flush()
     branch=Branch(name='Foreign branch',company_id=other.id);db.add(branch);db.commit()
-    assert client.get(URL,params={'branch_id':branch.id},headers=admin).status_code==422
+    assert client.get(URL,params={'branch_id':branch.id},headers=admin).status_code==403
     assert client.put(URL,headers=admin,json={'version':1,'values':{'branch_id':branch.id}}).status_code==422
     assert effective(db,other.id)['values']['currency']=='GBP'
 

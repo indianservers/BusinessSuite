@@ -830,6 +830,7 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
   ],
   quotes: [
     { key: "quote", label: "Quote number", placeholder: "QT-2026-001" },
+    { key: "currency", label: "Currency" },
     { key: "status", label: "Status", type: "select", options: ["Draft", "Pending Approval", "Approved", "Sent", "Accepted", "Declined"] },
     { key: "issueDate", label: "Quote date", type: "date" },
     { key: "expiryDate", label: "Valid until", type: "date" },
@@ -837,6 +838,7 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
   ],
   quotations: [
     { key: "quote", label: "Quote number", placeholder: "QT-2026-001" },
+    { key: "currency", label: "Currency" },
     { key: "status", label: "Status", type: "select", options: ["Draft", "Sent", "Accepted", "Rejected"] },
     { key: "issueDate", label: "Issue date", type: "date" },
     { key: "expiryDate", label: "Expiry date", type: "date" },
@@ -5910,7 +5912,7 @@ function recordToDealRow(record: CRMRecord, lookups: { companyNames: Map<number,
 }
 
 function dealFormInitial(deal: CRMDealRow | null): CRMApiRecord {
-  return { assigned_team_id: deal?.assigned_team_id || "", related_contacts: (deal?.contactLinks || []).map(link => ({contactId: Number(link.contactId || link.contact_id), role: link.role || "Stakeholder", isPrimary: Boolean(link.isPrimary || link.is_primary)})), currency: deal ? (deal.currency || "INR") : (defaultText("currency", "crm")), priority: deal ? (deal.priority || "Medium") : (defaultText("task_priority", "crm")), deal_type: deal?.deal_type || "New Business", industry: deal?.industry || "", internal_reference: deal?.internal_reference || "", planning: deal?.planning || {}, name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal ? (deal.pipelineId || "") : (defaultId("pipeline_id", "crm") || ""), stageId: deal ? (deal.stageId || "") : (defaultId("stage_id", "crm") || ""), amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal?.nextFollowUp?.slice(0, 10) || "", description: deal?.description || "", source: deal ? (deal.source || "") : (defaultText("lead_source", "crm")), ownerId: deal ? (deal.ownerId || "") : (defaultOwner("crm") || ""), territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
+  return { assigned_team_id: deal?.assigned_team_id || "", related_contacts: (deal?.contactLinks || []).map(link => ({contactId: Number(link.contactId || link.contact_id), role: link.role || "Stakeholder", isPrimary: Boolean(link.isPrimary || link.is_primary)})), currency: deal ? (deal.currency || "INR") : (defaultText("currency", "crm")), priority: deal ? (deal.priority || "Medium") : (defaultText("task_priority", "crm")), deal_type: deal?.deal_type || "New Business", industry: deal?.industry || "", internal_reference: deal?.internal_reference || "", planning: deal?.planning || {}, name: deal?.name || "", companyId: deal?.companyId || "", contactId: deal?.contactId || "", pipelineId: deal ? (deal.pipelineId || "") : (defaultId("pipeline_id", "crm") || ""), stageId: deal ? (deal.stageId || "") : (defaultId("stage_id", "crm") || ""), amount: deal?.amount || "", probability: deal?.probability || "", expectedCloseDate: deal?.expectedCloseDate?.slice(0, 10) || "", nextFollowUp: deal ? (deal.nextFollowUp?.slice(0, 10) || "") : defaultDateAfter("follow_up_days", "crm"), description: deal?.description || "", source: deal ? (deal.source || "") : (defaultText("lead_source", "crm")), ownerId: deal ? (deal.ownerId || "") : (defaultOwner("crm") || ""), territoryId: deal?.territoryId || "", status: deal?.status || "Open" };
 }
 
 function dealCustomFieldInitial(deal: CRMDealRow | null): CRMApiRecord {
@@ -8185,7 +8187,10 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
   const initialDraft = useMemo(() => ({
     name: seedName || defaultName,
     subject: defaultName,
-    owner: "",
+    currency: defaultText("currency", "crm"),
+    expiryDate: defaultDateAfter("quote_validity_days", "crm"),
+    priority: defaultText("task_priority", "crm"),
+    owner: defaultOwner("crm") || "",
     status: kind === "tickets" ? "Open" : "New",
     nextFollowUp: defaultDateAfter("follow_up_days", "crm"),
   }), [defaultName, kind, seedName]);
@@ -8537,6 +8542,7 @@ function QuickFormInput({
   };
 
   if(phoneFields.has(field.key))return <PhoneInput label={field.label} value={value} countryCode={String(draft[field.key+'_country_code'] ?? (draft.id ? '' : '+91'))} onChange={next=>{updateValue(next);if(draft[field.key+'_country_code']==null&&!draft.id)patchDraft(field.key+'_country_code','+91');}} onCountryCodeChange={code=>patchDraft(field.key+'_country_code',code)} />;
+  if (field.key === "currency") return <CurrencySelect value={value} onChange={updateValue}/>;
   if (field.type === "select") {
     return (
       <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => updateValue(event.target.value)}>
@@ -8981,10 +8987,10 @@ function createPayloadForKind(kind: CRMPageKind, record: CRMRecord): CRMApiRecor
   if (kind === "deals") return { name: record.name, pipeline_id: record.pipelineId || 1, stage_id: record.stageId || 1, amount: record.amount, probability: record.probability, status: record.status || "Open", expected_close_date: record.nextFollowUp, description: record.description || record.nextStep, lead_source: record.source, source: record.source, ownerId };
   if (kind === "activities") return { activity_type: record.type || "Task", subject: record.subject || record.name || "Activity", status: record.status, priority: record.priority, due_date: record.nextFollowUp, ownerId };
   if (kind === "tasks") return { title: record.subject || record.name || "Task", status: record.status, priority: record.priority, due_date: record.nextFollowUp, ownerId };
-  if (kind === "products") return { currency: String(record.currency || "INR").toUpperCase(), name: record.name, product_code: record.productCode || record.sku, sku: record.sku || record.productCode, category: record.category, list_price: record.price || 0, unit_price: record.price || 0, cost_price: record.cost || 0, status: record.status || "Active", active: record.status !== "Inactive" };
-  if (kind === "services") return { currency: String(record.currency || "INR").toUpperCase(), service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
-  if (kind === "priceBooks") return { name: record.name, currency: record.currency || "INR", region: record.region, customer_segment: record.segment, status: record.status || "active", active: record.status !== "inactive" };
-  if (kind === "quotations" || kind === "quotes") return { quote_number: record.quote || `QT-${Date.now()}`, quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10), status: record.status || "Draft", grand_total: record.total };
+  if (kind === "products") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), name: record.name, product_code: record.productCode || record.sku, sku: record.sku || record.productCode, category: record.category, list_price: record.price || 0, unit_price: record.price || 0, cost_price: record.cost || 0, status: record.status || "Active", active: record.status !== "Inactive" };
+  if (kind === "services") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
+  if (kind === "priceBooks") return { name: record.name, currency: record.currency || defaultText("currency", "crm"), region: record.region, customer_segment: record.segment, status: record.status || "active", active: record.status !== "inactive" };
+  if (kind === "quotations" || kind === "quotes") return { currency: record.currency || defaultText("currency", "crm"), quote_number: record.quote || `QT-${Date.now()}`, quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), status: record.status || "Draft", grand_total: record.total };
   if (kind === "cpq") return { name: record.name || "CPQ Rule", rule_type: record.type || "recommendation", condition: { minAmount: Number(record.amount || 0) }, action: { message: "Review recommended configuration" }, active: true };
   if (kind === "guidedSelling") return { name: record.name || "Guided Selling Flow", questions: [], recommendations: [], active: true };
   if (kind === "campaigns") return { name: record.name, campaign_type: record.type || "Email", status: record.status || "Planned", start_date: record.startDate || new Date().toISOString().slice(0, 10), end_date: record.endDate || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), budget_amount: record.budget || 0, expected_revenue: record.expectedRevenue || 0, ownerId };
