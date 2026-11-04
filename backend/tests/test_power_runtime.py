@@ -189,7 +189,7 @@ def test_d_delay_release_and_new_session_resume(client, db, actors):
 
 @pytest.mark.parametrize('offset_aware', [True, False])
 def test_wait_until_mapped_timestamp_is_validated_at_execution(client, db, actors, offset_aware):
-    wait_node = node('wait', 'wait_until', until='2099-01-01T00:00:00+00:00')
+    wait_node = node('wait', 'wait_until')
     wait_node['mappings'] = {'until': {'source': '{{trigger.input.at}}', 'target_type': 'datetime'}}
     value = definition(nodes=[wait_node, node('log', 'log_event', message='Mapped timer resumed')],
                        edges=[edge('start', 'wait'), edge('wait', 'log')])

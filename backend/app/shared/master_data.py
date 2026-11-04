@@ -625,6 +625,8 @@ def edit_company(ident: int, data: CompanyInput, source: Source = "crm", db: Ses
     row = owner(db, actor, "company", ident, source, True)
     current = {key: value for key, value in company_output(db, row).items() if key in CompanyInput.model_fields}
     current.pop("version", None)  # Clients must still present the reviewed revision.
+    if "branch_availability" not in data.model_fields_set:
+        current.pop("branch_availability", None)
     data = CompanyInput.model_validate({**current, **data.model_dump(exclude_unset=True)})
     write_company(db, actor, source, data, row)
     save_profile_availability(db, actor, row, data.branch_availability, source)

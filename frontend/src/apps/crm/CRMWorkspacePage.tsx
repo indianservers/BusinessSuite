@@ -1,3 +1,4 @@
+import BranchAvailability, { type BranchAvailabilityValue } from "@/shared/BranchAvailability";
 import PhoneActions from "@/components/PhoneActions";
 import { api as directoryApi } from "@/services/api";
 import { RecordQuickActions, RecordMessageDraft } from "@/shared/records/RecordWorkspace";
@@ -4562,11 +4563,12 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivi
 
 export function ContactFormModal({ mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
   const [initial] = useState(() => contactFormInitial(mode === "edit" ? contact : null));
+  const [availability, setAvailability] = useState<BranchAvailabilityValue>();
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
   const [contactTab, setContactTab] = useState("basic");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initial) || catalogLines.length > 0;
+  const dirty = availability !== undefined || JSON.stringify(draft) !== JSON.stringify(initial) || catalogLines.length > 0;
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
     if (dirty && !window.confirm("Discard unsaved contact changes?")) return;
@@ -4588,6 +4590,7 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
     const fullPayload = buildContactPayload(draft);
     if (mode === "create") fullPayload.catalog_lines = catalogLines.map(linePayload);
     const dirtyPayload = buildContactDirtyPayload(draft, initial);
+    if (availability) { fullPayload.branch_availability = availability as unknown as CRMApiRecord; dirtyPayload.branch_availability = availability as unknown as CRMApiRecord; }
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
   };
   return (
@@ -4598,7 +4601,7 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close contact form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="suite-dialog-body space-y-4 px-5 py-4">{error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
-          <FormSectionTabs label="contact form sections" active={contactTab} onChange={setContactTab} sections={[{id:"basic",label:"Basic details",content:(<LeadFormSection title="Basic details"><LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField><LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField></LeadFormSection>)},{id:"contact",label:"Contact info",content:(<LeadFormSection title="Communication details"><CommunicationDraftEditor ownerId={mode==="edit"?contact?.id:undefined} value={Array.isArray(draft.communicationChannels)?draft.communicationChannels as unknown as CommunicationEntry[]:primaryEntries(valueText(draft.email),valueText(draft.phone),valueText(draft.phone_country_code))} onChange={(items,version)=>{patch("communicationChannels",items as unknown as CRMApiRecord[]);patch("communicationVersion",version);const email=items.find(x=>x.kind==="email"&&x.primary);const phone=items.find(x=>x.kind==="phone"&&x.primary);patch("email",email?.value||"");patch("phone",(phone?.value||"").replace(/[ ()-]/g,""));patch("phone_country_code",phone?.countryCode||"+91");}}/><SharedNumberConfirmation phone={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} email={valueText(draft.email)} confirmed={draft.confirmShared===true} reason={valueText(draft.sharedReason)} onChange={(confirmed,reason)=>{patch("confirmShared",confirmed);patch("sharedReason",reason);}}/></LeadFormSection>)},{id:"financial",label:"Financial data",content:(<FinancialDataTab contactId={mode==="edit"?contact?.id:undefined} value={draft.financialData as unknown as FinancialData|undefined} onChange={data=>patch("financialData",data as unknown as CRMApiRecord)}/>)},{id:"company",label:"Company & ownership",content:(<LeadFormSection title="Relationship">
+          <FormSectionTabs label="contact form sections" active={contactTab} onChange={setContactTab} sections={[{id:"basic",label:"Basic details",content:(<LeadFormSection title="Basic details"><div className="col-span-full"><BranchAvailability value={availability} editing={mode === "edit"} resource={mode === "edit" && contact ? {table:"crm_contacts", id:contact.id} : undefined} disabled={saving} onChange={setAvailability}/></div><LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField><LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField></LeadFormSection>)},{id:"contact",label:"Contact info",content:(<LeadFormSection title="Communication details"><CommunicationDraftEditor ownerId={mode==="edit"?contact?.id:undefined} value={Array.isArray(draft.communicationChannels)?draft.communicationChannels as unknown as CommunicationEntry[]:primaryEntries(valueText(draft.email),valueText(draft.phone),valueText(draft.phone_country_code))} onChange={(items,version)=>{patch("communicationChannels",items as unknown as CRMApiRecord[]);patch("communicationVersion",version);const email=items.find(x=>x.kind==="email"&&x.primary);const phone=items.find(x=>x.kind==="phone"&&x.primary);patch("email",email?.value||"");patch("phone",(phone?.value||"").replace(/[ ()-]/g,""));patch("phone_country_code",phone?.countryCode||"+91");}}/><SharedNumberConfirmation phone={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} email={valueText(draft.email)} confirmed={draft.confirmShared===true} reason={valueText(draft.sharedReason)} onChange={(confirmed,reason)=>{patch("confirmShared",confirmed);patch("sharedReason",reason);}}/></LeadFormSection>)},{id:"financial",label:"Financial data",content:(<FinancialDataTab contactId={mode==="edit"?contact?.id:undefined} value={draft.financialData as unknown as FinancialData|undefined} onChange={data=>patch("financialData",data as unknown as CRMApiRecord)}/>)},{id:"company",label:"Company & ownership",content:(<LeadFormSection title="Relationship">
             <LeadFormField label="Company"><SharedCompanySelect value={valueText(draft.companyId)} onChange={value=>patch("companyId",value)} initial={companies.map(company=>({id:Number(company.id),name:String(company.name||company.company_name||company.id)}))}/></LeadFormField>
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
             <LeadFormField label="Lifecycle stage"><LeadFormSelect value={valueText(draft.stage)} values={stages} onChange={(value) => patch("stage", value)} /></LeadFormField>
@@ -5239,12 +5242,13 @@ function AccountRelatedTile({ icon, label, value, onClick }: { icon: React.React
 
 function AccountFormModal({ mode, account, saving, error, owners, territories, industries, types, statuses, onClose, onSave }: { mode: AccountFormMode; account: CRMAccount | null; saving: boolean; error: string | null; owners: CRMRecord[]; territories: CRMRecord[]; industries: string[]; types: string[]; statuses: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
   const initial = useMemo(() => accountFormInitial(account), [account?.id]);
+  const [availability, setAvailability] = useState<BranchAvailabilityValue>();
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
   const [accountTab, setAccountTab] = useState("section-0");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   useEffect(() => setDraft(initial), [initial]);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const dirty = availability !== undefined || JSON.stringify(draft) !== JSON.stringify(initial);
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
     if (dirty && !window.confirm("Discard unsaved account changes?")) return;
@@ -5257,6 +5261,7 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
     const fullPayload = buildAccountPayload(draft);
     if (mode === "create" && catalogLines.length) fullPayload.catalog_lines = catalogLines.map(linePayload);
     const dirtyPayload = buildAccountDirtyPayload(draft, initial);
+    if (availability) { fullPayload.branch_availability = availability as unknown as CRMApiRecord; dirtyPayload.branch_availability = availability as unknown as CRMApiRecord; }
     onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
   };
   return (
@@ -5267,6 +5272,7 @@ function AccountFormModal({ mode, account, saving, error, owners, territories, i
           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent" onClick={requestClose} disabled={saving} aria-label="Close account form"><X className="h-4 w-4" /></Button>
         </div>
         <div className="suite-dialog-body space-y-4 px-5 py-4">{error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
+          <BranchAvailability value={availability} editing={mode === "edit"} resource={mode === "edit" && account ? {table:"crm_companies", id:account.id} : undefined} disabled={saving} onChange={setAvailability}/>
           <FormSectionTabs label="account form sections" active={accountTab} onChange={setAccountTab} sections={[{id:"section-0",label:"Company details",content:(<LeadFormSection title="Company details">
               <LeadFormField label="Company name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter company name" /></LeadFormField>
               <LeadFormField label="Industry" required><LeadFormSelect value={valueText(draft.industry)} values={industries} onChange={(value) => patch("industry", value)} /></LeadFormField>

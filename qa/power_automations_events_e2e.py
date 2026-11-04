@@ -89,9 +89,9 @@ def cancel_delay():
 
 
 def wait_until():
-    value = timer('wait_until', until='2099-01-01T00:00:00+00:00')
+    value = timer('wait_until')
     next(item for item in value['nodes'] if item['id'] == 'wait')['mappings'] = {'until': {'source': '{{trigger.input.at}}', 'target_type': 'datetime'}}
-    row = save('Wait Until', value)
+    row = save('Wait Until Mapped', value)
     at = datetime.now(timezone.utc) + timedelta(seconds=10)
     id = execute(row, {'at': at.isoformat()})
     report, seen = wait(id)
@@ -170,7 +170,7 @@ def http_case(method='GET', failure=False):
     step = next(s for s in report['steps'] if s['original_node_id'] == 'api')
     if failure:
         assert step['error'] and any(e['kind'] in {'step_failed', 'failed', 'run_failed'} for e in report['events']), report['events']
-        assert step.get('error_type') == 'remote' and 'HTTP 404' in step['error'], 'Failure must come from the remote 404, not a local network or egress rejection'
+        assert step.get('error_type') == 'ExternalActionFailed' and 'HTTP 404' in step['error'], 'Failure must come from the remote 404, not a local network or egress rejection'
         assert 'API request completed' not in log_messages(report)
     else:
         assert step['output']['status_code'] == 200, step['output']

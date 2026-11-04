@@ -105,3 +105,18 @@ def save_profile_availability(db, actor, row, value, module="crm", action="edit"
         link = db.query(ContactIdentityLink).filter(ContactIdentityLink.account_id == row.id).first()
         if link:
             save_profile_availability(db, actor, link.contact, value, module, action)
+
+
+def capture_availability(payload, db, actor, entity, action):
+    """Remove and validate scope before legacy CRM field validation or writes."""
+    raw = payload.pop("branch_availability", None)
+    if raw is None:
+        return None
+    from pydantic import ValidationError
+    try:
+        value = BranchAvailability.model_validate(raw)
+    except ValidationError:
+        raise HTTPException(422, "Invalid branch availability selection")
+    from app.apps.crm.api.router import _assert_entity_permission
+    resolve(db, actor, value, "crm", action, lambda: _assert_entity_permission(entity, actor, "manage"))
+    return value

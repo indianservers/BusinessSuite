@@ -108,3 +108,15 @@ def test_destination_module_viewer_cannot_receive_new_offering(client, db, scope
     response = client.post("/api/v1/catalog/items?source=srm", headers=headers(scope), json={**item("product", code="VIEWER-DEST"), "branch_availability": {"scope": "selected", "branch_ids": [b.id for b in scope[1][:2]]}})
     assert response.status_code == 403, response.text
     assert "module role" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("entity,payload", [("contacts", {"firstName": "Branch", "lastName": "Contact"}), ("companies", {"name": "Branch CRM account"})])
+def test_legacy_crm_forms_create_and_edit_availability(client, scope, entity, payload):
+    root = "/api/v1/crm/" + entity
+    created = client.post(root, headers=headers(scope), json={**payload, "branch_availability": {"scope": "all"}})
+    assert created.status_code in {200, 201}, created.text
+    ident = created.json()["id"]
+    assert client.get(f"{root}/{ident}", headers=headers(scope, 1)).status_code == 200
+    response = client.patch(f"{root}/{ident}", headers=headers(scope), json={"branch_availability": {"scope": "current"}})
+    assert response.status_code == 200, response.text
+    assert client.get(f"{root}/{ident}", headers=headers(scope, 1)).status_code == 404

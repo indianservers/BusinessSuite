@@ -8699,6 +8699,10 @@ def create_record(
         from app.shared.catalog import save_legacy
         return save_legacy(db, current_user, "products" if resource.model is CRMProduct else "services", _validate_and_build(resource, payload.model_dump(exclude_unset=True), partial=False))
     raw_payload = payload.model_dump()
+    branch_capture = None
+    if resource.model in {CRMContact, CRMCompany}:
+        from app.shared.branch_availability import capture_availability
+        branch_capture = capture_availability(raw_payload, db, current_user, entity, "create")
     financial_capture = raw_payload.pop("financialData", None) if resource.model is CRMContact else None
     catalog_lines = raw_payload.pop("catalog_lines", None)
     master_capture = None
@@ -8822,6 +8826,9 @@ def create_record(
     if financial_capture is not None:
         from app.apps.crm.financial_data import parse_and_save_profile
         parse_and_save_profile(db, current_user, record, financial_capture)
+    if branch_capture is not None:
+        from app.shared.branch_availability import save_profile_availability
+        save_profile_availability(db, current_user, record, branch_capture, action="create")
     if resource.model is CRMDeal: db.flush()
     else: db.commit()
     db.refresh(record)
@@ -8858,6 +8865,10 @@ def update_record(
         if detail: detail.version += 1
     before = {key: getattr(record, key) for key in _columns(resource.model) if key in IMPORTANT_UPDATE_FIELDS}
     raw_payload = payload.model_dump(exclude_unset=True)
+    branch_capture = None
+    if resource.model in {CRMContact, CRMCompany}:
+        from app.shared.branch_availability import capture_availability
+        branch_capture = capture_availability(raw_payload, db, current_user, entity, "edit")
     financial_capture = raw_payload.pop("financialData", None) if resource.model is CRMContact else None
     master_capture = None
     master_initial_version = None
@@ -8978,6 +8989,9 @@ def update_record(
         parse_and_save_profile(db, current_user, record, financial_capture)
     from app.shared.catalog import save_form_links
     save_form_links(db, current_user, record, catalog_lines)
+    if branch_capture is not None:
+        from app.shared.branch_availability import save_profile_availability
+        save_profile_availability(db, current_user, record, branch_capture)
     if resource.model is CRMDeal: db.flush()
     else: db.commit()
     db.refresh(record)
