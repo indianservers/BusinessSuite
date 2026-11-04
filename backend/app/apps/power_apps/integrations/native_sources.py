@@ -499,6 +499,18 @@ def poll_files(client, mid, setup, private):
     return result
 
 
+def calendar_changes(setup,state,rows,initial=False,change=None):
+    inventory=state.setdefault("calendar",{}); result=[]
+    for row in rows:
+        id=row["id"]; old=inventory.get(id); record=compact(row)
+        name="event_deleted" if change=="deleted" or row.get("status")=="cancelled" or row.get("isCancelled") else "event_created" if change=="created" or old is None and change!="updated" else "event_updated"
+        if old and old.get("attendees")!=record.get("attendees") and setup["event"]=="attendee_response_changed": name="attendee_response_changed"
+        inventory[id]=record
+        if not initial and old!=record:
+            result.append(event(name,{"id":id,"calendar_id":setup.get("calendar_id"),"mailbox":setup.get("mailbox"),"current":record,"previous":old},[id,name,row.get("changeKey") or row.get("updated") or row.get("lastModifiedDateTime") or digest(record)]))
+    return result
+
+
 def poll_calendar(client, mid, setup, private):
     state = private["state"]
     if mid == "google_calendar":
@@ -532,37 +544,7 @@ def poll_calendar(client, mid, setup, private):
         )
         initial = "calendar" not in state
     inventory = state.setdefault("calendar", {})
-    result = []
-    for row in rows:
-        id = row["id"]
-        old = inventory.get(id)
-        record = compact(row)
-        deleted = row.get("status") == "cancelled" or row.get("isCancelled")
-        name = (
-            "event_deleted"
-            if deleted
-            else "event_created" if old is None else "event_updated"
-        )
-        if (
-            old
-            and old.get("attendees") != record.get("attendees")
-            and setup["event"] == "attendee_response_changed"
-        ):
-            name = "attendee_response_changed"
-        inventory[id] = record
-        if not initial and old != record:
-            result.append(
-                event(
-                    name,
-                    {
-                        "id": id,
-                        "calendar_id": setup.get("calendar_id"),
-                        "mailbox": setup.get("mailbox"),
-                        "current": record,
-                        "previous": old,
-                    },
-                )
-            )
+    result = calendar_changes(setup,state,rows,initial)
     if setup["event"] == "event_approaching":
         lead = setup.get("minutes_before", 15) * 60
         now = time.time()
@@ -671,7 +653,7 @@ def gmail_messages(client, setup, private):
                 data = {
                     "id": id,
                     "thread_id": message.get("threadId"),
-                    "label_ids": labels,
+                    "label_ids": change.get("labelIds",labels) if setup["event"]=="label_added" else labels,
                     "sender": parseaddr(headers.get("from", ""))[1],
                     "subject": headers.get("subject", ""),
                     "has_attachments": bool(files),

@@ -1,4 +1,4 @@
-import GridTable from "@/shared/data-grid/GridTable";
+import LocalRecordGrid from "@/shared/data-grid/LocalRecordGrid";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -688,7 +688,7 @@ export default function TaskListPage() {
 
       <Card>
         <CardHeader className="gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-2"><Button variant={groupByStatus ? "secondary" : "outline"} size="sm" aria-pressed={groupByStatus} onClick={() => setGroupByStatus(value => !value)}>Group: {groupByStatus ? "Status" : "None"}</Button>{groupByStatus && <Button variant="ghost" size="sm" onClick={() => setCollapsedGroups(collapsedGroups.length ? [] : taskGroups.map(group => group.status))}>{collapsedGroups.length ? "Expand all" : "Collapse all"}</Button>}<Button variant="outline" size="sm" aria-expanded={columnsOpen} onClick={() => setColumnsOpen(open => !open)}><Columns3 className="h-4 w-4" />Columns</Button></div>
+          <div className="flex flex-wrap items-center gap-2"><Button className="lg:hidden" variant={groupByStatus ? "secondary" : "outline"} size="sm" aria-pressed={groupByStatus} onClick={() => setGroupByStatus(value => !value)}>Group: {groupByStatus ? "Status" : "None"}</Button>{groupByStatus && <Button className="lg:hidden" variant="ghost" size="sm" onClick={() => setCollapsedGroups(collapsedGroups.length ? [] : taskGroups.map(group => group.status))}>{collapsedGroups.length ? "Expand all" : "Collapse all"}</Button>}<Button variant="outline" size="sm" aria-expanded={columnsOpen} onClick={() => setColumnsOpen(open => !open)}><Columns3 className="h-4 w-4" />Columns</Button></div>
           <p className="text-sm text-muted-foreground">{firstResult}-{lastResult} of {data?.total || 0}</p>
         </CardHeader>
         <CardContent hidden={!columnsOpen}>
@@ -739,56 +739,24 @@ export default function TaskListPage() {
           {!loading && data?.items.length ? (
             <>
               <div className={cn("overflow-x-auto", layout === "gallery" ? "hidden" : "hidden lg:block")}>
-                <GridTable gridId="apps/project-management/pages/TaskListPage:table-1" className="min-w-[1180px] w-full text-sm">
-                  <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="w-12 px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={allPageTasksSelected}
-                          onChange={(event) => togglePageSelection(event.target.checked)}
-                          aria-label="Select all tasks on this page"
-                        />
-                      </th>
-                      {visibleColumnList.map((column) => (
-                        <th key={column.key} className="whitespace-nowrap px-4 py-3">
-                          <SortButton column={column.key} label={column.label} sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {taskGroups.map(group => <Fragment key={group.status}>
-                    {groupByStatus && <tr className="border-b bg-muted/25"><td colSpan={visibleColumnList.length + 1} className="px-4 py-2"><button type="button" className="flex w-full items-center gap-2 py-1 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4 transition-transform", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs font-normal text-muted-foreground">{group.items.length} on this page</span></button></td></tr>}
-                    {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
-                      <Fragment key={task.id}><RecordActions record={{...task,key:task.task_key}} canEdit={data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><tr
-                        tabIndex={0}
-                        onKeyDown={(event) => {
-                          if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); }
-                        }}
-                        className={cn("cursor-pointer border-b transition hover:bg-muted/40 focus:bg-muted/40 focus:outline-none", selectedTaskIds.includes(task.id) ? "bg-primary/5" : "")}
-                      >
-                        <td className="px-4 py-3 align-middle">
-                          <input
-                            type="checkbox"
-                            checked={selectedTaskIds.includes(task.id)}
-                            onClick={(event) => event.stopPropagation()}
-                            onChange={(event) => toggleTaskSelection(task.id, event.target.checked)}
-                            aria-label={`Select ${task.task_key || task.title}`}
-                          />{menu}
-                        </td>
-                        {visibleColumnList.map((column) => (
-                          <td key={column.key} className="max-w-72 px-4 py-3 align-middle">
-                            {renderCell(task, column.key)}
-                          </td>
-                        ))}
-                      </tr>}</RecordActions>
-                      {createdChildren[task.id]?.map(child => <tr {...recordPreviewProps(child)} key={`child-${child.id}`} className="border-b bg-muted/20"><td /><td colSpan={visibleColumnList.length} className="px-6 py-2"><Link className="text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link><Badge className="ml-2">{child.status}</Badge></td></tr>)}
-                      {inlineParent === task.id && <tr><td /><td colSpan={visibleColumnList.length} className="p-3"><InlineSubtaskComposer key={task.id} parent={task} onCreated={child => subtaskCreated(task, child)} onCancel={() => setInlineParent(null)} /></td></tr>}
-                      </Fragment>
-                    ))}</Fragment>)}
-                  </tbody>
-                </GridTable>
+                <LocalRecordGrid<PMSTaskListItem>
+                  gridId="pms-advanced-tasks" rows={data.items} getRowId={task => String(task.id)}
+                  columns={visibleColumnList.map(column => ({
+                    id: column.key, title: column.label, width: column.key === "title" ? 320 : 170,
+                    type: column.key === "status" || column.key === "priority" ? "status" as const : "text" as const,
+                    accessor: task => column.key === "task" ? task.task_key || task.id : column.key === "project" ? task.project_name : column.key === "assignee" ? task.assignee_name : column.key === "reporter" ? task.reporter_name : column.key === "epic" ? task.epic_name : column.key === "sprint" ? task.sprint_name : (task as unknown as Record<string, unknown>)[column.key],
+                    render: task => renderCell(task, column.key),
+                  }))}
+                  initialQuery={{ grouping: groupByStatus ? ["status"] : [] }}
+                  selectedIds={selectedTaskIds.map(String)}
+                  onSelectionChange={(_, ids) => setSelectedTaskIds(ids.map(Number))}
+                  onOpen={openTask}
+                  toolbarExtra={<span className="text-xs text-muted-foreground">Use the selected-task controls above to update status or priority.</span>}
+                  renderDetails={task => <div className="space-y-4"><h3 className="font-semibold">{task.title}</h3>{visibleColumnList.map(column => <div key={column.key}><small className="text-muted-foreground">{column.label}</small><div>{renderCell(task, column.key)}</div></div>)}</div>}
+                  rowActions={[{ id: "task-actions", label: "Open task", run: openTask }]}
+                  renderCard={task => <RecordActions record={{...task,key:task.task_key}} canEdit={data.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><div>{menu}<strong>{task.title}</strong></div>}</RecordActions>}
+                />
+                {inlineParent !== null && data.items.find(task => task.id === inlineParent) && <div className="border-t p-4"><InlineSubtaskComposer parent={data.items.find(task => task.id === inlineParent)!} onCreated={child => subtaskCreated(data.items.find(task => task.id === inlineParent)!, child)} onCancel={() => setInlineParent(null)}/></div>}
               </div>
 
               <div className={layout === "gallery" ? "grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3" : "space-y-3 p-4 lg:hidden"}>

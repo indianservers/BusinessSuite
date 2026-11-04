@@ -1,3 +1,4 @@
+import "@/components/visuals/suite-visuals.css";
 import { useMobile } from "@/components/mobile/useMobile";
 import { LoadingState } from "@/components/ui/state";
 import SuiteContextBar from "@/components/suite/SuiteContextBar";

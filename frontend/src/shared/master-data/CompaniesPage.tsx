@@ -1,3 +1,4 @@
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import { businessDefinitions } from "@/lib/validation/business";
 import PhoneActions from "@/components/PhoneActions";
 import { Mail, Eye, Pencil, RefreshCw } from "lucide-react";
@@ -20,7 +21,7 @@ export default function CompaniesPage({source="crm",role="",entityKind="companie
   const user=useAuthStore(s=>s.user);const scope=masterScope();
   const [refresh,setRefresh]=useState(0);const [create,setCreate]=useState(false);const [profile,setProfile]=useState<number>();const [selected,setSelected]=useState<string[]>([]);const [trash,setTrash]=useState(false);const [result,setResult]=useState<GridResult<Company>>();const [value,setValue]=useState("Vendor");const [tag,setTag]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);
   const columns=useMemo<GridColumn<Company>[]>(()=>[
-    {id:"name",title:role||"Company",width:260,render:row=><button data-record-open disabled={trash} title={trash?"Restore this record to open or edit it":undefined} className="font-semibold text-left text-primary">{row.name}{role&&<small className="block text-xs font-normal text-muted-foreground">{row.entityKind==="Individual"?"Individual":"Business / company"}</small>}</button>},
+    {id:"name",title:role||"Company",width:260,render:row=><button data-record-open disabled={trash} title={trash?"Restore this record to open or edit it":undefined} className="font-semibold text-left text-primary inline-flex items-center gap-2"><SuiteAvatar name={row.name} kind={row.entityKind === "Individual" ? "customer" : role === "Vendor" ? "vendor" : "company"} size={32}/><span>{row.name}</span>{role&&<small className="block text-xs font-normal text-muted-foreground">{row.entityKind==="Individual"?"Individual":"Business / company"}</small>}</button>},
     {id:"account_type",title:"Business roles",accessor:row=>row.roles?.join(", "),render:row=><div className="md-role-badges">{row.roles?.map(x=><span key={x} data-role={x.toLowerCase()}>{x}</span>)}</div>},
     {id:"email",title:"Primary email",width:240}, {id:"phone",title:"Primary phone",render:row=><span><PhoneActions value={row.phone} record={row} field="phone" /></span>},
     {id:"gstNumber",title:"Company GST number",sortable:false,filterable:false,groupable:false},

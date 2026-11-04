@@ -1,3 +1,4 @@
+import { SuiteDistribution, SuiteIllustration } from "@/components/visuals/SuiteVisuals";
 import { useMobile } from "@/components/mobile/useMobile";
 import PhoneActions, { isPhoneField } from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -1463,6 +1464,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               ))}
             </div>
           )}
+      {columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
       <GridToolbar
         search={search}
         setSearch={setSearch}
@@ -2012,7 +2014,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
             </div>
             {!request.isPending && !modelRows.length && !request.error && (
               <div className="udg-empty">
-                <Search size={30} />
+                <SuiteIllustration />
                 <h3>No records match</h3>
                 <p>Try a different search or clear your filters.</p>
               </div>

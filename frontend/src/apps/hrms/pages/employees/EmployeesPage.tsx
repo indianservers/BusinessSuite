@@ -1,3 +1,4 @@
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import CompactActions from "@/components/actions/CompactActions";
@@ -150,17 +151,7 @@ export default function EmployeesPage() {
         const initials = getInitials(`${emp.first_name} ${emp.last_name}`);
         return (
           <div className="flex items-center gap-3">
-            {emp.profile_photo_url ? (
-              <img
-                src={assetUrl(emp.profile_photo_url)}
-                alt={initials}
-                className="h-9 w-9 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                {initials}
-              </div>
-            )}
+            <SuiteAvatar name={`${emp.first_name} ${emp.last_name}`} src={emp.profile_photo_url} kind="employee" size={36} />
             <div>
               <p className="font-medium text-sm">
                 {emp.first_name} {emp.last_name}

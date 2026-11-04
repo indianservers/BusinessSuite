@@ -1,3 +1,4 @@
+import { SuiteIllustration } from "@/components/visuals/SuiteVisuals";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, BarChart3, BookOpen, Building2, CalendarDays, ChevronDown, Flag, Handshake, HelpCircle, Home, Layers3, LayoutGrid, List, Network, Package, Search, Settings, ShieldCheck, ShoppingCart, Sparkles, Star, Users, UserRound, Zap, Filter } from "lucide-react";
@@ -70,7 +71,7 @@ export default function PremiumLauncher({ applications, authenticated = false, c
         <section aria-labelledby="launcher-applications">
           <div className="launcher-section-head"><h2 id="launcher-applications">{authenticated ? "Your applications" : "Explore applications"}</h2><p>Access the tools your organization uses, all in one connected workspace.</p><div className="launcher-stats"><span><Layers3 size={18} /><b>{applications.length}</b> Applications</span><span><Users size={19} /><b>1</b> Workspace</span><span><Building2 size={19} />{company || "Your Organization"}</span></div></div>
           <div className="launcher-grid">{visible.map(m => <article key={m.key} aria-label={m.name} className={`launcher-card launcher-${m.key}`}>
-            <div className="launcher-card-main"><span className="launcher-icon"><m.icon size={35} strokeWidth={1.8} /></span><div className="launcher-card-copy"><h3><Link className="launcher-card-link" to={destination(m)}>{m.name}</Link></h3><p className="launcher-category">{m.label}</p><p className="launcher-description">{m.description}</p></div><span className="launcher-arrow" aria-hidden="true"><ArrowRight size={21} /></span></div>
+            <div className="launcher-card-main"><span className="launcher-icon"><SuiteIllustration variant={m.key}/></span><div className="launcher-card-copy"><h3><Link className="launcher-card-link" to={destination(m)}>{m.name}</Link></h3><p className="launcher-category">{m.label}</p><p className="launcher-description">{m.description}</p></div><span className="launcher-arrow" aria-hidden="true"><ArrowRight size={21} /></span></div>
             <div className="launcher-features">{highlights[m.key as keyof typeof highlights]?.map(([Icon, label]) => <span key={label}><Icon size={18} strokeWidth={1.7} />{label}</span>)}</div>
             {onFavorite && <button className="launcher-favorite" aria-label={`${favorites?.includes(m.key) ? "Unpin" : "Pin"} ${m.name}`} aria-pressed={favorites?.includes(m.key) || false} onClick={() => onFavorite(m.key)}><Star size={13} fill={favorites?.includes(m.key) ? "currentColor" : "none"} /></button>}
             {!!unread[m.key] && <Link className="launcher-unread" to={`/notifications?app=${m.key}&unread=1`}>{unread[m.key]} updates</Link>}

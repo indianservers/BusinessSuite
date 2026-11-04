@@ -1,3 +1,4 @@
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import BranchAvailability, { type BranchAvailabilityValue } from "@/shared/BranchAvailability";
 import PhoneActions from "@/components/PhoneActions";
@@ -3847,8 +3848,7 @@ function LeadFormModal({ mode, lead, saving, error, owners, territories, statuse
 }
 
 function LeadAvatar({ lead, large }: { lead: CRMLead; large?: boolean }) {
-  const initials = lead.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "L";
-  return <span className={`flex shrink-0 items-center justify-center rounded-full bg-emerald-300 text-sm font-semibold text-slate-950 ${large ? "h-14 w-14 text-xl" : "h-9 w-9"}`}>{initials}</span>;
+  return <SuiteAvatar name={lead.name} kind="customer" size={large ? 56 : 36} />;
 }
 
 function LeadBadge({ value, tone }: { value: string; tone: "blue" | "amber" | "red" | "slate" }) {
@@ -4739,7 +4739,7 @@ function applyContactDerivedView(rows: CRMContact[], view: ContactViewKey) {
 }
 
 function ContactAvatar({ contact, large }: { contact: CRMContact; large?: boolean }) {
-  return <span className={`flex shrink-0 items-center justify-center rounded-full bg-indigo-300 text-sm font-semibold text-slate-950 ${large ? "h-14 w-14 text-xl" : "h-9 w-9"}`}>{initials(contact.name)}</span>;
+  return <SuiteAvatar name={contact.name} kind="customer" size={large ? 56 : 36} />;
 }
 
 function initials(value: string) {
@@ -5399,7 +5399,7 @@ function applyAccountDerivedView(rows: CRMAccount[], view: AccountViewKey, filte
 }
 
 function AccountAvatar({ account, large }: { account: CRMAccount; large?: boolean }) {
-  return <span className={`flex shrink-0 items-center justify-center rounded-md bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/20 ${large ? "h-14 w-14" : "h-9 w-9"}`}><Building2 className={large ? "h-7 w-7" : "h-4 w-4"} /></span>;
+  return <SuiteAvatar name={account.name} kind="company" size={large ? 56 : 36} />;
 }
 
 function TagIcon() {

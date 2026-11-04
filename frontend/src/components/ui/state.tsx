@@ -1,4 +1,5 @@
-import { AlertTriangle, Inbox } from "lucide-react";
+import { SuiteIllustration } from "@/components/visuals/SuiteVisuals";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ProgressRing({
@@ -53,7 +54,7 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-center", className)}>
-      <Inbox className="mb-3 h-8 w-8 text-muted-foreground" aria-hidden="true" />
+      <SuiteIllustration />
       <p className="text-sm font-medium text-foreground">{title}</p>
       {description && <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>}
     </div>

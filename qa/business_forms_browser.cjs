@@ -28,7 +28,7 @@ const output=path.resolve('.tmp/business-forms-qa');fs.mkdirSync(output,{recursi
    await dialog.getByRole('tab',{name:'Basic details',exact:true}).click();await expect(name).toHaveValue(title);await expect(phone).toHaveValue(number);
    if(width===390){
     await countryButton.click();await page.getByRole('combobox',{name:'Search company phone country',exact:true}).fill('United Arab Emirates');
-    await page.getByRole('option',{name:/United Arab Emirates/}).click();await phone.fill('501234567');await expect(phone).toHaveValue('501234567');
+    await page.getByRole('listbox',{name:'Country calling codes'}).getByRole('option',{name:/United Arab Emirates/}).click();await phone.fill('501234567');await expect(phone).toHaveValue('501234567');
     await dialog.getByLabel('Country',{exact:true}).selectOption({value:'AE'},{force:true});
     await dialog.getByLabel('Business type',{exact:true}).selectOption({value:'llc'},{force:true});
    } else await dialog.getByLabel('Business type',{exact:true}).selectOption({value:'private_limited'},{force:true});

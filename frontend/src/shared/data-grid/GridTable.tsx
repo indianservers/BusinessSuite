@@ -22,7 +22,7 @@ function contains(node: ReactNode, predicate: (element: Element) => boolean): bo
   return elements(node).some(element => predicate(element) || contains(element.props.children, predicate));
 }
 const checkbox = (element: Element) => element.type === "input" && element.props.type === "checkbox";
-const editor = (element: Element) => element.type === "input" && element.props.type !== "checkbox" || element.type === "textarea" || element.type === "select" || typeof element.type !== "string" && /Input|Select|Editor|Picker|Composer/.test((element.type as { displayName?: string; name?: string }).displayName || (element.type as { name?: string }).name || "");
+const editor = (element: Element) => element.type === "input" && element.props.type !== "checkbox" || element.type === "textarea" || typeof element.type !== "string" && /Input|Editor|Composer/.test((element.type as { displayName?: string; name?: string }).displayName || (element.type as { name?: string }).name || "");
 
 /** Retains page-owned React cells and handlers; only the surrounding record grid changes. */
 export default function GridTable({ children, gridId, allowExport = false, variant = "records", ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; variant?: "records" | "matrix" }) {
@@ -73,7 +73,7 @@ export default function GridTable({ children, gridId, allowExport = false, varia
     <SharedDataGrid<RecordRow> gridId={scope} title={attributes["aria-label"] || caption || "Records"}
       columns={columns} dataSource={source} getRowId={row => row.id}
       selectionEnabled={!hasSelection} exportFormats={["csv", "clipboard"]}
-      initialLayout={{ pinning: { left: [hasSelection ? "column-1" : "column-0"], right: [] }, rowHeight: 64 }}
+      initialLayout={{ pinning: { left: hasSelection ? ["column-0", "column-1"] : ["column-0"], right: [] }, rowHeight: 64 }}
       height={Math.min(600, Math.max(240, records.length * 64 + 42))}
       rowProps={row => {
         const { children: _children, className: _className, style: _style, ...props } = rowMap.get(row.id)?.props || {};

@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { assetUrl, getInitials } from "@/lib/utils";
+import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
+import { type ReactNode } from "react";
 import "./profile-list-card.css";
 
 export function ProfileAction({ children, href, onClick, label }: {
@@ -16,11 +16,7 @@ export default function ProfileListCard({ name, photoUrl, location, subtitle, ta
   status?: { label: string; tone?: "positive" | "muted" | "warning" };
   children?: ReactNode;
 }) {
-  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
-  const photo = photoUrl ? assetUrl(photoUrl) : undefined;
-  const portrait = <span className="profile-list-avatar">{photo && failedPhoto !== photo
-    ? <img src={photo} alt="" loading="lazy" onError={() => setFailedPhoto(photo)} />
-    : <span aria-hidden="true">{getInitials(name) || "?"}</span>}</span>;
+  const portrait = <span className="profile-list-avatar"><SuiteAvatar name={name} src={photoUrl} kind="employee" size={48} /></span>;
   return <article className="profile-list-card" data-context-record={name}>
     {onOpen ? <button type="button" className="profile-list-portrait" onClick={onOpen} aria-label={`View ${name}'s profile`}>{portrait}</button>
       : <span className="profile-list-portrait">{portrait}</span>}
