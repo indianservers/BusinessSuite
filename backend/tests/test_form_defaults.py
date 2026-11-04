@@ -44,7 +44,7 @@ def test_invalid_defaults_do_not_save(client,db,values):
 def test_permissions_and_tenant_isolation(client,db):
     admin,_=actor(db,superuser=True)
     assert client.put(URL,headers=admin,json={'version':0,'values':{'currency':'EUR'}}).status_code==200
-    employee,_=actor(db)
+    employee,_=actor(db,"defaults-reader")
     assert client.get(URL,headers=employee).status_code==403
     assert client.put(URL,headers=employee,json={'version':1,'values':{'currency':'USD'}}).status_code==403
     r=client.get(BASE+'/defaults/effective',headers=employee)
@@ -57,9 +57,18 @@ def test_permissions_and_tenant_isolation(client,db):
     assert effective(db,other.id)['values']['currency']=='GBP'
 
 def test_stage_pipeline_and_stale_save(client,db):
-    headers,_=actor(db,superuser=True)
-    a=CRMPipeline(name='A',organization_id=1);b=CRMPipeline(name='B',organization_id=1);db.add_all([a,b]);db.flush()
-    stage=CRMPipelineStage(name='Open',pipeline_id=b.id,organization_id=1,stage_type='open');db.add(stage);db.commit()
-    assert client.put(URL,headers=headers,json={'version':0,'values':{'pipeline_id':a.id,'stage_id':stage.id}}).status_code==422
-    assert client.put(URL,headers=headers,json={'version':0,'values':{'pipeline_id':b.id,'stage_id':stage.id}}).status_code==200
+    headers,user=actor(db,superuser=True)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db,user);db.commit()
+    a=client.post('/api/v1/crm/pipelines',headers=headers,json={'name':'A'})
+    b=client.post('/api/v1/crm/pipelines',headers=headers,json={'name':'B'})
+    assert a.status_code==201,a.text
+    assert b.status_code==201,b.text
+    aid=a.json()['id'];bid=b.json()['id']
+    stage=client.post('/api/v1/crm/pipeline-stages',headers=headers,json={'name':'Open','pipeline_id':bid,'stage_type':'open'})
+    assert stage.status_code==201,stage.text
+    sid=stage.json()['id']
+    assert client.put(URL,headers=headers,json={'version':0,'values':{'pipeline_id':aid,'stage_id':sid}}).status_code==422
+    result=client.put(URL,headers=headers,json={'version':0,'values':{'pipeline_id':bid,'stage_id':sid}})
+    assert result.status_code==200,result.text
     assert client.put(URL,headers=headers,json={'version':0,'values':{}}).status_code==409
