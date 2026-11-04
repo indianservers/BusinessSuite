@@ -80,7 +80,7 @@ function GroupFilter({
       <input
         aria-label={`Search filter ${kind}`}
         value={search}
-        placeholder={`Search ${kind}�`}
+        placeholder={`Search ${kind}…`}
         onChange={(e) => {
           setSearch(e.target.value);
           setPage(1);

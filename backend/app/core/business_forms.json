@@ -1,0 +1,430 @@
+{
+  "businessTypes": [
+    {
+      "id": "sole_proprietor",
+      "label": "Proprietorship / Sole Proprietorship",
+      "countries": [
+        "IN",
+        "AE"
+      ]
+    },
+    {
+      "id": "partnership",
+      "label": "Partnership Firm",
+      "countries": [
+        "IN",
+        "AE"
+      ]
+    },
+    {
+      "id": "llp",
+      "label": "LLP — Limited Liability Partnership",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "private_limited",
+      "label": "Private Limited Company",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "public_limited",
+      "label": "Public Limited Company",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "opc",
+      "label": "One Person Company (OPC)",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "limited",
+      "label": "Limited Company",
+      "countries": []
+    },
+    {
+      "id": "section8",
+      "label": "Section 8 / Nonprofit Company",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "trust",
+      "label": "Trust",
+      "countries": []
+    },
+    {
+      "id": "society",
+      "label": "Society",
+      "countries": []
+    },
+    {
+      "id": "huf",
+      "label": "HUF",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "cooperative",
+      "label": "Cooperative Society",
+      "countries": []
+    },
+    {
+      "id": "government",
+      "label": "Government Entity",
+      "countries": []
+    },
+    {
+      "id": "psu",
+      "label": "Public Sector Undertaking",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "foreign_company",
+      "label": "Foreign Company",
+      "countries": []
+    },
+    {
+      "id": "branch_office",
+      "label": "Branch Office",
+      "countries": []
+    },
+    {
+      "id": "liaison_office",
+      "label": "Liaison Office",
+      "countries": [
+        "IN"
+      ]
+    },
+    {
+      "id": "representative_office",
+      "label": "Representative Office",
+      "countries": []
+    },
+    {
+      "id": "free_zone_company",
+      "label": "Free Zone Company",
+      "countries": [
+        "AE"
+      ]
+    },
+    {
+      "id": "free_zone_establishment",
+      "label": "Free Zone Establishment",
+      "countries": [
+        "AE"
+      ]
+    },
+    {
+      "id": "llc",
+      "label": "LLC — Limited Liability Company",
+      "countries": [
+        "AE"
+      ]
+    },
+    {
+      "id": "civil_company",
+      "label": "Civil Company",
+      "countries": [
+        "AE"
+      ]
+    },
+    {
+      "id": "joint_venture",
+      "label": "Joint Venture",
+      "countries": []
+    },
+    {
+      "id": "association",
+      "label": "Association / Nonprofit Organization",
+      "countries": []
+    },
+    {
+      "id": "individual_freelancer",
+      "label": "Individual / Freelancer",
+      "countries": []
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "countries": []
+    }
+  ],
+  "aliases": {
+    "pvtltd": "private_limited",
+    "privateltd": "private_limited",
+    "privatelimited": "private_limited",
+    "privatelimitedcompany": "private_limited",
+    "publiclimited": "public_limited",
+    "llp": "llp",
+    "llc": "llc",
+    "soleproprietorship": "sole_proprietor",
+    "proprietorship": "sole_proprietor",
+    "partnershipfirm": "partnership",
+    "onepersoncompany": "opc"
+  },
+  "vendorClassifications": [
+    "Goods Supplier",
+    "Service Provider",
+    "Contractor",
+    "Consultant",
+    "Distributor",
+    "Manufacturer",
+    "Freelancer",
+    "Other"
+  ],
+  "currencies": [
+    "AED",
+    "AFN",
+    "ALL",
+    "AMD",
+    "ANG",
+    "AOA",
+    "ARS",
+    "AUD",
+    "AWG",
+    "AZN",
+    "BAM",
+    "BBD",
+    "BDT",
+    "BGN",
+    "BHD",
+    "BIF",
+    "BMD",
+    "BND",
+    "BOB",
+    "BRL",
+    "BSD",
+    "BTN",
+    "BWP",
+    "BYN",
+    "BZD",
+    "CAD",
+    "CDF",
+    "CHF",
+    "CLP",
+    "CNY",
+    "COP",
+    "CRC",
+    "CUC",
+    "CUP",
+    "CVE",
+    "CZK",
+    "DJF",
+    "DKK",
+    "DOP",
+    "DZD",
+    "EGP",
+    "ERN",
+    "ETB",
+    "EUR",
+    "FJD",
+    "FKP",
+    "GBP",
+    "GEL",
+    "GHS",
+    "GIP",
+    "GMD",
+    "GNF",
+    "GTQ",
+    "GYD",
+    "HKD",
+    "HNL",
+    "HRK",
+    "HTG",
+    "HUF",
+    "IDR",
+    "ILS",
+    "INR",
+    "IQD",
+    "IRR",
+    "ISK",
+    "JMD",
+    "JOD",
+    "JPY",
+    "KES",
+    "KGS",
+    "KHR",
+    "KMF",
+    "KPW",
+    "KRW",
+    "KWD",
+    "KYD",
+    "KZT",
+    "LAK",
+    "LBP",
+    "LKR",
+    "LRD",
+    "LSL",
+    "LYD",
+    "MAD",
+    "MDL",
+    "MGA",
+    "MKD",
+    "MMK",
+    "MNT",
+    "MOP",
+    "MRU",
+    "MUR",
+    "MVR",
+    "MWK",
+    "MXN",
+    "MYR",
+    "MZN",
+    "NAD",
+    "NGN",
+    "NIO",
+    "NOK",
+    "NPR",
+    "NZD",
+    "OMR",
+    "PAB",
+    "PEN",
+    "PGK",
+    "PHP",
+    "PKR",
+    "PLN",
+    "PYG",
+    "QAR",
+    "RON",
+    "RSD",
+    "RUB",
+    "RWF",
+    "SAR",
+    "SBD",
+    "SCR",
+    "SDG",
+    "SEK",
+    "SGD",
+    "SHP",
+    "SLE",
+    "SLL",
+    "SOS",
+    "SRD",
+    "SSP",
+    "STN",
+    "SVC",
+    "SYP",
+    "SZL",
+    "THB",
+    "TJS",
+    "TMT",
+    "TND",
+    "TOP",
+    "TRY",
+    "TTD",
+    "TWD",
+    "TZS",
+    "UAH",
+    "UGX",
+    "USD",
+    "UYU",
+    "UZS",
+    "VES",
+    "VND",
+    "VUV",
+    "WST",
+    "XAF",
+    "XCD",
+    "XCG",
+    "XDR",
+    "XOF",
+    "XPF",
+    "XSU",
+    "YER",
+    "ZAR",
+    "ZMW",
+    "ZWG",
+    "ZWL"
+  ],
+  "ibanLengths": {
+    "AD": 24,
+    "AE": 23,
+    "AL": 28,
+    "AT": 20,
+    "AZ": 28,
+    "BA": 20,
+    "BE": 16,
+    "BG": 22,
+    "BH": 22,
+    "BR": 29,
+    "BY": 28,
+    "CH": 21,
+    "CR": 22,
+    "CY": 28,
+    "CZ": 24,
+    "DE": 22,
+    "DK": 18,
+    "DO": 28,
+    "EE": 20,
+    "EG": 29,
+    "ES": 24,
+    "FI": 18,
+    "FO": 18,
+    "FR": 27,
+    "GB": 22,
+    "GE": 22,
+    "GI": 23,
+    "GL": 18,
+    "GR": 27,
+    "GT": 28,
+    "HR": 21,
+    "HU": 28,
+    "IE": 22,
+    "IL": 23,
+    "IQ": 23,
+    "IS": 26,
+    "IT": 27,
+    "JO": 30,
+    "KW": 30,
+    "KZ": 20,
+    "LB": 28,
+    "LC": 32,
+    "LI": 21,
+    "LT": 20,
+    "LU": 20,
+    "LV": 21,
+    "MC": 27,
+    "MD": 24,
+    "ME": 22,
+    "MK": 19,
+    "MR": 27,
+    "MT": 31,
+    "MU": 30,
+    "NL": 18,
+    "NO": 15,
+    "PK": 24,
+    "PL": 28,
+    "PS": 29,
+    "PT": 25,
+    "QA": 29,
+    "RO": 24,
+    "RS": 22,
+    "SA": 24,
+    "SC": 31,
+    "SE": 24,
+    "SI": 19,
+    "SK": 24,
+    "SM": 27,
+    "ST": 25,
+    "SV": 28,
+    "TL": 23,
+    "TN": 24,
+    "TR": 26,
+    "UA": 29,
+    "VA": 22,
+    "VG": 24,
+    "XK": 20
+  }
+}

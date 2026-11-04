@@ -99,7 +99,7 @@ import {
 
 - Backend: `module_registry.py`, `access/catalog.py`, `api/v1/scheduled_jobs.py`, PMS `chat.py`, `chat_models.py`, `calendar_settings.py`, `api/router.py`.
 - Frontend: PMS `DirectMessagesPage.tsx` is a compatibility re-export; PMS `ProjectDashboard.tsx`, `TaskDetail.tsx`, `realtime.ts`; CRM `CRMRecordDetailPage.tsx`; HRMS `EmployeeDetailPage.tsx`; CRM/HRMS/SRM/FAM route files; shared `AppLayout.tsx`, `Sidebar.tsx`, `MessagingNavLink.tsx`.
-- Unrelated pre-existing working-tree changes were retained. A build-only correction split the workflow builder reducer’s combined undo/redo/checkpoint union into distinct variants in `frontend/src/apps/power-apps/applications/automations/builder/useDocument.ts`; runtime behavior is unchanged.
+- Unrelated pre-existing working-tree changes were retained. A build-only correction split the workflow builder reducerâ€™s combined undo/redo/checkpoint union into distinct variants in `frontend/src/apps/power-apps/applications/automations/builder/useDocument.ts`; runtime behavior is unchanged.
 
 ## Schema and rollout
 
@@ -134,7 +134,7 @@ Automated HTTP integration coverage uses the real FastAPI routes, SQLAlchemy per
 - retained channel/group/DM, join, thread, file, search, edit/delete and member-revocation workflows;
 - AI access refusal, rejected privilege fields and no privilege elevation.
 
-The live Playwright journey proxies requests to an actual disposable local HTTP server, not mocked APIs. Two independent browser sessions exchange a message, react, reply in a thread, create a follow-up, upload/share a real file and schedule a meeting. It captures desktop/tablet/mobile layouts, checks mobile overflow, and verifies that switching to an unauthorized company clears the previous company’s message cache. Its SQLite QA server serializes requests; this test does not certify concurrent PostgreSQL capacity.
+The live Playwright journey proxies requests to an actual disposable local HTTP server, not mocked APIs. Two independent browser sessions exchange a message, react, reply in a thread, create a follow-up, upload/share a real file and schedule a meeting. It captures desktop/tablet/mobile layouts, checks mobile overflow, and verifies that switching to an unauthorized company clears the previous companyâ€™s message cache. Its SQLite QA server serializes requests; this test does not certify concurrent PostgreSQL capacity.
 
 Run locally:
 

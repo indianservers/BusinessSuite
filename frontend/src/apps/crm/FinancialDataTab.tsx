@@ -1,3 +1,5 @@
+import { E164PhoneInput } from "@/lib/validation/PhoneInput";
+import { CountrySelect, CurrencySelect, bankCodeError } from "@/lib/validation/business";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
@@ -9,7 +11,7 @@ import { dealError } from "./deals/deal-utils";
 import { masterScope } from "@/shared/master-data/CompanySelect";
 import "./financial-data.css";
 
-type BankAccount = {holderName: string; bankName: string; accountNumber: string; ifsc: string; micr: string; branch: string; primary: boolean};
+type BankAccount = {holderName: string; bankName: string; accountNumber: string; ifsc: string; micr: string; branch: string; primary: boolean;country?:string;currency?:string;iban?:string;bic?:string};
 type UpiAddress = {upiId: string; label: string; mobile: string; primary: boolean};
 export type FinancialData = {gstNumber: string; bankAccounts: BankAccount[]; upiIds: UpiAddress[]; version: number};
 const emptyData: FinancialData = {gstNumber: "", bankAccounts: [], upiIds: [], version: 0};
@@ -21,7 +23,7 @@ async function loadFinancialData(contactId: number) {
 }
 
 
-export default function FinancialDataTab({contactId, value, onChange, readOnly = false}: {contactId?: number; value?: FinancialData; onChange?: (data: FinancialData) => void; readOnly?: boolean}) {
+export default function FinancialDataTab({contactId, value, onChange, readOnly = false, defaultCountry="IN", defaultCurrency="INR"}: {contactId?: number; value?: FinancialData; onChange?: (data: FinancialData) => void; readOnly?: boolean;defaultCountry?:string;defaultCurrency?:string}) {
   const profile = useQuery<FinancialData & {canManage?: boolean; canVoid?: boolean}>({queryKey: ["contact-financial", masterScope(), contactId], enabled: !!contactId, queryFn: () => loadFinancialData(contactId!), staleTime: 0});
   const {canManage: _canManage, canVoid: _canVoid, ...storedData} = profile.data || {...emptyData, canManage: false};
   const data = value || storedData;
@@ -34,17 +36,18 @@ export default function FinancialDataTab({contactId, value, onChange, readOnly =
     {profile.error && <p role="alert">{dealError(profile.error)} <Button type="button" variant="link" onClick={() => void profile.refetch()}>Retry</Button></p>}
     <fieldset disabled={readOnly || (!!contactId && !profile.data)}>
       <label>Company GST number<Input aria-label="Company GST number" maxLength={15} placeholder="e.g. 27ABCDE1234F1Z5" value={data.gstNumber} onChange={e => change({gstNumber: e.target.value.toUpperCase()})}/></label>
-      <section><header><h3>Bank accounts</h3>{!readOnly && <Button type="button" variant="outline" size="sm" disabled={data.bankAccounts.length >= 20} onClick={() => change({bankAccounts: [...data.bankAccounts, {holderName: "", bankName: "", accountNumber: "", ifsc: "", micr: "", branch: "", primary: data.bankAccounts.length === 0}]})}><Plus size={14}/>Add bank account</Button>}</header>
+      <section><header><h3>Bank accounts</h3>{!readOnly && <Button type="button" variant="outline" size="sm" disabled={data.bankAccounts.length >= 20} onClick={() => change({bankAccounts: [...data.bankAccounts, {holderName: "", bankName: "", accountNumber: "", ifsc: "", micr: "", branch: "", primary: data.bankAccounts.length === 0, country:defaultCountry,currency:defaultCurrency,iban:"",bic:""}]})}><Plus size={14}/>Add bank account</Button>}</header>
         {!data.bankAccounts.length && <p className="text-sm text-muted-foreground">No bank accounts added.</p>}
         {data.bankAccounts.map((entry, index) => <div className="crm-financial-card" key={index}><header><strong>Bank account {index + 1}</strong>{!readOnly && <Button type="button" variant="ghost" size="icon" aria-label={`Remove bank account ${index+1}`} onClick={() => change({bankAccounts: data.bankAccounts.filter((_, i) => i !== index)})}><Trash2 size={15}/></Button>}</header><div className="crm-financial-grid">
-          {([['holderName','Account holder'],['bankName','Bank name'],['accountNumber','Account number'],['ifsc','IFSC'],['micr','MICR'],['branch','Bank branch']] as const).map(([key, title]) => <label key={key}>{title}<Input aria-label={`${title} ${index+1}`} value={entry[key]} maxLength={key === 'holderName' ? 180 : key === 'ifsc' ? 11 : key === 'micr' ? 9 : key === 'accountNumber' ? 34 : 120} inputMode={key === 'micr' ? 'numeric' : undefined} onChange={e => bank(index, {[key]: key === 'ifsc' ? e.target.value.toUpperCase() : e.target.value})}/></label>)}
+          <label>Bank country<CountrySelect label={`Bank country ${index+1}`} value={entry.country||"IN"} onChange={country=>bank(index,{country})}/></label><label>Account currency<CurrencySelect label={`Bank currency ${index+1}`} value={entry.currency||"INR"} onChange={currency=>bank(index,{currency})}/></label>
+          {([['holderName','Account holder'],['bankName','Bank name'],['accountNumber','Account number'],...((entry.country||'IN')==='IN'||entry.ifsc?[['ifsc','IFSC']]:[]),...((entry.country||'IN')==='IN'?[['micr','MICR']]:[]),['branch','Bank branch'],['iban','IBAN'],['bic','SWIFT/BIC']] as [keyof BankAccount,string][]).map(([key,title])=><label key={key}>{title}<Input aria-label={`${title} ${index+1}`} value={String(entry[key]||'')} maxLength={key==='holderName'?180:key==='ifsc'||key==='bic'?11:key==='micr'?9:key==='accountNumber'||key==='iban'?34:120} onChange={e=>bank(index,{[key]:['ifsc','iban','bic'].includes(key)?e.target.value.toUpperCase():e.target.value})}/>{['ifsc','iban','bic'].includes(key)&&bankCodeError(key==='ifsc'?'IFSC':key==='iban'?'IBAN':'BIC',String(entry[key]||''),key==='bic'?undefined:entry.country)&&<small role="alert">{bankCodeError(key==='ifsc'?'IFSC':key==='iban'?'IBAN':'BIC',String(entry[key]||''),key==='bic'?undefined:entry.country)}</small>}</label>)}
         </div><label className="crm-financial-check"><input type="checkbox" checked={entry.primary} onChange={e => change({bankAccounts: data.bankAccounts.map((x, i) => ({...x, primary: e.target.checked && i === index}))})}/>Primary bank account</label></div>)}
       </section>
       <section><header><h3>UPI details</h3>{!readOnly && <Button type="button" variant="outline" size="sm" disabled={data.upiIds.length >= 20} onClick={() => change({upiIds: [...data.upiIds, {upiId: "", label: "", mobile: "", primary: data.upiIds.length === 0}]})}><Plus size={14}/>Add UPI</Button>}</header>
         <p className="text-sm text-muted-foreground">Save UPI IDs and linked mobile numbers for future UPI collection requests. A mobile number alone does not confirm a UPI ID. No request is sent here.</p>
         {data.upiIds.map((entry, index) => <div className="crm-financial-card" key={index}><header><strong>UPI {index+1}</strong>{!readOnly && <Button type="button" variant="ghost" size="icon" aria-label={`Remove UPI ${index+1}`} onClick={() => change({upiIds: data.upiIds.filter((_, i) => i !== index)})}><Trash2 size={15}/></Button>}</header><div className="crm-financial-grid">
           <label>UPI ID<Input aria-label={`UPI ID ${index+1}`} placeholder="name@bank" maxLength={100} value={entry.upiId} onChange={e => upi(index, {upiId: e.target.value})}/></label>
-          <label>Linked mobile number<Input type="tel" aria-label={`UPI mobile ${index+1}`} placeholder="+919876543210" maxLength={16} value={entry.mobile} onChange={e => upi(index, {mobile: e.target.value})}/></label>
+          <label>Linked mobile number<E164PhoneInput label={`UPI mobile ${index+1}`} value={entry.mobile} onChange={value=>upi(index,{mobile:value})}/></label>
           <label>Label<Input aria-label={`UPI label ${index+1}`} placeholder="Business / personal" maxLength={80} value={entry.label} onChange={e => upi(index, {label: e.target.value})}/></label>
         </div><label className="crm-financial-check"><input type="checkbox" checked={entry.primary} onChange={e => change({upiIds: data.upiIds.map((x, i) => ({...x, primary: e.target.checked && i === index}))})}/>Primary UPI ID</label></div>)}
       </section>

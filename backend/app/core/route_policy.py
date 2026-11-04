@@ -15,6 +15,8 @@ PUBLIC_CAPABILITIES = (
     r"/integrations/whatsapp/webhook",
     r"/integrations/customer-email/[^/]+",
     r"/power-apps/hooks/[^/]+",
+    r"/power-apps/native-hooks/[^/]+",
+    r"/power-apps/native-apps/[^/]+/[^/]+",
     r"/power-apps/integrations/oauth/callback",
     r"/auth/(branding|login|refresh|forgot-password|reset-password|mfa/verify|firebase/(config|login))",
     r"/auth/sso/(providers/active|initiate/[^/]+|callback/oidc/[^/]+|complete/[^/]+)",

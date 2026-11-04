@@ -85,7 +85,7 @@ def definition(connection_id):
 def create_workflow(db, user, environment, conn, bot, name):
     validate_environment(db, user, environment)
     # One consumer per bot, even if another connection was created with the same token.
-    for existing in db.query(Trigger).filter_by(kind='telegram').all():
+    for existing in db.query(Trigger).filter(Trigger.kind.in_(['telegram', 'connector'])).all():
         if existing.config.get('bot_id') == bot['id']:
             raise HTTPException(409, 'This Telegram bot already has an automation listener. Use its existing workflow.')
     row = PowerResource(organization_id=organization(user), environment=environment, application_id='automations',

@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute, getRoleNav } from "@/lib/roles";
 import { modules } from "@/lib/moduleCatalog";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LayoutGrid } from "lucide-react";
 import { getProductForContext } from "@/lib/products";
 
 const labels: Record<string, string> = {
@@ -112,7 +112,14 @@ export default function Breadcrumbs() {
       aria-label="Breadcrumb"
       className="suite-breadcrumbs mb-4 flex items-center gap-1 text-xs text-muted-foreground"
     >
-      <Link to="/dashboard">All applications</Link>
+      <Link
+        to="/dashboard"
+        aria-label="Business Suite applications"
+        title="Business Suite applications"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+      </Link>
       {parts.map((part, index) => {
         const path = `/${parts.slice(0, index + 1).join("/")}`;
         const active = index === parts.length - 1;

@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -97,7 +98,7 @@ export default function FollowUpGrid({
             >
               {r.customer_name}
             </Link>
-            <small className="block">{r.phone}</small>
+            <small className="block"><PhoneActions value={r.phone} record={r} field="phone" /></small>
           </>
         ),
       },

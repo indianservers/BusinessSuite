@@ -88,7 +88,9 @@ def current_context(request: Request, db: Session = Depends(get_db), user: User 
             ctx = context(db, user, user.organization_id, selected)
         except HTTPException:
             pass
-    return {"company_id": ctx.company_id, "default_branch_id": default_branch_id, "selected": ctx.branch_id, "all_branches": ctx.all_branches, "manage_access": ctx.manage_access,
+    from app.shared.branch_availability import active_branches
+    can_write_all = active_branches(db, ctx.company_id) <= set(ctx.writable)
+    return {"can_write_all_branches": can_write_all, "company_id": ctx.company_id, "default_branch_id": default_branch_id, "selected": ctx.branch_id, "all_branches": ctx.all_branches, "manage_access": ctx.manage_access,
             "branches": [{**row, "can_write": row["id"] in ctx.writable} for row in rows]}
 
 
@@ -381,3 +383,15 @@ def share_profile(data: ShareInput, db: Session = Depends(get_db), user: User = 
     audit(db, user, user.organization_id, "branch.profile.share" if data.shared else "branch.profile.unshare", data.reason, data.model_dump(exclude={"reason"}))
     db.commit()
     return {"shared": data.shared}
+
+
+@router.get("/records/availability")
+def record_availability(table_name: str, record_id: int, source: str = "crm", db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.shared.master_data import owner
+    from app.shared.branch_availability import profile_availability
+    if table_name not in {"crm_companies", "crm_contacts"}:
+        raise HTTPException(422, "Unsupported branch availability resource")
+    if source not in {"crm", "srm", "project_management", "hrms"}:
+        raise HTTPException(422, "Unsupported availability source")
+    row = owner(db, user, "company" if table_name == "crm_companies" else "contact", record_id, source)
+    return profile_availability(db, row)

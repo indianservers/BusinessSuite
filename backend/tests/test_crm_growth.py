@@ -8,6 +8,54 @@ from app.apps.crm.models import CRMActivity, CRMContact
 ROOT='/api/v1/crm/growth'
 
 
+def test_followup_history_pending_age_and_retained_employee_actions(client, db, superuser_headers):
+    h=superuser_headers;c=contact(client,h,full_name='History person',email='history@example.com')
+    due=datetime.now(timezone.utc)+timedelta(days=2)
+    saved=post(client,h,'crm/growth/follow-up',{'entity':'contacts','record_id':c['id'],'due_at':due.isoformat(),'title':'Review quote'})
+    activity=db.get(CRMActivity,saved['activity_id'])
+    activity.created_at=datetime.now(timezone.utc)-timedelta(days=4,hours=2)
+    db.commit()
+    def read_history(view, **params):
+        return get(client,h,"/history",entity="contacts",record_id=c["id"],view=view,**params)
+    pending=read_history("pending")
+    assert pending['total']==1
+    item=pending['items'][0]
+    assert item['pending_seconds']>=4*86400 and item['overdue_since'] is None
+    assert item['actor']['id']==activity.created_by_user_id
+    assert item['assignee']['id']==activity.owner_user_id
+    post(client,h,'crm/growth/follow-up',{'entity':'contacts','record_id':c['id'],'activity_id':activity.id,'due_at':(due+timedelta(days=1)).isoformat(),'title':'Review quote'})
+    changes=read_history("history")['items']
+    assert changes[0]['title']=='Follow-up rescheduled'
+    assert changes[0]['metadata']['before']['due_at']!=changes[0]['metadata']['after']['due_at']
+    assert changes[0]['metadata']['follow_up_id']==activity.id
+    assert read_history("pending")['items'][0]['pending_since']==item['pending_since']
+    post(client,h,'crm/growth/follow-up',{'entity':'contacts','record_id':c['id'],'activity_id':activity.id,'action':'complete','outcome':'Quote approved','notes':'Employee confirmed requirements'})
+    assert read_history("pending")['total']==0
+    completed=read_history("completed")['items'][0]
+    assert completed['completed_at'] and completed['last_updated_by']['id']==activity.created_by_user_id
+    assert completed['completed_by']['id']==activity.created_by_user_id
+    history=read_history("history")
+    assert history['total']==3 and history['items'][0]['metadata']['after']['status']=='Completed'
+    assert all(event['actor']['id']==activity.created_by_user_id for event in history['items'])
+    paged=read_history("history",per_page=1,page=2)
+    assert len(paged['items'])==1 and paged['pages']==3 and paged['total']==3
+    assert read_history("history",employee_id=999999)['total']==0
+    assert client.get(ROOT+'/history',headers=h,params={'entity':'contacts','record_id':999999}).status_code==404
+
+
+def test_bulk_assignment_history_retains_before_and_after(client, db, superuser_headers):
+    h=superuser_headers;c=contact(client,h,full_name='Assignment history',email='assign-history@example.com')
+    saved=post(client,h,'crm/growth/follow-up',{'entity':'contacts','record_id':c['id'],'due_at':(datetime.now(timezone.utc)+timedelta(days=2)).isoformat()})
+    activity=db.get(CRMActivity,saved['activity_id'])
+    result=post(client,h,'crm/growth/follow-ups/bulk',{'recipients':[{'entity':'contacts','id':c['id']}],'action':'assign','owner_id':activity.owner_user_id,'request_id':str(uuid4())})
+    assert result['saved']==1
+    history=get(client,h,"/history",entity="contacts",record_id=c["id"],view="history")
+    event=history['items'][0]
+    assert event['title']=='Follow-ups reassigned' and event['actor']['id']==activity.created_by_user_id
+    assert event['metadata']['changes'][0]['before']['id']==activity.id
+    assert event['metadata']['changes'][0]['after']['owner_id']==activity.owner_user_id
+
+
 @pytest.fixture(autouse=True)
 def growth_company_setup(db,superuser_headers):
     from app.models.company import Company

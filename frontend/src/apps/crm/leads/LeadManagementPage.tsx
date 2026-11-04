@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { SharedNumberConfirmation } from "@/shared/master-data/CompanySelect";
 import { PersonPreviewHeader } from "@/components/PersonPreviewDialog";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
@@ -813,7 +814,7 @@ export default function LeadManagementPage() {
                         {lead.full_name}
                       </button>
                       <span className="lm-secondary">
-                        {lead.email || lead.phone || "No contact details"}
+                        {lead.email || (lead.phone ? <PhoneActions value={lead.phone} record={lead} /> : "No contact details")}
                       </span>
                     </td>
                     <td>

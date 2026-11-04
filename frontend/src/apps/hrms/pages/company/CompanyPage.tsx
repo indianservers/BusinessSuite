@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -253,7 +254,7 @@ export default function CompanyPage() {
                 </div>
                 <div className="grid gap-3 rounded-lg bg-muted/30 p-4 text-sm sm:col-span-2 sm:grid-cols-3">
                   <span className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{form.email || "No email"}</span></span>
-                  <span className="flex min-w-0 items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{form.phone || "No phone"}</span></span>
+                  <span className="flex min-w-0 items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate"><PhoneActions value={form.phone} record={form} field="phone" /></span></span>
                   <span className="flex min-w-0 items-center gap-2"><Globe className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{form.website || "No website"}</span></span>
                   <span className="flex min-w-0 items-center gap-2 sm:col-span-3"><MapPin className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{[form.address, form.city, form.state, form.pincode].filter(Boolean).join(", ") || "No address"}</span></span>
                 </div>

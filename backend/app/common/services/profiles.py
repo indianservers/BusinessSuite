@@ -1,6 +1,7 @@
 """One private profile for a login, its employee record and approved onboarding form."""
 
 from __future__ import annotations
+from app.core.input_validation import normalize_phone
 from app.access.catalog import permission_objects
 
 import copy
@@ -500,8 +501,7 @@ def normalize_values(values, existing=None):
             raise ValueError("Combined profile name must be 180 characters or fewer")
         for key in {"phone_number", "emergency_contact_number"}:
             if ({key, key + "_country_code"} & values.keys()) and merged.get(key):
-                national_phone(merged[key])
-                calling_code(merged.get(key + "_country_code"))
+                normalize_phone(merged[key], merged.get(key + "_country_code"))
         if result.get("timezone"):
             ZoneInfo(result["timezone"])
     except (ValueError, TypeError, ValidationError, ZoneInfoNotFoundError) as exc:

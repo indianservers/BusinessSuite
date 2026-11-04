@@ -15,6 +15,23 @@ from app.db.base_class import Base
 from app.apps.power_apps.runtime_models import Scope
 
 
+class NativeDelivery(Scope, Base):
+    __tablename__ = "power_native_deliveries"
+    id = Column(Integer, primary_key=True)
+    trigger_id = Column(Integer, ForeignKey("power_automation_triggers.id"), nullable=False)
+    epoch = Column(String(36), nullable=False)
+    message_id = Column(String(64), nullable=False)
+    encrypted_payload = Column(Text)
+    status = Column(String(20), nullable=False, default="pending")
+    attempts = Column(Integer, nullable=False, default=0)
+    next_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("trigger_id", "epoch", "message_id", name="uq_power_native_delivery"),
+        Index("ix_power_native_delivery_due", "trigger_id", "status", "next_at"),
+    )
+
+
 class Credential(Scope, Base):
     __tablename__ = "power_connector_credentials"
     id = Column(Integer, primary_key=True)

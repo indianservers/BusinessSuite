@@ -1,3 +1,4 @@
+import BranchAvailability from "@/shared/BranchAvailability";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { ScheduleFields, defaultSchedule } from "@/shared/follow-ups/ScheduleFields";
@@ -19,7 +20,6 @@ export default function CatalogEditor({ source, initial, defaultKind = "product"
   const unitListId = useId();
   const [followUpOptions, setFollowUpOptions] = useState<{ employees: { id: number; name: string }[]; teams: { id: number; name: string }[] }>({ employees: [], teams: [] });
   useEffect(() => { let active = true; api.get("/follow-ups/options", { progress: false }).then(({ data }) => { if (active) setFollowUpOptions(data); }).catch(() => {}); return () => { active = false; }; }, []);
-  const [branches, setBranches] = useState<{ id: number; name: string; can_write: boolean }[]>([]);
   const [destination, setDestination] = useState<number | undefined>();
   const [branchReady, setBranchReady] = useState(!!initial);
   useEffect(() => {
@@ -27,7 +27,6 @@ export default function CatalogEditor({ source, initial, defaultKind = "product"
     let active = true;
     api.get("/branches/context", { progress: false }).then(({ data }) => {
       if (!active) return;
-      setBranches(data.branches.filter((branch: { can_write: boolean }) => branch.can_write));
       setDestination(typeof data.selected === "number" ? (data.branches.some((branch: { id: number; can_write: boolean }) => branch.id === data.selected && branch.can_write) ? data.selected : undefined) : data.default_branch_id ?? undefined);
       setBranchReady(true);
     }).catch(e => { if (active) setError(catalogError(e)); });
@@ -56,7 +55,7 @@ export default function CatalogEditor({ source, initial, defaultKind = "product"
     finally { submitting.current = false; setBusy(false); }
   }
   return <Dialog.Root open onOpenChange={open => { if (!open && !busy && !uploading) close(); }}><Dialog.Portal><Dialog.Overlay className="sc-overlay"/><Dialog.Content className="sc-dialog"><header className="sc-dialog-heading"><span className="sc-icon"><Package size={22}/></span><div><Dialog.Title>{initial ? "Edit" : "New"} product or service</Dialog.Title><Dialog.Description>One shared catalog for sales and project delivery.</Dialog.Description></div><Dialog.Close asChild><button type="button" disabled={busy || uploading} aria-label="Close catalog editor"><X size={20}/></button></Dialog.Close></header><CompactForm onSubmit={submit}><fieldset disabled={busy || uploading} className="sc-form"><div className="sc-form-grid" data-form-section-label="Basic details">
-    {!initial && <label>Destination branch<NativeSelect aria-label="Destination branch" required disabled={!branchReady} value={destination ?? ""} onChange={e => setDestination(Number(e.target.value) || undefined)}><option value="">{branchReady ? "Select a branch" : "Loading branches…"}</option>{branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</NativeSelect></label>}
+    <BranchAvailability value={draft.branch_availability} editing={!!initial} disabled={busy} onChange={value => patch("branch_availability", value)}/>
     <label>Type<NativeSelect aria-label="Type" disabled={!!initial} value={draft.kind} onChange={e => patch("kind", e.target.value as CatalogKind)}><option value="product">Product</option><option value="service">Service</option></NativeSelect></label><label>Status<NativeSelect aria-label="Status" value={draft.status} onChange={e => patch("status", e.target.value as CatalogItem["status"])}><option>Active</option><option>Archived</option></NativeSelect></label>
     <label>Name<input required maxLength={180} autoFocus value={draft.name} onChange={e => patch("name", e.target.value)} placeholder="e.g. Business Suite Enterprise"/></label><label>SKU / Code<input required maxLength={80} value={draft.code} onChange={e => patch("code", e.target.value)} placeholder="e.g. BS-ENT-01"/></label>
     <label>Category<input maxLength={120} value={draft.category} onChange={e => patch("category", e.target.value)} placeholder="Software, consulting, hardware…"/></label><label>Unit<input required maxLength={40} value={draft.unit} onChange={e => patch("unit", e.target.value)} placeholder="unit, hour, seat…"/></label>

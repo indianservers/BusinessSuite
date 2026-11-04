@@ -448,7 +448,7 @@ export default function PerformancePage() {
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">Rating: 1 (Needs Improvement) â€“ 5 (Exceptional)</p>
+                <p className="text-xs text-muted-foreground">Rating: 1 (Needs Improvement) – 5 (Exceptional)</p>
               </div>
 
               <div className="space-y-1.5">

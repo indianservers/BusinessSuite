@@ -6,7 +6,7 @@ from app.shared.master_data_models import ContactChannel
 
 def mirror_primary(db, owner):
     from app.apps.crm.models import CRMContact
-    from app.core.input_validation import email_address, national_phone, calling_code
+    from app.core.input_validation import email_address, normalize_phone
     kind = "contact" if isinstance(owner, CRMContact) else "company"
     field = "contact_id" if kind == "contact" else "account_id"
     for channel_kind, column in [("email", "email"), ("phone", "phone")]:
@@ -20,7 +20,8 @@ def mirror_primary(db, owner):
                 row.is_primary = False
             continue
         try:
-            normalized = email_address(value).casefold() if channel_kind == "email" else calling_code(code) + national_phone(value)
+            if channel_kind == "email": normalized = email_address(value).casefold()
+            else: value, normalized = normalize_phone(value, code)
         except ValueError:
             # Preserve ambiguous legacy values in their original source; do not
             # guess a country code or create invalid normalized records.

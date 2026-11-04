@@ -23,9 +23,17 @@ class BankAccount(BaseModel):
     micr: str = Field("", max_length=9)
     branch: str = Field("", max_length=120)
     primary: bool = False
+    country: str = Field("IN", pattern=r"^[A-Z]{2}$")
+    currency: str = Field("INR", pattern=r"^[A-Z]{3}$")
+    iban: str = Field("", max_length=40)
+    bic: str = Field("", max_length=11)
 
     @model_validator(mode="after")
     def validate_codes(self):
+        from app.core.business_validation import bank_code
+        self.iban = bank_code("IBAN", self.iban, self.country)
+        self.bic = bank_code("BIC", self.bic)
+        self.ifsc = bank_code("IFSC", self.ifsc, self.country)
         self.ifsc = self.ifsc.upper()
         if self.ifsc and not re.fullmatch(r"[A-Z]{4}0[A-Z0-9]{6}", self.ifsc):
             raise ValueError("IFSC must contain 11 characters, with zero in position 5")
@@ -51,6 +59,8 @@ class FinancialData(BaseModel):
 
     @model_validator(mode="after")
     def validate_details(self):
+        from app.core.business_validation import registration
+        self.gstNumber = registration("GSTIN", self.gstNumber, "IN")
         self.gstNumber = self.gstNumber.upper()
         if self.gstNumber and not re.fullmatch(r"[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]", self.gstNumber):
             raise ValueError("Enter a 15-character company GST number")

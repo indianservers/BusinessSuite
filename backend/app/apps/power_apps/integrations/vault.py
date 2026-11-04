@@ -42,6 +42,10 @@ PROVIDER_HOSTS = {
 
 from app.apps.power_apps.integrations.providers import PROFILES
 PROVIDER_HOSTS.update({key: [value["host"]] for key,value in PROFILES.items()})
+from app.apps.power_apps.integrations.automation_catalog import MODULES, OPERATIONS
+for _key, _info in MODULES.items():
+    if _info["host"]:
+        PROVIDER_HOSTS[_key] = sorted({_info["host"], *(s["host"] for (mid, _), s in OPERATIONS.items() if mid == _key and s["host"])})
 
 
 class CredentialVault:
@@ -110,6 +114,8 @@ def audit(db, row, user, action, details=None):
 
 
 def hosts_for(conn):
+    if conn.connector_id in {"salesforce", "jira", "zoho_crm"}:
+        return [conn.config["provider_host"]]
     return PROVIDER_HOSTS.get(conn.connector_id, conn.config.get("hosts", []))
 
 
@@ -168,9 +174,19 @@ def validate_config(connector_id, auth_type, config, secrets, scopes, writes):
         "spreadsheet_id",
         "schema_name",
         "label",
+        "provider_host",
+        "team_member_id",
+        "namespace_id",
     }
     if set(config) - permitted:
         raise HTTPException(422, "Unknown public connection setting")
+    if any(key in config and (connector_id != "dropbox" or not isinstance(config[key], str) or not re.fullmatch(r"[A-Za-z0-9_:-]{1,180}", config[key])) for key in ("team_member_id", "namespace_id")):
+        raise HTTPException(422, "Dropbox team and namespace identifiers must be valid nonempty identifiers")
+    if connector_id in {"salesforce", "jira", "zoho_crm"}:
+        host = config.get("provider_host", "")
+        suffixes = {"salesforce": (".my.salesforce.com", ".sandbox.my.salesforce.com"), "jira": (".atlassian.net",), "zoho_crm": ("www.zohoapis.com", "www.zohoapis.eu", "www.zohoapis.in", "www.zohoapis.com.au", "www.zohoapis.jp", "www.zohoapis.ca")}
+        if not isinstance(host, str) or not re.fullmatch(r"[a-zA-Z0-9.-]{1,253}", host) or not any(host.endswith(s) if s.startswith(".") else host == s for s in suffixes[connector_id]):
+            raise HTTPException(422, "Provide the exact supported provider hostname without a scheme or path")
     if connector_id in {"http", "outgoing_webhook", "postgresql"}:
         hosts = config.get("hosts", [])
         if (
@@ -225,7 +241,7 @@ def validate_config(connector_id, auth_type, config, secrets, scopes, writes):
                 "Application databases and application roles cannot be used as connector credentials",
             )
     permitted_scopes = {s for a in REGISTRY[connector_id].actions for s in a.scopes}
-    if connector_id == "outlook":
+    if connector_id == "outlook" or MODULES.get(connector_id, {}).get("host") == "graph.microsoft.com":
         permitted_scopes.add("offline_access")
     if not set(scopes) <= permitted_scopes:
         raise HTTPException(422, "Requested scopes are outside this connector manifest")
@@ -304,7 +320,7 @@ def create(db, user, environment, data):
         name=data.name,
         auth_type=data.auth_type,
         encrypted_value=CredentialVault.encrypt(secret_values),
-        hosts=PROVIDER_HOSTS.get(data.connector_id, data.config.get("hosts", [])),
+        hosts=([data.config["provider_host"]] if data.connector_id in {"salesforce", "jira", "zoho_crm"} else PROVIDER_HOSTS.get(data.connector_id, data.config.get("hosts", []))),
         sharing=data.sharing
     )
     db.add(credential)

@@ -1,4 +1,5 @@
 """Permission-scoped directory over existing CRM contacts, not a second store."""
+from app.shared.branch_availability import BranchAvailability, save_profile_availability, resolve as resolve_availability
 import csv
 import io
 import json
@@ -221,6 +222,7 @@ def export_contacts(search: str = "", relationship: str = "", filters: str = Que
 
 
 class ContactEdit(BaseModel):
+    branch_availability: BranchAvailability | None = None
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=180)
     email: str | None = Field(None, max_length=150)
@@ -289,6 +291,8 @@ def apply_edit(db, actor, row, data):
 @router.post("")
 def create_contact(data: ContactEdit, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     allowed(actor, "manage")
+    if data.branch_availability is not None:
+        resolve_availability(db, actor, data.branch_availability, "crm", "create", lambda: allowed(actor, "manage"))
     crm = core()
     from app.shared.master_data import duplicate_guard
     duplicate_guard(db, actor, "crm", data.phone, data.phoneCountryCode, data.email, data.confirmShared, data.sharedReason)
@@ -298,6 +302,7 @@ def create_contact(data: ContactEdit, db: Session = Depends(get_db), actor: User
     db.flush()
     audit(db, actor, row, "CONTACT_CREATE", after=serialize(row))
     save_directory_channels(db, actor, row, data)
+    save_profile_availability(db, actor, row, data.branch_availability, action="create")
     db.commit()
     return serialize(row)
 
@@ -337,6 +342,7 @@ def edit_contact(ident: int, data: ContactEdit, db: Session = Depends(get_db), a
             source.updated_at, source.updated_by_user_id = row.updated_at, actor.id
     audit(db, actor, row, "CONTACT_EDIT", before, serialize(row))
     save_directory_channels(db, actor, row, data, data.version)
+    save_profile_availability(db, actor, row, data.branch_availability)
     db.commit()
     return serialize(row)
 

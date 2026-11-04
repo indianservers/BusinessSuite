@@ -40,6 +40,13 @@ PROVIDERS = {
 from app.apps.power_apps.integrations.providers import PROFILES
 for key, profile in PROFILES.items():
     if profile["scopes"]: PROVIDERS[key] = PROVIDERS["google_sheets"]
+from app.apps.power_apps.integrations.automation_catalog import MODULES
+for key, info in MODULES.items():
+    if info["host"] == "graph.microsoft.com": PROVIDERS[key] = PROVIDERS["outlook"]
+PROVIDERS["onedrive"] = (
+    "microsoft", "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    "https://login.microsoftonline.com/common/oauth2/v2.0/token", None,
+)
 
 def app_config(connector_id):
     if connector_id not in PROVIDERS:

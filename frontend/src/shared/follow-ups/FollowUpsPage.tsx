@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { ActionToolbar } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
 import MobileFollowUpQueue from "@/components/mobile/MobileFollowUpQueue";
@@ -913,7 +914,7 @@ export default function FollowUpsPage() {
                       <td className="p-3">
                         {r.customer_name}
                         <small className="block text-muted-foreground">
-                          {r.phone}
+                          <PhoneActions value={r.phone} record={r} field="phone" />
                         </small>
                       </td>
                       <td className="p-3">

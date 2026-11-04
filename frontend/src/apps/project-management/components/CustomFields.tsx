@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect, usePageRefresh } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
@@ -28,7 +29,7 @@ export function FieldValue({field}:{field:CustomField}) {
  if(field.field_type==="checkbox")return <span>{field.value?"✓ Yes":"No"}</span>;
  if(field.field_type==="dropdown")return <span className="inline-block rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">{String(field.value)}</span>;
  if(field.field_type==="progress")return <span className="flex min-w-20 items-center gap-2"><span className="h-1.5 w-14 overflow-hidden rounded bg-muted"><span className="block h-full bg-primary" style={{width:`${field.value}%`}}/></span>{field.value}%</span>;
- return <span className="break-words">{field.field_type==="rating"?`${"★".repeat(Number(field.value))} ${field.value}/5`:field.field_type==="phone"?`${field.country_code || ""} ${field.value}`:String(field.value)}</span>;
+ return <span className="break-words">{field.field_type==="rating"?`${"★".repeat(Number(field.value))} ${field.value}/5`:field.field_type==="phone"?<PhoneActions value={field.value} countryCode={field.country_code || ""}/>:String(field.value)}</span>;
 }
 export function CustomFieldCell({entity,id,field,canEdit,onSaved}:{entity:"task"|"project";id:number;field:CustomField;canEdit:boolean;onSaved:()=>void}) {
  const [editing,setEditing]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState("");

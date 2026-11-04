@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.core.input_validation import normalize_phone
 
 import ast
 import re
@@ -182,7 +183,7 @@ def validate_record_payload(db: Session, module_name: str, values: dict[str, Any
             key=field.field_api_name
             companions.add(key+'_country_code')
             if values.get(key) not in (None,''):
-                try:national_phone(values[key]);calling_code(values.get(key+'_country_code'))
+                try:normalize_phone(values[key],values.get(key+'_country_code'))
                 except ValueError as exc:raise HTTPException(422,detail=[{'loc':['body',key],'msg':str(exc),'type':'value_error'}]) from None
     unknown = [key for key in values if key not in field_map and key not in companions]
     if unknown:

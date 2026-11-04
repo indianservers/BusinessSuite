@@ -46,8 +46,11 @@ TOKEN_LABELS = {
 
 
 def narrow_action_schemas(registry):
+    from app.apps.power_apps.integrations.automation_catalog import INSTALLED
     for connector in registry.values():
         for action in connector.actions:
+            if (connector.id, action.id) in INSTALLED and connector.id in ACTION_FIELDS:
+                ACTION_FIELDS[connector.id][action.id] = list(action.input_schema.get("properties", {}))
             fields = ACTION_FIELDS.get(connector.id, {}).get(action.id)
             if connector.id == "ai_gateway":
                 fields = ["input", "instruction", "token_budget"]
@@ -84,6 +87,12 @@ def connection_schema(connector):
         properties["spreadsheet_id"] = {"type": "string", "title": "Default spreadsheet ID"}
     if connector.id == "ai_gateway":
         properties["provider"] = {"type": "string", "title": "Approved company AI provider", "default": "openai"}
+    if connector.id in {"salesforce", "jira", "zoho_crm"}:
+        properties["provider_host"] = {"type": "string", "title": "Provider hostname (without https://)"}
+        required.append("provider_host")
+    if connector.id == "dropbox":
+        properties["team_member_id"] = {"type": "string", "title": "Team member ID (optional)"}
+        properties["namespace_id"] = {"type": "string", "title": "Root namespace ID (optional)"}
     return {"type": "object", "properties": properties, "required": required}
 
 

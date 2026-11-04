@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.core.audit_context import context
-from app.core.input_validation import PHONE_FIELDS,national_phone,calling_code,email_address,clean_text
+from app.core.input_validation import PHONE_FIELDS,national_phone,calling_code,email_address,clean_text,normalize_phone
 
 
 def contact_issues(record):
@@ -15,8 +15,8 @@ def contact_issues(record):
     for field in columns.keys():
         if field not in PHONE_FIELDS or not getattr(record,field,None):continue
         try:
-            national_phone(getattr(record,field));calling_code(getattr(record,field+'_country_code',None))
-        except ValueError:result[field]='Legacy phone needs correction: select its country code and enter exactly 10 ASCII digits.'
+            normalize_phone(getattr(record,field),getattr(record,field+'_country_code',None))
+        except ValueError:result[field]='Review this legacy phone number and its country code.'
     return result
 
 
@@ -41,7 +41,9 @@ def validate_api_contacts(session,flush_context,instances):
                     try:calling_code(getattr(record,code_field))
                     except ValueError as exc:errors.append({'loc':['body',code_field],'msg':str(exc),'type':'value_error'})
                 if changed and value not in (None,''):
-                    try:national_phone(value);calling_code(getattr(record,code_field,None))
+                    try:
+                        normalized, _ = normalize_phone(value,getattr(record,code_field,None))
+                        setattr(record,field,normalized)
                     except ValueError as exc:errors.append({'loc':['body',field],'msg':str(exc),'type':'value_error'})
             elif changed and (field=='email' or field.endswith('_email')):
                 value=getattr(record,field,None)

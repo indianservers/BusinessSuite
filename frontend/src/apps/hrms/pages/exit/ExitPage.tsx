@@ -98,8 +98,8 @@ export default function ExitPage() {
                 <div className="flex gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><DoorOpen className="h-5 w-5" /></div>
                   <div>
-                    <p className="font-medium">Employee #{record.employee_id} â€¢ {record.exit_type || "Exit"}</p>
-                    <p className="text-sm text-muted-foreground">LWD {formatDate(record.last_working_date)} â€¢ {record.reason || "No reason"}</p>
+                    <p className="font-medium">Employee #{record.employee_id} • {record.exit_type || "Exit"}</p>
+                    <p className="text-sm text-muted-foreground">LWD {formatDate(record.last_working_date)} • {record.reason || "No reason"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

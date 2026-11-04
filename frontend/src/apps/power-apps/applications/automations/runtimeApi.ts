@@ -173,6 +173,7 @@ export const runtimeApi = (environment: string) => {
       kind: string,
       enabled: boolean,
       config: Record<string, unknown>,
+      providerSecrets: Record<string, string> = {},
     ) =>
       api
         .put<{
@@ -181,14 +182,14 @@ export const runtimeApi = (environment: string) => {
           next_at: string | null;
         }>(
           `/power-apps/automations/${id}/triggers/${kind}`,
-          { enabled, config },
+          { enabled, config, provider_secrets: providerSecrets },
           options,
         )
         .then((r) => r.data),
-    rotate: (id: number) =>
+    rotate: (id: number, kind = "webhook") =>
       api
         .post<{ secret: string }>(
-          `/power-apps/automations/${id}/triggers/webhook/rotate`,
+          `/power-apps/automations/${id}/triggers/${kind}/rotate`,
           {},
           options,
         )

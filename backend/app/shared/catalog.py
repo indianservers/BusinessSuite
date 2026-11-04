@@ -40,8 +40,11 @@ class Price(BaseModel):
 
 from app.shared.follow_ups import ScheduleTemplate
 
+from app.shared.branch_availability import BranchAvailability, resolve as resolve_availability
+
 class ItemInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    branch_availability: BranchAvailability | None = None
     follow_up: ScheduleTemplate | None = None
     kind: Kind
     name: str = Field(min_length=1, max_length=180)
@@ -164,7 +167,9 @@ def item_record(db, user, source, kind, ident, write=False, archived=True):
 
 def output(row, kind, detail):
     attributes = row.metadata_json or {}
-    return {"follow_up": attributes.get("follow_up"), "id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
+    policy = attributes.get("catalog_branches") or {}
+    availability = None if policy.get("default", True) else {"scope": "selected", "branch_ids": sorted(int(key) for key, enabled in policy.get("overrides", {}).items() if enabled)}
+    return {"branch_availability": availability, "follow_up": attributes.get("follow_up"), "id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
             "category": row.category_name or "", "description": row.description or "", "price": float(row.sales_rate or 0),
             "currency": attributes.get("currency", "INR"), "tax": float(row.gst_rate or 0), "unit": row.unit_code or "unit",
             "barcode": row.barcode or "", "hsn_code": row.hsn_code or "", "cost": float(row.purchase_rate or 0), "mrp": float(row.mrp or 0), "reorder_level": float(row.reorder_level or 0), "track_inventory": bool(row.track_inventory),
@@ -176,9 +181,14 @@ def output(row, kind, detail):
 def save_item(db, user, source, data, ident=None):
     authorize(user, source, data.kind, True, db=db)
     workspace_access(db, user, data.workspace_id, True)
+    targets = None
+    if data.branch_availability is not None and not ident:
+        targets = resolve_availability(db, user, data.branch_availability, "project_management" if source == "pms" else source, "edit" if ident else "create", lambda: authorize(user, source, data.kind, True, db=db))
     model = SRMProduct
     if ident:
         row, detail = item_record(db, user, source, data.kind, ident, True)
+        if data.branch_availability is not None:
+            targets = resolve_availability(db, user, data.branch_availability, "project_management" if source == "pms" else source, "edit", lambda: authorize(user, source, data.kind, True, db=db))
         if data.version is not None and data.version != (detail.version if detail else 0):
             raise HTTPException(409, "This item changed. Reload it before saving.")
     else:
@@ -187,6 +197,21 @@ def save_item(db, user, source, data, ident=None):
         if branch:
             row.metadata_json = {"catalog_branches": {"default": False, "overrides": {str(branch): True}}}
         db.add(row)
+    if data.branch_availability is not None:
+        if data.workspace_id and data.branch_availability.scope != "current":
+            raise HTTPException(422, "Workspace offerings must remain in the current branch")
+        previous_policy = (row.metadata_json or {}).get("catalog_branches") or {}
+        if ident:
+            from app.shared.branch_availability import active_branches
+            from app.branches.service import access
+            existing = {branch for branch in active_branches(db, tenant(user)) if is_available(row, branch)}
+            if not existing <= access(db, user, tenant(user))[1]:
+                raise HTTPException(403, "Write access is required for existing shared branches")
+            from app.shared.branch_availability import check_destinations
+            check_destinations(db, user, existing, "project_management" if source == "pms" else source, "edit", lambda: authorize(user, source, data.kind, True, db=db))
+        row.metadata_json = {**(row.metadata_json or {}), "catalog_branches": {"default": False, "overrides": {str(branch): True for branch in targets}}}
+        from app.branches.service import audit
+        audit(db, user, tenant(user), "catalog.branch.availability", "Update offering branch availability", {"id": ident, "before": previous_policy, "branch_ids": sorted(targets)})
     row.item_name, row.category_name, row.description = data.name, data.category, data.description
     row.gst_rate, row.active = data.tax, data.status == "Active"
     row.sku, row.sales_rate, row.unit_code = data.code, data.price, data.unit

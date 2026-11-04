@@ -7,7 +7,7 @@ import json
 import secrets
 from datetime import timedelta
 from fastapi import HTTPException
-from app.apps.power_apps.runtime import now, utc, enqueue, authority, scope_values
+from app.apps.power_apps.runtime import now, utc, enqueue, authority, scope_values, runtime_branch_scope
 from app.apps.power_apps.runtime_models import (
     AutomationTrigger as Trigger,
     AutomationReplay as Replay,
@@ -155,7 +155,10 @@ def validate_schema(schema, depth=0):
         validate_schema(schema.get("items", {}), depth + 1)
 
 
-def configure(db, row, user, kind, enabled, config):
+def configure(db, row, user, kind, enabled, config, provider_secrets=None):
+    if kind == "connector":
+        from app.apps.power_apps.integrations.automation_triggers import configure as configure_connector
+        return configure_connector(db, row, user, enabled, config, provider_secrets)
     state = db.query(Deployment).filter_by(resource_id=row.id).with_for_update().first()
     if (
         not state
@@ -299,7 +302,7 @@ def webhook(db, endpoint, body, timestamp, nonce, signature, client_ip):
         raise HTTPException(413, "Webhook payload exceeds 32 KB")
     hint = (
         db.query(Trigger)
-        .filter_by(endpoint=endpoint, kind="webhook", enabled=True)
+        .filter(Trigger.endpoint==endpoint, Trigger.kind.in_(["webhook","connector"]), Trigger.enabled.is_(True))
         .first()
     )
     if not hint:
@@ -314,6 +317,12 @@ def webhook(db, endpoint, body, timestamp, nonce, signature, client_ip):
     )
     if not trigger:
         raise HTTPException(404, "Webhook is unavailable")
+    if trigger.config.get("native",{}).get("managed"):
+        raise HTTPException(404,"Use the native provider callback endpoint")
+    if trigger.kind == "connector":
+        state = db.query(Deployment).filter_by(resource_id=trigger.resource_id).first()
+        if not state or state.version_id != trigger.config.get("version_id"):
+            raise HTTPException(409, "Reconfigure connector events for the published workflow version")
     try:
         epoch = int(timestamp)
         if abs(now().timestamp() - epoch) > 300 or not 8 <= len(nonce) <= 180:
@@ -345,11 +354,22 @@ def webhook(db, endpoint, body, timestamp, nonce, signature, client_ip):
     try:
         data = json.loads(body)
         schema_check(data, trigger.config["schema"])
+        if trigger.kind == "connector":
+            from app.apps.power_apps.integrations.automation_triggers import relay_payload
+            data = relay_payload(trigger, data)
     except (ValueError, TypeError, KeyError):
         raise HTTPException(
             422, "Webhook payload does not match its input contract"
         ) from None
     user = trigger_identity(db, trigger)
+    if trigger.kind == "connector":
+        from app.apps.power_apps.integrations import vault
+        from app.access.service import background_scope
+        with background_scope(db, user, "power_apps", "view"):
+            conn = vault.connection(db, user, trigger.environment, trigger.config["setup"]["connection_id"])
+            if not conn.enabled or conn.connector_id != trigger.config["module_id"]:
+                raise HTTPException(403, "Connector event connection is unavailable")
+            vault.credential_values(db, user, conn)
     row = (
         db.query(PowerResource)
         .filter_by(
@@ -359,24 +379,25 @@ def webhook(db, endpoint, body, timestamp, nonce, signature, client_ip):
         )
         .one()
     )
-    db.add(
-        Replay(
-            **scope_values(trigger),
-            trigger_id=trigger.id,
-            nonce_hash=nonce_hash,
-            created_at=now(),
+    with runtime_branch_scope(db, row, user):
+        db.add(
+            Replay(
+                **scope_values(trigger),
+                trigger_id=trigger.id,
+                nonce_hash=nonce_hash,
+                created_at=now(),
+            )
         )
-    )
-    root = enqueue(
-        db,
-        row,
-        user,
-        data,
-        f"webhook:{trigger.id}:{nonce_hash}",
-        kind="webhook",
-        trigger=trigger,
-    )
-    db.flush()
+        root = enqueue(
+            db,
+            row,
+            user,
+            data,
+            (f"connector:{trigger.id}:" + hashlib.sha256(data["event_id"].encode()).hexdigest()) if trigger.kind == "connector" else f"webhook:{trigger.id}:{nonce_hash}",
+            kind=trigger.kind,
+            trigger=trigger,
+        )
+        db.flush()
     return root
 
 
@@ -421,21 +442,22 @@ def scheduler_tick(db, limit=100):
         due = utc(trigger.next_at)
         try:
             user = trigger_identity(db, trigger)
-            enqueue(
-                db,
-                row,
-                user,
-                {"scheduled_at": due.isoformat()},
-                f"schedule:{trigger.id}:{due.isoformat()}",
-                kind="scheduled",
-                trigger=trigger,
-            )
-            trigger.last_at = due
-            # Missed ticks coalesce to one run; no unbounded catch-up storm.
-            trigger.next_at = next_occurrence(trigger.config, max(due, now()))
-            if trigger.next_at is None:
-                trigger.enabled = False
-            db.commit()
+            with runtime_branch_scope(db, row, user):
+                enqueue(
+                    db,
+                    row,
+                    user,
+                    {"scheduled_at": due.isoformat()},
+                    f"schedule:{trigger.id}:{due.isoformat()}",
+                    kind="scheduled",
+                    trigger=trigger,
+                )
+                trigger.last_at = due
+                # Missed ticks coalesce to one run; no unbounded catch-up storm.
+                trigger.next_at = next_occurrence(trigger.config, max(due, now()))
+                if trigger.next_at is None:
+                    trigger.enabled = False
+                db.commit()
             count += 1
         except HTTPException as exc:
             db.rollback()

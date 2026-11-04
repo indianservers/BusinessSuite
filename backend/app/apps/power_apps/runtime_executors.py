@@ -26,7 +26,7 @@ class Executor:
         return NODES[self.node_type]["output_schema"]
 
     def execute(self, node, config, payload, previous):
-        if self.node_type == "telegram_trigger":
+        if self.node_type == "telegram_trigger" or self.node_type.startswith("integration_trigger_"):
             return {"input": payload}, {"out"}
         if self.node_type == "telegram_enquiry":
             return {"chat_id": payload["chat_id"], "text": payload["reply"]}, {"out"}
@@ -122,6 +122,8 @@ EXECUTORS = {
 EXECUTORS["approval_wait"] = Executor("approval_wait", capabilities=("durable_approval",), idempotency="transactional")
 
 for kind in NODES:
+    if kind.startswith("integration_trigger_"):
+        EXECUTORS[kind] = Executor(kind)
     if kind.startswith("connector_"):
         EXECUTORS[kind] = Executor(kind, capabilities=("external_io",), timeout_seconds=15, retryable=False, idempotency="journaled")
 

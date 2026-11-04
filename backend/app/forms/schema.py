@@ -1,3 +1,4 @@
+from app.core.input_validation import normalize_phone
 from app.core.input_validation import national_phone,calling_code,email_address
 import json, math, re
 from datetime import date
@@ -174,7 +175,7 @@ def clean_answers(definition, answers):
             )
         elif f.type=='phone':
             try:
-                national_phone(value);calling_code(answers.get(f.id+'_country_code'))
+                normalize_phone(value,answers.get(f.id+'_country_code'))
                 clean[f.id+'_country_code']=answers[f.id+'_country_code']
             except ValueError as exc:raise HTTPException(422,detail=f'{f.label}: {exc}') from None
         elif f.type == "checkbox":

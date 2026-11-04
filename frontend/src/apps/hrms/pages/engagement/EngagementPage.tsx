@@ -133,7 +133,7 @@ export default function EngagementPage() {
           <CardContent className="space-y-2">
             {[...(moments.data?.birthdays || []).map((item: any) => ({ ...item, type: "Birthday" })), ...(moments.data?.anniversaries || []).map((item: any) => ({ ...item, type: "Anniversary" }))].slice(0, 6).map((item: any) => (
               <a key={`${item.type}-${item.employee_id}`} href={`/hrms/employees/${item.employee_id}`} className="flex justify-between rounded-lg border p-3 text-sm hover:bg-muted/50">
-                <span>{item.name}</span><span className="text-muted-foreground">{item.type} â€¢ {formatDate(item.date)}</span>
+                <span>{item.name}</span><span className="text-muted-foreground">{item.type} • {formatDate(item.date)}</span>
               </a>
             ))}
             {!moments.data?.birthdays?.length && !moments.data?.anniversaries?.length && <p className="text-sm text-muted-foreground">No upcoming birthdays or anniversaries.</p>}

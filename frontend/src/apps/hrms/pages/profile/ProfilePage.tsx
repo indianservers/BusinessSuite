@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -439,10 +440,10 @@ export default function ProfilePage() {
                 <div><p className="text-muted-foreground">Name</p><p className="font-medium">{employee.data.first_name} {employee.data.last_name}</p></div>
                 <div><p className="text-muted-foreground">Employee ID</p><p className="font-medium">{employee.data.employee_id}</p></div>
                 <div><p className="text-muted-foreground">Email</p><p className="font-medium">{employee.data.personal_email || "-"}</p></div>
-                <div><p className="text-muted-foreground">Phone</p><p className="font-medium">{employee.data.phone_number || "-"}</p></div>
+                <div><p className="text-muted-foreground">Phone</p><p className="font-medium"><PhoneActions value={employee.data.phone_number} record={employee.data} field="phone_number" /></p></div>
                 <div><p className="text-muted-foreground">Marital status</p><p className="font-medium">{employee.data.marital_status || "-"}</p></div>
                 <div><p className="text-muted-foreground">Emergency contact</p><p className="font-medium">{employee.data.emergency_contact_name || "-"}</p></div>
-                <div><p className="text-muted-foreground">Emergency phone</p><p className="font-medium">{employee.data.emergency_contact_number || "-"}</p></div>
+                <div><p className="text-muted-foreground">Emergency phone</p><p className="font-medium"><PhoneActions value={employee.data.emergency_contact_number} record={employee.data} field="emergency_contact_number" /></p></div>
                 <div><p className="text-muted-foreground">PAN</p><p className="font-medium">{employee.data.pan_number || "-"}</p></div>
                 <div><p className="text-muted-foreground">Aadhaar</p><p className="font-medium">{employee.data.aadhaar_number || "-"}</p></div>
                 <div><p className="text-muted-foreground">Bank</p><p className="font-medium">{employee.data.bank_name || "-"}</p></div>

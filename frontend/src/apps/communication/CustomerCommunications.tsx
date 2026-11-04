@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect,useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -470,7 +471,7 @@ export default function CustomerCommunications() {
                         {r.name} <Badge variant="outline">{r.role}</Badge>
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {r.email || r.phone}
+                        {r.email || <PhoneActions value={r.phone} record={r} />}
                       </p>
                     </div>
                     <div className="flex gap-2">

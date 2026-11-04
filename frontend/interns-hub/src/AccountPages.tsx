@@ -1,3 +1,4 @@
+import PhoneActions from "../../src/components/PhoneActions";
 import { RichTextField, RichTextContent } from "../../src/components/rich-text/LazyRichText";
 import { useState, type CSSProperties } from "react";
 import { PhoneInput } from "./validation/PhoneInput";
@@ -90,7 +91,7 @@ function LegacyProfile() {
           </p>
           <p>
             <Phone size={15} />
-            {e.phone_number ? `${e.phone_number_country_code || ""} ${e.phone_number}` : "Phone not provided"}
+            <PhoneActions value={e.phone_number} record={e} field="phone_number" fallback="Phone not provided" />
           </p>
           <p>
             <MapPin size={15} />

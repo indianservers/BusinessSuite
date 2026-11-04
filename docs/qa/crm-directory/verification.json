@@ -1,0 +1,67 @@
+{
+  "environment": "localhost:5173 / loopback PostgreSQL",
+  "account": "admin@aihrms.com (super admin)",
+  "branch": "Main Branch (6)",
+  "seed": {
+    "vendors": 16,
+    "account_managers": 16,
+    "business_contact_identities": 16,
+    "marker": "LOCAL-VENDORS-20261104",
+    "idempotent_rerun": true
+  },
+  "verified": {
+    "vendors": [
+      "single-click details",
+      "double-click popup",
+      "email draft",
+      "WhatsApp draft",
+      "blocked/inactive communication disabled",
+      "active status filter: 14 results",
+      "bulk tag persisted",
+      "bulk trash and restore",
+      "filtered clipboard export: 14 records",
+      "edit existing shared number without repeat confirmation"
+    ],
+    "companies": [
+      "search seeded vendor",
+      "single-click details",
+      "double-click popup",
+      "email and WhatsApp drafts",
+      "bulk tag",
+      "bulk Supplier role",
+      "filtered clipboard export: 1 record"
+    ],
+    "contacts": [
+      "search vendor account manager",
+      "single-click details",
+      "double-click popup",
+      "email and WhatsApp drafts",
+      "edit form",
+      "active/inactive filter",
+      "eligible owner choices",
+      "bulk owner change to user 9 and restore to user 1",
+      "fresh owner label after mutation",
+      "filtered CSV contains Emma Carter"
+    ],
+    "followups": [
+      "search vendor domain: 2 records",
+      "single-click details",
+      "double-click popup",
+      "email and WhatsApp drafts",
+      "upcoming and owner filters",
+      "bulk schedule: 2 records",
+      "bulk assignment to user 9 and restore to user 1",
+      "existing follow-up reminder saved for 2026-11-04 23:00 local",
+      "CSV: 2 records",
+      "XLSX opens: Follow-ups sheet",
+      "PDF opens: 1 page",
+      "clipboard export"
+    ]
+  },
+  "checks": {
+    "backend": "tests/test_master_data.py: 10 passed, 1 PostgreSQL-only test skipped",
+    "typescript": "tsc --noEmit passed",
+    "diff_check": "passed"
+  },
+  "external_messages_sent": false
+}

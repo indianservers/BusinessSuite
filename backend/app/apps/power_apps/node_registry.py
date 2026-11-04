@@ -23,6 +23,15 @@ NODES["connector_telegram"]["fields"][0]["default"] = "send_message"
 NODES["telegram_trigger"] = dict(id="telegram_trigger", name="Telegram · Message received", category="Triggers", icon="Send", description="Receive new private bot messages using the local automation worker.", trigger=True, editor_ready=True, executable=True, preview_supported=True, requires_credential=False, fields=[], inputs=[], outputs=[dict(id="out",label="Next",data_type="flow",max_connections=1)], output_schema={"input":"object"}, help="Configure the bot in Automations > Telegram auto-reply. No public webhook is required.")
 NODES["telegram_enquiry"] = dict(id="telegram_enquiry", name="Telegram · Check enquiry", category="Logic", icon="MessageSquare", description="Route Sales, Support and Order status enquiries and collect the customer's name and requirement.", trigger=False, editor_ready=True, executable=True, preview_supported=True, requires_credential=False, fields=[], inputs=[dict(id="in",label="In",data_type="flow",max_connections=1)], outputs=[dict(id="out",label="Reply",data_type="flow",max_connections=1)], output_schema={"chat_id":"string","text":"string"}, help="Conversation progress is stored in this automation's execution events, never in CRM.")
 NODES["webhook_trigger"]["description"] = "Receive a signed webhook and start a durable workflow."
+for connector_id, manifest in CONNECTORS.items():
+    if not manifest.triggers: continue
+    node_id = "integration_trigger_" + connector_id
+    NODES[node_id] = dict(id=node_id, name=manifest.name + " · Event received", category="Triggers", icon="Plug",
+        description="Receive connector events; configure the connection, event and watch fields.",
+        trigger=True, editor_ready=True, executable=True, preview_supported=True, requires_credential=False,
+        fields=[dict(key="setup",label="Trigger setup",kind="json",required=True,allow_expression=False,default={})],
+        inputs=[], outputs=[dict(id="out",label="Next",data_type="flow",max_connections=1)],
+        output_schema={"input":"object"},help="Publish the configured trigger, then enable Connector events in the Runtime tab. Telegram and spreadsheets poll through the worker; other events require the authenticated signed relay.")
 SECRET_KEYS = {"api_key", "apikey", "secret", "client_secret", "password", "access_token", "refresh_token", "authorization", "private_key", "token"}
 PATH = re.compile(r"^(?:workflow\.variables\.[A-Za-z_][A-Za-z0-9_]*|env\.name|trigger\.(?:record|input)(?:\.[A-Za-z_][A-Za-z0-9_]*)*|steps\.[A-Za-z_][A-Za-z0-9_-]*\.output(?:\.[A-Za-z_][A-Za-z0-9_]*)*)$")
 TOKEN = re.compile(r"\{\{\s*([^{}]+?)\s*\}\}")

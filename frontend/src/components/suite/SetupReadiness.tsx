@@ -43,7 +43,7 @@ export default function SetupReadiness() {
     {!!pageItems.length && <section aria-label="Mandatory setup requirements" className="mx-4 my-3 rounded-lg border border-amber-500/40 bg-background p-4 text-sm">
       <p className="font-semibold"><span className="text-destructive">*</span> Mandatory setup</p>
       <p className="mt-1 text-muted-foreground">{pageItems.some(item => query.data?.items.includes(item)) ? "Required before creating or updating business records. You can continue browsing while setup is incomplete." : "Required before using the operation described below."}</p>
-      <ul className="mt-2 space-y-2">{pageItems.map(item => <li key={item.id}><strong>{item.title} *</strong> · {item.ready ? "Complete" : "Missing — action required"}<p className="text-muted-foreground">{item.description}</p>{!item.ready && !item.canRepair && <p>Ask your company administrator to complete this item.</p>}</li>)}</ul>
+      <ul className="mt-2 space-y-2">{pageItems.map(item => <li key={item.id}><strong>{item.title} *</strong> Â· {item.ready ? "Complete" : "Missing â€” action required"}<p className="text-muted-foreground">{item.description}</p>{!item.ready && !item.canRepair && <p>Ask your company administrator to complete this item.</p>}</li>)}</ul>
       <p className="mt-2 text-muted-foreground">Fields marked * are mandatory.</p>
     </section>}
     {!query.data?.ready && <aside aria-label="Company setup" className="fixed bottom-4 left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-lg">

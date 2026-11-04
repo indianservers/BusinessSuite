@@ -37,6 +37,10 @@ def worker_tick(db, worker_id):
         scheduler_tick(db)
         from app.apps.power_apps.telegram import poll_tick
         poll_tick(db)
+        from app.apps.power_apps.integrations.automation_triggers import poll_tick as connector_poll_tick
+        connector_poll_tick(db)
+        from app.apps.power_apps.integrations.native_runtime import tick as native_tick
+        native_tick(db)
         from app.apps.power_apps.runtime_retention import purge_payloads
 
         purge_payloads(db)
@@ -48,7 +52,7 @@ def worker_tick(db, worker_id):
     from app.apps.power_apps.runtime_models import AutomationJob, AutomationRun, AutomationTrigger
     job = db.get(AutomationJob, work[0])
     run = db.get(AutomationRun, job.run_id)
-    if run.trigger_kind == 'telegram':
+    if run.trigger_kind in {'telegram', 'connector'}:
         from app.apps.power_apps.runtime import authority
         from app.access.service import background_scope
         trigger = db.get(AutomationTrigger, run.trigger_id)

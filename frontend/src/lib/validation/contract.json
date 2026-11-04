@@ -1,5 +1,5 @@
 {
-  "phone_error": "Enter exactly 10 digits. Select the country code separately.",
+  "phone_error": "Enter a valid national phone number and select its country code.",
   "national_phone_length": 10,
   "default_calling_code": "+91",
   "countries": [

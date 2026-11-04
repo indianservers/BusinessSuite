@@ -20,6 +20,7 @@ from app.apps.power_apps.integrations.registry import REGISTRY, INPUTS, get_acti
 from app.apps.power_apps.integrations.contracts import IntegrationFailure
 from app.apps.power_apps.integrations.providers import PROFILES, execute as provider_execute
 from app.apps.power_apps.integrations.transport import scrub
+from app.apps.power_apps.integrations import automation_catalog
 
 
 def config_identity(db, user_id, company, environment):
@@ -263,6 +264,8 @@ def invoke(
                     operation_key,
                     signed=conn.connector_id == "outgoing_webhook",
                 )
+            elif (conn.connector_id, action_id) in automation_catalog.INSTALLED:
+                output = automation_catalog.execute(conn, action_id, parsed, transport, headers, values, operation_key)
             elif conn.connector_id in PROFILES:
                 output = provider_execute(conn, action_id, parsed, transport, headers, values, operation_key)
             else:

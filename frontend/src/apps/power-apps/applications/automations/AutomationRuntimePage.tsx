@@ -43,6 +43,7 @@ import {
   type RuntimeTrigger,
 } from "./runtimeApi";
 import "./runtime.css";
+import NativeTriggerSecrets from "../integrations/NativeTriggerSecrets";
 const defaults: RuntimePolicy = {
   concurrency: 4,
   overflow: "queue",
@@ -209,12 +210,16 @@ export default function AutomationRuntimePage() {
     [secret, setSecret] = useState(""),
     [endpoint, setEndpoint] = useState("");
   const [resumeKey, setResumeKey] = useState("");
+  const [providerSecrets, setProviderSecrets] = useState<
+    Record<string, string>
+  >({});
   const [focusedStep, setFocusedStep] = useState("");
   useEffect(() => {
     setConfirm(null);
     setFocus("");
     setFocusedStep("");
     setSecret("");
+    setProviderSecrets({});
     setNotice("");
     setError("");
   }, [environment, workflowId, runId]);
@@ -841,9 +846,36 @@ export default function AutomationRuntimePage() {
                 <h2>Configured triggers</h2>
                 {triggers.map((t) => (
                   <article className="rt-trigger" key={t.id}>
-                    <strong>{t.kind}</strong>
+                    <strong>
+                      {t.kind === "connector"
+                        ? `${String(t.config.module_id).replace(/_/g, " ")} · ${String((t.config.setup as { event?: string } | undefined)?.event || "event").replace(/_/g, " ")}`
+                        : t.kind}
+                    </strong>
                     <span>{t.enabled ? "Enabled" : "Disabled"}</span>
                     <small>Next: {when(t.next_at)}</small>
+                    {t.kind === "connector" && Boolean(t.config.native) && (
+                      <>
+                        <small>
+                          Subscription:{" "}
+                          {String(
+                            (t.config.native as { phase?: string }).phase ||
+                              "pending",
+                          )}
+                        </small>
+                        {Boolean(
+                          (t.config.native as { error?: string }).error,
+                        ) && (
+                          <p role="alert">
+                            {String(
+                              (t.config.native as { error?: string }).error,
+                            )}
+                          </p>
+                        )}
+                      </>
+                    )}
+                    {t.kind === "connector" && Boolean(t.config.error) && (
+                      <p role="alert">{String(t.config.error)}</p>
+                    )}
                     <button
                       disabled={!can("publish") || busy}
                       onClick={() =>
@@ -852,7 +884,7 @@ export default function AutomationRuntimePage() {
                             workflowId,
                             t.kind,
                             !t.enabled,
-                            t.config,
+                            t.kind === "connector" ? {} : t.config,
                           ),
                         )
                       }
@@ -878,22 +910,26 @@ export default function AutomationRuntimePage() {
                                 hour: 9,
                                 minute: 0,
                               }
-                            : e.target.value === "webhook"
-                              ? {
-                                  schema: {
-                                    type: "object",
-                                    properties: { message: { type: "string" } },
-                                    required: ["message"],
-                                    additionalProperties: false,
+                            : e.target.value === "connector"
+                              ? {}
+                              : e.target.value === "webhook"
+                                ? {
+                                    schema: {
+                                      type: "object",
+                                      properties: {
+                                        message: { type: "string" },
+                                      },
+                                      required: ["message"],
+                                      additionalProperties: false,
+                                    },
+                                    max_per_minute: 30,
+                                    ip_allowlist: [],
+                                  }
+                                : {
+                                    provider: "",
+                                    event: "",
+                                    schema: { type: "object", properties: {} },
                                   },
-                                  max_per_minute: 30,
-                                  ip_allowlist: [],
-                                }
-                              : {
-                                  provider: "",
-                                  event: "",
-                                  schema: { type: "object", properties: {} },
-                                },
                         ),
                       );
                     }}
@@ -901,14 +937,17 @@ export default function AutomationRuntimePage() {
                     <option value="scheduled">Schedule</option>
                     <option value="webhook">Signed webhook</option>
                     <option value="internal">Registered internal event</option>
+                    <option value="connector">Connector events</option>
                   </NativeSelect>
                 </label>
                 <p>
                   {triggerKind === "scheduled"
                     ? "Modes: once, minutes, hourly, daily, weekly, monthly, cron. Use an IANA timezone. DST gaps are skipped and the first repeated time is used."
-                    : triggerKind === "webhook"
-                      ? "HMAC-SHA256 over timestamp.nonce.raw-body. Headers: X-Power-Timestamp, X-Power-Nonce, X-Power-Signature. Secrets are shown once."
-                      : "Only explicitly registered and authorized server providers can subscribe."}
+                    : triggerKind === "connector"
+                      ? "Uses the setup from the published trigger node. Save an empty policy {} to enable automatic native subscription setup. The automation worker registers, renews and removes provider subscriptions and reads native change cursors. Webhook providers require a public HTTPS backend URL."
+                      : triggerKind === "webhook"
+                        ? "HMAC-SHA256 over timestamp.nonce.raw-body. Headers: X-Power-Timestamp, X-Power-Nonce, X-Power-Signature. Secrets are shown once."
+                        : "Only explicitly registered and authorized server providers can subscribe."}
                 </p>
                 <label>
                   Trigger policy JSON
@@ -926,6 +965,15 @@ export default function AutomationRuntimePage() {
                   />{" "}
                   Enable this configured trigger
                 </label>
+                {triggerKind === "connector" && workflowId && (
+                  <NativeTriggerSecrets
+                    workflowId={workflowId}
+                    environment={environment}
+                    value={providerSecrets}
+                    onChange={setProviderSecrets}
+                    disabled={busy || !can("publish")}
+                  />
+                )}
                 <div className="rt-actions">
                   <button
                     disabled={busy || !can("publish")}
@@ -936,8 +984,14 @@ export default function AutomationRuntimePage() {
                           triggerKind,
                           triggerEnabled,
                           JSON.parse(triggerJSON),
+                          Object.fromEntries(
+                            Object.entries(providerSecrets)
+                              .filter(([, value]) => value.trim())
+                              .map(([key, value]) => [key, value.trim()]),
+                          ),
                         );
                         setSecret(result.secret || "");
+                        setProviderSecrets({});
                         setEndpoint(result.endpoint || "");
                         setNotice("Trigger policy saved.");
                       })
@@ -945,12 +999,25 @@ export default function AutomationRuntimePage() {
                   >
                     Save trigger policy
                   </button>
-                  {triggerKind === "webhook" && (
+                  {(triggerKind === "webhook" ||
+                    (triggerKind === "connector" &&
+                      triggers.some(
+                        (t) =>
+                          t.kind === "connector" &&
+                          ![
+                            "telegram",
+                            "google_sheets",
+                            "excel_online",
+                          ].includes(String(t.config.module_id)),
+                      ))) && (
                     <button
                       disabled={busy || !can("publish")}
                       onClick={() =>
                         void action(async () => {
-                          const result = await client.rotate(workflowId);
+                          const result = await client.rotate(
+                            workflowId,
+                            triggerKind,
+                          );
                           setSecret(result.secret);
                         })
                       }
@@ -1008,52 +1075,53 @@ export default function AutomationRuntimePage() {
                 )}
               </div>
               <div className="rt-actions">
-                <CompactActions><button
-                  disabled={!report.can_export || busy}
-                  onClick={() =>
-                    void action(async () => {
-                      saveReport(await client.report(runId));
-                    })
-                  }
-                >
-                  <Download size={14} /> Export sanitized report
-                </button>
-{can("execute") && (
-                  <>
-                    <button
-                      disabled={
-                        busy ||
-                        ![
-                          "queued",
-                          "running",
-                          "waiting",
-                          "retry_scheduled",
-                        ].includes(report.execution.status)
-                      }
-                      onClick={() => setConfirm("cancel")}
-                    >
-                      Cancel run
-                    </button>
-                    <button
-                      disabled={busy || report.execution.status !== "failed"}
-                      onClick={() =>
-                        void action(() => client.action(runId, "retry"))
-                      }
-                    >
-                      Retry failed step safely
-                    </button>
-                    <button
-                      disabled={busy}
-                      onClick={() => {
-                        setInput(json(report.run.input_payload));
-                        setConfirm("rerun");
-                      }}
-                    >
-                      Re-run with confirmation
-                    </button>
-                  </>
-                )}</CompactActions>
-
+                <CompactActions>
+                  <button
+                    disabled={!report.can_export || busy}
+                    onClick={() =>
+                      void action(async () => {
+                        saveReport(await client.report(runId));
+                      })
+                    }
+                  >
+                    <Download size={14} /> Export sanitized report
+                  </button>
+                  {can("execute") && (
+                    <>
+                      <button
+                        disabled={
+                          busy ||
+                          ![
+                            "queued",
+                            "running",
+                            "waiting",
+                            "retry_scheduled",
+                          ].includes(report.execution.status)
+                        }
+                        onClick={() => setConfirm("cancel")}
+                      >
+                        Cancel run
+                      </button>
+                      <button
+                        disabled={busy || report.execution.status !== "failed"}
+                        onClick={() =>
+                          void action(() => client.action(runId, "retry"))
+                        }
+                      >
+                        Retry failed step safely
+                      </button>
+                      <button
+                        disabled={busy}
+                        onClick={() => {
+                          setInput(json(report.run.input_payload));
+                          setConfirm("rerun");
+                        }}
+                      >
+                        Re-run with confirmation
+                      </button>
+                    </>
+                  )}
+                </CompactActions>
               </div>
             </section>
             <RunGraph

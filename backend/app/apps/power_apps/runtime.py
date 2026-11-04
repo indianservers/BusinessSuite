@@ -10,6 +10,7 @@ import hashlib
 import json
 import time
 import uuid
+from contextlib import ExitStack, nullcontext
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from sqlalchemy import or_, func, case
@@ -61,6 +62,17 @@ def scope_values(row):
     return {
         k: getattr(row, k) for k in ("organization_id", "environment", "owner_user_id")
     }
+
+
+def runtime_branch_scope(db, row, actor):
+    """Retain verified branch ownership when a worker or webhook creates records."""
+    from app.branches.models import BranchOwnership
+    from app.access.service import background_scope
+    ownership = db.query(BranchOwnership).filter_by(
+        resource_table=row.__tablename__, resource_key=str(row.id),
+        company_id=row.organization_id,
+    ).first()
+    return background_scope(db, actor, "power_apps", "create", branch_id=ownership.branch_id) if ownership else nullcontext()
 
 
 def event(db, run, kind, step=None, details=None):
@@ -248,7 +260,7 @@ def validate_runtime(definition):
                     "message": "This runtime has no credential-consuming executors",
                 }
             )
-        if n.type == "wait_until":
+        if n.type == "wait_until" and not expression_paths(n.config.get("until", "")) and "until" not in n.mappings:
             try:
                 value = datetime.fromisoformat(n.config["until"].replace("Z", "+00:00"))
                 if value.tzinfo is None:
@@ -595,6 +607,7 @@ def enqueue(db, row, user, data, key, kind="manual", trigger=None):
     allowed = {
         "manual": {"manual_trigger"},
         "telegram": {"telegram_trigger"},
+        "connector": {kind for kind in NODES if kind.startswith("integration_trigger_")},
         "scheduled": {"scheduled_trigger"},
         "webhook": {"webhook_trigger"},
         "internal": {"record_created", "record_updated", "status_changed"},
@@ -1181,8 +1194,9 @@ def process(db, job_id, token):
         db.commit()
         return "failed"
     checkpoint = db.begin_nested()
+    execution_scope = ExitStack()
     try:
-        authority(
+        actor = authority(
             db,
             run.effective_user_id,
             run.organization_id,
@@ -1190,6 +1204,9 @@ def process(db, job_id, token):
             run.owner_user_id,
             service=run.plan.get("identity_policy", {}).get("identity") == "service",
         )
+        # Iteration steps and execution events are created after the originating
+        # HTTP request has ended. Retain the run's verified branch for these writes.
+        execution_scope.enter_context(runtime_branch_scope(db, root, actor))
         nodes, incoming = plan_graph(run)
         node = nodes[step.node_id]
         if node.type not in EXECUTORS and node.type not in {"loop", "for_each"}:
@@ -1204,7 +1221,11 @@ def process(db, job_id, token):
         if stored_output_bytes > MAX_RUN_OUTPUT_BYTES:
             raise ValueError("Run outputs exceed the aggregate history budget")
         context = context_for(run, steps, step)
-        config = resolve(node.config, context)
+        deferred_exit = node.type in {"loop", "for_each"} and "exit_condition" in node.config
+        config = resolve({key: value for key, value in node.config.items() if not (deferred_exit and key == "exit_condition")}, context)
+        if deferred_exit:
+            # Re-evaluate mutable workflow variables after each iteration.
+            config["exit_condition"] = copy.deepcopy(node.config["exit_condition"])
         for field, binding in node.mappings.items():
             config[field] = map_value(binding.model_dump(), context)
         safe_data(config)
@@ -1213,6 +1234,8 @@ def process(db, job_id, token):
         errors = configuration_errors(node.type, config)
         if errors:
             raise ValueError("; ".join(errors))
+        if node.type == "wait_until" and datetime.fromisoformat(config["until"].replace("Z", "+00:00")).tzinfo is None:
+            raise ValueError("Wait until requires an offset-aware ISO timestamp")
         step.input_payload = config
         previous_steps = [
             s
@@ -1395,6 +1418,9 @@ def process(db, job_id, token):
         db.commit()
         return step.status
 
+    finally:
+        execution_scope.close()
+
 
 def tick(db, limit=100):
     resumed = 0
@@ -1434,7 +1460,7 @@ def tick(db, limit=100):
             db.commit()
             continue
         try:
-            authority(
+            actor = authority(
                 db,
                 run.effective_user_id,
                 run.organization_id,
@@ -1453,41 +1479,42 @@ def tick(db, limit=100):
             )
             db.commit()
             continue
-        if wait.kind == "approval":
-            from app.apps.power_apps.approvals.service import due,domain
-            with domain(db):
-                due(db,run,wait)
+        with runtime_branch_scope(db, root, actor):
+            if wait.kind == "approval":
+                from app.apps.power_apps.approvals.service import due,domain
+                with domain(db):
+                    due(db,run,wait)
+                    db.commit()
+                resumed+=1
+                continue
+            if wait.kind == "loop_timeout":
+                wait.status = "timed_out"
+                finish(db, run, "failed", "LoopTimeout", "Loop duration exceeded")
                 db.commit()
-            resumed+=1
-            continue
-        if wait.kind == "loop_timeout":
-            wait.status = "timed_out"
-            finish(db, run, "failed", "LoopTimeout", "Loop duration exceeded")
+                continue
+            if wait.event_key:
+                wait.status = "timed_out"
+                job = db.query(Job).filter_by(step_id=step.id).one()
+                fail_job(
+                    db,
+                    job,
+                    run,
+                    step,
+                    "WaitEventTimeout",
+                    "Authorized event was not received before timeout",
+                    False,
+                )
+                db.commit()
+                continue
+            wait.status = "resumed"
+            step.output = {"value": "resumed"}
+            step.active_ports = ["out"]
+            step.status = "completed"
+            step.finished_at = now()
+            event(db, run, "resumed", step)
+            advance(db, run)
             db.commit()
-            continue
-        if wait.event_key:
-            wait.status = "timed_out"
-            job = db.query(Job).filter_by(step_id=step.id).one()
-            fail_job(
-                db,
-                job,
-                run,
-                step,
-                "WaitEventTimeout",
-                "Authorized event was not received before timeout",
-                False,
-            )
-            db.commit()
-            continue
-        wait.status = "resumed"
-        step.output = {"value": "resumed"}
-        step.active_ports = ["out"]
-        step.status = "completed"
-        step.finished_at = now()
-        event(db, run, "resumed", step)
-        advance(db, run)
-        db.commit()
-        resumed += 1
+            resumed += 1
     # Deadlines cover queued, sleeping and loop runs, even without runnable jobs.
     for run in (
         db.query(Run)

@@ -1,4 +1,4 @@
-# BusinessSuite mobile — KaryaFlow PMS
+# BusinessSuite mobile â€” KaryaFlow PMS
 
 Latest build: `build/releases/KaryaFlow-PMS-0.2.1-arm64.apk`.
 The [full PMS device audit](qa/full-pms/REPORT.md) is incomplete because the phone

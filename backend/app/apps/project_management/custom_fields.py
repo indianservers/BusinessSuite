@@ -1,4 +1,5 @@
 """Typed custom columns shared across company tasks and projects."""
+from app.core.input_validation import normalize_phone
 import json
 import math
 from urllib.parse import urlparse
@@ -167,7 +168,7 @@ def validate_value(field,data):
         elif field.field_type in {'email','phone'}:
             try:
                 if field.field_type=='email':email_address(value)
-                else:national_phone(value);calling_code(data.country_code)
+                else:normalize_phone(value,data.country_code)
                 valid=True
             except ValueError as exc:raise HTTPException(422,detail=str(exc)) from None
         elif field.field_type == "website":

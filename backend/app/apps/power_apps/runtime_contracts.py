@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Literal, Any
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, SecretStr
 
 
 class Strict(BaseModel):
@@ -46,6 +46,7 @@ class RunRequest(Strict):
 class TriggerRequest(Strict):
     enabled: bool = False
     config: dict[str, Any] = Field(default_factory=dict)
+    provider_secrets: dict[str, SecretStr] = Field(default_factory=dict, max_length=8, repr=False)
 
 
 class ResumeRequest(Strict):

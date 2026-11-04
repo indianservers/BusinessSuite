@@ -5,6 +5,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import func, case, select
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, RequirePermission
@@ -201,7 +202,8 @@ def triggers(
     )
     return {
         "items": [
-            {k: v for k, v in serialize(t).items() if k != "encrypted_secret"}
+            {**{k: v for k, v in serialize(t).items() if k not in {"encrypted_secret", "config"}},
+             "config": {k: v for k, v in t.config.items() if k != "snapshot"}}
             for t in items
         ]
     }
@@ -219,14 +221,19 @@ def configure_trigger(
     RequirePermission("power_apps_view")(user)
     row = find_draft(db, user, environment, resource_id)
     db.query(PowerResource).filter_by(id=row.id).with_for_update().one()
-    trigger, secret = configure(db, row, user, kind, data.enabled, data.config)
+    if data.provider_secrets:
+        RequirePermission("power_apps_manage_credentials")(user)
+        if any(not value.get_secret_value() or len(value.get_secret_value())>32768 for value in data.provider_secrets.values()):
+            raise HTTPException(422,"Invalid native provider credential")
+    trigger, secret = configure(db, row, user, kind, data.enabled, data.config,
+        {key:value.get_secret_value() for key,value in data.provider_secrets.items()})
     db.commit()
     return {
         "id": trigger.id,
         "enabled": trigger.enabled,
         "endpoint": (
-            f"/api/v1/power-apps/hooks/{trigger.endpoint}"
-            if kind == "webhook"
+            ("/api/v1/power-apps/native-hooks/"+trigger.endpoint if trigger.config.get("native",{}).get("managed") else f"/api/v1/power-apps/hooks/{trigger.endpoint}")
+            if kind == "webhook" or kind == "connector" and trigger.encrypted_secret
             else None
         ),
         "secret": secret,
@@ -235,14 +242,17 @@ def configure_trigger(
     }
 
 
-@router.post("/automations/{resource_id}/triggers/webhook/rotate")
+@router.post("/automations/{resource_id}/triggers/{kind}/rotate")
 def rotate(
     resource_id: int,
+    kind: str,
     environment: str = "development",
     db: Session = Depends(get_db),
     user=Depends(RequirePermission("power_apps_publish")),
 ):
     RequirePermission("power_apps_view")(user)
+    if kind not in {"webhook", "connector"}:
+        raise HTTPException(422, "This trigger does not use a signing secret")
     row = find_draft(db, user, environment, resource_id)
     if user.id != row.owner_user_id:
         raise HTTPException(403, "Only the delegated owner may rotate webhook secrets")
@@ -250,13 +260,15 @@ def rotate(
     trigger = (
         db.query(Trigger)
         .filter_by(
-            resource_id=row.id, kind="webhook", organization_id=row.organization_id
+            resource_id=row.id, kind=kind, organization_id=row.organization_id
         )
         .with_for_update()
         .first()
     )
-    if not trigger:
+    if not trigger or not trigger.encrypted_secret:
         raise HTTPException(404, "Webhook not configured")
+    if trigger.config.get("native",{}).get("managed"):
+        raise HTTPException(409,"Native callback credentials are managed with the provider subscription")
     secret = secrets.token_urlsafe(32)
     trigger.encrypted_secret = cipher().encrypt(secret.encode()).decode()
     trigger.secret_version += 1
@@ -273,6 +285,50 @@ def rotate(
     )
     db.commit()
     return {"secret": secret, "secret_version": trigger.secret_version}
+
+
+@router.get("/automations/{resource_id}/triggers/connector/options")
+def native_options(resource_id:int, environment:str="development",db:Session=Depends(get_db),user=Depends(view)):
+    row=find_draft(db,user,environment,resource_id)
+    from app.apps.power_apps.integrations.native_specs import SECRET_FIELDS,mode
+    from app.apps.power_apps.models import PowerVersion
+    state=db.query(Deployment).filter_by(resource_id=row.id).first()
+    definition=db.get(PowerVersion,state.version_id).snapshot["definition"] if state and state.version_id else row.definition
+    root=next((n for n in definition.get("nodes",[]) if n["type"].startswith("integration_trigger_")),None)
+    if not root: return {"module_id":None,"provider_secret_fields":{}}
+    module=root["type"].removeprefix("integration_trigger_"); setup=root.get("config",{}).get("setup",{})
+    return {"module_id":module,"mode":mode(module,setup),"provider_secret_fields":SECRET_FIELDS.get(module,{})}
+
+
+@router.post("/automations/{resource_id}/triggers/connector/reconcile")
+def native_reconcile(resource_id:int, environment:str="development",db:Session=Depends(get_db),user=Depends(RequirePermission("power_apps_publish"))):
+    row=find_draft(db,user,environment,resource_id)
+    if row.owner_user_id!=user.id: raise HTTPException(403,"Only the workflow owner may reconcile subscriptions")
+    trigger=db.query(Trigger).filter_by(resource_id=row.id,kind="connector").with_for_update().first()
+    if not trigger or not trigger.config.get("native",{}).get("managed"): raise HTTPException(404,"Native subscription is not configured")
+    trigger.next_at=now(); db.commit()
+    return {"status":"queued"}
+
+
+async def native_ingress(request,db,**identity):
+    from app.apps.power_apps.integrations.native_runtime import receive
+    body=bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body)>262144: raise HTTPException(413,"Native notification exceeds 256 KB")
+    answer,media=receive(db,**identity,query=dict(request.query_params),headers=dict(request.headers),body=bytes(body))
+    db.commit()
+    return PlainTextResponse(answer,headers={"X-Content-Type-Options":"nosniff"}) if media=="text/plain" else JSONResponse(answer)
+
+
+@router.api_route("/native-hooks/{endpoint}",methods=["GET","POST"])
+async def native_hook(endpoint:str,request:Request,db:Session=Depends(get_db)):
+    return await native_ingress(request,db,endpoint=endpoint)
+
+
+@router.api_route("/native-apps/{module_id}/{app_id}",methods=["GET","POST"])
+async def native_app(module_id:str,app_id:str,request:Request,db:Session=Depends(get_db)):
+    return await native_ingress(request,db,module_id=module_id,app_id=app_id)
 
 
 @router.post("/hooks/{endpoint}", status_code=202)

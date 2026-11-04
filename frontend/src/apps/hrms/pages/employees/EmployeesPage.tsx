@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import CompactActions from "@/components/actions/CompactActions";
 import { IconActionButton } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -178,7 +179,7 @@ export default function EmployeesPage() {
     columnHelper.accessor("phone_number", {
       header: "Phone",
       cell: (info) => (
-        <span className="text-sm">{info.getValue() ? `${info.row.original.phone_number_country_code || ""} ${info.getValue()}` : "-"}</span>
+        <PhoneActions value={info.getValue()} record={info.row.original} field="phone_number" />
       ),
     }),
     columnHelper.accessor("employment_type", {

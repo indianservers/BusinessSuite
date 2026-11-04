@@ -437,5 +437,7 @@ def get_action(connector_id, action_id):
 
 from app.apps.power_apps.integrations.providers import install as install_providers
 install_providers(add, action)
+from app.apps.power_apps.integrations.automation_catalog import install as install_automation_catalog
+install_automation_catalog(REGISTRY, INPUTS, action)
 from app.apps.power_apps.integrations.editor_options import narrow_action_schemas
 narrow_action_schemas(REGISTRY)

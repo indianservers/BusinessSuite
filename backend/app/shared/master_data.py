@@ -1,4 +1,5 @@
 """Scoped master data over CRMContact/CRMCompany and protected HR identities."""
+from app.shared.branch_availability import BranchAvailability, profile_availability, save_profile_availability, resolve as resolve_availability
 import hashlib
 import json
 import re
@@ -15,6 +16,8 @@ from app.models.user import User
 from app.models.audit import AuditLog
 from app.apps.crm.models import CRMCompany, CRMContact, CRMLead
 from app.shared.master_data_models import ContactChannel, BusinessRelationship, CompanyMasterDetails, CompanyContactLink, ContactBirthday, GreetingReservation
+from app.core.business_validation import BUSINESS, business_type, website, registration as validate_registration, postal
+from app.apps.crm.financial_data import FinancialData
 
 router = APIRouter(prefix="/master-data", tags=["Shared contacts and companies"])
 Source = Literal["crm", "srm", "project_management", "hrms"]
@@ -67,6 +70,15 @@ def companies(db, actor, source="crm", deleted=False):
     return q
 
 
+@router.get("/contact-assignment-options")
+def contact_assignment_options(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    authorize(actor, "crm", entity="contacts")
+    crm()._assert_entity_permission("contacts", actor, "view")
+    from app.apps.crm.lead_assignment import directory
+    owners, _ = directory(db, actor, crm()._crm_can_assign_beyond_self(actor), access_permissions={"crm_view", "crm_manage", "crm_admin", "crm_contacts_view", "crm_contacts_manage"})
+    return {"items": owners}
+
+
 def owner(db, actor, kind, ident, source="crm", write=False):
     authorize(actor, source, write, "contacts" if kind == "contact" else "companies")
     if kind == "company":
@@ -116,17 +128,8 @@ def lock_matches(db, actor, keys):
 
 
 def normalized_phone(value, code):
-    calling_code(code)
-    value = value.strip()
-    if value.startswith("+"):
-        if not value.startswith(code):
-            raise ValueError("The phone number does not match the selected country code")
-        value = value[len(code):]
-    if re.search(r"[^0-9 ()-]", value):
-        raise ValueError("Enter a valid phone number")
-    number = re.sub(r"[ ()-]", "", value)
-    national_phone(number)
-    return number, code + number
+    from app.core.input_validation import normalize_phone
+    return normalize_phone(value, code)
 
 
 class ChannelInput(BaseModel):
@@ -331,7 +334,9 @@ def relationships(db, row, kind):
 
 def company_output(db, row):
     details = db.get(CompanyMasterDetails, row.id)
-    return {"id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "status": row.status,
+    vendor = db.query(BusinessRelationship).filter(BusinessRelationship.account_id == row.id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.id).first()
+    return {"branch_availability": profile_availability(db, row), "id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "status": row.status,
+        "country": row.country or "IN", "vendorClassification": vendor.category if vendor else None, "paymentTerms": vendor.payment_terms if vendor else None,
         "roles": relationships(db, row, "company"), "tags": [x.strip() for x in (row.tags_text or "").split(",") if x.strip() and x.strip() not in ROLES], "notes": row.notes,
         "entityKind": "Individual" if details and details.business_type == "Individual" else "Company",
         "legalName": details.legal_name if details else None, "tradeName": details.trade_name if details else None, "businessType": details.business_type if details else None,
@@ -355,6 +360,7 @@ def list_companies(source: Source = "crm", search: str = Query("", max_length=18
         q = q.filter(or_(CRMCompany.name.ilike(f"%{clean}%", escape="\\"), CRMCompany.email.ilike(f"%{clean}%", escape="\\"), CRMCompany.phone.contains(clean)))
     if role:
         roles = role.split(",")
+        if "Vendor" in roles or "Supplier" in roles: roles = list(set(roles) | {"Vendor", "Supplier"})
         if set(roles) - ROLES:
             raise HTTPException(422, "Choose business relationship roles")
         linked = select(BusinessRelationship.account_id).where(BusinessRelationship.role.in_(roles))
@@ -367,6 +373,14 @@ def list_companies(source: Source = "crm", search: str = Query("", max_length=18
     except HTTPException:
         can_create = False
     return {"items": [company_output(db, x) for x in rows], "total": total, "page": page, "canCreate": can_create}
+
+
+@router.get("/form-options")
+def form_options(source: Source = "crm", db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    authorize(actor, source)
+    from app.models.company import Company as TenantCompany
+    company = db.get(TenantCompany, actor.organization_id)
+    return {"country": company.country if company else "IN", "currency": company.default_currency if company else "INR"}
 
 
 @router.get("/contacts")
@@ -395,6 +409,7 @@ class PrimaryContact(BaseModel):
 
 
 class CompanyInput(BaseModel):
+    branch_availability: BranchAvailability | None = None
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=180)
     email: str | None = Field(None, max_length=150)
@@ -417,6 +432,11 @@ class CompanyInput(BaseModel):
     confirmShared: bool = False
     sharedReason: str | None = Field(None, max_length=250)
     version: str | None = None
+    country: str | None = Field(None, max_length=100)
+    vendorClassification: str | None = Field(None, max_length=100)
+    paymentTerms: str | None = Field(None, max_length=250)
+    financialData: FinancialData | None = None
+    communicationChannels: list[ChannelInput] | None = Field(None, max_length=30)
 
 
 def save_roles(db, actor, row, kind, roles):
@@ -441,11 +461,38 @@ def save_roles(db, actor, row, kind, roles):
 
 
 def write_company(db, actor, source, data, row=None):
+    is_new = row is None
+    if data.branch_availability is not None:
+        resolve_availability(db, actor, data.branch_availability, source, "edit" if row else "create", lambda: authorize(actor, source, True, action="edit" if row else "create"))
     authorize(actor, source, True, action="edit" if row else "create")
     if source == "hrms":
         crm()._assert_entity_permission("companies", actor, "manage")
-    if data.website and not re.match(r"^https?://[^\s]+$", data.website):
-        raise HTTPException(422, "Website must be an http or https URL")
+    try:
+        from app.core.input_validation import clean_text
+        data.name = clean_text(data.name, 180)
+        data.website = website(data.website)
+        country = data.country or (row.country if row else None) or "IN"
+        if country == "India": country = "IN"
+        if country in {"UAE", "United Arab Emirates"}: country = "AE"
+        if data.country is not None:
+            from app.core.input_validation import CONTRACT
+            country = next((c["iso"] for c in CONTRACT["countries"] if c["country"].casefold() == country.casefold() or c["iso"] == country), country)
+            if country not in {c["iso"] for c in CONTRACT["countries"]}: raise ValueError("Select a supported country")
+        if data.businessType and data.businessType != "Individual":
+            previous = db.get(CompanyMasterDetails, row.id) if row else None
+            if not previous or previous.business_type != data.businessType:
+                data.businessType = business_type(data.businessType)
+        old_vendor = db.query(BusinessRelationship).filter(BusinessRelationship.account_id == row.id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).first() if row else None
+        if data.vendorClassification and data.vendorClassification not in BUSINESS["vendorClassifications"] and (not old_vendor or old_vendor.category != data.vendorClassification):
+            raise ValueError("Select a vendor classification")
+        if data.paymentTerms and not re.fullmatch(r"(?:Due on receipt|Advance|Net (?:[1-9][0-9]{0,2}))", data.paymentTerms) and (not old_vendor or old_vendor.payment_terms != data.paymentTerms):
+            raise ValueError("Select payment terms or enter a number of days")
+        for item in data.addresses:
+            postal(item.get("postalCode"), item.get("country") or country)
+        for item in data.taxRegistrations:
+            item["number"] = validate_registration(item.get("type", "Other"), item.get("number"), item.get("country") or country)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
     try:
         email = email_address(data.email) if data.email else None
         phone = normalized_phone(data.phone, data.phone_country_code)[0] if data.phone else None
@@ -466,7 +513,16 @@ def write_company(db, actor, source, data, row=None):
         if data.newPrimaryContact.email:
             keys.append(data.newPrimaryContact.email.casefold())
     lock_matches(db, actor, keys)
-    duplicate_guard(db, actor, source, phone, data.phone_country_code, email, data.confirmShared, data.sharedReason, "company", row.id if row else None)
+    previous_phone = None
+    if row and row.phone:
+        try:
+            previous_phone = normalized_phone(row.phone, row.phone_country_code)[1]
+        except ValueError:
+            pass
+    next_phone = normalized_phone(phone, data.phone_country_code)[1] if phone else None
+    communication_changed = not row or previous_phone != next_phone or (row.email or "").strip().casefold() != (email or "").casefold()
+    if communication_changed:
+        duplicate_guard(db, actor, source, phone, data.phone_country_code, email, data.confirmShared, data.sharedReason, "company", row.id if row else None)
     if not row:
         lock_matches(db, actor, ["company-name:" + data.name.casefold()])
         matches = companies(db, actor, source).filter(func.lower(func.trim(CRMCompany.name)) == data.name.casefold()).limit(20).all()
@@ -521,16 +577,45 @@ def write_company(db, actor, source, data, row=None):
             db.add(CompanyContactLink(account_id=row.id, contact_id=primary.id, organization_id=actor.organization_id))
     elif "primaryContactId" in data.model_fields_set:
         details.primary_contact_id = None
-    save_roles(db, actor, row, "company", data.roles)
+    # Capture forms add relationships. Explicit relationship management owns
+    # removal; editing a vendor must retain an existing Customer relationship.
+    effective_roles = sorted((set() if is_new else set(relationships(db, row, "company"))) | set(data.roles))
+    save_roles(db, actor, row, "company", effective_roles)
+    db.flush()  # Newly added relationship rows must exist before saving details.
+    if data.country is not None: row.country = country
+    if "vendorClassification" in data.model_fields_set or "paymentTerms" in data.model_fields_set:
+        relationship = db.query(BusinessRelationship).filter_by(account_id=row.id, role="Vendor").first()
+        if relationship:
+            if "vendorClassification" in data.model_fields_set: relationship.category = data.vendorClassification
+            if "paymentTerms" in data.model_fields_set: relationship.payment_terms = data.paymentTerms
     row.updated_by_user_id, row.updated_at = actor.id, datetime.now(timezone.utc)
     audit(db, actor, "COMPANY_MASTER_SAVED", "company", row.id, {"roles": data.roles, "sharedReason": data.sharedReason})
     db.flush()
+    if data.financialData is not None:
+        from app.apps.crm.contact_identity import ContactIdentityLink
+        from app.apps.crm.contact_directory import allowed, get_contact
+        from app.apps.crm.financial_data import save_profile
+        allowed(actor, "manage")
+        identity = db.query(ContactIdentityLink).filter_by(account_id=row.id).first()
+        if not identity: raise HTTPException(409, "Save the company identity before adding financial data")
+        contact = get_contact(db, actor, identity.contact_id, lock=True)
+        save_profile(db, actor, contact, data.financialData)
+    if data.communicationChannels is not None:
+        previous_defer = db.info.get("defer_master_commit")
+        db.info["defer_master_commit"] = True
+        try:
+            update_channels("company", row.id, ChannelsUpdate(items=data.communicationChannels,
+                version=version(row), confirmShared=data.confirmShared, sharedReason=data.sharedReason), source, db, actor)
+        finally:
+            if previous_defer is None: db.info.pop("defer_master_commit", None)
+            else: db.info["defer_master_commit"] = previous_defer
     return row
 
 
 @router.post("/companies", status_code=201)
 def create_company(data: CompanyInput, source: Source = "crm", db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     row = write_company(db, actor, source, data)
+    save_profile_availability(db, actor, row, data.branch_availability, source, "create")
     db.commit()
     return company_output(db, row)
 
@@ -538,7 +623,11 @@ def create_company(data: CompanyInput, source: Source = "crm", db: Session = Dep
 @router.patch("/companies/{ident}")
 def edit_company(ident: int, data: CompanyInput, source: Source = "crm", db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     row = owner(db, actor, "company", ident, source, True)
+    current = {key: value for key, value in company_output(db, row).items() if key in CompanyInput.model_fields}
+    current.pop("version", None)  # Clients must still present the reviewed revision.
+    data = CompanyInput.model_validate({**current, **data.model_dump(exclude_unset=True)})
     write_company(db, actor, source, data, row)
+    save_profile_availability(db, actor, row, data.branch_availability, source)
     db.commit()
     return company_output(db, row)
 
@@ -850,7 +939,8 @@ def company_grid(state: str = Query("{}", max_length=16000), source: Source = "c
     if role:
         if role not in ROLES:
             raise HTTPException(422, "Unknown business role")
-        q = q.filter(or_(CRMCompany.account_type == role, CRMCompany.id.in_(select(BusinessRelationship.account_id).where(BusinessRelationship.role == role))))
+        role_values = ["Vendor", "Supplier"] if role in {"Vendor", "Supplier"} else [role]
+        q = q.filter(or_(CRMCompany.account_type.in_(role_values), CRMCompany.id.in_(select(BusinessRelationship.account_id).where(BusinessRelationship.role.in_(role_values)))))
     fields = {name: GridField(getattr(CRMCompany, name), "id" if name == "id" else "datetime" if name in {"created_at", "updated_at"} else "text") for name in ["id", "name", "email", "phone", "industry", "status", "account_type", "tags_text", "created_at", "updated_at"]}
     q = apply_filters(q, parsed, fields)
     if parsed.search:
@@ -902,7 +992,7 @@ def company_bulk(data: CompanyBulk, source: Source = "crm", db: Session = Depend
         if data.action == "role":
             save_roles(db, actor, row, "company", list(set(relationships(db, row, "company")) | {data.value}))
         elif data.action == "tag":
-            tags = set(filter(None, (row.tags_text or "").split(","))) | {data.value}
+            tags = {tag.strip() for tag in (row.tags_text or "").split(",") if tag.strip()} | {data.value.strip()}
             if len(", ".join(tags)) > 500:
                 raise HTTPException(422, "Too many tags")
             row.tags_text = ", ".join(sorted(tags))

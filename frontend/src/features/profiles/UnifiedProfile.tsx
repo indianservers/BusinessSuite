@@ -1,5 +1,6 @@
 import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
+import PhoneActions from "../../components/PhoneActions";
 import CompactForm from "../../components/forms/CompactForm";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { PhoneInput } from "../../lib/validation/PhoneInput";
@@ -135,11 +136,7 @@ function ProfileField({
       </label>
       {!editing ? (
         <p>
-          {kind === "phone"
-            ? values[key + "_country_code"]
-              ? `${values[key + "_country_code"]} ${text(value)}`
-              : text(value)
-            : text(value)}
+          {kind === "phone" ? <PhoneActions value={value} record={values} field={key} /> : text(value)}
         </p>
       ) : kind === "phone" ? (
         <PhoneInput
@@ -741,8 +738,7 @@ export function UnifiedProfile({
                     <dd>{text(draft.personal_email)}</dd>
                     <dt>Phone</dt>
                     <dd>
-                      {draft.phone_number_country_code || ""}{" "}
-                      {text(draft.phone_number)}
+                      <PhoneActions value={draft.phone_number} record={draft} field="phone_number" />
                     </dd>
                     <dt>Location</dt>
                     <dd>

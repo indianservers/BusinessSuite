@@ -1,4 +1,4 @@
-# BusinessSuite endpoint audit — 2026-10-23
+# BusinessSuite endpoint audit â€” 2026-10-23
 
 Scope: every operation in the deployed BusinessSuite OpenAPI schema, across HRMS, CRM, PMS, SRM, FAM and shared services. The CSV and JSON inventory contain one row per HTTP method and route, with status, coverage and limitations. No response records, credentials or tokens are retained.
 
@@ -18,7 +18,7 @@ The finance helper is also used by POST integrity/run, POST period-close/run-che
 
 Inventoried 1838 operations: 66 DELETE, 814 GET, 41 PATCH, 740 POST, 177 PUT.
 
-Reviewed 814 GET operations: 813 HTTP probes and one provider authentication callback excluded. Initial statuses: 1 × excluded, 659 × 200, 1 × 307, 22 × 400, 1 × 401, 7 × 403, 113 × 404, 5 × 422, 5 × 500.
+Reviewed 814 GET operations: 813 HTTP probes and one provider authentication callback excluded. Initial statuses: 1 Ã— excluded, 659 Ã— 200, 1 Ã— 307, 22 Ã— 400, 1 Ã— 401, 7 Ã— 403, 113 Ã— 404, 5 Ã— 422, 5 Ã— 500.
 
 659 reads initially returned 200; the five repaired reads add five successful targeted retests. 129 probes used a missing resource identifier because no matching live record was available. A 400, 404, 422, access rejection or redirect is not certification of a valid workflow. The CSV preserves each limitation.
 

@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { MobileContactActions, MobileSheet } from "@/components/mobile/MobilePrimitives";
 import ProfileListCard, { ProfileAction } from "@/components/ProfileListCard";
@@ -349,7 +350,7 @@ export default function EmployeeDirectoryPage() {
               {profileCard.reporting_manager && <p>Manager: {profileCard.reporting_manager}</p>}
               {profileCard.desk_code && <p>Desk: {profileCard.desk_code}</p>}
               {profileCard.email && <p>Email: {profileCard.email} <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyText(profileCard.email)}><Copy className="h-3 w-3" /></Button></p>}
-              {profileCard.phone_number && <p>Phone: {profileCard.phone_number_country_code || ""} {profileCard.phone_number} <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyText(profileCard.phone_number)}><Copy className="h-3 w-3" /></Button></p>}
+              {profileCard.phone_number && <p>Phone: <PhoneActions value={profileCard.phone_number} record={profileCard} field="phone_number" /> <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyText(profileCard.phone_number)}><Copy className="h-3 w-3" /></Button></p>}
               {!!profileCard.skills?.length && <div className="flex flex-wrap gap-2">{profileCard.skills.map((skill) => <Badge key={skill} variant="outline">{skill}</Badge>)}</div>}
             </CardContent>
           </Card>

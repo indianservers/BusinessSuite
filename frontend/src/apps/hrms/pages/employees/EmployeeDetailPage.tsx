@@ -1,3 +1,4 @@
+import PhoneActions from "@/components/PhoneActions";
 import { ActionToolbar } from "@/components/actions";
 import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -582,7 +583,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
               <p className="text-sm text-muted-foreground">{emp.employee_id}</p>
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                 {emp.personal_email && <span>✉ {emp.personal_email}</span>}
-                {emp.phone_number && <span>📞 {emp.phone_number_country_code || ""} {emp.phone_number}</span>}
+                {emp.phone_number && <span>📞 <PhoneActions value={emp.phone_number} record={emp} field="phone_number" /></span>}
                 <span>Joined {formatDate(emp.date_of_joining)}</span>
               </div>
             </div>

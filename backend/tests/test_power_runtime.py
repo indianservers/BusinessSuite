@@ -114,10 +114,11 @@ def test_a_success_persisted_history_idempotency_and_metrics(client, db, actors)
     assert metrics["metrics"]["average_duration_seconds"] is not None
 
 
-def test_b_conditional_skip(client, db, actors):
+@pytest.mark.parametrize('left,selected,skipped', [(1, 'yes', 'no'), (0, 'no', 'yes')])
+def test_b_conditional_skip(client, db, actors, left, selected, skipped):
     value = definition(
         nodes=[
-            node("check", "if_else", left=1, operator="equals", right=1),
+            node("check", "if_else", left=left, operator="equals", right=1),
             node("yes", "log_event", message="Yes"),
             node("no", "log_event", message="No"),
         ],
@@ -130,8 +131,11 @@ def test_b_conditional_skip(client, db, actors):
     row = publish(client, actors[0], value)
     run_id = run(client, actors[0], row)
     drain(db)
-    steps = {s["node_id"]: s for s in history(client, actors[0], run_id)["steps"]}
-    assert steps["yes"]["status"] == "completed" and steps["no"]["status"] == "skipped"
+    report = history(client, actors[0], run_id)
+    steps = {s["node_id"]: s for s in report["steps"]}
+    assert steps[selected]["status"] == "completed" and steps[skipped]["status"] == "skipped"
+    assert any(event['kind'] == 'structured_log' for event in report['events'])
+    assert client.get(f'/api/v1/power-apps/executions/{run_id}', headers=actors[1]).status_code == 404
 
 
 def test_c_schedule_duplicate_claims_and_explicit_delegation(client, db, actors):
@@ -155,6 +159,8 @@ def test_c_schedule_duplicate_claims_and_explicit_delegation(client, db, actors)
     assert db.query(PowerExecution).count() == 1
     drain(db)
     assert db.query(PowerExecution).one().status == "completed"
+    report = history(client, actors[0], db.query(PowerExecution).one().id)
+    assert any(event['kind'] == 'structured_log' for event in report['events'])
 
 
 def test_d_delay_release_and_new_session_resume(client, db, actors):
@@ -177,6 +183,35 @@ def test_d_delay_release_and_new_session_resume(client, db, actors):
     assert tick(db) == 1
     drain(db)
     assert db.get(PowerExecution, run_id).status == "completed"
+    report = history(client, actors[0], run_id)
+    assert {'resumed', 'structured_log'} <= {event['kind'] for event in report['events']}
+
+
+@pytest.mark.parametrize('offset_aware', [True, False])
+def test_wait_until_mapped_timestamp_is_validated_at_execution(client, db, actors, offset_aware):
+    wait_node = node('wait', 'wait_until', until='2099-01-01T00:00:00+00:00')
+    wait_node['mappings'] = {'until': {'source': '{{trigger.input.at}}', 'target_type': 'datetime'}}
+    value = definition(nodes=[wait_node, node('log', 'log_event', message='Mapped timer resumed')],
+                       edges=[edge('start', 'wait'), edge('wait', 'log')])
+    row = publish(client, actors[0], value)
+    timestamp = now() + timedelta(hours=1)
+    if not offset_aware:
+        timestamp = timestamp.replace(tzinfo=None)
+    run_id = run(client, actors[0], row, data={'at': timestamp.isoformat()})
+    drain(db)
+    if offset_aware:
+        assert db.get(PowerExecution, run_id).status == 'waiting'
+        db.query(Wait).filter_by(run_id=run_id).one().wake_at = now() - timedelta(seconds=1)
+        db.commit()
+        tick(db)
+        drain(db)
+        report = history(client, actors[0], run_id)
+        assert report['execution']['status'] == 'completed'
+        assert {'resumed', 'structured_log'} <= {event['kind'] for event in report['events']}
+    else:
+        report = history(client, actors[0], run_id)
+        assert report['execution']['status'] == 'failed'
+        assert 'offset-aware' in report['run']['error']
 
 
 def test_e_worker_crash_recovery_and_fencing(client, db, actors):
@@ -385,6 +420,9 @@ def test_signed_webhook_replay_rotation_and_schema(client, db, actors):
     drain(db)
     assert db.query(PowerExecution).one().status == "completed"
 
+    report = history(client, actors[0], result.json()['id'])
+    assert any(event['kind'] == 'structured_log' for event in report['events'])
+
 
 def test_loop_materialized_durable_iterations(client, db, actors):
     value = definition(
@@ -412,6 +450,26 @@ def test_loop_materialized_durable_iterations(client, db, actors):
         next(s for s in report["steps"] if s["node_id"] == "done")["status"]
         == "completed"
     )
+
+
+@pytest.mark.parametrize('value,operator,right,expected', [
+    (True, 'boolean_equals', True, 1),
+    ('{{steps.loop.output.value}}', 'equals', 1, 2),
+])
+def test_loop_exit_rechecks_completed_iteration(client, db, actors, value, operator, right, expected):
+    definition_value = definition(nodes=[
+        node('loop', 'loop', max_iterations=5, exit_condition={'join': 'and', 'rules': [{'left': '{{workflow.variables.progress}}', 'operator': operator, 'right': right}]}),
+        node('body', 'set_variable', name='progress', value=value),
+        node('done', 'log_event', message='Stopped early'),
+    ], edges=[edge('start', 'loop'), edge('loop', 'body', 'body'), edge('loop', 'done', 'done')])
+    definition_value['variables'] = {'progress': False if type(value) is bool else -1}
+    row = publish(client, actors[0], definition_value)
+    run_id = run(client, actors[0], row)
+    drain(db)
+    report = history(client, actors[0], run_id)
+    assert report['execution']['status'] == 'completed', report['run']
+    assert len([step for step in report['steps'] if step['original_node_id'] == 'body']) == expected
+    assert next(step for step in report['steps'] if step['node_id'] == 'done')['status'] == 'completed'
 
 
 def test_schedule_dst_and_numeric_cron():

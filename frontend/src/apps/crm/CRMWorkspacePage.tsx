@@ -1,3 +1,5 @@
+import PhoneActions from "@/components/PhoneActions";
+import { api as directoryApi } from "@/services/api";
 import { RecordQuickActions, RecordMessageDraft } from "@/shared/records/RecordWorkspace";
 import FinancialDataTab, { type FinancialData } from "./FinancialDataTab";
 import SharedCompanySelect from "@/shared/master-data/CompanySelect";
@@ -3766,7 +3768,7 @@ function LeadDetailDrawer({ lead, ownerNames, territoryNames, onClose, onEdit, o
       </CompactActions>
       <LeadDrawerSection title="Contact">
         <LeadInfo label="Email" value={lead.email} />
-        <LeadInfo label="Phone" value={lead.phone} />
+        <LeadInfo label="Phone" value={lead.phone} record={lead} />
         <LeadInfo label="Company" value={lead.company} />
         <LeadInfo label="Source" value={lead.source} />
         <LeadInfo label="Territory" value={lead.territoryId ? territoryNames.get(lead.territoryId) || `Territory #${lead.territoryId}` : ""} />
@@ -3882,8 +3884,8 @@ function LeadDrawerSection({ title, children }: { title: string; children: React
   return <section className="mt-5 border-t border-border pt-4"><h3 className="mb-3 text-base font-semibold text-foreground">{title}</h3><div className="space-y-3">{children}</div></section>;
 }
 
-function LeadInfo({ label, value }: { label: string; value?: string | number | null }) {
-  return <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">{label}</span><span className="text-right font-medium text-foreground">{value || "Not provided"}</span></div>;
+function LeadInfo({ label, value, record }: { label: string; value?: string | number | null; record?: unknown }) {
+  return <div className="flex items-center justify-between gap-3 text-sm"><span className="text-muted-foreground">{label}</span><span className="text-right font-medium text-foreground">{label === "Phone" ? <PhoneActions value={value} record={record} fallback="Not provided" /> : value || "Not provided"}</span></div>;
 }
 
 function LeadActivityItem({ item }: { item: CRMApiRecord }) {
@@ -4150,8 +4152,8 @@ export function CRMContactsPage() {
       source: filters.source !== "all" ? filters.source : undefined,
       owner_id: filters.ownerId !== "all" ? Number(filters.ownerId) : view === "mine" && currentUser?.id ? Number(currentUser.id) : undefined,
     };
-    crmApi
-      .list<CRMApiRecord>("contacts", params)
+    directoryApi
+      .get<{items:CRMApiRecord[];total:number;page:number;pages:number}>("/crm/contacts", {params, _recordSyncBypass:true})
       .then((response) => {
         if (cancelled) return;
         const normalized = response.data.items.map((item) => recordToContact(normalizeApiRecord("contacts", item), companyNames, ownerNames));
@@ -4170,7 +4172,7 @@ export function CRMContactsPage() {
   }, [page, pageSize, debouncedSearch, sort, filters, view, currentUser?.id, refreshKey, companyNames, ownerNames]);
 
   useRefreshableEffect(() => {
-    crmApi.list<CRMApiRecord>("owners", { per_page: 100 }).then((response) => setOwners(response.data.items || [])).catch(() => setOwners([]));
+    directoryApi.get<{items:Array<{id:number;userId:number;name:string;email:string}>}>("/master-data/contact-assignment-options").then(({data}) => setOwners(data.items.map(owner=>({...owner,full_name:owner.name})))).catch(() => setOwners([]));
     crmApi.list<CRMApiRecord>("companies", { per_page: 100, sort_by: "name", sort_order: "asc" }).then((response) => setCompanies(response.data.items || [])).catch(() => setCompanies([]));
   }, []);
 
@@ -4395,13 +4397,14 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
     ["updatedAt", "Updated"],
   ];
   return (
-    <div className="relative flex flex-col gap-2 border-b border-border p-3 xl:flex-row xl:items-center">
-      <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
+    <div className="relative flex flex-col gap-2 border-b border-border p-3">
+      <label className="flex h-10 w-full min-w-0 shrink-0 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
         <Search className="h-4 w-4 text-muted-foreground" />
         <span className="sr-only">Search contacts</span>
         <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search contacts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
         {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear contact search"><X className="h-3.5 w-3.5" /></button> : null}
       </label>
+      <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="flex flex-wrap gap-1">
         {views.map((item) => (
           <button key={item.key} type="button" onClick={() => onView(item.key)} className={`h-9 rounded-md border px-3 text-sm font-medium transition ${view === item.key ? "border-emerald-400/70 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300" : "border-border bg-white/[0.025] text-muted-foreground hover:bg-white/[0.06]"}`}>
@@ -4414,6 +4417,7 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+      </div>
       </div>
       {showColumns ? (
         <div className="absolute right-3 top-full z-30 mt-2 w-56 rounded-md border border-border bg-card p-2 shadow-xl">
@@ -4476,7 +4480,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={contact.name} onDoubleClick={(event) => { event.stopPropagation(); openRecordPreview(contact, "/crm/contacts"); }} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
                 {visibleColumns.company ? <td className="px-3 py-3 text-muted-foreground"><span title={contact.companyName || "No company linked"}>{contact.companyName || "No company linked"}</span></td> : null}
                 {visibleColumns.email ? <td className="px-3 py-3 text-muted-foreground"><span title={contact.email || "No email"}>{contact.email || "No email"}</span></td> : null}
-                {visibleColumns.phone ? <td className="px-3 py-3 text-muted-foreground">{formatContactPhone(contact.phone)}</td> : null}
+                {visibleColumns.phone ? <td className="px-3 py-3 text-muted-foreground">{<PhoneActions value={contact.phone} record={contact} />}</td> : null}
                 {visibleColumns.stage ? <td className="px-3 py-3"><LeadBadge value={contact.stage || "Lead"} tone="blue" /></td> : null}
                 {visibleColumns.status ? <td className="px-3 py-3"><LeadBadge value={contact.status || "Active"} tone={contact.status === "Active" ? "blue" : "slate"} /></td> : null}
                 {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{initials(contact.owner || "U")}</span>{contact.owner || "Unassigned"}</span></td> : null}
@@ -4530,7 +4534,7 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivi
       <CatalogAssociations key={contact.id} source="crm" target="contact" id={contact.id}/>
       <LeadDrawerSection title="Contact">
         <LeadInfo label="Email" value={contact.email || "No email"} />
-        <LeadInfo label="Phone" value={formatContactPhone(contact.phone)} />
+        <LeadInfo label="Phone" value={contact.phone} record={contact} />
         <LeadInfo label="Company" value={contact.companyName || "No company linked"} />
         <LeadInfo label="Job title" value={contact.title || "Not set"} />
       </LeadDrawerSection>
@@ -4693,7 +4697,7 @@ function recordToContact(record: CRMRecord, companyNames = new Map<number, strin
     stage: String(record.stage || record.lifecycle_stage || "Lead"),
     source: String(record.source || ""),
     status: String(record.status || "Active"),
-    owner: String(record.owner || (ownerId ? ownerNames.get(ownerId) || "" : "")),
+    owner: String((ownerId ? ownerNames.get(ownerId) : undefined) || record.owner || "Unassigned"),
     ownerId,
     nextFollowUp: String(record.nextFollowUp || record.next_follow_up_at || ""),
     lastContacted: String(record.lastContacted || record.last_contacted_at || ""),
@@ -4736,10 +4740,6 @@ function ContactAvatar({ contact, large }: { contact: CRMContact; large?: boolea
 
 function initials(value: string) {
   return String(value || "U").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "U";
-}
-
-function formatContactPhone(value?: string) {
-  return value ? value : "No phone";
 }
 
 function followUpStatus(value: string) {
@@ -5212,7 +5212,7 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
         <LeadInfo label="Territory" value={account.territory || "Not assigned"} />
         <LeadInfo label="City" value={account.city || "Not provided"} />
         <LeadInfo label="Email" value={account.email || "Not provided"} />
-        <LeadInfo label="Phone" value={formatContactPhone(account.phone)} />
+        <LeadInfo label="Phone" value={account.phone} record={account} />
         <LeadInfo label="Website" value={account.website || "Not provided"} />
       </LeadDrawerSection>
       <LeadDrawerSection title="Customer 360">

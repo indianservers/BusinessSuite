@@ -7,6 +7,38 @@ from tests.test_contact_directory import directory_identity
 ROOT = "/api/v1/master-data"
 
 
+def test_contact_assignment_options_use_login_identifiers(client, db, superuser_headers, directory_identity):
+    from app.models.user import User
+    response = client.get(ROOT + "/contact-assignment-options", headers=superuser_headers)
+    assert response.status_code == 200, response.text
+    actor = db.query(User).filter_by(email="testadmin@test.com").one()
+    assert actor.id in {item["id"] for item in response.json()["items"]}
+    assert all(item["id"] == item["userId"] for item in response.json()["items"])
+
+
+def test_shared_vendor_edit_only_confirms_changed_contact_details(client, db, superuser_headers, directory_identity):
+    company(client, superuser_headers, name="First vendor", phone="2025550101", phone_country_code="+1")
+    shared = company(client, superuser_headers, name="Shared vendor", phone="2025550101", phone_country_code="+1", confirmShared=True)
+    payload = {"name": shared["name"], "phone": shared["phone"], "phone_country_code": "+1", "version": shared["version"], "roles": ["Vendor"], "notes": "Reviewed payment terms"}
+    endpoint = f"{ROOT}/companies/{shared['id']}"
+    saved = client.patch(endpoint, headers=superuser_headers, json=payload)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["notes"] == "Reviewed payment terms"
+    company(client, superuser_headers, name="Another vendor", phone="2025550102", phone_country_code="+1")
+    blocked = client.patch(endpoint, headers=superuser_headers, json={**payload, "version": saved.json()["version"], "phone": "2025550102"})
+    assert blocked.status_code == 409, blocked.text
+    assert blocked.json()["detail"]["code"] == "duplicate_contact"
+
+
+def test_bulk_tag_normalizes_existing_whitespace(client, db, superuser_headers, directory_identity):
+    row = company(client, superuser_headers, tags=["Office", "Preferred vendor"])
+    for _ in range(2):
+        response = client.post(ROOT + "/company-directory/bulk", headers=superuser_headers, json={"ids": [row["id"]], "action": "tag", "value": "Preferred vendor"})
+        assert response.status_code == 200, response.text
+    record = db.get(CRMCompany, row["id"])
+    assert record.tags_text == "Office, Preferred vendor"
+
+
 def company(client, headers, **values):
     result = client.post(ROOT + "/companies", headers=headers, json={"name": "Shared Company", **values})
     assert result.status_code == 201, result.text

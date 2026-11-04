@@ -1,14 +1,24 @@
 import isEmail from 'validator/lib/isEmail';
+import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
 import contract from './contract.json';
 export { contract };
 export const PHONE_ERROR=contract.phone_error;
 export const NATIONAL_PHONE_LENGTH=contract.national_phone_length;
 export const phoneFields=new Set(['mobile','mobile_number','phone','phone_number','alternate_phone','whatsapp_number','emergency_contact','emergency_contact_number','contact_phone','contact_number','business_phone_number','primary_phone','secondary_phone']);
-export function phoneError(number:unknown,code:unknown,required=false) {
+export function phoneError(number:unknown,code:unknown,required=false,mobile=false) {
   if(!required&&(number===''||number==null))return '';
-  if(typeof number!=='string'||number.length!==NATIONAL_PHONE_LENGTH||!/^[0-9]+$/.test(number))return PHONE_ERROR;
+  if(typeof number!=='string'||!/^[0-9]{4,15}$/.test(number))return 'Enter a national phone number using digits only.';
   if(typeof code!=='string'||!contract.countries.some(country=>country.code===code))return 'Select a supported country calling code.';
+  if(code==='+91'&&number.length!==10)return 'Indian phone numbers require 10 national digits.';
+  if(mobile&&code==='+91'&&!/^[6-9][0-9]{9}$/.test(number))return 'Indian mobile numbers must begin with 6, 7, 8 or 9.';
+  const parsed=parsePhoneNumberFromString(code+number,{extract:false});
+  if(!parsed?.isValid())return 'Enter a valid phone number for the selected country.';
   return '';
+}
+export function phoneMaxLength(code:string) { return code==='+91'?10:15-code.replace(/\D/g,'').length; }
+export function normalizePhonePaste(text:string,code:string) {
+  const compact=text.replace(/[\s().-]/g,'');
+  return compact.startsWith(code)&&compact.startsWith('+')?compact.slice(code.length):compact;
 }
 export function emailError(value:unknown,required=false) {
   if(!required&&(value===''||value==null))return '';
@@ -38,7 +48,7 @@ export function applicationErrors(form:Record<string,string>,roles:string[],toda
   if(form.college.trim().length<2)errors.college='Use at least 2 characters.';
   if(form.address.trim().length<5)errors.address='Use at least 5 characters.';
   set('email',emailError(form.email,true));
-  set('mobile',phoneError(form.mobile,form.mobile_country_code,true));
+  set('mobile',phoneError(form.mobile,form.mobile_country_code,true,true));
   set('emergency_contact',phoneError(form.emergency_contact,form.emergency_contact_country_code,true));
   set('identity_number',identityError(form.identity_type,form.identity_number));
   const choices:Record<string,string[]>={identity_type:contract.identity_types,gender:contract.gender,state:contract.states,degree:contract.degrees,current_year:contract.current_years,area_of_interest:contract.areas,mode:contract.modes,duration:contract.durations,employment_type:['Intern','Full-time','Part-time','Contract'],role:roles};

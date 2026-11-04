@@ -245,7 +245,7 @@ export default function InternApplicationsPage() {
   const options = organizationQuery.data;
   const organizationReady = !!options?.branches.length && !!options?.departments.length && !!options?.designations.length && !!options?.managers.length;
   const organizationStatus = organizationQuery.isPending ? (
-    <p role="status" className="text-sm sm:col-span-2">Loading organization options…</p>
+    <p role="status" className="text-sm sm:col-span-2">Loading organization optionsâ€¦</p>
   ) : organizationQuery.isError ? (
     <div role="alert" className="text-sm sm:col-span-2">Organization options could not load. {reviewError(organizationQuery.error)} <Button type="button" variant="outline" size="sm" onClick={() => void organizationQuery.refetch()}>Retry organization options</Button></div>
   ) : !organizationReady ? (

@@ -48,6 +48,10 @@ def validate_graph(graph):
     root = triggers[0].id if len(triggers) == 1 else None
     for node in graph.nodes:
         definition = NODES[node.type]
+        if node.type.startswith("integration_trigger_"):
+            from app.apps.power_apps.integrations.automation_triggers import validate_setup
+            try: validate_setup(node.type.removeprefix("integration_trigger_"), node.config.get("setup", {}))
+            except (ValueError, TypeError) as exc: issue("trigger_setup", str(exc), node.id, "setup")
         if node.disabled:
             issue("disabled", "Disabled node blocks this path during preview", node.id, severity="warning")
         if root and node.id != root and root not in ancestors[node.id]:
@@ -58,7 +62,7 @@ def validate_graph(graph):
             if node.config.get("condition") and field["key"] in {"left","right","operator"}: continue
             if field["required"] and (value is None or value == "" or value == []):
                 issue("required", field["label"] + " is required", node.id, field["key"])
-            if value and field["kind"] in {"date", "datetime"}:
+            if value and field["kind"] in {"date", "datetime"} and not (field.get("allow_expression") and isinstance(value, str) and TOKEN.search(value)):
                 try:
                     datetime.fromisoformat(str(value).replace("Z", "+00:00"))
                 except ValueError:
@@ -149,7 +153,7 @@ def compare(config):
 def local_node(node_type, config, test_input, incoming_outputs):
     """An explicit allowlist of pure transformations, never integration adapters."""
     routes = None
-    if node_type == "telegram_trigger":
+    if node_type == "telegram_trigger" or node_type.startswith("integration_trigger_"):
         output = {"input": test_input}
     elif node_type == "telegram_enquiry":
         output = {"chat_id": str(test_input.get("chat_id", "123")), "text": test_input.get("reply", "Welcome! Choose Sales, Support, or Order status.")}

@@ -1,4 +1,5 @@
 import { useMobile } from "@/components/mobile/useMobile";
+import PhoneActions, { isPhoneField } from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
@@ -473,6 +474,12 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const mobile = useMobile();
   const effectiveRowHeight = mobile ? Math.max(48, layout.rowHeight) : layout.rowHeight;
   const restoredViewQuery = useRef<string>();
+  const selectRecordTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(selectRecordTimer.current), [dataSource.key]);
+  function selectRecord(row: T) {
+    clearTimeout(selectRecordTimer.current);
+    if (props.onSelectRecord) selectRecordTimer.current = setTimeout(() => props.onSelectRecord?.(row), 250);
+  }
   const [search, setSearch] = useState(initial.query.search),
     [filterOpen, setFilterOpen] = useState(false),
     [notice, setNotice] = useState(""),
@@ -1139,6 +1146,12 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       )
     );
   }
+  function displayFor(row: T, def: GridColumn<T>) {
+    if (isPhoneField(def.id)) {
+      return <PhoneActions value={def.accessor ? def.accessor(row) : (row as Record<string, unknown>)[def.id]} record={row} field={def.id} />;
+    }
+    return def.render ? def.render(row) : textFor(row, def);
+  }
   async function copyCells() {
     try {
       if (!permissions.export) {
@@ -1271,9 +1284,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
         </div>
       );
     }
-    return definition.render
-      ? definition.render(node.record)
-      : textFor(node.record, definition);
+    return displayFor(node.record, definition);
   }
   function cells(
     node: Node<T>,
@@ -1812,9 +1823,10 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                             style={position}
                             {...recordPreviewProps(record)}
                             onClick={event => {
-                              if (!(event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]')) props.onSelectRecord?.(record);
+                              if (!(event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]') || (event.target as HTMLElement).closest("[data-record-open]")) selectRecord(record);
                             }}
                             onDoubleClickCapture={event => {
+                              clearTimeout(selectRecordTimer.current);
                               const action = (event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]');
                               if (action && !action.hasAttribute('data-record-open')) return;
                               if (props.onOpenPopup) { event.preventDefault(); event.stopPropagation(); props.onOpenPopup(record); }
@@ -1989,7 +2001,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                       .map((r) => (
                         <article
                           key={getRowId(r)}
-                          {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))props.onSelectRecord?.(r);}} onDoubleClickCapture={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}
+                          {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}
                         >
                           {props.renderCard?.(r) ||
                             columns
@@ -1998,7 +2010,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                               .map((c) => (
                                 <p key={c.id}>
                                   <small>{c.title}</small>
-                                  {c.render?.(r) || textFor(r, c)}
+                                  {displayFor(r, c)}
                                 </p>
                               ))}
                         </article>
@@ -2006,7 +2018,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                   </section>
                 ))
               : visibleRecords.map((r) => (
-                  <article key={getRowId(r)} {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))props.onSelectRecord?.(r);}} onDoubleClickCapture={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}>
+                  <article key={getRowId(r)} {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}>
                     {props.renderCard?.(r) ||
                       columns
                         .filter((c) => layout.visibility[c.id] !== false)
@@ -2014,7 +2026,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                         .map((c) => (
                           <p key={c.id}>
                             <small>{c.title}</small>
-                            {c.render?.(r) || textFor(r, c)}
+                            {displayFor(r, c)}
                           </p>
                         ))}
                     <div className="udg-card-actions">{rowActions.filter(action=>action.quick&&(!action.visible||action.visible(r))).map(action=><button key={action.id} title={action.disabled?.(r)?action.disabledReason:action.label} aria-label={`${action.label} ${textFor(r,columns[0])}`} disabled={action.disabled?.(r)} onClick={event=>{event.stopPropagation();void runAction(action,r);}}>{action.icon&&<action.icon size={16}/>}</button>)}</div>

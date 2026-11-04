@@ -37,10 +37,11 @@ class Target:
 
 
 class EgressPolicy:
-    def __init__(self, allowed_hosts, approved=None, resolver=None):
+    def __init__(self, allowed_hosts, approved=None, resolver=None, safe_query_keys=()):
         self.allowed_hosts = {h.lower().rstrip(".") for h in allowed_hosts}
         self.approved = approved or {}
         self.resolver = resolver or socket.getaddrinfo
+        self.safe_query_keys = frozenset(safe_query_keys)
 
     def resolve(self, url, *, database=False, port=None):
         try:
@@ -71,7 +72,7 @@ class EgressPolicy:
             }
             if host in protected:
                 raise ValueError()
-            if any(SENSITIVE.search(k) for k, v in parse_qsl(parsed.query)):
+            if any(SENSITIVE.search(k) and k not in self.safe_query_keys for k, v in parse_qsl(parsed.query)):
                 raise ValueError()
             if (
                 host not in self.allowed_hosts
@@ -193,7 +194,7 @@ class HttpTransport:
         self.policy = policy
         self.connection_factory = connection_factory
 
-    def request(self, method, url, headers=None, body=None, timeout=10, redirects=0):
+    def request(self, method, url, headers=None, body=None, timeout=10, redirects=0, return_redirect=False):
         headers = dict(headers or {})
         started = time.monotonic()
         original = None
@@ -249,6 +250,8 @@ class HttpTransport:
             finally:
                 conn.close()
             if result.status in {301, 302, 303, 307, 308}:
+                if return_redirect and method in {"GET", "HEAD"}:
+                    return result  # Dedicated download adapters validate and follow without credentials.
                 if redirect >= redirects:
                     raise IntegrationFailure(
                         "redirect_denied",

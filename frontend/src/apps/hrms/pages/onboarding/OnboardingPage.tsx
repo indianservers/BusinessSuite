@@ -121,7 +121,7 @@ export default function OnboardingPage() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><ClipboardCheck className="h-5 w-5" /></div>
                   <div>
                     <p className="font-medium">Employee #{item.employee_id}</p>
-                    <p className="text-sm text-muted-foreground">Start {formatDate(item.start_date)} â€¢ Expected {formatDate(item.expected_completion_date)}</p>
+                    <p className="text-sm text-muted-foreground">Start {formatDate(item.start_date)} • Expected {formatDate(item.expected_completion_date)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

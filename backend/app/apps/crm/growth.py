@@ -20,6 +20,7 @@ from app.models.user import User
 from app.shared.catalog_models import CatalogLink
 from . import productivity as sales
 from .models import CRMActivity, CRMContact, CRMDeal, CRMDealContact, CRMDealProduct
+from .growth_history import followup_snapshot
 
 router = APIRouter(prefix='/growth', tags=['CRM relationship growth'])
 ENTITIES = ('leads', 'contacts', 'companies', 'deals')
@@ -274,10 +275,15 @@ def save_follow_up(data,db,user,commit=True):
         if data.activity_version:
             actual=activity.updated_at or activity.created_at
             if actual and actual.replace(tzinfo=actual.tzinfo or timezone.utc)!=data.activity_version:raise HTTPException(409,'This follow-up changed. Refresh before updating it.')
+    before = followup_snapshot(activity)
+    completed_activity = None
     if data.action=='complete':
         if not activity: raise HTTPException(422,'Choose a pending follow-up to complete')
         if not data.outcome.strip(): raise HTTPException(422,'Record the outcome before completing this follow-up')
         activity.status='Completed'; activity.completed_at=datetime.now(timezone.utc); activity.outcome=data.outcome+'\n'+data.notes
+        activity.updated_by_user_id=user.id
+        activity.metadata_json={**(activity.metadata_json or {}),'completed_by_user_id':user.id}
+        completed_activity=activity
         activity=None
     elif not data.due_at: raise HTTPException(422,'Choose the next follow-up date and time')
     if data.due_at:
@@ -287,11 +293,14 @@ def save_follow_up(data,db,user,commit=True):
         activity.title=data.title; activity.subject=data.title[:180]; activity.activity_type=data.channel; activity.status='Scheduled'; activity.due_date=data.due_at; activity.description=data.notes
         if data.owner_id:activity.owner_user_id=data.owner_id
         if data.priority:activity.priority=data.priority
+        activity.updated_by_user_id=user.id
         previous=activity.metadata_json or {}
         reminder=data.reminder_at.astimezone(timezone.utc).isoformat() if data.reminder_at else None
         offering={'offering_kind':data.offering_kind if data.offering_id else None,'offering_id':data.offering_id} if 'offering_id' in data.model_fields_set else {}
         activity.metadata_json={**previous,'next_action':data.next_action,'reminder_at':reminder,'reminded_at':previous.get('reminded_at') if reminder==previous.get('reminder_at') else None,**offering}
-    core._create_timeline_activity(db,organization_id=org,entity_type=kind,entity_id=row.id,activity_type='follow_up_update',title='Follow-up completed' if data.action=='complete' else 'Follow-up scheduled',body=data.notes,user_id=user.id,metadata={'outcome':data.outcome,'nextFollowUp':data.due_at.isoformat() if data.due_at else None})
+    db.flush()
+    event_title='Follow-up completed' if data.action=='complete' else 'Follow-up scheduled' if not before else 'Follow-up rescheduled' if before['due_at']!=followup_snapshot(activity)['due_at'] else 'Follow-up updated'
+    core._create_timeline_activity(db,organization_id=org,entity_type=kind,entity_id=row.id,activity_type='follow_up_update',title=event_title,body=data.notes,user_id=user.id,metadata={'outcome':data.outcome,'nextFollowUp':data.due_at.isoformat() if data.due_at else None,'follow_up_id':completed_activity.id if completed_activity else activity.id,'before':before,'after':followup_snapshot(completed_activity or activity),'next_follow_up':followup_snapshot(activity) if completed_activity and activity else None})
     db.flush()
     if hasattr(row,'next_follow_up_at'):
         row.next_follow_up_at=db.query(func.min(CRMActivity.due_date)).filter(CRMActivity.organization_id==org,CRMActivity.entity_type==kind,CRMActivity.entity_id==row.id,CRMActivity.status.in_(sales.OPEN_ACTIVITY)).scalar()
@@ -462,8 +471,13 @@ def bulk_follow_ups(data:BulkFollowUp,db:Session=Depends(get_db),user:User=Depen
             if data.action=='assign':
                 activities=activity_query.filter(CRMActivity.status.in_(sales.OPEN_ACTIVITY),CRMActivity.due_date.isnot(None)).with_for_update().all()
                 if not activities:raise HTTPException(422,'Schedule a follow-up before assigning it')
-                for activity in activities:activity.owner_user_id=data.owner_id
-                core._create_timeline_activity(db,organization_id=org,entity_type=kind,entity_id=row.id,activity_type='follow_up_assignment',title='Follow-ups reassigned',body='Assigned employee updated',user_id=user.id,metadata={'bulk_request':str(data.request_id),'bulk_signature':signature,'owner_id':data.owner_id})
+                changes=[]
+                for activity in activities:
+                    previous=followup_snapshot(activity)
+                    activity.owner_user_id=data.owner_id
+                    activity.updated_by_user_id=user.id
+                    changes.append({'before':previous,'after':followup_snapshot(activity)})
+                core._create_timeline_activity(db,organization_id=org,entity_type=kind,entity_id=row.id,activity_type='follow_up_assignment',title='Follow-ups reassigned',body='Assigned employee updated',user_id=user.id,metadata={'bulk_request':str(data.request_id),'bulk_signature':signature,'owner_id':data.owner_id,'changes':changes})
                 savepoint.commit();db.commit()
             else:
                 result=save_follow_up(FollowUp(entity=recipient.entity,record_id=row.id,due_at=data.due_at,owner_id=data.owner_id,title='Follow up with '+(getattr(row,'full_name',None) or getattr(row,'name','relationship'))),db,user,commit=False)
@@ -595,3 +609,7 @@ def send_greetings(data:GreetingSend,db:Session=Depends(get_db),user:User=Depend
         db.commit()
     marker.status='Completed';db.commit()
     return {'results':results,'replayed':False}
+
+
+from .growth_history import router as history_router
+router.include_router(history_router)

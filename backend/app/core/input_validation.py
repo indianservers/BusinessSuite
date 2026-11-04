@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Annotated
 from pydantic import AfterValidator, StrictStr
 from email_validator import validate_email, EmailNotValidError
+import phonenumbers
 
 CONTRACT=json.loads(Path(__file__).with_name('validation_contract.json').read_text(encoding='utf-8'))
 CALLING_CODES={country['code'] for country in CONTRACT['countries']}
@@ -15,8 +16,32 @@ PHONE_FIELDS={'mobile','mobile_number','phone','phone_number','alternate_phone',
 
 
 def national_phone(value):
-    if not isinstance(value,str) or len(value)!=CONTRACT['national_phone_length'] or not re.fullmatch(r'[0-9]+',value):raise ValueError(PHONE_ERROR)
+    # Pair validation below owns country-specific numbering. Keep this scalar
+    # validator usable by legacy schemas whose country code is a sibling field.
+    if not isinstance(value,str) or not re.fullmatch(r'[0-9]{4,15}',value):raise ValueError('Enter a national phone number using digits only')
     return value
+
+
+def normalize_phone(value, code, mobile=False):
+    calling_code(code)
+    if not isinstance(value, str) or re.search(r'[^0-9+ ().-]', value):
+        raise ValueError('Enter a valid phone number')
+    value = re.sub(r'[ ().-]', '', value.strip())
+    if value.startswith('+'):
+        if not value.startswith(code): raise ValueError('Phone number does not match its country code')
+        value = value[len(code):]
+    national_phone(value)
+    if code == '+91' and len(value) != 10:
+        raise ValueError('Indian phone numbers require 10 national digits')
+    if mobile and code == '+91' and not re.fullmatch(r'[6-9][0-9]{9}', value):
+        raise ValueError('Indian mobile numbers must begin with 6, 7, 8 or 9')
+    try:
+        parsed = phonenumbers.parse(code + value, None)
+        if parsed.extension or not phonenumbers.is_valid_number(parsed): raise ValueError()
+    except (phonenumbers.NumberParseException, ValueError):
+        raise ValueError('Enter a valid phone number for the selected country') from None
+    e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+    return phonenumbers.national_significant_number(parsed), e164
 
 
 def calling_code(value):
@@ -60,7 +85,7 @@ def full_phone(record,field):
     """Messaging/export consumers must not guess a code for an ambiguous legacy value."""
     value=getattr(record,field,None);code=getattr(record,field+'_country_code',None)
     if not value:return None
-    try:return calling_code(code)+national_phone(value)
+    try:return normalize_phone(value,code)[1]
     except ValueError:return None
 
 
@@ -71,7 +96,7 @@ def contact_change_errors(changes,current=None):
         if field not in changes and code not in changes:continue
         value=changes.get(field,getattr(current,field,None))
         if value in (None,''):continue
-        try:national_phone(value);calling_code(changes.get(code,getattr(current,code,None)))
+        try:normalize_phone(value,changes.get(code,getattr(current,code,None)))
         except ValueError as exc:errors.append({'loc':['body',field],'msg':str(exc),'type':'value_error'})
     for field,value in changes.items():
         if (field=='email' or field.endswith('_email')) and value not in (None,''):

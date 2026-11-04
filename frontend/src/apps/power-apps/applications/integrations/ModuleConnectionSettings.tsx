@@ -89,6 +89,7 @@ export default function ModuleConnectionSettings({ connector, connection, enviro
           setBusy(true); setError(""); setStatus(""); setAuthorizationUrl("");
           try {
             const scopes = [...new Set(connector.actions.filter((a) => writes || !a.mutates).flatMap((a) => a.scopes))];
+            if (auth === "oauth2" && ["outlook", "excel_online", "onedrive", "sharepoint", "microsoft_calendar", "microsoft_teams"].includes(connector.id)) scopes.push("offline_access");
             const effectiveConfig = { ...Object.fromEntries(Object.entries(configSchema.properties || {}).filter(([, field]) => field.default !== undefined).map(([key, field]) => [key, field.default])), ...config };
             if (auth !== "api_key") delete effectiveConfig.header_name;
             const saved = await integrationApi.createConnection(environment, { connector_id: connector.id, name: name.trim(), auth_type: auth, secrets: Object.fromEntries(Object.keys(fields).map((key) => [key, secrets[key].trim()])), config: effectiveConfig, sharing: [], writes_enabled: Boolean(writesAvailable && writes), scopes });

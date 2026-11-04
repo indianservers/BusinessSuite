@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import ConnectorNodeEditor from "../../integrations/ConnectorNodeEditor";
+import IntegrationTriggerEditor from "../../integrations/IntegrationTriggerEditor";
 import { NodeIcon } from "./NodeIcon";
 import { VariablePicker } from "./VariablePicker";
 import { ReferenceSelector } from "./ReferenceSelector";
@@ -257,7 +258,7 @@ export default function ConfigurationPanel({
             background: `${categoryColors[definition.category]}15`,
           }}
         >
-            <NodeIcon name={definition.icon} nodeType={definition.id} size={22} />
+          <NodeIcon name={definition.icon} nodeType={definition.id} size={22} />
         </span>
         <div>
           <small>{definition.category}</small>
@@ -272,18 +273,22 @@ export default function ConfigurationPanel({
         aria-label="Node editor tabs"
         className="as-config-tabs"
       >
-        {["Parameters", ...(node.type.startsWith("connector_") ? ["Module settings"] : []), "Input / Output", "Settings", "Documentation"].map(
-          (name) => (
-            <button
-              key={name}
-              role="tab"
-              aria-selected={tab === name}
-              onClick={() => setTab(name)}
-            >
-              {name}
-            </button>
-          ),
-        )}
+        {[
+          "Parameters",
+          ...(node.type.startsWith("connector_") ? ["Module settings"] : []),
+          "Input / Output",
+          "Settings",
+          "Documentation",
+        ].map((name) => (
+          <button
+            key={name}
+            role="tab"
+            aria-selected={tab === name}
+            onClick={() => setTab(name)}
+          >
+            {name}
+          </button>
+        ))}
       </div>
       <div className="as-config-scroll">
         <p className="as-runtime-label">
@@ -327,12 +332,21 @@ export default function ConfigurationPanel({
           {!node.type.startsWith("connector_") && logicEditor}
           <h3>INPUT PARAMETERS</h3>
           {node.type.startsWith("connector_") ? (
-            tab === "Parameters" && <ConnectorNodeEditor
+            tab === "Parameters" && (
+              <ConnectorNodeEditor
+                node={node}
+                onChange={onChange}
+                readOnly={readOnly}
+                environment={environmentName || "development"}
+                onOpenSettings={() => setTab("Module settings")}
+              />
+            )
+          ) : node.type.startsWith("integration_trigger_") ? (
+            <IntegrationTriggerEditor
               node={node}
               onChange={onChange}
-              readOnly={readOnly}
               environment={environmentName || "development"}
-              onOpenSettings={() => setTab("Module settings")}
+              readOnly={readOnly}
             />
           ) : definition.fields.length ? (
             definition.fields
@@ -359,35 +373,36 @@ export default function ConfigurationPanel({
           ) : (
             <p className="as-config-note">This node has no input parameters.</p>
           )}
-          {!node.type.startsWith("connector_") && definition.requires_credential && (
-            <details open={definition.requires_credential}>
-              <summary>
-                <KeyRound size={14} />
-                Credentials / connections
-                <ChevronDown size={13} />
-              </summary>
-              <label className="as-basic-field">
-                Credential reference
-                <input
-                  readOnly={readOnly}
-                  value={node.credential_reference || ""}
-                  maxLength={120}
-                  pattern="[a-zA-Z0-9_-]+"
-                  placeholder="Connection reference only"
-                  onChange={(e) =>
-                    onChange({
-                      ...node,
-                      credential_reference: e.target.value || null,
-                    })
-                  }
-                />
-              </label>
-              <p className="as-config-note">
-                References only. No credential secrets are loaded. Connection
-                authorization will be verified by the Phase 3 worker.
-              </p>
-            </details>
-          )}
+          {!node.type.startsWith("connector_") &&
+            definition.requires_credential && (
+              <details open={definition.requires_credential}>
+                <summary>
+                  <KeyRound size={14} />
+                  Credentials / connections
+                  <ChevronDown size={13} />
+                </summary>
+                <label className="as-basic-field">
+                  Credential reference
+                  <input
+                    readOnly={readOnly}
+                    value={node.credential_reference || ""}
+                    maxLength={120}
+                    pattern="[a-zA-Z0-9_-]+"
+                    placeholder="Connection reference only"
+                    onChange={(e) =>
+                      onChange({
+                        ...node,
+                        credential_reference: e.target.value || null,
+                      })
+                    }
+                  />
+                </label>
+                <p className="as-config-note">
+                  References only. No credential secrets are loaded. Connection
+                  authorization will be verified by the Phase 3 worker.
+                </p>
+              </details>
+            )}
           {recommendations}
         </section>
         <section hidden={tab !== "Input / Output"}>
@@ -417,10 +432,15 @@ export default function ConfigurationPanel({
             <code className="as-output-ref">{`{{steps.${node.id}.output}}`}</code>
           </details>
         </section>
-        {tab === "Module settings" && node.type.startsWith("connector_") && <ConnectorNodeEditor
-          node={node} onChange={onChange} readOnly={readOnly}
-          environment={environmentName || "development"} settingsOnly
-        />}
+        {tab === "Module settings" && node.type.startsWith("connector_") && (
+          <ConnectorNodeEditor
+            node={node}
+            onChange={onChange}
+            readOnly={readOnly}
+            environment={environmentName || "development"}
+            settingsOnly
+          />
+        )}
         <section hidden={tab !== "Settings"}>
           <label className="as-toggle">
             <input
@@ -495,7 +515,9 @@ export default function ConfigurationPanel({
               >
                 <option value="stop">Stop this path</option>
                 <option value="continue">Continue</option>
-                {definition.outputs.some((port) => port.id === "error") && <option value="branch">Use error branch</option>}
+                {definition.outputs.some((port) => port.id === "error") && (
+                  <option value="branch">Use error branch</option>
+                )}
               </NativeSelect>
             </label>
           </details>

@@ -45,6 +45,12 @@ def application_admin(user=Depends(get_current_user)):
 
 
 class ApplicationInput(BaseModel):
+    @model_validator(mode="after")
+    def validate_country_phones(self):
+        from app.core.input_validation import normalize_phone
+        self.mobile = normalize_phone(self.mobile, self.mobile_country_code, mobile=True)[0]
+        self.emergency_contact = normalize_phone(self.emergency_contact, self.emergency_contact_country_code)[0]
+        return self
     model_config = ConfigDict(extra="forbid")
     full_name: str = Field(min_length=1, max_length=160)
     parent_name: str = Field(min_length=1, max_length=160)

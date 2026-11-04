@@ -13,12 +13,28 @@ from app.models.company import Company
 from app.core.orm_validation import contact_issues
 from fastapi import HTTPException
 
-@pytest.mark.parametrize('value',['9876543210','0001234567'])
+@pytest.fixture(autouse=True)
+def complete_validation_tenant(request,db):
+    if 'superuser_headers' not in request.fixturenames:return
+    headers=request.getfixturevalue('superuser_headers')
+    from test_identity_utils import attach_test_identity,attach_workflow_branch
+    from app.models.user import User
+    from app.models.company import Department,Designation
+    actor=db.query(User).filter_by(email='testadmin@test.com').one()
+    attach_test_identity(db,actor)
+    branch=attach_workflow_branch(db,actor)
+    department=Department(name='Validation',organization_id=1,branch_id=branch.id)
+    db.add(department);db.flush()
+    db.add(Designation(name='Validation specialist',organization_id=1,department_id=department.id))
+    db.commit()
+    headers.update({'X-Suite-Organization':'1','X-Suite-Branch':str(branch.id)})
+
+@pytest.mark.parametrize('value',['9876543210','2025550101'])
 def test_phone_preserves_valid_strings(value):assert national_phone(value)==value
 
-@pytest.mark.parametrize('value',['987654321','98765432101','abcdefghij','98765abc10','+919876543210','98765 43210','98765.3210','-987654321','1e00000009','😀123456789','９８７６５４３２１０',9876543210,None])
+@pytest.mark.parametrize('value',['abcdefghij','98765abc10','+919876543210','98765 43210','98765.3210','-987654321','1e00000009','😀123456789','９８７６５４３２１０',9876543210,None])
 def test_phone_rejects_malformed_without_truncation(value):
-    with pytest.raises(ValueError,match='Enter exactly 10 digits'):national_phone(value)
+    with pytest.raises(ValueError,match='national phone'):national_phone(value)
 
 @pytest.mark.parametrize('code',[None,'','91','+999','+910',91])
 def test_missing_unsupported_country_code(code):
@@ -39,7 +55,7 @@ def test_unicode_mononym_and_controls():
 
 @pytest.fixture
 def valid_application():
-    return dict(full_name='李',parent_name="O’Brien",mobile='0001234567',mobile_country_code='+1',email='synthetic@example.com',identity_type='Other',identity_number='TEST-ONLY',gender='Other',date_of_birth='2000-01-01',city='São Paulo',state='Other',tenth_marks=0,twelfth_marks=None,degree='Other',current_year='Graduated',college='Example University',specialization='Design',passout_year=2020,area_of_interest='Software Development',skills='Python, Python',role='Other',mode='Remote',available_from=str(today()),duration='3 Months',address='Example address',pincode='520001',emergency_contact='2025550100',emergency_contact_country_code='+1',password='Synthetic@123456',consent=True)
+    return dict(full_name='李',parent_name="O’Brien",mobile='0236618300',mobile_country_code='+39',email='synthetic@example.com',identity_type='Other',identity_number='TEST-ONLY',gender='Other',date_of_birth='2000-01-01',city='São Paulo',state='Other',tenth_marks=0,twelfth_marks=None,degree='Other',current_year='Graduated',college='Example University',specialization='Design',passout_year=2020,area_of_interest='Software Development',skills='Python, Python',role='Other',mode='Remote',available_from=str(today()),duration='3 Months',address='Example address',pincode='520001',emergency_contact='2025550100',emergency_contact_country_code='+1',password='Synthetic@123456',consent=True)
 
 @pytest.mark.parametrize('patch',[{'mobile':'98765432101'},{'mobile_country_code':None},{'email':'invalid'},{'full_name':'   '},{'date_of_birth':'2025-02-30'},{'date_of_birth':'2099-01-01'},{'tenth_marks':101},{'tenth_marks':-1},{'tenth_marks':True},{'tenth_marks':float('inf')},{'gender':'tampered'},{'state':'tampered'},{'degree':'tampered'},{'consent':False},{'identity_type':'PAN','identity_number':'bad'}])
 def test_api_bypass_rejected(client,valid_application,patch):
@@ -52,7 +68,7 @@ def test_api_bypass_rejected(client,valid_application,patch):
 
 def test_valid_application_keeps_leading_zero_and_optional_blank(valid_application):
     record=ApplicationInput(**valid_application)
-    assert record.mobile=='0001234567' and record.mobile_country_code=='+1'
+    assert record.mobile=='0236618300' and record.mobile_country_code=='+39'
     assert record.twelfth_marks is None and record.skills=='Python'
 
 @pytest.mark.parametrize('value',['','12345','1234567','012345','12 456','12345a','５２０００１',520001,None])
@@ -110,11 +126,11 @@ def test_authenticated_employee_api_rejects_bad_phones(client,superuser_headers,
     assert result.status_code==422,result.text
 
 def test_employee_create_edit_roundtrip_and_export(client,superuser_headers):
-    payload={'first_name':'Synthetic','last_name':'QA','date_of_joining':str(today()),'create_user_account':False,'phone_number':'0001234567','phone_number_country_code':'+1'}
+    payload={'first_name':'Synthetic','last_name':'QA','date_of_joining':str(today()),'create_user_account':False,'phone_number':'2025550101','phone_number_country_code':'+1'}
     created=client.post('/api/v1/employees/',headers=superuser_headers,json=payload)
     assert created.status_code==201,created.text
     employee_id=created.json()['id']
-    assert created.json()['phone_number']=='0001234567'
+    assert created.json()['phone_number']=='2025550101'
     assert created.json()['phone_number_country_code']=='+1'
     edited=client.put(f'/api/v1/employees/{employee_id}',headers=superuser_headers,json={'phone_number':'2025550100','phone_number_country_code':'+44'})
     assert edited.status_code==200,edited.text
@@ -122,10 +138,10 @@ def test_employee_create_edit_roundtrip_and_export(client,superuser_headers):
     assert (reopened['phone_number'],reopened['phone_number_country_code'])==('2025550100','+44')
 
 def test_crm_contact_roundtrip(client,superuser_headers):
-    payload={'firstName':'Synthetic','fullName':'Synthetic QA','phone':'0001234567','phone_country_code':'+1'}
+    payload={'firstName':'Synthetic','fullName':'Synthetic QA','phone':'2025550101','phone_country_code':'+1'}
     created=client.post('/api/v1/crm/contacts',headers=superuser_headers,json=payload)
     assert created.status_code==201,created.text
-    assert created.json()['phone']=='0001234567' and created.json()['phone_country_code']=='+1'
+    assert created.json()['phone']=='2025550101' and created.json()['phone_country_code']=='+1'
     item_id=created.json()['id']
     result=client.put(f'/api/v1/crm/contacts/{item_id}',headers=superuser_headers,json={'phone_country_code':'+44'})
     assert result.status_code==200,result.text
@@ -151,10 +167,10 @@ def test_pms_phone_field_roundtrip_and_missing_code_rejection(db):
     project=create_project(PMSProjectCreate(name='Phone QA',project_key='PHN'),db=db,current_user=manager)
     task=create_task(project.id,PMSTaskCreate(title='Synthetic phone',task_key='PHN-1'),db=db,current_user=manager)
     definition=create_field(project.id,FieldInput(name='Contact phone',field_type='phone'),db=db,user=manager)
-    with pytest.raises(HTTPException):save_value(task.id,definition['id'],ValueInput(value='0001234567'),db=db,user=manager)
-    save_value(task.id,definition['id'],ValueInput(value='0001234567',country_code='+1'),db=db,user=manager)
+    with pytest.raises(HTTPException):save_value(task.id,definition['id'],ValueInput(value='2025550101'),db=db,user=manager)
+    save_value(task.id,definition['id'],ValueInput(value='2025550101',country_code='+1'),db=db,user=manager)
     field=task_fields(task.id,db=db,user=manager)['fields'][0]
-    assert (field['value'],field['country_code'])==('0001234567','+1')
+    assert (field['value'],field['country_code'])==('2025550101','+1')
     save_value(task.id,definition['id'],ValueInput(value='2025550100',country_code='+44'),db=db,user=manager)
     field=task_fields(task.id,db=db,user=manager)['fields'][0]
     assert (field['value'],field['country_code'])==('2025550100','+44')
@@ -162,7 +178,7 @@ def test_pms_phone_field_roundtrip_and_missing_code_rejection(db):
 def test_shared_form_phone_retains_separate_code_and_validates_paste():
     from app.forms.schema import Definition,clean_answers
     definition=Definition(name='Synthetic phone form',fields=[{'id':'phone','type':'phone','label':'Phone','required':True}])
-    assert clean_answers(definition,{'phone':'0001234567','phone_country_code':'+1'})=={'phone':'0001234567','phone_country_code':'+1'}
+    assert clean_answers(definition,{'phone':'2025550101','phone_country_code':'+1'})=={'phone':'2025550101','phone_country_code':'+1'}
     for answer in [{'phone':'+919876543210','phone_country_code':'+91'},{'phone':'9876543210'},{'phone':'9876543210','phone_country_code':'+999'}]:
         with pytest.raises(HTTPException):clean_answers(definition,answer)
 
@@ -177,11 +193,11 @@ def test_consent_unique_identity_includes_country_without_rewriting_history(tmp_
         with Operations.context(MigrationContext.configure(connection)):module.upgrade();module.upgrade()
         assert tuple(connection.execute(text('SELECT phone,phone_country_code FROM communication_consents WHERE id=1')).one())==('+91 12345 67890',None)
         for ident,code in [(2,'+1'),(3,'+44')]:
-            connection.execute(text('INSERT INTO communication_consents (id,email,phone,phone_country_code,record_type,record_id,consent_type) VALUES (:id,:email,:phone,:code,:kind,:record_id,:consent)'),{'id':ident,'email':'qa@example.com','phone':'0001234567','code':code,'kind':'contact','record_id':1,'consent':'sms'})
+            connection.execute(text('INSERT INTO communication_consents (id,email,phone,phone_country_code,record_type,record_id,consent_type) VALUES (:id,:email,:phone,:code,:kind,:record_id,:consent)'),{'id':ident,'email':'qa@example.com','phone':'2025550101','code':code,'kind':'contact','record_id':1,'consent':'sms'})
     engine.dispose()
 
 def test_mononym_can_be_edited_without_null_last_name_conflict(client,superuser_headers):
-    result=client.post('/api/v1/employees/',headers=superuser_headers,json={'first_name':'李','date_of_joining':str(today()),'create_user_account':False,'phone_number':'0001234567','phone_number_country_code':'+1'})
+    result=client.post('/api/v1/employees/',headers=superuser_headers,json={'first_name':'李','date_of_joining':str(today()),'create_user_account':False,'phone_number':'2025550101','phone_number_country_code':'+1'})
     assert result.status_code==201,result.text
     employee_id=result.json()['id']
     updated=client.put(f'/api/v1/employees/{employee_id}',headers=superuser_headers,json={'last_name':None,'phone_number':'2025550100','phone_number_country_code':'+44'})
@@ -218,9 +234,9 @@ def test_identity_sync_does_not_guess_legacy_codes_and_supports_explicit_clear(d
         person=SharedIdentityService.sync_from_employee(db,employee);db.commit()
         assert employee.phone_number=='+91 12345 67890' and employee.phone_number_country_code is None
         assert person.phone_number is None and 'phone_number' in contact_issues(employee)
-        employee.phone_number='0001234567';employee.phone_number_country_code='+1'
+        employee.phone_number='2025550101';employee.phone_number_country_code='+1'
         SharedIdentityService.sync_from_employee(db,employee);db.commit()
-        assert (person.phone_number,person.phone_number_country_code)==('0001234567','+1')
+        assert (person.phone_number,person.phone_number_country_code)==('2025550101','+1')
         employee.phone_number=None;employee.phone_number_country_code=None
         SharedIdentityService.sync_from_employee(db,employee);db.commit()
         assert person.phone_number is None and person.phone_number_country_code is None

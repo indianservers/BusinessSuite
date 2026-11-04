@@ -76,3 +76,4 @@ tzdata>=2024.1
 # Shared rich-content sanitization
 bleach==6.3.0
 tinycss2==1.4.0
+phonenumbers==9.0.41
