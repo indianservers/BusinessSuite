@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useRef, useState } from "react";
@@ -536,7 +537,7 @@ export default function ImportWizard({
                         you confirm.
                       </p>
                       <div className="dt-preview">
-                        <table>
+                        <GridTable variant="matrix" gridId="shared/data-transfer/ImportWizard:table-1">
                           <thead>
                             <tr>
                               <th>File row</th>
@@ -567,7 +568,7 @@ export default function ImportWizard({
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </GridTable>
                       </div>
                     </>
                   )}

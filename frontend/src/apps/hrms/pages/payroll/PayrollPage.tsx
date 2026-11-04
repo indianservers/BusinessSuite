@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -1155,7 +1156,7 @@ export default function PayrollPage() {
               </div>
               {selectedRun && (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full min-w-[900px] text-sm">
+                  <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-1" className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Gross", "Deductions", "Net", "Status", "Actions"].map((h) => (
@@ -1188,7 +1189,7 @@ export default function PayrollPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
               )}
             </CardContent>
@@ -1607,7 +1608,7 @@ export default function PayrollPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-sm">
+                <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-2" className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Period", "Employees", "Gross", "Net", "Status", "Actions"].map((h) => (
@@ -1687,7 +1688,7 @@ export default function PayrollPage() {
                       ))
                     )}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             </CardContent>
           </Card>
@@ -1734,7 +1735,7 @@ export default function PayrollPage() {
                 </div>
 
                 <div className="overflow-x-auto border rounded-md">
-                  <table className="w-full min-w-[900px] text-sm">
+                  <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-3" className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Gross Change", "Net Change", "Severity", "Reason"].map((h) => (
@@ -1771,7 +1772,7 @@ export default function PayrollPage() {
                         ))
                       )}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
               </CardContent>
             </Card>
@@ -1794,7 +1795,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[900px] text-sm">
+                  <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-4" className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Input", "Calculation", "Approval", "Net", "Worksheet Actions"].map((h) => (
@@ -1864,7 +1865,7 @@ export default function PayrollPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
               </CardContent>
             </Card>
@@ -1947,7 +1948,7 @@ export default function PayrollPage() {
                     </div>
                   )}
                   <div className="max-h-48 overflow-auto rounded-md border">
-                    <table className="w-full min-w-[760px] text-xs">
+                    <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-5" className="w-full min-w-[760px] text-xs">
                       <thead className="bg-muted/50">
                         <tr>
                           {["Employee", "Bank", "Account", "IFSC", "Net"].map((h) => <th key={h} className="px-2 py-2 text-left">{h}</th>)}
@@ -1967,7 +1968,7 @@ export default function PayrollPage() {
                           <tr><td className="px-2 py-4 text-center text-muted-foreground" colSpan={5}>No payable payroll records found.</td></tr>
                         )}
                       </tbody>
-                    </table>
+                    </GridTable>
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">Export history</p>
@@ -2032,7 +2033,7 @@ export default function PayrollPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[900px] text-sm">
+                  <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-6" className="w-full min-w-[900px] text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Employee", "Gross", "Deductions", "Net", "Status"].map((h) => (
@@ -2060,7 +2061,7 @@ export default function PayrollPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
               </CardContent>
             </Card>
@@ -2105,7 +2106,7 @@ export default function PayrollPage() {
                 ))}
               </div>
               <div className="overflow-x-auto rounded-md border">
-                <table className="w-full min-w-[900px] text-sm">
+                <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-7" className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Employee", "Gross Previous", "Gross Current", "Net Previous", "Net Current", "Deviation", "Flag"].map((h) => (
@@ -2137,7 +2138,7 @@ export default function PayrollPage() {
                       <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Select a run to view month-on-month payroll variance.</td></tr>
                     )}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             </CardContent>
           </Card>
@@ -2224,7 +2225,7 @@ export default function PayrollPage() {
                 ))}
               </div>
               <div className="overflow-x-auto rounded-md border">
-                <table className="w-full min-w-[900px] text-sm">
+                <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-8" className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Employee", "Leave LWP", "Attendance LWP", "Manual LOP", "Total LWP", "Estimated deduction"].map((h) => (
@@ -2251,7 +2252,7 @@ export default function PayrollPage() {
                       ))
                     )}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             </CardContent>
           </Card>
@@ -2303,7 +2304,7 @@ export default function PayrollPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-sm">
+                <GridTable gridId="apps/hrms/pages/payroll/PayrollPage:table-9" className="w-full min-w-[900px] text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Employee", "Working", "Payable", "Paid Leave", "LOP", "OT", "Status"].map((h) => (
@@ -2324,7 +2325,7 @@ export default function PayrollPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             </CardContent>
           </Card>

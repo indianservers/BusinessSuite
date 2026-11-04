@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { CompanyFinancialDataPanel, FinancialDataPanel } from "./FinancialDataTab";
 import { BirthdayEditor, ContactCommunicationPanel } from "@/shared/master-data/CommunicationEditor";
 import { lazy, Suspense } from "react";
@@ -947,7 +948,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
           </div>
           {preview ? (
             <div className="overflow-x-auto rounded-md border">
-              <table className="w-full min-w-[760px] text-sm">
+              <GridTable gridId="apps/crm/CRMRecordDetailPage:table-1" className="w-full min-w-[760px] text-sm">
                 <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
                   <tr><th className="px-3 py-2">Apply</th><th className="px-3 py-2">Field</th><th className="px-3 py-2">Current</th><th className="px-3 py-2">Enriched</th><th className="px-3 py-2">Status</th></tr>
                 </thead>
@@ -962,7 +963,7 @@ function EnrichmentModal({ kind, record, recordId, onClose, onDone }: { kind: De
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           ) : null}
           <div className="flex justify-end gap-2">

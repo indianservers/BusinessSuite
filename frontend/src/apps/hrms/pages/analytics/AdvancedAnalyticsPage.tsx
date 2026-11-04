@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
@@ -184,7 +185,7 @@ export default function AdvancedAnalyticsPage() {
               )) : <p className="rounded-lg border p-4 text-sm text-muted-foreground sm:col-span-3">No data for the selected metric and filters.</p>}
             </div>
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[640px] text-sm">
+              <GridTable gridId="apps/hrms/pages/analytics/AdvancedAnalyticsPage:table-1" className="w-full min-w-[640px] text-sm">
                 <tbody>
                   {(drilldown.data?.rows || []).slice(0, 12).map((row, index) => (
                     <tr {...recordPreviewProps(row)} key={index} className="border-b last:border-0">
@@ -197,7 +198,7 @@ export default function AdvancedAnalyticsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
               {!drilldown.isLoading && !drilldown.data?.rows?.length && <p className="p-4 text-sm text-muted-foreground">No drilldown rows available.</p>}
             </div>
           </CardContent>

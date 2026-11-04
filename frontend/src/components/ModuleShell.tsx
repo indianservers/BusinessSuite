@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -57,7 +58,7 @@ export default function ModuleShell({
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <GridTable gridId="components/ModuleShell:table-1" className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-3 font-medium">Item</th>
@@ -76,7 +77,7 @@ export default function ModuleShell({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>

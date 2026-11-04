@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
@@ -180,7 +181,7 @@ function CalendarTab() {
           </div>
           {calendar.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : (
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[820px] text-sm">
+              <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-1" className="w-full min-w-[820px] text-sm">
                 <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Description</th><th className="px-3 py-2 text-left">Period</th><th className="px-3 py-2 text-left">Due Date</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
                 <tbody>
                   {(calendar.data || []).map((item) => {
@@ -200,7 +201,7 @@ function CalendarTab() {
                     );
                   })}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           )}
         </CardContent>
@@ -460,7 +461,7 @@ function Form16Tab() {
         <CardContent>
           {records.isLoading ? <div className="h-48 animate-pulse rounded bg-muted" /> : (
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[960px] text-sm">
+              <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-2" className="w-full min-w-[960px] text-sm">
                 <thead className="bg-muted/60">
                   <tr>
                     <th className="px-3 py-2 text-left">Employee</th>
@@ -517,7 +518,7 @@ function Form16Tab() {
                     <tr><td colSpan={7} className="px-3 py-10 text-center text-muted-foreground">No Form 16 records generated for this financial year.</td></tr>
                   )}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           )}
         </CardContent>
@@ -547,7 +548,7 @@ function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; 
       <CardHeader><CardTitle className="text-base">{compact ? "Previous Submissions" : "Submission History"}</CardTitle></CardHeader>
       <CardContent>
         <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[840px] text-sm">
+          <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-3" className="w-full min-w-[840px] text-sm">
             <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Payroll Period</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Rows</th><th className="px-3 py-2 text-left">Amount</th><th className="px-3 py-2 text-left">Submission</th><th className="px-3 py-2 text-left">ACK Number</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
             <tbody>
               {rows.map((row) => (
@@ -566,7 +567,7 @@ function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; 
                 </tr>
               ))}
             </tbody>
-          </table>
+          </GridTable>
         </div>
       </CardContent>
     </Card>
@@ -623,7 +624,7 @@ function CompliancePreviewCard({
           </div>
         )}
         <div className="overflow-x-auto rounded-md border">
-          <table className="w-full min-w-[640px] text-xs">
+          <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-4" className="w-full min-w-[640px] text-xs">
             <thead className="bg-muted/60">
               <tr>{columns.map((column) => <th key={column} className="px-2 py-2 text-left capitalize">{column.replace(/_/g, " ")}</th>)}</tr>
             </thead>
@@ -635,7 +636,7 @@ function CompliancePreviewCard({
               ))}
               {!loading && !preview?.rows?.length && <tr><td colSpan={columns.length} className="px-2 py-4 text-center text-muted-foreground">No contribution rows found.</td></tr>}
             </tbody>
-          </table>
+          </GridTable>
         </div>
         <Button className="w-full" variant="outline" onClick={onGenerate} disabled={!preview || errors.length > 0 || generating}>
           {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}

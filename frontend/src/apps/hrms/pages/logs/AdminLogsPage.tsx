@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
@@ -146,7 +147,7 @@ export default function AdminLogsPage() {
             <Button variant="outline" onClick={() => fieldAudit.refetch()}>Refresh Field Audit</Button>
           </div>
           <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[860px] text-sm">
+            <GridTable gridId="apps/hrms/pages/logs/AdminLogsPage:table-1" className="w-full min-w-[860px] text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>{["Time", "Module", "Employee", "Field", "Old", "New", "Actor", "Action"].map((heading) => <th key={heading} className="px-3 py-2 text-left text-xs uppercase text-muted-foreground">{heading}</th>)}</tr>
               </thead>
@@ -167,7 +168,7 @@ export default function AdminLogsPage() {
                   <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">No field audit events found.</td></tr>
                 )}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>
@@ -215,7 +216,7 @@ export default function AdminLogsPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm">
+            <GridTable gridId="apps/hrms/pages/logs/AdminLogsPage:table-2" className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
                   {["Time", "Method", "Endpoint", "Status", "Duration", "User", "Details"].map((heading) => (
@@ -243,7 +244,7 @@ export default function AdminLogsPage() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>

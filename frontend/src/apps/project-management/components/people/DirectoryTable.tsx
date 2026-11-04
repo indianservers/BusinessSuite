@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -26,7 +27,7 @@ export default function DirectoryTable({ people, selected, onSelect, onTogglePag
   const toggle = (column: string) => { const next = visible.includes(column) ? visible.filter(c => c !== column) : [...visible, column]; try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Keep session preferences when storage is unavailable. */ } setVisible(next); onColumnsChange?.(next.join(",") || "none"); };
   return <div className="pd-directory-table">
     <details className="mb-2"><summary>Choose columns</summary><div className="flex flex-wrap gap-4 py-3">{columns.map(c => <label key={c} className="capitalize"><input type="checkbox" checked={visible.includes(c)} onChange={() => toggle(c)} /> {c}</label>)}</div></details>
-    <div className="max-h-[65vh] overflow-auto rounded-lg border"><table className="w-full text-left text-sm">
+    <div className="max-h-[65vh] overflow-auto rounded-lg border"><GridTable gridId="apps/project-management/components/people/DirectoryTable:table-1" className="w-full text-left text-sm">
       <thead className="sticky top-0 z-10 bg-background"><tr><th className="sticky left-0 bg-background p-3"><PageSelection people={people} selected={selected} onToggle={onTogglePage} /></th>
         <th className="p-3 capitalize" aria-sort={direction("name")}>{sortButton("name")}</th>
         {visible.map(c => <th key={c} className="p-3 capitalize" aria-sort={direction(c)}>{["email", "status"].includes(c) ? sortButton(c) : c}</th>)}
@@ -35,6 +36,6 @@ export default function DirectoryTable({ people, selected, onSelect, onTogglePag
         <td className="p-3"><Link className="font-semibold text-primary" to={`/pms/people/${person.id}?returnTo=${encodeURIComponent(backTo)}`}>{person.name}</Link><small className="block">{person.classification}</small></td>
         {visible.map(c => <td key={c} className="p-3">{c === "status" ? <><span>{person.status === "active" ? "Login enabled" : "Login disabled"}</span>{person.employment_status && <small className="block">{person.classification}: {person.employment_status}</small>}</> : ["teams", "batches", "workspaces"].includes(c) ? (person[c as "teams" | "batches" | "workspaces"] || []).map(p => p.name).join(", ") || "—" : String(person[c as "email" | "department"] || "—")}</td>)}
       </tr>)}</tbody>
-    </table></div>
+    </GridTable></div>
   </div>;
 }

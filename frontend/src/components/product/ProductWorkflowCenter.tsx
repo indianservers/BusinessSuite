@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
@@ -258,7 +259,7 @@ export function ProductWorkflowCenter({ product }: { product: ProductKey }) {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm">
+            <GridTable gridId="components/product/ProductWorkflowCenter:table-1" className="w-full min-w-[900px] text-sm">
               <thead className="bg-muted/70 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3"><GripVertical className="h-4 w-4" /></th>
@@ -294,7 +295,7 @@ export function ProductWorkflowCenter({ product }: { product: ProductKey }) {
                   </tr>
                 ) : null}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>

@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -1019,7 +1020,7 @@ export default function InternTaskProgramsPanel({
                     {packPreview.interns} interns
                   </h3>
                   <div className="overflow-auto">
-                    <table className="w-full text-left text-sm">
+                    <GridTable gridId="apps/hrms/pages/interns/InternTaskProgramsPanel:table-1" className="w-full text-left text-sm">
                       <thead>
                         <tr>
                           {[
@@ -1053,7 +1054,7 @@ export default function InternTaskProgramsPanel({
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </GridTable>
                   </div>
                 </div>
               )}
@@ -1139,7 +1140,7 @@ export default function InternTaskProgramsPanel({
                   </span>
                 </div>
                 <div className="overflow-auto">
-                  <table className="w-full text-left text-sm">
+                  <GridTable gridId="apps/hrms/pages/interns/InternTaskProgramsPanel:table-2" className="w-full text-left text-sm">
                     <thead>
                       <tr>
                         {[
@@ -1179,7 +1180,7 @@ export default function InternTaskProgramsPanel({
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
                 {assignments.data?.total === 0 && (
                   <p className="text-sm text-muted-foreground">

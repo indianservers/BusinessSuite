@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -462,7 +463,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
           <section className="cc-card">
             <h2>Module service contracts</h2>
             <div className="cc-scroll">
-              <table>
+              <GridTable gridId="features/access/SharedServicesPage:table-1">
                 <thead>
                   <tr>
                     <th>Module</th>
@@ -487,7 +488,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           </section>
           <section className="cc-card">
@@ -1003,7 +1004,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
             </Button>
           )}
           <div className="cc-scroll">
-            <table>
+            <GridTable gridId="features/access/SharedServicesPage:table-2">
               <thead>
                 <tr>
                   <th>Execution</th>
@@ -1057,7 +1058,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
             {!data.length && (
               <p className="cc-empty">
                 No executions. Publish a workflow and emit an authorized
@@ -1168,11 +1169,11 @@ export default function SharedServicesPage({ section: requestedSection, embedded
         </>
       )}
       {data && section === "webhooks" && <><section className="cc-card"><h2>Signed inbound subscriptions</h2>{data.map((w:any)=><div className="cc-branch" key={w.id}><strong>{w.name}</strong><p>{w.subscription.module} · {w.subscription.entity} · {w.active?"Active":"Disabled"}</p><code>{w.path}</code><p>Events: {w.subscription.events.join(", ")}</p></div>)}{!data.length&&<p>No inbound subscriptions.</p>}</section>{actor?.is_superuser&&<section className="cc-card"><h2>Register signed webhook</h2><div className="cc-form-grid">{["name","module","entity","events","runAsUserId","secret"].map(key=><label className="cc-field" key={key}>{key}<input type={key==="secret"?"password":key==="runAsUserId"?"number":"text"} value={(webhookForm as any)[key]} onChange={e=>setWebhookForm(v=>({...v,[key]:e.target.value}))}/></label>)}</div><Button onClick={()=>stage({title:"Approve signed webhook subscription",url:`${base}/webhooks`,body:()=>({...webhookForm,events:webhookForm.events.split(",").map(x=>x.trim()),runAsUserId:Number(webhookForm.runAsUserId)})})}>Review & Register</Button><p>Sign timestamp + a dot + the raw JSON body using HMAC-SHA256. Send X-Suite-Timestamp and X-Suite-Signature. Event IDs are replay-protected and timestamps expire after five minutes.</p></section>}</>}
-      {data && section === "ai" && <><section className="cc-card"><h2>Company model registry</h2>{data.providers.map((p:any)=><p key={p.provider}>{p.provider} · {p.model} · {p.status} · Data sharing {p.dataSharingAllowed?"enabled":"disabled"}</p>)}{!data.providers.length&&<p>No company conversational providers configured.</p>}<div className="cc-actions">{[["/ai/provider-settings","Provider configuration"],["/ai-agents/config","Agent & tool configuration"],["/ai-agents/usage","Usage & budgets"]].filter(([path])=>canAccessRoute(path,actor?.role,actor?.is_superuser)).map(([path,label])=><Link key={path} to={path}>{label}</Link>)}</div><p>{data.localModels}</p></section><section className="cc-card"><h2>Approved AI tool registry</h2><div className="cc-scroll"><table><thead><tr><th>Tool</th><th>Module</th><th>Native permission</th><th>Risk</th><th>Approval</th><th>Schema</th></tr></thead><tbody>{data.tools.map((t:any)=><tr {...recordPreviewProps(t)} key={t.id}><td>{t.id}<small>{t.description}</small></td><td>{t.module}</td><td>{t.requiredPermission||"Existing record authorization"}</td><td>{t.risk}</td><td>{t.humanApprovalRequired?"Required":"Read / draft"}</td><td><Button variant="ghost" onClick={()=>setInspect(t)}>Inspect</Button></td></tr>)}</tbody></table></div></section><section className="cc-card"><h2>Recorded usage</h2><p>{data.costSemantics}</p><div className="cc-scroll"><table><thead><tr><th>Module</th><th>User</th><th>Event</th><th>Input / output tokens</th><th>Estimated cost</th></tr></thead><tbody>{data.usage.map((u:any)=><tr {...recordPreviewProps(u)} key={u.id}><td>{u.module}</td><td>#{u.userId}</td><td>{u.type}</td><td>{u.inputTokens} / {u.outputTokens}</td><td>{u.estimatedCost??"Unavailable"}</td></tr>)}</tbody></table></div></section></>}
+      {data && section === "ai" && <><section className="cc-card"><h2>Company model registry</h2>{data.providers.map((p:any)=><p key={p.provider}>{p.provider} · {p.model} · {p.status} · Data sharing {p.dataSharingAllowed?"enabled":"disabled"}</p>)}{!data.providers.length&&<p>No company conversational providers configured.</p>}<div className="cc-actions">{[["/ai/provider-settings","Provider configuration"],["/ai-agents/config","Agent & tool configuration"],["/ai-agents/usage","Usage & budgets"]].filter(([path])=>canAccessRoute(path,actor?.role,actor?.is_superuser)).map(([path,label])=><Link key={path} to={path}>{label}</Link>)}</div><p>{data.localModels}</p></section><section className="cc-card"><h2>Approved AI tool registry</h2><div className="cc-scroll"><GridTable gridId="features/access/SharedServicesPage:table-3"><thead><tr><th>Tool</th><th>Module</th><th>Native permission</th><th>Risk</th><th>Approval</th><th>Schema</th></tr></thead><tbody>{data.tools.map((t:any)=><tr {...recordPreviewProps(t)} key={t.id}><td>{t.id}<small>{t.description}</small></td><td>{t.module}</td><td>{t.requiredPermission||"Existing record authorization"}</td><td>{t.risk}</td><td>{t.humanApprovalRequired?"Required":"Read / draft"}</td><td><Button variant="ghost" onClick={()=>setInspect(t)}>Inspect</Button></td></tr>)}</tbody></GridTable></div></section><section className="cc-card"><h2>Recorded usage</h2><p>{data.costSemantics}</p><div className="cc-scroll"><GridTable gridId="features/access/SharedServicesPage:table-4"><thead><tr><th>Module</th><th>User</th><th>Event</th><th>Input / output tokens</th><th>Estimated cost</th></tr></thead><tbody>{data.usage.map((u:any)=><tr {...recordPreviewProps(u)} key={u.id}><td>{u.module}</td><td>#{u.userId}</td><td>{u.type}</td><td>{u.inputTokens} / {u.outputTokens}</td><td>{u.estimatedCost??"Unavailable"}</td></tr>)}</tbody></GridTable></div></section></>}
       {data && section === "delivery" && (
         <section className="cc-card">
           <div className="cc-scroll">
-            <table>
+            <GridTable gridId="features/access/SharedServicesPage:table-5">
               <thead>
                 <tr>
                   <th>Notification</th>
@@ -1195,7 +1196,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
             {!data.length && <p>No delivery records for this company.</p>}
           </div>
           <p>
@@ -1280,7 +1281,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
           </section>
           <section className="cc-card">
             <div className="cc-scroll">
-              <table>
+              <GridTable gridId="features/access/SharedServicesPage:table-6">
                 <thead>
                   <tr>
                     <th>Document</th>
@@ -1327,7 +1328,7 @@ export default function SharedServicesPage({ section: requestedSection, embedded
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
             <p>
               Only documents whose source record is currently authorized are

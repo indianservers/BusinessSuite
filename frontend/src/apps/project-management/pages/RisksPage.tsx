@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -319,7 +320,7 @@ export default function RisksPage() {
             {loading ? <div className="m-4 h-72 rounded-lg skeleton" /> : null}
             {!loading ? (
               <div className="overflow-x-auto">
-                <table className="min-w-[1040px] w-full text-sm">
+                <GridTable gridId="apps/project-management/pages/RisksPage:table-1" className="min-w-[1040px] w-full text-sm">
                   <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                     <tr>
                       {["Risk", "Project", "Status", "Score", "Owner", "Due", "Linked task", "Plans", ""].map((heading) => (
@@ -353,7 +354,7 @@ export default function RisksPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </GridTable>
                 {!risks.length ? <div className="p-8 text-center text-sm text-muted-foreground">No risks match the current filters.</div> : null}
               </div>
             ) : null}

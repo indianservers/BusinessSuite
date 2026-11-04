@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp, usesSocialVerification } from "./AdminVerification";
@@ -206,7 +207,7 @@ export default function AiSecurityPage() {
           <section className="cc-card">
             <h2>Tool and permission registry</h2>
             <div className="cc-scroll">
-              <table>
+              <GridTable gridId="features/access/AiSecurityPage:table-1">
                 <thead>
                   <tr>
                     <th>Tool</th>
@@ -268,7 +269,7 @@ export default function AiSecurityPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           </section>
           <section className="cc-card">
@@ -291,7 +292,7 @@ export default function AiSecurityPage() {
               full arguments are excluded.
             </p>
             <div className="cc-scroll">
-              <table>
+              <GridTable gridId="features/access/AiSecurityPage:table-2">
                 <thead>
                   <tr>
                     <th>Time</th>
@@ -330,7 +331,7 @@ export default function AiSecurityPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
               {!data.logs.items.length && (
                 <p className="cc-empty">
                   No matching events recorded for this company.

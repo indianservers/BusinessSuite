@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -60,7 +61,7 @@ export default function MyRosterPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <GridTable gridId="apps/hrms/pages/attendance/MyRosterPage:table-1" className="min-w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-4 font-medium">Date</th>
@@ -86,7 +87,7 @@ export default function MyRosterPage() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>

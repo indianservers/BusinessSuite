@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -127,7 +128,7 @@ export default function MyAttendancePage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <GridTable gridId="apps/hrms/pages/attendance/MyAttendancePage:table-1" className="min-w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-4 font-medium">Date</th>
@@ -155,7 +156,7 @@ export default function MyAttendancePage() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>

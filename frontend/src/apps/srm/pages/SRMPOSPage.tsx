@@ -8,7 +8,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import "./srm-pos-mobile.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { canAccessRoute } from "@/lib/roles";
+import { useAuthStore } from "@/store/authStore";
+import { phoneLinks } from "@/components/PhoneActions";
 import {
   Banknote,
   Calculator,
@@ -289,6 +292,8 @@ function usePersistedState<T>(key: string, initialValue: T) {
 }
 
 export default function SRMPOSPage() {
+  const navigate = useNavigate();
+  const authUser = useAuthStore(state => state.user);
   const queryClient = useQueryClient();
   useSrmRealtimeInvalidation(queryClient);
   const [activeProfileId, setActiveProfileId] = usePersistedState("business-suite-srm-pos-profile", defaultStoreProfile.id);
@@ -443,6 +448,10 @@ export default function SRMPOSPage() {
   }
 
   async function completeSale(after: "done" | "print" | "whatsapp" | "email") {
+    if (after === "whatsapp" && (!phoneLinks(customer.phone)?.whatsapp || !canAccessRoute("/crm/whatsapp", authUser?.role, authUser?.is_superuser))) {
+      toast({ title: "WhatsApp receipt unavailable", description: "Select a customer with an international phone number and make sure you have access to WhatsApp in Communication.", variant: "destructive" });
+      return;
+    }
     if (!cart.length) return;
     if (customerId && customer.id !== customerId) {
       toast({ title: "Select a customer", description: "The selected customer is unavailable. Reload customers or select another customer.", variant: "destructive" });
@@ -520,6 +529,7 @@ export default function SRMPOSPage() {
           },
         })),
       });
+      sale.invoiceNo = String((postedOrder as SRMRecord).order_number || (postedOrder as SRMRecord).id || sale.invoiceNo);
       await syncSrmNow(queryClient, {
         type: "pos_sale_completed",
         source: "pos-terminal",
@@ -546,8 +556,10 @@ export default function SRMPOSPage() {
     setActiveModal("success");
     toast({ title: "Sale completed", description: `${sale.invoiceNo} posted for ${shortCurrency(sale.amount)}.${cart.some(line=>line.followUp?.required)?" Customer follow-ups scheduled.":""}` });
     if (after === "print") setTimeout(() => window.print(), 150);
-    if (after === "whatsapp" || after === "email") {
-      toast({ title: "Receipt queued", description: `${after} provider will send after integration credentials are configured.` });
+    if (after === "whatsapp") {
+      navigate("/crm/whatsapp", { state: { whatsappDraft: { key: `pos:${sale.id}`, to: phoneLinks(customer.phone)!.call.slice(4), body: `Hello ${customer.name}, thank you for your purchase. Order reference: ${sale.invoiceNo}. Total: ${shortCurrency(sale.amount)}. Payment method: ${sale.mode}.` } } });
+    } else if (after === "email") {
+      toast({ title: "Sale completed", description: "Email receipt delivery is not configured. No email has been queued." });
     }
   }
 

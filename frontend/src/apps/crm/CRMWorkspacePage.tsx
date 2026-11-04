@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import BranchAvailability, { type BranchAvailabilityValue } from "@/shared/BranchAvailability";
 import PhoneActions from "@/components/PhoneActions";
 import { api as directoryApi } from "@/services/api";
@@ -1399,7 +1400,7 @@ function DarkEmptyState({ label, action, onAction }: { label: string; action?: s
 function PriorityDealsTable({ rows, onOpen }: { rows: ReturnType<typeof priorityDealRows>; onOpen: (id: number) => void }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-xs">
+      <GridTable gridId="apps/crm/CRMWorkspacePage:table-1" className="w-full min-w-[720px] text-left text-xs">
         <thead className="text-[11px] uppercase tracking-wide text-muted-foreground">
           <tr className="border-b border-border">
             <th className="px-2 py-2 font-semibold">Deal</th>
@@ -1422,7 +1423,7 @@ function PriorityDealsTable({ rows, onOpen }: { rows: ReturnType<typeof priority
             </tr>
           ))}
         </tbody>
-      </table>
+      </GridTable>
     </div>
   );
 }
@@ -2509,7 +2510,7 @@ function CustomFieldsSettingsPageLegacy() {
             <label className="space-y-1 text-sm"><span className="font-medium">Type</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.fieldType || "text")} onChange={(event) => setDraft((current) => ({ ...current, fieldType: event.target.value }))}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="boolean">Boolean</option><option value="select">Select</option></NativeSelect></label>
           </div>
           <div className="overflow-hidden rounded-md border">
-            <table className="crm-desktop-table">
+            <GridTable gridId="apps/crm/CRMWorkspacePage:table-2" className="crm-desktop-table">
               <thead className="bg-muted/60 text-left"><tr><th className="px-3 py-2">Entity</th><th className="px-3 py-2">Label</th><th className="px-3 py-2">Key</th><th className="px-3 py-2">Type</th><th className="px-3 py-2">Status</th></tr></thead>
               <tbody>
                 {fields.map((field) => (
@@ -2523,7 +2524,7 @@ function CustomFieldsSettingsPageLegacy() {
                 ))}
                 {!fields.length ? <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">{loading ? "Loading custom fields..." : "No custom fields configured."}</td></tr> : null}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>
@@ -3683,7 +3684,7 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
     <div>
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
+        <GridTable gridId="apps/crm/CRMWorkspacePage:table-3" className="w-full min-w-[980px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all leads" /></th>
@@ -3722,7 +3723,7 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
             ))}
             {!loading && !rows.length ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">No leads match the current search or filters.</td></tr> : null}
           </tbody>
-        </table>
+        </GridTable>
       </div>
       <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} leads</span>
@@ -4457,7 +4458,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
     <div className="record-directory">
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1040px] text-left text-sm">
+        <GridTable gridId="apps/crm/CRMWorkspacePage:table-4" className="w-full min-w-[1040px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all contacts" /></th>
@@ -4492,7 +4493,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
             ))}
             {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
           </tbody>
-        </table>
+        </GridTable>
       </div>
       <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} contacts</span>
@@ -5115,7 +5116,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
     <div>
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
+        <GridTable gridId="apps/crm/CRMWorkspacePage:table-5" className="w-full min-w-[980px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all accounts" /></th>
@@ -5148,7 +5149,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
             ))}
             {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No accounts match the current search or filters.</td></tr> : null}
           </tbody>
-        </table>
+        </GridTable>
       </div>
       <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} accounts</span>
@@ -5688,7 +5689,7 @@ function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected,
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
+        <GridTable gridId="apps/crm/CRMWorkspacePage:table-6" className="min-w-full text-left text-sm">
           <thead className="bg-white/[0.035] text-xs uppercase tracking-wide text-muted-foreground">
             <tr className="[&>th]:whitespace-nowrap [&>th]:px-3 [&>th]:py-3">
               <th><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all deals" /></th>
@@ -5728,7 +5729,7 @@ function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected,
               </tr>
             ))}
           </tbody>
-        </table>
+        </GridTable>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground">
         <span>Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to {Math.min(page * pageSize, total)} of {total} deals</span>
@@ -7233,7 +7234,7 @@ function CRMFeatureChecklistPage() {
       <Card>
         <CardHeader><CardTitle>Integration Readiness</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">
-            <table className="crm-desktop-table">
+            <GridTable gridId="apps/crm/CRMWorkspacePage:table-7" className="crm-desktop-table">
             <thead className="text-left text-xs uppercase text-muted-foreground">
               <tr className="border-b">
                 <th className="px-3 py-2">Feature</th>
@@ -7254,7 +7255,7 @@ function CRMFeatureChecklistPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </GridTable>
         </CardContent>
       </Card>
     </div>
@@ -7503,7 +7504,7 @@ function CRMReports() {
       <Card>
         <CardHeader><CardTitle>Closed Deals</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto p-0">
-          <table className="crm-desktop-table">
+          <GridTable gridId="apps/crm/CRMWorkspacePage:table-8" className="crm-desktop-table">
             <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
               <tr>{["Deal", "Status", "Source", "Owner", "Pipeline", "Amount", "Closed"].map((heading) => <th key={heading} className="px-4 py-3">{heading}</th>)}</tr>
             </thead>
@@ -7520,7 +7521,7 @@ function CRMReports() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </GridTable>
         </CardContent>
       </Card>
     </div>
@@ -7532,7 +7533,7 @@ function ReportTable({ title, rows, columns }: { title: string; rows: CRMApiReco
     <Card>
       <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
       <CardContent className="overflow-x-auto p-0">
-        <table className="crm-desktop-table">
+        <GridTable gridId="apps/crm/CRMWorkspacePage:table-9" className="crm-desktop-table">
           <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
             <tr>{columns.map((column) => <th key={column} className="px-3 py-2">{labelFor(column)}</th>)}</tr>
           </thead>
@@ -7550,7 +7551,7 @@ function ReportTable({ title, rows, columns }: { title: string; rows: CRMApiReco
               <tr><td className="px-3 py-4 text-sm text-muted-foreground" colSpan={columns.length}>No report rows for the selected filters.</td></tr>
             )}
           </tbody>
-        </table>
+        </GridTable>
       </CardContent>
     </Card>
   );
@@ -8134,7 +8135,7 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
         {error ? <div className="border-t bg-amber-50 px-4 py-2 text-sm text-amber-800">{error}</div> : null}
         {bulkError ? <div className="border-t bg-red-50 px-4 py-2 text-sm text-red-700">{bulkError}</div> : null}
         <div className="max-w-full overflow-x-auto">
-          <table className="crm-desktop-table">
+          <GridTable gridId="apps/crm/CRMWorkspacePage:table-10" className="crm-desktop-table">
             <thead className="sticky top-0 bg-muted/70 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="w-10 px-3 py-3">
@@ -8175,7 +8176,7 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
                 <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(visibleColumns.length + 1, 1)}>No CRM records found</td></tr>
               ) : null}
             </tbody>
-          </table>
+          </GridTable>
         </div>
         <div className="flex flex-col gap-3 border-t px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
           <span className="text-muted-foreground">
@@ -8594,7 +8595,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
                   <Button type="button" variant="outline" size="sm" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button>
                 </div>
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="crm-desktop-table">
+                  <GridTable gridId="apps/crm/CRMWorkspacePage:table-11" className="crm-desktop-table">
                     <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                       <tr>
                         <th className="px-3 py-3">Product</th>
@@ -8620,7 +8621,7 @@ function CreateDealDialog({ saving, error, onClose, onCreate }: { saving?: boole
                         );
                       })}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
               </section>
             </div>

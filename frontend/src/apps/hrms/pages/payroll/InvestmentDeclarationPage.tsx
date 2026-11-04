@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useEffect, useMemo, useState } from "react";
@@ -324,7 +325,7 @@ export default function InvestmentDeclarationPage() {
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
-                  <table className="w-full min-w-[820px] text-sm">
+                  <GridTable gridId="apps/hrms/pages/payroll/InvestmentDeclarationPage:table-1" className="w-full min-w-[820px] text-sm">
                     <thead className="bg-muted/60 text-left">
                       <tr>
                         <th className="px-3 py-2">Category</th>
@@ -377,7 +378,7 @@ export default function InvestmentDeclarationPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

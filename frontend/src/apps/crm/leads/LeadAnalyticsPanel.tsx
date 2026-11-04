@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
@@ -46,7 +47,7 @@ export function LeadAnalyticsPanel({
         <div>
           <h3>Recorded stage progression</h3>
           <div className="lm-table-scroll">
-            <table className="lm-table">
+            <GridTable gridId="apps/crm/leads/LeadAnalyticsPanel:table-1" className="lm-table">
               <thead>
                 <tr>
                   <th>Stage</th>
@@ -67,13 +68,13 @@ export function LeadAnalyticsPanel({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </div>
         <div>
           <h3>Salesperson performance</h3>
           <div className="lm-table-scroll">
-            <table className="lm-table">
+            <GridTable gridId="apps/crm/leads/LeadAnalyticsPanel:table-2" className="lm-table">
               <thead>
                 <tr>
                   <th>Owner</th>
@@ -103,7 +104,7 @@ export function LeadAnalyticsPanel({
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </div>
       </div>

@@ -13,10 +13,10 @@ export type CommunicationEntry = {kind:"phone"|"email";label:string;value:string
 export function primaryEntries(email?:string,phone?:string,countryCode?:string):CommunicationEntry[] { return [...(email?[{kind:"email" as const,label:"Work",value:email,primary:true}]:[]),...(phone?[{kind:"phone" as const,label:"Mobile",value:phone,countryCode:countryCode||"+91",primary:true}]:[])]; }
 export function transportEntries(items:CommunicationEntry[]) {return items.filter(x=>x.value.trim()).map(entry=>({kind:entry.kind,label:entry.label,value:entry.value,countryCode:entry.kind==="phone"?entry.countryCode:undefined,primary:entry.primary,whatsapp:!!entry.whatsapp,notes:entry.notes}));}
 
-export function CommunicationDraftEditor({value,onChange,ownerId,kind="contact",source="crm"}: {value:CommunicationEntry[];onChange:(items:CommunicationEntry[],version?:string)=>void;ownerId?:number;kind?:"contact"|"company"|"person";source?:MasterSource}) {
+export function CommunicationDraftEditor({value,onChange,ownerId,kind="contact",source="crm",draft=false}: {value:CommunicationEntry[];onChange:(items:CommunicationEntry[],version?:string)=>void;ownerId?:number;kind?:"contact"|"company"|"person";source?:MasterSource;draft?:boolean}) {
   const [touched,setTouched]=useState(false);
   const query=useQuery<{items:CommunicationEntry[];version:string}>({queryKey:["master-channels",masterScope(),source,kind,ownerId],enabled:!!ownerId,queryFn:async()=>{const {data}=await api.get<{items:CommunicationEntry[];version:string}>(`/master-data/${kind}/${ownerId}/channels`,{params:{source}});if(!data||!Array.isArray(data.items))throw new Error("Communication details are unavailable. Your draft is retained.");return data;},staleTime:30000});
-  const savedRows=!touched&&query.data?query.data.items:(Array.isArray(value)?value:[]);
+  const savedRows=!touched&&!draft&&query.data?query.data.items:(Array.isArray(value)?value:[]);
   // Keep the first mobile and email inputs ready without an extra Add click.
   const rows:CommunicationEntry[]=[...savedRows];
   if(!rows.some(entry=>entry.kind==="phone"))rows.push({kind:"phone",label:"Mobile",value:"",countryCode:"+91",primary:true});

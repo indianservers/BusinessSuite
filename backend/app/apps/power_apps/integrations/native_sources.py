@@ -26,7 +26,7 @@ def digest(value):
 def event(name, record, identity=None):
     return {
         "event": name,
-        "event_id": str(identity or digest([name, record])),
+        "event_id": digest([name, identity]) if identity is not None else digest([name,record]),
         "data": record,
     }
 

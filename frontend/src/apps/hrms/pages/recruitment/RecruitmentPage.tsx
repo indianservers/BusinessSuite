@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -330,7 +331,7 @@ export default function RecruitmentPage() {
           <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <GridTable gridId="apps/hrms/pages/recruitment/RecruitmentPage:table-1" className="w-full text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Candidate", "Job", "Source", "Applied", "Status", "Actions"].map((h) => (
@@ -395,7 +396,7 @@ export default function RecruitmentPage() {
                       ))
                     )}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             </CardContent>
           </Card>

@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -108,7 +109,7 @@ export default function UserAccountsPage() {
       <div className="flex flex-wrap gap-2"><Input className="max-w-sm" aria-label="Search accounts" placeholder="Email, employee name or code" value={search} onChange={e => {setSearch(e.target.value); setPage(1);}} />
         <NativeSelect aria-label="Filter account status" className={selectClass} value={status} onChange={e => {setStatus(e.target.value);setPage(1);}}><option value="">All statuses</option>{["active", "inactive", "suspended", "terminated"].map(s => <option key={s}>{s}</option>)}</NativeSelect>
         <NativeSelect loading={options.isFetching} error={options.isError} aria-label="Filter account role" className={selectClass} value={roleFilter} onChange={e => {setRoleFilter(e.target.value);setPage(1);}}><option value="">All roles</option>{options.data?.roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</NativeSelect></div>
-    </CardHeader><CardContent><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b">{["Account", "Employee", "Role", "Access", "Security", "Actions"].map(h => <th key={h} className="p-3">{h}</th>)}</tr></thead>
+    </CardHeader><CardContent><div className="overflow-x-auto"><GridTable gridId="apps/hrms/pages/employees/UserAccountsPage:table-1" className="w-full text-left text-sm"><thead><tr className="border-b">{["Account", "Employee", "Role", "Access", "Security", "Actions"].map(h => <th key={h} className="p-3">{h}</th>)}</tr></thead>
       <tbody>{accounts.data?.items.map(user => <tr {...recordPreviewProps(user)} key={user.id} className="border-b"><td className="p-3 font-medium">{user.email}{user.id === actor?.id && <span className="ml-2 text-xs">(you)</span>}</td>
         <td className="p-3">{user.employee_name || "Not linked"}<div className="text-xs text-muted-foreground">{user.employee_code}</div></td>
         <td className="p-3">{user.role || "No role"}{user.is_superuser && <div className="font-semibold">Global Super Admin</div>}</td><td className="p-3 capitalize">{user.status}</td>
@@ -116,7 +117,7 @@ export default function UserAccountsPage() {
         <td className="p-3"><NativeSelect aria-label={`Manage ${user.email}`} className={selectClass} value="" onChange={e => {if(e.target.value === "history") setHistoryUser(user);else if(e.target.value) open(e.target.value,user);}}>
           <option value="">Choose action</option><option value="edit">Edit email, role &amp; Super Admin</option><option value="reset_password">Reset password</option>
           {user.status === "active" ? <><option value="suspended" disabled={user.id === actor?.id}>Suspend access</option><option value="terminated" disabled={user.id === actor?.id}>Terminate access</option></> : <option value="active">Reactivate access</option>}
-          <option value="revoke_sessions">Sign out all sessions</option><option value="history">View audit history</option></NativeSelect></td></tr>)}</tbody></table></div>
+          <option value="revoke_sessions">Sign out all sessions</option><option value="history">View audit history</option></NativeSelect></td></tr>)}</tbody></GridTable></div>
       {accounts.isLoading ? <p className="p-3">Loading accounts…</p> : !accounts.data?.items.length && <p className="p-3">No matching accounts.</p>}
       <div className="mt-4 flex items-center justify-between"><span>{accounts.data?.total || 0} accounts · Page {page}</span><div className="flex gap-2"><Button variant="outline" disabled={page <= 1} onClick={() => setPage(page-1)}>Previous</Button><Button variant="outline" disabled={!accounts.data || page * accounts.data.per_page >= accounts.data.total} onClick={() => setPage(page+1)}>Next</Button></div></div>
     </CardContent></Card> : <Card><CardHeader><div className="flex items-center justify-between"><CardTitle>Roles &amp; permissions</CardTitle><Button onClick={() => open("role")}>Create custom role</Button></div><p className="text-sm text-muted-foreground">Built-in roles are preserved. Clone one to customize its permissions, then assign the custom role to users.</p></CardHeader>

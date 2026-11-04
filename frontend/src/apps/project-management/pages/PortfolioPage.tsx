@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -161,7 +162,7 @@ export default function PortfolioPage() {
           <Card>
             <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto p-0">
-              <table className="min-w-[1120px] w-full text-sm">
+              <GridTable gridId="apps/project-management/pages/PortfolioPage:table-1" className="min-w-[1120px] w-full text-sm">
                 <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                   <tr>
                     {["Project", "Owner", "Status", "Health", "Progress", "Open", "Overdue", "High risks", "Sprint", "Start", "Due", "Budget", "Client"].map((heading) => (
@@ -196,7 +197,7 @@ export default function PortfolioPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
               {!projects.length ? <div className="p-8 text-center text-sm text-muted-foreground">No accessible projects match these filters.</div> : null}
             </CardContent>
           </Card>

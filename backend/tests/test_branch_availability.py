@@ -2,7 +2,7 @@
 import pytest
 from app.models.company import Branch
 from app.models.user import User
-from app.branches.models import BranchPolicy, BranchGrant
+from app.branches.models import BranchPolicy, BranchGrant, BranchOwnership
 from test_identity_utils import attach_test_identity
 from tests.test_shared_catalog import item
 
@@ -12,7 +12,10 @@ def scope(db, superuser_headers):
     actor = db.query(User).filter_by(email="testadmin@test.com").one()
     attach_test_identity(db, actor)
     rows = [Branch(company_id=1, name=f"Availability {i}", code=f"AV{i}") for i in range(3)]
-    db.add_all(rows); db.commit()
+    db.add_all(rows); db.flush()
+    for branch in rows:
+        db.add(BranchOwnership(resource_table="branches", resource_key=str(branch.id), company_id=1, branch_id=branch.id, source="availability-test"))
+    db.commit()
     return actor, rows, superuser_headers
 
 

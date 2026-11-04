@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -622,7 +623,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-md border">
-              <table className="w-full min-w-[560px] text-sm">
+              <GridTable gridId="apps/hrms/pages/profile/ProfilePage:table-1" className="w-full min-w-[560px] text-sm">
                 <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Date/Time</th><th className="px-3 py-2 text-left">IP Address</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">MFA</th></tr></thead>
                 <tbody>
                   {(loginAttempts.data || []).slice(0, 10).map((attempt: any) => (
@@ -634,7 +635,7 @@ export default function ProfilePage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           </CardContent>
         </Card>
@@ -652,7 +653,7 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border">
-            <table className="w-full min-w-[760px] text-sm">
+            <GridTable gridId="apps/hrms/pages/profile/ProfilePage:table-2" className="w-full min-w-[760px] text-sm">
               <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Device</th><th className="px-3 py-2 text-left">IP</th><th className="px-3 py-2 text-left">Trusted</th><th className="px-3 py-2 text-left">Last Seen</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
               <tbody>
                 {(sessions.data || []).map((session: any) => (
@@ -666,7 +667,7 @@ export default function ProfilePage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>

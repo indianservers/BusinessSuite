@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -481,7 +482,7 @@ export default function AutomationRuntimePage() {
               </label>
             </div>
             <div className="rt-table-wrap">
-              <table>
+              <GridTable gridId="apps/power-apps/applications/automations/AutomationRuntimePage:table-1">
                 <thead>
                   <tr>
                     <th>Execution</th>
@@ -527,7 +528,7 @@ export default function AutomationRuntimePage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
             {list && !list.items.length && (
               <div className="rt-empty">

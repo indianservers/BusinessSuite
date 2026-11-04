@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { MobileFilters } from "@/components/mobile/MobilePrimitives";
@@ -1081,7 +1082,7 @@ export default function MyWorkPage() {
         ) : (
           <>
             <div className="mw-table-wrap">
-              <table>
+              <GridTable gridId="apps/project-management/pages/MyWorkPage:table-1">
                 <thead>
                   <tr>
                     <th>
@@ -1297,7 +1298,7 @@ export default function MyWorkPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
             <div className="mw-mobile-cards">{items.map(card)}</div>
           </>

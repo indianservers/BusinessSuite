@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -159,7 +160,7 @@ function Table({
 }) {
   return (
     <div className="im-table-wrap">
-      <table>
+      <GridTable gridId="apps/hrms/pages/interns/InternManagementPage:table-1">
         <thead>
           <tr>
             {columns.map(([title]) => (
@@ -176,7 +177,7 @@ function Table({
             </tr>
           ))}
         </tbody>
-      </table>
+      </GridTable>
       {!rows.length && <p className="im-empty">{empty}</p>}
     </div>
   );

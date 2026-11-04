@@ -38,6 +38,7 @@ export type Connector = {
       | "native_polling"
       | "native_pubsub"
       | "native_stream";
+      
     provider_secret_fields?: Record<string, string>;
     setup_schema: Schema;
   }[];

@@ -219,6 +219,16 @@ def public_config(trigger):
     }
 
 
+def _store_delivery(db,trigger,native,message_id,payload):
+    from app.apps.power_apps.runtime_triggers import trigger_identity
+    from app.access.service import background_scope
+    actor=trigger_identity(db,trigger)
+    with background_scope(db,actor,"power_apps","create",branch_id=trigger.config.get("branch_id")):
+        with db.begin_nested():
+            db.add(NativeDelivery(**scope_values(trigger),trigger_id=trigger.id,epoch=native["epoch"],message_id=message_id,encrypted_payload=payload,status="pending",next_at=now()))
+            db.flush()
+
+
 def receive(db, *, endpoint=None, module_id=None, app_id=None, query, headers, body):
     """No remote IO: validate provider auth, record encrypted inbox, acknowledge."""
     if len(body) > 262144:
@@ -331,19 +341,7 @@ def receive(db, *, endpoint=None, module_id=None, app_id=None, query, headers, b
             .decode()
         )
         try:
-            with db.begin_nested():
-                db.add(
-                    NativeDelivery(
-                        **scope_values(trigger),
-                        trigger_id=trigger.id,
-                        epoch=native["epoch"],
-                        message_id=message_id,
-                        encrypted_payload=payload,
-                        status="pending",
-                        next_at=now()
-                    )
-                )
-                db.flush()
+            _store_delivery(db,trigger,native,message_id,payload)
         except IntegrityError:
             continue
         if not native.get("lease_until") or native["lease_until"] <= now().isoformat():

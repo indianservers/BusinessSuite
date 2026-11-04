@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import AdminVerification, { administratorStepUp } from "./AdminVerification";
@@ -159,7 +160,7 @@ function Empty({ children }: { children: React.ReactNode }) {
 function Rows({ children }: { children: React.ReactNode }) {
   return (
     <div className="cc-scroll">
-      <table>{children}</table>
+      <GridTable gridId="features/access/EnterprisePage:table-1">{children}</GridTable>
     </div>
   );
 }

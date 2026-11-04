@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import { SharedNumberConfirmation } from "@/shared/master-data/CompanySelect";
 import { PersonPreviewHeader } from "@/components/PersonPreviewDialog";
@@ -756,7 +757,7 @@ export default function LeadManagementPage() {
           </div>
         ) : (
           <div className="lm-table-scroll">
-            <table className="lm-table">
+            <GridTable gridId="apps/crm/leads/LeadManagementPage:table-1" className="lm-table">
               <thead>
                 <tr>
                   <th>
@@ -934,7 +935,7 @@ export default function LeadManagementPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         )}
         <footer className="lm-pagination">

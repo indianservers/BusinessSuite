@@ -228,11 +228,16 @@ def configure_trigger(
     trigger, secret = configure(db, row, user, kind, data.enabled, data.config,
         {key:value.get_secret_value() for key,value in data.provider_secrets.items()})
     db.commit()
+    native_meta=trigger.config.get("native",{})
+    native_endpoint=None
+    if native_meta.get("managed") and native_meta.get("mode")=="native_webhook":
+        from app.apps.power_apps.integrations.native_runtime import callback_url
+        native_endpoint=callback_url(trigger)
     return {
         "id": trigger.id,
         "enabled": trigger.enabled,
         "endpoint": (
-            ("/api/v1/power-apps/native-hooks/"+trigger.endpoint if trigger.config.get("native",{}).get("managed") else f"/api/v1/power-apps/hooks/{trigger.endpoint}")
+            (native_endpoint if native_meta.get("managed") else f"/api/v1/power-apps/hooks/{trigger.endpoint}")
             if kind == "webhook" or kind == "connector" and trigger.encrypted_secret
             else None
         ),
@@ -290,14 +295,14 @@ def rotate(
 @router.get("/automations/{resource_id}/triggers/connector/options")
 def native_options(resource_id:int, environment:str="development",db:Session=Depends(get_db),user=Depends(view)):
     row=find_draft(db,user,environment,resource_id)
-    from app.apps.power_apps.integrations.native_specs import SECRET_FIELDS,mode
+    from app.apps.power_apps.integrations.native_specs import secret_fields,mode
     from app.apps.power_apps.models import PowerVersion
     state=db.query(Deployment).filter_by(resource_id=row.id).first()
     definition=db.get(PowerVersion,state.version_id).snapshot["definition"] if state and state.version_id else row.definition
     root=next((n for n in definition.get("nodes",[]) if n["type"].startswith("integration_trigger_")),None)
     if not root: return {"module_id":None,"provider_secret_fields":{}}
     module=root["type"].removeprefix("integration_trigger_"); setup=root.get("config",{}).get("setup",{})
-    return {"module_id":module,"mode":mode(module,setup),"provider_secret_fields":SECRET_FIELDS.get(module,{})}
+    return {"module_id":module,"mode":mode(module,setup),"provider_secret_fields":secret_fields(module,setup)}
 
 
 @router.post("/automations/{resource_id}/triggers/connector/reconcile")

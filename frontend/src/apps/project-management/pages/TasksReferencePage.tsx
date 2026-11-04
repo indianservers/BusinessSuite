@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -783,7 +784,7 @@ export default function TasksReferencePage() {
                   aria-busy={loading}
                 >
                   {!cardLayout ? (
-                    <table>
+                    <GridTable gridId="apps/project-management/pages/TasksReferencePage:table-1">
                       <thead>
                         <tr>
                           <th>
@@ -952,7 +953,7 @@ export default function TasksReferencePage() {
                           </RecordActions>
                         ))}
                       </tbody>
-                    </table>
+                    </GridTable>
                   ) : (
                     data?.items.map((task) => (
                       <RecordActions

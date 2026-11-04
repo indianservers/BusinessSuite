@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
@@ -115,7 +116,7 @@ export function DataTable({
   if (!rows.length) return <Empty />;
   return (
     <div className="db-table-scroll">
-      <table className="db-data-table">
+      <GridTable gridId="apps/project-management/dashboard/WidgetContent:table-1" className="db-data-table">
         <thead>
           <tr>
             <th>{source === "projects" ? "Project" : "Record"}</th>
@@ -146,7 +147,7 @@ export function DataTable({
             </tr>
           ))}
         </tbody>
-      </table>
+      </GridTable>
     </div>
   );
 }
@@ -281,7 +282,7 @@ export default function WidgetContent({
   if (type === "table" && data.series)
     return (
       <div className="db-table-scroll">
-        <table className="db-data-table">
+        <GridTable gridId="apps/project-management/dashboard/WidgetContent:table-2" className="db-data-table">
           <thead>
             <tr>
               <th>Group</th>
@@ -300,7 +301,7 @@ export default function WidgetContent({
               </tr>
             ))}
           </tbody>
-        </table>
+        </GridTable>
       </div>
     );
   if (type === "table")

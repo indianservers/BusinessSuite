@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -106,7 +107,7 @@ function Bars({
 function Events({ rows }: { rows: any[] }) {
   return (
     <div className="cc-scroll">
-      <table>
+      <GridTable gridId="features/access/ControlCenter:table-1">
         <thead>
           <tr>
             <th>When</th>
@@ -152,7 +153,7 @@ function Events({ rows }: { rows: any[] }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </GridTable>
       {!rows.length && (
         <p className="cc-empty">No matching administrative events.</p>
       )}
@@ -515,7 +516,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                     </div>
                   </div>
                   <div className="cc-scroll">
-                    <table>
+                    <GridTable gridId="features/access/ControlCenter:table-2">
                       <thead>
                         <tr>
                           <th>Department</th>
@@ -547,7 +548,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </GridTable>
                     {!b.departments.length && (
                       <p className="cc-empty">
                         No departments. Add one to organize existing employees.
@@ -597,7 +598,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
             preserve their installed-module defaults.
           </p>
           <div className="cc-scroll">
-            <table>
+            <GridTable gridId="features/access/ControlCenter:table-3">
               <thead>
                 <tr>
                   <th>Module</th>
@@ -663,7 +664,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </section>
       )}
@@ -696,7 +697,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
           <section className="cc-card">
             <h2>Active sessions</h2>
             <div className="cc-scroll">
-              <table>
+              <GridTable gridId="features/access/ControlCenter:table-4">
                 <thead>
                   <tr>
                     <th>User</th>
@@ -734,7 +735,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
               {!data.sessions.length && (
                 <p className="cc-empty">
                   No active sessions in this organization.
@@ -1175,7 +1176,7 @@ export function UserAccess360() {
             )}
             {tab === "Module Access" && (
               <div className="cc-scroll">
-                <table>
+                <GridTable gridId="features/access/ControlCenter:table-5">
                   <thead>
                     <tr>
                       <th>Module</th>
@@ -1200,7 +1201,7 @@ export function UserAccess360() {
                         </tr>
                       ))}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             )}
             {tab === "Security" && (

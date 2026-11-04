@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import WorkforcePersonPreview from "./WorkforcePersonPreview";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -98,7 +99,7 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
     <section className="wf-card">
       <div className="wf-row wf-between"><h2>{modes.find(m => m[0] === exception)?.[1]} <span className="wf-pill">{data?.total?.toLocaleString() || 0}</span></h2>
         <button onClick={refresh}>Refresh</button></div>
-      <div className="wf-table wf-people"><table><thead><tr><th><input aria-label="Select this page" type="checkbox" checked={rows.length > 0 && rows.every(e => selected.includes(e.id))} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? Array.from(new Set([...prev, ...rows.map(r => r.id)])) : prev.filter(id => !rows.some(r => r.id === id)))} /></th>
+      <div className="wf-table wf-people"><GridTable gridId="components/workforce/WorkforceOperationsPage:table-1"><thead><tr><th><input aria-label="Select this page" type="checkbox" checked={rows.length > 0 && rows.every(e => selected.includes(e.id))} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? Array.from(new Set([...prev, ...rows.map(r => r.id)])) : prev.filter(id => !rows.some(r => r.id === id)))} /></th>
         {["Person", "Department / Supervisor", "Status", "Work", "Follow up", "Profile"].map(h => <th key={h}>{h}</th>)}</tr></thead>
         <tbody>{rows.map(person => <tr onDoubleClick={e => { if (!(e.target as HTMLElement).closest("input, button, a")) openProfile(person); }} key={person.id}><td><input type="checkbox" aria-label={`Select ${person.name}`} checked={allFiltered || selected.includes(person.id)} disabled={allFiltered} onChange={e => setSelected(prev => e.target.checked ? [...prev, person.id] : prev.filter(id => id !== person.id))} /></td>
           <td><strong>{person.name}</strong><small>{person.employee_id} · {person.employment_type}</small><small>{person.email || "No email"}</small></td>
@@ -106,7 +107,7 @@ export default function WorkforceOperationsPage({ context = "pms" }: { context?:
           <td><span className="wf-pill">{person.status}</span><small>{person.account_active ? "Account active" : "No active account"}</small></td>
           <td>{person.done}/{person.assigned} completed<small>{person.overdue} overdue · {person.review} awaiting review</small></td>
           <td>{person.warnings ? `${person.warnings} open warnings` : "No open warnings"}</td>
-          <td><button onClick={() => { openProfile(person); }}>Study profile</button></td></tr>)}</tbody></table></div>
+          <td><button onClick={() => { openProfile(person); }}>Study profile</button></td></tr>)}</tbody></GridTable></div>
       {isLoading && <p role="status">Loading people…</p>}
       {!isLoading && !rows.length && <p className="wf-muted">No people match this view. Adjust the filters or add people through HRMS.</p>}
       <footer className="wf-row wf-between"><span>Page {page} · 50 people per page</span><div className="wf-actions"><button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button><button disabled={!data || page * 50 >= data.total} onClick={() => setPage(p => p + 1)}>Next</button></div></footer>

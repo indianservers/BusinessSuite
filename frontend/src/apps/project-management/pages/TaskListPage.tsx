@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -738,7 +739,7 @@ export default function TaskListPage() {
           {!loading && data?.items.length ? (
             <>
               <div className={cn("overflow-x-auto", layout === "gallery" ? "hidden" : "hidden lg:block")}>
-                <table className="min-w-[1180px] w-full text-sm">
+                <GridTable gridId="apps/project-management/pages/TaskListPage:table-1" className="min-w-[1180px] w-full text-sm">
                   <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                     <tr>
                       <th className="w-12 px-4 py-3">
@@ -787,7 +788,7 @@ export default function TaskListPage() {
                       </Fragment>
                     ))}</Fragment>)}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
 
               <div className={layout === "gallery" ? "grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3" : "space-y-3 p-4 lg:hidden"}>

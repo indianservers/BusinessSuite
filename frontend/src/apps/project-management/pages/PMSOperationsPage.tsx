@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import {
@@ -271,7 +272,7 @@ function DataCard({ title, rows, headers }: { title: string; rows: Array<Array<s
     <Card>
       <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
       <CardContent className="overflow-x-auto p-0">
-        <table className="w-full min-w-[860px] text-sm">
+        <GridTable gridId="apps/project-management/pages/PMSOperationsPage:table-1" className="w-full min-w-[860px] text-sm">
           <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>{headers.map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
           </thead>
@@ -286,7 +287,7 @@ function DataCard({ title, rows, headers }: { title: string; rows: Array<Array<s
               </tr>
             ))}
           </tbody>
-        </table>
+        </GridTable>
       </CardContent>
     </Card>
   );

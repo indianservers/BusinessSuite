@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { ActionToolbar } from "@/components/actions";
 import RecordSections from "@/components/RecordSections";
@@ -319,10 +320,10 @@ function DataTable({ rows, columns }: { rows: FAMRecord[]; columns: string[] }) 
   const detailBase = detailRoutes[pathname];
   return (
     <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[780px] text-sm">
+      <GridTable gridId="apps/fam/FAMWorkspacePage:table-1" className="w-full min-w-[780px] text-sm">
         <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead>
         <tbody>{rows.map((row) => <tr {...recordPreviewProps(row)} key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2">{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}</tr>)}</tbody>
-      </table>
+      </GridTable>
     </div>
   );
 }
@@ -450,7 +451,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
         <CardHeader><CardTitle className="text-base">Debit / Credit lines</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full min-w-[860px] text-sm">
+            <GridTable gridId="apps/fam/FAMWorkspacePage:table-2" className="w-full min-w-[860px] text-sm">
               <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-3 py-2">Ledger</th><th className="px-3 py-2">Debit</th><th className="px-3 py-2">Credit</th><th className="px-3 py-2">Cost Center</th><th className="px-3 py-2">Narration</th></tr></thead>
               <tbody>
                 {lines.map((line, index) => (
@@ -463,7 +464,7 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </GridTable>
           </div>
           {canEdit ? <Button variant="outline" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button> : null}
         </CardContent>
@@ -973,7 +974,7 @@ function PurchaseBillFormView({ detail }: { detail?: boolean }) {
         {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} />}</Field>)}
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(effective.status || "draft")}>{text(effective.status || "draft")}</Badge></CardContent></Card>
       </div>
-      <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr {...recordPreviewProps(line)} key={index} className="border-t">{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></table></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><GridTable gridId="apps/fam/FAMWorkspacePage:table-3" className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr {...recordPreviewProps(line)} key={index} className="border-t">{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></GridTable></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
       <div className="grid gap-3 md:grid-cols-4">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Subtotal</p><p className="text-lg font-semibold">{money(effective.subtotal || subtotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Input GST</p><p className="text-lg font-semibold">{money(effective.gst_total || gstTotal)}</p></CardContent></Card>
@@ -1251,7 +1252,7 @@ function ItemsAttentionCard({ items }: { items: FAMRecord[] }) {
       <CardContent>
         {items.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[620px] text-left text-sm">
+            <GridTable gridId="apps/fam/FAMWorkspacePage:table-4" className="w-full min-w-[620px] text-left text-sm">
               <thead className="text-xs text-muted-foreground"><tr>{["Item", "SKU", "Warehouse", "On hand", "Reorder level", "Status"].map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}</tr></thead>
               <tbody>{items.slice(0, 8).map((item, index) => (
                 <tr {...recordPreviewProps(item)} key={String(item.id || index)} className="border-t">
@@ -1263,7 +1264,7 @@ function ItemsAttentionCard({ items }: { items: FAMRecord[] }) {
                   <td className="px-3 py-2"><Badge variant={inventoryStatus(item) === "Out of stock" ? "destructive" : "secondary"}>{inventoryStatus(item)}</Badge></td>
                 </tr>
               ))}</tbody>
-            </table>
+            </GridTable>
           </div>
         ) : <InventoryEmptyState icon={Package} message="No items require attention." />}
       </CardContent>

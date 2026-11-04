@@ -336,7 +336,7 @@ def company_output(db, row):
     details = db.get(CompanyMasterDetails, row.id)
     if "master_vendor_cache" not in db.info:
         cache = {}
-        for link in db.query(BusinessRelationship).filter(BusinessRelationship.organization_id == row.organization_id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.id):
+        for link in db.query(BusinessRelationship).filter(BusinessRelationship.organization_id == row.organization_id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.role.desc(), BusinessRelationship.id):
             cache.setdefault(link.account_id, link)
         db.info["master_vendor_cache"] = cache
     vendor = db.info["master_vendor_cache"].get(row.id)
@@ -592,7 +592,7 @@ def write_company(db, actor, source, data, row=None):
     db.info.pop("master_vendor_cache", None)
     if data.country is not None: row.country = country
     if "vendorClassification" in data.model_fields_set or "paymentTerms" in data.model_fields_set:
-        relationship = db.query(BusinessRelationship).filter_by(account_id=row.id, role="Vendor").first()
+        relationship = db.query(BusinessRelationship).filter(BusinessRelationship.account_id==row.id, BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.role.desc(), BusinessRelationship.id).first()
         if relationship:
             if "vendorClassification" in data.model_fields_set: relationship.category = data.vendorClassification
             if "paymentTerms" in data.model_fields_set: relationship.payment_terms = data.paymentTerms

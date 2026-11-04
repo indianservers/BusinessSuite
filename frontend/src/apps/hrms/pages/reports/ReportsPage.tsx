@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { ReactNode, useMemo, useState } from "react";
@@ -357,7 +358,7 @@ function SavedReports() {
           {selected && result.isError && <p className="py-10 text-center text-sm text-muted-foreground">Could not load data</p>}
           {selected && result.data && (
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[720px] text-sm">
+              <GridTable gridId="apps/hrms/pages/reports/ReportsPage:table-1" className="w-full min-w-[720px] text-sm">
                 <thead className="bg-muted/60">
                   <tr>{result.data.columns.map((column) => <th key={column} className="px-3 py-2 text-left font-medium">{column}</th>)}</tr>
                 </thead>
@@ -368,7 +369,7 @@ function SavedReports() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           )}
         </CardContent>

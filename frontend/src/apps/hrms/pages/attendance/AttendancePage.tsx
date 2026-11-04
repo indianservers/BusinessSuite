@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useHRSession} from "../../workbench/useHRSession";
@@ -433,7 +434,7 @@ export default function AttendancePage() {
           </div>
 
           <div className="ui-table-wrap">
-            <table className="ui-table min-w-[1120px]">
+            <GridTable gridId="apps/hrms/pages/attendance/AttendancePage:table-1" className="ui-table min-w-[1120px]">
               <thead>
                 <tr>
                   {["", "Employee Code", "Employee Name", "Department", "Branch", "Date", "Status", "Hours Worked", "OT Hours", "Remarks"].map((h) => (
@@ -476,7 +477,7 @@ export default function AttendancePage() {
                   );
                 })}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>
@@ -556,7 +557,7 @@ export default function AttendancePage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="ui-table-wrap border-0">
-            <table className="ui-table min-w-[640px]">
+            <GridTable gridId="apps/hrms/pages/attendance/AttendancePage:table-2" className="ui-table min-w-[640px]">
               <thead>
                 <tr>
                   {["Date", "Status", "Check In", "Check Out", "Hours"].map((h) => (
@@ -600,7 +601,7 @@ export default function AttendancePage() {
                   ))
                 )}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>

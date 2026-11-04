@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
@@ -299,7 +300,7 @@ export default function TimesheetsPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <GridTable gridId="apps/hrms/pages/timesheets/TimesheetsPage:table-1" className="w-full text-sm">
                   <thead className="border-b bg-muted/50">
                     <tr>
                       {["Project", "Period", "Total", "Billable", "Status", "Actions"].map((heading) => (
@@ -358,7 +359,7 @@ export default function TimesheetsPage() {
                       })
                     )}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             </CardContent>
           </Card>
@@ -400,7 +401,7 @@ export default function TimesheetsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <GridTable gridId="apps/hrms/pages/timesheets/TimesheetsPage:table-2" className="w-full text-sm">
                     <thead className="border-b bg-muted/50">
                       <tr>
                         {["Date", "Task", "Hours", "Type"].map((heading) => (
@@ -426,7 +427,7 @@ export default function TimesheetsPage() {
                         ))
                       )}
                     </tbody>
-                  </table>
+                  </GridTable>
                 </div>
               </CardContent>
             </Card>

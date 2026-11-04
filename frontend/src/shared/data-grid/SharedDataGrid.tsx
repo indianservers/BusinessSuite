@@ -94,6 +94,9 @@ import {
   SavedViewsManager,
 } from "./GridControls";
 import "./data-grid.css";
+import GridRecordPane from "./GridRecordPane";
+import { Eye } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 type Node<T> = {
   id: string;
@@ -274,7 +277,8 @@ function Header<T>({
       >
         <GripVertical size={12} />
       </button>
-      <button
+      {definition.header ? <div className="udg-legacy-heading">{definition.header}</div> : <button
+        type="button"
         className="udg-sort-button"
         disabled={definition.sortable === false}
         onClick={column.getToggleSortingHandler()}
@@ -296,7 +300,7 @@ function Header<T>({
             {query.sorting.findIndex((s) => s.id === column.id) + 1}
           </small>
         )}
-      </button>
+      </button>}
       {definition.filterable !== false && source.facets && (
         <ColumnValueFilter
           column={definition}
@@ -412,6 +416,29 @@ function validateGridResult<T>(result: GridResult<T>): GridResult<T> {
 }
 
 export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
+  const [focused, setFocused] = useState<T>();
+  const location = useLocation();
+  useEffect(() => setFocused(undefined), [props.dataSource.key, location.pathname, location.search]);
+  const canPreview = props.detailsEnabled !== false && !props.onSelectRecord;
+  const preview = (row: T) => setFocused(row);
+  const titleColumn = props.columns.find(c => !/^(select|actions?|quick actions)$/i.test(c.title)) || props.columns[0];
+  const title = focused === undefined ? "" : String(titleColumn?.accessor?.(focused) ?? (focused as Record<string, unknown>)[titleColumn?.id] ?? "Record");
+  return <div className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
+    <div className="udg-workspace-main"><GridEngine {...props}
+      onSelectRecord={props.onSelectRecord || (canPreview ? preview : undefined)}
+      onOpen={props.onOpen || (canPreview ? preview : undefined)}
+      rowActions={canPreview ? [{ id: "suite-preview", label: "Preview record", icon: Eye, quick: true, run: preview }, ...(props.rowActions || [])] : props.rowActions}
+    /></div>
+    {focused !== undefined && <GridRecordPane title={title} close={() => setFocused(undefined)} expand={props.onOpen ? () => props.onOpen?.(focused) : undefined}>
+      {props.renderDetails ? props.renderDetails(focused) : <dl className="udg-details-fields">{props.columns.filter(c => c.id !== "actions").map(column => {
+        const value = column.accessor ? column.accessor(focused) : (focused as Record<string, unknown>)[column.id];
+        return <div key={column.id}><dt>{column.title}</dt><dd>{value == null || value === "" ? "—" : String(value)}</dd></div>;
+      })}</dl>}
+    </GridRecordPane>}
+  </div>;
+}
+
+function GridEngine<T>(props: SharedDataGridProps<T>) {
   const {
     columns,
     dataSource,
@@ -792,7 +819,8 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
         )
       : 0;
   const actionWidth = rowActions.length ? Math.min(4, rowActions.filter(action => action.quick).length) * 34 + 40 : 0;
-  const totalWidth = table.getTotalSize() + 40 + actionWidth;
+  const selectionWidth = props.selectionEnabled === false ? 0 : 40;
+  const totalWidth = table.getTotalSize() + selectionWidth + actionWidth;
   function style(
     column: Column<Node<T>, unknown>,
     header = false,
@@ -803,7 +831,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       minWidth: column.getSize(),
       maxWidth: column.getSize(),
       position: pin ? "sticky" : undefined,
-      left: pin === "left" ? 40 + column.getStart("left") : undefined,
+      left: pin === "left" ? selectionWidth + column.getStart("left") : undefined,
       right:
         pin === "right" ? actionWidth + column.getAfter("right") : undefined,
       zIndex: pin ? (header ? 34 : 5) : undefined,
@@ -976,6 +1004,16 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const allSelected =
     visibleRecords.length > 0 &&
     visibleRecords.every((row) => selection.includes(getRowId(row)));
+  const [bulkBusy, setBulkBusy] = useState<string>();
+  const selectedRecords = selection.map(id => selectedCache.current.get(id)).filter((row): row is T => row !== undefined);
+  async function runBulkAction(action: NonNullable<SharedDataGridProps<T>["bulkActions"]>[number]) {
+    if (bulkBusy || selectedRecords.length !== selection.length || action.disabled?.(selectedRecords)) return;
+    if (action.confirm && !window.confirm(action.confirm(selectedRecords))) return;
+    setBulkBusy(action.id); setActionError("");
+    try { await action.run(selectedRecords); emitSelection([]); await request.refetch(); }
+    catch (error) { setActionError(errorText(error)); }
+    finally { setBulkBusy(undefined); }
+  }
   async function runAction(action: GridAction<T>, row: T) {
     if (action.disabled?.(row)) { setActionError(action.disabledReason || "This action is unavailable for this record."); return; }
     try {
@@ -1080,7 +1118,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
     column: string,
     index: number,
   ) {
-    if (edit) return;
+    if (edit || (event.target !== event.currentTarget && (event.target as HTMLElement).closest('button,a,input,select,textarea,[contenteditable="true"]'))) return;
     const col = ordered.findIndex((c) => c.id === column);
     if (event.key === "Enter" || event.key === "F2") {
       event.preventDefault();
@@ -1554,7 +1592,10 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       {selection.length > 0 && (
         <div className="udg-selection-bar">
           <strong>{selection.length} selected</strong>
-          <button onClick={() => emitSelection([])}>Clear selection</button>
+          {(props.bulkActions || []).map(action => <button type="button" key={action.id} className={`udg-control ${action.danger ? "udg-danger" : ""}`}
+            disabled={!!bulkBusy || !selectedRecords.length || selectedRecords.length !== selection.length || action.disabled?.(selectedRecords)}
+            onClick={() => void runBulkAction(action)}>{bulkBusy === action.id ? "Applying…" : action.label}</button>)}
+          <button type="button" disabled={!!bulkBusy} onClick={() => emitSelection([])}>Clear selection</button>
           <small>
             Selection is kept across pages. Select All applies to loaded rows.
           </small>
@@ -1598,7 +1639,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
             role="grid"
             aria-label={props.title || "Records"}
             aria-rowcount={(result?.total || 0) + 1}
-            aria-colcount={ordered.length + 1 + (actionWidth ? 1 : 0)}
+            aria-colcount={ordered.length + (selectionWidth ? 1 : 0) + (actionWidth ? 1 : 0)}
             aria-busy={request.isFetching}
           >
             <div
@@ -1606,7 +1647,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
               style={{ width: Math.max(totalWidth, 300), minWidth: "100%" }}
             >
               <div className="udg-header" role="row" style={{ height: 40 }}>
-                <div
+                {selectionWidth > 0 && <div
                   className="udg-select-cell udg-select-heading"
                   role="columnheader"
                 >
@@ -1632,7 +1673,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                       )
                     }
                   />
-                </div>
+                </div>}
                 <SortableContext
                   items={layout.order.map((id) => `column:${id}`)}
                   strategy={horizontalListSortingStrategy}
@@ -1812,6 +1853,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                           run={(action, row) => void runAction(action, row)}
                         >
                           <div
+                            {...props.rowProps?.(record)}
                             role="row"
                             aria-selected={selection.includes(node.id)}
                             aria-rowindex={
@@ -1823,6 +1865,8 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                             style={position}
                             {...recordPreviewProps(record)}
                             onClick={event => {
+                              props.rowProps?.(record).onClick?.(event);
+                              if (event.defaultPrevented) return;
                               if (!(event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]') || (event.target as HTMLElement).closest("[data-record-open]")) selectRecord(record);
                             }}
                             onDoubleClickCapture={event => {
@@ -1830,6 +1874,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                               const action = (event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]');
                               if (action && !action.hasAttribute('data-record-open')) return;
                               if (props.onOpenPopup) { event.preventDefault(); event.stopPropagation(); props.onOpenPopup(record); }
+                              else if (props.rowProps?.(record).onDoubleClickCapture) props.rowProps(record).onDoubleClickCapture?.(event);
                               else recordPreviewProps(record).onDoubleClickCapture(event);
                             }}
                             draggable={!!props.manualOrder}
@@ -1859,7 +1904,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                                   .catch((e) => setActionError(errorText(e)));
                             }}
                           >
-                            <div className="udg-select-cell" role="gridcell">
+                            {selectionWidth > 0 && <div className="udg-select-cell" role="gridcell">
                               <input
                                 aria-label={`Select row ${textFor(record, columns[0])}`}
                                 type="checkbox"
@@ -1874,7 +1919,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
                                 onChange={() => {}}
                                 onDoubleClick={(e) => e.stopPropagation()}
                               />
-                            </div>
+                            </div>}
                             {cells(node, virtual.index, left)}
                             {before > 0 && (
                               <div

@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import React, { useEffect, useState } from "react";
@@ -134,7 +135,7 @@ function Widget({ widget, company }: { widget: any; company: number }) {
   }
   if (widget.type === "table")
     return (
-      <table>
+      <GridTable gridId="features/access/DashboardStudio:table-1">
         <tbody>
           {data.groups.map((g: any) => (
             <tr {...recordPreviewProps(g)} key={g.label}>
@@ -143,7 +144,7 @@ function Widget({ widget, company }: { widget: any; company: number }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </GridTable>
     );
   return (
     <div className="cc-bars">

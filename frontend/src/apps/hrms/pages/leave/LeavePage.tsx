@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobile } from "@/components/mobile/useMobile";
 import CompactForm from "@/components/forms/CompactForm";
@@ -596,7 +597,7 @@ export default function LeavePage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm">
+            <GridTable gridId="apps/hrms/pages/leave/LeavePage:table-1" className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
                   {["Leave type", "Days", "Rate", "Amount", "Status", "Requested", "Remarks"].map((h) => (
@@ -621,7 +622,7 @@ export default function LeavePage() {
                   ))
                 )}
               </tbody>
-            </table>
+            </GridTable>
           </div>
         </CardContent>
       </Card>
@@ -691,7 +692,7 @@ export default function LeavePage() {
               )}
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm">
+              <GridTable gridId="apps/hrms/pages/leave/LeavePage:table-2" className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
                     {["Type", "From", "To", "Days", "Reason", "Reviewed reason", "Applied On", "Status", ""].map((h) => (
@@ -746,7 +747,7 @@ export default function LeavePage() {
                     ))
                   )}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           </CardContent>
         </Card>
@@ -858,7 +859,7 @@ export default function LeavePage() {
           </CardHeader>
           <CardContent className="p-0">
             {mobile ? <div className="p-3">{pendingApprovals.length ? pendingApprovals.map(r=><article key={r.id} className="mobile-approval-card"><header><strong>{r.employee ? `${r.employee.first_name} ${r.employee.last_name}` : `Employee #${r.employee_id}`}</strong><span>{r.days_count} day(s)</span></header><p>{r.leave_type?.name} · {formatDate(r.from_date)} – {formatDate(r.to_date)}</p><p>{r.reason || "No reason provided"}</p><label className="text-sm">Review reason<textarea className="block w-full rounded-lg border p-2 bg-background" value={reviewRemarks[r.id]||""} onChange={e=>setReviewRemarks(v=>({...v,[r.id]:e.target.value}))}/></label><footer><Button disabled={approveMutation.isPending} onClick={()=>submitDecision(r.id,"Approved")}>Approve</Button><Button variant="outline" disabled={approveMutation.isPending} onClick={()=>submitDecision(r.id,"Rejected")}>Reject</Button></footer></article>):<p>No pending approvals</p>}</div> : <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm">
+              <GridTable gridId="apps/hrms/pages/leave/LeavePage:table-3" className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
                     {["Employee", "Type", "From", "To", "Days", "Reason", "Review reason", "Actions"].map((h) => (
@@ -932,7 +933,7 @@ export default function LeavePage() {
                     ))
                   )}
                 </tbody>
-              </table>
+              </GridTable>
             </div>}
           </CardContent>
         </Card>

@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import CompactActions from "@/components/actions/CompactActions";
 import { IconActionButton } from "@/components/actions";
@@ -347,7 +348,7 @@ export default function EmployeesPage() {
           {!isLoading && !data?.items?.length && <div className="col-span-full rounded-lg border bg-card p-10 text-center text-muted-foreground">No profiles match these filters.</div>}
         </div>}
         {layout === "table" && <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <GridTable gridId="apps/hrms/pages/employees/EmployeesPage:table-1" className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -409,7 +410,7 @@ export default function EmployeesPage() {
                 ))
               )}
             </tbody>
-          </table>
+          </GridTable>
         </div>}
 
         {/* Pagination */}

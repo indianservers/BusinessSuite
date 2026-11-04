@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { PersonPreviewHeader } from "@/components/PersonPreviewDialog";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -879,7 +880,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
             className="ua-table-wrap"
             onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           >
-            <table className="ua-table">
+            <GridTable gridId="features/access/UsersAccessPage:table-1" className="ua-table">
               <thead>
                 <tr>
                   <th className="ua-sticky">
@@ -1074,7 +1075,7 @@ export default function UsersAccessPage({ embedded = false, initialTab }: { embe
                   </tr>
                 )}
               </tbody>
-            </table>
+            </GridTable>
             {!loading && !users.length && (
               <p className="ua-empty">No users match these filters.</p>
             )}

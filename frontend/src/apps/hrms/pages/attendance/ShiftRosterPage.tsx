@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
@@ -311,7 +312,7 @@ export default function ShiftRosterPage() {
           <CardContent>
             {roster.isLoading ? <div className="h-64 animate-pulse rounded bg-muted" /> : (
               <div className="overflow-x-auto rounded-lg border">
-                <table className="w-full min-w-[980px] text-sm">
+                <GridTable gridId="apps/hrms/pages/attendance/ShiftRosterPage:table-1" className="w-full min-w-[980px] text-sm">
                   <thead className="bg-muted/60">
                     <tr>
                       <th className="sticky left-0 z-10 w-56 bg-muted px-3 py-3 text-left">Employee</th>
@@ -363,7 +364,7 @@ export default function ShiftRosterPage() {
                       <tr><td colSpan={8} className="px-3 py-10 text-center text-muted-foreground">No employees available for this filter.</td></tr>
                     )}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             )}
           </CardContent>
@@ -384,7 +385,7 @@ export default function ShiftRosterPage() {
           </CardContent>
         </Card>
       )}
-      {rosterReview&&<Dialog open onOpenChange={open=>{if(!open&&!applyReview.isPending)setRosterReview(undefined);}}><DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogTitle>Review roster calendar</DialogTitle><p className="text-sm">{rosterReview.preview.scope}</p><p className="text-sm">{rosterReview.preview.affected} employee-days will change · {rosterReview.preview.exceptions} blocked days stay unchanged</p><div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr><th className="p-2">Employee</th>{[...new Set<string>(rosterReview.preview.items.map((i:any)=>i.date))].map(day=><th className="p-2" key={day}>{day}</th>)}</tr></thead><tbody>{[...new Map<number,any>(rosterReview.preview.items.map((i:any)=>[i.employee.id,i.employee])).values()].map(person=><tr {...recordPreviewProps(person)} className="border-t" key={person.id}><th className="p-2">{person.name}<p>{person.employee_code} · {person.department}</p></th>{rosterReview.preview.items.filter((i:any)=>i.employee.id===person.id).map((i:any)=><td key={i.date} className={`min-w-36 p-2 align-top ${i.blocked?"bg-red-50 text-red-800":i.warnings.length?"bg-amber-50 text-amber-900":""}`}><strong>{i.blocked?"Unchanged":i.shift}</strong>{i.warnings.map((w:string)=><p key={w}>{w}</p>)}</td>)}</tr>)}</tbody></table></div>{reviewError&&<p role="alert">{reviewError} <button className="underline" onClick={()=>void reviewRoster(rosterReview.payload).then(setRosterReview).catch(e=>setReviewError(errorText(e)))}>Refresh preview</button></p>}<Button disabled={applyReview.isPending||!rosterReview.preview.affected} onClick={()=>applyReview.mutate()}>Apply reviewed draft roster</Button></DialogContent></Dialog>}
+      {rosterReview&&<Dialog open onOpenChange={open=>{if(!open&&!applyReview.isPending)setRosterReview(undefined);}}><DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogTitle>Review roster calendar</DialogTitle><p className="text-sm">{rosterReview.preview.scope}</p><p className="text-sm">{rosterReview.preview.affected} employee-days will change · {rosterReview.preview.exceptions} blocked days stay unchanged</p><div className="overflow-x-auto"><GridTable gridId="apps/hrms/pages/attendance/ShiftRosterPage:table-2" className="w-full text-left text-xs"><thead><tr><th className="p-2">Employee</th>{[...new Set<string>(rosterReview.preview.items.map((i:any)=>i.date))].map(day=><th className="p-2" key={day}>{day}</th>)}</tr></thead><tbody>{[...new Map<number,any>(rosterReview.preview.items.map((i:any)=>[i.employee.id,i.employee])).values()].map(person=><tr {...recordPreviewProps(person)} className="border-t" key={person.id}><th className="p-2">{person.name}<p>{person.employee_code} · {person.department}</p></th>{rosterReview.preview.items.filter((i:any)=>i.employee.id===person.id).map((i:any)=><td key={i.date} className={`min-w-36 p-2 align-top ${i.blocked?"bg-red-50 text-red-800":i.warnings.length?"bg-amber-50 text-amber-900":""}`}><strong>{i.blocked?"Unchanged":i.shift}</strong>{i.warnings.map((w:string)=><p key={w}>{w}</p>)}</td>)}</tr>)}</tbody></GridTable></div>{reviewError&&<p role="alert">{reviewError} <button className="underline" onClick={()=>void reviewRoster(rosterReview.payload).then(setRosterReview).catch(e=>setReviewError(errorText(e)))}>Refresh preview</button></p>}<Button disabled={applyReview.isPending||!rosterReview.preview.affected} onClick={()=>applyReview.mutate()}>Apply reviewed draft roster</Button></DialogContent></Dialog>}
     </div>
   );
 }

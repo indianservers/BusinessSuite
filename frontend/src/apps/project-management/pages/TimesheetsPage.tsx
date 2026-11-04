@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -198,7 +199,7 @@ export default function TimesheetsPage() {
           {sheet?.rejection_reason ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Rejected: {sheet.rejection_reason}</div> : null}
           {loading ? <div className="skeleton h-48 rounded-lg" /> : (
             <div className="overflow-x-auto">
-              <table className="min-w-[980px] w-full border-collapse text-sm">
+              <GridTable gridId="apps/project-management/pages/TimesheetsPage:table-1" className="min-w-[980px] w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40 text-left">
                     <Th>Project</Th>
@@ -239,7 +240,7 @@ export default function TimesheetsPage() {
                     <Td>{totals.total.toFixed(1)}h</Td><Td></Td>
                   </tr>
                 </tfoot>
-              </table>
+              </GridTable>
             </div>
           )}
         </CardContent>

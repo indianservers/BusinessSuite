@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -269,7 +270,7 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
+                <GridTable gridId="apps/hrms/pages/settings/SettingsPage:table-1" className="w-full min-w-[720px] text-sm">
                   <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                     <tr>
                       <th className="w-8 px-4 py-3 text-left"></th>
@@ -310,7 +311,7 @@ export default function SettingsPage({ section }: { section?: SettingKey }) {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             )}
           </CardContent>

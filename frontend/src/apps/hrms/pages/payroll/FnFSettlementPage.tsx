@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {useSearchParams,Link} from "react-router-dom";
@@ -338,7 +339,7 @@ export default function FnFSettlementPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full min-w-[760px] text-sm">
+                    <GridTable gridId="apps/hrms/pages/payroll/FnFSettlementPage:table-1" className="w-full min-w-[760px] text-sm">
                       <thead className="bg-muted/60 text-left">
                         <tr>
                           <th className="px-3 py-2">Type</th>
@@ -364,7 +365,7 @@ export default function FnFSettlementPage() {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </GridTable>
                   </div>
                   <Button variant="outline" onClick={() => setComponents((current) => [...current, { ...emptyComponent }])}>
                     <Plus className="h-4 w-4" /> Add adjustment

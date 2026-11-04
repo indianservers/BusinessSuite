@@ -1,4 +1,4 @@
-import type { ReactNode, ComponentType } from "react";
+import type { ReactNode, ComponentType, HTMLAttributes } from "react";
 import type { LucideProps } from "lucide-react";
 import type {
   SortingState,
@@ -102,6 +102,7 @@ export type GridDataSource<T> = {
 export type GridColumn<T> = {
   id: string;
   title: string;
+  header?: ReactNode;
   type?:
     | "text"
     | "number"
@@ -190,6 +191,18 @@ export type SharedDataGridProps<T> = {
   statistics?: (result: GridResult<T>) => ReactNode;
   defaultExportColumns?: string[];
   exportFormats?: GridExportRequest["format"][];
+  selectionEnabled?: boolean;
+  rowProps?: (row: T) => HTMLAttributes<HTMLDivElement>;
+  renderDetails?: (row: T) => ReactNode;
+  detailsEnabled?: boolean;
+  bulkActions?: {
+    id: string;
+    label: string;
+    danger?: boolean;
+    disabled?: (rows: T[]) => boolean;
+    confirm?: (rows: T[]) => string;
+    run: (rows: T[]) => void | Promise<void>;
+  }[];
 };
 export const emptyQuery = (): GridQuery => ({
   search: "",

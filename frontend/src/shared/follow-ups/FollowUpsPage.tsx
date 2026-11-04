@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
 import { ActionToolbar } from "@/components/actions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -871,7 +872,7 @@ export default function FollowUpsPage() {
           )}
           {view !== "calendar" && view !== "directory" && (
             <div className="max-h-[65vh] overflow-auto rounded-xl border bg-card">
-              <table className="w-full text-left text-sm">
+              <GridTable gridId="shared/follow-ups/FollowUpsPage:table-1" className="w-full text-left text-sm">
                 <thead className="sticky top-0 bg-muted">
                   <tr>
                     {[
@@ -976,7 +977,7 @@ export default function FollowUpsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           )}
           {view !== "directory" && query.isLoading && (

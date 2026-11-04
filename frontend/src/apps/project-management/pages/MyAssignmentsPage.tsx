@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
   RichTextField,
@@ -66,7 +67,7 @@ export default function MyAssignmentsPage() {
       </Link>
       {error && <p role="alert">Assignments could not load.</p>}
       <div className="overflow-auto rounded-xl border bg-card">
-        <table className="w-full text-left text-sm">
+        <GridTable gridId="apps/project-management/pages/MyAssignmentsPage:table-1" className="w-full text-left text-sm">
           <thead>
             <tr>
               {["Task", "Status", "Deadline", "Progress", "Action"].map((h) => (
@@ -100,7 +101,7 @@ export default function MyAssignmentsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </GridTable>
       </div>
       <div className="flex gap-3">
         <Button disabled={page === 1} onClick={() => setPage(page - 1)}>

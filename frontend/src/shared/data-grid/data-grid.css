@@ -13,6 +13,34 @@
   min-width: 0;
   box-shadow: 0 2px 8px #0f172a04;
 }
+
+/* One record workspace across modules, including native financial entry matrices. */
+.udg-workspace { display:flex; align-items:flex-start; gap:16px; min-width:0; width:100%; }
+.udg-workspace-main { flex:1; min-width:0; }
+.udg-details { flex:0 0 340px; min-width:0; max-height:calc(100vh - 130px); position:sticky; top:16px; overflow:auto; border:1px solid hsl(var(--border)); border-radius:14px; background:hsl(var(--card)); color:hsl(var(--foreground)); }
+.udg-details > header { display:flex; align-items:center; gap:8px; padding:16px; border-bottom:1px solid hsl(var(--border)); }
+.udg-details > header > div { flex:1; min-width:0; }
+.udg-details small { color:hsl(var(--muted-foreground)); font-size:11px; }
+.udg-details h2 { margin:4px 0 0; font-size:16px; font-weight:600; overflow-wrap:anywhere; }
+.udg-details header button { display:grid; place-items:center; min-height:36px; min-width:36px; border-radius:7px; }
+.udg-details header button:hover { background:hsl(var(--muted)); }
+.udg-details-body { padding:16px; }
+.udg-details-fields { margin:0; display:grid; gap:16px; }
+.udg-details-fields dt { font-size:11px; color:hsl(var(--muted-foreground)); margin-bottom:4px; }
+.udg-details-fields dd { margin:0; font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.udg-details-dialog { max-height:85dvh; overflow:auto; }
+.udg-adapted-cell { min-width:0; width:100%; padding:0 !important; border:0 !important; background:transparent !important; }
+.udg-legacy-heading { display:flex; align-items:center; min-width:0; flex:1; }
+.udg-scope-note { margin:0; align-self:center; max-width:520px; color:var(--udg-muted); font-size:11px; }
+.udg-danger { color:hsl(var(--destructive)); }
+.udg-native { max-width:100%; overflow:auto; border:1px solid hsl(var(--border)); border-radius:14px; background:hsl(var(--card)); }
+.udg-native > table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; color:hsl(var(--foreground)); }
+.udg-native > table > thead > tr > th { position:sticky; top:0; z-index:1; padding:12px 14px; background:hsl(var(--muted)); text-align:left; font-weight:600; border-bottom:1px solid hsl(var(--border)); }
+.udg-native > table > tbody > tr > td { padding:12px 14px; border-bottom:1px solid hsl(var(--border)); vertical-align:middle; }
+.udg-native > table > tbody > tr:nth-child(even) { background:color-mix(in srgb,hsl(var(--muted)) 38%,hsl(var(--card))); }
+.udg-native > table > tbody > tr:hover { background:color-mix(in srgb,hsl(var(--primary)) 5%,hsl(var(--card))); }
+@media (max-width:1100px) and (min-width:761px) { .udg-details { flex-basis:290px; } }
+@media (max-width:760px) { .udg-workspace { display:block; } .udg-control { min-height:40px; } }
 .udg button,
 .udg input,
 .udg select {

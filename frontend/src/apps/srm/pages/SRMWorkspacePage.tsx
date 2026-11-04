@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { ActionButton } from "@/components/actions";
 import { MobileFilters } from "@/components/mobile/MobilePrimitives";
@@ -550,10 +551,10 @@ function CompactTableCard({ title, viewAllTo, columns, records, render, empty, c
       <CardContent>
         {records.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-left text-sm">
+            <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-1" className="w-full min-w-[520px] text-left text-sm">
               <thead className="text-xs text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2 font-medium">{column}</th>)}</tr></thead>
               <tbody>{records.slice(0, 5).map(render)}</tbody>
-            </table>
+            </GridTable>
           </div>
         ) : <EmptyDashboardState icon={FileText} message={empty} />}
       </CardContent>
@@ -1095,7 +1096,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
               </div>
             </div>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[560px] text-sm">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-2" className="w-full min-w-[560px] text-sm">
                 <thead className="text-left text-xs uppercase text-muted-foreground">
                   <tr><th className="py-2">Description</th><th>Qty</th><th>Unit</th><th>Tax</th><th className="text-right">Line total</th></tr>
                 </thead>
@@ -1110,7 +1111,7 @@ function ManualInvoiceComposer({ onCreated }: { onCreated?: () => void }) {
                     </tr>
                   )) : <tr><td colSpan={5} className="py-3 text-center text-muted-foreground">Add line items to preview invoice totals.</td></tr>}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
             <div className="mt-3 grid gap-1 text-sm sm:ml-auto sm:w-72">
               <div className="flex justify-between"><span>Subtotal</span><span>{money(subtotal)}</span></div>
@@ -1438,7 +1439,7 @@ function ReportsView() {
               <Input aria-label="report to date filter" placeholder="To date" />
             </div>
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[420px] text-sm">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-3" className="w-full min-w-[420px] text-sm">
                 <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2">Metric</th>
@@ -1459,7 +1460,7 @@ function ReportsView() {
                     <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">No preview data available for this report.</td></tr>
                   )}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
               <span>{exportRows.length ? `${exportRows.length} row${exportRows.length === 1 ? "" : "s"} available for CSV export.` : "No rows available for CSV export."}</span>
@@ -1633,7 +1634,7 @@ function POSSessionView() {
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-4" className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                   <tr><th className="px-4 py-3">Session</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Register</th><th className="px-4 py-3">Opening</th><th className="px-4 py-3">Cash Sales</th><th className="px-4 py-3">Expected</th><th className="px-4 py-3">Variance</th></tr>
                 </thead>
@@ -1654,7 +1655,7 @@ function POSSessionView() {
                     );
                   }) : <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No POS sessions found.</td></tr>}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           </CardContent>
         </Card>
@@ -1777,7 +1778,7 @@ function POSReturnsView() {
             <SectionState label="POS returns" isLoading={query.isLoading} isError={query.isError} isEmpty={!query.isLoading && !rows.length} onRetry={() => query.refetch()} />
             {rows.length ? (
               <div className="overflow-auto rounded-lg border">
-                <table className="w-full text-sm">
+                <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-5" className="w-full text-sm">
                   <thead className="bg-muted/50 text-left">
                     <tr>
                       {["Return #", "Status", "Refund", "Amount", "Created"].map((head) => <th key={head} className="px-3 py-2 font-medium">{head}</th>)}
@@ -1794,7 +1795,7 @@ function POSReturnsView() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </GridTable>
               </div>
             ) : null}
           </CardContent>
@@ -2085,7 +2086,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[780px] text-sm">
+              <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-6" className="w-full min-w-[780px] text-sm">
                 <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3">Record</th>
@@ -2142,7 +2143,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                     <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No {meta.title} found for your role.</td></tr>
                   )}
                 </tbody>
-              </table>
+              </GridTable>
             </div>
           </CardContent>
         </Card>

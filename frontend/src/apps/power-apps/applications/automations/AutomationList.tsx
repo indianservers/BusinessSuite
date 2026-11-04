@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { TelegramAutomations } from './TelegramAutomations';
 import CompactForm from "@/components/forms/CompactForm";
@@ -225,7 +226,7 @@ export function AutomationList({
         </div>
       ) : rows.length ? (
         <div className="al-table-wrap">
-          <table className="al-table">
+          <GridTable gridId="apps/power-apps/applications/automations/AutomationList:table-1" className="al-table">
             <thead>
               <tr>
                 <th>Automation</th>
@@ -393,7 +394,7 @@ export function AutomationList({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </GridTable>
         </div>
       ) : (
         <div className="al-empty">
