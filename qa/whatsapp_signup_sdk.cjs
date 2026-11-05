@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('../frontend/node_modules/typescript');
-const source = fs.readFileSync('frontend/src/apps/communication/whatsapp/EmbeddedSignup.tsx', 'utf8');
+const source = fs.readFileSync('frontend/public/whatsapp-connect.js', 'utf8');
 const parsed = ts.createSourceFile('EmbeddedSignup.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const loader = parsed.statements.find(node => ts.isFunctionDeclaration(node) && node.name.text === 'loadSDK');
 const code = ts.transpileModule(loader.getText(parsed) + '\nmodule.exports=loadSDK;', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
