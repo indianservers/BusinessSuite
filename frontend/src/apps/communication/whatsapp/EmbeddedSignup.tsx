@@ -10,22 +10,28 @@ type Facebook = {
 };
 async function loadSDK(): Promise<Facebook> {
   const fb = () => (window as unknown as { FB?: Facebook }).FB;
-  if (fb()) return fb()!;
+  // sdk.js exposes a buffering placeholder before fbAsyncInit. Capturing it
+  // makes later login() calls queue forever instead of opening a popup.
+  const ready = () => fb() && !("__buffer" in fb()!);
+  if (ready()) return fb()!;
   await new Promise<void>((resolve, reject) => {
+    const host = window as unknown as { fbAsyncInit?: () => void };
+    const previous = host.fbAsyncInit;
     let script = document.getElementById("business-suite-facebook-sdk") as HTMLScriptElement | null;
     const timeout = window.setTimeout(() => reject(new Error("Meta SDK could not load. Refresh and try again.")), 15000);
-    const loaded = () => { window.clearTimeout(timeout); resolve(); };
+    const loaded = () => { if (ready()) { window.clearTimeout(timeout); resolve(); } };
+    host.fbAsyncInit = () => { try { previous?.(); } finally { loaded(); } };
     if (!script) {
       script = document.createElement("script");
       script.id = "business-suite-facebook-sdk";
       script.src = "https://connect.facebook.net/en_US/sdk.js";
       script.async = true;
       script.crossOrigin = "anonymous";
-      document.body.appendChild(script);
     }
     script.addEventListener("load", loaded, { once: true });
     script.addEventListener("error", () => { window.clearTimeout(timeout); reject(new Error("Meta SDK could not load")); }, { once: true });
-    if (fb()) loaded();
+    if (!script.isConnected) document.body.appendChild(script);
+    loaded();
   });
   if (!fb()) throw new Error("Meta SDK is unavailable");
   return fb()!;
@@ -62,6 +68,7 @@ export default function EmbeddedSignup({ enabled, pin, done, report }: {
           flow.current.phoneNumberId = String(value.data?.phone_number_id || "");
           void complete();
         } else if (value.event === "CANCEL" || value.event === "ERROR") {
+          if (flow.current.completing) return;
           active.current = null; flow.current = {}; setBusy(false); setSession(null);
           report("Meta signup did not finish. Prepare a new connection to try again.", true);
         }
@@ -75,7 +82,8 @@ export default function EmbeddedSignup({ enabled, pin, done, report }: {
     try {
       const next = (await api.post<Signup>(base + "/onboarding/start")).data;
       const sdk = await loadSDK();
-      sdk.init({ appId: next.appId, version: next.apiVersion, cookie: true, xfbml: false });
+      // Login for Business configurations are not supported by FedCM yet.
+      sdk.init({ appId: next.appId, version: next.apiVersion, cookie: true, xfbml: false, fedCM: false });
       flow.current = { pin };
       active.current = next.state;
       setFB(sdk); setSession(next);
@@ -85,14 +93,27 @@ export default function EmbeddedSignup({ enabled, pin, done, report }: {
   }
   function launch() {
     if (!session || !fb) return;
+    if (active.current !== session.state) return;
     setBusy(true);
+    report("Complete the Meta popup. If it does not appear, check your browser's popup blocker or cancel and try again.");
     // Kept synchronous with the second user click so browsers permit the popup.
-    fb.login(response => {
+    try { fb.login(response => {
       if (active.current !== session.state) return;
       if (response.authResponse?.code) { flow.current.code = response.authResponse.code; void complete(); }
       else { active.current = null; flow.current = {}; setSession(null); setBusy(false); report("Meta did not return an authorization code. Start a new connection.", true); }
     }, { config_id: session.configId, response_type: "code", override_default_response_type: true, extras: { version: "v4" } });
+    } catch { active.current = null; flow.current = {}; setSession(null); setBusy(false); report("Meta could not open. Check popup permissions, then start a new connection.", true); }
   }
+  useEffect(() => {
+    if (!session) return;
+    const timer = window.setTimeout(() => {
+      if (active.current !== session.state || flow.current.completing) return;
+      active.current = null; flow.current = {}; setSession(null); setBusy(false);
+      report("The Meta signup session expired. Start a new connection.", true);
+    }, 10 * 60 * 1000);
+    return () => window.clearTimeout(timer);
+  }, [session]);
+  useEffect(() => () => { active.current = null; flow.current = {}; }, []);
   return <div className="flex flex-wrap gap-2">
     <Button disabled={!enabled || busy} onClick={() => session ? launch() : void prepare()}>{busy ? "Waiting for Meta…" : session ? "Continue to Meta" : "Connect with Meta"}</Button>
     {session && <Button variant="outline" disabled={flow.current.completing} onClick={() => { active.current = null; setSession(null); setBusy(false); flow.current = {}; }}>Cancel signup</Button>}
