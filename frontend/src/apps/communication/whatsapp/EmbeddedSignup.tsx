@@ -50,7 +50,8 @@ export default function EmbeddedSignup({ enabled, pin, done, report }: {
     if (!session || active.current !== session.state || !value.code || !value.wabaId || !value.phoneNumberId || value.completing) return;
     value.completing = true;
     try {
-      await api.post(base + "/onboarding/complete", { state: session.state, code: value.code, wabaId: value.wabaId, phoneNumberId: value.phoneNumberId, registrationPin: value.pin || null });
+      report("Meta authorization received. Verifying the sender and saving this organization's connection…");
+      await api.post(base + "/onboarding/complete", { state: session.state, code: value.code, wabaId: value.wabaId, phoneNumberId: value.phoneNumberId, registrationPin: value.pin || null }, { timeout: 120000 });
       report("Account connected. Check the sender status before sending.");
       await done();
     } catch (error) { report(whatsappError(error), true); }

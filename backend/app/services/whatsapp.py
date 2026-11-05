@@ -32,13 +32,20 @@ class WhatsAppGraph:
             raise MetaError('Invalid WhatsApp API version')
         if not re.fullmatch(r'[A-Za-z0-9_/-]+', path):
             raise MetaError('Invalid Meta resource')
-        kwargs = {'headers': {'Authorization': 'Bearer '+self.token}, 'timeout': 20}
+        # Embedded Signup exchanges can take longer than ordinary Graph reads.
+        # Keep this bounded and never replay a one-use authorization code.
+        exchange = path == 'oauth/access_token'
+        kwargs = {'headers': {'Authorization': 'Bearer '+self.token}, 'timeout': 45 if exchange else 20}
         if params is not None: kwargs['params'] = params
         if payload is not None: kwargs['json'] = payload
         try:
             response = getattr(httpx, method.lower())('https://graph.facebook.com/'+settings.CRM_WHATSAPP_API_VERSION+'/'+path, **kwargs)
         except httpx.TransportError:
-            raise MetaError('Meta response is uncertain; reconcile before retrying', uncertain=True) from None
+            operation = ('authorization exchange' if exchange else
+                         'token verification' if path == 'debug_token' else
+                         'sender verification' if path.endswith('/phone_numbers') else
+                         'webhook subscription' if path.endswith('/subscribed_apps') else 'request')
+            raise MetaError(f'Meta {operation} response is uncertain; reconcile before retrying', uncertain=True) from None
         try:
             result = response.json()
             if not isinstance(result, dict): raise ValueError()

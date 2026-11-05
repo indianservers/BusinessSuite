@@ -10,7 +10,26 @@ from fastapi.testclient import TestClient
 from app.api.v1.whatsapp_cloud import router, apply_statuses
 from app.core.config import settings
 from app.core.deps import get_db
-from app.services.whatsapp import MetaWhatsAppProvider
+from app.services.whatsapp import MetaWhatsAppProvider, WhatsAppGraph, MetaError
+
+
+@pytest.mark.parametrize('path,budget,operation', [
+    ('oauth/access_token', 45, 'authorization exchange'),
+    ('debug_token', 20, 'token verification'),
+    ('12345/phone_numbers', 20, 'sender verification'),
+    ('12345/subscribed_apps', 20, 'webhook subscription'),
+])
+def test_transport_timeout_identifies_step_without_replaying_or_exposing_secrets(monkeypatch, path, budget, operation):
+    calls = []
+    def unavailable(url, **kwargs):
+        calls.append(kwargs)
+        raise httpx.ReadTimeout('provider exception with private values')
+    monkeypatch.setattr(httpx, 'get', unavailable)
+    with pytest.raises(MetaError) as error:
+        WhatsAppGraph('private-token').request('GET', path, params={'code': 'private-code'})
+    assert len(calls) == 1 and calls[0]['timeout'] == budget
+    assert error.value.uncertain and operation in str(error.value)
+    assert 'private' not in str(error.value)
 
 
 @pytest.fixture
