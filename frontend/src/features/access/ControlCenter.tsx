@@ -375,6 +375,7 @@ export default function ControlCenter({ section: requestedSection, embedded = fa
             value={company}
             onChange={(e) => {
               sessionStorage.setItem("suite-organization", e.target.value);
+              sessionStorage.removeItem("suite-branch");
               window.dispatchEvent(new Event("suite:organization-changed"));
               window.dispatchEvent(new Event("focus"));
               setCompany(Number(e.target.value));
