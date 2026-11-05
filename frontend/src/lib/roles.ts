@@ -833,6 +833,7 @@ const crmNav: RoleNavItem[] = [
  {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
   { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },
+  { label: "Potential Clients", icon: Users, to: "/crm/potential-clients", group: "Core" },
   { label: "Leads", icon: Users, to: "/crm/leads", group: "Core" },
   { label: "Contacts", icon: UserRound, to: "/crm/contacts", group: "Core" },
   { label: "Relationship Hub", icon: TableProperties, to: "/crm/records", group: "Core" },

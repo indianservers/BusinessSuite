@@ -1,8 +1,9 @@
+import { useLeadRecord } from "./LeadRecordContext";
 import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useState } from "react";
-import { LeadAnalytics, errorMessage, leadsApi } from "./api";
+import { LeadAnalytics, errorMessage } from "./api";
 
 export function LeadAnalyticsPanel({
   owners,
@@ -11,6 +12,7 @@ export function LeadAnalyticsPanel({
   owners: { id: number; name: string }[];
   revision: number;
 }) {
+  const {api: leadsApi} = useLeadRecord();
   const [data, setData] = useState<LeadAnalytics>();
   const [error, setError] = useState("");
   useRefreshableEffect(() => {

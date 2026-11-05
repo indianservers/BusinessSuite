@@ -3,7 +3,7 @@ import {Link,useLocation} from "react-router-dom";
 import {useAuthStore} from "@/store/authStore";
 import {canAccessRoute,getRoleNav} from "@/lib/roles";
 import {crmScope,useCRMProductivity,CRMShortcut} from "@/apps/crm/productivityStore";
-const daily=[{path:"/crm/follow-ups",label:"My Follow-ups"},{path:"/crm/leads",label:"Leads"},{path:"/crm/deals",label:"Deals"},{path:"/crm/tasks",label:"Tasks"},{path:"/crm/companies",label:"Customers"},{path:"/crm/products-services",label:"Products & Services"}];
+const daily=[{path:"/crm/follow-ups",label:"My Follow-ups"},{path:"/crm/potential-clients",label:"Potential Clients"},{path:"/crm/leads",label:"Leads"},{path:"/crm/deals",label:"Deals"},{path:"/crm/tasks",label:"Tasks"},{path:"/crm/companies",label:"Customers"},{path:"/crm/products-services",label:"Products & Services"}];
 export default function CRMPersonalNavigation({collapsed=false,onNavigate}:{collapsed?:boolean;onNavigate?:()=>void}){
  const user=useAuthStore(s=>s.user),location=useLocation(),scope=crmScope(user?.id,user?.access?.companyId);const preferences=useCRMProductivity(s=>s.scopes[scope]);const {visit,pin,move}=useCRMProductivity();
  const manager=!!user?.is_superuser||/admin|manager/i.test(user?.role||"");

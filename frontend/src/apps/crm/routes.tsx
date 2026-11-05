@@ -49,6 +49,7 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/follow-ups", element: <FollowUpsPage /> },
   { path: "crm/dashboard", element: <><FollowUpSummary base="/crm/follow-ups"/><CRMWorkspacePage kind="dashboard" /></> },
   { path: "crm/profile", element: <ModuleProfilePage /> },
+  { path: "crm/potential-clients", element: <LeadManagementPage potential /> },
   { path: "crm/leads", element: <LeadManagementPage /> },
   { path: "crm/leads/classic", element: <CRMWorkspacePage kind="leads" /> },
   { path: "crm/leads/workbench", element: <LeadManagementPage /> },

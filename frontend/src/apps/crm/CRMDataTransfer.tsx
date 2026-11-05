@@ -11,21 +11,24 @@ import {
   type TransferField,
   type ImportResult,
 } from "@/shared/data-transfer";
-import { leadsApi } from "./leads/api";
+import { leadsApi, potentialClientsApi } from "./leads/api";
 
 export function LeadSpreadsheetImport({
+  potential = false,
   autoOpen,
   onClose,
   onImported,
 }: {
+  potential?: boolean;
   autoOpen?: boolean;
   onClose?: () => void;
   onImported?: () => void;
 }) {
   const qc = useQueryClient();
+  const transferApi = potential ? potentialClientsApi : leadsApi;
   return (
     <ImportWizard
-      title="Import leads"
+      title={potential ? "Import potential clients" : "Import leads"}
       autoOpen={autoOpen}
       onClose={onClose}
       fields={async () =>
@@ -33,13 +36,13 @@ export function LeadSpreadsheetImport({
           .data
       }
       onImport={async ({ file }) => {
-        const { data: preview } = await leadsApi.previewImport(file);
+        const { data: preview } = await transferApi.previewImport(file);
         if (preview.errors.length)
           return {
             created: 0,
             errors: preview.errors.map((e) => ({ ...e, row: e.row - 1 })),
           };
-        const { data } = await leadsApi.import(preview.rows);
+        const { data } = await transferApi.import(preview.rows);
         qc.invalidateQueries({ queryKey: ["crm"] });
         onImported?.();
         return {

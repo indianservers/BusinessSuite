@@ -28,6 +28,7 @@ export type Settings = {
   workflows: Workflow[];
 };
 export type LeadDetails = {
+  recordType?: "Potential" | "Lead";
   assignmentReason?:string;
   customerTimezone?:string;
   qualification?: {
@@ -322,3 +323,13 @@ export function download(blob: Blob, name: string) {
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// Potential clients use the same records, permissions and forms as leads.
+export const potentialClientsApi: typeof leadsApi = {
+  ...leadsApi,
+  analytics: () => api.get<LeadAnalytics>(`${root}/analytics`, {params: {record_type: "Potential"}}),
+  list: (params, signal) => leadsApi.list({...params, record_type: "Potential"}, signal),
+  create: patch => leadsApi.create({...patch, details: {...patch.details, recordType: "Potential"}}),
+  import: rows => api.post(`${root}/excel/import`, {rows, skipDuplicates: true, recordType: "Potential"}),
+  export: params => leadsApi.export({...params, record_type: "Potential"}),
+};

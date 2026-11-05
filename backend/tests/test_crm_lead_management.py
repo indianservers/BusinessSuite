@@ -779,3 +779,67 @@ def test_website_capture_keeps_configured_branch_after_admin_switch(client, db, 
     assert db.query(BranchOwnership).filter_by(resource_table="crm_leads",resource_key=str(lead.id)).one().branch_id == branch_id
     assert client.get(ROOT + f"/leads/{lead.id}", headers=superuser_headers).status_code == 404
     assert client.get(ROOT + f"/leads/{lead.id}", headers=destination).status_code == 200
+
+
+def test_potential_clients_share_lead_records_and_preserve_history(client, superuser_headers):
+    lead = create(client, superuser_headers, email="existing-lead@example.com")
+    response = client.post(ROOT + "/leads", headers=superuser_headers, json={
+        "values": {"full_name": "Potential Person", "company_name": "Prospect Company", "email": "potential@example.com", "notes": "Call next week"},
+        "details": {"recordType": "Potential"},
+    })
+    assert response.status_code == 201, response.text
+    potential = response.json()
+    def ids(record_type):
+        result = client.get(ROOT + "/leads", headers=superuser_headers, params={"record_type": record_type})
+        assert result.status_code == 200, result.text
+        return {item["id"] for item in result.json()["items"]}
+    assert potential["id"] in ids("Potential")
+    assert potential["id"] not in ids("Lead")
+    assert lead["id"] in ids("Lead")
+    exported = client.get(ROOT + "/excel/export", headers=superuser_headers, params={"record_type": "Potential"})
+    assert exported.status_code == 200
+    rows = list(load_workbook(io.BytesIO(exported.content)).active.values)
+    assert any("potential@example.com" in row for row in rows)
+    assert not any("existing-lead@example.com" in row for row in rows)
+    promoted = client.patch(ROOT + f"/leads/{potential['id']}", headers=superuser_headers, json={
+        "details": {"recordType": "Lead"}, "version": potential["version"],
+    })
+    assert promoted.status_code == 200, promoted.text
+    assert promoted.json()["id"] == potential["id"]
+    assert promoted.json()["notes"] == "Call next week"
+    assert potential["id"] not in ids("Potential")
+    assert potential["id"] in ids("Lead")
+    detail = client.get(ROOT + f"/leads/{potential['id']}", headers=superuser_headers).json()
+    assert any(item["event_type"] == "type_changed" for item in detail["timeline"])
+
+
+def test_potential_import_uses_existing_transfer_and_validates_type(client, superuser_headers):
+    imported = client.post(ROOT + "/excel/import", headers=superuser_headers, json={
+        "recordType": "Potential", "rows": [{"full_name": "Imported prospect", "email": "import-prospect@example.com"}],
+    })
+    assert imported.status_code == 200, imported.text
+    ident = imported.json()["ids"][0]
+    detail = client.get(ROOT + f"/leads/{ident}", headers=superuser_headers).json()
+    assert detail["details"]["recordType"] == "Potential"
+    invalid = client.patch(ROOT + f"/leads/{ident}", headers=superuser_headers, json={"details": {"recordType": "Customer"}})
+    assert invalid.status_code == 422
+
+
+def test_potential_bulk_promotion_reuses_bulk_preview_and_apply(client, superuser_headers):
+    imported = client.post(ROOT + "/excel/import", headers=superuser_headers, json={
+        "recordType": "Potential", "rows": [
+            {"full_name": "Bulk prospect A", "email": "bulk-prospect-a@example.com"},
+            {"full_name": "Bulk prospect B", "email": "bulk-prospect-b@example.com"},
+        ],
+    })
+    assert imported.status_code == 200, imported.text
+    ids = imported.json()["ids"]
+    payload = {"ids": ids, "patch": {"details": {"recordType": "Lead"}}}
+    preview = client.post(ROOT + "/bulk/preview", headers=superuser_headers, json=payload)
+    assert preview.status_code == 200, preview.text
+    applied = client.post(ROOT + "/bulk/apply", headers=superuser_headers, json=payload)
+    assert applied.status_code == 200, applied.text
+    assert applied.json()["updated"] == 2
+    for ident in ids:
+        detail = client.get(ROOT + f"/leads/{ident}", headers=superuser_headers).json()
+        assert detail["details"]["recordType"] == "Lead"

@@ -1,3 +1,5 @@
+import { leadsApi as defaultLeadsApi } from "./api";
+import { LeadRecordContext, useLeadRecord } from "./LeadRecordContext";
 import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
 import Record360Workspace from "@/shared/records/Record360Workspace";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -56,7 +58,7 @@ import {
   Settings,
   download,
   errorMessage,
-  leadsApi,
+  potentialClientsApi,
   publicUrl,
   captureEmbed,
 } from "./api";
@@ -157,7 +159,11 @@ function Field({
   );
 }
 
-export default function LeadManagementPage() {
+export default function LeadManagementPage({potential = false}: {potential?: boolean}) {
+  return <LeadRecordContext.Provider value={{api: potential ? potentialClientsApi : defaultLeadsApi, potential}}><LeadWorkbench key={potential ? "potential" : "lead"}/></LeadRecordContext.Provider>;
+}
+function LeadWorkbench() {
+  const {api: leadsApi, potential} = useLeadRecord();
   const { toast } = useToast();
   const userId = useAuthStore((s) => s.user?.id);
   const [params, setParams] = useSearchParams();
@@ -183,7 +189,7 @@ export default function LeadManagementPage() {
   const [bulkAction, setBulkAction] = useState("");
   const [savedViews, setSavedViews] = useState<SavedView[]>(() => {
     try {
-      return JSON.parse(sessionStorage.getItem(`lead-views-${userId}`) || "[]");
+      return JSON.parse(sessionStorage.getItem(`${potential ? "potential" : "lead"}-views-${userId}`) || "[]");
     } catch {
       return [];
     }
@@ -195,7 +201,7 @@ export default function LeadManagementPage() {
   const [columns, setColumns] = useState(() => {
     try {
       return JSON.parse(
-        sessionStorage.getItem(`lead-columns-${userId}`) ||
+        sessionStorage.getItem(`${potential ? "potential" : "lead"}-columns-${userId}`) ||
           '["company","owner","score","follow","action"]',
       ) as string[];
     } catch {
@@ -280,14 +286,14 @@ export default function LeadManagementPage() {
     setSelected([]);
   }, [search, stage, owner, queue, page]);
   useEffect(() => {
-    sessionStorage.setItem(`lead-columns-${userId}`, JSON.stringify(columns));
+    sessionStorage.setItem(`${potential ? "potential" : "lead"}-columns-${userId}`, JSON.stringify(columns));
   }, [columns, userId]);
   useRecordView<ListResult>("/crm/lead-management/leads", { search, stage, ...(owner ? {owner} : {}), queue, page, per_page: 40 }, snapshot => { setResult(snapshot); setSelected(ids => ids.filter(id => snapshot.items.some(row => row.id === id))); }, () => { setResult(undefined); setSelected([]); });
   const ownerName = (id?: number) =>
     bootstrap?.owners.find((o) => o.id === id)?.name ||
     (id ? `User ${id}` : "Unassigned");
   const openLead = (id: number) => {
-    sessionStorage.setItem(`lead-scroll-${userId}`, String(window.scrollY));
+    sessionStorage.setItem(`${potential ? "potential" : "lead"}-scroll-${userId}`, String(window.scrollY));
     updateParams({ lead: String(id) });
   };
   const closeLead = () => {
@@ -295,7 +301,7 @@ export default function LeadManagementPage() {
     requestAnimationFrame(() =>
       window.scrollTo(
         0,
-        Number(sessionStorage.getItem(`lead-scroll-${userId}`) || 0),
+        Number(sessionStorage.getItem(`${potential ? "potential" : "lead"}-scroll-${userId}`) || 0),
       ),
     );
   };
@@ -321,6 +327,8 @@ export default function LeadManagementPage() {
       const reason=window.prompt("Reason for reassigning these leads and their pending follow-ups");if(!reason?.trim())return;
       patch = { values: { owner_user_id: Number(bulkAction.slice(6)) },details:{assignmentReason:reason} };
     }
+    else if (bulkAction === "promote")
+      patch = {details: {recordType: "Lead"}};
     else if (bulkAction.startsWith("stage:"))
       patch = { values: { status: bulkAction.slice(6) } };
     else if (bulkAction === "archive") {
@@ -347,7 +355,7 @@ export default function LeadManagementPage() {
       { name: viewName.trim(), search, stage, owner, queue, view },
     ].slice(-20);
     setSavedViews(next);
-    sessionStorage.setItem(`lead-views-${userId}`, JSON.stringify(next));
+    sessionStorage.setItem(`${potential ? "potential" : "lead"}-views-${userId}`, JSON.stringify(next));
     setShowViewSave(false);
     setViewName("");
   };
@@ -370,13 +378,13 @@ export default function LeadManagementPage() {
         <div>
           <div className="lm-eyebrow">CUSTOMER RELATIONSHIPS</div>
           <h1>
-            Lead workbench{" "}
+            {potential ? "Potential Clients" : "Lead workbench"}{" "}
             <span className="lm-count">{result?.total ?? "—"}</span>
           </h1>
           <p>Know where every enquiry stands. Make the next move.</p>
         </div>
         <div className="lm-actions">
-          <DataExportButton filename="leads.xlsx" description={selected.length?`${selected.length} selected leads`:"All permitted leads matching search, stage and owner filters. Includes archived leads."} load={async()=> (await leadsApi.export(selected.length?{ids:selected.join(",")}:{search,stage,...(owner?{owner}:{})})).data}/>
+          <DataExportButton filename={potential ? "potential-clients.xlsx" : "leads.xlsx"} description={selected.length?`${selected.length} selected leads`:"All permitted leads matching search, stage and owner filters. Includes archived leads."} load={async()=> (await leadsApi.export(selected.length?{ids:selected.join(",")}:{search,stage,...(owner?{owner}:{})})).data}/>
 
           {bootstrap?.canManage && (
             <>
@@ -386,7 +394,7 @@ export default function LeadManagementPage() {
               </Button>
               <Button onClick={() => setCreateOpen(true)}>
                 <Plus size={16} />
-                Add lead
+                {potential ? "Add potential client" : "Add lead"}
               </Button>
             </>
           )}
@@ -402,7 +410,7 @@ export default function LeadManagementPage() {
         </div>
       </header>
       <nav className="lm-links" aria-label="Related CRM tools">
-        <Link to="/crm/leads/classic">Classic workspace</Link>
+        <Link to={potential ? "/crm/leads" : "/crm/potential-clients"}>{potential ? "Leads" : "Potential Clients"}</Link>
         <Link to="/crm/webforms">Website forms</Link>
         <Link to="/crm/communication-hub">Communications</Link>
         <Link to="/crm/calendar">Calendar & scheduling</Link>
@@ -675,6 +683,7 @@ export default function LeadManagementPage() {
                   </option>
                 ))}
               </optgroup>
+              {potential && <option value="promote">Move to Leads</option>}
               <option value="archive">Archive with reason</option>
               <option value="restore">Restore from archive</option>
             </NativeSelect>
@@ -705,7 +714,7 @@ export default function LeadManagementPage() {
           <div className="lm-empty">
             <Users size={30} />
             <h2>
-              {queue === "my_day" ? "Your queue is clear" : "No matching leads"}
+              {queue === "my_day" ? "Your queue is clear" : potential ? "No matching potential clients" : "No matching leads"}
             </h2>
             <p>
               {queue === "my_day"
@@ -1079,10 +1088,11 @@ export function CaptureDialog({
   close: () => void;
   saved: (id: number) => void;
 }) {
+  const {api: leadsApi, potential} = useLeadRecord();
   const customFieldForm=useCrmFieldForm("leads",placement);
   const mobile = useMobile();
   const [expandedMobileCapture, setExpandedMobileCapture] = useState(false);
-  const key = `lead-capture-draft-${bootstrap.userId}`;
+  const key = `${potential ? "potential" : "lead"}-capture-draft-${bootstrap.userId}`;
   const automaticRouting =
     bootstrap.settings.assignment.mode !== "manual" ||
     bootstrap.settings.assignment.rules.length > 0;
@@ -1130,7 +1140,7 @@ export function CaptureDialog({
     <DialogContent className="lead-create-dialog" overlayClassName="lead-create-overlay">
       <aside className="lead-create-aside">
         <div className="lead-create-emblem"><UserRoundPlus size={34}/></div>
-        <DialogTitle>Create New Lead</DialogTitle>
+        <DialogTitle>{potential ? "Create Potential Client" : "Create New Lead"}</DialogTitle>
         <p className="lead-create-intro">Capture potential business opportunities and start the conversation.</p>
         <div className="lead-create-benefits">{[[Zap, "Quick & Easy", "Add essential details in seconds"], [Users, "Organize Better", "Keep all lead information in one place"], [BarChart3, "Convert Faster", "Track and move leads through pipeline"]].map(([Icon, title, text]) => {const Glyph = Icon as typeof Zap; return <div key={String(title)}><span><Glyph size={28}/></span><p><strong>{String(title)}</strong><small>{String(text)}</small></p></div>;})}</div>
         <div className="lead-create-art" aria-hidden="true">
@@ -1227,6 +1237,7 @@ export function LeadDrawer({
   previous?: () => void;
   next?: () => void;
 }) {
+  const {api: leadsApi, potential} = useLeadRecord();
   const { toast } = useToast();
   const [lead, setLead] = useState<Lead>();
   const [error, setError] = useState("");
@@ -2072,11 +2083,16 @@ export function LeadDrawer({
                   disabled={
                     busy ||
                     dirty ||
-                    lead.status !== "Qualified" ||
+                    (!potential && lead.status !== "Qualified") ||
                     lead.is_converted
                   }
                   onClick={async () => {
                     try {
+                      if (potential) {
+                        await leadsApi.update(id, {details: {recordType: "Lead"}, version: lead.version});
+                        changed(); close();
+                        return;
+                      }
                       const response = await leadsApi.previewConversion(id);
                       setConversion(response.data);
                       setConversionIds({
@@ -2093,7 +2109,7 @@ export function LeadDrawer({
                     }
                   }}
                 >
-                  Convert to customer
+                  {potential ? "Move to Leads" : "Convert to customer"}
                 </Button>
                 <div className="w-full space-y-3">{editingCustomFields?<><CrmRecordFields state={{...customFieldForm,setValues:next=>{customFieldForm.setValues(next);setDirty(true);}}}/><Button type="button" variant="ghost" onClick={()=>setEditingCustomFields(false)}>View saved fields</Button></>:<><CrmFieldsReadOnly key={reload} entity="leads" recordId={id}/>{customFieldForm.fields.length>0&&<Button type="button" variant="outline" onClick={()=>setEditingCustomFields(true)}>Edit custom fields</Button>}</>}</div>
                 <Button disabled={busy} onClick={() => void save()}>
@@ -2206,7 +2222,7 @@ export function LeadDrawer({
   );
 }
 
-function ExcelDialog({close,imported}:{close:()=>void;imported:()=>void}) {return <LeadSpreadsheetImport autoOpen onClose={()=>{imported();close();}}/>;}
+function ExcelDialog({close,imported}:{close:()=>void;imported:()=>void}) {const {potential} = useLeadRecord(); return <LeadSpreadsheetImport potential={potential} autoOpen onClose={()=>{imported();close();}}/>;}
 
 function WorkflowSettings({
   bootstrap,
@@ -2217,6 +2233,7 @@ function WorkflowSettings({
   close: () => void;
   saved: () => void;
 }) {
+  const {api: leadsApi, potential} = useLeadRecord();
   const [settings, setSettings] = useState<Settings>(() =>
     JSON.parse(JSON.stringify(bootstrap.settings)),
   );

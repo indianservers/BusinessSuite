@@ -678,6 +678,7 @@ class DetailsPatch(Strict):
     lossReason: str | None = Field(default=None, max_length=1000)
     competitor: str | None = Field(default=None, max_length=200)
     scoreOverrideReason: str | None = Field(default=None, max_length=1000)
+    recordType: Literal["Potential", "Lead"] | None = None
     archived: bool | None = None
     archiveReason: str | None = Field(default=None, max_length=1000)
     reviewAt: datetime | None = None
@@ -1141,8 +1142,16 @@ def submit_capture(
 
 
 
+def filter_record_type(query, record_type):
+    potential_ids = query.session.query(CRMLeadOperatingState.lead_id).filter(
+        CRMLeadOperatingState.data_json["recordType"].as_string() == "Potential"
+    )
+    return query.filter(CRMLead.id.in_(potential_ids) if record_type == "Potential" else ~CRMLead.id.in_(potential_ids))
+
+
 @router.get("/leads")
 def list_leads(
+    record_type: Literal["Potential", "Lead"] = "Lead",
     search: str = "",
     stage: str = "",
     owner: int | None = None,
@@ -1164,7 +1173,7 @@ def list_leads(
     user: User = Depends(RequirePermission(*ACCESS)),
 ):
     settings = config(db, core()._organization_id(db, user))
-    query = visible_query(db, user)
+    query = filter_record_type(visible_query(db, user), record_type)
     if search:
         query = query.filter(
             or_(
@@ -1348,6 +1357,12 @@ def apply_patch(db, user, lead, payload, settings):
         **copy.deepcopy(row.data_json),
         **payload.details.model_dump(exclude_unset=True, mode="json"),
     }
+    if details.get("recordType") != row.data_json.get("recordType") and "recordType" in payload.details.model_fields_set:
+        if lead.is_converted:
+            raise HTTPException(422, "Converted customer records cannot change prospect type")
+        event(db, lead, user, "type_changed", "Client type changed", {
+            "from": row.data_json.get("recordType", "Lead"), "to": details["recordType"]
+        })
     validate_transition(settings, lead, data, details)
     if (
         settings["preventDuplicates"]
@@ -2097,6 +2112,8 @@ def convert(
     if lead.status != "Qualified":
         raise HTTPException(422, "Qualify the lead before converting it")
     row = state(db, lead)
+    if row.data_json.get("recordType") == "Potential":
+        raise HTTPException(422, "Move the potential client to Leads before converting to a customer")
     settings = config(db, lead.organization_id)
     validate_transition(
         settings, lead, {"status": "Converted"}, row.data_json, converting=True
@@ -2362,12 +2379,13 @@ def scheduled_lead_alerts(db, per_tenant=200):
 
 @router.get("/analytics")
 def analytics(
+    record_type: Literal["Potential", "Lead"] = "Lead",
     db: Session = Depends(get_db), user: User = Depends(RequirePermission(*ACCESS))
 ):
     org = core()._organization_id(db, user)
-    matching_total=visible_query(db,user).count()
+    matching_total=filter_record_type(visible_query(db,user), record_type).count()
     leads = (
-        visible_query(db, user).order_by(CRMLead.id.desc()).limit(MAX_ROWS + 1).all()
+        filter_record_type(visible_query(db, user), record_type).order_by(CRMLead.id.desc()).limit(MAX_ROWS + 1).all()
     )
     truncated = len(leads) > MAX_ROWS
     leads = leads[:MAX_ROWS]
@@ -2590,6 +2608,7 @@ def transfer_rows(content, filename, mapping=None, headers_only=False):
 
 
 class ImportPayload(Strict):
+    recordType: Literal["Potential", "Lead"] = "Lead"
     rows: list[dict[str, Any]] = Field(min_length=1, max_length=MAX_ROWS)
     skipDuplicates: bool = True
 
@@ -2743,7 +2762,7 @@ def import_commit(
         lead = create_lead(
             db,
             user,
-            LeadPayload(values=values, details=DetailsPatch(**row["details"])),
+            LeadPayload(values=values, details=DetailsPatch(**{**row["details"], "recordType": payload.recordType})),
             settings,
         )
         ids.append(lead.id)
@@ -2798,6 +2817,7 @@ def excel_template(user: User = Depends(RequirePermission(*ACCESS))):
 
 @router.get("/excel/export")
 def excel_export(
+    record_type: Literal["Potential", "Lead"] = "Lead",
     search: str = "",
     stage: str = "",
     owner: int | None = None,
@@ -2805,7 +2825,7 @@ def excel_export(
     db: Session = Depends(get_db),
     user: User = Depends(RequirePermission(*ACCESS)),
 ):
-    query = visible_query(db, user)
+    query = filter_record_type(visible_query(db, user), record_type)
     if ids:
         try:
             selected = [int(i) for i in ids.split(",")]
