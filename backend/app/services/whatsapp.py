@@ -35,7 +35,10 @@ class WhatsAppGraph:
         # Embedded Signup exchanges can take longer than ordinary Graph reads.
         # Keep this bounded and never replay a one-use authorization code.
         exchange = path == 'oauth/access_token'
-        kwargs = {'headers': {'Authorization': 'Bearer '+self.token}, 'timeout': 45 if exchange else 20}
+        # The OAuth exchange authenticates with client_id/client_secret. An empty
+        # Bearer value is an invalid HTTP header, rejected locally by httpx/h11.
+        headers = {'Authorization': 'Bearer '+self.token} if self.token else {}
+        kwargs = {'headers': headers, 'timeout': 45 if exchange else 20}
         if params is not None: kwargs['params'] = params
         if payload is not None: kwargs['json'] = payload
         try:

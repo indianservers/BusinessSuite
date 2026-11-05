@@ -13,6 +13,21 @@ from app.core.deps import get_db
 from app.services.whatsapp import MetaWhatsAppProvider, WhatsAppGraph, MetaError
 
 
+@pytest.mark.parametrize('token,authorization', [('', None), ('test-token', 'Bearer test-token')])
+def test_oauth_exchange_uses_valid_http_headers(monkeypatch, token, authorization):
+    import h11
+    calls = []
+    def exchange(url, **kwargs):
+        # Exercise the HTTP/1 header validator, which rejects the old 'Bearer '.
+        h11.Request(method=b'GET', target=b'/', headers=[('Host', 'graph.facebook.com'), *kwargs['headers'].items()])
+        calls.append(kwargs)
+        return httpx.Response(200, json={'access_token': 'test-response-token'})
+    monkeypatch.setattr(httpx, 'get', exchange)
+    result = WhatsAppGraph(token).request('GET', 'oauth/access_token', params={'client_id': 'test-app', 'client_secret': 'test-secret', 'code': 'test-code'})
+    assert result['access_token'] == 'test-response-token'
+    assert calls[0]['headers'].get('Authorization') == authorization
+
+
 @pytest.mark.parametrize('path,budget,operation', [
     ('oauth/access_token', 45, 'authorization exchange'),
     ('debug_token', 20, 'token verification'),
