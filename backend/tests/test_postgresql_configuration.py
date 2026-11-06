@@ -41,8 +41,6 @@ def test_baseline_covers_every_module_and_historical_schema():
     extensions = json.loads((root / "alembic_postgresql/schema/extensions.json").read_text())
     assert set(Base.metadata.tables).issubset(set(coverage["target_tables"]) | set(extensions))
     for table in Base.metadata.tables.values():
-        # Extensions can add columns to a baseline table as well as new tables.
-        documented = set(coverage["columns"].get(table.name, [])) | set(extensions.get(table.name, []))
-        assert {c.name for c in table.columns}.issubset(documented), table.name
+        assert {c.name for c in table.columns}.issubset({**coverage["columns"], **extensions}[table.name])
     assert set(coverage["source_tables"]) - {"alembic_version"} == set(coverage["target_tables"])
     assert {"onboarding_tasks", "onboarding_task_completions"}.issubset(coverage["target_tables"])

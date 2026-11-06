@@ -3892,15 +3892,39 @@
     "utr"
   ],
   "form16_records": [
+    "combined_file_path",
+    "employee_id",
+    "financial_year",
+    "generated_at",
+    "generated_by",
+    "id",
+    "organization_id",
+    "part_a_file_path",
+    "part_b_file_path",
+    "published_at",
     "reviewed_at",
     "reviewed_by",
     "signature_evidence_json",
     "signature_status",
     "signed_file_path",
-    "signed_sha256"
+    "signed_sha256",
+    "status",
+    "tax_deducted",
+    "taxable_income"
   ],
   "payroll_payment_batches": [
-    "company_id"
+    "approved_by",
+    "bank_format_id",
+    "company_id",
+    "created_at",
+    "created_by",
+    "debit_account",
+    "generated_file_url",
+    "id",
+    "payroll_run_id",
+    "released_at",
+    "status",
+    "total_amount"
   ],
   "accounting_sync_connections": [
     "account_id",
