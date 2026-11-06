@@ -27,6 +27,12 @@ with app.app_context():
     product.name = "QA Product A"
     product.sales_price = 1000
     product.purchase_price = product.average_cost = 600
+    if os.environ.get("QA_POS_SNAPSHOT_CASE") == "1":
+        from app.models import Tax, User
+        product.current_stock=20
+        db.session.add(Tax(name="QA GST 5",rate=5))
+        editor=User(name="QA Master Editor",email="qa-editor@example.com",role_id=1,is_active=True)
+        editor.set_password("QA-editor-123");db.session.add(editor)
     if os.environ.get("QA_REORDER_CASE") == "1":
         product.reorder_level=12
         product.max_stock=30
@@ -83,6 +89,12 @@ with app.app_context():
                 db.session.add(PurchaseOrderItem(po_id=po.id,product_id=p.id,quantity=1,rate=100,discount=0,tax_rate=0,tax_amount=0,line_total=100))
             po.subtotal=1400;po.grand_total=1616
     db.session.commit()
+
+    if os.environ.get("QA_SHIPPING_CASE") == "1":
+        shipping=Product.query.filter_by(sku="QA-SERVICE").one()
+        shipping.name="QA Shipping Service"
+        shipping.sales_price=100
+        db.session.commit()
 
     if os.environ.get("QA_BATCH_RECEIPT_CASE") == "1":
         from datetime import date

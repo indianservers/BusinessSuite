@@ -18,3 +18,15 @@ assert.equal(vm.runInContext('POS.cart[0].qty',pos),1.25);
 assert.equal(vm.runInContext('lineTotal(POS.cart[0])',pos),1180);
 assert.ok(amount.textContent.endsWith('1180.00'));
 console.log('PASS: numeric formatting preserves restock checkbox; fractional input updates POS state and line total before blur');
+
+let observeAdded;
+const dynamic={nodeType:1,type:'number',name:'quantity[]',value:'1',dataset:{},matches:()=>true,querySelectorAll:()=>[],addEventListener(){}};
+const dynamicDoc={body:{},activeElement:null,addEventListener(){},querySelectorAll:()=>[]};
+const dynamicContext=vm.createContext({document:dynamicDoc,window:{},MutationObserver:class {constructor(callback){observeAdded=callback;}observe(){}}});
+vm.runInContext(fs.readFileSync('app/static/js/common.js','utf8'),dynamicContext);
+vm.runInContext('initIndianNumberInputs()',dynamicContext);
+observeAdded([{addedNodes:[dynamic]}]);
+assert.equal(dynamic.type,'text');assert.equal(dynamic.dataset.indianFormat,'true');
+const focused={...dynamic,type:'number',dataset:{}};dynamicDoc.activeElement=focused;
+observeAdded([{addedNodes:[focused]}]);assert.equal(focused.type,'number');
+console.log('PASS: dynamic quantities prepare before focus and never change type during replacement');

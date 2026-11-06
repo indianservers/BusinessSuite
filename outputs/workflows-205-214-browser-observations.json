@@ -1,0 +1,17 @@
+[
+  {
+    "workflow": 214,
+    "stage": "copied draft after refresh",
+    "text": "Invoice INV-2026-00002\nWorkflow 205-214 Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nINV-2026-00002\n2026-11-07 | Due 2026-12-07\n Draft\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 0.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n1000.00\nDiscount\n0.00\nTax\n180.00\nGrand Total\n1180.00\nPaid\n0.00\nBalance\n1180.00\nActions\n Edit Draft\n Issue Invoice\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 214,
+    "stage": "new independently collected invoice after refresh",
+    "text": "Invoice INV-2026-00002\nWorkflow 205-214 Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nINV-2026-00002\n2026-11-07 | Due 2026-12-07\n Paid\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 0.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n1000.00\nDiscount\n0.00\nTax\n180.00\nGrand Total\n1180.00\nPaid\n1180.00\nBalance\n0.00\nActions\nCopy to new draft\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nPayment History\n2026-11-07\tCash\t1180.00"
+  },
+  {
+    "workflow": 205,
+    "stage": "credit applied without physical return",
+    "text": "Invoice INV-2026-00003\nWorkflow 205-214 Test Company\nDashboard\nInvoices\n3\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nINV-2026-00003\n2026-11-07 | Due 2026-12-07\n Partially Paid\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 1062.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n1000.00\nDiscount\n0.00\nTax\n180.00\nGrand Total\n1180.00\nPaid\n118.00\nBalance\n1062.00\nActions\nCopy to new draft\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  }
+]

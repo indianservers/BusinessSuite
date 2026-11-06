@@ -594,7 +594,7 @@ export function FollowUpDialog({
           </label>
           </details>
           <p className="lm-help">
-            Times use your device timezone. Scheduling creates a CRM task;
+            Times use your device timezone. Scheduling creates a CRM follow-up activity;
             meetings are booked in Activities.
           </p>
           <Button type="submit" disabled={busy || !detail || !title.trim()}>

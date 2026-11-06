@@ -37,6 +37,10 @@ celery_app = (
 
 celery_app.conf.timezone = settings.CELERY_TIMEZONE
 celery_app.conf.beat_schedule = {
+    "sync-connected-accounting": {
+        "task": "app.worker.sync_connected_accounting",
+        "schedule": 60.0,
+    },
     "cleanup-abandoned-chat-uploads": {
         "task": "app.worker.cleanup_chat_uploads",
         "schedule": 3600.0,
@@ -87,3 +91,13 @@ def process_operator_queue() -> dict:
         return process_batch(db)
     finally:
         db.close()
+
+
+@celery_app.task(name="app.worker.sync_connected_accounting")
+@all_company_job
+def sync_connected_accounting() -> dict:
+    from app.module_registry import is_app_enabled
+    if not is_app_enabled("fam"):
+        return {"disabled": True}
+    from app.shared.accounting_sync.jobs import process_due
+    return process_due(SessionLocal)

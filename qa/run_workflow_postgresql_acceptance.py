@@ -20,6 +20,12 @@ def main():
     admin = create_engine(source.set(database="postgres"), isolation_level="AUTOCOMMIT")
     quote = admin.dialect.identifier_preparer.quote_identifier
     with admin.connect() as connection:
+        createdb, createrole, superuser = connection.exec_driver_sql(
+            "SELECT rolcreatedb, rolcreaterole, rolsuper FROM pg_roles WHERE rolname=current_user"
+        ).one()
+        if not superuser and not (createdb and createrole):
+            admin.dispose()
+            raise RuntimeError("Use a dedicated local test administrator with database/role creation privileges; keep the app role restricted")
         connection.exec_driver_sql(f"CREATE DATABASE {quote(name)}")
     target = source.set(database=name)
     env = {**os.environ, "TEST_DATABASE_URL": target.render_as_string(hide_password=False),

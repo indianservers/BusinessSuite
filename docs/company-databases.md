@@ -47,7 +47,7 @@ Moving a company marks it moving, prevents runtime connections, drains that comp
 
 - Seven disposable TDBQA companies were approved, activated and logged in against seven distinct PostgreSQL DBs.
 - Final post-move integration run: **198passed,0failed**. Includes own-company CRUD/read, refresh, assignment/header tampering, owner API denial, concurrent requests and maintenance mode.
-- Additional SQL/migration assertions: **67passed,0failed**, including all42cross-company connection attempts across actual server ports, seven owner-DB denials, one-company constraints and idempotent receipt retry.
+- Additional SQL/migration assertions: **68passed,0failed**, including all42cross-company connection attempts across actual server ports, seven owner-DB denials, one-company constraints and idempotent receipt retry.
 - Regression suite: **88passed**. Includes signed routing, refresh, fail-closed behavior, bounded engines, secret redaction and realtime isolation with overlapping local IDs.
 - Frontend local build passed.
 - Browser: all seven Company Admins displayed only their own company and QA lead; all seven owner health checks showed exactly one company. Company sessions attempting owner database/signup pages were redirected to the separate owner login. Manual workspace override passed: an invitation URL for company-31 was overridden to company-36, which authenticated Company7 on the second server.

@@ -1,0 +1,52 @@
+[
+  {
+    "workflow": 202,
+    "stage": "QA-202-2",
+    "text": "Sales Returns\nWorkflow 202-218-236 Test Company\nDashboard\nSales\nReturns\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nSales return saved and credit note generated.\nSales Returns\n Return\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tCustomer\n\tTotal\n\tMode\n\tStatus\n\tReview\n\nQA-202-2\t2026-11-07\tQA Customer A\t2360.00\tCredit Note\tApproved\t\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 202,
+    "stage": "QA-202-3",
+    "text": "Sales Returns\nWorkflow 202-218-236 Test Company\nDashboard\nSales\nReturns\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nSales return saved and credit note generated.\nSales Returns\n Return\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tCustomer\n\tTotal\n\tMode\n\tStatus\n\tReview\n\nQA-202-2\t2026-11-07\tQA Customer A\t2360.00\tCredit Note\tApproved\t\nQA-202-3\t2026-11-08\tQA Customer A\t3540.00\tCredit Note\tApproved\t\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 202,
+    "stage": "QA-202-1",
+    "text": "Sales Returns\nWorkflow 202-218-236 Test Company\nDashboard\nSales\nReturns\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nSales return saved and credit note generated.\nSales Returns\n Return\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tCustomer\n\tTotal\n\tMode\n\tStatus\n\tReview\n\nQA-202-1\t2026-11-09\tQA Customer A\t1180.00\tCredit Note\tApproved\t\nQA-202-2\t2026-11-07\tQA Customer A\t2360.00\tCredit Note\tApproved\t\nQA-202-3\t2026-11-08\tQA Customer A\t3540.00\tCredit Note\tApproved\t\nShowing 1 to 3 of 3 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 202,
+    "stage": "excess five rejected",
+    "text": "Create Sales Return\nWorkflow 202-218-236 Test Company\nDashboard\nSales\nReturns\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCumulative returns cannot exceed the original sold quantity\nReturn No\nDate\nCustomer\nSelect\nQA Customer A\nWarehouse\nSelect\nMain\nQA Warehouse B\nOriginal Invoice\nNone\nINV-2026-00001\nRefund Mode\nCredit Note\nCash Refund\nBank Refund\nRestock returned items\nItems\nProduct\nP1 - QA Product A\nQA-SERVICE - QA Consulting Service (Out)\nSubtotal\nDiscount\nTax\nShipping\nOther Charges\nRound Off\nGrand Total\nPaid Amount\nFull\nBalance\nStatus\nReason\nNotes\nReview return totals before saving.\nSave Return"
+  },
+  {
+    "workflow": 218,
+    "stage": "next sale receives unchanged catalog price",
+    "cartValues": [
+      "1",
+      "1000.00",
+      "0.00"
+    ]
+  },
+  {
+    "workflow": 236,
+    "stage": "basket before another user changes master",
+    "text": "POS Terminal\nWorkflow 202-218-236 Test Company\nDashboard\nPos\nTerminal\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nWorkflow 202-218-236 Test Company\nMain Branch · Main POS\nCashier\nAdmin\nSession\nPOS-2026-00001\nOpened\n06 Nov 18:37\nNow\n12:12 AM\n Hold\n Recall\nRetail\nSupermarket\nRestaurant\nServices\nWholesale\nPharmacy\nElectronics\nGarments\nWalk-in Customer\nQA Customer A\nQuick Actions\n Recent\nAll\nProducts\nTap, scan or press Enter to add\n2 items\nQA Consulting Service\nQA-SERVICE\n0.000 in stock\n18.00% tax\n₹5000.00\n0\nQA Product A\nP1\n16.000 in stock\n18.00% tax\n₹1000.00\n1\nACTIVE BILL\nCart\n Notes\nQA Product A\nP1\n₹1180.00\nQty\n-\n+\nRate\nDisc %\nDetails / note\nSubtotal\n1000.00\nLine discount\n0.00\nBill discount\nCoupon discount\n0.00\nTaxable value\n1000.00\nTax\n180.00\nRound off\n0.00\nGrand total\n1180.00\nItems\n1\nQuantity\n1\nAmount Payable\n₹1180.00\n Hold\n Clear\n Payment [F7]"
+  },
+  {
+    "workflow": 236,
+    "stage": "new master1200/5%, basket snapshot invoiced1000/18%",
+    "master": [
+      {
+        "name": "sales_price",
+        "value": "1,200.00"
+      },
+      {
+        "name": "tax_id",
+        "selected": "QA GST 5 5.00%",
+        "value": "2"
+      }
+    ],
+    "text": "Invoice INV-2026-00004\nWorkflow 202-218-236 Test Company\nDashboard\nInvoices\n4\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nINV-2026-00004\n2026-11-07\n Paid\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: -7080.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n1000.00\nDiscount\n0.00\nTax\n180.00\nGrand Total\n1180.00\nPaid\n1180.00\nBalance\n0.00\nActions\nCopy to new draft\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nPayment History\n2026-11-07\tCard\t1180.00"
+  }
+]

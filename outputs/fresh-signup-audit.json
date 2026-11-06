@@ -1,0 +1,617 @@
+{
+  "company": "FlowQA 07 Nov Company A",
+  "email": "flowqa.20261107.a@example.com",
+  "before": [
+    {
+      "workspace": "company-30",
+      "database": "suite_c_e504023fa7db4b7690573c1697bf6347",
+      "port": 5432,
+      "companies": 1,
+      "users": 1,
+      "leads": 1
+    },
+    {
+      "workspace": "company-31",
+      "database": "suite_c_82a7715dd9414b5994496c32db20e3e6",
+      "port": 5432,
+      "companies": 1,
+      "users": 1,
+      "leads": 1
+    },
+    {
+      "workspace": "company-32",
+      "database": "suite_c_2ea744a9d8f1480b82ebcff7b6916e77",
+      "port": 5432,
+      "companies": 1,
+      "users": 1,
+      "leads": 1
+    },
+    {
+      "workspace": "company-33",
+      "database": "suite_c_9aa3698a94874468bdc94feeb441f502",
+      "port": 5432,
+      "companies": 1,
+      "users": 1,
+      "leads": 1
+    },
+    {
+      "workspace": "company-34",
+      "database": "suite_c_d0f3f4c46ddd45da9f6ef9dd2149f44d",
+      "port": 5432,
+      "companies": 1,
+      "users": 1,
+      "leads": 1
+    },
+    {
+      "workspace": "company-35",
+      "database": "suite_c_7026d5ccda5a4e4586ba24ba01060df6",
+      "port": 5432,
+      "companies": 1,
+      "users": 1,
+      "leads": 1
+    },
+    {
+      "workspace": "company-36",
+      "database": "suite_c_9ad4a54dd3934fa4990f06ba286548f5_v2",
+      "port": 55439,
+      "companies": 1,
+      "users": 1,
+      "leads": 1
+    }
+  ],
+  "registry_count_before": 7,
+  "legacy_user_before": 0,
+  "signup_id": 37,
+  "owner": "owner@indianservers.com",
+  "approval_status": 200,
+  "activation_status": 200,
+  "database": {
+    "id": 8,
+    "workspace_code": "company-37",
+    "company_id": 1000000037,
+    "tenant_uuid": "20647911-dd1d-4cd0-9f8e-8fed5f4d7dc9",
+    "database_name": "suite_c_20647911dd1d4cd09f8e8fed5f4d7dc9",
+    "host": "127.0.0.1",
+    "port": 5432,
+    "runtime_role": "suite_r_20647911dd1d4cd09f8e8fed5f4d7dc9",
+    "status": "ready",
+    "routing_version": 1
+  },
+  "business": {
+    "identity": [
+      {
+        "database": "suite_c_20647911dd1d4cd09f8e8fed5f4d7dc9",
+        "role": "suite_r_20647911dd1d4cd09f8e8fed5f4d7dc9",
+        "company_id": 1000000037,
+        "tenant_uuid": "20647911-dd1d-4cd0-9f8e-8fed5f4d7dc9"
+      }
+    ],
+    "companies": [
+      {
+        "id": 1000000037,
+        "name": "FlowQA 07 Nov Company A"
+      }
+    ],
+    "users": [
+      {
+        "id": 1,
+        "email": "flowqa.20261107.a@example.com",
+        "is_active": true,
+        "is_superuser": false
+      }
+    ],
+    "leads": [
+      {
+        "id": 1,
+        "organization_id": 1000000037,
+        "full_name": "FlowQA Fresh Customer One",
+        "status": "Contacted",
+        "notes": "Fresh tenant audit initial note: company-37 only.\nPriority: High",
+        "next_follow_up_at": "2026-11-08 10:00:00+05:30"
+      }
+    ],
+    "notes": [
+      {
+        "id": 1,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "body": "<!--suite-richtext:v1--><p>FlowQA separate note: customer requested a product demonstration. Stored only in company-37.</p>"
+      }
+    ],
+    "tasks": [],
+    "activities": [
+      {
+        "id": 1,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "activity_type": "created",
+        "subject": "Lead captured"
+      },
+      {
+        "id": 2,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "activity_type": "note",
+        "subject": "Note added"
+      },
+      {
+        "id": 3,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "activity_type": "stage_changed",
+        "subject": "New \u2192 Contacted"
+      },
+      {
+        "id": 4,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "activity_type": "updated",
+        "subject": "Lead updated"
+      },
+      {
+        "id": 5,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "activity_type": "call",
+        "subject": "FlowQA product demonstration follow-up"
+      },
+      {
+        "id": 6,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "activity_type": "follow_up_scheduled",
+        "subject": "Follow-up scheduled"
+      }
+    ],
+    "followups": [
+      {
+        "id": 5,
+        "organization_id": 1000000037,
+        "lead_id": 1,
+        "activity_type": "call",
+        "title": "FlowQA product demonstration follow-up",
+        "status": "Pending",
+        "due_date": "2026-11-08 10:00:00+05:30",
+        "metadata_json": {
+          "manualFollowUp": true
+        }
+      }
+    ],
+    "email_outbox": [
+      {
+        "status": "queued",
+        "count": 11
+      },
+      {
+        "status": "held_local",
+        "count": 1
+      }
+    ],
+    "request_audit": [
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/settings",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:11:01.878736+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:11:01.882737+05:30"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/lead-management/leads",
+        "status_code": 201,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:11:26.654851+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/settings",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:11:28.173666+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads/{ident}",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:11:29.149459+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:11:31.307409+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 304,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:12:40.131659+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 304,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:13:26.691407+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:13:39.285807+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/settings",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:15:46.073084+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 304,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:15:46.285708+05:30"
+      },
+      {
+        "method": "PATCH",
+        "endpoint": "/lead-management/leads/{ident}",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:15:56.108016+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/settings",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:15:57.246752+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:15:57.375272+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads/{ident}",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:15:57.884415+05:30"
+      },
+      {
+        "method": "POST",
+        "endpoint": "/lead-management/leads/{ident}/follow-up",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:02.302873+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/settings",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:02.983911+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:03.134695+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:33.619536+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:35.209122+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:36.220778+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/settings",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:36.257164+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads/{ident}",
+        "status_code": 200,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:16:37.848048+05:30"
+      },
+      {
+        "method": "GET",
+        "endpoint": "/lead-management/leads",
+        "status_code": 304,
+        "organization_id": 1000000037,
+        "created_at": "2026-11-07 00:17:27.548071+05:30"
+      }
+    ]
+  },
+  "email_outbox_columns": [
+    "id",
+    "event_key",
+    "organization_id",
+    "module",
+    "recipient_user_id",
+    "recipient",
+    "subject",
+    "body",
+    "is_html",
+    "status",
+    "provider_message_id",
+    "error",
+    "attempts",
+    "created_at",
+    "accepted_at"
+  ],
+  "audit_logs_columns": [
+    "id",
+    "user_id",
+    "method",
+    "endpoint",
+    "ip_address",
+    "user_agent",
+    "status_code",
+    "duration_ms",
+    "entity_type",
+    "entity_id",
+    "action",
+    "old_values",
+    "new_values",
+    "description",
+    "created_at",
+    "request_id",
+    "actor_email",
+    "actor_role",
+    "actor_authenticated",
+    "module",
+    "task_id",
+    "project_id",
+    "workspace_id",
+    "error_type",
+    "ip_source",
+    "forwarded_ip",
+    "organization_id"
+  ],
+  "owner_database": "indian_servers_platform",
+  "signup": [
+    {
+      "id": 37,
+      "status": "approved",
+      "company_name": "FlowQA 07 Nov Company A",
+      "email": "flowqa.20261107.a@example.com"
+    }
+  ],
+  "approval_history": [
+    {
+      "decision": "approve",
+      "actor": "owner@indianservers.com",
+      "created_at": "2026-11-07 00:10:04.785020+05:30"
+    }
+  ],
+  "owner_events": [
+    {
+      "action": "signup.received",
+      "entity": "signup",
+      "entity_id": 37,
+      "created_at": "2026-11-07 00:08:35.690432+05:30"
+    },
+    {
+      "action": "signup.edited",
+      "entity": "signup",
+      "entity_id": 37,
+      "created_at": "2026-11-07 00:09:46.359642+05:30"
+    },
+    {
+      "action": "signup.approved",
+      "entity": "signup",
+      "entity_id": 37,
+      "created_at": "2026-11-07 00:10:04.785020+05:30"
+    }
+  ],
+  "owner_workflows": [
+    {
+      "kind": "customer_invitation",
+      "state": "ready_local",
+      "count": 1
+    },
+    {
+      "kind": "notification",
+      "state": "unread",
+      "count": 1
+    },
+    {
+      "kind": "outbox",
+      "state": "queued_local",
+      "count": 1
+    },
+    {
+      "kind": "provisioning",
+      "state": "completed",
+      "count": 1
+    }
+  ],
+  "registry_count_after": 8,
+  "postgres_activity": [
+    {
+      "port": 5432,
+      "database": "business_suite",
+      "state": "idle",
+      "connections": 2
+    },
+    {
+      "port": 5432,
+      "database": "indian_servers_platform",
+      "state": "idle",
+      "connections": 3
+    },
+    {
+      "port": 5432,
+      "database": "indian_servers_platform",
+      "state": "idle in transaction",
+      "connections": 1
+    }
+  ],
+  "background_configuration": {
+    "email_worker_enabled": true,
+    "backup_scheduler_enabled": false,
+    "email_tick_seconds": 30,
+    "followup_tick_seconds": 60,
+    "platform_due_work_seconds": 300,
+    "tenant_engine_pool": "NullPool",
+    "external_email_transport_configured": false
+  },
+  "checks": [
+    {
+      "name": "exactly one company and active scoped administrator",
+      "passed": true
+    },
+    {
+      "name": "lead stage persists",
+      "passed": true
+    },
+    {
+      "name": "separate note persists",
+      "passed": true
+    },
+    {
+      "name": "follow-up CRM activity persists",
+      "passed": true
+    },
+    {
+      "name": "owner database contains no CRM leads table",
+      "passed": true
+    },
+    {
+      "name": "company-30 has no new company user/lead/note/task",
+      "passed": true
+    },
+    {
+      "name": "company-31 has no new company user/lead/note/task",
+      "passed": true
+    },
+    {
+      "name": "company-32 has no new company user/lead/note/task",
+      "passed": true
+    },
+    {
+      "name": "company-33 has no new company user/lead/note/task",
+      "passed": true
+    },
+    {
+      "name": "company-34 has no new company user/lead/note/task",
+      "passed": true
+    },
+    {
+      "name": "company-35 has no new company user/lead/note/task",
+      "passed": true
+    },
+    {
+      "name": "company-36 has no new company user/lead/note/task",
+      "passed": true
+    },
+    {
+      "name": "legacy database has no new company user or lead",
+      "passed": true
+    },
+    {
+      "name": "fresh authenticated login",
+      "passed": true
+    },
+    {
+      "name": "company cannot access /platform/me",
+      "passed": true
+    },
+    {
+      "name": "company cannot access /platform/signups",
+      "passed": true
+    },
+    {
+      "name": "company cannot access /platform/databases",
+      "passed": true
+    },
+    {
+      "name": "company cannot access /auth/signup-requests",
+      "passed": true
+    },
+    {
+      "name": "signed tenant cannot be overridden by workspace header",
+      "passed": true
+    },
+    {
+      "name": "access API returns own company only",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied company-30 database",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied company-31 database",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied company-32 database",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied company-33 database",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied company-34 database",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied company-35 database",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied company-36 database",
+      "passed": true
+    },
+    {
+      "name": "runtime PostgreSQL role denied owner database",
+      "passed": true
+    }
+  ],
+  "passed": 28,
+  "failed": 0,
+  "findings": [
+    "Corrected follow-up dialog wording: scheduling stores a CRM activity, not a crm_tasks row.",
+    "Local backend auto-reloads briefly interrupted browser login; retry succeeded.",
+    "Restarted local API without automatic reload to finish stable audit after repeated concurrent edit shutdowns."
+  ],
+  "build": "npm run build:local passed"
+}

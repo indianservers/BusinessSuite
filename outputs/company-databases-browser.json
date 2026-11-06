@@ -1,0 +1,43 @@
+{
+  "companies": [
+    {
+      "company": 1,
+      "ownLead": true,
+      "otherLead": false
+    },
+    {
+      "company": 2,
+      "ownLead": true,
+      "otherLead": false
+    },
+    {
+      "company": 3,
+      "ownLead": true,
+      "otherLead": false
+    },
+    {
+      "company": 4,
+      "ownLead": true,
+      "otherLead": false
+    },
+    {
+      "company": 5,
+      "ownLead": true,
+      "otherLead": false
+    },
+    {
+      "company": 6,
+      "ownLead": true,
+      "otherLead": false
+    },
+    {
+      "company": 7,
+      "ownLead": true,
+      "otherLead": false
+    }
+  ],
+  "ownerHealthChecks": 7,
+  "companyOwnerPagesDenied": true,
+  "manualWorkspaceOverride": true,
+  "migratedCompanyRecordVerified": true
+}

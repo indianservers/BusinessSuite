@@ -10,8 +10,9 @@ from app.services.accounting_service import account, create_journal
 from app.services.invoice_service import calculate_document, line_totals
 from app.services.numbering_service import next_number
 from app.utils.pdf_generator import render_pdf
-from app.utils.helpers import money
+from app.utils.helpers import money, qty
 from decimal import InvalidOperation
+from app.utils.decorators import permission_required
 
 bp = Blueprint("notes", __name__, url_prefix="")
 
@@ -38,7 +39,27 @@ def credit_notes():
 def credit_note_create():
     if request.method == "POST":
         try:
-            items = parse_note_items(); totals = calculate_document(items)
+            items = parse_note_items()
+            original = Sale.query.filter_by(id=request.form.get("sale_id")).with_for_update().first() if request.form.get("sale_id") else None
+            if request.form.get("sale_id") and (not original or original.status in {"Draft","Cancelled"} or str(original.customer_id) != request.form.get("customer_id")):
+                raise ValueError("Credit requires an issued invoice for the same customer")
+            requested = {}
+            for item in items:
+                values = (qty(item["quantity"]),money(item["rate"]),money(item["tax_rate"]))
+                if any(not value.is_finite() or value < 0 for value in values) or values[0] <= 0:
+                    raise ValueError("Credit lines require positive quantities and finite nonnegative prices and tax")
+                if original:
+                    lines = original.items.filter_by(product_id=item["product_id"]).all()
+                    if not lines: raise ValueError("Credit product must belong to the original invoice")
+                    base = sum((money(line.line_total)-money(line.tax_amount) for line in lines),money(0))
+                    tax = sum((money(line.tax_amount) for line in lines),money(0))
+                    item["tax_rate"] = tax/base*100 if base else 0
+                    item.update(line_totals(item["quantity"],item["rate"],0,item["tax_rate"]))
+                    previous = db.session.query(db.func.coalesce(db.func.sum(CreditNoteItem.line_total),0)).join(CreditNote).filter(CreditNote.sale_id==original.id,CreditNote.status=="Issued",CreditNoteItem.product_id==item["product_id"]).scalar()
+                    requested[item["product_id"]] = requested.get(item["product_id"],money(0))+money(item["line_total"])
+                    if money(previous)+requested[item["product_id"]] > base+tax:
+                        raise ValueError("Cumulative credits cannot exceed the original invoice product amount")
+            totals = calculate_document(items)
             note = CreditNote(cn_no=request.form.get("cn_no") or next_number("credit_note"), cn_date=date.fromisoformat(request.form["cn_date"]), customer_id=request.form["customer_id"], sale_id=request.form.get("sale_id") or None, reason=request.form.get("reason"), adjustment_type=request.form.get("adjustment_type") or "Other", status="Issued", created_by=current_user.id, subtotal=totals["subtotal"], tax_total=totals["tax_total"], grand_total=totals["grand_total"])
             db.session.add(note); db.session.flush()
             for item in items:
@@ -93,22 +114,27 @@ def credit_note_apply(id):
 
 @bp.route("/credit-notes/<int:id>/refund", methods=["POST"])
 @login_required
+@permission_required("sales", "approve")
 def credit_note_refund(id):
-    note = CreditNote.query.get_or_404(id)
-    amount = min(float(request.form.get("amount") or 0), float(note.grand_total or 0) - float(note.applied_amount or 0) - float(note.refunded_amount or 0))
-    if amount <= 0:
-        flash("Enter a valid refund amount.", "warning")
-        return redirect(url_for("notes.credit_notes"))
-    refund = Refund(refund_no=next_number("refund"), refund_date=date.today(), customer_id=note.customer_id, credit_note_id=note.id, amount=amount, refund_mode=request.form.get("refund_mode") or "Cash", reference_no=request.form.get("reference_no"), approval_status="Approved", notes=f"Refund against {note.cn_no}", created_by=current_user.id)
-    db.session.add(refund)
-    note.refunded_amount = float(note.refunded_amount or 0) + amount
-    customer = Customer.query.get(note.customer_id)
-    customer.current_balance = float(customer.current_balance or 0) + amount
-    db.session.add(CustomerLedger(date=refund.refund_date, customer_id=note.customer_id, reference_type="Refund", reference_id=refund.id, reference_no=refund.refund_no, debit=amount, credit=0, balance=customer.outstanding + amount, narration=f"Refund against {note.cn_no}"))
-    record_audit("Payment Update", "Refund", refund.id, new_data={"credit_note": note.cn_no, "amount": amount})
-    db.session.commit()
-    flash("Credit note refunded.", "success")
+    note = CreditNote.query.filter_by(id=id).with_for_update().first_or_404()
+    try:
+        amount = money(request.form.get("amount") or 0)
+        available = money(note.grand_total) - money(note.applied_amount) - money(note.refunded_amount)
+        if note.status != "Issued" or not amount.is_finite() or amount <= 0 or amount > available:
+            raise ValueError("Refund must be positive and cannot exceed the remaining credit note balance")
+        customer = Customer.query.filter_by(id=note.customer_id).with_for_update().one()
+        previous_balance = money(customer.outstanding)
+        refund = Refund(refund_no=next_number("refund"), refund_date=date.today(), customer_id=note.customer_id, credit_note_id=note.id, amount=amount, refund_mode=request.form.get("refund_mode") or "Cash", reference_no=request.form.get("reference_no"), approval_status="Approved", notes=f"Refund against {note.cn_no}", created_by=current_user.id)
+        db.session.add(refund);db.session.flush()
+        note.refunded_amount = money(note.refunded_amount) + amount
+        customer.current_balance = money(customer.current_balance) + amount
+        db.session.add(CustomerLedger(date=refund.refund_date, customer_id=note.customer_id, reference_type="Refund", reference_id=refund.id, reference_no=refund.refund_no, debit=amount, credit=0, balance=previous_balance+amount, narration=f"Refund against {note.cn_no}"))
+        record_audit("Payment Update", "Refund", refund.id, new_data={"credit_note":note.cn_no,"amount":str(amount)})
+        db.session.commit();flash("Credit note refunded.", "success")
+    except (ValueError, InvalidOperation) as exc:
+        db.session.rollback();flash(str(exc),"danger")
     return redirect(url_for("notes.credit_notes"))
+
 
 
 @bp.route("/debit-notes/")

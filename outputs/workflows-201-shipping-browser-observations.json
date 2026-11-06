@@ -1,0 +1,22 @@
+[
+  {
+    "workflow": 201,
+    "stage": "repeated refund blocked",
+    "text": "Credit Notes\nWorkflow 201-shipping Test Company\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nRefund must be positive and cannot exceed the remaining credit note balance\nCredit Notes\nCreate\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tParty\n\tTotal\n\tApplied\n\tRefunded\n\tStatus\n\t\n\nCN-2026-00001\t2026-11-07\tQA Customer A\t118.00\t0.00\t118.00\tIssued\tPrintPDF\nApply\nCash\nBank\nCard\nUPI\nRefund\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 201,
+    "stage": "shipping credit line and tax",
+    "text": "Credit Note\nWorkflow 201-shipping Test Company\nDashboard\nCredit Notes\n1\nPrint\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nWorkflow 201-shipping Test Company\nCredit Note\n\nCN-2026-00001\n2026-11-07\n\nParty: QA Customer A\nReason: QA-201 shipping-only credit and refund; retain goods\n\nProduct\tQty\tRate\tTax\tTotal\nQA Shipping Service\t1.000\t100.0000\t18.00\t118.00\nTotal: 118.00\nPrint"
+  },
+  {
+    "workflow": 201,
+    "stage": "final repeated refund blocked",
+    "text": "Credit Notes\nWorkflow 201-shipping-final Test Company\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nRefund must be positive and cannot exceed the remaining credit note balance\nCredit Notes\nCreate\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tParty\n\tTotal\n\tApplied\n\tRefunded\n\tStatus\n\t\n\nCN-2026-00001\t2026-11-07\tQA Customer A\t118.00\t0.00\t118.00\tIssued\tPrintPDF\nApply\nCash\nBank\nCard\nUPI\nRefund\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 201,
+    "stage": "new duplicate shipping credit blocked",
+    "text": "Create Credit Note\nWorkflow 201-shipping-final Test Company\nDashboard\nCredit Notes\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCumulative credits cannot exceed the original invoice product amount\nNo\nDate\nCustomer\nQA Customer A\nSale\nNone\nINV-2026-00001\nAdjustment\nReturn\nPrice\nOther\nProduct\nQA Product A\nQA Shipping Service\nProduct\nQA Product A\nQA Shipping Service\nProduct\nQA Product A\nQA Shipping Service\nReason\nIssue"
+  }
+]

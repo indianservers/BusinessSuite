@@ -10,9 +10,13 @@ from app.shared.import_models import ImportConnection
 
 def now(): return datetime.now(timezone.utc)
 
-def acquire(db, connection):
+def acquire(db, connection, scheduled=False):
     stamp = now(); run_id = str(uuid4())
-    claimed = db.query(SyncConnection).filter(SyncConnection.id == connection.id, SyncConnection.enabled.is_(True), or_(SyncConnection.lease_until.is_(None), SyncConnection.lease_until < stamp)).update({"lease_until":stamp+timedelta(hours=1), "active_token":run_id}, synchronize_session=False)
+    query = db.query(SyncConnection).filter(SyncConnection.id == connection.id, SyncConnection.enabled.is_(True), or_(SyncConnection.lease_until.is_(None), SyncConnection.lease_until < stamp))
+    if scheduled:
+        query = query.filter(SyncConnection.auto_sync.is_(True), SyncConnection.next_sync_at <= stamp)
+    claimed = query.update({"lease_until":stamp+timedelta(hours=1), "active_token":run_id,
+        "next_sync_at":stamp+timedelta(minutes=connection.interval_minutes or 15)}, synchronize_session=False)
     if not claimed: raise HTTPException(409, "A sync is running or this connection is paused")
     db.query(SyncRun).filter(SyncRun.connection_id == connection.id, SyncRun.status == "running").update({"status":"interrupted", "completed_at":stamp, "error":"Previous sync lease expired"}, synchronize_session=False)
     run = SyncRun(id=run_id, connection_id=connection.id,status="running",started_at=stamp,counts={})
@@ -54,12 +58,14 @@ def apply_snapshot(db, connection, run_id, snapshot):
     for row in existing.values():
         if row.present: row.present=False; counts["missing"]+=1
     stamp=now(); lock.last_success_at=stamp; lock.lease_until=None; lock.active_token=None
+    lock.consecutive_failures=0; lock.schedule_error=None
+    lock.next_sync_at=stamp+timedelta(minutes=lock.interval_minutes or 15) if lock.auto_sync else None
     run=db.get(SyncRun,run_id); run.status="completed"; run.completed_at=stamp; run.counts=counts
     db.commit()
     return run
 
-def execute(db, connection, snapshot=None):
-    identity=connection.id; run_id=acquire(db,connection)
+def execute(db, connection, snapshot=None, scheduled=False):
+    identity=connection.id; run_id=acquire(db,connection,scheduled=scheduled)
     try:
         if snapshot is None:
             if connection.provider == "tally": raise ProviderError("Tally sync requires a snapshot from the local agent")
@@ -72,6 +78,12 @@ def execute(db, connection, snapshot=None):
         db.query(SyncConnection).filter_by(id=identity,active_token=run_id).update({"active_token":None,"lease_until":None},synchronize_session=False)
         run=db.get(SyncRun,run_id); run.status="failed"; run.completed_at=now()
         run.error=str(exc)[:300] if isinstance(exc,ProviderError) else "Sync failed; previous successful snapshot was preserved"
+        row=db.query(SyncConnection).filter_by(id=identity).populate_existing().first()
+        if row is not None and not row.active_token:
+            row.consecutive_failures=(row.consecutive_failures or 0)+1
+            row.schedule_error=run.error
+            delay=min(360,max(5,row.interval_minutes or 15)*2**min(row.consecutive_failures-1,6))
+            row.next_sync_at=now()+timedelta(minutes=delay) if row.auto_sync else None
         db.commit()
         return run
 

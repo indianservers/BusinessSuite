@@ -186,10 +186,14 @@ def test_frozen_migration_schema_matches_models():
     engine=sa.create_engine('sqlite://')
     with engine.begin() as conn:
         conn.execute(sa.text('CREATE TABLE users (id INTEGER PRIMARY KEY)'))
+        conn.execute(sa.text('CREATE TABLE crm_companies (id INTEGER PRIMARY KEY)'))
         op=Operations(MigrationContext.configure(conn));schema.upgrade(op)
+        from app.shared.accounting_sync import background_schema
+        background_schema.upgrade(op)
         inspector=sa.inspect(conn)
         for model in (SyncConnection,SyncRecord,SyncRun):
             assert {c['name'] for c in inspector.get_columns(model.__tablename__)}==set(model.__table__.columns.keys())
+        background_schema.downgrade(op)
         schema.downgrade(op)
-        assert sa.inspect(conn).get_table_names()==['users']
+        assert set(sa.inspect(conn).get_table_names())=={'users','crm_companies'}
     engine.dispose()

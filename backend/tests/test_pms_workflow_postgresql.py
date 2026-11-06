@@ -38,6 +38,7 @@ def live(db_engine):
     previous_overrides = dict(app.dependency_overrides)
     keys = ("business_os_session_factory", "business_os_close_session", "audit_session_factory", "audit_close_session", "audit_commit")
     previous_state = {key: getattr(app.state, key, None) for key in keys}
+    runtime_roles = []
     client = TestClient(app)
     seed = factory()
     try:
@@ -67,7 +68,7 @@ def live(db_engine):
         app.state.audit_commit = True
         yield SimpleNamespace(client=client, factory=factory, engine=engine, pid=pid, tid=tid,
                               wid=wid, oh=oh, ah=ah, mh=mh, reviewer=reviewer, scheme=scheme,
-                              owner_id=owner_id, member_id=member_id)
+                              owner_id=owner_id, member_id=member_id, runtime_roles=runtime_roles)
     finally:
         seed.close(); client.close()
         app.dependency_overrides.clear(); app.dependency_overrides.update(previous_overrides)
@@ -75,6 +76,8 @@ def live(db_engine):
         engine.dispose()
         with admin.connect() as connection:
             connection.exec_driver_sql(f"DROP DATABASE {quote(name)} WITH (FORCE)")
+            for role in runtime_roles:
+                connection.exec_driver_sql(f"DROP ROLE {quote(role)}")
         admin.dispose()
 
 
@@ -264,9 +267,27 @@ def test_production_mode_runtime_workflow(live, tmp_path):
     import sys
     from pathlib import Path
     import httpx
+    from sqlalchemy import inspect
+    role = "workflow_runtime_" + uuid4().hex[:10]
+    with live.engine.begin() as connection:
+        quote = connection.dialect.identifier_preparer.quote_identifier
+        connection.exec_driver_sql(f"CREATE ROLE {quote(role)} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE")
+        live.runtime_roles.append(role)
+        connection.exec_driver_sql(f"ALTER DATABASE {quote(live.engine.url.database)} OWNER TO {quote(role)}")
+        connection.exec_driver_sql(f"ALTER SCHEMA public OWNER TO {quote(role)}")
+        # Match the documented production database owner, without cluster privileges.
+        for table in inspect(connection).get_table_names(schema="public"):
+            connection.exec_driver_sql(f"ALTER TABLE public.{quote(table)} OWNER TO {quote(role)}")
+        connection.exec_driver_sql(f"GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO {quote(role)}")
+    runtime_url = live.engine.url.set(username=role, password=None)
+    runtime_engine = create_engine(runtime_url)
+    with runtime_engine.connect() as connection:
+        privileges = connection.execute(text("SELECT rolsuper,rolcreatedb,rolcreaterole FROM pg_roles WHERE rolname=current_user")).one()
+        assert not any(privileges)
+    runtime_engine.dispose()
     listener = socket.socket(); listener.bind(("127.0.0.1", 0))
     port = listener.getsockname()[1]; listener.close()
-    env = {**os.environ, "DATABASE_URL": live.engine.url.render_as_string(hide_password=False),
+    env = {**os.environ, "DATABASE_URL": runtime_url.render_as_string(hide_password=False),
            "PLATFORM_DATABASE_URL": "",
            "TENANT_DATABASES_ENABLED": "false", "TENANT_REGISTRY_URL": "",
            "TENANT_PROVISIONING_URL": "", "TENANT_ALLOW_REMOTE_OPERATIONS": "false",

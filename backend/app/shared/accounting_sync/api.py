@@ -20,7 +20,7 @@ def connection_for(db,identity,ctx,user):
     return row
 
 def public(row):
-    return {key:getattr(row,key) for key in ("id","provider","account_id","source_connection_id","sandbox","enabled","last_success_at")}
+    return {key:getattr(row,key) for key in ("id","provider","account_id","source_connection_id","sandbox","enabled","last_success_at","auto_sync","interval_minutes","next_sync_at","consecutive_failures","schedule_error")}
 def run_public(row):
     return {key:getattr(row,key) for key in ("id","status","started_at","completed_at","counts","error")}
 
@@ -29,6 +29,8 @@ class Connect(BaseModel):
     source_connection_id: str | None = Field(default=None,max_length=36)
     account_id: str | None = Field(default=None,min_length=1,max_length=120)
     sandbox: bool = True
+    auto_sync: bool = True
+    interval_minutes: int = Field(default=15,ge=5,le=1440)
 
 @router.get("/connections")
 def connections(request:Request,db=Depends(get_db),user=Depends(get_current_user)):
@@ -46,7 +48,7 @@ def connect(data:Connect,request:Request,db=Depends(get_db),user=Depends(get_cur
         source=get_connection(db,data.source_connection_id,user,ctx)
         if source.provider!=data.provider or source.account_id=="pending": raise HTTPException(409,"Complete the matching provider OAuth connection first")
         account=source.account_id
-    row=SyncConnection(id=str(uuid4()),organization_id=ctx.company_id,branch_id=ctx.branch_id,created_by=user.id,provider=data.provider,account_id=account,source_connection_id=source.id if source else None,sandbox=data.sandbox,enabled=True,bridge_secret=seal({"token":token}) if token else None)
+    row=SyncConnection(id=str(uuid4()),organization_id=ctx.company_id,branch_id=ctx.branch_id,created_by=user.id,provider=data.provider,account_id=account,source_connection_id=source.id if source else None,sandbox=data.sandbox,enabled=True,auto_sync=data.auto_sync and data.provider!="tally",interval_minutes=data.interval_minutes,next_sync_at=service.now() if data.auto_sync and data.provider!="tally" else None,bridge_secret=seal({"token":token}) if token else None)
     db.add(row)
     try: db.commit()
     except IntegrityError:
@@ -68,6 +70,18 @@ def reconnect(identity:str,data:Reconnect,request:Request,db=Depends(get_db),use
         if row.last_success_at: raise HTTPException(409,"Cannot change environment after a successful sync")
         row.sandbox=data.sandbox
     row.source_connection_id=source.id; db.commit(); return public(row)
+
+class Schedule(BaseModel):
+    auto_sync:bool
+    interval_minutes:int=Field(default=15,ge=5,le=1440)
+@router.put("/connections/{identity}/schedule")
+def schedule(identity:str,data:Schedule,request:Request,db=Depends(get_db),user=Depends(get_current_user)):
+    row=connection_for(db,identity,context(request,db,user),user)
+    if row.provider=="tally": raise HTTPException(422,"Tally scheduling runs in the local agent using --watch")
+    row.auto_sync=data.auto_sync; row.interval_minutes=data.interval_minutes
+    row.next_sync_at=service.now() if data.auto_sync else None
+    row.schedule_error=None
+    db.commit(); return public(row)
 
 class Enabled(BaseModel): enabled:bool
 @router.patch("/connections/{identity}")
@@ -131,12 +145,19 @@ def runs(identity:str,request:Request,db=Depends(get_db),user=Depends(get_curren
     return {"items":[run_public(run) for run in db.query(SyncRun).filter_by(connection_id=row.id).order_by(SyncRun.started_at.desc()).limit(limit)]}
 
 @router.get("/connections/{identity}/records")
-def records(identity:str,request:Request,entity:Literal["customers","invoices","payments"],page:int=Query(1,ge=1),page_size:int=Query(50,ge=1,le=200),db=Depends(get_db),user=Depends(get_current_user)):
+def records(identity:str,request:Request,entity:Literal["customers","invoices","payments"],page:int=Query(1,ge=1),page_size:int=Query(50,ge=1,le=200),q:str=Query("",max_length=120),db=Depends(get_db),user=Depends(get_current_user)):
     row=connection_for(db,identity,context(request,db,user),user)
     query=db.query(SyncRecord).filter_by(connection_id=row.id,entity=entity,present=True)
+    if q:
+        pattern="%"+q.replace("!","!!").replace("%","!%").replace("_","!_")+"%"
+        from sqlalchemy import or_
+        query=query.filter(or_(SyncRecord.external_id.ilike(pattern,escape="!"),SyncRecord.data["name"].as_string().ilike(pattern,escape="!")))
     return {"items":[r.data for r in query.order_by(SyncRecord.external_id).offset((page-1)*page_size).limit(page_size)],"total":query.count(),"page":page,"page_size":page_size,"as_of":row.last_success_at}
 
 @router.get("/connections/{identity}/balances")
 def balances(identity:str,request:Request,db=Depends(get_db),user=Depends(get_current_user)):
     row=connection_for(db,identity,context(request,db,user),user)
     return {"items":service.balances(db,row.id),"as_of":row.last_success_at,"basis":"Invoice outstanding only; excludes unapplied customer credits/advances; no currency conversion"}
+
+from app.shared.accounting_sync.consumers import router as consumer_router
+router.include_router(consumer_router)

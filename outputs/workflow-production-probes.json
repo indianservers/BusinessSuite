@@ -1,32 +1,31 @@
 {
-  "checked_at_utc": "2026-11-06T18:20:01.991181+00:00",
+  "checked_at_utc": "2026-11-06T18:36:10.389091+00:00",
   "scope": "Unauthenticated, read-only health, release and route availability; not live end-to-end acceptance",
   "sites": [
     {
       "host": "app.dsbchartered.com",
       "checks": {
         "/health": {
-          "status": 200,
-          "final_url": "https://app.dsbchartered.com/health",
-          "health": {
-            "status": "healthy",
-            "db": "ok"
-          }
+          "error": "ReadTimeout"
         },
         "/release.json": {
           "status": 200,
           "final_url": "https://app.dsbchartered.com/release.json",
           "release": {
-            "commit": "cab74ac32a11ee114190fd83ad02752f11a7a6f1"
+            "commit": "b4bb3552a139110236cf4bef8f50bf579c972413"
           }
         },
         "/api/v1/openapi.json": {
           "status": 200,
           "final_url": "https://app.dsbchartered.com/api/v1/openapi.json",
-          "workflow_paths": []
+          "workflow_paths": [
+            "/api/v1/project-management/projects/{project_id}/workflow-scheme",
+            "/api/v1/project-management/tasks/{task_id}/transition-approvals",
+            "/api/v1/project-management/transition-approvals/inbox"
+          ]
         },
         "/api/v1/project-management/transition-approvals/inbox": {
-          "status": 404,
+          "status": 403,
           "final_url": "https://app.dsbchartered.com/api/v1/project-management/transition-approvals/inbox"
         }
       }
@@ -46,14 +45,20 @@
           "status": 200,
           "final_url": "https://app.indianservers.com/release.json",
           "release": {
-            "commit": "cab74ac32a11ee114190fd83ad02752f11a7a6f1"
+            "commit": "b4bb3552a139110236cf4bef8f50bf579c972413"
           }
         },
         "/api/v1/openapi.json": {
-          "error": "RemoteProtocolError"
+          "status": 200,
+          "final_url": "https://app.indianservers.com/api/v1/openapi.json",
+          "workflow_paths": [
+            "/api/v1/project-management/projects/{project_id}/workflow-scheme",
+            "/api/v1/project-management/tasks/{task_id}/transition-approvals",
+            "/api/v1/project-management/transition-approvals/inbox"
+          ]
         },
         "/api/v1/project-management/transition-approvals/inbox": {
-          "status": 404,
+          "status": 403,
           "final_url": "https://app.indianservers.com/api/v1/project-management/transition-approvals/inbox"
         }
       }

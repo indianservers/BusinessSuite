@@ -12,13 +12,37 @@
       "total": 1180.0,
       "paid": 1180.0,
       "balance": 0.0
+    },
+    {
+      "id": 2,
+      "number": "INV-2026-00002",
+      "status": "Paid",
+      "invoice_date": "2026-11-07",
+      "due_date": "2026-12-07",
+      "subtotal": 1000.0,
+      "tax": 180.0,
+      "total": 1180.0,
+      "paid": 1180.0,
+      "balance": 0.0
+    },
+    {
+      "id": 3,
+      "number": "INV-2026-00003",
+      "status": "Partially Paid",
+      "invoice_date": "2026-11-07",
+      "due_date": "2026-12-07",
+      "subtotal": 1000.0,
+      "tax": 180.0,
+      "total": 1180.0,
+      "paid": 118.0,
+      "balance": 1062.0
     }
   ],
   "products": [
     {
       "id": 1,
       "sku": "P1",
-      "stock": 9.0,
+      "stock": 7.0,
       "track_inventory": true
     },
     {
@@ -33,6 +57,12 @@
       "id": 1,
       "number": "REC-2026-00001",
       "sale_id": 1,
+      "amount": 1180.0
+    },
+    {
+      "id": 2,
+      "number": "REC-2026-00002",
+      "sale_id": 2,
       "amount": 1180.0
     }
   ],
@@ -61,6 +91,26 @@
       "out": 1.0,
       "rate": 600.0,
       "value": 600.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "INV-2026-00002",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0,
+      "rate": 600.0,
+      "value": 600.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "INV-2026-00003",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0,
+      "rate": 600.0,
+      "value": 600.0
     }
   ],
   "warehouses": [
@@ -83,12 +133,19 @@
   "batches": [],
   "goods_receipts": [],
   "returns": [],
-  "credits": [],
+  "credits": [
+    {
+      "id": 1,
+      "number": "CN-2026-00001",
+      "sale_id": 3,
+      "total": 118.0
+    }
+  ],
   "refunds": [],
   "customer_balances": [
     {
       "id": 1,
-      "outstanding": 0.0
+      "outstanding": 1062.0
     }
   ],
   "customer_ledger": [
@@ -101,6 +158,26 @@
       "reference": "REC-2026-00001",
       "debit": 0.0,
       "credit": 1180.0
+    },
+    {
+      "reference": "INV-2026-00002",
+      "debit": 1180.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "REC-2026-00002",
+      "debit": 0.0,
+      "credit": 1180.0
+    },
+    {
+      "reference": "INV-2026-00003",
+      "debit": 1180.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "CN-2026-00001",
+      "debit": 0.0,
+      "credit": 118.0
     }
   ],
   "transfers": []

@@ -1,0 +1,130 @@
+{
+  "fixture": "Isolated in-memory Workflow 201-shipping-final Test Company",
+  "invoices": [
+    {
+      "id": 1,
+      "number": "INV-2026-00001",
+      "status": "Paid",
+      "invoice_date": "2026-11-07",
+      "due_date": "None",
+      "subtotal": 1100.0,
+      "tax": 198.0,
+      "total": 1298.0,
+      "paid": 1298.0,
+      "balance": 0.0
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 9.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    }
+  ],
+  "receipts": [
+    {
+      "id": 1,
+      "number": "REC-2026-00001",
+      "sale_id": 1,
+      "amount": 1298.0
+    }
+  ],
+  "cash_movements": [],
+  "pos_sessions": [
+    {
+      "id": 1,
+      "number": "POS-2026-00001",
+      "status": "Open",
+      "opening": 0.0,
+      "sales": 1298.0,
+      "cash": 0.0,
+      "withdrawals": 0.0,
+      "expected": 0.0,
+      "counted": 0.0,
+      "difference": 0.0
+    }
+  ],
+  "stock_movements": [
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "INV-2026-00001",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0,
+      "rate": 600.0,
+      "value": 600.0
+    }
+  ],
+  "warehouses": [
+    {
+      "id": 1,
+      "name": "Main",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "QA Warehouse B",
+      "active": true
+    }
+  ],
+  "purchase_orders": [],
+  "manufacturing": [],
+  "manufacturing_sources": [],
+  "adjustment_reviews": [],
+  "serials": [],
+  "batches": [],
+  "goods_receipts": [],
+  "returns": [],
+  "credits": [
+    {
+      "id": 1,
+      "number": "CN-2026-00001",
+      "sale_id": 1,
+      "total": 118.0
+    }
+  ],
+  "refunds": [
+    {
+      "number": "RF-2026-00001",
+      "amount": 118.0,
+      "status": "Approved"
+    }
+  ],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [
+    {
+      "reference": "INV-2026-00001",
+      "debit": 1298.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "REC-2026-00001",
+      "debit": 0.0,
+      "credit": 1298.0
+    },
+    {
+      "reference": "CN-2026-00001",
+      "debit": 0.0,
+      "credit": 118.0
+    },
+    {
+      "reference": "RF-2026-00001",
+      "debit": 118.0,
+      "credit": 0.0
+    }
+  ],
+  "transfers": []
+}

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, JSON, DateTime, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Integer, Text, JSON, DateTime, Boolean, ForeignKey, UniqueConstraint, false
 from app.db.base_class import Base
 
 class SyncConnection(Base):
@@ -16,6 +16,11 @@ class SyncConnection(Base):
     lease_until = Column(DateTime(timezone=True))
     active_token = Column(String(36))
     bridge_secret = Column(Text)
+    auto_sync = Column(Boolean, nullable=False, default=False, server_default=false())
+    interval_minutes = Column(Integer, nullable=False, default=15, server_default="15")
+    next_sync_at = Column(DateTime(timezone=True), index=True)
+    consecutive_failures = Column(Integer, nullable=False, default=0, server_default="0")
+    schedule_error = Column(String(300))
     __table_args__ = (UniqueConstraint("organization_id", "branch_id", "provider", "account_id", name="uq_accounting_sync_account"),)
 
 class SyncRecord(Base):
@@ -39,3 +44,15 @@ class SyncRun(Base):
     completed_at = Column(DateTime(timezone=True))
     counts = Column(JSON, nullable=False, default=dict)
     error = Column(String(300))
+
+
+class SyncCustomerLink(Base):
+    __tablename__ = "accounting_sync_customer_links"
+    id = Column(String(36), primary_key=True)
+    organization_id = Column(Integer, nullable=False, index=True)
+    branch_id = Column(Integer, nullable=False)
+    connection_id = Column(String(36), ForeignKey("accounting_sync_connections.id", ondelete="CASCADE"), nullable=False, index=True)
+    external_id = Column(String(160), nullable=False)
+    crm_company_id = Column(Integer, ForeignKey("crm_companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    __table_args__ = (UniqueConstraint("connection_id", "external_id", name="uq_accounting_customer_link"),)

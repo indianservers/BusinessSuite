@@ -1,5 +1,5 @@
 {
-  "passed": 67,
+  "passed": 68,
   "failed": 0,
   "databases": [
     {
@@ -312,6 +312,10 @@
     },
     {
       "name": "source retained with connections disabled",
+      "passed": true
+    },
+    {
+      "name": "full destination rejects move before source changes",
       "passed": true
     }
   ]

@@ -203,6 +203,8 @@ function initIndianNumberInputs() {
   const selector = ['amount','total','balance','paid','quantity','qty','rate','price','charges','discount','tax','stock'].map((part) => `input[name*="${part}"]`).join(",");
   const prepare = (input) => {
     if (!["text", "number"].includes(input.type) || input.readOnly || input.dataset.noFormat === "true") return;
+    // Changing type during focus can invalidate the browser's selected replacement range.
+    if (input.type === "number" && document.activeElement === input) return;
     if (input.type === "number") input.type = "text";
     input.inputMode = "decimal";
     if (input.dataset.indianFormat === "true") return;
@@ -215,6 +217,13 @@ function initIndianNumberInputs() {
     if (input.value) input.value = formatIndianNumber(input.value);
   };
   document.querySelectorAll(selector).forEach(prepare);
+  if (typeof MutationObserver !== "undefined" && document.body) {
+    new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
+      if (node.nodeType !== 1) return;
+      if (node.matches(selector)) prepare(node);
+      node.querySelectorAll(selector).forEach(prepare);
+    }))).observe(document.body, {childList: true, subtree: true});
+  }
   document.addEventListener("focusin", (event) => {
     if (event.target.matches(selector)) prepare(event.target);
   });
