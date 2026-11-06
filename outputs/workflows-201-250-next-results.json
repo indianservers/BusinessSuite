@@ -1,0 +1,130 @@
+{
+  "scope": "Five additional browser passes and three inspected capability gaps; other cases remain outstanding.",
+  "configuration": {
+    "currency": "INR",
+    "storage": "Separate disposable in-memory SQLite companies; no live payments/messages/filings. Before and final fixtures are distinct.",
+    "mixed_return": "Port5318; stocks10each,prices1000/500,tax18%/5%.",
+    "cash_reversal": "Port5317; opening1000,in500,reverse500,cashsale1180.",
+    "batches": "Port5315; start0,received20each,cost100; uniqueness(product,warehouse,text).",
+    "reorder": "Port5316; stock10,cost600,preferredsupplier1; level12,target30 changed35/40; company-wide open procurement rule.",
+    "tax_reporting_scope": "Synthetic preview/CSV and arithmetic JSON checks only; no external filing certification; registration/place-of-supply/HSN defaults unconfigured."
+  },
+  "tests": {
+    "inventory": "96 passed",
+    "javascript": "node --check grn.js passed",
+    "whitespace": "git diff --check passed for changed routes",
+    "persisted_assertions": "Passed: exact receipts/valuation/batch balances; paid invoice; onePO/stock30; zero cash variance; return/credit1705 and restoredstock."
+  },
+  "fixes": [
+    "GRN batch split control,required batch identity and conflicting-date rejection.",
+    "POS scoped batch validation,expiry/cumulative quantity guards,atomic depletion and audit.",
+    "OpenPO-adjusted reorder demand,stale submission revalidation and no emptyPO.",
+    "Reasoned cash reversal,permission/original-open-session/repeat guards and retained history.",
+    "Negative credit rows in GSTR1 preview/CSV; B2C rate grouping/netcredit; HSNnet totals."
+  ],
+  "workflows": [
+    {
+      "workflow": 203,
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00001",
+        "SR-2026-00001",
+        "CN-2026-00001"
+      ],
+      "expected": "Original taxes180 and25,credit1705 and both units restocked; reports reverse original line taxes.",
+      "actual": "Browser sold and collected1705 by card; linked return1705 restored stock10each. Fixed missing GSTR1 credit preview/CSV, B2C rate separation/net credit and HSN net quantity/value. Refreshed preview shows sales1180/525 and credits-1180/-525,tax-180/-25.",
+      "evidence": "workflows-203-tax-preview-fixed.png"
+    },
+    {
+      "workflow": 233,
+      "status": "Pass",
+      "documents": [
+        "POS-2026-00001",
+        "CashMovement1",
+        "CashMovement2",
+        "INV-2026-00001"
+      ],
+      "expected": "Cash-in500 and reversal500 netzero; closing accurate and history retained.",
+      "actual": "Browser opening1000,in500,reasoned reversal500,cashsale1180. Z-report expected/count2180,variance0. Repeat/closed reversal blocked and closed history retained in regression.",
+      "evidence": "workflows-233-zero-variance.png"
+    },
+    {
+      "workflow": 240,
+      "status": "Pass",
+      "documents": [
+        "QA-240-BATCH-PO",
+        "GRN-2026-00001"
+      ],
+      "expected": "OneGRN receives12+8,expiry separate,totalcost2000.",
+      "actual": "Added Split batch control. Browser12 expJan1 and8 expFeb1,2027; PO20/20 Received. Movementvalues1200+800. Regression overreceipt21 rolls back all stock/batch/GRN rows.",
+      "evidence": "workflows-240-received-batches.png"
+    },
+    {
+      "workflow": 242,
+      "status": "Pass",
+      "documents": [
+        "PO-2026-00001",
+        "GRN-2026-00001",
+        "P1"
+      ],
+      "expected": "Open procurement offsets changed reorder target and is replaced by stock upon receipt.",
+      "actual": "Fixed ignored openPO. Browser stock10,target30 created20; nextsuggestion0. Changedlevel35,target40: open20,suggestion10. Received20:stock30,open0,suggestionstill10; exactlyonePO retained.",
+      "evidence": "workflows-242-policy-after-receipt.png"
+    },
+    {
+      "workflow": 243,
+      "status": "Pass",
+      "documents": [
+        "QA-240-BATCH-PO",
+        "QA-243-BATCH-PO",
+        "GRN-2026-00001",
+        "GRN-2026-00002",
+        "INV-2026-00001"
+      ],
+      "expected": "Samebatchtext acrossproducts remains independent through receipt,sale and search.",
+      "actual": "ReceivedQA-SHARED12(product3) and20(product4),distinctexpiry. FoundPOS ignored selectedbatch; fixed product/warehouse/expiry/cumulativeavailability,atomicdepletion and audit. Browser soldoneeach,total472paid; refreshed search shows11 and19; QA-B stays8.",
+      "evidence": "workflows-243-separated-batch-balances.png"
+    },
+    {
+      "workflow": 245,
+      "status": "Blocked",
+      "documents": [],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "Form exposes immediate Post Adjustment only; no attachment or approval capability. No posting attempted.",
+      "evidence": "workflows-201-250-next-capability-observations.json"
+    },
+    {
+      "workflow": 247,
+      "status": "Blocked",
+      "documents": [],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "No component-specific source locations or separate destination are configurable. No production posted.",
+      "evidence": "workflows-201-250-next-capability-observations.json"
+    },
+    {
+      "workflow": 249,
+      "status": "Blocked",
+      "documents": [
+        "CustomView1 QA-249 November warehouse report"
+      ],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "Saved report JSON record persists, but Sales Summary exposes manual filters only and no apply/share saved-view action. Narrow-user shared-view execution/export could not be performed; no access-control pass claimed.",
+      "evidence": "workflows-201-250-next-capability-observations.json"
+    }
+  ],
+  "evidence": [
+    "workflows-201-250-next-regression.xml",
+    "workflows-201-250-batch-continuation-browser-records.json",
+    "workflows-201-250-reorder-continuation-browser-records.json",
+    "workflows-201-250-cash-reversal-browser-records.json",
+    "workflows-201-250-mixed-return-browser-records.json",
+    "workflows-201-250-next-capability-observations.json",
+    "workflows-203-tax-preview-observation.txt"
+  ],
+  "tax_reporting_reference": "https://gstcouncil.gov.in/node/3880",
+  "limitations": [
+    "Actual concurrent PostgreSQL execution not certified.",
+    "245 lacks evidence-required approval;247 lacks per-component warehouses;249 saves JSON but report apply/share flow absent.",
+    "Other unexecuted workflows not claimed passed."
+  ]
+}

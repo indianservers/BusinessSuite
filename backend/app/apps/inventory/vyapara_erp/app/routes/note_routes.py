@@ -10,6 +10,8 @@ from app.services.accounting_service import account, create_journal
 from app.services.invoice_service import calculate_document, line_totals
 from app.services.numbering_service import next_number
 from app.utils.pdf_generator import render_pdf
+from app.utils.helpers import money
+from decimal import InvalidOperation
 
 bp = Blueprint("notes", __name__, url_prefix="")
 
@@ -68,19 +70,25 @@ def credit_note_pdf(id):
 @bp.route("/credit-notes/<int:id>/apply", methods=["POST"])
 @login_required
 def credit_note_apply(id):
-    note = CreditNote.query.get_or_404(id)
-    sale = Sale.query.get_or_404(request.form["sale_id"])
-    amount = min(float(request.form.get("amount") or 0), float(note.grand_total or 0) - float(note.applied_amount or 0) - float(note.refunded_amount or 0), float(sale.balance_amount or 0))
-    if amount <= 0:
-        flash("Enter a valid amount to apply.", "warning")
-        return redirect(url_for("notes.credit_notes"))
-    sale.paid_amount = float(sale.paid_amount or 0) + amount
-    sale.update_payment_status()
-    note.applied_amount = float(note.applied_amount or 0) + amount
-    record_audit("Payment Update", "CreditNote", note.id, new_data={"applied_to": sale.invoice_no, "amount": amount})
-    db.session.commit()
-    flash("Credit note applied to invoice.", "success")
+    note = CreditNote.query.filter_by(id=id).with_for_update().first_or_404()
+    sale = Sale.query.filter_by(id=request.form.get("sale_id")).with_for_update().first_or_404()
+    try:
+        amount = money(request.form.get("amount") or 0)
+        available = money(note.grand_total) - money(note.applied_amount) - money(note.refunded_amount)
+        if note.customer_id != sale.customer_id or note.status != "Issued" or sale.status in {"Draft", "Cancelled"}:
+            raise ValueError("Credit must apply to an issued invoice of the same customer")
+        if not amount.is_finite() or amount <= 0 or amount > available or amount > money(sale.balance_amount):
+            raise ValueError("Application must be positive and cannot exceed available credit or invoice balance")
+        sale.paid_amount = money(sale.paid_amount) + amount
+        sale.update_payment_status()
+        note.applied_amount = money(note.applied_amount) + amount
+        record_audit("Payment Update", "CreditNote", note.id, new_data={"applied_to":sale.invoice_no,"amount":str(amount)})
+        db.session.commit()
+        flash("Credit note applied to invoice.", "success")
+    except (ValueError, InvalidOperation) as exc:
+        db.session.rollback();flash(str(exc),"danger")
     return redirect(url_for("notes.credit_notes"))
+
 
 
 @bp.route("/credit-notes/<int:id>/refund", methods=["POST"])

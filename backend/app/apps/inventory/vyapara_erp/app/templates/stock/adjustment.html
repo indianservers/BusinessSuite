@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
+{% if current_user.has_permission('settings','edit') %}<form class="panel mb-3" method="post" action="{{ url_for('stock.adjustment_policy') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label><input name="require_evidence" type="checkbox" {% if require_evidence %}checked{% endif %}> Require supporting evidence and approval before stock adjustment posting</label><button class="btn btn-outline-primary">Save adjustment policy</button></form>{% endif %}
+<p>{{ 'Evidence-required approval enabled. Submission creates a pending record; no stock moves until approval.' if require_evidence else 'Immediate posting policy enabled.' }}</p>
 <form class="panel" method="post" novalidate>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-grid">
@@ -20,9 +22,10 @@
   </div>
   <div class="mt-3 d-flex gap-2">
     <button class="btn btn-outline-secondary" type="button" id="add-adjustment-line">Line</button>
-    <button class="btn btn-primary">Post Adjustment</button>
+    <button class="btn btn-primary">{{ 'Submit for approval' if require_evidence else 'Post Adjustment' }}</button>
   </div>
 </form>
+{% for review in pending_reviews %}<p><a href="{{ url_for('stock.adjustment_review', id=review.adjustment_id) }}">{{ review.adjustment.adjustment_no }} · {{ review.status }}</a></p>{% endfor %}
 {% endblock %}
 {% block scripts %}
 <script>

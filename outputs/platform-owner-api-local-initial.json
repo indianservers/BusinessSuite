@@ -1,0 +1,2838 @@
+{
+  "run": "APIQA1106170225",
+  "local_base": "http://127.0.0.1:1534/api/v1",
+  "utc": "2026-11-06T17:02:42.318185+00:00",
+  "passed": 208,
+  "failed": 3,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/signup/options",
+      "summary": "Signup Options",
+      "checks": 0,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/signup",
+      "summary": "Signup",
+      "checks": 0,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/signup-requests",
+      "summary": "Signup Requests",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/platform/login",
+      "summary": "Owner Login",
+      "checks": 3,
+      "authenticated_success": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/platform/me",
+      "summary": "Owner Me",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/signup-requests/{ident}/review",
+      "summary": "Review Signup",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/me",
+      "summary": "Me",
+      "checks": 7,
+      "authenticated_success": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/platform/profile",
+      "summary": "Profile",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/sessions",
+      "summary": "Sessions",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/sessions/revoke",
+      "summary": "Revoke Sessions",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/signups",
+      "summary": "List Signups",
+      "checks": 6,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/signups",
+      "summary": "Create Signup",
+      "checks": 6,
+      "authenticated_success": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/signups/{ident}",
+      "summary": "Signup Detail",
+      "checks": 6,
+      "authenticated_success": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/platform/signups/{ident}",
+      "summary": "Edit Signup",
+      "checks": 6,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/signups/{ident}/action",
+      "summary": "Signup Action",
+      "checks": 9,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/signup-bulk",
+      "summary": "Bulk",
+      "checks": 7,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/signups/{ident}/review",
+      "summary": "Review",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/signups/{ident}/request-info",
+      "summary": "Request Info",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/signups/{ident}/tracking-link",
+      "summary": "Tracking Link",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/signup-export",
+      "summary": "Export Signups",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/staff-directory",
+      "summary": "Directory",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/staff",
+      "summary": "Staff",
+      "checks": 5,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/staff/invite",
+      "summary": "Invite Staff",
+      "checks": 6,
+      "authenticated_success": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/platform/staff/{ident}",
+      "summary": "Change Staff",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/records/{kind}",
+      "summary": "List Records",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/records/{kind}",
+      "summary": "Create Record",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/record/{ident}/action",
+      "summary": "Record Action",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/api-keys",
+      "summary": "Api Key",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/events",
+      "summary": "Events",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/login-history",
+      "summary": "Login History",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/search",
+      "summary": "Global Search",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/settings",
+      "summary": "Settings Get",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/platform/settings",
+      "summary": "Settings Save",
+      "checks": 5,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/plans",
+      "summary": "Plans",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/plans",
+      "summary": "Plan Create",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/platform/plans/{ident}",
+      "summary": "Plan Edit",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/customers",
+      "summary": "Customers",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/customers/{ident}",
+      "summary": "Customer",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/customers/{ident}/action",
+      "summary": "Customer Action",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/customers/{ident}/export",
+      "summary": "Customer Export",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/reports",
+      "summary": "Reports",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/report-export",
+      "summary": "Report Export",
+      "checks": 4,
+      "authenticated_success": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/operations/run-checks",
+      "summary": "Run Checks",
+      "checks": 5,
+      "authenticated_success": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/platform/public/{token}",
+      "summary": "Preview",
+      "checks": 4,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/public/{token}",
+      "summary": "Submit",
+      "checks": 5,
+      "authenticated_success": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/platform/password-reset",
+      "summary": "Password Reset",
+      "checks": 0,
+      "authenticated_success": false
+    }
+  ],
+  "checks": [
+    {
+      "name": "owner real session login",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/platform/login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 250
+    },
+    {
+      "name": "owner identity",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "owner identity authenticated",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "legacy platform identity",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/platform/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 11656
+    },
+    {
+      "name": "business global admin login",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 531
+    },
+    {
+      "name": "actual company admin login",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 250
+    },
+    {
+      "name": "company identity",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 188
+    },
+    {
+      "name": "company admin is not global superuser",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "platform token rejected by business identity",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied GET /auth/signup-requests",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/signup-requests",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "business superuser denied GET /auth/signup-requests",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/signup-requests",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /auth/signup-requests",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/signup-requests",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied GET /auth/signup-requests",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/signup-requests",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "anonymous denied GET /auth/platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied GET /auth/platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /auth/platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied GET /auth/platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied POST /auth/signup-requests/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/signup-requests/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied POST /auth/signup-requests/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/signup-requests/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /auth/signup-requests/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/signup-requests/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied POST /auth/signup-requests/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/signup-requests/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied GET /platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied GET /platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied GET /platform/me",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied PATCH /platform/profile",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/profile",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "business superuser denied PATCH /platform/profile",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/profile",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied PATCH /platform/profile",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/profile",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied PATCH /platform/profile",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/profile",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied GET /platform/sessions",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/sessions",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied GET /platform/sessions",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/sessions",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "company admin denied GET /platform/sessions",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/sessions",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/sessions",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/sessions",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/sessions/revoke",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/sessions/revoke",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied POST /platform/sessions/revoke",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/sessions/revoke",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied POST /platform/sessions/revoke",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/sessions/revoke",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied POST /platform/sessions/revoke",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/sessions/revoke",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied GET /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied GET /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "company admin denied GET /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied POST /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied POST /platform/signups",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied GET /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "business superuser denied GET /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied GET /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied GET /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied PATCH /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied PATCH /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied PATCH /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied PATCH /platform/signups/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/signups/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/signups/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied POST /platform/signups/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/signups/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied POST /platform/signups/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied POST /platform/signup-bulk",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signup-bulk",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 47
+    },
+    {
+      "name": "business superuser denied POST /platform/signup-bulk",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signup-bulk",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/signup-bulk",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signup-bulk",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied POST /platform/signup-bulk",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signup-bulk",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied POST /platform/signups/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied POST /platform/signups/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied POST /platform/signups/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied POST /platform/signups/{ident}/review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/review",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/signups/{ident}/request-info",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/request-info",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied POST /platform/signups/{ident}/request-info",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/request-info",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "company admin denied POST /platform/signups/{ident}/request-info",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/request-info",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied POST /platform/signups/{ident}/request-info",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/request-info",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/signups/{ident}/tracking-link",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/tracking-link",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "business superuser denied POST /platform/signups/{ident}/tracking-link",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/tracking-link",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/signups/{ident}/tracking-link",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/tracking-link",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied POST /platform/signups/{ident}/tracking-link",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/2147483000/tracking-link",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied GET /platform/signup-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signup-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied GET /platform/signup-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signup-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied GET /platform/signup-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signup-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/signup-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signup-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied GET /platform/staff-directory",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff-directory",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied GET /platform/staff-directory",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff-directory",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/staff-directory",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff-directory",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied GET /platform/staff-directory",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff-directory",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied GET /platform/staff",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied GET /platform/staff",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/staff",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied GET /platform/staff",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/staff/invite",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/staff/invite",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied POST /platform/staff/invite",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/staff/invite",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/staff/invite",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/staff/invite",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied POST /platform/staff/invite",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/staff/invite",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied PATCH /platform/staff/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied PATCH /platform/staff/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "company admin denied PATCH /platform/staff/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied PATCH /platform/staff/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied GET /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied GET /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied GET /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied POST /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied POST /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied POST /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied POST /platform/records/{kind}",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/records/task",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied POST /platform/record/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "business superuser denied POST /platform/record/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/record/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied POST /platform/record/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied POST /platform/api-keys",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/api-keys",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied POST /platform/api-keys",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/api-keys",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/api-keys",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/api-keys",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied POST /platform/api-keys",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/api-keys",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied GET /platform/events",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/events",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "business superuser denied GET /platform/events",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/events",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/events",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/events",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied GET /platform/events",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/events",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied GET /platform/login-history",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/login-history",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied GET /platform/login-history",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/login-history",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied GET /platform/login-history",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/login-history",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/login-history",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/login-history",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied GET /platform/search",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/search?q=APIQA1106170225",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "business superuser denied GET /platform/search",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/search?q=APIQA1106170225",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "company admin denied GET /platform/search",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/search?q=APIQA1106170225",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/search",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/search?q=APIQA1106170225",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied GET /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied GET /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "company admin denied GET /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied PUT /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied PUT /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied PUT /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied PUT /platform/settings",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/settings",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied GET /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "business superuser denied GET /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied GET /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied POST /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied POST /platform/plans",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/plans",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied PUT /platform/plans/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/plans/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied PUT /platform/plans/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/plans/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied PUT /platform/plans/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/plans/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied PUT /platform/plans/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/plans/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied GET /platform/customers",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied GET /platform/customers",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/customers",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed token denied GET /platform/customers",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied GET /platform/customers/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied GET /platform/customers/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/customers/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied GET /platform/customers/{ident}",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied POST /platform/customers/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/customers/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied POST /platform/customers/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/customers/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied POST /platform/customers/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/customers/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied POST /platform/customers/{ident}/action",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/customers/2147483000/action",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied GET /platform/customers/{ident}/export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000/export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "business superuser denied GET /platform/customers/{ident}/export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000/export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied GET /platform/customers/{ident}/export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000/export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/customers/{ident}/export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers/2147483000/export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "anonymous denied GET /platform/reports",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/reports",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "business superuser denied GET /platform/reports",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/reports",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "company admin denied GET /platform/reports",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/reports",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied GET /platform/reports",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/reports",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "anonymous denied GET /platform/report-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/report-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "business superuser denied GET /platform/report-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/report-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "company admin denied GET /platform/report-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/report-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "malformed token denied GET /platform/report-export",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/report-export",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "anonymous denied POST /platform/operations/run-checks",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/operations/run-checks",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "business superuser denied POST /platform/operations/run-checks",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/operations/run-checks",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "company admin denied POST /platform/operations/run-checks",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/operations/run-checks",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed token denied POST /platform/operations/run-checks",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/operations/run-checks",
+      "status": 401,
+      "expected": [
+        401
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "create 01",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "elapsed_ms": 47
+    },
+    {
+      "name": "create 02",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups",
+      "status": 201,
+      "expected": [
+        201
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "owner list filters",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups?source=local-api-qa&search=APIQA1106170225&module=crm&applicant_type=company",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "owner detail",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups/24",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "owner legacy signup list",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "legacy signup list",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/auth/signup-requests",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "versioned edit",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/signups/24",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "stale version conflict",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/signups/24",
+      "status": 409,
+      "expected": [
+        409
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "bulk preview",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signup-bulk",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "bulk requires versions",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signup-bulk",
+      "status": 409,
+      "expected": [
+        409
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "bulk commit",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signup-bulk",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "signup archive",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/25/action",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "signup restore",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/25/action",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "signup under_review",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/25/action",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "signup legal_hold",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/25/action",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "retention guard",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/25/action",
+      "status": 409,
+      "expected": [
+        409
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "request correction",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/25/request-info",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "private capability preview",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/public/{token}",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "private capability correct",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/public/{token}",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "private capability correct",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/public/{token}",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "prepare private tracking",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/25/tracking-link",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "private capability preview",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/public/{token}",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "private capability withdraw",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/public/{token}",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "read withdrawn",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups/25",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "withdraw persisted",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "invite reviewer",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/staff/invite",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "private capability preview",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/public/{token}",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "private capability activate",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/public/{token}",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 218
+    },
+    {
+      "name": "reviewer real session login",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/platform/login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 266
+    },
+    {
+      "name": "reviewer identity",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    },
+    {
+      "name": "reviewer cannot manage staff",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "reviewer cannot change settings",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/settings",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "reviewer cannot run owner jobs",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/operations/run-checks",
+      "status": 403,
+      "expected": [
+        403
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "reviewer isolated personal tasks",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/records/task",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "reviewer isolated signups",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "reviewer report permission",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/reports",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "invite sales",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/staff/invite",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "private capability preview",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/public/{token}",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "private capability activate",
+      "passed": false,
+      "detail": "Request limit reached. Try again shortly.",
+      "method": "POST",
+      "path": "/platform/public/{token}",
+      "status": 429,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "sales real session login",
+      "passed": false,
+      "detail": "Request limit reached. Try again shortly.",
+      "method": "POST",
+      "path": "/auth/platform/login",
+      "status": 429,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "runner completed",
+      "passed": false,
+      "detail": "RuntimeError: Authentication failed: sales real session login"
+    },
+    {
+      "name": "cleanup disable QA staff",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/8",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    }
+  ],
+  "residue": "Synthetic signup/customer/plan/history records remain labelled with run; QA staff disabled and keys revoked."
+}

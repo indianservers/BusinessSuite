@@ -130,6 +130,40 @@ class PlatformAudit(PlatformBase):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+class PlatformDatabaseServer(PlatformBase):
+    __tablename__ = "platform_database_servers"
+    id = Column(Integer, primary_key=True)
+    code = Column(String(50), unique=True, nullable=False)
+    name = Column(String(150), nullable=False)
+    host = Column(String(255), nullable=False)
+    port = Column(Integer, nullable=False, default=5432)
+    provisioning_env = Column(String(100), nullable=False, default="TENANT_PROVISIONING_URL")
+    template_database = Column(String(63), nullable=False)
+    active = Column(Boolean, nullable=False, default=True)
+    max_databases = Column(Integer, nullable=False, default=200)
+
+
+class PlatformTenantDatabase(PlatformBase):
+    __tablename__ = "platform_tenant_databases"
+    id = Column(Integer, primary_key=True)
+    # Deliberately no FK: provisioning records must commit independently of the
+    # approval row lock and survive a failed approval transaction.
+    signup_id = Column(Integer, unique=True, nullable=False)
+    tenant_uuid = Column(String(36), unique=True, nullable=False)
+    workspace_code = Column(String(64), unique=True, nullable=False)
+    company_id = Column(Integer, unique=True, nullable=False)
+    server_id = Column(Integer, ForeignKey("platform_database_servers.id"), nullable=False)
+    database_name = Column(String(63), unique=True, nullable=False)
+    runtime_role = Column(String(63), unique=True, nullable=False)
+    encrypted_password = Column(Text, nullable=False)
+    status = Column(String(30), nullable=False, default="provisioning", index=True)
+    routing_version = Column(Integer, nullable=False, default=1)
+    schema_version = Column(String(150), nullable=False, default="")
+    last_error = Column(String(250))
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+
 # Separate throttle state; no dependency on the customer database.
 from app.models.security_boundary import SecurityRateBucket
 SecurityRateBucket.__table__.to_metadata(PlatformBase.metadata)

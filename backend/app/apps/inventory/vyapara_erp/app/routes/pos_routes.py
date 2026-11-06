@@ -9,6 +9,8 @@ from flask_login import current_user, login_required
 from werkzeug.exceptions import BadRequest
 
 from app.extensions import db
+from app.models import AuditLog
+from app.utils.decorators import permission_required
 from app.models import Batch, CashMovement, Category, CouponRedemption, Customer, HeldBill, PaymentReceived, POSSession, Product, ProductVariant, Register, Sale, SaleItem, SerialNumber, User, Warehouse
 from app.services.audit_service import record_audit
 from app.services.accounting_service import post_customer_receipt, post_sale
@@ -114,6 +116,7 @@ def sale():
             return jsonify({"error": "Duplicate sale submission ignored"}), 409
     items = []
     serial_ids = set()
+    batch_quantities = {}
     warehouse_id = data.get("warehouse_id") or (active.register.warehouse_id if active.register else Warehouse.query.first().id)
     for item in data.get("items", []):
         try:
@@ -131,6 +134,17 @@ def sale():
             return jsonify({"error": f"Discount override not allowed for {product.name}"}), 403
         if money(item.get("rate") or 0) != money(product.sales_price) and not current_user.has_permission("pos", "edit"):
             return jsonify({"error": f"Price override not allowed for {product.name}"}), 403
+        selected_batch = None
+        if product.batch_tracking:
+            try: batch_id = int(item.get("batch_id") or 0)
+            except (ValueError, TypeError): batch_id = 0
+            selected_batch = Batch.query.filter_by(id=batch_id, product_id=product.id, warehouse_id=warehouse_id, status="Available").with_for_update().first()
+            if not selected_batch or (selected_batch.expiry_date and selected_batch.expiry_date < date.today()):
+                return jsonify({"error":"Select an available, unexpired batch for this product and warehouse"}), 400
+            allocated = batch_quantities.get(batch_id, 0) + quantity
+            if allocated > selected_batch.quantity:
+                return jsonify({"error":"Selected batch has insufficient quantity"}), 400
+            batch_quantities[batch_id] = allocated
         selected_serial = None
         if product.serial_tracking:
             try: serial_id = int(item.get("serial_id") or 0)
@@ -143,7 +157,7 @@ def sale():
                 return jsonify({"error":"Serial is unavailable for this product and warehouse"}), 400
             serial_ids.add(serial_id)
         totals = line_totals(item["qty"], item["rate"], item.get("discount", 0), item.get("tax_rate", 0))
-        items.append({"product_id": product.id, "quantity": item["qty"], "rate": item["rate"], "discount": item.get("discount", 0), "tax_rate": item.get("tax_rate", 0), "track_inventory": product.track_inventory, "serial_id":selected_serial.id if selected_serial else None, **totals})
+        items.append({"product_id": product.id, "quantity": item["qty"], "rate": item["rate"], "discount": item.get("discount", 0), "tax_rate": item.get("tax_rate", 0), "track_inventory": product.track_inventory, "serial_id":selected_serial.id if selected_serial else None, "batch_id":selected_batch.id if selected_batch else None, **totals})
     if not items:
         return jsonify({"error": "Cart is empty"}), 400
     totals = calculate_document(items, paid=0)
@@ -195,6 +209,11 @@ def sale():
         sale.pos_request_fingerprint = fingerprint if request_key else None
         sale.pos_change_due = change
         db.session.add(sale); db.session.flush()
+        for batch_id, allocated in batch_quantities.items():
+            batch = db.session.get(Batch, batch_id)
+            before_quantity = str(batch.quantity)
+            batch.quantity -= allocated
+            record_audit("Batch Sold", "POS", sale.id, old_data={"batch_quantity":before_quantity}, new_data={"batch_id":batch.id,"batch_no":batch.batch_no,"product_id":batch.product_id,"warehouse_id":batch.warehouse_id,"quantity":str(allocated),"remaining":str(batch.quantity),"invoice_no":sale.invoice_no})
         for item in items:
             if item.get("serial_id"):
                 serial = db.session.get(SerialNumber, item["serial_id"])
@@ -327,6 +346,30 @@ def cash_movement():
     return redirect(url_for("pos.sessions"))
 
 
+@bp.route("/cash-movements/<int:id>/reverse", methods=["POST"])
+@login_required
+@permission_required("pos", "edit")
+def reverse_cash_movement(id):
+    active = current_session()
+    movement = CashMovement.query.filter_by(id=id).with_for_update().first_or_404()
+    reason = request.form.get("reason", "").strip()
+    if not active or movement.session_id != active.id or active.status != "Open":
+        raise BadRequest("Cash movements can only be reversed in their original open session")
+    if not reason or len(reason) > 180:
+        raise BadRequest("A reversal reason of at most 180 characters is required")
+    if AuditLog.query.filter_by(action="Reverse", module="CashMovement", record_id=id).first() or (movement.reason or "").startswith("Reversal of #"):
+        raise BadRequest("This cash movement is already reversed or is a reversal")
+    opposite = "Withdrawal" if movement.movement_type == "Cash In" else "Cash In"
+    reversal = CashMovement(session_id=active.id, movement_type=opposite, amount=movement.amount, reason=f"Reversal of #{id}: {reason}", created_by=current_user.id)
+    db.session.add(reversal); db.session.flush()
+    if opposite == "Withdrawal":
+        active.cash_withdrawals = money(active.cash_withdrawals) + money(movement.amount)
+    record_audit("Reverse", "CashMovement", id, new_data={"reversal_id":reversal.id,"session_id":active.id,"reason":reason,"amount":str(movement.amount)})
+    db.session.commit()
+    flash("Cash movement reversed. Both entries remain in the drawer history.", "success")
+    return redirect(url_for("pos.sessions"))
+
+
 @bp.route("/close-session", methods=["POST"])
 @login_required
 def close_session():
@@ -351,7 +394,10 @@ def close_session():
 @bp.route("/sessions")
 @login_required
 def sessions():
-    return render_template("pos/sessions.html", title="POS Sessions", sessions=POSSession.query.order_by(POSSession.id.desc()).all())
+    active = current_session()
+    movements = CashMovement.query.join(POSSession).filter(POSSession.opened_by==current_user.id).order_by(CashMovement.id).all()
+    reversed_ids = {row.record_id for row in AuditLog.query.filter_by(action="Reverse", module="CashMovement").all()}
+    return render_template("pos/sessions.html", title="POS Sessions", sessions=POSSession.query.order_by(POSSession.id.desc()).all(), active=active, movements=movements, reversed_ids=reversed_ids)
 
 
 @bp.route("/receipt/<int:id>")

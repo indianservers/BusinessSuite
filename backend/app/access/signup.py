@@ -152,7 +152,11 @@ def review_signup(ident: int, data: ReviewInput, request: Request,
     result = {}
     if data.decision == "approve":
         try:
-            result = provision_signup(row, data, business)
+            if settings.TENANT_DATABASES_ENABLED:
+                from app.platform_owner.tenant_provisioning import provision_company
+                result = provision_company(row,data)
+            else:
+                result = provision_signup(row, data, business)
         except IntegrityError:
             business.rollback()
             raise HTTPException(409, "Account provisioning changed concurrently. Refresh and review again.") from None
@@ -165,7 +169,7 @@ def review_signup(ident: int, data: ReviewInput, request: Request,
                 "storage_mib": data.storage_mib, "trial_ends_at": result["trial_ends_at"], "monthly_price_minor": 0,
                 "currency": "INR", "activated_at": None}))
         db.add(PlatformRecord(kind="provisioning", title=f"Workspace for {row.company_name or row.name}", state="completed",
-            owner_id=actor.id, signup_id=row.id, data={"steps": ["Workspace created", "Company admin created", "Applications enabled", "Invitation ready"],
+            owner_id=actor.id, signup_id=row.id, data={"steps": (["Dedicated PostgreSQL database ready", "Database isolation verified"] if result.get("tenant_uuid") else [])+["Workspace created", "Company admin created", "Applications enabled", "Invitation ready"],
             "company_id": row.company_id}))
         if result.get("invitation_url"):
             owner_service.local_mail(db, row.email, "Your Business Suite trial is approved", result["invitation_url"], actor, signup_id=row.id)
@@ -187,7 +191,7 @@ def review_signup(ident: int, data: ReviewInput, request: Request,
     return {"request": serialize(row), **{k: v for k, v in result.items() if k in {"invitation_url", "delivery"}}}
 
 
-def provision_signup(row, data, db):
+def provision_signup(row, data, db, company_id=None):
     code = f"platform-signup-{row.id}"
     receipt = db.query(TenantSubscriptionPlan).filter_by(code=code).first()
     if receipt:
@@ -203,6 +207,7 @@ def provision_signup(row, data, db):
     if db.query(User.id).filter(func.lower(User.email) == row.email).first() or db.query(CommonPerson.id).filter(func.lower(CommonPerson.primary_email) == row.email).first():
         raise HTTPException(409, "This email already belongs to an account. Manage its access through User Access instead.")
     company = Company(name=row.company_name if row.applicant_type == "company" else row.name, email=row.email, phone=row.phone, phone_country_code=row.phone_country_code, is_active=True, country="India", default_currency="INR", default_timezone="Asia/Kolkata", fiscal_year_start_month=4)
+    if company_id is not None:company.id=company_id
     db.add(company)
     db.flush()
     branch = Branch(name="Main", code="MAIN", company_id=company.id, organization_id=company.id, is_active=True, email=row.email, created_by=None)

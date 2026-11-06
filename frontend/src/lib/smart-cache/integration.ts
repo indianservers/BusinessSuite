@@ -9,10 +9,11 @@ function identity(): string | null {
   const { user, accessToken, isAuthenticated } = useAuthStore.getState();
   if (!user || !accessToken || !isAuthenticated) return null;
   let session = '';
-  try { session = JSON.parse(atob(accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sid || ''; } catch { return null; }
+  let tenant = '';
+  try { const claims = JSON.parse(atob(accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); session = claims.sid || ''; tenant = claims.tenant || ''; } catch { return null; }
   // App changes the displayed module role during navigation. The authenticated
   // primary role and live grants remain the authorization identity.
-  return stable([1, user.id, session, user.primary_role ?? user.role, user.is_superuser, user.access, sessionStorage.getItem('suite-organization'), sessionStorage.getItem('suite-branch')]);
+  return stable([2, tenant, user.id, session, user.primary_role ?? user.role, user.is_superuser, user.access, sessionStorage.getItem('suite-organization'), sessionStorage.getItem('suite-branch')]);
 }
 function replace(value: unknown, old: unknown, data: unknown): unknown {
   if (value === old) return data;

@@ -21,6 +21,7 @@ class PMSRealtimeConnection:
     session_id: int | None = None
     token_expires_at: float | None = None
     branch_selection: str | None = None
+    tenant_uuid: str | None = None
 
 
 class PMSRealtimeManager:
@@ -41,6 +42,7 @@ class PMSRealtimeManager:
         branch_selection: str | None = None,
     ) -> None:
         await websocket.accept()
+        from app.db.tenant import current_tenant
         async with self._lock:
             self._connections[websocket] = PMSRealtimeConnection(
                 websocket=websocket,
@@ -50,6 +52,7 @@ class PMSRealtimeManager:
                 session_id=session_id,
                 token_expires_at=token_expires_at,
                 branch_selection=branch_selection,
+                tenant_uuid=current_tenant.get().tenant_uuid if current_tenant.get() else None,
             )
 
     async def disconnect(self, websocket: WebSocket) -> None:
@@ -60,7 +63,9 @@ class PMSRealtimeManager:
         """Drop cached subscriptions immediately when workspace membership ends."""
         async with self._lock:
             for connection in self._connections.values():
-                if connection.user_id == user_id:
+                from app.db.tenant import current_tenant
+                tenant=current_tenant.get()
+                if connection.tenant_uuid == (tenant.tenant_uuid if tenant else None) and connection.user_id == user_id:
                     connection.accessible_project_ids.difference_update(project_ids)
                     connection.project_ids.difference_update(project_ids)
 
@@ -127,7 +132,10 @@ class PMSRealtimeManager:
             connections = list(self._connections.values())
 
         stale: list[WebSocket] = []
+        from app.db.tenant import current_tenant
+        tenant=current_tenant.get()
         for connection in connections:
+            if connection.tenant_uuid != (tenant.tenant_uuid if tenant else None):continue
             if event.get("recipientIds") is not None and connection.user_id not in event["recipientIds"]:
                 continue
             if organization_id is not None and connection.organization_id != organization_id:

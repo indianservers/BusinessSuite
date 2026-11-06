@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="panel">
+  <p>Company-wide replenishment: when stock is at or below the reorder level, order up to the higher of maximum stock and reorder level, less current stock and unreceived quantities on draft, issued and partially received POs across warehouses.</p>
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="row g-2 align-items-end mb-3 print-hide">
@@ -9,13 +10,13 @@
       <div class="col-md-4"><button class="btn btn-primary">Create Purchase Order</button></div>
     </div>
     <table class="table datatable align-middle">
-      <thead><tr><th></th><th>Product</th><th>Current</th><th>Reorder</th><th>Suggested Qty</th><th>Preferred Supplier</th><th>Last Rate</th><th>Warehouse</th></tr></thead>
+      <thead><tr><th></th><th>Product</th><th>Current</th><th>Reorder</th><th>Open PO Qty</th><th>Suggested Qty</th><th>Preferred Supplier</th><th>Last Rate</th><th>Warehouse</th></tr></thead>
       <tbody>
       {% for p in products %}
-        {% set suggested = (p.max_stock or p.reorder_level or 0) - (p.current_stock or 0) %}
+        {% set pending, suggested = positions[p.id] %}
         <tr>
-          <td><input class="form-check-input" type="checkbox" name="product_id[]" value="{{ p.id }}"></td>
-          <td>{{ p.sku }}<br><strong>{{ p.name }}</strong></td><td>{{ p.current_stock }}</td><td>{{ p.reorder_level }}</td><td>{{ suggested if suggested > 0 else p.reorder_level }}</td><td>{{ p.preferred_supplier.name if p.preferred_supplier else 'Not set' }}</td><td>{{ p.purchase_price or p.average_cost }}</td><td>{{ p.warehouse.name if p.warehouse else '' }}</td>
+          <td><input class="form-check-input" type="checkbox" name="product_id[]" value="{{ p.id }}" aria-label="Reorder {{ p.sku }}" {% if suggested <= 0 %}disabled{% endif %}></td>
+          <td>{{ p.sku }}<br><strong>{{ p.name }}</strong></td><td>{{ p.current_stock }}</td><td>{{ p.reorder_level }}</td><td>{{ pending }}</td><td>{{ suggested }}</td><td>{{ p.preferred_supplier.name if p.preferred_supplier else 'Not set' }}</td><td>{{ p.purchase_price or p.average_cost }}</td><td>{{ p.warehouse.name if p.warehouse else '' }}</td>
         </tr>
       {% endfor %}
       </tbody>

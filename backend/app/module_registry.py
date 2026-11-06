@@ -23,6 +23,7 @@ class AppModule:
 COMMON_ROUTER_MODULES = (
     "app.shared.pipeline_workspace",
     "app.shared.import_api",
+    "app.shared.accounting_sync.api",
     "app.shared.payment_requests",
     "app.shared.master_data",
     "app.branches.api",
@@ -67,6 +68,7 @@ COMMON_ROUTER_MODULES = (
 
 COMMON_MODEL_MODULES = (
     "app.shared.import_models",
+    "app.shared.accounting_sync.models",
     "app.shared.payment_models",
     "app.shared.master_data_models",
     "app.shared.whatsapp_models",

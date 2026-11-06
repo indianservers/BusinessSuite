@@ -3901,5 +3901,39 @@
   ],
   "payroll_payment_batches": [
     "company_id"
+  ],
+  "accounting_sync_connections": [
+    "account_id",
+    "active_token",
+    "branch_id",
+    "bridge_secret",
+    "created_by",
+    "enabled",
+    "id",
+    "last_success_at",
+    "lease_until",
+    "organization_id",
+    "provider",
+    "sandbox",
+    "source_connection_id"
+  ],
+  "accounting_sync_records": [
+    "connection_id",
+    "data",
+    "entity",
+    "external_id",
+    "fingerprint",
+    "id",
+    "present",
+    "seen_run_id"
+  ],
+  "accounting_sync_runs": [
+    "completed_at",
+    "connection_id",
+    "counts",
+    "error",
+    "id",
+    "started_at",
+    "status"
   ]
 }

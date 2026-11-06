@@ -1,0 +1,163 @@
+{
+  "fixture": "Isolated in-memory Workflow 245-247-249 Test Company",
+  "invoices": [
+    {
+      "id": 1,
+      "number": "QA-249-MAIN",
+      "status": "Paid",
+      "invoice_date": "2026-11-06",
+      "due_date": "None",
+      "subtotal": 0.0,
+      "tax": 0.0,
+      "total": 118.0,
+      "paid": 118.0,
+      "balance": 0.0
+    },
+    {
+      "id": 2,
+      "number": "QA-249-OTHER",
+      "status": "Paid",
+      "invoice_date": "2026-11-06",
+      "due_date": "None",
+      "subtotal": 0.0,
+      "tax": 0.0,
+      "total": 999.0,
+      "paid": 999.0,
+      "balance": 0.0
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 10.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    },
+    {
+      "id": 3,
+      "sku": "QA-247-B",
+      "stock": 6.0,
+      "track_inventory": true
+    },
+    {
+      "id": 4,
+      "sku": "QA-247-FG",
+      "stock": 2.0,
+      "track_inventory": true
+    }
+  ],
+  "receipts": [],
+  "cash_movements": [],
+  "pos_sessions": [],
+  "stock_movements": [
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "QA-245-EVIDENCE",
+      "type": "Adjustment In",
+      "in": 2.0,
+      "out": 0.0,
+      "rate": 100.0,
+      "value": 200.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "QA-247-TWO-SOURCES",
+      "type": "Manufacturing Issue",
+      "in": 0.0,
+      "out": 2.0,
+      "rate": 100.0,
+      "value": 200.0
+    },
+    {
+      "product_id": 3,
+      "warehouse_id": 2,
+      "reference": "QA-247-TWO-SOURCES",
+      "type": "Manufacturing Issue",
+      "in": 0.0,
+      "out": 4.0,
+      "rate": 200.0,
+      "value": 800.0
+    },
+    {
+      "product_id": 4,
+      "warehouse_id": 3,
+      "reference": "QA-247-TWO-SOURCES",
+      "type": "Manufacturing Receipt",
+      "in": 2.0,
+      "out": 0.0,
+      "rate": 500.0,
+      "value": 1000.0
+    }
+  ],
+  "warehouses": [
+    {
+      "id": 1,
+      "name": "Main",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "QA Warehouse B",
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "QA Finished Warehouse",
+      "active": true
+    }
+  ],
+  "purchase_orders": [],
+  "manufacturing": [
+    {
+      "id": 1,
+      "number": "QA-247-TWO-SOURCES",
+      "planned": 2.0,
+      "produced": 2.0,
+      "status": "Completed"
+    }
+  ],
+  "manufacturing_sources": [
+    {
+      "order_id": 1,
+      "bom_item_id": 1,
+      "warehouse_id": 1
+    },
+    {
+      "order_id": 1,
+      "bom_item_id": 2,
+      "warehouse_id": 2
+    }
+  ],
+  "adjustment_reviews": [
+    {
+      "id": 1,
+      "status": "Posted",
+      "evidence_name": "qa-245-count-sheet.csv",
+      "evidence_sha256": "8e2efb591b1a94418bf3e0452a6b68ab84c2a12a177dc808a4010872781ff9a1",
+      "evidence_bytes": 20,
+      "approved_by": 1
+    }
+  ],
+  "serials": [],
+  "batches": [],
+  "goods_receipts": [],
+  "returns": [],
+  "credits": [],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [],
+  "transfers": []
+}

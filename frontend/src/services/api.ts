@@ -30,6 +30,15 @@ export const api = axios.create({
 
 // Request interceptor: attach access token
 api.interceptors.request.use((config) => {
+  const explicitWorkspace = config.headers.has("X-Suite-Tenant");
+  const tenant = explicitWorkspace ? String(config.headers.get("X-Suite-Tenant") || "") : new URLSearchParams(window.location.search).get("tenant") || sessionStorage.getItem("suite-tenant");
+  if ((explicitWorkspace || new URLSearchParams(window.location.search).get("tenant")) && tenant !== sessionStorage.getItem("suite-tenant")) {
+    if (tenant) sessionStorage.setItem("suite-tenant", tenant);
+    else sessionStorage.removeItem("suite-tenant");
+    sessionStorage.removeItem("suite-organization");
+    sessionStorage.removeItem("suite-branch");
+  }
+  if (tenant) config.headers["X-Suite-Tenant"] = tenant;
   const organization = sessionStorage.getItem("suite-organization");
   if (!config._recordSyncBackground && (config.method || "get").toLowerCase() === "get" && !config._finishPageRefresh) {
     config._finishPageRefresh = trackPageRefreshRead();
@@ -51,7 +60,7 @@ api.interceptors.request.use((config) => {
     config.headers.delete("Content-Type");
   }
   const token = useAuthStore.getState().accessToken;
-  if (token) {
+  if (token && !["/auth/login", "/auth/reset-password", "/auth/forgot-password", "/auth/branding", "/auth/login-branding"].includes(config.url || "")) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   if (config.progress !== false && !config._finishProgress && !(recordCachePolicy(config.url || "") && !config._recordSyncBypass && (config.method || "get") === "get")) {
@@ -89,7 +98,7 @@ api.interceptors.response.use(
             refreshPromise = axios
               .post<RefreshResponse>(`${BASE_URL}/auth/refresh`, {
                 refresh_token: refreshToken,
-              }, { timeout: 60000 })
+              }, { timeout: 60000, headers: sessionStorage.getItem("suite-tenant") ? { "X-Suite-Tenant": sessionStorage.getItem("suite-tenant")! } : {} })
               .then((res) => res.data)
               .finally(() => {
                 refreshPromise = null;
@@ -149,13 +158,13 @@ export const authApi = {
   firebaseConfig: () => api.get("/auth/firebase/config"),
   firebaseLogin: (token: string, module: "hrms" | "crm" | "project_management" | "srm" | "fam" | undefined, provider: "google" | "microsoft" = "google") => api.post("/auth/firebase/login", { token, module, provider }),
   completeSso: (providerId: number, code: string) => api.post(`/auth/sso/complete/${providerId}`, { code }),
-  login: (email: string, password: string, module?: string, trustedDeviceToken?: string) =>
-    api.post("/auth/login", { email, password, module, trusted_device_token: trustedDeviceToken }),
+  login: (email: string, password: string, module?: string, trustedDeviceToken?: string, workspace?: string) =>
+    api.post("/auth/login", { email, password, module, trusted_device_token: trustedDeviceToken }, workspace !== undefined ? { headers: { "X-Suite-Tenant": workspace } } : undefined),
   refresh: (refreshToken: string) =>
     api.post("/auth/refresh", { refresh_token: refreshToken }),
-  forgotPassword: (email: string) => api.post("/auth/forgot-password", { email }),
-  resetPassword: (token: string, newPassword: string) =>
-    api.post("/auth/reset-password", { token, new_password: newPassword }),
+  forgotPassword: (email: string, workspace?: string) => api.post("/auth/forgot-password", { email }, workspace !== undefined ? { headers: { "X-Suite-Tenant": workspace } } : undefined),
+  resetPassword: (token: string, newPassword: string, workspace?: string) =>
+    api.post("/auth/reset-password", { token, new_password: newPassword }, workspace !== undefined ? { headers: { "X-Suite-Tenant": workspace } } : undefined),
   me: () => api.get("/auth/me"),
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post("/auth/change-password", {

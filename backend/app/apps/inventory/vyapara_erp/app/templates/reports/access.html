@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="panel" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<p>Configure warehouse restrictions for Sales Summary, shared views and exports. No selection denies all warehouses. Users with no configured restriction retain their existing report permission scope.</p>
+<label>User<select class="form-select" name="user_id" required>{% for user in users %}<option value="{{ user.id }}">{{ user.name }} · {{ user.email }}</option>{% endfor %}</select></label>
+{% for warehouse in warehouses %}<label class="d-block"><input type="checkbox" name="warehouse_ids" value="{{ warehouse.id }}"> {{ warehouse.name }}</label>{% endfor %}
+<button class="btn btn-primary">Save report warehouse access</button></form>
+<div class="panel mt-3">{% for scope in scopes %}<p>{{ scope.key }}: {{ scope.value }}</p>{% endfor %}</div>
+{% endblock %}

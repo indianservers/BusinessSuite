@@ -387,14 +387,15 @@ def sales_velocity():
 @bp.route("/sales-summary")
 @login_required
 def sales_summary():
-    query = Sale.query.filter(Sale.status.notin_(["Draft", "Cancelled"]))
-    query = date_filter(query, Sale.invoice_date)
-    if request.args.get("customer_id"):
-        query = query.filter(Sale.customer_id == request.args["customer_id"])
-    if request.args.get("branch_id"):
-        query = query.join(Warehouse).filter(Warehouse.branch_id == request.args["branch_id"])
-    rows = [{"Invoice": s.invoice_no, "Date": s.invoice_date, "Customer": s.customer.name, "Branch": s.warehouse.branch.name if s.warehouse and s.warehouse.branch else "", "Total": s.grand_total, "Paid": s.paid_amount, "Balance": s.balance_amount} for s in query.order_by(Sale.invoice_date.desc()).all()]
-    return report_response("Sales Summary", rows)
+    from app.services.shared_report_views import sales_summary_rows
+    from app.models import CustomView
+    rows, filters, selected, allowed = sales_summary_rows()
+    headers = ["Invoice", "Date", "Customer", "Warehouse", "Branch", "Total", "Paid", "Balance"]
+    if request.args.get("export") == "xlsx":
+        if not current_user.has_permission("reports", "export"): abort(403)
+        return excel_response("sales-summary.xlsx", "Sales Summary", headers, [[row.get(header) for header in headers] for row in rows])
+    return render_template("reports/saved_sales_summary.html",title="Sales Summary",rows=rows,headers=headers,filters=filters,selected=selected,allowed=allowed,views=CustomView.query.filter_by(entity_type="reports").order_by(CustomView.name).all(),warehouses=Warehouse.query.order_by(Warehouse.name).all())
+
 
 
 @bp.route("/item-wise-sales")
@@ -593,15 +594,41 @@ def build_gstr1_payload(sales, month, year):
         if gstin:
             b2b_map.setdefault(gstin, {"ctin": gstin, "gstin": gstin, "inv": []})["inv"].append({"inum": sale.invoice_no, "idt": sale.invoice_date.strftime("%d-%m-%Y"), "inv_no": sale.invoice_no, "inv_dt": sale.invoice_date.strftime("%d-%m-%Y"), "val": float(sale.grand_total or 0), "pos": pos, "rchrg": "N", "inv_typ": "R", "itms": invoice_items})
         else:
-            key = (pos, "OE")
-            b2c_summary[key]["val"] += float(sale.grand_total or 0)
             for invoice_item in invoice_items:
                 details = invoice_item["itm_det"]
+                key = (pos, details["rt"])
+                b2c_summary[key]["val"] += details["txval"] + details["camt"] + details["samt"]
                 b2c_summary[key]["txval"] += details["txval"]
                 b2c_summary[key]["camt"] += details["camt"]
                 b2c_summary[key]["samt"] += details["samt"]
 
-    b2cs = [{"sply_ty": supply_type, "pos": pos, "typ": "OE", **round_money(values)} for (pos, supply_type), values in b2c_summary.items()]
+    credit_notes = CreditNote.query.filter(extract("month", CreditNote.cn_date) == month, extract("year", CreditNote.cn_date) == year, CreditNote.status == "Issued").all()
+    for credit in credit_notes:
+        gstin = (credit.customer.gst_number or "").strip()
+        pos = credit.customer.state or "NA"
+        for item in credit.items:
+            tax = float(item.tax_amount or 0)
+            total = float(item.line_total or 0)
+            taxable = total - tax
+            camt = round(tax / 2, 2)
+            samt = round(tax - camt, 2)
+            hsn = item.product.hsn_code or "NA"
+            preview.append({"invoice_no": credit.cn_no, "date": credit.cn_date, "customer":credit.customer.name, "gstin":gstin, "hsn":hsn, "taxable":-taxable, "tax":-tax, "total":-total})
+            hsn_map[hsn]["desc"] = item.product.name
+            hsn_map[hsn]["uqc"] = item.product.unit.short_name if item.product.unit else "NOS"
+            hsn_map[hsn]["qty"] -= float(item.quantity or 0)
+            hsn_map[hsn]["val"] -= total
+            hsn_map[hsn]["txval"] -= taxable
+            hsn_map[hsn]["camt"] -= camt
+            hsn_map[hsn]["samt"] -= samt
+            if not gstin:
+                key = (pos, float(item.tax_rate or 0))
+                b2c_summary[key]["val"] -= total
+                b2c_summary[key]["txval"] -= taxable
+                b2c_summary[key]["camt"] -= camt
+                b2c_summary[key]["samt"] -= samt
+
+    b2cs = [{"sply_ty": "OE", "pos": pos, "typ": "OE", "rt":rate, **round_money(values)} for (pos, rate), values in b2c_summary.items()]
     hsn_data = [{"num": idx, "hsn_sc": hsn, **round_money(values)} for idx, (hsn, values) in enumerate(sorted(hsn_map.items()), start=1)]
     payload = {"gstin": "", "fp": f"{month:02d}{year}", "version": "GST3.2.1", "hash": "hash", "b2b": list(b2b_map.values()), "b2cs": b2cs, "hsn": {"data": hsn_data}}
     credit_notes = CreditNote.query.filter(extract("month", CreditNote.cn_date) == month, extract("year", CreditNote.cn_date) == year, CreditNote.status == "Issued").all()
@@ -755,3 +782,7 @@ def _group_account_balances(types):
         rows = [{"code": account.account_code, "name": account.account_name, "group": account.group.name, "balance": float(account.current_balance or 0)} for account in accounts]
         sections.append({"type": group_type, "rows": rows, "total": sum(row["balance"] for row in rows)})
     return sections
+
+
+from app.services.shared_report_views import register_shared_report_routes
+register_shared_report_routes(bp)

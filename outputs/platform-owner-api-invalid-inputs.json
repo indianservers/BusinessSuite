@@ -1,0 +1,306 @@
+{
+  "passed": 25,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "post-reload validation owner login",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/auth/platform/login",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 562
+    },
+    {
+      "name": "authenticated owner identity",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/me",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 47
+    },
+    {
+      "name": "QA fixtures",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/signups?status=all&search=APIQA&page_size=100",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "QA staff fixture",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/staff",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 0
+    },
+    {
+      "name": "QA customer fixture",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/customers",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "QA task fixture",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/records/task",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed nested payload 1",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/profile",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed nested payload 2",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/profile",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed nested payload 3",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/settings",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed nested payload 4",
+      "passed": true,
+      "detail": "",
+      "method": "PUT",
+      "path": "/platform/settings",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed nested payload 5",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/9",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "malformed nested payload 6",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/9",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed nested payload 7",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/9",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed nested payload 8",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/staff/9",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed nested payload 9",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/29/action",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "malformed nested payload 10",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/signups/29/action",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed nested payload 11",
+      "passed": true,
+      "detail": "",
+      "method": "PATCH",
+      "path": "/platform/signups/29",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "malformed nested payload 12",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/112/action",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "malformed nested payload 13",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/customers/3/action",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "malformed nested payload 14",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/customers/3/action",
+      "status": 422,
+      "expected": [
+        422
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "archive disposable validation task",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/112/action",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 32
+    },
+    {
+      "name": "revoke incomplete sales invitation",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/999999/action",
+      "status": 404,
+      "expected": [
+        404
+      ],
+      "elapsed_ms": 15
+    },
+    {
+      "name": "QA invitation cleanup inventory",
+      "passed": true,
+      "detail": "",
+      "method": "GET",
+      "path": "/platform/records/staff_invitation",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "cleanup interrupted QA invitation",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/record/63/action",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 16
+    },
+    {
+      "name": "revoke validation session",
+      "passed": true,
+      "detail": "",
+      "method": "POST",
+      "path": "/platform/sessions/revoke",
+      "status": 200,
+      "expected": [
+        200
+      ],
+      "elapsed_ms": 31
+    }
+  ]
+}

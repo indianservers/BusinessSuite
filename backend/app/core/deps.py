@@ -50,6 +50,8 @@ def get_current_user(
             detail="Invalid or expired access token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if payload.get("tenant") != db.info.get("tenant_uuid"):
+        raise HTTPException(401,"Session is not valid for this company database")
     if payload.get("portal") == "interns_hub" and not request.url.path.startswith("/api/v1/interns-hub/"):
         raise HTTPException(status_code=403, detail="Intern session is restricted to Interns Hub")
     user_id = payload.get("sub")
@@ -146,6 +148,7 @@ def get_current_user(
         if request.headers.get("x-suite-sync") == "1":
             from app.core.middleware.record_sync import digest
             request.state.record_sync_scope = digest([
+                db.info.get("tenant_uuid"),
                 user.id, user.organization_id, user.is_superuser, user.role_id, user.role.name if user.role else None,
                 getattr(user, "_suite_session_id", None),
                 getattr(user, "_suite_policy_version", None),

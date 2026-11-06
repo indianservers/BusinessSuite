@@ -1,0 +1,6 @@
+{
+  "dialect": "postgresql",
+  "head": "pg_20261106_085_accounting_sync",
+  "model_tables_verified": 829,
+  "missing_model_columns": 0
+}

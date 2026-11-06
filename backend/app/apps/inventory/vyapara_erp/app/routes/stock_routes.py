@@ -27,48 +27,54 @@ def ledger():
     return render_template("stock/ledger.html", title="Inventory Ledger", entries=InventoryLedger.query.order_by(InventoryLedger.id.desc()).all())
 
 
+def _reorder_position(product):
+    pending = sum((max(qty(line.quantity) - qty(line.received_qty), qty(0))
+                   for line in PurchaseOrderItem.query.join(PurchaseOrder)
+                   .filter(PurchaseOrderItem.product_id == product.id,
+                           PurchaseOrder.status.in_(["Draft", "Issued", "Partially Received"])).all()), qty(0))
+    target = max(qty(product.max_stock), qty(product.reorder_level))
+    suggested = max(target - qty(product.current_stock) - pending, qty(0))
+    return pending, suggested
+
+
 @bp.route("/reorder-suggestions", methods=["GET", "POST"])
 @login_required
 def reorder_suggestions():
-    products = Product.query.filter(Product.track_inventory.is_(True), Product.current_stock <= Product.reorder_level).order_by(Product.name).all()
+    products_query = Product.query.filter(Product.is_active.is_(True), Product.track_inventory.is_(True), Product.current_stock <= Product.reorder_level).order_by(Product.id)
+    products = (products_query.with_for_update() if request.method == "POST" else products_query).all()
+    positions = {product.id: _reorder_position(product) for product in products}
     if request.method == "POST":
-        supplier_id = request.form.get("supplier_id")
-        selected = {int(pid) for pid in request.form.getlist("product_id[]")}
-        supplier = Supplier.query.get_or_404(supplier_id)
-        po = PurchaseOrder(po_no=next_number("purchase_order"), po_date=date.today(), supplier_id=supplier.id, warehouse_id=request.form.get("warehouse_id") or (Warehouse.query.first().id if Warehouse.query.first() else None), status="Draft", created_by=current_user.id)
+        supplier = Supplier.query.get_or_404(request.form.get("supplier_id"))
+        warehouse = Warehouse.query.get(request.form.get("warehouse_id"))
+        selected = set(request.form.getlist("product_id[]"))
+        eligible = [p for p in products if str(p.id) in selected and p.preferred_supplier_id == supplier.id and positions[p.id][1] > 0]
+        if not supplier.status or not warehouse or not warehouse.status or not eligible:
+            flash("No eligible replenishment remains for the selected active supplier and warehouse. Refresh suggestions.", "warning")
+            return redirect(url_for("stock.reorder_suggestions"))
+        po = PurchaseOrder(po_no=next_number("purchase_order"), po_date=date.today(), supplier_id=supplier.id, warehouse_id=warehouse.id, status="Draft", created_by=current_user.id)
         db.session.add(po); db.session.flush()
-        subtotal = tax_total = grand_total = 0
-        for product in products:
-            if product.id not in selected or product.preferred_supplier_id != supplier.id:
-                continue
-            qty = max(float(product.max_stock or product.reorder_level or 0) - float(product.current_stock or 0), float(product.reorder_level or 0))
-            rate = float(product.purchase_price or product.average_cost or 0)
-            line_total = qty * rate
-            db.session.add(PurchaseOrderItem(po_id=po.id, product_id=product.id, quantity=qty, rate=rate, tax_rate=0, tax_amount=0, line_total=line_total))
-            subtotal += line_total; grand_total += line_total
-        po.subtotal = subtotal; po.tax_total = tax_total; po.grand_total = grand_total
+        subtotal = 0
+        for product in eligible:
+            quantity = positions[product.id][1]
+            rate = product.purchase_price or product.average_cost or 0
+            line_total = quantity * rate
+            db.session.add(PurchaseOrderItem(po_id=po.id, product_id=product.id, quantity=quantity, rate=rate, tax_rate=0, tax_amount=0, line_total=line_total))
+            subtotal += line_total
+        po.subtotal = subtotal; po.tax_total = 0; po.grand_total = subtotal
         record_audit("Create", "PurchaseOrder", po.id, new_data={"source": "reorder_suggestions", "po_no": po.po_no})
         db.session.commit()
         flash(f"Purchase Order {po.po_no} created from reorder suggestions.", "success")
         return redirect(url_for("purchase_orders.detail", id=po.id))
     suppliers = Supplier.query.order_by(Supplier.name).all()
-    return render_template("stock/reorder_suggestions.html", title="Reorder Suggestions", products=products, suppliers=suppliers, warehouses=Warehouse.query.order_by(Warehouse.name).all())
+    return render_template("stock/reorder_suggestions.html", title="Reorder Suggestions", products=products, positions=positions, suppliers=suppliers, warehouses=Warehouse.query.order_by(Warehouse.name).all())
 
 
 @bp.route("/adjustments", methods=["GET", "POST"])
 @login_required
 def adjustments():
-    if request.method == "POST":
-        adj = StockAdjustment(adjustment_no=request.form.get("adjustment_no") or next_number("stock_adjustment"), adjustment_date=date.fromisoformat(request.form["adjustment_date"]), warehouse_id=request.form["warehouse_id"], adjustment_type=request.form.get("adjustment_type") or "Other", reason=request.form.get("reason"), notes=request.form.get("notes"), created_by=current_user.id)
-        db.session.add(adj); db.session.flush()
-        for pid, qi, qo, rate in zip(request.form.getlist("product_id[]"), request.form.getlist("qty_in[]"), request.form.getlist("qty_out[]"), request.form.getlist("rate[]")):
-            if pid:
-                db.session.add(StockAdjustmentItem(adjustment_id=adj.id, product_id=pid, qty_in=qi or 0, qty_out=qo or 0, rate=rate or 0))
-                apply_stock_adjustment(pid, adj.warehouse_id, qi or 0, qo or 0, rate or 0, adj.id, adj.adjustment_no, adj.reason)
-        record_audit("Stock Adjustment", "StockAdjustment", adj.id, new_data={"adjustment_no": adj.adjustment_no, "warehouse_id": adj.warehouse_id})
-        db.session.commit(); flash("Stock adjusted.", "success")
-        return redirect(url_for("stock.ledger"))
-    return render_template("stock/adjustment.html", title="Stock Adjustment", products=Product.query.all(), warehouses=Warehouse.query.all(), adjustment_no=next_number("stock_adjustment"), today=date.today(), adjustment_types=ADJUSTMENT_TYPES)
+    from app.services.adjustment_workflow import adjustment_form
+    return adjustment_form(ADJUSTMENT_TYPES)
+
 
 
 @bp.route("/opening-stock", methods=["GET", "POST"])
@@ -291,3 +297,7 @@ def repacking():
 
 ADJUSTMENT_TYPES = ["Physical count difference", "Damage", "Wastage", "Internal use", "Correction", "Other"]
 SERIAL_STATUSES = ["Available", "Sold", "Returned", "Damaged"]
+
+
+from app.services.adjustment_workflow import register_adjustment_routes
+register_adjustment_routes(bp)

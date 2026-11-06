@@ -12,6 +12,8 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, render_t
 from flask_login import current_user, login_required
 
 from app.extensions import db
+from app.models import SaleItem
+from app.utils.decorators import permission_required
 from app.models import CommunicationLog, Currency, Customer, IntegrationSetting, PaymentReceived, PrintTemplate, Product, Sale, Warehouse
 from app.services.document_service import hsn_summary
 from app.services.invoice_service import cancel_invoice, create_or_update_invoice, issue_invoice, line_totals, record_invoice_payment
@@ -113,6 +115,34 @@ def issue(id):
         db.session.rollback()
         flash(str(exc), "danger")
     return redirect(url_for("invoices.detail", id=invoice.id))
+
+
+@bp.route("/<int:id>/copy", methods=["POST"])
+@login_required
+@permission_required("sales", "view")
+def copy_to_draft(id):
+    source = Sale.query.get_or_404(id)
+    try:
+        if source.status not in {"Issued", "Partially Paid", "Paid"}:
+            raise ValueError("Only issued invoices can be copied to a new draft")
+        lines = source.items.all()
+        if not lines or any(not line.product.is_active for line in lines):
+            raise ValueError("Copying requires active invoice products")
+        if any(line.product.batch_tracking or line.product.serial_tracking for line in lines):
+            raise ValueError("Tracked products require new batch or serial allocation; create a new POS sale")
+        fields = ("customer_id", "warehouse_id", "currency_id", "exchange_rate_snapshot", "original_currency_total", "invoice_type", "sale_type", "subtotal", "discount_total", "tax_total", "shipping_charges", "round_off", "grand_total", "notes", "terms")
+        invoice = Sale(**{key:getattr(source,key) for key in fields}, invoice_no=next_number("sales"), invoice_date=date.today(), due_date=date.today()+timedelta(days=max(source.customer.payment_terms or 0,0)), status="Draft", payment_status="Unpaid", paid_amount=0, balance_amount=source.grand_total, created_by=current_user.id, updated_by=current_user.id)
+        db.session.add(invoice);db.session.flush()
+        for line in lines:
+            fields = ("product_id", "quantity", "rate", "discount", "discount_amount", "tax_rate", "tax_amount", "line_total")
+            db.session.add(SaleItem(sale_id=invoice.id, cost_price=0, **{key:getattr(line,key) for key in fields}))
+        record_audit("Copied to Draft", "Sale", invoice.id, new_data={"source_invoice_id":source.id,"source_invoice_no":source.invoice_no,"invoice_no":invoice.invoice_no})
+        db.session.commit()
+        flash("New unpaid draft created. Review dates and lines before issuing. Prior receipts and delivery activity were not copied.", "success")
+        return redirect(url_for("invoices.detail", id=invoice.id))
+    except ValueError as exc:
+        db.session.rollback();flash(str(exc),"danger")
+        return redirect(url_for("invoices.detail",id=id))
 
 
 @bp.route("/<int:id>/payments", methods=["POST"])

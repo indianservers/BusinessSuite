@@ -1,0 +1,139 @@
+Browser tab: 14, Title: "GSTR-1", URL: "http://127.0.0.1:5318/reports/gstr1".
+The following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 108, 110-111, 113-170
+~1 AXWebArea GSTR-1, URL: 127.0.0.1:5318/reports/gstr1
+~		70 heading GSTR-1, Value: 1
+~			71 text GSTR-1
+~					77 text / Reports
+~					79 text / Gstr1
+~		105 text Month
+~		106 stepper (settable, integer) 11
+~		107 text Year
++		108 stepper (settable, integer) 2026
+~		109 button  Preview
++			110 text 
++			111 text  Preview
+~		112 link Description:  Download JSON, Value: 127.0.0.1:5318/reports/gstr1?month=11&year=2026&download=json
++		113 link Description:  Download CSV, Value: 127.0.0.1:5318/reports/gstr1?month=11&year=2026&download=csv
++		114 heading GSTR-1 Preview 11/2026, Value: 2
++			115 text GSTR-1 Preview 11/2026
++		116 text 4 taxable rows
++		117 button , Help: Choose columns
++			118 text 
++		119 container DataTables_Table_0_wrapper
++			120 container
++				121 pop up button (collapsed, settable) entries per page, Value: 10, ID: dt-length-0, Secondary Actions: Expand
++					122 menu
++						123 (selected) 10
++						124 25
++						125 50
++						126 100
++				127 text entries per page
++			128 container
++				129 text Search:
++				130 search text field (settable) Search:, ID: dt-search-0
++			131 table DataTables_Table_0
++				132 row
++					133 cell Invoice: Activate to invert sorting
++						134 button Invoice
++					135 cell Date: Activate to sort
++						136 button Date
++					137 cell Customer: Activate to sort
++						138 button Customer
++					139 cell GSTIN: Activate to sort
++						140 button GSTIN
++					141 cell HSN: Activate to sort
++						142 button HSN
++					143 cell Taxable: Activate to sort
++						144 button Taxable
++					145 cell Tax: Activate to sort
++						146 button Tax
++					147 cell Total: Activate to sort
++						148 button Total
++				149 row
++					150 cell
++						151 text CN-2026-00001
++					152 cell
++						153 text 2026-11-06
++					154 cell
++						155 text QA Customer A
++					156 cell
++						157 text B2C
++					158 cell
++						159 text NA
++					160 cell
++						161 text -1000.00
++					162 cell
++						163 text -180.00
++					164 cell
++						165 text -1180.00
++				166 row
++					167 cell
++						168 text CN-2026-00001
++					169 cell
++						170 text 2026-11-06
++					171 cell
++						172 text QA Customer A
++					173 cell
++						174 text B2C
++					175 cell
++						176 text NA
++					177 cell
++						178 text -500.00
++					179 cell
++						180 text -25.00
++					181 cell
++						182 text -525.00
++				183 row
++					184 cell
++						185 text INV-2026-00001
++					186 cell
++						187 text 2026-11-06
++					188 cell
++						189 text QA Customer A
++					190 cell
++						191 text B2C
++					192 cell
++						193 text NA
++					194 cell
++						195 text 1000.00
++					196 cell
++						197 text 180.00
++					198 cell
++						199 text 1180.00
++				200 row
++					201 cell
++						202 text INV-2026-00001
++					203 cell
++						204 text 2026-11-06
++					205 cell
++						206 text QA Customer A
++					207 cell
++						208 text B2C
++					209 cell
++						210 text NA
++					211 cell
++						212 text 500.00
++					213 cell
++						214 text 25.00
++					215 cell
++						216 text 525.00
++			217 text Showing 1 to 4 of 4 entries
++			218 content list
++				219 link (disabled) First
++					220 text «
++				221 link (disabled) Previous
++					222 text ‹
++				223 link Description: 1, Value: 127.0.0.1:5318/reports/gstr1#
++				224 link (disabled) Next
++					225 text ›
++				226 link (disabled) Last
++					227 text »
++		228 button Description: Scroll to top, ID: scrollTopButton
++			229 text 
++	230 container
++		231 text 0  selected
++		232 button Mark Paid
++		233 button Print
++		234 button Delete
+The focused UI element is 1 AXWebArea GSTR-1, URL: 127.0.0.1:5318/reports/gstr1

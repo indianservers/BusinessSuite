@@ -37,7 +37,7 @@ def digest(value):
 
 def encode(row, exclude=()):
     return {c.name: (getattr(row, c.name).isoformat() if isinstance(getattr(row, c.name), datetime) else getattr(row, c.name))
-            for c in row.__table__.columns if c.name not in set(exclude) | {"hashed_password", "token_hash"}}
+            for c in row.__table__.columns if c.name not in set(exclude) | {"hashed_password", "token_hash", "encrypted_password"}}
 
 
 def permissions(actor):

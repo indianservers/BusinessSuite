@@ -20,4 +20,13 @@
     </div>
   </div>
 </div>
+{% if movements %}<section class="panel mt-3">
+  <h2 class="h5">Cash movement history</h2>
+  <table class="table"><thead><tr><th>Entry</th><th>Type</th><th>Amount</th><th>Reason</th><th>Action</th></tr></thead><tbody>
+  {% for movement in movements %}<tr><td>{{ movement.id }}</td><td>{{ movement.movement_type }}</td><td>{{ movement.amount }}</td><td>{{ movement.reason }}</td><td>
+  {% if movement.id in reversed_ids %}Reversed{% elif active and movement.session_id == active.id and not (movement.reason or '').startswith('Reversal of #') and current_user.has_permission('pos','edit') %}
+  <form method="post" action="{{ url_for('pos.reverse_cash_movement', id=movement.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input aria-label="Reversal reason for entry {{ movement.id }}" name="reason" maxlength="180" required><button class="btn btn-outline-danger" aria-label="Reverse entry {{ movement.id }}">Reverse movement</button></form>
+  {% elif (movement.reason or '').startswith('Reversal of #') %}Reversal entry{% else %}Session closed{% endif %}</td></tr>{% endfor %}
+  </tbody></table>
+</section>{% endif %}
 {% endblock %}

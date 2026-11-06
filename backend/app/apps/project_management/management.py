@@ -34,7 +34,9 @@ def completion(db, task):
         "subtasks": [{"id": c.id, "title": c.title, "done": c.status in CLOSED} for c in children], "blockers": blockers}
 
 
-def guard_transition(db, task, status):
+def guard_transition(db, task, status, changes=None):
+    from .workflow_schemes import guard_scheme
+    guard_scheme(db, task, status, changes)
     if status in {"Done", "Completed", "Closed", "Resolved", "In Review"}:
         from .models import PMSTaskUpdateEntry
         if db.query(PMSTaskUpdateEntry).filter_by(task_id=task.id, kind="blocker", resolved=False, deleted_at=None).first():
@@ -194,7 +196,6 @@ def change_task(task_id: int, data: TaskChange, db: Session = Depends(get_db), u
         _record_activity(db, project.id, user, "task.moved", "task", task.id, f"Moved task to {target.project_key}", task_id=task.id, metadata={"destination_project_id": target.id})
         _record_activity(db, target.id, user, "task.moved", "task", task.id, f"Moved task from {project.project_key}", task_id=task.id)
         db.flush()
-    if values.get("status"): guard_transition(db, task, values["status"])
     if values.get("title") is not None and not values["title"].strip(): raise HTTPException(422, "Enter a task title")
     warnings = assignment_warnings(task.project_id, values["assignee_user_id"], values.get("due_date") or task.due_date, db, user)["warnings"] if values.get("assignee_user_id") else []
     task = update_task_operation(task.id, PMSTaskUpdate(**values), db, user)

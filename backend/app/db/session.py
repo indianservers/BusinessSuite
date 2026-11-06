@@ -14,7 +14,13 @@ engine = create_engine(
     echo=settings.DEBUG,
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+LegacySessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def SessionLocal(**kwargs):
+    from app.db.tenant import current_tenant, tenant_session
+    route = current_tenant.get()
+    return tenant_session(route) if route else LegacySessionLocal(**kwargs)
 
 # PostgreSQL enforces the DB deadline even if a synchronous HTTP worker is cancelled.
 from sqlalchemy import event, text

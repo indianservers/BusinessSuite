@@ -1,0 +1,236 @@
+{
+  "fixture": "Isolated in-memory Workflow 201-250-batch-continuation Test Company",
+  "invoices": [
+    {
+      "id": 1,
+      "number": "INV-2026-00001",
+      "status": "Paid",
+      "invoice_date": "2026-11-06",
+      "due_date": "None",
+      "subtotal": 400.0,
+      "tax": 72.0,
+      "total": 472.0,
+      "paid": 472.0,
+      "balance": 0.0
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 10.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    },
+    {
+      "id": 3,
+      "sku": "QA-240-BATCH",
+      "stock": 19.0,
+      "track_inventory": true
+    },
+    {
+      "id": 4,
+      "sku": "QA-243-BATCH",
+      "stock": 19.0,
+      "track_inventory": true
+    }
+  ],
+  "receipts": [
+    {
+      "id": 1,
+      "number": "REC-2026-00001",
+      "sale_id": 1,
+      "amount": 472.0
+    }
+  ],
+  "stock_movements": [
+    {
+      "product_id": 3,
+      "warehouse_id": 1,
+      "reference": "GRN-2026-00001",
+      "type": "Purchase",
+      "in": 12.0,
+      "out": 0.0,
+      "rate": 100.0,
+      "value": 1200.0
+    },
+    {
+      "product_id": 3,
+      "warehouse_id": 1,
+      "reference": "GRN-2026-00001",
+      "type": "Purchase",
+      "in": 8.0,
+      "out": 0.0,
+      "rate": 100.0,
+      "value": 800.0
+    },
+    {
+      "product_id": 4,
+      "warehouse_id": 1,
+      "reference": "GRN-2026-00002",
+      "type": "Purchase",
+      "in": 20.0,
+      "out": 0.0,
+      "rate": 100.0,
+      "value": 2000.0
+    },
+    {
+      "product_id": 3,
+      "warehouse_id": 1,
+      "reference": "INV-2026-00001",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0,
+      "rate": 100.0,
+      "value": 100.0
+    },
+    {
+      "product_id": 4,
+      "warehouse_id": 1,
+      "reference": "INV-2026-00001",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0,
+      "rate": 100.0,
+      "value": 100.0
+    }
+  ],
+  "warehouses": [
+    {
+      "id": 1,
+      "name": "Main",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "QA Warehouse B",
+      "active": true
+    }
+  ],
+  "purchase_orders": [
+    {
+      "id": 1,
+      "supplier_id": 1,
+      "status": "Received",
+      "terms": null,
+      "total": 2360.0,
+      "lines": [
+        {
+          "id": 1,
+          "product_id": 3,
+          "quantity": 20.0,
+          "received": 20.0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "supplier_id": 1,
+      "status": "Received",
+      "terms": null,
+      "total": 2360.0,
+      "lines": [
+        {
+          "id": 2,
+          "product_id": 4,
+          "quantity": 20.0,
+          "received": 20.0
+        }
+      ]
+    }
+  ],
+  "manufacturing": [],
+  "serials": [],
+  "batches": [
+    {
+      "id": 1,
+      "product_id": 3,
+      "warehouse_id": 1,
+      "number": "QA-SHARED",
+      "quantity": 11.0,
+      "cost": 100.0,
+      "expiry": "2027-01-01"
+    },
+    {
+      "id": 2,
+      "product_id": 3,
+      "warehouse_id": 1,
+      "number": "QA-B",
+      "quantity": 8.0,
+      "cost": 100.0,
+      "expiry": "2027-02-01"
+    },
+    {
+      "id": 3,
+      "product_id": 4,
+      "warehouse_id": 1,
+      "number": "QA-SHARED",
+      "quantity": 19.0,
+      "cost": 100.0,
+      "expiry": "2027-03-01"
+    }
+  ],
+  "goods_receipts": [
+    {
+      "id": 1,
+      "number": "GRN-2026-00001",
+      "po_id": 1,
+      "supplier_id": 1,
+      "items": [
+        {
+          "product_id": 3,
+          "po_item_id": 1,
+          "quantity": 12.0,
+          "total": 1416.0
+        },
+        {
+          "product_id": 3,
+          "po_item_id": 1,
+          "quantity": 8.0,
+          "total": 944.0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "number": "GRN-2026-00002",
+      "po_id": 2,
+      "supplier_id": 1,
+      "items": [
+        {
+          "product_id": 4,
+          "po_item_id": 2,
+          "quantity": 20.0,
+          "total": 2360.0
+        }
+      ]
+    }
+  ],
+  "returns": [],
+  "credits": [],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [
+    {
+      "reference": "INV-2026-00001",
+      "debit": 472.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "REC-2026-00001",
+      "debit": 0.0,
+      "credit": 472.0
+    }
+  ],
+  "transfers": []
+}

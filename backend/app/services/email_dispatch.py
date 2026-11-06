@@ -270,10 +270,12 @@ def start_email_worker():
 
     def run():
         from app.db.session import SessionLocal
+        from app.db.tenant import run_for_company_databases
+        def tick():
+            with SessionLocal() as db:process_email(db)
         while not stop.is_set():
             try:
-                with SessionLocal() as db:
-                    process_email(db)
+                run_for_company_databases(tick)
             except Exception:
                 logging.getLogger(__name__).warning("email_worker_failed; check migrations and provider configuration")
             stop.wait(30)

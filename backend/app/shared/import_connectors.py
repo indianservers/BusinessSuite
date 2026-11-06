@@ -72,7 +72,7 @@ def start(db, user, ctx, provider, region):
         params["scope"] = "com.intuit.quickbooks.accounting"
     else:
         url = f"https://accounts.zoho.{region}/oauth/v2/auth"
-        params.update(scope="ZohoBooks.settings.READ,ZohoBooks.invoices.READ,ZohoBooks.banking.READ", access_type="offline", prompt="consent")
+        params.update(scope="ZohoBooks.settings.READ,ZohoBooks.contacts.READ,ZohoBooks.invoices.READ,ZohoBooks.customerpayments.READ,ZohoBooks.banking.READ", access_type="offline", prompt="consent")
     return {"url": url + "?" + urlencode(params)}
 
 

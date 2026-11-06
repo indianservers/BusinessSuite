@@ -1,0 +1,870 @@
+{
+  "passed": 198,
+  "failed": 0,
+  "companies": [
+    {
+      "number": 1,
+      "signup_id": 30,
+      "email": "tdbqa.1@example.com",
+      "workspace": "company-30",
+      "tenant_uuid": "e504023f-a7db-4b76-9057-3c1697bf6347",
+      "company_id": 1000000030,
+      "database_name": "suite_c_e504023fa7db4b7690573c1697bf6347",
+      "database_id": 1
+    },
+    {
+      "number": 2,
+      "signup_id": 31,
+      "email": "tdbqa.2@example.com",
+      "workspace": "company-31",
+      "tenant_uuid": "82a7715d-d941-4b59-9449-6c32db20e3e6",
+      "company_id": 1000000031,
+      "database_name": "suite_c_82a7715dd9414b5994496c32db20e3e6",
+      "database_id": 2
+    },
+    {
+      "number": 3,
+      "signup_id": 32,
+      "email": "tdbqa.3@example.com",
+      "workspace": "company-32",
+      "tenant_uuid": "2ea744a9-d8f1-480b-82eb-cff7b6916e77",
+      "company_id": 1000000032,
+      "database_name": "suite_c_2ea744a9d8f1480b82ebcff7b6916e77",
+      "database_id": 3
+    },
+    {
+      "number": 4,
+      "signup_id": 33,
+      "email": "tdbqa.4@example.com",
+      "workspace": "company-33",
+      "tenant_uuid": "9aa3698a-9487-4468-bdc9-4feeb441f502",
+      "company_id": 1000000033,
+      "database_name": "suite_c_9aa3698a94874468bdc94feeb441f502",
+      "database_id": 4
+    },
+    {
+      "number": 5,
+      "signup_id": 34,
+      "email": "tdbqa.5@example.com",
+      "workspace": "company-34",
+      "tenant_uuid": "d0f3f4c4-6ddd-45da-9f6e-f9dd2149f44d",
+      "company_id": 1000000034,
+      "database_name": "suite_c_d0f3f4c46ddd45da9f6ef9dd2149f44d",
+      "database_id": 5
+    },
+    {
+      "number": 6,
+      "signup_id": 35,
+      "email": "tdbqa.6@example.com",
+      "workspace": "company-35",
+      "tenant_uuid": "7026d5cc-da5a-4e45-86ba-24ba01060df6",
+      "company_id": 1000000035,
+      "database_name": "suite_c_7026d5ccda5a4e4586ba24ba01060df6",
+      "database_id": 6
+    },
+    {
+      "number": 7,
+      "signup_id": 36,
+      "email": "tdbqa.7@example.com",
+      "workspace": "company-36",
+      "tenant_uuid": "9ad4a54d-d393-4fa4-990f-06ba286548f5",
+      "company_id": 1000000036,
+      "database_name": "suite_c_9ad4a54dd3934fa4990f06ba286548f5_v2",
+      "database_id": 7
+    }
+  ],
+  "checks": [
+    {
+      "name": "POST /auth/platform/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "company1 is scoped admin",
+      "passed": true
+    },
+    {
+      "name": "company1 correct company",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/databases/1/check -> 200",
+      "passed": true
+    },
+    {
+      "name": "company1 single-company database",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "company1 private business record",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/signup-requests -> 401",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/refresh -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "company2 is scoped admin",
+      "passed": true
+    },
+    {
+      "name": "company2 correct company",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/databases/2/check -> 200",
+      "passed": true
+    },
+    {
+      "name": "company2 single-company database",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "company2 private business record",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/signup-requests -> 401",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/refresh -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "company3 is scoped admin",
+      "passed": true
+    },
+    {
+      "name": "company3 correct company",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/databases/3/check -> 200",
+      "passed": true
+    },
+    {
+      "name": "company3 single-company database",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "company3 private business record",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/signup-requests -> 401",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/refresh -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "company4 is scoped admin",
+      "passed": true
+    },
+    {
+      "name": "company4 correct company",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/databases/4/check -> 200",
+      "passed": true
+    },
+    {
+      "name": "company4 single-company database",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "company4 private business record",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/signup-requests -> 401",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/refresh -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "company5 is scoped admin",
+      "passed": true
+    },
+    {
+      "name": "company5 correct company",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/databases/5/check -> 200",
+      "passed": true
+    },
+    {
+      "name": "company5 single-company database",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "company5 private business record",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/signup-requests -> 401",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/refresh -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "company6 is scoped admin",
+      "passed": true
+    },
+    {
+      "name": "company6 correct company",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/databases/6/check -> 200",
+      "passed": true
+    },
+    {
+      "name": "company6 single-company database",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "company6 private business record",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/signup-requests -> 401",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/refresh -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "company7 is scoped admin",
+      "passed": true
+    },
+    {
+      "name": "company7 correct company",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/databases/7/check -> 200",
+      "passed": true
+    },
+    {
+      "name": "company7 single-company database",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /crm/leads -> 200",
+      "passed": true
+    },
+    {
+      "name": "company7 private business record",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/signups -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases -> 401",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/signup-requests -> 401",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/refresh -> 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "seven distinct databases",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 401",
+      "passed": true
+    },
+    {
+      "name": "company-30 SQL identity",
+      "passed": true
+    },
+    {
+      "name": "company-30 user IDs may overlap safely",
+      "passed": true
+    },
+    {
+      "name": "identity write denied",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect suite_c_82a7715dd9414b5994496c32db20e3e6",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect indian_servers_platform",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect business_suite",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 401",
+      "passed": true
+    },
+    {
+      "name": "company-31 SQL identity",
+      "passed": true
+    },
+    {
+      "name": "company-31 user IDs may overlap safely",
+      "passed": true
+    },
+    {
+      "name": "identity write denied",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect suite_c_2ea744a9d8f1480b82ebcff7b6916e77",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect indian_servers_platform",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect business_suite",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 401",
+      "passed": true
+    },
+    {
+      "name": "company-32 SQL identity",
+      "passed": true
+    },
+    {
+      "name": "company-32 user IDs may overlap safely",
+      "passed": true
+    },
+    {
+      "name": "identity write denied",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect suite_c_9aa3698a94874468bdc94feeb441f502",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect indian_servers_platform",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect business_suite",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 401",
+      "passed": true
+    },
+    {
+      "name": "company-33 SQL identity",
+      "passed": true
+    },
+    {
+      "name": "company-33 user IDs may overlap safely",
+      "passed": true
+    },
+    {
+      "name": "identity write denied",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect suite_c_d0f3f4c46ddd45da9f6ef9dd2149f44d",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect indian_servers_platform",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect business_suite",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 401",
+      "passed": true
+    },
+    {
+      "name": "company-34 SQL identity",
+      "passed": true
+    },
+    {
+      "name": "company-34 user IDs may overlap safely",
+      "passed": true
+    },
+    {
+      "name": "identity write denied",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect suite_c_7026d5ccda5a4e4586ba24ba01060df6",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect indian_servers_platform",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect business_suite",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 401",
+      "passed": true
+    },
+    {
+      "name": "company-35 SQL identity",
+      "passed": true
+    },
+    {
+      "name": "company-35 user IDs may overlap safely",
+      "passed": true
+    },
+    {
+      "name": "identity write denied",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect suite_c_9ad4a54dd3934fa4990f06ba286548f5_v2",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect indian_servers_platform",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect business_suite",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me -> 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login -> 401",
+      "passed": true
+    },
+    {
+      "name": "company-36 SQL identity",
+      "passed": true
+    },
+    {
+      "name": "company-36 user IDs may overlap safely",
+      "passed": true
+    },
+    {
+      "name": "identity write denied",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect suite_c_e504023fa7db4b7690573c1697bf6347",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect indian_servers_platform",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect business_suite",
+      "passed": true
+    },
+    {
+      "name": "21 concurrent company requests isolated",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 503",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me -> 200",
+      "passed": true
+    },
+    {
+      "name": "router cannot read signups",
+      "passed": true
+    },
+    {
+      "name": "legacy database has no new company accounts",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/records/outbox -> 200",
+      "passed": true
+    },
+    {
+      "name": "all QA invitations remain local",
+      "passed": true
+    }
+  ]
+}

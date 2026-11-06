@@ -1,0 +1,474 @@
+{
+  "scope": "201-250 cumulative status; no full-suite certification",
+  "workflows": [
+    {
+      "workflow": 201,
+      "title": "Shipping charge refunded independently of goods",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 202,
+      "title": "Multiple partial returns against one invoice",
+      "status": "Partial browser pass; automated pass",
+      "evidence": "Browser: sold10 for11800; returns2,3,1 on Nov7/8/9 credited2360,3540,1180; excess5 blocked. Found formatter suppressed restock in those first three requests. After fix remaining4 returned and restocked4 at cost600. Earlier six units were not retroactively repaired. Automated isolated test confirms full2+3+1 restock and eligibility.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 203,
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00001",
+        "SR-2026-00001",
+        "CN-2026-00001"
+      ],
+      "expected": "Original taxes180 and25,credit1705 and both units restocked; reports reverse original line taxes.",
+      "actual": "Browser sold and collected1705 by card; linked return1705 restored stock10each. Fixed missing GSTR1 credit preview/CSV, B2C rate separation/net credit and HSN net quantity/value. Refreshed preview shows sales1180/525 and credits-1180/-525,tax-180/-25.",
+      "evidence": "workflows-203-tax-preview-fixed.png",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 204,
+      "title": "Return of a fractional-unit converted product",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 205,
+      "title": "Financial credit without a physical return",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 206,
+      "title": "Rejected return request",
+      "status": "Verified pending rejection branch; policy gap",
+      "evidence": "Browser QA-206-PENDING-FIX rejected with reason; no ledger, stock, credit note or refund. Permission, required reason and repeated rejection tested. Configurable policy and reviewer approval for original-linked returns not implemented in this work. Legacy pending requests with posted credits are blocked from rejection and require reconciliation.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 207,
+      "title": "Substitute an unavailable item before fulfillment",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 208,
+      "title": "Delivery destination changed after picking",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 209,
+      "title": "Duplicate customer PO reference policy",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 210,
+      "title": "Customer order minimum value",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 211,
+      "title": "Maximum discount approval",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 212,
+      "title": "Customer-specific product restriction",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 213,
+      "title": "Copy an order into a new draft",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 214,
+      "title": "Copy an invoice without duplicating settlement",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 215,
+      "title": "Order notes versus internal notes",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 216,
+      "title": "Attachments throughout the commercial lifecycle",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 217,
+      "title": "Unsafe or oversized attachment rejection",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 218,
+      "title": "Manual price override does not update the master",
+      "status": "Automated subcheck pass",
+      "evidence": "Manual invoice override leaves master unchanged; full order lifecycle not browser verified.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 219,
+      "title": "Expired price-list fallback",
+      "status": "Pass",
+      "reason": "Expired assigned750 ignored; valid default900 selected and explained. Saved QA-219-VALID-FALLBACK (invoice1), quantity2,base1800,tax324,total2124 after refresh. Stock10 to8 exactly once.",
+      "documents": [
+        "QA-219-VALID-FALLBACK"
+      ],
+      "source": "workflows-201-250-price-current-results.json"
+    },
+    {
+      "workflow": 220,
+      "title": "Conflicting applicable price lists",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 221,
+      "title": "Service quantity precision",
+      "status": "Browser pass",
+      "evidence": "Configured QA Hour with decimal_allowed enabled; nonstock service800; POS1.25 base1000,tax180,total1180; card collected1180; receipt INV-2026-00001 sale2; no service stock movements.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 222,
+      "title": "Billing milestone amount amended before invoicing",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement3",
+        "billingplan2",
+        "milestone2",
+        "invoice2 INV-000001"
+      ],
+      "expected": "Approved amendment4000 to4500 reconciles and bills once.",
+      "actual": "Browser amendment resets approval; plan4500; approved milestone invoiced once for4500; invoice issued and retained after reload. Billed row cannot amend or regenerate.",
+      "evidence": "workflows-222-issued.png",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 223,
+      "title": "Billing milestone date moved across periods",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement4",
+        "billingplan3",
+        "milestone3"
+      ],
+      "expected": "Moving date moves eligibility to correct period without duplicate draft.",
+      "actual": "Nov15 moved toDec15; reapproval required; November eligible0,December1. Early generation rejected; draft link remains null.",
+      "evidence": "workflows-223-period-move.png",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 224,
+      "title": "Engagement canceled before project creation",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement2 QA-224-CANCEL"
+      ],
+      "expected": "Cancel before handoff blocks project,plan,invoice creation.",
+      "actual": "Cancelled in browser with reason and actor. Project control disabled; plan attempt rejected. Persisted project null,plans0,invoices0; API tests also reject project/invoice/status bypass.",
+      "evidence": "workflows-224-cancelled.png",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 225,
+      "title": "Reopen a mistakenly closed engagement",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement1 QA-225-CLOSED",
+        "historicalplan1",
+        "historicalinvoice1 QA-225-PAID-HISTORY",
+        "project1",
+        "task1 TASK-09a8c2e6-0fa"
+      ],
+      "expected": "Authorized reopen preserves history and permits distinct new completed delivery.",
+      "actual": "Seeded closed engagement reopened in browser with actor/reason; new project and task created; task Completed persisted after reload. Existing completedplan100,paidinvoice100 and invoicedmilestone remain unchanged. Close/reopen dependency and authorization checks pass in API regression.",
+      "evidence": "workflows-225-completed-task.png",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 226,
+      "title": "Fixed billing and expense reimbursement",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 227,
+      "title": "Collection reminder excludes disputed invoices",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 228,
+      "title": "Promise-to-pay follow-up",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 229,
+      "title": "Partial write-off approval",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 230,
+      "title": "Reject a write-off request",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 231,
+      "title": "Settlement with a bank processing fee",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 232,
+      "title": "Payment method disabled after historical use",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 233,
+      "status": "Pass",
+      "documents": [
+        "POS-2026-00001",
+        "CashMovement1",
+        "CashMovement2",
+        "INV-2026-00001"
+      ],
+      "expected": "Cash-in500 and reversal500 netzero; closing accurate and history retained.",
+      "actual": "Browser opening1000,in500,reasoned reversal500,cashsale1180. Z-report expected/count2180,variance0. Repeat/closed reversal blocked and closed history retained in regression.",
+      "evidence": "workflows-233-zero-variance.png",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 234,
+      "title": "Cashier closing with noncash sales only",
+      "status": "Browser pass",
+      "evidence": "POS-2026-00001 opening1000; card1180,cash0; closing1000,expected1000,variance0.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 235,
+      "title": "Rounding payable amount in POS",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 236,
+      "title": "Product sold while another user changes its master",
+      "status": "Automated snapshot subcheck pass",
+      "evidence": "Issued invoice retains original rate/tax after later master change. Simultaneous actors and POS repricing policy not certified.",
+      "source": "workflows-201-250-results.json"
+    },
+    {
+      "workflow": 237,
+      "title": "Purchase-order delivery address differs from company address",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-237-DESTINATION",
+        "QA-237-RECEIPT"
+      ],
+      "expected": "Supplier-facing PO shows selected warehouse address; receipt posts2 into B, not Main.",
+      "actual": "Before fix no delivery destination. Final document shows QA Warehouse B and QA Dock B,22 Receiving Road,Hyderabad. Earlier same-config browser receipt shows B2/value1200.",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 238,
+      "title": "Supplier changed on an unreceived PO",
+      "status": "Pass",
+      "execution": "Browser plus regression; draft amendment capability implemented",
+      "documents": [
+        "PO1 QA-237-DESTINATION",
+        "GRN-2026-00001",
+        "supplier2 QA Supplier B"
+      ],
+      "expected": "Amend unreceived draft fromA toB; revalidate terms and prices; receive againstB.",
+      "actual": "Browser amended supplier toB with explicit review and replacedA terms; issued then received. PO showsB after reload. Regression rejects mismatchedA GRN and missing revalidation.",
+      "evidence": "workflows-238-239-received.png",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 239,
+      "title": "Purchase-order line removed before receipt",
+      "status": "Pass",
+      "execution": "Browser plus regression; draft amendment capability implemented",
+      "documents": [
+        "PO1",
+        "removedproduct4 QA-239-3",
+        "GRN-2026-00001"
+      ],
+      "expected": "Remove one of3 lines; recompute total; receive only remaining lines.",
+      "actual": "Removed product4,1616 became1516; remaining quantities2 and1 fully received at warehouse2. Product4 stock0 and no movement; order Received. Postreceipt edit and stale amendment rejected in regression.",
+      "evidence": "workflows-238-239-received.png",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 240,
+      "status": "Pass",
+      "documents": [
+        "QA-240-BATCH-PO",
+        "GRN-2026-00001"
+      ],
+      "expected": "OneGRN receives12+8,expiry separate,totalcost2000.",
+      "actual": "Added Split batch control. Browser12 expJan1 and8 expFeb1,2027; PO20/20 Received. Movementvalues1200+800. Regression overreceipt21 rolls back all stock/batch/GRN rows.",
+      "evidence": "workflows-240-received-batches.png",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 241,
+      "title": "Warehouse deactivation with remaining stock",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-241-OPEN-PO"
+      ],
+      "expected": "Stock/open commitments block deactivation; resolved empty location can deactivate.",
+      "actual": "Main stock blocked. Empty B with open PO blocked. Cancelled that PO, then B deactivated; Main stayed active. Toggle,edit and legacy deactivation paths tested; new stock movements reject inactive warehouses.",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 242,
+      "status": "Pass",
+      "documents": [
+        "PO-2026-00001",
+        "GRN-2026-00001",
+        "P1"
+      ],
+      "expected": "Open procurement offsets changed reorder target and is replaced by stock upon receipt.",
+      "actual": "Fixed ignored openPO. Browser stock10,target30 created20; nextsuggestion0. Changedlevel35,target40: open20,suggestion10. Received20:stock30,open0,suggestionstill10; exactlyonePO retained.",
+      "evidence": "workflows-242-policy-after-receipt.png",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 243,
+      "status": "Pass",
+      "documents": [
+        "QA-240-BATCH-PO",
+        "QA-243-BATCH-PO",
+        "GRN-2026-00001",
+        "GRN-2026-00002",
+        "INV-2026-00001"
+      ],
+      "expected": "Samebatchtext acrossproducts remains independent through receipt,sale and search.",
+      "actual": "ReceivedQA-SHARED12(product3) and20(product4),distinctexpiry. FoundPOS ignored selectedbatch; fixed product/warehouse/expiry/cumulativeavailability,atomicdepletion and audit. Browser soldoneeach,total472paid; refreshed search shows11 and19; QA-B stays8.",
+      "evidence": "workflows-243-separated-batch-balances.png",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 244,
+      "title": "Serial-number case and whitespace normalization",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-244-ABC",
+        "INV-2026-00001"
+      ],
+      "expected": "Case/space variants cannot create two available serial identities; accepted serial sells once.",
+      "actual": "Before fix two case variants persisted. New entries trim and uppercase, variant rejected. POS tile loads serial choices; selected QA-244-ABC sold for1180 by card, statusSold,sale_id1,productstock0. Missing/reused serial and duplicate receipt rollback tested.",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 245,
+      "status": "Blocked",
+      "documents": [],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "Form exposes immediate Post Adjustment only; no attachment or approval capability. No posting attempted.",
+      "evidence": "workflows-201-250-next-capability-observations.json",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 246,
+      "title": "Manufacturing BOM with fractional consumption",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-248-FINAL-AMEND"
+      ],
+      "expected": "0.25kg per unit times6 consumes1.50kg and costs900.",
+      "actual": "Component P1 10kg to8.5kg at600/kg; finished0 to6 at150 each,value900. Two matching stock movements, eachvalue900.",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 247,
+      "status": "Blocked",
+      "documents": [],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "No component-specific source locations or separate destination are configurable. No production posted.",
+      "evidence": "workflows-201-250-next-capability-observations.json",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 248,
+      "title": "Production order quantity amended before completion",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-248-FINAL-AMEND"
+      ],
+      "expected": "Unposted order10 amendedto6; no early output; post6 only.",
+      "actual": "Draft edit preserves orderidentity and audit, planned6/produced0. Completion gives6/6; componentconsumption1.5 not2.5. Overproduction7 rejected; repeatcompletion and completededit blocked. Operational fixture has no reservation subsystem.",
+      "source": "workflows-201-250-remaining-results.json"
+    },
+    {
+      "workflow": 249,
+      "status": "Blocked",
+      "documents": [
+        "CustomView1 QA-249 November warehouse report"
+      ],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "Saved report JSON record persists, but Sales Summary exposes manual filters only and no apply/share saved-view action. Narrow-user shared-view execution/export could not be performed; no access-control pass claimed.",
+      "evidence": "workflows-201-250-next-capability-observations.json",
+      "source": "workflows-201-250-next-results.json"
+    },
+    {
+      "workflow": 250,
+      "title": "Dashboard drill-down reconciles after corrective activity",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed.",
+      "source": "workflows-201-250-results.json"
+    }
+  ]
+}

@@ -8,6 +8,8 @@ const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/
 const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
 
 const ManagementHomePage = React.lazy(() => import("./pages/ManagementHomePage"));
+const WorkflowSchemesPage = React.lazy(() => import("./pages/WorkflowSchemesPage"));
+const TransitionApprovalInbox = React.lazy(() => import("./pages/TransitionApprovalInbox"));
 const MyWorkPage = React.lazy(() => import("./pages/MyWorkPage"));
 const MemberManagementPage = React.lazy(() => import("./pages/MemberManagementPage"));
 const PeopleDirectoryProfile = React.lazy(() => import("./pages/PeopleDirectoryProfile"));
@@ -94,6 +96,8 @@ export const projectManagementRoutes: FrontendRoute[] = [
  {path:"pms/products-services",element:<SharedCatalogPage source="pms"/>},
  {path:"pms/products",element:<SharedCatalogPage source="pms"/>},
  {path:"pms/management",element:<ManagementHomePage/>},
+ {path:"pms/workflow-schemes",element:<WorkflowSchemesPage/>},
+ {path:"pms/transition-approvals",element:<TransitionApprovalInbox/>},
  {path:"pms/admin/configuration",element:<AdminPage/>},
  {path:"pms/my-work",element:<MyWorkPage/>},
  {path:"pms/members",element:<MemberManagementPage/>},

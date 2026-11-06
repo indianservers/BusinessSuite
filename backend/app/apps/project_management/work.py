@@ -46,7 +46,10 @@ def own_assignment(db, task_id, user, lock=False):
 def sync_parent(db, task):
     db.flush()
     statuses = {r[0] for r in db.query(PMSTaskAssignee.execution_status).filter(PMSTaskAssignee.task_id==task.id,PMSTaskAssignee.cancelled_at.is_(None))}
-    task.status = "Done" if statuses and statuses == {"Done"} else "In Review" if "In Review" in statuses else "In Progress" if statuses - {"To Do"} else "To Do"
+    target_status = "Done" if statuses and statuses == {"Done"} else "In Review" if "In Review" in statuses else "In Progress" if statuses - {"To Do"} else "To Do"
+    from .workflow_schemes import guard_scheme
+    guard_scheme(db, task, target_status)
+    task.status = target_status
     task.completed_at = datetime.now(timezone.utc) if task.status == "Done" else None
     from .api.router import _sync_task_column
     _sync_task_column(db, task)

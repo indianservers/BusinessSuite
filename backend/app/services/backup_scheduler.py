@@ -13,11 +13,13 @@ def start_scheduler():
     def loop():
         from app.db.session import SessionLocal
         from app.apps.project_management.recovery import run_due
+        from app.db.tenant import run_for_company_databases
+        def company_tick():
+            with SessionLocal() as db:run_due(db)
 
         while not stop.is_set():
             try:
-                with SessionLocal() as db:
-                    run_due(db)
+                run_for_company_databases(company_tick)
             except Exception:
                 logger.exception("Automatic workspace savepoint failed")
             try:

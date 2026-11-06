@@ -298,3 +298,45 @@ def test_personal_notifications_stay_with_their_recipient_even_for_an_owner(clie
     assert "Private reviewer task" not in owner_titles
     assert "Private owner notice" not in reviewer_titles
     assert "Shared notice" in owner_titles & reviewer_titles
+
+
+@pytest.mark.parametrize("path,payload", [
+    ("/profile", {"action":"preferences","values":{"favorites":[{}]}}),
+    ("/profile", {"action":"preferences","values":{"page_size":[]}}),
+    ("/settings", {"action":"settings","values":{"business_days":[{}]}}),
+    ("/settings", {"action":"settings","values":{"business_days":[True]}}),
+])
+def test_owner_invalid_structured_preferences_and_settings_return_422(client,db,platform_headers,path,payload):
+    method="patch" if path=="/profile" else "put"
+    call(client,platform_headers,method,path,{**payload,"reason":"Malformed QA input"},422)
+
+
+@pytest.mark.parametrize("values", [
+    {"role":[]}, {"permissions":[{}]}, {"is_active":"false"}, {"assigned_only":"false"},
+])
+def test_staff_access_rejects_invalid_types_without_revoking_sessions(client,db,platform_headers,platform_store,values):
+    staff,headers=staff_login(client,platform_store,"reviewer",True)
+    call(client,platform_headers,"patch",f"/staff/{staff.id}",{"action":"access","reason":"Malformed QA input","values":values},422)
+    assert call(client,headers,"get","/me")["role"]=="reviewer"
+
+
+@pytest.mark.parametrize("action,values", [("assign",{"assigned_to":[]}), ("legal_hold",{"enabled":"false"})])
+def test_signup_actions_reject_invalid_types(client,db,platform_headers,action,values):
+    row=submit(client,db)
+    call(client,platform_headers,"post",f"/signups/{row.id}/action",{"action":action,"reason":"Malformed QA input","values":values},422)
+
+
+def test_null_checklist_is_rejected_instead_of_breaking_review(client,db,platform_headers):
+    row=submit(client,db)
+    call(client,platform_headers,"patch",f"/signups/{row.id}",{"version":1,"reason":"Malformed QA input","checklist":None},422)
+
+
+def test_record_edit_requires_object_data(client,db,platform_headers):
+    row=call(client,platform_headers,"post","/records/task",{"title":"Disposable QA task"},201)
+    call(client,platform_headers,"post",f'/record/{row["id"]}/action',{"action":"edit","reason":"Malformed QA input","values":{"data":[]}},422)
+
+
+@pytest.mark.parametrize("action,values", [("entitlements",{"modules":[{}]}),("payment",{"amount_minor":100,"reference":"QA-INVALID","currency":[]})])
+def test_customer_actions_reject_invalid_collection_values(client,db,platform_headers,action,values):
+    _,_,tenant=customer(client,db,platform_headers)
+    call(client,platform_headers,"post",f"/customers/{tenant.id}/action",{"action":action,"reason":"Malformed QA input","values":values},422)

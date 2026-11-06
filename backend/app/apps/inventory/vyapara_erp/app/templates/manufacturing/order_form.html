@@ -7,6 +7,9 @@
     <span class="active">Step 2: Manufacturing Order</span>
     <span>Step 3: Stock Update</span>
   </div>
+  <h2 class="h6 mt-3">Component source warehouses</h2>
+  <p>The main Warehouse field is the finished-goods destination. Choose a source for each component; leaving it blank uses that destination.</p>
+  {% for bom in boms %}<div data-source-bom="{{ bom.id }}">{% for item in bom.items %}<label class="d-block">{{ item.component.name }} source<select class="form-select" name="source_{{ item.id }}" aria-label="{{ item.component.name }} source"><option value="">Use finished-goods warehouse</option>{% for w in warehouses %}<option value="{{ w.id }}" {% if source_map.get(item.id) == w.id %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></label>{% endfor %}</div>{% endfor %}
   <div class="form-grid">
     <div><label class="form-label">MO No</label><input class="form-control" name="mo_no" value="{{ order.mo_no }}"></div>
     <div><label class="form-label">BOM</label><select class="form-select" name="bom_id" required><option value="">Select</option>{% for bom in boms %}<option value="{{ bom.id }}" {% if order.bom_id == bom.id %}selected{% endif %}>{{ bom.name }} - {{ bom.product.name }}</option>{% endfor %}</select></div>
@@ -19,3 +22,6 @@
   <div class="sticky-actions"><button class="btn btn-primary">Save Manufacturing Order</button></div>
 </form>
 {% endblock %}
+{% block scripts %}<script>
+document.addEventListener('DOMContentLoaded',()=>{const bom=document.querySelector('[name="bom_id"]');const update=()=>document.querySelectorAll('[data-source-bom]').forEach(section=>{const active=section.dataset.sourceBom===bom.value;section.hidden=!active;section.querySelectorAll('select').forEach(select=>select.disabled=!active);});bom.addEventListener('change',update);update();});
+</script>{% endblock %}

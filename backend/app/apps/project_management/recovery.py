@@ -109,6 +109,8 @@ def event(db, project, task, user, action):
 
 
 def apply_state(db, task, state, workspace_id):
+    from .workflow_schemes import guard_scheme
+    guard_scheme(db, task, state.get("status", task.status), state)
     ids = state.get("assignee_user_ids", [])
     eligible = {
         uid

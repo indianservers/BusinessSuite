@@ -7,6 +7,19 @@ from app.access.models import AccessMembership, AccessPolicy
 from app.apps.saas.models import TenantSubscription, TenantSubscriptionPlan
 from app.models.user import User
 from app.platform_owner import service as s
+from functools import wraps
+
+
+def tenant_bridge(function):
+    @wraps(function)
+    def routed(db,tenant,*args,**kwargs):
+        from app.platform_owner.tenant_provisioning import company_business_session
+        with company_business_session(tenant,db) as target:
+            result=function(target,tenant,*args,**kwargs)
+            if isinstance(result,str) and "/invite-access?token=" in result and target.info.get("tenant_uuid"):
+                result+="&tenant="+target.info["tenant_uuid"]
+            return result
+    return routed
 
 
 def customer_subscription(db, tenant):
@@ -15,6 +28,7 @@ def customer_subscription(db, tenant):
     return row
 
 
+@tenant_bridge
 def usage(db, tenant):
     from app.models.company import Company
     db.query(Company).filter_by(id=tenant.company_id).with_for_update().first()
@@ -29,6 +43,7 @@ def usage(db, tenant):
             "storage_bytes": int(size or 0), "activated": activated, "recorded_at": s.now().isoformat()}
 
 
+@tenant_bridge
 def sync_subscription(db, tenant, config, status):
     subscription = customer_subscription(db, tenant)
     values = {**subscription.config_json, "enforce": True, "modules": config.get("modules", []),
@@ -53,6 +68,7 @@ def sync_subscription(db, tenant, config, status):
     db.commit()
 
 
+@tenant_bridge
 def invitation(db, tenant, revoke=False):
     membership = db.query(AccessMembership).filter_by(company_id=tenant.company_id, active=True, is_admin=True).order_by(AccessMembership.id).first()
     if not membership: raise HTTPException(409, "Customer admin membership is unavailable")
@@ -69,6 +85,7 @@ def invitation(db, tenant, revoke=False):
     return settings.FRONTEND_PUBLIC_URL.rstrip("/")+"/invite-access?token="+raw
 
 
+@tenant_bridge
 def transfer_admin(db, tenant, old_email, new_email):
     from app.models.user import UserSession
     from app.api.v1.auth import _hash_reset_token

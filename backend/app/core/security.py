@@ -15,6 +15,8 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
+    from app.db.tenant import token_tenant_claims
+    to_encode.update(token_tenant_claims())
     if ai_origin is not None:
         to_encode["ai_origin"]=ai_origin
     if auth_provider in {"google", "microsoft"}:
@@ -29,6 +31,8 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
 def create_refresh_token(subject: Union[str, Any], session_id: int | None = None, portal: str | None = None, auth_provider: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    from app.db.tenant import token_tenant_claims
+    to_encode.update(token_tenant_claims())
     if auth_provider in {"google", "microsoft"}:
         to_encode["auth_provider"] = auth_provider
     if portal:

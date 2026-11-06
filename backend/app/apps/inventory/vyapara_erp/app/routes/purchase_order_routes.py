@@ -219,8 +219,16 @@ def capture_grn_tracking(index, product_id, warehouse_id, quantity, rate, grn_id
     batch_no = request.form.getlist("batch_no[]")[index] if index < len(request.form.getlist("batch_no[]")) else ""
     mfg = request.form.getlist("manufacture_date[]")[index] if index < len(request.form.getlist("manufacture_date[]")) else ""
     exp = request.form.getlist("expiry_date[]")[index] if index < len(request.form.getlist("expiry_date[]")) else ""
+    batch_no = batch_no.strip()
+    product = db.session.get(Product, int(product_id))
+    if product and product.batch_tracking and not batch_no:
+        raise ValueError("Batch number is required for this product")
+    if mfg and exp and date.fromisoformat(exp) < date.fromisoformat(mfg):
+        raise ValueError("Batch expiry cannot precede manufacture date")
     if batch_no:
         batch = Batch.query.filter_by(product_id=product_id, warehouse_id=warehouse_id, batch_no=batch_no).first()
+        if batch and ((mfg and batch.manufacture_date != date.fromisoformat(mfg)) or (exp and batch.expiry_date != date.fromisoformat(exp))):
+            raise ValueError("Existing batch dates differ. Use the correct batch identity")
         if not batch:
             batch = Batch(product_id=product_id, warehouse_id=warehouse_id, batch_no=batch_no, manufacture_date=date.fromisoformat(mfg) if mfg else None, expiry_date=date.fromisoformat(exp) if exp else None, purchase_reference=grn_no, cost=rate or 0, quantity=0)
             db.session.add(batch)

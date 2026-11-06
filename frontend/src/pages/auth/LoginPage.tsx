@@ -64,6 +64,7 @@ export default function LoginPage() {
       : localStorage.getItem("suite-remember-session") === "true",
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [workspace, setWorkspace] = useState(() => new URLSearchParams(window.location.search).get("tenant") || sessionStorage.getItem("suite-tenant") || "");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -228,15 +229,22 @@ export default function LoginPage() {
     );
   }
   const login = useMutation({
-    mutationFn: (data: LoginForm) => authApi.login(data.email, data.password),
+    mutationFn: (data: LoginForm) => {
+      useAuthStore.getState().logout();
+      if (workspace.trim()) sessionStorage.setItem("suite-tenant", workspace.trim().toLowerCase());
+      else sessionStorage.removeItem("suite-tenant");
+      return authApi.login(data.email, data.password, undefined, undefined, workspace.trim().toLowerCase());
+    },
     onSuccess: (r) => finish(r.data),
-    onError: (err) =>
+    onError: (err) => {
+      console.warn("Sign-in request failed", err instanceof Error ? err.name + ": " + err.message : "Unknown error");
       setError(
         errorMessage(
           err,
           "Sign-in failed. Check your email and password and try again.",
         ),
-      ),
+      );
+    },
   });
   const verify = useMutation({
     mutationFn: () => authApi.mfaVerify({ mfa_token: mfaToken, code, method }),
@@ -247,7 +255,7 @@ export default function LoginPage() {
       ),
   });
   const recovery = useMutation({
-    mutationFn: () => authApi.forgotPassword(recoveryEmail),
+    mutationFn: () => authApi.forgotPassword(recoveryEmail, workspace.trim().toLowerCase()),
     onSuccess: () => {
       setSentEmail(recoveryEmail);
       setView("sent");
@@ -258,7 +266,7 @@ export default function LoginPage() {
       ),
   });
   const reset = useMutation({
-    mutationFn: () => authApi.resetPassword(resetToken!, newPassword),
+    mutationFn: () => authApi.resetPassword(resetToken!, newPassword, workspace.trim().toLowerCase()),
     onSuccess: () => {
       backToLogin();
       setSuccess("Password reset. Sign in with your new password.");
@@ -309,7 +317,10 @@ export default function LoginPage() {
         : view === "reset"
           ? "Reset password"
           : "Sign in to Business Suite";
-  if (isHydrated && isAuthenticated && !resetToken)
+  let authenticatedWorkspace = "";
+  let authenticatedTenant = "";
+  try { const claims = JSON.parse(atob((useAuthStore.getState().accessToken || "").split(".")[1])); authenticatedWorkspace = claims.workspace || ""; authenticatedTenant = claims.tenant || ""; } catch {}
+  if (isHydrated && isAuthenticated && !resetToken && (!workspace || workspace === authenticatedWorkspace || workspace === authenticatedTenant))
     return <Navigate to={continuation} replace />;
   return (
     <div className="suite-login">
@@ -555,6 +566,8 @@ export default function LoginPage() {
                   login.mutate(data);
                 })}
               >
+                <label htmlFor="workspace">Company workspace</label>
+                <input id="workspace" value={workspace} onChange={event => setWorkspace(event.target.value)} placeholder="company-123 (blank for existing shared accounts)" autoComplete="organization" />
                 <label htmlFor="email">Email address</label>
                 <div className="suite-email-field"><Mail size={20} aria-hidden="true"/><input
                   id="email"

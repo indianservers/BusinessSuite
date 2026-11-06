@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>{{ review.adjustment.adjustment_no }} · {{ review.status }}</h2>
+  <p>Warehouse: {{ review.adjustment.warehouse.name }} · Reason: {{ review.adjustment.reason }}</p>
+  <table class="table"><thead><tr><th>Product</th><th>In</th><th>Out</th><th>Rate</th></tr></thead><tbody>{% for item in review.adjustment.items %}<tr><td>{{ item.product.name }}</td><td>{{ item.qty_in }}</td><td>{{ item.qty_out }}</td><td>{{ item.rate }}</td></tr>{% endfor %}</tbody></table>
+  {% if review.evidence %}<p><a href="{{ url_for('stock.adjustment_evidence_download', id=review.adjustment_id) }}">Download {{ review.evidence_name }}</a> · SHA-256 {{ review.evidence_sha256 }} · Uploaded by {{ review.uploaded_by }}</p>{% else %}<p>Supporting evidence required before approval. No evidence attached.</p>{% endif %}
+  {% if review.status == 'Pending' %}
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('stock.adjustment_evidence_upload', id=review.adjustment_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Supporting evidence<input type="file" name="evidence" accept=".pdf,.png,.csv" required></label><p>PDF, PNG or UTF-8 CSV; maximum 2 MB.</p><button class="btn btn-outline-primary">Attach evidence</button></form>
+  {% if current_user.has_permission('inventory','approve') %}<form method="post" action="{{ url_for('stock.adjustment_approve', id=review.adjustment_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary mt-3">Approve and post adjustment</button></form>{% endif %}
+  {% else %}<p>Approved by {{ review.approved_by }} at {{ review.approved_at }}. Stock has been posted. Repeat posting is blocked.</p>{% endif %}
+</section>
+{% endblock %}

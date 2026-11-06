@@ -31,6 +31,7 @@
     <div class="panel mb-3">
       <h2 class="h6">Actions</h2>
       <div class="d-grid gap-2">
+        {% if invoice.status in ['Issued','Partially Paid','Paid'] and current_user.has_permission('sales','create') %}<form method="post" action="{{ url_for('invoices.copy_to_draft', id=invoice.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline-primary w-100">Copy to new draft</button></form>{% endif %}
         {% if invoice.status == 'Draft' %}
         <a class="btn btn-outline-primary" href="{{ url_for('invoices.edit', id=invoice.id) }}"><i class="bi bi-pencil"></i> Edit Draft</a>
         <form method="post" action="{{ url_for('invoices.issue', id=invoice.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary w-100"><i class="bi bi-send"></i> Issue Invoice</button></form>

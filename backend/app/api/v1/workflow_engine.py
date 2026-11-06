@@ -349,6 +349,9 @@ def _create_next_pending_task(db: Session, instance: WorkflowInstance, after_ste
                 automatic_only = True
                 continue
             task = _assign_task_from_step(db, instance, step)
+            if instance.module == "project_management" and instance.entity_type == "pms_transition":
+                from app.apps.project_management.transition_approvals import validate_assignment
+                validate_assignment(db, instance, task)
             db.add(task)
             db.flush()
             created_tasks.append(task)
@@ -562,6 +565,8 @@ def reorder_definition_steps(definition_id: int, data: list[dict], db: Session =
 
 @router.post("/instances", response_model=WorkflowInstanceSchema, status_code=201)
 def start_instance(data: WorkflowInstanceCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if data.module == "project_management" and data.entity_type == "pms_transition":
+        raise HTTPException(403, "Request transition approvals from the PMS task")
     definition = db.query(WorkflowDefinition).filter(WorkflowDefinition.id == data.workflow_id, WorkflowDefinition.is_active.is_(True)).first() if data.workflow_id else None
     instance = WorkflowInstance(**data.model_dump(), requester_user_id=current_user.id)
     db.add(instance)
@@ -585,7 +590,21 @@ def start_instance_alias(data: WorkflowInstanceCreate, db: Session = Depends(get
 def my_tasks(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     query = db.query(WorkflowTask).filter(WorkflowTask.status == "Pending")
     role_name = current_user.role.name if current_user.role else None
-    return query.filter((WorkflowTask.assigned_to_user_id == current_user.id) | (WorkflowTask.assigned_role == role_name)).order_by(WorkflowTask.created_at).limit(200).all()
+    assigned = WorkflowTask.assigned_to_user_id == current_user.id
+    if role_name:
+        assigned = assigned | (WorkflowTask.assigned_role == role_name)
+    rows = query.filter(assigned).order_by(WorkflowTask.created_at).limit(200).all()
+    from app.apps.project_management.transition_approvals import is_transition, may_decide
+    visible = []
+    for task in rows:
+        instance = db.get(WorkflowInstance, task.instance_id)
+        if is_transition(instance):
+            from app.apps.project_management.models import PMSTask
+            item = db.get(PMSTask, instance.entity_id)
+            if not item or item.deleted_at or not may_decide(db, instance, task, current_user, item):
+                continue
+        visible.append(task)
+    return visible
 
 
 @router.get("/inbox", response_model=list[WorkflowTaskSchema])
@@ -598,10 +617,17 @@ def decide_task(task_id: int, data: WorkflowTaskDecision, db: Session = Depends(
     task = db.query(WorkflowTask).filter(WorkflowTask.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Workflow task not found")
+    instance = db.get(WorkflowInstance, task.instance_id)
+    from app.apps.project_management.transition_approvals import is_transition, validate_engine_decision
+    if is_transition(instance):
+        if data.decision.lower() not in {"approve", "reject"}:
+            raise HTTPException(422, "Choose approve or reject")
+        validate_engine_decision(db, instance, task, current_user)
+        data.decision = data.decision.lower()
     if task.status != "Pending":
         raise HTTPException(status_code=400, detail="Workflow task is not pending")
     role_name = current_user.role.name if current_user.role else None
-    if task.assigned_to_user_id != current_user.id and task.assigned_role != role_name:
+    if task.assigned_to_user_id != current_user.id and not (role_name and task.assigned_role == role_name):
         raise HTTPException(status_code=403, detail="Workflow task is not assigned to the current user")
     before_task_status = task.status
     task.status = "Completed"
@@ -635,6 +661,9 @@ def decide_task(task_id: int, data: WorkflowTaskDecision, db: Session = Depends(
                 _audit(db, instance, "instance_completed", actor_user_id=current_user.id, before_status=before_instance_status, after_status="Approved")
         else:
             instance.status = "Rejected"
+            if is_transition(instance):
+                for pending in db.query(WorkflowTask).filter_by(instance_id=instance.id, status="Pending"):
+                    pending.status = "Cancelled"
             instance.completed_at = _now()
             _audit(db, instance, "task_rejected", task=task, actor_user_id=current_user.id, before_status=before_task_status, after_status=task.status, reason=data.reason)
             _audit(db, instance, "instance_completed", actor_user_id=current_user.id, before_status=before_instance_status, after_status="Rejected", reason=data.reason)
@@ -787,6 +816,9 @@ def instance_audit(instance_id: int, db: Session = Depends(get_db), current_user
     instance = db.query(WorkflowInstance).filter(WorkflowInstance.id == instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Workflow instance not found")
+    if instance.module == "project_management" and instance.entity_type == "pms_transition":
+        from app.apps.project_management.access import get_task_project_for_action
+        get_task_project_for_action(db, instance.entity_id, current_user)
     if instance.requester_user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Cannot view this workflow audit")
     return db.query(WorkflowAuditEvent).filter(WorkflowAuditEvent.instance_id == instance_id).order_by(WorkflowAuditEvent.created_at, WorkflowAuditEvent.id).all()

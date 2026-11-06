@@ -1,5 +1,5 @@
 {
-  "scope": "Continuation of201-250: prior inventory checks plus newly implemented and browser-verified222-225,238-239. Other unexecuted workflows are not certified.",
+  "scope": "Latest203/233/240/242/243 browser passes;245/247/249 capability gaps. See cumulative status for all runs.",
   "configuration": {
     "inventory": "Disposable in-memory SQLite companies, ports5308-5312; separate before/fixed/final fixtures, not one combined balance. INR; negative stock disabled; component600/kg; BOM0.25kg per finished unit,yield1. Global serial identity:trim+uppercase.",
     "production_final": "http://127.0.0.1:5312; QA-248-FINAL-AMEND; no reservation subsystem.",
@@ -27,7 +27,7 @@
     "Draft PO supplier and line amendments with review confirmation,audit,recalculated totals,stale/receipt guards; GRN supplier must match PO."
   ],
   "tests": {
-    "inventory_pytest": "92 passed",
+    "inventory_pytest": "96 passed",
     "javascript": "5 checks passed",
     "persisted_assertions": "Production6,consumption1.5kg,value900; serialSold linkedreceipt1,stock0; Bdeactivated onlyafter commitmentcancelled.",
     "whitespace": "git diff --check passed",
@@ -52,7 +52,8 @@
     "workflows-201-250-milestone-gap.png",
     "workflows-201-250-remaining-final-regression.xml",
     "workflows-222-225-results.json",
-    "workflows-238-239-results.json"
+    "workflows-238-239-results.json",
+    "workflows-201-250-next-results.json"
   ],
   "prior_reports": [
     "workflows-201-250-results.json",
@@ -74,8 +75,16 @@
     {
       "workflow": 203,
       "title": "One return containing lines from different tax rates",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser verified",
+      "documents": [
+        "INV-2026-00001",
+        "SR-2026-00001",
+        "CN-2026-00001"
+      ],
+      "expected": "Original taxes180 and25,credit1705 and both units restocked; reports reverse original line taxes.",
+      "actual": "Browser sold and collected1705 by card; linked return1705 restored stock10each. Fixed missing GSTR1 credit preview/CSV, B2C rate separation/net credit and HSN net quantity/value. Refreshed preview shows sales1180/525 and credits-1180/-525,tax-180/-25.",
+      "evidence": "workflows-203-tax-preview-fixed.png"
     },
     {
       "workflow": 204,
@@ -287,8 +296,17 @@
     {
       "workflow": 233,
       "title": "Cash movement reversal within an open session",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser verified",
+      "documents": [
+        "POS-2026-00001",
+        "CashMovement1",
+        "CashMovement2",
+        "INV-2026-00001"
+      ],
+      "expected": "Cash-in500 and reversal500 netzero; closing accurate and history retained.",
+      "actual": "Browser opening1000,in500,reasoned reversal500,cashsale1180. Z-report expected/count2180,variance0. Repeat/closed reversal blocked and closed history retained in regression.",
+      "evidence": "workflows-233-zero-variance.png"
     },
     {
       "workflow": 234,
@@ -351,8 +369,15 @@
     {
       "workflow": 240,
       "title": "GRN with multiple batches for one PO line",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser verified",
+      "documents": [
+        "QA-240-BATCH-PO",
+        "GRN-2026-00001"
+      ],
+      "expected": "OneGRN receives12+8,expiry separate,totalcost2000.",
+      "actual": "Added Split batch control. Browser12 expJan1 and8 expFeb1,2027; PO20/20 Received. Movementvalues1200+800. Regression overreceipt21 rolls back all stock/batch/GRN rows.",
+      "evidence": "workflows-240-received-batches.png"
     },
     {
       "workflow": 241,
@@ -368,14 +393,32 @@
     {
       "workflow": 242,
       "title": "Reorder policy changed while a PO is open",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser verified",
+      "documents": [
+        "PO-2026-00001",
+        "GRN-2026-00001",
+        "P1"
+      ],
+      "expected": "Open procurement offsets changed reorder target and is replaced by stock upon receipt.",
+      "actual": "Fixed ignored openPO. Browser stock10,target30 created20; nextsuggestion0. Changedlevel35,target40: open20,suggestion10. Received20:stock30,open0,suggestionstill10; exactlyonePO retained.",
+      "evidence": "workflows-242-policy-after-receipt.png"
     },
     {
       "workflow": 243,
       "title": "Batch number reused across different products",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser verified",
+      "documents": [
+        "QA-240-BATCH-PO",
+        "QA-243-BATCH-PO",
+        "GRN-2026-00001",
+        "GRN-2026-00002",
+        "INV-2026-00001"
+      ],
+      "expected": "Samebatchtext acrossproducts remains independent through receipt,sale and search.",
+      "actual": "ReceivedQA-SHARED12(product3) and20(product4),distinctexpiry. FoundPOS ignored selectedbatch; fixed product/warehouse/expiry/cumulativeavailability,atomicdepletion and audit. Browser soldoneeach,total472paid; refreshed search shows11 and19; QA-B stays8.",
+      "evidence": "workflows-243-separated-batch-balances.png"
     },
     {
       "workflow": 244,
@@ -392,8 +435,12 @@
     {
       "workflow": 245,
       "title": "Stock adjustment requiring an attachment",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Blocked",
+      "execution": "Browser capability inspection; unsupported configuration",
+      "documents": [],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "Form exposes immediate Post Adjustment only; no attachment or approval capability. No posting attempted.",
+      "evidence": "workflows-201-250-next-capability-observations.json"
     },
     {
       "workflow": 246,
@@ -409,8 +456,12 @@
     {
       "workflow": 247,
       "title": "Production components issued from different warehouses",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Blocked",
+      "execution": "Browser capability inspection; unsupported configuration",
+      "documents": [],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "No component-specific source locations or separate destination are configurable. No production posted.",
+      "evidence": "workflows-201-250-next-capability-observations.json"
     },
     {
       "workflow": 248,
@@ -426,8 +477,14 @@
     {
       "workflow": 249,
       "title": "Saved report filter shared with another authorized user",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Blocked",
+      "execution": "Browser capability inspection; unsupported configuration",
+      "documents": [
+        "CustomView1 QA-249 November warehouse report"
+      ],
+      "expected": "Supported configuration and complete workflow execution",
+      "actual": "Saved report JSON record persists, but Sales Summary exposes manual filters only and no apply/share saved-view action. Narrow-user shared-view execution/export could not be performed; no access-control pass claimed.",
+      "evidence": "workflows-201-250-next-capability-observations.json"
     },
     {
       "workflow": 250,

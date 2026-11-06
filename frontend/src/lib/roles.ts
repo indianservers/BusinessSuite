@@ -576,7 +576,7 @@ function isSrmSalesRole(role?: string | null, isSuperuser = false) {
 
 const srmFinanceOnlyPaths = ["/srm/invoice-drafts", "/srm/invoices", "/srm/revenue-recognition", "/srm/profitability", "/srm/reports"];
 const srmCollectionOnlyPaths = ["/srm/collections"];
-const srmSalesOnlyPaths = ["/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
+const srmSalesOnlyPaths = ["/srm/whatsapp-communication", "/srm/gantt", "/srm/sales-orders", "/srm/contracts", "/srm/engagements", "/srm/billing-plans", "/srm/customer-360", "/srm/inventory", "/srm/pos", "/srm/sales-inventory"];
 
 function canAccessSrmPath(pathname: string, role?: string | null, isSuperuser = false) {
   if (!isSrmRole(role, isSuperuser)) return false;
@@ -857,6 +857,7 @@ const crmNav: RoleNavItem[] = [
   { label: "Webforms", icon: Users, to: "/crm/webforms", group: "Growth" },
   { label: "Campaigns", icon: Megaphone, to: "/crm/campaigns", group: "Growth" },
   { label: "Consents", icon: ShieldCheck, to: "/crm/consents", group: "Growth" },
+  { label: "WhatsApp Communication", icon: MessageCircle, to: "/crm/whatsapp-communication", group: "Growth" },
   { label: "WhatsApp", icon: MessageCircle, to: "/crm/whatsapp", group: "Growth" },
   { label: "Auto Responses", icon: Send, to: "/crm/auto-responses", group: "Growth" },
   { label: "Delivery Logs", icon: ScrollText, to: "/crm/delivery-logs", group: "Growth" },
@@ -972,6 +973,7 @@ const srmNav: RoleNavItem[] = [
   { label: "Procurement Gantt", icon: CalendarDays, to: "/srm/inventory/gantt", group: "Sales & Inventory" },
   { label: "Engagements", icon: Briefcase, to: "/srm/engagements", group: "Sales & Inventory" },
   { label: "Follow-Ups", icon: ClipboardCheck, to: "/srm/follow-ups", group: "Sales & Inventory" },
+  { label: "WhatsApp Communication", icon: MessageCircle, to: "/srm/whatsapp-communication", group: "Sales & Inventory" },
   { label: "POS Terminal", icon: Store, to: "/srm/pos/terminal", group: "Sales & Inventory" },
   { label: "POS Sessions", icon: FileText, to: "/srm/pos/sessions", group: "Sales & Inventory" },
   { label: "Cashier Closing", icon: BarChart3, to: "/srm/pos/cashier-closing", group: "Sales & Inventory" },

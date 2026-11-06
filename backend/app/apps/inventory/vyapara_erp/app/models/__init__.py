@@ -19,6 +19,7 @@ from .settings import (
 )
 from .audit import AuditLog
 from .attachments import Attachment
+from .workflow_controls import AdjustmentReview, ManufacturingSource
 
 __all__ = [
     'User', 'Role', 'Permission', 'RolePermission',

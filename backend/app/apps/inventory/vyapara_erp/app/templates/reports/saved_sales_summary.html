@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel mb-3">
+  <h2 class="h5">Shared saved report views</h2>
+  <p>Saved filters are shared with authorized report users. Each viewer's warehouse restrictions also apply to rows and exports.</p>
+  <form method="get"><label>Saved report view<select class="form-select" name="view_id" required><option value="">Choose view</option>{% for view in views %}<option value="{{ view.id }}" {% if selected and selected.id == view.id %}selected{% endif %}>{{ view.name }}</option>{% endfor %}</select></label><button class="btn btn-outline-primary">Apply saved view</button></form>
+  {% if selected %}<p>Applied: {{ selected.name }} · From {{ filters.date_from or 'Any' }} to {{ filters.date_to or 'Any' }} · Warehouse {{ filters.warehouse_id or 'All permitted' }} · Status {{ filters.status or 'Any' }}</p>{% endif %}
+  {% if allowed is not none %}<p>Your warehouse access is restricted to: {{ allowed|join(', ') or 'None' }}.</p>{% endif %}
+</section>
+<form class="panel mb-3" method="get">
+  <div class="form-grid">
+    <label>From<input class="form-control" type="date" name="date_from" value="{{ filters.date_from }}"></label>
+    <label>To<input class="form-control" type="date" name="date_to" value="{{ filters.date_to }}"></label>
+    <label>Warehouse<select class="form-select" name="warehouse_id"><option value="">All permitted warehouses</option>{% for warehouse in warehouses %}<option value="{{ warehouse.id }}" {% if filters.warehouse_id == warehouse.id|string %}selected{% endif %}>{{ warehouse.name }}</option>{% endfor %}</select></label>
+    <label>Status<select class="form-select" name="status"><option value="">Any issued status</option>{% for status in ['Issued','Paid','Partially Paid'] %}<option {% if filters.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select></label>
+  </div><button class="btn btn-primary">Filter</button>
+  <a class="btn btn-outline-success" href="{{ request.path }}?{{ request.query_string.decode()|e }}{% if request.query_string %}&amp;{% endif %}export=xlsx">Export Excel</a>
+</form>
+{% if current_user.has_permission('reports','edit') %}<form class="panel mb-3" method="post" action="{{ url_for('reports.edit_shared_report_view') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for key,value in filters.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}<label>Shared view name<input class="form-control" name="name" maxlength="120" required></label><button class="btn btn-outline-primary">Save current filters as shared view</button></form>{% endif %}
+{% if current_user.has_permission('settings','edit') %}<a href="{{ url_for('reports.configure_report_access') }}">Configure report warehouse access</a>{% endif %}
+<div class="panel"><p>{{ rows|length }} matching invoices.</p><table class="table"><thead><tr>{% for header in headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in rows %}<tr>{% for header in headers %}<td>{{ row[header] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+{% endblock %}

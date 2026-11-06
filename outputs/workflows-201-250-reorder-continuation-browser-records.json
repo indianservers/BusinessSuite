@@ -1,0 +1,90 @@
+{
+  "fixture": "Isolated in-memory Workflow 201-250-reorder-continuation Test Company",
+  "invoices": [],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 30.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    }
+  ],
+  "receipts": [],
+  "stock_movements": [
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "GRN-2026-00001",
+      "type": "Purchase",
+      "in": 20.0,
+      "out": 0.0,
+      "rate": 600.0,
+      "value": 12000.0
+    }
+  ],
+  "warehouses": [
+    {
+      "id": 1,
+      "name": "Main",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "QA Warehouse B",
+      "active": true
+    }
+  ],
+  "purchase_orders": [
+    {
+      "id": 1,
+      "supplier_id": 1,
+      "status": "Received",
+      "terms": null,
+      "total": 12000.0,
+      "lines": [
+        {
+          "id": 1,
+          "product_id": 1,
+          "quantity": 20.0,
+          "received": 20.0
+        }
+      ]
+    }
+  ],
+  "manufacturing": [],
+  "serials": [],
+  "batches": [],
+  "goods_receipts": [
+    {
+      "id": 1,
+      "number": "GRN-2026-00001",
+      "po_id": 1,
+      "supplier_id": 1,
+      "items": [
+        {
+          "product_id": 1,
+          "po_item_id": 1,
+          "quantity": 20.0,
+          "total": 12000.0
+        }
+      ]
+    }
+  ],
+  "returns": [],
+  "credits": [],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [],
+  "transfers": []
+}

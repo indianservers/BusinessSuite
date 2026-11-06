@@ -10,6 +10,7 @@ except ModuleNotFoundError:
 from app.core.config import settings
 from app.crud.crud_leave import run_scheduled_leave_accruals
 from app.db.session import SessionLocal
+from app.db.tenant import all_company_job
 
 
 class _CeleryFallback:
@@ -51,6 +52,7 @@ celery_app.conf.beat_schedule = {
 }
 
 @celery_app.task(name="app.worker.cleanup_chat_uploads")
+@all_company_job
 def cleanup_chat_uploads() -> dict:
     from app.module_registry import is_app_enabled
     if not is_app_enabled("project_management"):
@@ -64,6 +66,7 @@ def cleanup_chat_uploads() -> dict:
 
 
 @celery_app.task(name="app.worker.credit_scheduled_leave_accruals")
+@all_company_job
 def credit_scheduled_leave_accruals() -> dict:
     db = SessionLocal()
     try:
@@ -73,6 +76,7 @@ def credit_scheduled_leave_accruals() -> dict:
 
 
 @celery_app.task(name="app.worker.process_operator_queue")
+@all_company_job
 def process_operator_queue() -> dict:
     from app.module_registry import is_app_enabled
     if not is_app_enabled("project_management"):

@@ -28,7 +28,9 @@
     {% endif %}
     </tbody>
   </table>
+  {% if po %}<p class="text-muted">For multiple batches of the same PO line, split the receipt and enter each batch separately. Combined receipts cannot exceed the remaining order quantity.</p>{% endif %}
   <label class="form-label">Notes</label><textarea class="form-control" name="notes"></textarea>
   <button class="btn btn-primary mt-3">Save GRN</button>
 </form>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/grn.js', v='20261106-batch-split') }}"></script>{% endblock %}

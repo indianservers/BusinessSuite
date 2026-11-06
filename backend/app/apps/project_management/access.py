@@ -192,6 +192,13 @@ def get_project_for_action(db: Session, project_id: int, user: User, action: str
     return project
 
 
+def revalidate_project_actor(db: Session, project: PMSProject, user: User, action: str) -> None:
+    """Re-check the current actor after waiting for a mutation's final locks."""
+    db.refresh(user)
+    if not can_access_project(db, project, user, action):
+        raise HTTPException(status_code=403, detail="Project access is no longer allowed")
+
+
 def get_task_project_for_action(db: Session, task_id: int, user: User, action: str = "browse") -> tuple[PMSTask, PMSProject]:
     # Authorization only needs task/project fields. Re-querying an already loaded
     # feed task must not eager-load its assignees again; intern checks still load

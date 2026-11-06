@@ -175,6 +175,8 @@ from app.core.middleware.security_headers import SecurityHeadersMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
 from app.core.middleware.request_boundary import RequestBoundaryMiddleware
 app.add_middleware(RequestBoundaryMiddleware)
+from app.core.middleware.tenant_database import TenantDatabaseMiddleware
+app.add_middleware(TenantDatabaseMiddleware)
 
 
 # Global exception handler

@@ -1,4 +1,5 @@
 import React from "react";
+const WhatsAppCommunicationPage = React.lazy(() => import("@/apps/communication/WhatsAppCommunicationPage"));
 const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
 const FollowUpSummary = React.lazy(() => import("@/shared/follow-ups/FollowUpSummary"));
 const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
@@ -27,6 +28,7 @@ const CRMRecordsPage = React.lazy(() => import("./CRMRecordsPage"));
 const CRMMetadataPage = React.lazy(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
 const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
 export const crmRoutes: FrontendRoute[] = [
+  { path: "crm/whatsapp-communication", element: <WhatsAppCommunicationPage /> },
   {path:"crm/import-data",element:<ImportWorkspace module="crm"/>},
  {path:"crm/customers/:id/360",element:<React.Suspense fallback={<p>Loading customer…</p>}><Record360Page/></React.Suspense>},
  {path:"crm/payment-requests",element:<PaymentRequestsPage/>},

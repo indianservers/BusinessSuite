@@ -79,24 +79,31 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--poll-seconds", type=float, default=1)
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--workspace", help="Process one registered company workspace; otherwise process this worker's shard")
     args = parser.parse_args()
     if not 0.05 <= args.poll_seconds <= 60:
         parser.error("poll interval must be 0.05–60 seconds")
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     worker_id = f"{socket.gethostname()}:{os.getpid()}"
-    while not STOP:
+    from contextlib import nullcontext
+    from app.db.tenant import tenant_context,all_company_job
+    def one_database():
         with SessionLocal() as db:
             try:
-                worked = worker_tick(db, worker_id)
+                return worker_tick(db, worker_id)
             except Exception as exc:
                 db.rollback()
                 logger.error(
                     "power_automation_worker_failure error_type=%s", type(exc).__name__
                 )
-                worked = False
                 if args.once:
                     raise SystemExit(1)
+                return False
+    while not STOP:
+        with tenant_context(args.workspace) if args.workspace else nullcontext():
+            outcome=all_company_job(one_database)()
+            worked=any(outcome["results"]) if isinstance(outcome,dict) else outcome
         if args.once:
             break
         if not worked:

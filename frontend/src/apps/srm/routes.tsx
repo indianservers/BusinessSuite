@@ -1,4 +1,5 @@
 import React from "react";
+const WhatsAppCommunicationPage = React.lazy(() => import("@/apps/communication/WhatsAppCommunicationPage"));
 const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
 import { Navigate } from "react-router-dom";
 const FollowUpSummary = React.lazy(() => import("@/shared/follow-ups/FollowUpSummary"));
@@ -41,6 +42,7 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
 
 const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
 export const srmRoutes: FrontendRoute[] = [
+  { path: "srm/whatsapp-communication", element: <WhatsAppCommunicationPage /> },
   {path:"srm/import-data",element:<ImportWorkspace module="srm"/>},
  {path:"srm/customers/:id/360",element:<Record360Page/>},
  {path:"srm/payment-requests",element:<PaymentRequestsPage/>},

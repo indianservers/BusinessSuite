@@ -60,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
       setHydrated: (isHydrated) => set({ isHydrated }),
 
       logout: () => {
+        sessionStorage.removeItem("suite-tenant");
         sessionStorage.removeItem("suite-organization");
         sessionStorage.removeItem("suite-branch");
         set({

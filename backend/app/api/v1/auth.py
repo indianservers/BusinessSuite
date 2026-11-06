@@ -278,7 +278,8 @@ def _bearer_token(request: Request | None) -> str | None:
 
 def _create_mfa_token(user: User, module: str | None = None, auth_provider: str | None = None) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=5)
-    return jwt.encode({"sub": str(user.id), "scope": "mfa", "module": module, "auth_provider": auth_provider, "exp": expire}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    from app.db.tenant import token_tenant_claims
+    return jwt.encode({"sub": str(user.id), "scope": "mfa", "module": module, "auth_provider": auth_provider, "exp": expire, **token_tenant_claims()}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def _decode_mfa_token(token: str) -> dict:
@@ -438,7 +439,7 @@ def public_homepage_banner_asset(reference: str, db: Session = Depends(get_db)):
 def login_branding(db: Session = Depends(get_db)):
     """Public display name only, from the installation's configured master company."""
     from app.models.company import Company
-    name = db.query(Company.name).filter(Company.id == settings.LOGIN_COMPANY_ID, Company.is_active.is_(True)).scalar()
+    name = db.query(Company.name).filter(Company.id == db.info.get("tenant_company_id", settings.LOGIN_COMPANY_ID), Company.is_active.is_(True)).scalar()
     return {"company_name": name or None}
 
 
@@ -552,6 +553,8 @@ def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)):
     payload = verify_refresh_token(data.refresh_token)
     if not payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    if payload.get("tenant") != db.info.get("tenant_uuid"):
+        raise HTTPException(401,"Refresh session is not valid for this company database")
 
     user = db.query(User).filter(User.id == token_record_id(payload.get("sub"))).first()
     if not user or not user.is_active:

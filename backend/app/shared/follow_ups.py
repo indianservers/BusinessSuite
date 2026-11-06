@@ -457,14 +457,17 @@ def start_worker():
 
     def loop():
         from app.db.session import SessionLocal
+        from app.db.tenant import run_for_company_databases
+        def tick():
+            with SessionLocal() as db:
+                dispatch(db)
+                from app.module_registry import is_app_enabled
+                if is_app_enabled('crm'):
+                    from app.apps.crm.growth import dispatch_relationship_reminders
+                    dispatch_relationship_reminders(db)
         while not stop.is_set():
             try:
-                with SessionLocal() as db:
-                    dispatch(db)
-                    from app.module_registry import is_app_enabled
-                    if is_app_enabled('crm'):
-                        from app.apps.crm.growth import dispatch_relationship_reminders
-                        dispatch_relationship_reminders(db)
+                run_for_company_databases(tick)
             except Exception:
                 logging.getLogger(__name__).exception('Follow-up reminder dispatch failed; retrying next minute')
             stop.wait(60)

@@ -1,4 +1,5 @@
 import RecordSections from "@/components/RecordSections";
+import TransitionApprovals from "./TransitionApprovals";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/services/api";
@@ -49,5 +50,6 @@ export default function TaskExecutionPanel({taskId,people=[],onChanged,onDirtyCh
 </>},
  {id:"sources",label:"Sources",content:<>{!data.note_sources.length && <p className="text-sm text-muted-foreground">No linked source notes.</p>} {data.note_sources.map(n=><p key={n.id} className="text-sm">Original note: <Link className="underline" to={n.href}>{n.title}</Link> · visible to authorized note readers</p>)}</>},
  ]}/>
+ <TransitionApprovals taskId={taskId} disabled={dirty||busy} onChanged={()=>{void load();onChanged?.();}}/>
  </>:!error&&<p role="status">Loading execution details…</p>}</section>;
 }

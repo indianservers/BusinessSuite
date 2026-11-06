@@ -81,6 +81,10 @@ from ..people_management import router as people_management_router
 router.include_router(people_management_router)
 from ..management import router as management_router
 router.include_router(management_router)
+from ..workflow_schemes import router as workflow_schemes_router
+router.include_router(workflow_schemes_router)
+from ..transition_approvals import router as transition_approvals_router
+router.include_router(transition_approvals_router)
 from ..recovery import router as recovery_router
 router.include_router(recovery_router)
 from ..workspace_lifecycle import router as workspace_lifecycle_router
@@ -965,6 +969,16 @@ def _upsert_dev_link(
         metadata={"provider": provider, "link_type": link_type, "external_id": external_id, "status": status_value},
     )
     if link_type in {"pr", "mr"} and status_value == "merged" and task.status not in CLOSED_STATUSES:
+        from ..management import guard_transition
+        try:
+            guard_transition(db, task, "Done")
+        except HTTPException as exc:
+            if exc.status_code != 409:
+                raise
+            _record_activity(db, project.id, system_actor, "workflow.transition_skipped", "task", task.id,
+                             f"Kept {task.task_key} status after merge: transition requirements not met",
+                             task_id=task.id, metadata={"reason": exc.detail, "provider": provider})
+            return link
         task.status = "Done"
         db.add(task)
         _record_activity(
@@ -3564,8 +3578,17 @@ def bulk_update_tasks(
     by_project: dict[int, list[PMSTask]] = {}
     for task in tasks:
         by_project.setdefault(task.project_id, []).append(task)
-    for project_id, project_tasks in by_project.items():
-        get_project_for_action(db, project_id, current_user, "manage_tasks")
+    for project_id in sorted(by_project):
+        project_tasks = by_project[project_id]
+        project = get_project_for_action(db, project_id, current_user, "manage_tasks")
+        from ..access import revalidate_project_actor
+        revalidate_project_actor(db, project, current_user, "manage_tasks")
+        # Tasks were fetched before the project lock. Re-read their committed
+        # state after a lock wait before checking transition approval bindings.
+        for task in project_tasks:
+            db.refresh(task)
+            if task.deleted_at or task.project_id != project_id:
+                raise HTTPException(409, "A selected task changed project or was deleted. Reload before updating")
         _sync_task_planning_links(db, project_id, update_data)
         if update_data.get("sprint_id"):
             sprint = db.query(PMSSprint).filter(PMSSprint.id == update_data["sprint_id"], PMSSprint.project_id == project_id).first()
@@ -3576,7 +3599,7 @@ def bulk_update_tasks(
         for task in project_tasks:
             if update_data.get("status") and update_data["status"] != task.status:
                 from ..management import guard_transition
-                guard_transition(db, task, update_data["status"])
+                guard_transition(db, task, update_data["status"], update_data)
             if update_data.get("status") in DONE_STATUSES and db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id == task.id, PMSTaskAssignee.source_key.isnot(None), PMSTaskAssignee.execution_status != "Done").first():
                 raise HTTPException(409, "Approve each PMS work submission before closing this task")
             for field, value in update_data.items():
@@ -3879,12 +3902,16 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
         from ..models import PMSWorkspace
         db.query(PMSWorkspace).filter_by(id=project.workspace_id).with_for_update().one()
         db.refresh(task)
+    from ..access import revalidate_project_actor
+    revalidate_project_actor(db, project, current_user, "manage_tasks")
     recovery_before = task_state(task)
 
     update_data = task_in.dict(exclude_unset=True)
+    from ..workflow_schemes import guard_work_type_change
+    guard_work_type_change(db, task, update_data)
     if update_data.get("status") and update_data["status"] != task.status:
         from ..management import guard_transition
-        guard_transition(db, task, update_data["status"])
+        guard_transition(db, task, update_data["status"], update_data)
     custom_values = update_data.pop("custom_fields", None)
     from types import SimpleNamespace
     from ..custom_fields import apply_record_fields
@@ -4908,7 +4935,9 @@ def reorder_task(
     current_user: User = Depends(get_current_user),
 ):
     """Reorder task within or between columns (Drag & Drop)."""
-    get_project_for_action(db, project_id, current_user, "manage_tasks")
+    project = get_project_for_action(db, project_id, current_user, "manage_tasks")
+    from ..access import revalidate_project_actor
+    revalidate_project_actor(db, project, current_user, "manage_tasks")
     
     task = db.query(PMSTask).filter(
         PMSTask.id == reorder_req.task_id,
@@ -4922,11 +4951,13 @@ def reorder_task(
     ).first()
     if not column:
         raise HTTPException(status_code=422, detail="Column does not belong to this project")
+    status_map = {"BACKLOG": "Backlog", "TODO": "To Do", "IN_PROGRESS": "In Progress", "IN_REVIEW": "In Review", "DONE": "Done"}
+    target_status = status_map.get(column.status_key, column.name)
+    from ..management import guard_transition
+    guard_transition(db, task, target_status)
     task.board_id = column.board_id
     task.column_id = column.id
     task.position = reorder_req.position
-    status_map = {"BACKLOG": "Backlog", "TODO": "To Do", "IN_PROGRESS": "In Progress", "IN_REVIEW": "In Review", "DONE": "Done"}
-    target_status = status_map.get(column.status_key, column.name)
     if target_status in DONE_STATUSES and db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id==task.id,PMSTaskAssignee.source_key.isnot(None),PMSTaskAssignee.execution_status!="Done").first():
         raise HTTPException(409,"PMS work approvals are required for every intern assignee before completion")
     task.status = target_status

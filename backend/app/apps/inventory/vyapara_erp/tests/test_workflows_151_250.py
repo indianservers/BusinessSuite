@@ -177,6 +177,17 @@ def test_203_return_preserves_each_original_line_tax():
             assert float(returned.grand_total) == 1705
             assert sorted(float(line.tax_rate) for line in returned.items) == [5,18]
             assert sorted(float(line.tax_amount) for line in returned.items) == [25,180]
+            from app.routes.reports_routes import build_gstr1_payload, gstr1_csv
+            sale=db.session.get(Sale,sale_id)
+            sale.invoice_date=returned.return_date
+            db.session.commit()
+            payload,preview=build_gstr1_payload([sale],returned.return_date.month,returned.return_date.year)
+            assert sorted(row['rt'] for row in payload['b2cs'])==[5,18]
+            assert all(row['txval']==0 and row['camt']==0 and row['samt']==0 for row in payload['b2cs'])
+            assert sorted(row['tax'] for row in preview if row['invoice_no'].startswith('CN'))==[-180,-25]
+            assert sum(row['total'] for row in preview)==0
+            assert '-180.00' in gstr1_csv(preview) and '-25.00' in gstr1_csv(preview)
+            assert sum(row['qty'] for row in payload['hsn']['data'])==0
 
 
 def test_218_override_and_236_later_master_change_preserve_invoice():

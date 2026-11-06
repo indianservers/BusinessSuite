@@ -4,6 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user, login_required
 
 from app.extensions import db
+from app.models import ManufacturingSource
 from app.models import BOMItem, BillOfMaterials, InventoryLedger, ManufacturingOrder, Product, Unit, Warehouse
 from app.services.numbering_service import next_number
 from app.services.stock_service import add_inventory_entry, _locked_product
@@ -79,8 +80,15 @@ def _order_form(order, title):
             order.notes = request.form.get("notes")
             if not order.created_by: order.created_by = current_user.id
             db.session.add(order); db.session.flush()
+            ManufacturingSource.query.filter_by(order_id=order.id).delete(synchronize_session=False)
+            for item in bom.items:
+                source_id = int(request.form.get(f"source_{item.id}") or warehouse.id)
+                source = db.session.get(Warehouse, source_id)
+                if not source or not source.status:
+                    raise ValueError("Each component requires an active source warehouse")
+                db.session.add(ManufacturingSource(order_id=order.id, bom_item_id=item.id, warehouse_id=source.id))
             record_audit(action, "ManufacturingOrder", order.id, old_data=old if action=="Edit" else None,
-                         new_data={"mo_no":order.mo_no,"planned_qty":str(planned),"bom_id":bom.id,"warehouse_id":warehouse.id})
+                         new_data={"mo_no":order.mo_no,"planned_qty":str(planned),"bom_id":bom.id,"warehouse_id":warehouse.id,"component_sources":{str(item.id):int(request.form.get(f"source_{item.id}") or warehouse.id) for item in bom.items}})
             db.session.commit()
             flash("Manufacturing order saved; no stock posted.", "success")
             return redirect(url_for("manufacturing.order_index"))
@@ -88,7 +96,7 @@ def _order_form(order, title):
             db.session.rollback(); flash(str(exc), "danger")
     return render_template("manufacturing/order_form.html", title=title, order=order,
         boms=BillOfMaterials.query.filter_by(is_active=True).order_by(BillOfMaterials.name).all(),
-        warehouses=Warehouse.query.order_by(Warehouse.name).all())
+        warehouses=Warehouse.query.order_by(Warehouse.name).all(), source_map={s.bom_item_id:s.warehouse_id for s in order.component_sources} if order.id else {})
 
 
 @bp.route("/orders/<int:id>/complete", methods=["POST"])
@@ -107,13 +115,16 @@ def order_complete(id):
             raise ValueError("Production quantity cannot exceed the amended planned quantity")
         order.produced_qty = produced_qty
         component_cost = money(0)
+        sources = {source.bom_item_id:source.warehouse_id for source in order.component_sources}
+        if sources and set(sources) != {item.id for item in order.bom.items}:
+            raise ValueError("BOM components changed. Amend the draft order and reconfirm component sources")
         for item in sorted(order.bom.items, key=lambda line: line.component_id):
             component = _locked_product(item.component_id)
             required = qty(qty(item.quantity) * produced_qty / yield_qty * (1 + money(item.waste_pct) / 100))
             if not required.is_finite() or required <= 0:
                 raise ValueError("BOM component quantities must be positive")
             rate = component.average_cost or component.purchase_price or 0
-            add_inventory_entry(component, order.warehouse_id, "Manufacturing Issue", "ManufacturingOrder", order.id, order.mo_no, qty_out=required, rate=rate)
+            add_inventory_entry(component, sources.get(item.id, order.warehouse_id), "Manufacturing Issue", "ManufacturingOrder", order.id, order.mo_no, qty_out=required, rate=rate)
             component_cost += required * money(rate)
         finished_rate = money(component_cost / produced_qty)
         finished = _locked_product(order.bom.product_id)

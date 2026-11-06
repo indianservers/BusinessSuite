@@ -24,6 +24,7 @@ from app.platform_owner.session import get_platform_db
 
 @pytest.fixture(autouse=True)
 def platform_store(db, monkeypatch):
+    monkeypatch.setattr(settings, "TENANT_DATABASES_ENABLED", False)
     monkeypatch.setattr(settings, "PLATFORM_SECRET_KEY", "isolated-platform-tests-secret-key-0123456789")
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     PlatformBase.metadata.create_all(engine)

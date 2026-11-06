@@ -1,5 +1,7 @@
 # PMS Competitor Gap Analysis
 
+Current implementation follow-up: [Competitor gap closure](competitor-gap-closure.md). This May baseline contains historical gaps; check that ledger and current code before treating an item below as missing.
+
 Date: 2026-05-07
 
 This compares the current Project Management app, **KaryaFlow**, with leading market PMS/work-management tools and separates what belongs to PMS from shared platform capabilities.

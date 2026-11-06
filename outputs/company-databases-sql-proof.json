@@ -1,0 +1,318 @@
+{
+  "passed": 67,
+  "failed": 0,
+  "databases": [
+    {
+      "workspace": "company-30",
+      "database": "suite_c_e504023fa7db4b7690573c1697bf6347",
+      "server_id": 1,
+      "routing_version": 1
+    },
+    {
+      "workspace": "company-31",
+      "database": "suite_c_82a7715dd9414b5994496c32db20e3e6",
+      "server_id": 1,
+      "routing_version": 1
+    },
+    {
+      "workspace": "company-32",
+      "database": "suite_c_2ea744a9d8f1480b82ebcff7b6916e77",
+      "server_id": 1,
+      "routing_version": 1
+    },
+    {
+      "workspace": "company-33",
+      "database": "suite_c_9aa3698a94874468bdc94feeb441f502",
+      "server_id": 1,
+      "routing_version": 1
+    },
+    {
+      "workspace": "company-34",
+      "database": "suite_c_d0f3f4c46ddd45da9f6ef9dd2149f44d",
+      "server_id": 1,
+      "routing_version": 1
+    },
+    {
+      "workspace": "company-35",
+      "database": "suite_c_7026d5ccda5a4e4586ba24ba01060df6",
+      "server_id": 1,
+      "routing_version": 1
+    },
+    {
+      "workspace": "company-36",
+      "database": "suite_c_9ad4a54dd3934fa4990f06ba286548f5_v2",
+      "server_id": 2,
+      "routing_version": 2
+    }
+  ],
+  "checks": [
+    {
+      "name": "company-30 cannot connect company-31",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect company-32",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect company-33",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect company-34",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect company-35",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot connect company-36",
+      "passed": true
+    },
+    {
+      "name": "company-30 cannot enter owner DB",
+      "passed": true
+    },
+    {
+      "name": "company-30 exactly one company and QA lead",
+      "passed": true
+    },
+    {
+      "name": "company-30 one-company constraint",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect company-30",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect company-32",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect company-33",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect company-34",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect company-35",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot connect company-36",
+      "passed": true
+    },
+    {
+      "name": "company-31 cannot enter owner DB",
+      "passed": true
+    },
+    {
+      "name": "company-31 exactly one company and QA lead",
+      "passed": true
+    },
+    {
+      "name": "company-31 one-company constraint",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect company-30",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect company-31",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect company-33",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect company-34",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect company-35",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot connect company-36",
+      "passed": true
+    },
+    {
+      "name": "company-32 cannot enter owner DB",
+      "passed": true
+    },
+    {
+      "name": "company-32 exactly one company and QA lead",
+      "passed": true
+    },
+    {
+      "name": "company-32 one-company constraint",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect company-30",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect company-31",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect company-32",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect company-34",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect company-35",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot connect company-36",
+      "passed": true
+    },
+    {
+      "name": "company-33 cannot enter owner DB",
+      "passed": true
+    },
+    {
+      "name": "company-33 exactly one company and QA lead",
+      "passed": true
+    },
+    {
+      "name": "company-33 one-company constraint",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect company-30",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect company-31",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect company-32",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect company-33",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect company-35",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot connect company-36",
+      "passed": true
+    },
+    {
+      "name": "company-34 cannot enter owner DB",
+      "passed": true
+    },
+    {
+      "name": "company-34 exactly one company and QA lead",
+      "passed": true
+    },
+    {
+      "name": "company-34 one-company constraint",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect company-30",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect company-31",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect company-32",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect company-33",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect company-34",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot connect company-36",
+      "passed": true
+    },
+    {
+      "name": "company-35 cannot enter owner DB",
+      "passed": true
+    },
+    {
+      "name": "company-35 exactly one company and QA lead",
+      "passed": true
+    },
+    {
+      "name": "company-35 one-company constraint",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect company-30",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect company-31",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect company-32",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect company-33",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect company-34",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot connect company-35",
+      "passed": true
+    },
+    {
+      "name": "company-36 cannot enter owner DB",
+      "passed": true
+    },
+    {
+      "name": "company-36 exactly one company and QA lead",
+      "passed": true
+    },
+    {
+      "name": "company-36 one-company constraint",
+      "passed": true
+    },
+    {
+      "name": "retry reused company and user",
+      "passed": true
+    },
+    {
+      "name": "retry created no additional database",
+      "passed": true
+    },
+    {
+      "name": "company7 moved to second server",
+      "passed": true
+    },
+    {
+      "name": "source retained with connections disabled",
+      "passed": true
+    }
+  ]
+}

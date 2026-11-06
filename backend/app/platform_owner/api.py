@@ -24,6 +24,41 @@ from app.access.signup import SignupInput, ReviewInput, review_signup, available
 router = APIRouter(prefix="/platform", tags=["Indian Servers Platform Owner"])
 
 
+@router.get("/databases")
+def tenant_databases(actor=Depends(current_platform_admin),db: Session=Depends(get_platform_db)):
+    from app.platform_owner.models import PlatformTenantDatabase as D,PlatformDatabaseServer as S
+    from app.core.config import settings
+    s.require(actor,"settings.manage")
+    result=[]
+    for row,server in db.query(D,S).join(S,S.id==D.server_id).order_by(D.id.desc()):
+        signup=db.get(Signup,row.signup_id)
+        result.append({**s.encode(row),"company_name":signup.company_name if signup else "Unknown company",
+            "server_name":server.name,"host":server.host,"port":server.port,
+            "login_url":settings.FRONTEND_PUBLIC_URL.rstrip("/")+"/login?tenant="+row.workspace_code})
+    return result
+
+
+@router.get("/database-servers")
+def database_servers(actor=Depends(current_platform_admin),db: Session=Depends(get_platform_db)):
+    from app.platform_owner.models import PlatformTenantDatabase as D,PlatformDatabaseServer as S
+    s.require(actor,"settings.manage")
+    return [{**s.encode(server),"database_count":db.query(D).filter_by(server_id=server.id).count()} for server in db.query(S).order_by(S.id)]
+
+
+@router.post("/databases/{ident}/check")
+def check_database(ident:int,actor=Depends(current_platform_admin),db: Session=Depends(get_platform_db)):
+    from app.platform_owner.models import PlatformTenantDatabase as D
+    from app.db.tenant import lookup_route,tenant_session
+    from sqlalchemy import text
+    s.require(actor,"settings.manage")
+    row=db.get(D,ident)
+    if not row:raise HTTPException(404,"Company database not found")
+    with tenant_session(lookup_route(row.tenant_uuid)) as company:
+        identity=company.execute(text("SELECT current_database(),current_user")).one()
+        companies=company.execute(text("SELECT count(*) FROM companies")).scalar()
+    return {"healthy":True,"database_name":identity[0],"runtime_role":identity[1],"company_count":companies,"tenant_uuid":row.tenant_uuid}
+
+
 class Input(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -68,6 +103,8 @@ class Bulk(Input):
 
 
 def validate_assignee(db, ident):
+    if ident is not None and (isinstance(ident, bool) or not isinstance(ident, int) or not 1 <= ident <= 2147483647):
+        raise HTTPException(422, "Choose an active platform staff member")
     if ident is not None and not db.query(PlatformAdmin).filter_by(id=ident, is_active=True).first():
         raise HTTPException(422, "Choose an active platform staff member")
 
@@ -101,8 +138,8 @@ def profile(data: Change, actor=Depends(current_platform_admin), db: Session = D
         allowed = {"timezone", "date_format", "default_page", "page_size", "favorites", "email_notifications", "compact_rows"}
         if set(data.values)-allowed:
             raise HTTPException(422, "Unknown preference")
-        if "page_size" in data.values and data.values["page_size"] not in {10,25,50,100}: raise HTTPException(422,"Choose 10, 25, 50 or 100 rows per page")
-        if "favorites" in data.values and (not isinstance(data.values["favorites"],list) or len(data.values["favorites"])>12 or not set(data.values["favorites"]) <= {"overview","signups","customers","plans","team","tasks","communications","reports","operations","audit","settings","profile"}):
+        if "page_size" in data.values and (not isinstance(data.values["page_size"],int) or data.values["page_size"] not in {10,25,50,100}): raise HTTPException(422,"Choose 10, 25, 50 or 100 rows per page")
+        if "favorites" in data.values and (not isinstance(data.values["favorites"],list) or len(data.values["favorites"])>12 or not all(isinstance(x,str) for x in data.values["favorites"]) or not set(data.values["favorites"]) <= {"overview","signups","customers","plans","team","tasks","communications","reports","operations","audit","settings","profile","databases"}):
             raise HTTPException(422,"Unknown navigation favorite")
         actor.preferences = {**actor.preferences, **data.values}
     else:
@@ -198,7 +235,9 @@ def edit_signup(ident: int, data: SignupEdit, actor=Depends(current_platform_adm
         raise HTTPException(422, "Company name is required")
     workflow = {**row.workflow}
     for key in ["priority", "checklist"]:
-        if key in values: workflow[key] = values.pop(key)
+        if key in values:
+            if values[key] is None: raise HTTPException(422, "Required fields cannot be cleared")
+            workflow[key] = values.pop(key)
     for key, value in values.items():
         if value is None and key not in {"assigned_to", "company_name"}: raise HTTPException(422, "Required fields cannot be cleared")
         setattr(row, key, value)
@@ -226,7 +265,9 @@ def apply_signup_action(db, actor, row, action, reason, values):
         if row.status not in s.REVIEWABLE | {"withdrawn"}: raise HTTPException(409, "This review is already complete")
         row.status = action
     elif action == "legal_hold":
-        s.require(actor, "signup.delete"); row.legal_hold = bool(values.get("enabled"))
+        s.require(actor, "signup.delete")
+        if not isinstance(values.get("enabled"), bool): raise HTTPException(422, "Legal hold enabled must be a boolean")
+        row.legal_hold = values["enabled"]
     elif action == "delete":
         s.require(actor, "signup.delete")
         retention = s.settings_for(db)["retention_days"]
@@ -370,12 +411,14 @@ def change_staff(ident: int, data: Change, actor=Depends(current_platform_admin)
     if data.action == "access":
         values = data.values
         role = values.get("role", row.role)
-        if role not in s.ROLES: raise HTTPException(422, "Unknown role")
-        active = bool(values.get("is_active", row.is_active))
+        if not isinstance(role,str) or role not in s.ROLES: raise HTTPException(422, "Unknown role")
+        for flag in ["is_active", "assigned_only"]:
+            if flag in values and not isinstance(values[flag],bool): raise HTTPException(422, f"{flag} must be a boolean")
+        active = values.get("is_active", row.is_active)
+        overrides = values.get("permissions", [])
+        if not isinstance(overrides, list) or not all(isinstance(x,str) for x in overrides) or not set(overrides) <= s.ROLES[role]: raise HTTPException(422, "Invalid permission override")
         if row.role == "owner" and row.is_active and len(owners) <= 1 and (role != "owner" or not active or (values.get("permissions") and "staff.manage" not in values["permissions"])):
             raise HTTPException(409, "Keep at least one active platform owner")
-        overrides = values.get("permissions", [])
-        if not isinstance(overrides, list) or not set(overrides) <= s.ROLES[role]: raise HTTPException(422, "Invalid permission override")
         row.role, row.is_active, row.permissions, row.assigned_only = role, active, overrides, bool(values.get("assigned_only", row.assigned_only))
         row.token_version += 1
         db.query(PlatformSession).filter_by(admin_id=row.id).update({"status": "revoked"})
@@ -482,7 +525,9 @@ def record_action(ident: int, data: Change, actor=Depends(current_platform_admin
         elif data.action == "edit":
             title = str(data.values.get("title", row.title))
             if not 2 <= len(title) <= 180: raise HTTPException(422, "Title must have 2–180 characters")
-            updated = {**row.data, **data.values.get("data", {})}
+            changes = data.values.get("data", {})
+            if not isinstance(changes,dict): raise HTTPException(422, "Record data must be an object")
+            updated = {**row.data, **changes}
             validate_record_data(row.kind, updated)
             row.title, row.data = title, updated
             if "owner_id" in data.values:
@@ -563,7 +608,7 @@ def settings_save(data: Change, actor=Depends(current_platform_admin), db: Sessi
         if not isinstance(values[key], int) or isinstance(values[key], bool) or not low <= values[key] <= high:
             raise HTTPException(422, f"Invalid {key}")
     if values["business_start"] >= values["business_end"]: raise HTTPException(422, "Business end must follow business start")
-    if not isinstance(values["business_days"], list) or not values["business_days"] or not set(values["business_days"]) <= set(range(7)):
+    if not isinstance(values["business_days"], list) or not values["business_days"] or not all(isinstance(day,int) and not isinstance(day,bool) for day in values["business_days"]) or not set(values["business_days"]) <= set(range(7)):
         raise HTTPException(422, "Choose at least one business weekday")
     try: ZoneInfo(values["timezone"])
     except (ZoneInfoNotFoundError, TypeError): raise HTTPException(422, "Unknown timezone") from None
@@ -680,7 +725,7 @@ def customer_action(ident: int, data: Change, actor=Depends(current_platform_adm
         config["seats"] = int_value(data.values, "seats", config.get("seats", 5), 1, 10000)
         config["storage_mib"] = int_value(data.values, "storage_mib", config.get("storage_mib", 1024), 100, 1048576)
         modules = data.values.get("modules", config["modules"])
-        if not isinstance(modules, list) or not modules or not set(modules) <= {m["key"] for m in available_modules()}:
+        if not isinstance(modules, list) or not modules or not all(isinstance(m,str) for m in modules) or not set(modules) <= {m["key"] for m in available_modules()}:
             raise HTTPException(422, "Choose installed modules")
         config["modules"] = modules
         used = bridge.usage(business, row)
@@ -738,7 +783,7 @@ def customer_action(ident: int, data: Change, actor=Depends(current_platform_adm
     elif data.action == "payment":
         amount = int_value(data.values, "amount_minor", 0, 1, 1000000000)
         currency = data.values.get("currency", "INR")
-        if currency not in {"INR", "USD", "AED"}: raise HTTPException(422, "Unknown currency")
+        if not isinstance(currency,str) or currency not in {"INR", "USD", "AED"}: raise HTTPException(422, "Unknown currency")
         reference = str(data.values.get("reference", "")).strip()
         if not 3 <= len(reference) <= 120: raise HTTPException(422, "Enter the offline payment reference")
         existing = db.query(PlatformRecord).filter_by(kind="billing_entry", tenant_id=row.id, title=reference).first()

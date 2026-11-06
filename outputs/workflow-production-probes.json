@@ -1,0 +1,62 @@
+{
+  "checked_at_utc": "2026-11-06T18:20:01.991181+00:00",
+  "scope": "Unauthenticated, read-only health, release and route availability; not live end-to-end acceptance",
+  "sites": [
+    {
+      "host": "app.dsbchartered.com",
+      "checks": {
+        "/health": {
+          "status": 200,
+          "final_url": "https://app.dsbchartered.com/health",
+          "health": {
+            "status": "healthy",
+            "db": "ok"
+          }
+        },
+        "/release.json": {
+          "status": 200,
+          "final_url": "https://app.dsbchartered.com/release.json",
+          "release": {
+            "commit": "cab74ac32a11ee114190fd83ad02752f11a7a6f1"
+          }
+        },
+        "/api/v1/openapi.json": {
+          "status": 200,
+          "final_url": "https://app.dsbchartered.com/api/v1/openapi.json",
+          "workflow_paths": []
+        },
+        "/api/v1/project-management/transition-approvals/inbox": {
+          "status": 404,
+          "final_url": "https://app.dsbchartered.com/api/v1/project-management/transition-approvals/inbox"
+        }
+      }
+    },
+    {
+      "host": "app.indianservers.com",
+      "checks": {
+        "/health": {
+          "status": 200,
+          "final_url": "https://app.indianservers.com/health",
+          "health": {
+            "status": "healthy",
+            "db": "ok"
+          }
+        },
+        "/release.json": {
+          "status": 200,
+          "final_url": "https://app.indianservers.com/release.json",
+          "release": {
+            "commit": "cab74ac32a11ee114190fd83ad02752f11a7a6f1"
+          }
+        },
+        "/api/v1/openapi.json": {
+          "error": "RemoteProtocolError"
+        },
+        "/api/v1/project-management/transition-approvals/inbox": {
+          "status": 404,
+          "final_url": "https://app.indianservers.com/api/v1/project-management/transition-approvals/inbox"
+        }
+      }
+    }
+  ]
+}

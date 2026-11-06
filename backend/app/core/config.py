@@ -66,6 +66,17 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None
     PLATFORM_DATABASE_URL: str = Field(default="", repr=False)
     PLATFORM_SECRET_KEY: str = Field(default="", repr=False)
+    TENANT_DATABASES_ENABLED: bool = False
+    TENANT_REGISTRY_URL: str = Field(default="", repr=False)
+    TENANT_SECRET_KEY: str = Field(default="", repr=False)
+    TENANT_PROVISIONING_URL: str = Field(default="", repr=False)
+    TENANT_SERVER_URLS: dict[str,str] = Field(default_factory=dict,repr=False)
+    TENANT_ALLOW_REMOTE_OPERATIONS: bool = False
+    TENANT_TEMPLATE_DATABASE: str = "suite_company_template"
+    TENANT_ENGINE_CACHE_SIZE: int = Field(default=64, ge=1, le=512)
+    TENANT_PG_BIN: str = ""
+    TENANT_WORKER_SHARDS: int = Field(default=1,ge=1,le=1000)
+    TENANT_WORKER_SHARD: int = Field(default=0,ge=0,le=999)
     POSTGRES_USER: str = "business_suite"
     POSTGRES_PASSWORD: str = ""
     POSTGRES_SERVER: str = "127.0.0.1"

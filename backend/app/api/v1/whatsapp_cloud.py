@@ -653,3 +653,46 @@ def whatsapp_analytics(from_at: datetime | None = Query(None,alias='from'), unti
     if start.utcoffset() is None or end.utcoffset() is None or start>=end or end-start>timedelta(days=366):
         raise HTTPException(422,'Choose an increasing date range of at most 366 days with timezone offsets')
     return analytics(db,user,start,end,employee,team)
+
+
+class WorkspaceRecipientInput(BaseModel):
+    to: str = Field(min_length=7, max_length=30)
+    entityType: Literal['lead', 'contact', 'deal'] | None = None
+    entityId: int | None = Field(default=None, gt=0)
+
+
+class WorkspaceDirectoryInput(BaseModel):
+    entries: list[WorkspaceRecipientInput] = Field(max_length=50)
+
+
+class WorkspaceScheduleInput(BaseModel):
+    message: SendInput
+    scheduledAt: datetime
+    purpose: Literal['transactional', 'greeting', 'marketing'] = 'transactional'
+
+
+@router.post('/workspace/recipients')
+def workspace_recipients(data: WorkspaceDirectoryInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view', 'crm_manage', 'crm_admin'))):
+    from app.services.whatsapp_communication import directory
+    return directory(db, user, data.entries)
+
+
+@router.post('/workspace/schedule', status_code=201)
+def workspace_schedule(data: WorkspaceScheduleInput, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_manage', 'crm_admin'))):
+    from app.services.whatsapp_communication import schedule
+    try:
+        return schedule(db, user, data)
+    except RuntimeError as error:
+        provider_error(error)
+
+
+@router.get('/workspace/schedules/{request_id}')
+def workspace_schedule_status(request_id: str, db: Session = Depends(get_db), user=Depends(RequirePermission('crm_view', 'crm_manage', 'crm_admin'))):
+    from app.services import whatsapp_workspace as wa
+    from app.apps.communication.customer_models import CustomerDelivery
+    from app.shared.whatsapp_models import WhatsAppMessage
+    row = db.query(CustomerDelivery).filter_by(organization_id=wa.organization(user), event_key=f'workspace:{wa.organization(user)}:{user.id}:{request_id}', created_by=user.id).first()
+    if not row:
+        raise HTTPException(404, 'No scheduled delivery found for this request')
+    message = db.get(WhatsAppMessage, row.whatsapp_message_id) if row.whatsapp_message_id else None
+    return {'id': row.id, 'status': message.status if message else row.status, 'dueAt': row.due_at, 'error': row.error, 'message': wa.message_data(message) if message else None}
