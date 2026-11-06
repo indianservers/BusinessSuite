@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, Bot, CheckCircle2, Clock, Filter, ShieldCheck } from "lucide-react";
@@ -17,6 +18,7 @@ export default function AiAgentsDashboard() {
   const [conversations, setConversations] = useState<AiConversation[]>([]);
   const [filter, setFilter] = useState<AiModule | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
@@ -76,9 +78,9 @@ export default function AiAgentsDashboard() {
       </div>
 
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
-      {loading ? <div className="rounded-md border bg-card p-8 text-center text-sm text-muted-foreground">AI Agent dashboard is loading...</div> : null}
+      {initialLoading ? <div className="rounded-md border bg-card p-8 text-center text-sm text-muted-foreground">AI Agent dashboard is loading...</div> : null}
 
-      {!loading ? (
+      {!initialLoading ? (
         <>
           <div className="grid gap-3 md:grid-cols-5">
             <SummaryCard icon={Bot} label="Total agents" value={stats.total} />

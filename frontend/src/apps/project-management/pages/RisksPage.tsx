@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -61,6 +62,7 @@ export default function RisksPage() {
   const [editing, setEditing] = useState<PMSRisk | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -317,7 +319,7 @@ export default function RisksPage() {
         <Card>
           <CardHeader><CardTitle>Register</CardTitle></CardHeader>
           <CardContent className="p-0">
-            {loading ? <div className="m-4 h-72 rounded-lg skeleton" /> : null}
+            {initialLoading ? <div className="m-4 h-72 rounded-lg skeleton" /> : null}
             {!loading ? (
               <div className="overflow-x-auto">
                 <GridTable gridId="apps/project-management/pages/RisksPage:table-1" className="min-w-[1040px] w-full text-sm">

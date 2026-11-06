@@ -4,7 +4,7 @@ from typing import Any, List, Optional
 import calendar
 import re
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from app.models.payroll import (
     SalaryComponent, SalaryStructure, SalaryStructureComponent,
     EmployeeSalary, PayrollRun, PayrollRecord, PayrollComponent, Reimbursement,
@@ -1265,15 +1265,18 @@ def calculate_payroll_variance(db: Session, payroll_run_id: int) -> List[Payroll
     return items
 
 
-def get_payslip(db: Session, employee_id: int, month: int, year: int) -> Optional[PayrollRecord]:
-    return db.query(PayrollRecord).join(PayrollRun).filter(
+def get_payslip(db: Session, employee_id: int, month: int, year: int, finalized_only: bool = False) -> Optional[PayrollRecord]:
+    query = db.query(PayrollRecord).join(PayrollRun).filter(
         and_(
             PayrollRecord.employee_id == employee_id,
             PayrollRun.month == month,
             PayrollRun.year == year,
             PayrollRun.deleted_at.is_(None),
         )
-    ).first()
+    )
+    if finalized_only:
+        query = query.filter(func.lower(PayrollRun.status).in_(["locked", "paid"]))
+    return query.order_by(PayrollRun.id.desc(), PayrollRecord.id.desc()).first()
 
 
 def _component_payload(component: PayrollComponent) -> dict:
@@ -1315,11 +1318,17 @@ def build_payslip_payload(db: Session, record: PayrollRecord) -> dict:
     reimbursements = [_component_payload(c) for c in components if c.component_type == "Reimbursement"]
 
     run = record.payroll_run
+    from app.services.payroll_delivery import record_policy
+    policy = record_policy(db, record)
+    start, end = policy["start"], policy["end"]
     ytd_records = db.query(PayrollRecord).join(PayrollRun).filter(
         PayrollRecord.employee_id == record.employee_id,
-        PayrollRun.year == run.year,
-        PayrollRun.month <= run.month,
+        or_(PayrollRun.year > start.year, and_(PayrollRun.year == start.year, PayrollRun.month >= start.month)),
+        or_(PayrollRun.year < end.year, and_(PayrollRun.year == end.year, PayrollRun.month < end.month)),
+        or_(PayrollRun.year < run.year, and_(PayrollRun.year == run.year, PayrollRun.month <= run.month)),
+        func.coalesce(PayrollRecord.converted_currency, "INR") == (record.converted_currency or "INR"),
         PayrollRun.deleted_at.is_(None),
+        or_(func.lower(PayrollRun.status).in_(["locked", "paid"]), PayrollRecord.id == record.id),
     ).all()
     ytd = {
         "gross_salary": sum((item.gross_salary or Decimal("0")) for item in ytd_records),
@@ -1336,9 +1345,19 @@ def build_payslip_payload(db: Session, record: PayrollRecord) -> dict:
         "id": record.id,
         "payroll_run_id": record.payroll_run_id,
         "employee_id": record.employee_id,
-        "employee": record.employee,
+        "employee": {
+            "id": record.employee.id,
+            "employee_id": record.employee.employee_id,
+            "first_name": record.employee.first_name,
+            "last_name": record.employee.last_name,
+        } if record.employee else None,
         "month": run.month,
         "year": run.year,
+        "financial_year": policy["label"],
+        "ytd_basis": policy["basis"],
+        "ytd_period_start": start.isoformat(),
+        "ytd_period_label": f"{'Financial year' if policy['basis'] == 'financial' else 'Calendar year'} {policy['label']}",
+        "department": record.employee.department.name if record.employee and record.employee.department else None,
         "working_days": record.working_days,
         "present_days": record.present_days,
         "lop_days": record.lop_days,
@@ -1356,6 +1375,8 @@ def build_payslip_payload(db: Session, record: PayrollRecord) -> dict:
             else "Salary processed in INR"
         ),
         "status": record.status,
+        "payroll_status": normalize_payroll_run_status(run.status),
+        "pdf_available": bool(record.payslip_pdf_url),
         "is_anomaly": record.is_anomaly,
         "anomaly_reason": record.anomaly_reason,
         "earnings": earnings,

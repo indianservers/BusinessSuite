@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -37,6 +38,7 @@ export default function PortfolioPage() {
   const [projects, setProjects] = useState<PMSPortfolioProject[]>([]);
   const [trend, setTrend] = useState<PMSPortfolioHealthTrendResponse["items"]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   useRefreshableEffect(() => {
@@ -97,9 +99,9 @@ export default function PortfolioPage() {
       </Card>
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-      {loading ? <div className="h-96 rounded-lg skeleton" /> : null}
+      {initialLoading ? <div className="h-96 rounded-lg skeleton" /> : null}
 
-      {!loading && summary ? (
+      {!initialLoading && summary ? (
         <>
           <div className="grid gap-4 md:grid-cols-4">
             <Metric icon={FolderKanban} label="Total projects" value={summary.total_projects} />

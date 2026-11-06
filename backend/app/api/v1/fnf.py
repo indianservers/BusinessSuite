@@ -535,46 +535,21 @@ def download_fnf_statement(
     out_dir = os.path.join(settings.UPLOAD_DIR, "fnf-settlements")
     os.makedirs(out_dir, exist_ok=True)
     file_path = os.path.join(out_dir, f"fnf_settlement_{settlement.id}.pdf")
-    try:
-        from reportlab.lib.pagesizes import A4
-        from reportlab.pdfgen import canvas
-
-        c = canvas.Canvas(file_path, pagesize=A4)
-        width, height = A4
-        y = height - 48
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(48, y, "Full & Final Settlement Statement")
-        y -= 34
-        c.setFont("Helvetica", 10)
-        for label, value in [
-            ("Employee", f"{data['employeeName']} ({data['employeeCode'] or data['employeeId']})"),
-            ("Last working date", str(data["lastWorkingDate"])),
-            ("Status", data["settlementStatus"].replace("_", " ").title()),
-            ("Net payable", f"INR {data['netPayable']:.2f}"),
-        ]:
-            c.drawString(48, y, f"{label}: {value}")
-            y -= 18
-        y -= 10
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(48, y, "Components")
-        y -= 20
-        c.setFont("Helvetica", 10)
-        for component in data["components"]:
-            if y < 90:
-                c.showPage()
-                y = height - 48
-                c.setFont("Helvetica", 10)
-            c.drawString(56, y, f"{component['component_type'].title()} - {component['name']}")
-            c.drawRightString(width - 56, y, f"INR {component['amount']:.2f}")
-            y -= 16
-        y -= 20
-        c.line(48, y, 220, y)
-        c.drawString(48, y - 14, "Authorized signature")
-        c.save()
-    except Exception:
-        with open(file_path, "w", encoding="utf-8") as handle:
-            handle.write(f"Full & Final Settlement Statement\nEmployee: {data['employeeName']}\nNet payable: INR {data['netPayable']:.2f}\n")
-        persist_file(file_path)
+    from app.services.payslip_pdf import render_payslip
+    from app.services.payroll_delivery import profile_for, template_for
+    from app.models.company import Company
+    employee = db.get(Employee, settlement.employee_id)
+    company_id = settlement.organization_id or (employee.branch.company_id if employee and employee.branch else None)
+    company = db.get(Company, company_id) if company_id else None
+    profile = profile_for(db, company_id)
+    on_date = settlement.settlement_date or date.today()
+    earnings = [{"component_name": item["name"], "amount": item["amount"]} for item in data["components"] if item["component_type"] == "earning"]
+    deductions = [{"component_name": item["name"], "amount": item["amount"]} for item in data["components"] if item["component_type"] == "deduction"]
+    render_payslip(file_path, {"month": on_date.month, "year": on_date.year, "document_kind": "settlement", "currency": "INR",
+        "employee": {"employee_id": data["employeeCode"], "first_name": data["employeeName"]}, "last_working_date": data["lastWorkingDate"],
+        "earnings": earnings, "deductions": deductions, "gross_salary": sum(item["amount"] for item in earnings),
+        "total_deductions": sum(item["amount"] for item in deductions), "net_salary": data["netPayable"]},
+        company.name if company else "", template_for(profile, "settlement"), profile.branding if profile else {})
 
     persist_file(file_path)
     return FileResponse(file_path, media_type="application/pdf", filename=os.path.basename(file_path))

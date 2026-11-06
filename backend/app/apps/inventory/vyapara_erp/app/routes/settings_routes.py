@@ -1,3 +1,4 @@
+from app.services.warehouse_service import assert_can_deactivate
 import secrets
 from datetime import datetime
 from pathlib import Path
@@ -282,6 +283,11 @@ def warehouse_edit(id):
 @login_required
 def warehouse_toggle(id):
     warehouse = Warehouse.query.get_or_404(id)
+    if warehouse.status:
+        try: assert_can_deactivate(warehouse)
+        except ValueError as exc:
+            db.session.rollback(); flash(str(exc), "danger")
+            return redirect(url_for("settings.warehouses"))
     warehouse.status = not warehouse.status
     record_audit("Update", "Warehouse", warehouse.id, new_data={"status": warehouse.status})
     db.session.commit()
@@ -609,6 +615,11 @@ def _save_branch(branch):
 
 
 def _save_warehouse(warehouse):
+    if warehouse.id and warehouse.status and not request.form.get("status"):
+        try: assert_can_deactivate(warehouse)
+        except ValueError as exc:
+            db.session.rollback(); flash(str(exc), "danger")
+            return False
     warehouse.name = request.form.get("name", "").strip()
     warehouse.code = request.form.get("code", "").strip().upper()
     if not warehouse.name or not warehouse.code:

@@ -1,0 +1,237 @@
+{
+  "fixture": "Isolated in-memory Workflow 51-100 Test Company",
+  "invoices": [
+    {
+      "id": 1,
+      "number": "QA-054-DRAFT",
+      "status": "Issued",
+      "invoice_date": "2026-11-06",
+      "due_date": "2026-12-06",
+      "subtotal": 4000.0,
+      "tax": 720.0,
+      "total": 4720.0,
+      "paid": 0.0,
+      "balance": 4720.0
+    },
+    {
+      "id": 2,
+      "number": "QA-059-MIXED",
+      "status": "Cancelled",
+      "invoice_date": "2026-11-06",
+      "due_date": "2026-12-06",
+      "subtotal": 2000.0,
+      "tax": 230.0,
+      "total": 2230.0,
+      "paid": 0.0,
+      "balance": 0.0
+    },
+    {
+      "id": 3,
+      "number": "QA-060-EXEMPT",
+      "status": "Paid",
+      "invoice_date": "2026-11-06",
+      "due_date": "2026-12-06",
+      "subtotal": 2000.0,
+      "tax": 180.0,
+      "total": 2180.0,
+      "paid": 2180.0,
+      "balance": 0.0
+    },
+    {
+      "id": 4,
+      "number": "QA-056-FRACTION-SALE",
+      "status": "Issued",
+      "invoice_date": "2026-11-06",
+      "due_date": "2026-12-06",
+      "subtotal": 2750.0,
+      "tax": 495.0,
+      "total": 3245.0,
+      "paid": 0.0,
+      "balance": 3245.0
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 5.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    },
+    {
+      "id": 3,
+      "sku": "QA-056-FRACTION",
+      "stock": 8.25,
+      "track_inventory": true
+    }
+  ],
+  "receipts": [
+    {
+      "id": 1,
+      "number": "REC-2026-00001",
+      "sale_id": 3,
+      "amount": 2180.0
+    }
+  ],
+  "stock_movements": [
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "QA-051-TRANSFER",
+      "type": "Transfer Out",
+      "in": 0.0,
+      "out": 5.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 2,
+      "reference": "QA-051-TRANSFER",
+      "type": "Transfer In",
+      "in": 5.0,
+      "out": 0.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "QA-054-DRAFT",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 4.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 2,
+      "reference": "QA-059-MIXED",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 2,
+      "reference": "QA-060-EXEMPT",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0
+    },
+    {
+      "product_id": 3,
+      "warehouse_id": 1,
+      "reference": "QA-056-FRACTION-SALE",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 2.75
+    },
+    {
+      "product_id": 3,
+      "warehouse_id": 1,
+      "reference": "QA-056-RETURN-HALF",
+      "type": "Sales Return",
+      "in": 0.5,
+      "out": 0.0
+    },
+    {
+      "product_id": 1,
+      "warehouse_id": 2,
+      "reference": "QA-059-MIXED",
+      "type": "Sale Cancellation",
+      "in": 1.0,
+      "out": 0.0
+    }
+  ],
+  "returns": [
+    {
+      "id": 1,
+      "number": "QA-056-RETURN-HALF",
+      "status": "Approved",
+      "sale_id": 4,
+      "date": "2026-11-06",
+      "total": 590.0
+    },
+    {
+      "id": 2,
+      "number": "QA-093-DAMAGED",
+      "status": "Approved",
+      "sale_id": 4,
+      "date": "2026-11-06",
+      "total": 295.0
+    }
+  ],
+  "credits": [
+    {
+      "id": 1,
+      "number": "CN-2026-00001",
+      "sale_id": 4,
+      "total": 590.0
+    },
+    {
+      "id": 2,
+      "number": "CN-2026-00002",
+      "sale_id": 4,
+      "total": 295.0
+    }
+  ],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 7080.0
+    }
+  ],
+  "customer_ledger": [
+    {
+      "reference": "QA-054-DRAFT",
+      "debit": 4720.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "QA-059-MIXED",
+      "debit": 2230.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "QA-060-EXEMPT",
+      "debit": 2180.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "REC-2026-00001",
+      "debit": 0.0,
+      "credit": 2180.0
+    },
+    {
+      "reference": "QA-056-FRACTION-SALE",
+      "debit": 3245.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "QA-056-RETURN-HALF",
+      "debit": 0.0,
+      "credit": 590.0
+    },
+    {
+      "reference": "QA-059-MIXED",
+      "debit": 0.0,
+      "credit": 2230.0
+    },
+    {
+      "reference": "QA-093-DAMAGED",
+      "debit": 0.0,
+      "credit": 295.0
+    }
+  ],
+  "transfers": [
+    {
+      "id": 1,
+      "number": "QA-051-TRANSFER",
+      "status": "Received",
+      "from": 1,
+      "to": 2
+    }
+  ]
+}

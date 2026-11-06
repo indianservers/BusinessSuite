@@ -13,6 +13,7 @@ import { employeeApi, form16Api, payrollApi, statutoryApi } from "@/services/api
 import { usePageTitle } from "@/hooks/use-page-title";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { payrollError } from "../payroll/PayrollDeliverySettings";
 
 const TABS = ["Compliance Calendar", "Generate Files", "Form 16", "Submission History"] as const;
 const TYPES = ["PF", "ESI", "PT", "LWF", "TDS"];
@@ -90,6 +91,9 @@ type Form16Record = {
   status: string;
   taxableIncome?: number | string;
   taxDeducted?: number | string;
+  digitalSignatureStatus?: string;
+  reviewedAt?: string;
+  signedFilePath?: string;
   generatedAt?: string;
   publishedAt?: string;
 };
@@ -109,7 +113,7 @@ const money = (value: unknown) =>
 
 export default function StatutoryCompliancePage() {
   usePageTitle("Statutory Compliance");
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Compliance Calendar");
+  const [tab, setTab] = useState<(typeof TABS)[number]>(new URLSearchParams(window.location.search).get("tab") === "form16" ? "Form 16" : "Compliance Calendar");
 
   return (
     <div className="space-y-6">
@@ -362,13 +366,17 @@ function GenerateTab() {
 
 function Form16Tab() {
   const qc = useQueryClient();
+  const permissions = useQuery({ queryKey: ["payroll-delivery-settings"], queryFn: () => payrollApi.deliverySettings().then(r => r.data as { can_manage: boolean; can_approve: boolean; form16_trust_configured: boolean }) });
+  const canApprove = Boolean(permissions.data?.can_approve);
   const now = new Date();
   const defaultFyStart = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
   const [financialYear, setFinancialYear] = useState(`${defaultFyStart}-${String(defaultFyStart + 1).slice(-2)}`);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([]);
+  const [employeePage, setEmployeePage] = useState(1);
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const employees = useQuery({
-    queryKey: ["form16-employees"],
-    queryFn: () => employeeApi.list({ limit: 500, per_page: 500 }).then((r) => r.data),
+    queryKey: ["form16-employees", employeePage, employeeSearch],
+    queryFn: () => employeeApi.list({ page: employeePage, per_page: 100, search: employeeSearch || undefined }).then((r) => r.data),
   });
   const records = useQuery({
     queryKey: ["form16-records", financialYear],
@@ -385,7 +393,7 @@ function Form16Tab() {
       setSelectedEmployeeIds([]);
       qc.invalidateQueries({ queryKey: ["form16-records"] });
     },
-    onError: () => toast({ title: "Unable to generate Form 16", variant: "destructive" }),
+    onError: error => toast({ title: "Unable to generate Form 16", description: payrollError(error), variant: "destructive" }),
   });
   const uploadPartA = useMutation({
     mutationFn: ({ id, file }: { id: number; file: File }) => {
@@ -405,7 +413,20 @@ function Form16Tab() {
       toast({ title: "Form 16 published to ESS" });
       qc.invalidateQueries({ queryKey: ["form16-records"] });
     },
-    onError: () => toast({ title: "Unable to publish Form 16", variant: "destructive" }),
+    onError: error => toast({ title: "Unable to publish Form 16", description: payrollError(error), variant: "destructive" }),
+  });
+
+  const workflow = useMutation({
+    mutationFn: ({ action, id, file }: { action: string; id?: number; file?: File }) => {
+      if (action === "review") return form16Api.review(id!);
+      if (action === "withdraw") return form16Api.withdraw(id!);
+      const data = new FormData(); data.append("file", file!);
+      if (action === "trust") return form16Api.uploadSigningTrust(data);
+      if (action === "part-b") return form16Api.uploadPartB(id!, data);
+      return form16Api.uploadSigned(id!, data);
+    },
+    onSuccess: () => { toast({ title: "Form 16 workflow updated" }); qc.invalidateQueries({ queryKey: ["form16-records"] }); qc.invalidateQueries({ queryKey: ["payroll-delivery-settings"] }); },
+    onError: error => toast({ title: "Form 16 operation failed", description: payrollError(error), variant: "destructive" }),
   });
 
   const toggleEmployee = (id: number) => {
@@ -417,6 +438,11 @@ function Form16Tab() {
       <Card>
         <CardHeader><CardTitle className="text-base">Generate Form 16</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">Generate from locked or paid payroll. Upload TRACES Part A, review the merged certificate, sign the downloaded PDF using the authorized signatory's DSC, then upload it for verification and publication.</p>
+          <label className="block space-y-2 text-sm">Trusted public signing certificate (PEM)<Input aria-label="Form 16 signing trust certificate" type="file" accept=".pem,.crt" disabled={workflow.isPending || !canApprove} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "trust", file }); event.target.value = ""; }} /></label>
+          <p className="text-sm">Signing trust: {permissions.data?.form16_trust_configured ? "Configured" : "Public signatory certificate required"}</p>
+          {permissions.data && !canApprove && <p className="text-xs text-muted-foreground">A payroll approver must configure signing trust, review, and publish certificates.</p>}
+          <p className="text-xs text-muted-foreground">Upload only an authorized public certificate. Private keys stay with the signatory. Signature integrity and configured trust are checked locally; online revocation is not checked.</p>
           <div className="space-y-2">
             <Label>Financial Year</Label>
             <Input value={financialYear} onChange={(e) => setFinancialYear(e.target.value)} placeholder="2025-26" />
@@ -426,6 +452,7 @@ function Form16Tab() {
               <Label>Employees</Label>
               <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedEmployeeIds([])}>All</Button>
             </div>
+            <Input aria-label="Search Form 16 employees" placeholder="Search employees" value={employeeSearch} onChange={event => { setEmployeeSearch(event.target.value); setEmployeePage(1); }} />
             <div className="max-h-72 space-y-2 overflow-auto rounded-md border p-2">
               {employees.isLoading && <div className="h-24 animate-pulse rounded bg-muted" />}
               {employeeRows.map((employee) => {
@@ -439,6 +466,8 @@ function Form16Tab() {
               })}
               {!employees.isLoading && !employeeRows.length && <p className="px-2 py-4 text-sm text-muted-foreground">No employees found.</p>}
             </div>
+            {employees.isError && <p role="alert" className="text-sm">Employee selection could not load. <Button variant="outline" onClick={() => employees.refetch()}>Retry employees</Button></p>}
+            <div className="flex items-center gap-2 text-xs"><Button size="sm" variant="outline" disabled={employeePage === 1 || employees.isFetching} onClick={() => setEmployeePage(value => value - 1)}>Previous employees</Button><span>Page {employeePage}</span><Button size="sm" variant="outline" disabled={employeeRows.length < 100 || employees.isFetching} onClick={() => setEmployeePage(value => value + 1)}>Next employees</Button></div>
             <p className="text-xs text-muted-foreground">Leave empty to generate for employees with payroll in this financial year.</p>
           </div>
           <Button className="w-full" onClick={() => generate.mutate()} disabled={!financialYear || generate.isPending}>
@@ -453,7 +482,7 @@ function Form16Tab() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle className="text-base">Employee Form 16 Records</CardTitle>
-              <p className="text-sm text-muted-foreground">Upload TRACES Part A, publish approved certificates, and download employee PDFs.</p>
+              <p className="text-sm text-muted-foreground">Prepare Part B, upload Part A, review, verify the signed PDF, and publish to employee self-service.</p>
             </div>
             <Badge variant="outline">{records.data?.length || 0} records</Badge>
           </div>
@@ -483,12 +512,13 @@ function Form16Tab() {
                       <td className="px-3 py-2">{record.employee?.pan || "-"}</td>
                       <td className="px-3 py-2">{money(record.taxableIncome)}</td>
                       <td className="px-3 py-2">{money(record.taxDeducted)}</td>
-                      <td className="px-3 py-2"><StatusBadge status={record.status} /></td>
+                      <td className="px-3 py-2"><StatusBadge status={record.status} /><p className="mt-1 text-xs">Signature: {record.digitalSignatureStatus || "pending"}</p><p className="text-xs">Review: {record.reviewedAt ? "Complete" : "Required"}</p></td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
                           <Badge variant={record.partAFilePath ? "outline" : "secondary"}>Part A</Badge>
                           <Badge variant={record.partBFilePath ? "outline" : "secondary"}>Part B</Badge>
                           <Badge variant={record.combinedFilePath ? "outline" : "secondary"}>Combined</Badge>
+                          {record.signedFilePath && <Badge variant="outline">Signed &amp; verified</Badge>}
                         </div>
                       </td>
                       <td className="px-3 py-2">
@@ -506,9 +536,14 @@ function Form16Tab() {
                               }}
                             />
                           </label>
-                          <Button size="sm" variant="outline" onClick={() => publish.mutate(record.id)} disabled={record.status === "published" || publish.isPending}>Publish</Button>
+                          <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-xs">Upload reviewed Part B<input aria-label={`Upload reviewed Part B for ${record.employee?.name || record.employeeId}`} type="file" accept="application/pdf" className="sr-only" disabled={record.status === "published" || workflow.isPending} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "part-b", id: record.id, file }); event.target.value = ""; }} /></label>
+                          <Button size="sm" variant="outline" disabled={!canApprove || !record.partAFilePath || !record.partBFilePath || record.status === "published" || workflow.isPending} onClick={() => workflow.mutate({ action: "review", id: record.id })}>Confirm review</Button>
+                          <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-xs">Upload DSC-signed PDF<input aria-label={`Upload DSC-signed Form 16 for ${record.employee?.name || record.employeeId}`} type="file" accept="application/pdf" className="sr-only" disabled={!canApprove || !record.reviewedAt || record.status === "published" || workflow.isPending} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "signed", id: record.id, file }); event.target.value = ""; }} /></label>
+                          <Button size="sm" variant="outline" onClick={() => publish.mutate(record.id)} disabled={!canApprove || record.status === "published" || record.digitalSignatureStatus !== "verified" || !record.reviewedAt || publish.isPending}>Publish verified Form 16</Button>
+                          {record.status === "published" && <Button size="sm" variant="outline" disabled={!canApprove || workflow.isPending} onClick={() => workflow.mutate({ action: "withdraw", id: record.id })}>Withdraw for correction</Button>}
                           <Button size="sm" variant="ghost" onClick={() => downloadForm16(record)} disabled={!record.partBFilePath && !record.combinedFilePath && !record.partAFilePath}>
                             <Download className="h-4 w-4" />
+                            Download for review / signing
                           </Button>
                         </div>
                       </td>

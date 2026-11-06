@@ -1,0 +1,23 @@
+{
+  "database": "disposable navigation QA fixture",
+  "orders": [
+    {
+      "id": 1,
+      "organization_id": 1,
+      "order_number": "SO-000001",
+      "title": "QA-WF-52-20261106",
+      "total_amount": 2360,
+      "status": "draft"
+    },
+    {
+      "id": 2,
+      "organization_id": 1,
+      "order_number": "SO-000002",
+      "title": "QA-RECOVER-55-20261106",
+      "total_amount": 3245,
+      "status": "draft"
+    }
+  ],
+  "invoices": 0,
+  "receipts": 0
+}

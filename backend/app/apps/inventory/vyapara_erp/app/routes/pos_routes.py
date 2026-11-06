@@ -1,4 +1,7 @@
 import json
+import hashlib
+from decimal import InvalidOperation
+from sqlalchemy.exc import IntegrityError
 from datetime import date, datetime
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
@@ -14,7 +17,7 @@ from app.services.invoice_service import calculate_document, line_totals
 from app.services.loyalty_service import earn_points_for_sale
 from app.services.numbering_service import next_number
 from app.services.stock_service import apply_sale_item
-from app.utils.helpers import money
+from app.utils.helpers import money, qty
 
 bp = Blueprint("pos", __name__, url_prefix="/pos")
 
@@ -87,24 +90,60 @@ def product_search():
 @bp.route("/sale", methods=["POST"])
 @login_required
 def sale():
+    data = request.get_json(force=True)
+    request_id = data.get("request_id")
+    request_key = hashlib.sha256(f"{current_user.id}:{request_id}".encode()).hexdigest() if request_id else None
+    fingerprint = hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    def previous_sale():
+        saved = Sale.query.filter_by(pos_request_key=request_key).first() if request_key else None
+        if not saved:
+            return None
+        if saved.pos_request_fingerprint != fingerprint:
+            return jsonify({"error": "This payment request was already used for different sale details"}), 409
+        return jsonify({"invoice_no": saved.invoice_no, "grand_total": float(saved.grand_total),
+                        "change_due": float(saved.pos_change_due or 0), "sale_id": saved.id, "recovered": True})
+    recovered = previous_sale()
+    if recovered is not None:
+        return recovered
     active = current_session()
     if not active:
         return jsonify({"error": "No open POS session"}), 400
-    data = request.get_json(force=True)
-    request_id = data.get("request_id")
     if request_id:
         seen = set(session.get("pos_sale_request_ids", []))
         if request_id in seen:
             return jsonify({"error": "Duplicate sale submission ignored"}), 409
     items = []
+    serial_ids = set()
+    warehouse_id = data.get("warehouse_id") or (active.register.warehouse_id if active.register else Warehouse.query.first().id)
     for item in data.get("items", []):
+        try:
+            quantity, rate = qty(item["qty"]), money(item["rate"])
+            discount, tax_rate = money(item.get("discount", 0)), money(item.get("tax_rate", 0))
+            if (any(not value.is_finite() for value in (quantity, rate, discount, tax_rate))
+                    or quantity <= 0 or rate < 0 or not 0 <= discount <= 100 or tax_rate < 0):
+                raise ValueError("Invalid line values")
+        except (KeyError, InvalidOperation, ValueError, TypeError):
+            return jsonify({"error": "Each line needs a positive quantity, nonnegative price and tax, and discount from 0 to 100"}), 400
         product = Product.query.get_or_404(int(item["product_id"]))
+        if not product.is_active:
+            return jsonify({"error": f"Inactive product {product.name} cannot be sold"}), 400
         if money(item.get("discount") or 0) > 50 and not current_user.has_permission("pos", "edit"):
             return jsonify({"error": f"Discount override not allowed for {product.name}"}), 403
         if money(item.get("rate") or 0) != money(product.sales_price) and not current_user.has_permission("pos", "edit"):
             return jsonify({"error": f"Price override not allowed for {product.name}"}), 403
+        selected_serial = None
+        if product.serial_tracking:
+            try: serial_id = int(item.get("serial_id") or 0)
+            except (ValueError, TypeError): serial_id = 0
+            if quantity != 1 or not serial_id or serial_id in serial_ids:
+                return jsonify({"error":"Each serialized unit requires one distinct available serial"}), 400
+            selected_serial = SerialNumber.query.filter_by(id=serial_id, product_id=product.id,
+                warehouse_id=warehouse_id, status="Available").with_for_update().first()
+            if not selected_serial:
+                return jsonify({"error":"Serial is unavailable for this product and warehouse"}), 400
+            serial_ids.add(serial_id)
         totals = line_totals(item["qty"], item["rate"], item.get("discount", 0), item.get("tax_rate", 0))
-        items.append({"product_id": product.id, "quantity": item["qty"], "rate": item["rate"], "discount": item.get("discount", 0), "tax_rate": item.get("tax_rate", 0), "track_inventory": product.track_inventory, **totals})
+        items.append({"product_id": product.id, "quantity": item["qty"], "rate": item["rate"], "discount": item.get("discount", 0), "tax_rate": item.get("tax_rate", 0), "track_inventory": product.track_inventory, "serial_id":selected_serial.id if selected_serial else None, **totals})
     if not items:
         return jsonify({"error": "Cart is empty"}), 400
     totals = calculate_document(items, paid=0)
@@ -116,6 +155,32 @@ def sale():
     totals["discount_total"] = money(totals["discount_total"]) + discount_total
     totals["grand_total"] = money(totals["grand_total"]) - discount_total
     mode = data.get("payment_mode") or "Cash"
+    if mode not in {"Cash", "Card", "UPI", "Wallet", "Split", "Credit"}:
+        return jsonify({"error": "Invalid payment method"}), 400
+    try:
+        tender_fields = {"Cash": "cash_tendered", "Card": "card_amount", "UPI": "upi_amount", "Wallet": "wallet_amount"}
+        tenders = {kind: money(data.get(field) if data.get(field) not in (None, "") else
+                               (totals["grand_total"] if mode == kind else 0))
+                   for kind, field in tender_fields.items()}
+        if any(not amount.is_finite() or amount < 0 for amount in tenders.values()):
+            raise ValueError("Payment amounts must be finite and nonnegative")
+        if not money(totals["grand_total"]).is_finite() or totals["grand_total"] < 0:
+            raise ValueError("Bill total cannot be negative")
+        if mode == "Split":
+            noncash = sum(tenders[kind] for kind in ("Card", "UPI", "Wallet"))
+            if noncash > totals["grand_total"] or sum(tenders.values()) < totals["grand_total"]:
+                raise ValueError("Split payments must cover the bill; change can only be returned from cash")
+        elif mode != "Credit":
+            if tenders[mode] < totals["grand_total"] or (mode != "Cash" and tenders[mode] != totals["grand_total"]):
+                raise ValueError("Payment amount does not cover the bill correctly")
+            if any(amount for kind, amount in tenders.items() if kind != mode):
+                raise ValueError("Use Split for multiple payment methods")
+        elif any(tenders.values()):
+            raise ValueError("Credit sales cannot include paid tenders")
+    except (InvalidOperation, ValueError, TypeError):
+        return jsonify({"error": "Invalid payment amounts: tenders must cover the bill and only cash can include change"}), 400
+    cash, card, upi, wallet = (tenders[kind] for kind in ("Cash", "Card", "UPI", "Wallet"))
+    change = max(sum(tenders.values()) - totals["grand_total"], 0) if mode in {"Cash", "Split"} else 0
     is_credit = mode == "Credit"
     if is_credit and not data.get("customer_id"):
         return jsonify({"error": "Customer is required for credit sale"}), 400
@@ -126,8 +191,14 @@ def sale():
     default_warehouse_id = active.register.warehouse_id if active.register else Warehouse.query.first().id
     sale = Sale(invoice_no=next_number("sales"), invoice_date=date.today(), customer_id=data.get("customer_id") or Customer.query.first().id, warehouse_id=data.get("warehouse_id") or default_warehouse_id, sale_type="Credit" if is_credit else "Cash", invoice_type="Retail Invoice", status="Issued" if is_credit else "Paid", notes="Delivery bill" if data.get("delivery_bill") else None, created_by=current_user.id, issued_at=datetime.utcnow(), **totals)
     try:
+        sale.pos_request_key = request_key
+        sale.pos_request_fingerprint = fingerprint if request_key else None
+        sale.pos_change_due = change
         db.session.add(sale); db.session.flush()
         for item in items:
+            if item.get("serial_id"):
+                serial = db.session.get(SerialNumber, item["serial_id"])
+                serial.status, serial.sale_id = "Sold", sale.id
             cost = apply_sale_item(item["product_id"], sale.warehouse_id, item["quantity"], sale.id, sale.invoice_no) if item.get("track_inventory") else 0
             db.session.add(SaleItem(sale_id=sale.id, product_id=item["product_id"], quantity=item["quantity"], rate=item["rate"], discount=item["discount"], discount_amount=item["discount_amount"], tax_rate=item["tax_rate"], tax_amount=item["tax_amount"], line_total=item["line_total"], cost_price=cost))
         if coupon and coupon_discount:
@@ -136,12 +207,8 @@ def sale():
         if not is_credit:
             receipt = PaymentReceived(receipt_no=next_number("receipt"), receipt_date=date.today(), customer_id=sale.customer_id, amount=sale.grand_total, payment_mode=mode, reference_no=data.get("reference_no"), sale_id=sale.id, created_by=current_user.id)
             db.session.add(receipt); db.session.flush(); post_customer_receipt(receipt, current_user.id)
-        cash = money(data.get("cash_tendered") or (sale.grand_total if mode == "Cash" else 0))
-        card = money(data.get("card_amount") or (sale.grand_total if mode == "Card" else 0))
-        upi = money(data.get("upi_amount") or (sale.grand_total if mode == "UPI" else 0))
-        wallet = money(data.get("wallet_amount") or (sale.grand_total if mode == "Wallet" else 0))
         active.total_sales = money(active.total_sales) + money(sale.grand_total)
-        active.total_cash = money(active.total_cash) + (money(sale.grand_total) if mode == "Cash" else cash)
+        active.total_cash = money(active.total_cash) + cash - change
         active.total_card = money(active.total_card) + card
         active.total_upi = money(active.total_upi) + upi
         active.total_wallet = money(active.total_wallet) + wallet
@@ -152,13 +219,19 @@ def sale():
             seen = list(set(session.get("pos_sale_request_ids", [])) | {request_id})[-20:]
             session["pos_sale_request_ids"] = seen
         db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        recovered = previous_sale()
+        if recovered is not None:
+            return recovered
+        return jsonify({"error": "Sale could not be saved; refresh and retry"}), 409
     except BadRequest as exc:
         db.session.rollback()
         return jsonify({"error": exc.description}), 400
     except Exception as exc:
         db.session.rollback()
         return jsonify({"error": str(exc)}), 400
-    change_due = max(float(cash - money(sale.grand_total)), 0) if mode in ["Cash", "Split"] else 0
+    change_due = float(change)
     return jsonify({"invoice_no": sale.invoice_no, "grand_total": float(sale.grand_total), "change_due": change_due, "sale_id": sale.id})
 
 
@@ -212,6 +285,11 @@ def held_bills_json():
 @login_required
 def held_bill_json(id):
     bill = HeldBill.query.get_or_404(id)
+    active = current_session()
+    if not active or bill.session_id != active.id:
+        return jsonify({"error": "This held bill requires its original open session"}), 403
+    if bill.status != "Held":
+        return jsonify({"error": "This bill is no longer held"}), 409
     bill.status = "Recalled"
     db.session.commit()
     return jsonify({"id": bill.id, "customer_id": bill.customer_id, "warehouse_id": bill.warehouse_id, "items": json.loads(bill.cart_json or "[]")})
@@ -238,6 +316,8 @@ def cash_movement():
         return redirect(url_for("pos.index"))
     amount = money(request.form.get("amount") or 0)
     movement_type = request.form.get("movement_type") or "Withdrawal"
+    if movement_type not in {"Withdrawal", "Cash In"} or not amount.is_finite() or amount <= 0:
+        raise BadRequest("A positive cash movement and valid movement type are required")
     db.session.add(CashMovement(session_id=active.id, movement_type=movement_type, amount=amount, reason=request.form.get("reason"), created_by=current_user.id))
     if movement_type == "Withdrawal":
         active.cash_withdrawals = money(active.cash_withdrawals) + amount
@@ -257,14 +337,15 @@ def close_session():
         flash("Closing cash is required.", "danger")
         return redirect(url_for("pos.terminal"))
     active.closing_cash = request.form.get("closing_cash") or 0
-    active.expected_closing_cash = money(active.opening_cash) + money(active.total_cash) - money(active.cash_withdrawals) - money(active.total_refunds)
+    cash_in = sum(money(row.amount) for row in CashMovement.query.filter_by(session_id=active.id, movement_type="Cash In").all())
+    active.expected_closing_cash = money(active.opening_cash) + money(active.total_cash) + cash_in - money(active.cash_withdrawals) - money(active.total_refunds)
     active.cash_difference = money(active.closing_cash) - money(active.expected_closing_cash)
     active.closed_at = datetime.utcnow()
     active.status = "Closed"
     session.pop("pos_session_id", None)
     record_audit("Close Session", "POS", active.id, new_data={"expected_cash": str(active.expected_closing_cash), "closing_cash": str(active.closing_cash), "difference": str(active.cash_difference)})
     db.session.commit()
-    return render_template("pos/z_report.html", title=f"Z Report {active.session_no}", pos_session=active)
+    return render_template("pos/z_report.html", title=f"Z Report {active.session_no}", pos_session=active, cash_in=cash_in)
 
 
 @bp.route("/sessions")
@@ -283,7 +364,7 @@ def receipt(id):
 def current_session():
     pos_id = session.get("pos_session_id")
     if pos_id:
-        active = POSSession.query.filter_by(id=pos_id, status="Open").first()
+        active = POSSession.query.filter_by(id=pos_id, opened_by=current_user.id, status="Open").first()
         if active:
             return active
     active = POSSession.query.filter_by(opened_by=current_user.id, status="Open").order_by(POSSession.id.desc()).first()

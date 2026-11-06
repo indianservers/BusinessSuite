@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { arrangeTask } from "../components/SprintMoveBoard";
@@ -43,6 +44,7 @@ export default function BacklogPage() {
   const [sortBy, setSortBy] = useState("rank");
   const [activeTask, setActiveTask] = useState<PMSTaskListItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showSprintForm, setShowSprintForm] = useState(false);
@@ -194,9 +196,9 @@ export default function BacklogPage() {
       ) : null}
 
       {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-      {loading ? <div className="skeleton h-96 rounded-lg" /> : null}
+      {initialLoading ? <div className="skeleton h-96 rounded-lg" /> : null}
 
-      {!loading && data ? (
+      {!initialLoading && data ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}

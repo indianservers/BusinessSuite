@@ -182,6 +182,7 @@ export type SharedDataGridProps<T> = {
   onOpenPopup?: (row: T) => void;
   onEdit?: (row: T, column: string, value: string) => Promise<void>;
   rowActions?: GridAction<T>[];
+  quickActionLimit?: number;
   toolbarExtra?: ReactNode;
   renderCard?: (row: T) => ReactNode;
   views?: GridLayout["view"][];

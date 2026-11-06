@@ -73,6 +73,19 @@ def disabled_modules(db, company):
     return set(MODULES) - set(values.get("modules", []))
 
 
+def enforce_seat_capacity(db, company):
+    """Business runtime enforces its own contract, without reading owner storage."""
+    from app.access.models import AccessMembership
+    from app.models.company import Company
+    db.query(Company).filter_by(id=company).with_for_update().first()
+    row = subscription(db, company)
+    if not row or not row["values"].get("enforce"):
+        return
+    limit = row["values"].get("seats")
+    if isinstance(limit, int) and db.query(AccessMembership).filter_by(company_id=company, active=True).count() >= limit:
+        raise HTTPException(409, "Your company has reached its licensed seat allowance. Contact Indian Servers to increase it.")
+
+
 def evaluate_flag(db, user, company, module, key):
     from app.shared.contracts import authorize
 

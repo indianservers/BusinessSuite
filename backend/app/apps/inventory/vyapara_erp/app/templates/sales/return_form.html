@@ -18,4 +18,4 @@
   <div class="sticky-actions d-flex justify-content-between align-items-center"><span class="text-muted">Review return totals before saving.</span><button class="btn btn-primary">Save Return</button></div>
 </form>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/invoice.js') }}"></script><script>document.addEventListener("DOMContentLoaded",()=>initInvoiceForm("sale"));</script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/invoice.js', v='20261106-price-validity-2') }}"></script><script>document.addEventListener("DOMContentLoaded",()=>initInvoiceForm("sale"));</script>{% endblock %}

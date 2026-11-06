@@ -1,0 +1,82 @@
+{
+  "fixture": "Isolated in-memory Workflow 1-50 Test Company",
+  "invoices": [
+    {
+      "id": 1,
+      "number": "QA-050-BASELINE",
+      "status": "Paid",
+      "invoice_date": "2026-11-06",
+      "due_date": "2026-12-06",
+      "subtotal": 2000.0,
+      "tax": 360.0,
+      "total": 2360.0,
+      "paid": 2360.0,
+      "balance": 0.0
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 8.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    }
+  ],
+  "receipts": [
+    {
+      "id": 1,
+      "number": "REC-2026-00001",
+      "sale_id": 1,
+      "amount": 1000.0
+    },
+    {
+      "id": 2,
+      "number": "REC-2026-00002",
+      "sale_id": 1,
+      "amount": 1360.0
+    }
+  ],
+  "stock_movements": [
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "QA-050-BASELINE",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 2.0
+    }
+  ],
+  "returns": [],
+  "credits": [],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [
+    {
+      "reference": "QA-050-BASELINE",
+      "debit": 2360.0,
+      "credit": 0.0
+    },
+    {
+      "reference": "REC-2026-00001",
+      "debit": 0.0,
+      "credit": 1000.0
+    },
+    {
+      "reference": "REC-2026-00002",
+      "debit": 0.0,
+      "credit": 1360.0
+    }
+  ],
+  "transfers": []
+}

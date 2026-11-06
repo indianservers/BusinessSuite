@@ -104,3 +104,24 @@ class AccessAudit(Base):
 @event.listens_for(AccessAudit, "before_delete")
 def immutable_audit(*args):
     raise ValueError("Access audit events are append-only")
+
+
+class SignupRequest(Base):
+    __tablename__ = "suite_signup_requests"
+    id = Column(Integer, primary_key=True)
+    applicant_type = Column(String(20), nullable=False)
+    name = Column(String(180), nullable=False)
+    company_name = Column(String(180))
+    email = Column(String(150), nullable=False, unique=True, index=True)
+    phone = Column(String(30), nullable=False)
+    phone_country_code = Column(String(5), nullable=False)
+    requested_modules = Column(JSON, nullable=False, default=list)
+    notes = Column(Text)
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    review_reason = Column(String(500))
+    trial_ends_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reviewed_at = Column(DateTime(timezone=True))

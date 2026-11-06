@@ -13,6 +13,7 @@ from app.services.accounting_service import account, create_journal, post_purcha
 from app.services.audit_service import record_audit
 from app.services.invoice_service import calculate_document, line_totals
 from app.services.numbering_service import next_number
+from app.services.serial_service import new_serial, find_serial
 from app.services.stock_service import apply_purchase_item, apply_purchase_return_item
 from app.utils.pdf_generator import render_pdf
 
@@ -267,14 +268,13 @@ def capture_purchase_tracking(index, product_id, warehouse_id, quantity, rate, p
         batch.quantity = float(batch.quantity or 0) + float(quantity or 0)
     serials = request.form.getlist("serial_numbers[]")[index] if index < len(request.form.getlist("serial_numbers[]")) else ""
     for serial in [s.strip() for s in serials.replace("\n", ",").split(",") if s.strip()]:
-        if not SerialNumber.query.filter_by(serial_no=serial).first():
-            db.session.add(SerialNumber(product_id=product_id, warehouse_id=warehouse_id, serial_no=serial, status="Available", purchase_id=purchase_id))
+        db.session.add(new_serial(serial, product_id=product_id, warehouse_id=warehouse_id, status="Available", purchase_id=purchase_id))
 
 
 def validate_return_tracking(index, product_id):
     serials = request.form.getlist("serial_numbers[]")[index] if index < len(request.form.getlist("serial_numbers[]")) else ""
     for serial in [s.strip() for s in serials.replace("\n", ",").split(",") if s.strip()]:
-        record = SerialNumber.query.filter_by(product_id=product_id, serial_no=serial).first()
+        record = find_serial(serial, product_id=product_id)
         if record:
             record.status = "Returned"
 

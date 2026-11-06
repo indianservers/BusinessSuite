@@ -1,0 +1,119 @@
+{
+  "reconciliation": {
+    "origin": "http://127.0.0.1:1534/api/v1",
+    "company": 1,
+    "branch": 1,
+    "sources": {
+      "contacts": {
+        "count": 485,
+        "missing_ids": []
+      },
+      "leads": {
+        "count": 1,
+        "names": [
+          "venkat"
+        ]
+      },
+      "potential_customers": {
+        "count": 0,
+        "names": []
+      },
+      "Vendor": {
+        "count": 120,
+        "missing_company_ids": []
+      },
+      "Customer": {
+        "count": 1,
+        "missing_company_ids": []
+      },
+      "Prospect": {
+        "count": 3,
+        "missing_company_ids": []
+      }
+    },
+    "hub_total": 485,
+    "hub_stats": {
+      "total": 485,
+      "Lead": 1,
+      "Prospect": 3,
+      "Customer": 1,
+      "Vendor": 240,
+      "Partner": 240,
+      "recent": 131
+    },
+    "filters": {
+      "Lead": 1,
+      "Prospect": 3,
+      "Customer": 1,
+      "Vendor": 240
+    },
+    "provider_checks": [
+      {
+        "path": "/access/services/catalog",
+        "status": 200,
+        "response": {
+          "channels": [
+            {
+              "channel": "in_app",
+              "status": "operational",
+              "deliverySemantics": "Persisted in the authorized recipient inbox"
+            },
+            {
+              "channel": "email",
+              "provider": "smtp",
+              "status": "unconfigured",
+              "deliverySemantics": "Provider acceptance is not confirmed delivery"
+            },
+            {
+              "channel": "sms",
+              "status": "unconfigured"
+            },
+            {
+              "channel": "whatsapp",
+              "status": "unconfigured"
+            },
+            {
+              "channel": "mobile_push",
+              "status": "unconfigured"
+            },
+            {
+              "channel": "web_push",
+              "status": "unconfigured"
+            }
+          ]
+        }
+      },
+      {
+        "path": "/integrations/whatsapp/status",
+        "status": 200,
+        "response": {
+          "provider": "meta",
+          "configured": true
+        }
+      },
+      {
+        "path": "/crm/messages?entityType=contact&entityId=1126",
+        "status": 200,
+        "response": {}
+      }
+    ],
+    "multiple_contacts_per_account": {
+      "accounts": 240,
+      "max_contacts": 2
+    }
+  },
+  "cleanup": {
+    "1366": {
+      "active_detail_status": 404,
+      "in_trash": true
+    },
+    "1367": {
+      "active_detail_status": 404,
+      "in_trash": true
+    }
+  },
+  "whatsapp": {
+    "http_status": 200,
+    "messages": []
+  }
+}

@@ -537,6 +537,18 @@ export const payrollApi = {
     api.post(`/payroll/runs/${runId}/payslip-publish`, data),
   payslip: (month: number, year: number, empId?: number) =>
     api.get("/payroll/payslip", { params: { month, year, employee_id: empId } }),
+  myPayslipHistory: () => api.get("/payroll/my-payslips"),
+  deliverySettings: () => api.get("/payroll/delivery/settings"),
+  saveDeliverySettings: (data: unknown) => api.put("/payroll/delivery/settings", data),
+  uploadPayslipBranding: (kind: "logo" | "signature", data: FormData) => api.post(`/payroll/delivery/branding/${kind}`, data),
+  previewPayslipTemplate: (kind: string) => api.get("/payroll/delivery/template-preview", { params: { kind }, responseType: "blob" }),
+  savePayoutConnection: (data: unknown) => api.put("/payroll/delivery/payout-connection", data),
+  prepareDirectPayoutBatch: (runId: number) => api.post("/payroll/delivery/payment-batches", { payroll_run_id: runId }),
+  payoutStatus: (id: number) => api.get(`/payroll/delivery/payouts/${id}`),
+  approvePayouts: (id: number) => api.post(`/payroll/delivery/payouts/${id}/approve`),
+  submitPayouts: (id: number, data: unknown) => api.post(`/payroll/delivery/payouts/${id}/submit`, data),
+  reconcilePayouts: (id: number) => api.post(`/payroll/delivery/payouts/${id}/reconcile`),
+  preparePayoutRetry: (id: number, attemptId: number, data: unknown) => api.post(`/payroll/delivery/payouts/${id}/attempts/${attemptId}/prepare-retry`, data),
   generatePayslipPdf: (recordId: number) => api.post(`/payroll/payslip/${recordId}/pdf`),
   downloadPayslipPdf: (recordId: number) =>
     api.get(`/payroll/payslip/${recordId}/pdf`, { responseType: "blob" }),
@@ -732,6 +744,11 @@ export const form16Api = {
       headers: { "Content-Type": "multipart/form-data" },
     }),
   publish: (id: number) => api.post(`/hrms/form16/${id}/publish`),
+  review: (id: number) => api.post(`/hrms/form16/${id}/review`),
+  withdraw: (id: number) => api.post(`/hrms/form16/${id}/withdraw`),
+  uploadPartB: (id: number, data: FormData) => api.post(`/hrms/form16/${id}/upload-part-b`, data),
+  uploadSigned: (id: number, data: FormData) => api.post(`/hrms/form16/${id}/upload-signed`, data),
+  uploadSigningTrust: (data: FormData) => api.post("/hrms/form16/signing-trust", data),
   download: (id: number) => api.get(`/hrms/form16/${id}/download`, { responseType: "blob" }),
 };
 

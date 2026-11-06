@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import abort
 
@@ -53,8 +53,10 @@ def validate_invoice_items(items):
             abort(400, f"Quantity must be greater than zero for {product.name}.")
         if money(item["rate"]) < 0:
             abort(400, f"Rate cannot be negative for {product.name}.")
-        if money(item.get("discount", 0)) < 0:
-            abort(400, f"Discount cannot be negative for {product.name}.")
+        if not 0 <= money(item.get("discount", 0)) <= 100:
+            abort(400, f"Discount must be between 0 and 100 for {product.name}.")
+        if not product.is_active:
+            abort(400, f"Inactive product {product.name} cannot be added to a new invoice.")
     return products
 
 
@@ -69,6 +71,11 @@ def create_or_update_invoice(sale, form, items, user_id):
     customer = Customer.query.get(form["customer_id"])
     if not customer:
         abort(400, "Customer does not exist.")
+    if due_date is None:
+        terms_days = customer.payment_terms if customer.payment_terms is not None else 30
+        if terms_days < 0:
+            abort(400, "Customer payment terms cannot be negative.")
+        due_date = invoice_date + timedelta(days=terms_days)
     totals = calculate_document(items, shipping=form.get("shipping_charges"), other=form.get("other_charges"), round_off=form.get("round_off"), paid=0)
     currency = Currency.query.get(form.get("currency_id")) if form.get("currency_id") else Currency.query.filter_by(is_base=True).first()
     exchange_rate = money(form.get("exchange_rate_snapshot") or (currency.exchange_rate if currency else 1) or 1)
@@ -110,6 +117,8 @@ def create_or_update_invoice(sale, form, items, user_id):
 
 
 def issue_invoice(sale, user_id):
+    if sale.id:
+        sale = Sale.query.filter_by(id=sale.id).populate_existing().with_for_update().one()
     if sale.status != "Draft":
         abort(400, "Only draft invoices can be issued.")
     if sale.items.count() == 0:

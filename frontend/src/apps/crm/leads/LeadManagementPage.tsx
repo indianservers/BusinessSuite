@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { leadsApi as defaultLeadsApi } from "./api";
 import { LeadRecordContext, useLeadRecord } from "./LeadRecordContext";
 import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
@@ -170,6 +171,7 @@ function LeadWorkbench() {
   const [bootstrap, setBootstrap] = useState<Bootstrap>();
   const [result, setResult] = useState<ListResult>();
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
   const [selected, setSelected] = useState<number[]>([]);
@@ -705,7 +707,7 @@ function LeadWorkbench() {
             Narrow search, stage or owner filters to review older records.
           </div>
         )}
-        {loading ? (
+        {initialLoading ? (
           <div className="lm-loading" role="status">
             <Loader2 className="animate-spin" />
             Loading lead records…

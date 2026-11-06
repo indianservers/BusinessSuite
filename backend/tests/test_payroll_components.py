@@ -72,6 +72,11 @@ def test_payroll_run_persists_component_lines_and_rich_payslip(client, db):
     names = {line.component_name for line in lines}
     assert {"Basic", "House Rent Allowance", "PF Employee", "PF Employer", "Approved Reimbursements"}.issubset(names)
 
+    # Employee access starts only after approval and payroll lock.
+    assert client.get("/api/v1/payroll/payslip?month=5&year=2026", headers=employee_headers).status_code == 404
+    for action in ("approve", "lock"):
+        finalized = client.put(f"/api/v1/payroll/runs/{run_id}/approve", json={"action": action, "force_approve": True}, headers=admin_headers)
+        assert finalized.status_code == 200, finalized.text
     payslip = client.get("/api/v1/payroll/payslip?month=5&year=2026", headers=employee_headers)
     assert payslip.status_code == 200
     data = payslip.json()

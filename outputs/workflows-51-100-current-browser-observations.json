@@ -1,0 +1,86 @@
+[
+  {
+    "workflow": 51,
+    "check": "warehouse limit sequential subcheck",
+    "text": "Create Invoice\nWorkflow 51-100 Test Company\nDashboard\nInvoices\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n400 Bad Request: Insufficient stock for QA Product A in the selected warehouse\nINVOICE BUILDER\nQA-051-EXCESS\nInvoice No\nDate\nDue\nCustomer\nSelect\nQA Customer A\nWarehouse\nSelect\nMain\nQA Warehouse B\nCurrency\nINR\nExchange Rate\nType\nCredit\nCash\nAll Items\nUncategorized\nQA Consulting Service\nQA-SERVICE | Stock 0.000\nINR 5000.00\nQA Product A\nP1 | Stock 10.000\nINR 1000.00\nCART\nInvoice Items\nClick or drag products here\nTerms\nNotes\nSubtotal\nDiscount\nTax\nShipping\nOther\nRound Off\nTotal\nPaid\nBalance\nBack\nSave Draft\nIssue Invoice"
+  },
+  {
+    "workflow": 54,
+    "scope": "double-click attempted; first click navigated before second completed",
+    "text": "Invoice QA-054-DRAFT\nWorkflow 51-100 Test Company\nDashboard\nInvoices\n1\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nQA-054-DRAFT\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 4720.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t4.000\t1000.0000\t0.00\t720.00\t4720.00\nSubtotal\n4000.00\nDiscount\n0.00\nTax\n720.00\nGrand Total\n4720.00\nPaid\n0.00\nBalance\n4720.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 51,
+    "check": "second four after first four from five",
+    "text": "Create Invoice\nWorkflow 51-100 Test Company\nDashboard\nInvoices\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n400 Bad Request: Insufficient stock for QA Product A in the selected warehouse\nINVOICE BUILDER\nQA-051-SECOND-4\nInvoice No\nDate\nDue\nCustomer\nSelect\nQA Customer A | Due 4720.00\nWarehouse\nSelect\nMain\nQA Warehouse B\nCurrency\nINR\nExchange Rate\nType\nCredit\nCash\nAll Items\nUncategorized\nQA Consulting Service\nQA-SERVICE | Stock 0.000\nINR 5000.00\nQA Product A\nP1 | Stock 6.000\nINR 1000.00\nCART\nInvoice Items\nClick or drag products here\nTerms\nNotes\nSubtotal\nDiscount\nTax\nShipping\nOther\nRound Off\nTotal\nPaid\nBalance\nBack\nSave Draft\nIssue Invoice"
+  },
+  {
+    "workflow": 59,
+    "text": "Invoice QA-059-MIXED\nWorkflow 51-100 Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nQA-059-MIXED\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nQA Warehouse B\nOutstanding: 6950.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t50.00\t1050.00\nQA-SERVICE - QA Consulting Service\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n2000.00\nDiscount\n0.00\nTax\n230.00\nGrand Total\n2230.00\nPaid\n0.00\nBalance\n2230.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 60,
+    "scope": "zero-rate and18% calculation, not exemption classification",
+    "text": "Invoice QA-060-EXEMPT\nWorkflow 51-100 Test Company\nDashboard\nInvoices\n3\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nQA-060-EXEMPT\n2026-11-06 | Due 2026-12-06\n Paid\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nQA Warehouse B\nOutstanding: 6950.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t0.00\t1000.00\nQA-SERVICE - QA Consulting Service\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n2000.00\nDiscount\n0.00\nTax\n180.00\nGrand Total\n2180.00\nPaid\n2180.00\nBalance\n0.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nPayment History\n2026-11-06\tCash\t2180.00"
+  },
+  {
+    "workflow": 56,
+    "stage": "fractional sale",
+    "text": "Invoice QA-056-FRACTION-SALE\nWorkflow 51-100 Test Company\nDashboard\nInvoices\n4\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nInvoice issued and accounts posted.\nQA-056-FRACTION-SALE\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 10195.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nQA-056-FRACTION - QA Fractional Product\t2.750\t1000.0000\t0.00\t495.00\t3245.00\nSubtotal\n2750.00\nDiscount\n0.00\nTax\n495.00\nGrand Total\n3245.00\nPaid\n0.00\nBalance\n3245.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 56,
+    "stage": "stock after half-unit return",
+    "text": "Current Stock\nWorkflow 51-100 Test Company\nDashboard\nStock\nCurrent\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCurrent Stock\nBatches\nTransfers\nAdjust Stock\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tRack/Bin\n\tQty\n\tAvg Cost\n\tValue\n\nP1\tQA Product A\tMain\t\t4.000\t600.0000\t2400.00\nQA-056-FRACTION\tQA Fractional Product\tMain\t\t8.250\t600.0000\t4950.00\nQA-SERVICE\tQA Consulting Service\t\t\t0.000\t0.0000\t0.00\nShowing 1 to 3 of 3 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 70,
+    "scope": "issued invoice direct edit access",
+    "url": "http://127.0.0.1:5304/invoices/2",
+    "text": "Invoice QA-059-MIXED\nWorkflow 51-100 Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nOnly draft invoices can be edited.\nQA-059-MIXED\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nQA Warehouse B\nOutstanding: 9605.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t50.00\t1050.00\nQA-SERVICE - QA Consulting Service\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n2000.00\nDiscount\n0.00\nTax\n230.00\nGrand Total\n2230.00\nPaid\n0.00\nBalance\n2230.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 69,
+    "text": "Invoice QA-059-MIXED\nWorkflow 51-100 Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nQA-059-MIXED\n2026-11-06 | Due 2026-12-06\n Cancelled\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nQA Warehouse B\nOutstanding: 7375.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t50.00\t1050.00\nQA-SERVICE - QA Consulting Service\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n2000.00\nDiscount\n0.00\nTax\n230.00\nGrand Total\n2230.00\nPaid\n0.00\nBalance\n0.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nPayment History\nNo payments recorded"
+  },
+  {
+    "workflow": 69,
+    "stage": "stock restored",
+    "text": "Stock Valuation\nWorkflow 51-100 Test Company\nDashboard\nReports\nValuation\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n Print\n Export Excel\nTotal Value: 2400.00\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tQty\n\tAverage Cost\n\tStock Value\n\nP1\tQA Product A\tQA Warehouse B\t4.000\t600.0000\t2400.00\nQA-056-FRACTION\tQA Fractional Product\tQA Warehouse B\t0\t600.0000\t0.00\nQA-SERVICE\tQA Consulting Service\tQA Warehouse B\t0\t0.0000\t0.00\nShowing 1 to 3 of 3 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 65,
+    "case": "QA-065-NEGQ",
+    "text": "Create Invoice\nWorkflow 51-100 Test Company\nDashboard\nInvoices\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n400 Bad Request: Quantity must be greater than zero for QA Consulting Service.\nINVOICE BUILDER\nINV-2026-00001\nInvoice No\nDate\nDue\nCustomer\nSelect\nQA Customer A | Due 7375.00\nWarehouse\nSelect\nMain\nQA Warehouse B\nCurrency\nINR\nExchange Rate\nType\nCredit\nCash\nAll Items\nUncategorized\nQA Consulting Service\nQA-SERVICE | Stock 0.000\nINR 5000.00\nQA Fractional Product\nQA-056-FRACTION | Stock 8.250\nINR 1000.00\nQA Product A\nP1 | Stock 5.000\nINR 1000.00\nCART\nInvoice Items\nClick or drag products here\nTerms\nNotes\nSubtotal\nDiscount\nTax\nShipping\nOther\nRound Off\nTotal\nPaid\nBalance\nBack\nSave Draft\nIssue Invoice"
+  },
+  {
+    "workflow": 65,
+    "case": "QA-065-ZEROQ",
+    "text": "Create Invoice\nWorkflow 51-100 Test Company\nDashboard\nInvoices\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n400 Bad Request: Quantity must be greater than zero for QA Consulting Service.\nINVOICE BUILDER\nINV-2026-00001\nInvoice No\nDate\nDue\nCustomer\nSelect\nQA Customer A | Due 7375.00\nWarehouse\nSelect\nMain\nQA Warehouse B\nCurrency\nINR\nExchange Rate\nType\nCredit\nCash\nAll Items\nUncategorized\nQA Consulting Service\nQA-SERVICE | Stock 0.000\nINR 5000.00\nQA Fractional Product\nQA-056-FRACTION | Stock 8.250\nINR 1000.00\nQA Product A\nP1 | Stock 5.000\nINR 1000.00\nCART\nInvoice Items\nClick or drag products here\nTerms\nNotes\nSubtotal\nDiscount\nTax\nShipping\nOther\nRound Off\nTotal\nPaid\nBalance\nBack\nSave Draft\nIssue Invoice"
+  },
+  {
+    "workflow": 65,
+    "case": "QA-065-NEGR",
+    "text": "Create Invoice\nWorkflow 51-100 Test Company\nDashboard\nInvoices\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n400 Bad Request: Rate cannot be negative for QA Consulting Service.\nINVOICE BUILDER\nINV-2026-00001\nInvoice No\nDate\nDue\nCustomer\nSelect\nQA Customer A | Due 7375.00\nWarehouse\nSelect\nMain\nQA Warehouse B\nCurrency\nINR\nExchange Rate\nType\nCredit\nCash\nAll Items\nUncategorized\nQA Consulting Service\nQA-SERVICE | Stock 0.000\nINR 5000.00\nQA Fractional Product\nQA-056-FRACTION | Stock 8.250\nINR 1000.00\nQA Product A\nP1 | Stock 5.000\nINR 1000.00\nCART\nInvoice Items\nClick or drag products here\nTerms\nNotes\nSubtotal\nDiscount\nTax\nShipping\nOther\nRound Off\nTotal\nPaid\nBalance\nBack\nSave Draft\nIssue Invoice"
+  },
+  {
+    "workflow": 65,
+    "case": "QA-065-DISC",
+    "text": "Create Invoice\nWorkflow 51-100 Test Company\nDashboard\nInvoices\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n400 Bad Request: Discount must be between 0 and 100 for QA Consulting Service.\nINVOICE BUILDER\nINV-2026-00001\nInvoice No\nDate\nDue\nCustomer\nSelect\nQA Customer A | Due 7375.00\nWarehouse\nSelect\nMain\nQA Warehouse B\nCurrency\nINR\nExchange Rate\nType\nCredit\nCash\nAll Items\nUncategorized\nQA Consulting Service\nQA-SERVICE | Stock 0.000\nINR 5000.00\nQA Fractional Product\nQA-056-FRACTION | Stock 8.250\nINR 1000.00\nQA Product A\nP1 | Stock 5.000\nINR 1000.00\nCART\nInvoice Items\nClick or drag products here\nTerms\nNotes\nSubtotal\nDiscount\nTax\nShipping\nOther\nRound Off\nTotal\nPaid\nBalance\nBack\nSave Draft\nIssue Invoice"
+  },
+  {
+    "workflow": 93,
+    "stage": "non-restockable credit",
+    "text": "Sales Returns\nWorkflow 51-100 Test Company\nDashboard\nSales\nReturns\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nSales return saved and credit note generated.\nSales Returns\n Return\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tCustomer\n\tTotal\n\tMode\n\tStatus\n\tReview\n\nQA-056-RETURN-HALF\t2026-11-06\tQA Customer A\t590.00\tCredit Note\tApproved\t\nQA-093-DAMAGED\t2026-11-06\tQA Customer A\t295.00\tCredit Note\tApproved\t\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 93,
+    "stage": "quantity still8.25",
+    "text": "Current Stock\nWorkflow 51-100 Test Company\nDashboard\nStock\nCurrent\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCurrent Stock\nBatches\nTransfers\nAdjust Stock\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tRack/Bin\n\tQty\n\tAvg Cost\n\tValue\n\nP1\tQA Product A\tMain\t\t5.000\t600.0000\t3000.00\nQA-056-FRACTION\tQA Fractional Product\tMain\t\t8.250\t600.0000\t4950.00\nQA-SERVICE\tQA Consulting Service\t\t\t0.000\t0.0000\t0.00\nShowing 1 to 3 of 3 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 51,
+    "stage": "warehouse balances after rejected issues",
+    "text": "Stock Valuation\nWorkflow 51-100 Test Company\nDashboard\nReports\nValuation\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n Print\n Export Excel\nTotal Value: 5550.00\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tQty\n\tAverage Cost\n\tStock Value\n\nP1\tQA Product A\tMain\t1.000\t600.0000\t600.00\nQA-056-FRACTION\tQA Fractional Product\tMain\t8.250\t600.0000\t4950.00\nQA-SERVICE\tQA Consulting Service\tMain\t0\t0.0000\t0.00\nShowing 1 to 3 of 3 entries\n«\n‹\n1\n›\n»"
+  }
+]

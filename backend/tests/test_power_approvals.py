@@ -442,6 +442,8 @@ while True:
             )
             db.add(reviewer)
             db.flush()
+            from test_identity_utils import attach_workflow_branch
+            attach_workflow_branch(db, reviewer, company_id=101)
             reviewers.append(reviewer.id)
         db.commit()
         p = routes.create_policy(

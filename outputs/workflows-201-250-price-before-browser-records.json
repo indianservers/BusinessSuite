@@ -1,0 +1,31 @@
+{
+  "fixture": "Isolated in-memory Workflow 201-250-price-before Test Company",
+  "invoices": [],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 10.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    }
+  ],
+  "receipts": [],
+  "stock_movements": [],
+  "returns": [],
+  "credits": [],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [],
+  "transfers": []
+}

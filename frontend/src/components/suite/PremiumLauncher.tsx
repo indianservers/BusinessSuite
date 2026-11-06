@@ -50,9 +50,10 @@ export default function PremiumLauncher({ applications, authenticated = false, c
     <header className="launcher-header">
       <SuiteBrand to={authenticated ? "/dashboard" : "/"} />
       <nav className="launcher-nav" aria-label="Suite navigation">
+        {!authenticated && <Link to="/signup">Sign up for a trial</Link>}
         <Link className="launcher-nav-home" to={authenticated ? "/dashboard" : "/"}><Home size={19} />Home</Link>
         <details className="launcher-app-menu"><summary><LayoutGrid size={18} />Applications<ChevronDown size={15} /></summary><div>{applications.map(m => <Link key={m.key} to={destination(m)} onClick={e => e.currentTarget.closest("details")?.removeAttribute("open")}><m.icon size={18} />{m.name}</Link>)}</div></details>
-        <Link to={authenticated ? "/settings" : "/login?next=%2Fsettings"}><Settings size={19} />Settings</Link>
+        <Link to={authenticated ? "/company-admin" : "/login?next=%2Fcompany-admin"}><Settings size={19} />Settings</Link>
       </nav>
       <div className="launcher-search-box" ref={searchBox}>
         <div className="launcher-search"><Search size={19} /><input ref={search} placeholder="Find an application..." aria-label="Search applications" role="combobox" aria-expanded={open} aria-controls="launcher-search-results" aria-autocomplete="list" aria-activedescendant={open && visible[active] ? `launcher-result-${active}` : undefined} value={query} onFocus={() => setOpen(true)} onChange={e => { setQuery(e.target.value); setActive(0); setOpen(true); }} onKeyDown={e => {
@@ -78,7 +79,7 @@ export default function PremiumLauncher({ applications, authenticated = false, c
           </article>)}</div>
           {!visible.length && applications.length > 0 && <div className="launcher-empty" role="status"><Search size={28} /><h3>{favoritesOnly ? "No matching favorite applications" : "No matching applications"}</h3><button onClick={() => { setQuery(""); setFavoritesOnly(false); setActive(0); }}>Show all applications</button></div>}
         </section>
-        <Link to={authenticated ? "/settings" : "/login?next=%2Fsettings"} className="launcher-settings"><span><Settings size={28} /></span><div><h2>Settings</h2><p>Company details, branches, users and permissions</p></div><ArrowRight size={25} /></Link>
+        <Link to={authenticated ? "/company-admin" : "/login?next=%2Fcompany-admin"} className="launcher-settings"><span><Settings size={28} /></span><div><h2>Company Admin</h2><p>Settings, users, insights and analytics</p></div><ArrowRight size={25} /></Link>
       </div>
     </main>
   </div>;

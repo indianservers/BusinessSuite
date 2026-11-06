@@ -1,0 +1,2260 @@
+{
+  "date": "2026-11-06",
+  "scope": "Workflows 51-100, isolated SQLite test databases and Chrome against loopback disposable QA server on port 5297. The existing app company was only inspected, not used for test writes.",
+  "counts": {
+    "automated_tests": 264,
+    "automated_pass": 264,
+    "automated_fail": 0,
+    "workflow_pass": 5,
+    "workflow_blocked": 45
+  },
+  "additional_checks": {
+    "frontend_typescript": "Pass",
+    "inventory_pos_javascript_recovery_vm": "Pass",
+    "diff_whitespace_check": "Pass"
+  },
+  "fixes": [
+    "Recover interrupted Inventory POS payment from a durable unique sale key; reject changed-payload reuse; preserve key across browser reload and unlock controls after network failures.",
+    "Enforce normal invoice discount range 0-100 and reject inactive products in new invoices/POS.",
+    "Use original sale price/tax and cost for linked returns; enforce cumulative quantity and customer checks; update weighted-average valuation at original return cost.",
+    "Restore unsaved Suite sales-order forms for the same user/company/branch and clear recovery after a successful save.",
+    "Display an explicit unavailable/access message for inaccessible commercial records instead of an empty Record 1."
+  ],
+  "limitations": [
+    "Full browser execution of all 50 workflows was not completed. Workflow status is limited to the recorded execution scope.",
+    "SQLite checks do not certify PostgreSQL concurrency, locking or the new PostgreSQL migration; migration included but not applied to a live database.",
+    "Suite sales-order detail currently lacks line-edit and approval controls; these operations remain UI gaps.",
+    "No external email, accounting outage or real payment-provider charge was triggered.",
+    "Inventory/POS Flask fixes and Suite React form fixes affect distinct application surfaces; passing one does not certify the other."
+  ],
+  "browser_persisted_records": {
+    "database": "disposable navigation QA fixture",
+    "orders": [
+      {
+        "id": 1,
+        "organization_id": 1,
+        "order_number": "SO-000001",
+        "title": "QA-WF-52-20261106",
+        "total_amount": 2360,
+        "status": "draft"
+      },
+      {
+        "id": 2,
+        "organization_id": 1,
+        "order_number": "SO-000002",
+        "title": "QA-RECOVER-55-20261106",
+        "total_amount": 3245,
+        "status": "draft"
+      }
+    ],
+    "invoices": 0,
+    "receipts": 0
+  },
+  "workflows": [
+    {
+      "number": 51,
+      "workflow": "Concurrent orders competing for limited stock",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Concurrent orders competing for limited stock",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 52,
+      "workflow": "Concurrent edits to the same sales order",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Concurrent edits to the same sales order",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 53,
+      "workflow": "Retry after an uncertain payment response",
+      "status": "Pass",
+      "execution_scope": "Automated lost-response recovery using the pre-response cookie, then replay; JavaScript recovery after reload also tested.",
+      "expected": "One sale, receipt and stock issue; no changed-payload reuse.",
+      "actual": "One sale/receipt/issue, stock 8, session sales 2360; changed payload rejected; same invoice recovered after closing.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 54,
+      "workflow": "Double-click invoice approval",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Double-click invoice approval",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 55,
+      "workflow": "Recover an unsaved sales document",
+      "status": "Pass",
+      "execution_scope": "Chrome, supported sales-order form: title and fractional quantity restored after refresh; saved and reopened.",
+      "expected": "Restore title and 2.75 quantity; save once; clear recovery after success.",
+      "actual": "QA-RECOVER-55-20261106 and 2.75 restored; SO-000002 saved at INR 3245; new form blank. Multiline recovery is not covered.",
+      "document_ids": [
+        "SO-000002"
+      ],
+      "evidence": [
+        "workflow-55-browser-recovery.png",
+        "workflows-browser-persisted-records.json"
+      ],
+      "browser_execution": true
+    },
+    {
+      "number": 56,
+      "workflow": "Fractional quantities through sale and return",
+      "status": "Pass",
+      "execution_scope": "Automated fractional sale, original-linked return, refreshed ORM state and cumulative return limit.",
+      "expected": "10.50 - 2.75 + 0.50 = 8.25.",
+      "actual": "8.25 stock; return credit 590; original cost 600; excess cumulative return rejected.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 57,
+      "workflow": "Alternate-unit conversion",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Alternate-unit conversion",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 58,
+      "workflow": "Tax-inclusive selling price",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Tax-inclusive selling price",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 59,
+      "workflow": "Mixed tax rates on one invoice",
+      "status": "Blocked",
+      "execution_scope": "Automated mixed-rate calculation and issued invoice persistence passed.",
+      "expected": "Line taxes 50 and 180; total 2230; successful dispatch.",
+      "actual": "Taxes 50 and 180, total 2230 persisted. Dispatch and full browser document/export checks not executed.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 60,
+      "workflow": "Tax-exempt and taxable items together",
+      "status": "Blocked",
+      "execution_scope": "Automated exempt/taxable calculation and issued invoice persistence passed.",
+      "expected": "Exempt line zero tax, other line 180, total 2180 and collected.",
+      "actual": "Tax lines 0 and 180; total 2180 persisted. Reporting/collection/browser cycle not executed.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 61,
+      "workflow": "Intrastate versus interstate tax treatment",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Intrastate versus interstate tax treatment",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 62,
+      "workflow": "Document discount allocation",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Document discount allocation",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 63,
+      "workflow": "Freight and additional charges",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Freight and additional charges",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 64,
+      "workflow": "Rounding across many small lines",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Rounding across many small lines",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 65,
+      "workflow": "Invalid commercial amounts",
+      "status": "Pass",
+      "execution_scope": "Automated normal invoices and POS validation; zero-price policy explicitly permits free items.",
+      "expected": "Reject negative/zero quantities, negative prices and discounts over 100; zero-price item allowed.",
+      "actual": "Rejected invalid drafts produced no saved sale or ledger movement; zero-price item issued at total zero with one stock deduction.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 66,
+      "workflow": "Foreign-currency invoice and settlement",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Foreign-currency invoice and settlement",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 67,
+      "workflow": "Backdated transaction and historical reporting",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Backdated transaction and historical reporting",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 68,
+      "workflow": "Closed-period transaction protection",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Closed-period transaction protection",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 69,
+      "workflow": "Cancel a posted invoice safely",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Cancel a posted invoice safely",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 70,
+      "workflow": "Correct an approved invoice",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Correct an approved invoice",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 71,
+      "workflow": "Customer advance applied to a later invoice",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Customer advance applied to a later invoice",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 72,
+      "workflow": "Unallocate and reallocate a receipt",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Unallocate and reallocate a receipt",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 73,
+      "workflow": "Reverse an incorrectly recorded receipt",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Reverse an incorrectly recorded receipt",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 74,
+      "workflow": "Prevent cross-customer receipt allocation",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Prevent cross-customer receipt allocation",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 75,
+      "workflow": "Customer credit-limit enforcement",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Customer credit-limit enforcement",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 76,
+      "workflow": "Customer billing details changed after invoicing",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Customer billing details changed after invoicing",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 77,
+      "workflow": "Deactivate a product with transaction history",
+      "status": "Blocked",
+      "execution_scope": "Automated direct-ID inactive POS sale rejection; product search exclusion passed.",
+      "expected": "Inactive items unavailable for new use; historical invoice and eligible return remain usable.",
+      "actual": "Search omitted the inactive item; direct POS submission rejected without movements. Complete browser history/return lifecycle not executed.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 78,
+      "workflow": "Prevent deletion of referenced master records",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Prevent deletion of referenced master records",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 79,
+      "workflow": "Branch access isolation",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Branch access isolation",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 80,
+      "workflow": "Tenant/company isolation",
+      "status": "Blocked",
+      "execution_scope": "Chrome: switched company and opened the original company order URL.",
+      "expected": "No other-company order values; clear unavailable record feedback.",
+      "actual": "Original order data not displayed. Fixed blank Record 1 to show an unavailable/access message. Matching-number creation, exports and mutation attempts not executed.",
+      "document_ids": [
+        "SO-000001",
+        "SO-000002"
+      ],
+      "evidence": [
+        "Browser observations recorded in this report"
+      ],
+      "browser_execution": true
+    },
+    {
+      "number": 81,
+      "workflow": "Salesperson cannot approve their own restricted order",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Salesperson cannot approve their own restricted order",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 82,
+      "workflow": "Cashier cannot access administrative functions",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Cashier cannot access administrative functions",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 83,
+      "workflow": "Warehouse operator cannot alter commercial values",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Warehouse operator cannot alter commercial values",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 84,
+      "workflow": "Approval threshold boundary",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Approval threshold boundary",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 85,
+      "workflow": "Permission revoked during an active session",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Permission revoked during an active session",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 86,
+      "workflow": "Audit trail across a complete document lifecycle",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Audit trail across a complete document lifecycle",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 87,
+      "workflow": "Product import with Unicode and quoted text",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Product import with Unicode and quoted text",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 88,
+      "workflow": "Large-document completeness",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Large-document completeness",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 89,
+      "workflow": "Search, filtering, and pagination consistency",
+      "status": "Blocked",
+      "execution_scope": "Chrome exact-document-number search subcheck passed.",
+      "expected": "Exact SO-000002 result with no SO-000001; multi-page/export/filter consistency.",
+      "actual": "Search returned only SO-000002. Large dataset pagination and export scope not executed.",
+      "document_ids": [
+        "SO-000001",
+        "SO-000002"
+      ],
+      "evidence": [
+        "Browser observations recorded in this report"
+      ],
+      "browser_execution": true
+    },
+    {
+      "number": 90,
+      "workflow": "Date boundaries in dashboard and reports",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Date boundaries in dashboard and reports",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 91,
+      "workflow": "Inventory costing after purchases at different prices",
+      "status": "Blocked",
+      "execution_scope": "Configuration inspection.",
+      "expected": "FIFO: COGS 6400, remaining stock value 5600.",
+      "actual": "Inventory valuation tests establish weighted-average behavior; a configurable FIFO execution was not established. Record as a configuration/feature gap, not a pass.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 92,
+      "workflow": "Return valuation after purchase cost changes",
+      "status": "Pass",
+      "execution_scope": "Automated original-sale cost policy; new purchase at 900 before return.",
+      "expected": "Return original unit cost 600 rather than selling price 1000 or latest purchase price 900.",
+      "actual": "Return ledger rate 600 and value 300 for quantity 0.50; original sale link preserved; weighted-average stock value updated.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 93,
+      "workflow": "Non-restockable damaged return",
+      "status": "Blocked",
+      "execution_scope": "Automated non-restockable fractional return subcheck passed.",
+      "expected": "Customer credit without increase in normally sellable inventory; stock disposition traceable.",
+      "actual": "Credit 590, no Sales Return stock movement and no added stock. Full damaged-location/refund/tender/browser cycle not executed.",
+      "document_ids": [],
+      "evidence": [
+        "workflows-51-100-inventory.xml"
+      ],
+      "browser_execution": false
+    },
+    {
+      "number": 94,
+      "workflow": "Purchase receipt correction",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Purchase receipt correction",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 95,
+      "workflow": "Procurement schedule changes",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Procurement schedule changes",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 96,
+      "workflow": "BOM revision after production order creation",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "BOM revision after production order creation",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 97,
+      "workflow": "Multiple payments and partial POS refund",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Multiple payments and partial POS refund",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 98,
+      "workflow": "Invoice dispatch failure and retry",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Invoice dispatch failure and retry",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 99,
+      "workflow": "Sales-to-accounting integration retry",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Sales-to-accounting integration retry",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    },
+    {
+      "number": 100,
+      "workflow": "Reconciliation detects and resolves a real discrepancy",
+      "status": "Blocked",
+      "execution_scope": "No complete execution of this workflow in this pass.",
+      "expected": "Reconciliation detects and resolves a real discrepancy",
+      "actual": "Related regression suites may pass but do not establish this complete scenario; no acceptance certification.",
+      "document_ids": [],
+      "evidence": [],
+      "browser_execution": false
+    }
+  ],
+  "automated_executions": [
+    {
+      "test": "tests.test_branch_access::test_profile_directory_batches_reads_without_exposing_hidden_home_profiles",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_backfill_repairs_legacy_null_company_stamps_only_with_local_parent_evidence",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_targeted_backfill_keeps_other_tables_untouched_and_is_repeatable",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_same_person_crm_in_one_branch_srm_in_another_and_company_revocation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_lists_counts_aliases_details_and_identity_map_are_scoped",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_write_stamps_legacy_root_and_children_and_blocks_cross_branch_links",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_cached_foreign_object_cannot_be_updated_or_deleted",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_revocation_read_only_all_and_company_checks",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_superadmin_selected_branch_still_filters",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_branch_control_api_creation_grants_revocation_and_auditing",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_profile_sharing_does_not_share_sales_or_allow_profile_edits",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_parent_backfill_is_repeatable_and_does_not_guess_unknown_ownership",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_signed_file_link_rechecks_branch_revocation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_signed_file_link_rechecks_branch_role_downgrade",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_superadmin_cannot_stamp_another_companys_record_into_selected_branch",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_three_branches_two_companies_and_forged_cross_company_grants",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_safe_bulk_status_update_cannot_touch_another_branch",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_composite_resource_keys_are_unambiguous_in_sql_and_python",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_standalone_reminders_are_owned_and_filtered",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_accounting_branch_views_do_not_expose_company_materialized_balances",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_approved_default_main_migration_preserves_existing_ownership_and_amounts",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_company_boundary_honors_approved_null_ownership_without_overriding_explicit_company",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_all_branch_reports_include_archived_history_but_cannot_modify_it",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_default_all_access_context_has_writable_destination",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_access::test_legacy_all_selection_writes_use_default_and_preserve_explicit_scope",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_legacy_user_branch_editor_loads_and_linking_requires_verified_admin",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_removing_explicit_branch_roles_cannot_bypass_company_admin_authority",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_delegated_manager_cannot_enable_an_unmanaged_home_branch",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_explicit_read_only_membership_overrides_implicit_home_writes",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_employee_code_allocation_does_not_restart_in_an_empty_branch",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_registered_crm_features_can_narrow_a_broad_company_admin[crm_admin]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_registered_crm_features_can_narrow_a_broad_company_admin[crm_manage]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_registered_crm_features_can_narrow_a_broad_company_admin[crm_view]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_legacy_crm_org_admin_still_cannot_read_an_unassigned_branch",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_board_columns_inherit_authorized_project_scope",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_branch_permission_audit::test_explicit_company_membership_revocation_beats_person_and_home_branch",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_one_invoice_customer_snapshot_payment_and_truthful_delivery",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_partial_time_reservations_and_server_totals",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_financial_permissions_and_tenant_boundaries",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_crm_account_customer_projection_and_reviewed_legacy_mapping",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_parallel_requests_keep_one_invoice_and_unique_numbers",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_migration_replay_preserves_legacy_documents_and_expands_precision",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_configured_smtp_path_uses_shared_delivery_and_does_not_send_twice",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_milestone_and_whole_order_cannot_bill_same_obligation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_atomic_payment_retry_reversal_and_cancellation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_commercial_handoff_carries_customer_contact_team_and_origin",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_pms_legacy_project_tenant_boundary_applies_before_global_role_and_membership",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_connected_commercial::test_pms_task_access_does_not_expose_srm_commercial_payload",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_gst_calculation::test_fam_gst_calculation_persists_transaction_line",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_gst_intra_inter_state::test_fam_gst_intra_and_inter_state_logic",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_gst_purchase_register::test_fam_gst_purchase_register_reads_inward_lines",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_gst_rates::test_fam_gst_rate_and_hsn_sac_master",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_gst_rbac::test_fam_gst_rbac_blocks_non_fam_employee",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_gst_reverse_charge::test_fam_gst_reverse_charge_and_exempt_classification",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_gst_sales_register::test_fam_gst_sales_register_reads_outward_lines",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_accounting_posting::test_inventory_delivery_posts_stock_and_cogs_voucher",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_accounting_posting::test_post_cogs_rejects_duplicate_source_deduction",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_accounting_rbac::test_fam_inventory_accounting_rbac_blocks_employee_mutation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_adjustment_accounting::test_fam_inventory_adjustment_accounting_posts_existing_adjustment",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_ai::test_fam_inventory_ai_is_audited_and_not_faked_without_provider",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_audit::test_inventory_postings_are_audited_and_posted_records_are_not_reposted",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_cogs_batch_posting::test_fam_inventory_cogs_batch_posting_posts_each_item",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_cogs_reconciliation::test_fam_inventory_cogs_reconciliation_endpoint_matches_delivery_posting",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_crm_link::test_inventory_links_to_crm_product_catalog_by_sku_and_explicit_link",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_delivery_cogs::test_fam_inventory_delivery_cogs_posts_from_delivery_note",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_gl_reconciliation::test_fam_inventory_gl_reconciliation_endpoint_returns_status",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_grn_accounting::test_fam_inventory_grn_accounting_posts_grni_voucher",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_grni_reconciliation::test_fam_inventory_grni_reconciliation_endpoint_returns_outstanding",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_groups_units::test_fam_inventory_groups_and_units_crud",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_gst_link::test_inventory_item_exposes_hsn_gst_and_einvoice_readiness",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_gst_reconciliation::test_fam_inventory_gst_reconciliation_endpoint_lists_hsn_readiness",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_items::test_fam_inventory_item_create_view_and_duplicate_prevention",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_ledger_mapping::test_fam_inventory_ledger_mapping_updates_item_and_audit",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_merge_source_audit::test_fam_inventory_source_audit_uses_existing_app",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_negative_stock_controls::test_negative_stock_blocked_until_admin_control_allows_it",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_opening_stock_accounting::test_fam_inventory_opening_stock_accounting_posts_voucher",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_opening_stock::test_fam_inventory_opening_stock_updates_quantity_and_valuation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_period_lock::test_fam_inventory_posting_respects_locked_period",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_purchase_bill_grni::test_fam_inventory_purchase_bill_against_grni_posts_inventory_accounting",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_rbac::test_fam_inventory_requires_backend_permissions",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_reports::test_inventory_phase9_reports_render_from_stock_ledgers",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_srm_link::test_inventory_srm_link_shows_reservations_and_movements",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_srm_reconciliation::test_inventory_srm_reconciliation_exposes_duplicate_guard_position",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_stock_reservation::test_inventory_reserve_and_release_stock",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_transfer_accounting::test_fam_inventory_transfer_accounting_posts_existing_transfer",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_valuation_reconciliation::test_fam_inventory_valuation_reconciliation_returns_item_layers",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_valuation::test_fam_inventory_weighted_average_valuation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_inventory_warehouses::test_fam_inventory_warehouse_create_and_list",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_allocation_posting::test_fam_posts_srm_receipt_allocation_to_bill_allocation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_customer_mapping::test_fam_creates_srm_customer_party_and_reuses_mapping",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_invoice_posting::test_fam_posts_srm_invoice_to_sales_voucher_bill_reference_and_ar",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_posting_idempotency::test_fam_srm_invoice_and_receipt_posting_are_idempotent",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_posting_rbac::test_fam_srm_posting_rbac_blocks_readonly_users_from_posting",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_posting_reversal::test_fam_reverses_srm_invoice_posting_with_opposite_voucher",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_posting_rules::test_fam_posting_rules_crud_for_srm_transactions",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_srm_receipt_posting::test_fam_posts_confirmed_srm_receipt_to_receipt_voucher_and_advance_reference",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_fam_vouchers_locked_period::test_locked_financial_year_blocks_posting",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_collection_aging::test_srm_collection_aging_buckets_overdue_invoice",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_collection_engine::test_srm_receipt_allocation_updates_invoice_and_aging",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_collection_reminders::test_srm_collection_reminder_escalation_and_writeoff_request",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_database_integrity::test_srm_required_operational_tables_exist",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_database_integrity::test_srm_cross_module_reference_columns_are_operational_not_reused_crm_pms",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_database_integrity::test_srm_status_catalogs_match_required_phase_2_flows",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_database_integrity::test_srm_alembic_migration_exists",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_finance_rbac::test_srm_finance_collection_and_sales_rbac",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_invoice_duplicate_prevention::test_srm_sales_order_and_manual_source_duplicate_prevention",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_invoice_engine::test_srm_invoice_draft_approve_send_and_duplicate_guard",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_invoice_engine::test_srm_manual_invoice_and_reports",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_invoice_list_batching::test_invoice_list_preserves_payload_with_bounded_queries",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_invoice_pdf_export::test_srm_invoice_pdf_export",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_rbac::test_srm_role_without_permission_is_api_blocked",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_receipt_allocation::test_srm_receipt_allocation_rejects_over_allocation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_receipts::test_srm_receipt_create_and_confirm",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_sales_order_from_crm::test_srm_sales_order_from_crm_copies_quote_amount_and_lines",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_sales_order::test_srm_sales_order_create_submit_confirm_audits",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_srm_sales_order::test_srm_sales_order_cancel_close_and_duplicate_validation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_advance_allocation_retry_conflict_and_partial_balance",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_dispute_hold_blocks_manual_reminders_and_audits_resume",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_queued_reminder_rechecks_hold_billing_role_and_settlement",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_collection_control_requires_permission_and_scoped_invoice",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[draft-100-False-None-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[pending_approval-100-False-None-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[paid-0-False-None-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[issued-0-False-None-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[partially_paid-50000-False-None-False]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[overdue-50000-True-None-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[issued-100-True-60-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_shared_reminder_eligibility[issued-100-True--60-False]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_unified_collection_controls::test_collection_migration_preserves_rows_and_is_repeatable",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_preserves_valid_strings[9876543210]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_preserves_valid_strings[2025550101]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[abcdefghij]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[98765abc10]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[+919876543210]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[98765 43210]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[98765.3210]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[-987654321]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[1e00000009]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[\\U0001f600123456789]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[\\uff19\\uff18\\uff17\\uff16\\uff15\\uff14\\uff13\\uff12\\uff11\\uff10]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[9876543210]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_phone_rejects_malformed_without_truncation[None]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_missing_unsupported_country_code[None]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_missing_unsupported_country_code[]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_missing_unsupported_country_code[91_0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_missing_unsupported_country_code[+999]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_missing_unsupported_country_code[+910]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_missing_unsupported_country_code[91_1]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_invalid[bad]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_invalid[a@]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_invalid[@example.com]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_invalid[a b@example.com]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_invalid[ a@example.com]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_invalid[a@example.com ]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_accepts_legitimate_syntax[o.brien+intern@example.com]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_email_accepts_legitimate_syntax[\\u540d@example.com]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_unicode_mononym_and_controls",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch1]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch2]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch3]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch4]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch5]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch6]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch7]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch8]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch9]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch10]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch11]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch12]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch13]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_api_bypass_rejected[patch14]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_valid_application_keeps_leading_zero_and_optional_blank",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[12345]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[1234567]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[012345]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[12 456]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[12345a]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[\\uff15\\uff12\\uff10\\uff10\\uff10\\uff11]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[520001]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_rejects_invalid_pincode[None]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_application_requires_and_preserves_pincode",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_passout_year_includes_2029_for_all_applicants[Graduated-2026]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_passout_year_includes_2029_for_all_applicants[Graduated-2027]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_passout_year_includes_2029_for_all_applicants[3rd Year-2026]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_passout_year_includes_2029_for_all_applicants[3rd Year-2027]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_migration_is_retryable_and_never_guesses_country[alembic-]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_migration_is_retryable_and_never_guesses_country[alembic_postgresql-pg_]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_orm_legacy_is_flagged_and_unchanged_edit_survives",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_authenticated_employee_api_rejects_bad_phones[987654321-+91]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_authenticated_employee_api_rejects_bad_phones[98765432101-+91]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_authenticated_employee_api_rejects_bad_phones[9876543210-None]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_formatted_phone_is_normalized[+919876543210]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_formatted_phone_is_normalized[98765 43210]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_create_edit_roundtrip_and_export",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_crm_contact_roundtrip",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_other_fields_are_validated[patch0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_other_fields_are_validated[patch1]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_other_fields_are_validated[patch2]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_other_fields_are_validated[patch3]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_other_fields_are_validated[patch4]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_employee_mononym_is_supported",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_pms_phone_field_roundtrip_and_missing_code_rejection",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_shared_form_phone_retains_separate_code_and_validates_paste",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_consent_unique_identity_includes_country_without_rewriting_history[alembic-]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_consent_unique_identity_includes_country_without_rewriting_history[alembic_postgresql-pg_]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_mononym_can_be_edited_without_null_last_name_conflict",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_lms_callback_requires_permission_and_finite_typed_score",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_account_creation_rejects_oversized_password_and_email_spaces",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "tests.test_validation_contract::test_identity_sync_does_not_guess_legacy_codes_and_supports_explicit_clear",
+      "status": "Pass",
+      "evidence": "workflows-51-100-regression.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_login",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_product_api",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_product_master_ui_filters_render",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_journal_must_balance",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_invoice_issue_deducts_stock_and_posts_balance",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_invoice_payments_update_status_and_reject_overpayment",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_unpaid_invoice_cancellation_reverses_stock",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_invoice_pages_and_api_render",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_terminal_add_item_page",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_redirects_without_active_session",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_product_search_by_sku_and_barcode",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_hold_and_recall_bill",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_complete_sale_and_reduce_stock",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_complete_split_payment_sale",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_split_without_posting[1000-1000]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_split_without_posting[-1-2361]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_split_without_posting[0-2500]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_cash_movements_baseline_persists_after_close",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "INV-2026-00001",
+        "sale_id": "1",
+        "expected_vs_actual": "total=2360/2360; expected_cash=4560/4560; variance=-10/-10; stock=8/8"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_held_bill_cannot_be_recalled_twice_or_after_deletion",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[-1-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[0-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[1--1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[1-1000-101]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_split_change_and_session_boundaries",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "cash=1000/1000; card=1360/1360; change=100/100; expected_cash=3000/3000; stock=8/8"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_manufacturing_post_once_and_shortage_retry",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "QA-MO-001",
+        "expected_vs_actual": "failed_issue_movements=0/0; component_remaining=12/12; finished=6/6; ledger_entries=2/2"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_partial_grn_rejects_overreceipt_and_cancelled_po",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "QA-PO-001",
+        "receipt_ids": "GRN-2026-00001,GRN-2026-00002",
+        "expected_vs_actual": "received=10/10; stock=20/20; persisted_receipts=2/2; rejected_excess_and_cancelled_stock_change=0/0"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_cash_sale_baseline_customer_and_stock_reconcile[Cash-2360-0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "total=2360/2360; tax=360/360; stock=8/8; valuation=4800/4800; COGS=1200/1200; customer_balance=0/0; stock_issues=1/1"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_cash_sale_baseline_customer_and_stock_reconcile[Split-1000-1360]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "total=2360/2360; tax=360/360; stock=8/8; valuation=4800/4800; COGS=1200/1200; customer_balance=0/0; stock_issues=1/1"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_complete_credit_sale_with_customer_and_reject_without_customer",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_line_discount_and_duplicate_submit",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_add_service_item_without_stock_reduction",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_insufficient_stock_returns_json_error",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_close_session_calculation",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_razorpay_valid_signature_marks_invoice_paid",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_razorpay_invalid_signature_does_not_mark_paid",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_razorpay_duplicate_callback_is_ignored",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_tax_validation_helpers",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_tally_export_xml_is_well_formed",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_customization_fields_views_and_modules_workflow",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_53_retry_without_response_cookie_does_not_repost",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "sales=1/1; receipts=1/1; stock_issues=1/1; stock=8/8; session_sales=2360/2360"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[-1-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[0-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[1--1-0]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[1-1000-101]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_92_93_fractional_return_uses_original_cost[0-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "SR-2026-00001",
+        "expected_vs_actual": "return_credit=590/590; restock=True; original_unit_cost=600; remaining_stock=8.25"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_92_93_fractional_return_uses_original_cost[2-True]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "SR-2026-00001",
+        "expected_vs_actual": "return_credit=590/590; restock=True; original_unit_cost=600; remaining_stock=10.25"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_92_93_fractional_return_uses_original_cost[0-False]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "SR-2026-00001",
+        "expected_vs_actual": "return_credit=590/590; restock=False; original_unit_cost=600; remaining_stock=7.75"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_59_60_mixed_tax_invoice_persists[rates0-2230]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "INV-T1",
+        "expected_vs_actual": "invoice_total=2230/2230.0; tax_rates=[5, 18]"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_59_60_mixed_tax_invoice_persists[rates1-2180]",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {
+        "document_id": "INV-T1",
+        "expected_vs_actual": "invoice_total=2180/2180.0; tax_rates=[0, 18]"
+      }
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_77_inactive_product_cannot_be_sold_by_direct_id",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_53_same_key_cannot_change_payment_and_can_recover_after_closing",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_cumulative_fractional_return_cannot_exceed_sale",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_zero_price_is_permitted_but_not_negative",
+      "status": "Pass",
+      "evidence": "workflows-51-100-inventory.xml",
+      "recorded_evidence": {}
+    }
+  ]
+}

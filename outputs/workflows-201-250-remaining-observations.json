@@ -1,0 +1,75 @@
+[
+  {
+    "workflow": 244,
+    "before": "Serial Numbers\nWorkflow 201-250-remaining-fixed Test Company\nDashboard\nStock\nSerial Numbers\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nSerial number saved.\nAdd Serial Number\nProduct\nQA-SERVICE - QA Consulting Service\nQA-246-FG - QA Fractional Finished Goods\nP1 - QA Product A\nWarehouse\nNone\nMain\nQA Warehouse B\nSerial Number\nStatus\nAvailable\nSold\nReturned\nDamaged\nNotes\nSave Serial\nSerial Numbers\n10\n25\n50\n100\nentries per page\nSearch:\nSerial\n\tProduct\n\tWarehouse\n\tStatus\n\tSale\n\nQA-244-ABC\tQA Product A\t-\tAvailable\t-\nqa-244-AbC\tQA Product A\tMain\tAvailable\t-\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 241,
+    "before": "Warehouses\nWorkflow 201-250-remaining-fixed Test Company\nDashboard\nSettings\nWarehouses\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nAdd Warehouse\nWarehouse Name\nWarehouse Code\nBranch\nNo branch\nMain Branch\nAddress\nContact Person\nPhone\nEmail\nActive\nSave Warehouse\nWarehouses\nAll\nActive\nInactive\n10\n25\n50\n100\nentries per page\nSearch:\nCode\n\tName\n\tBranch\n\tStatus\n\t\n\nMAIN\tMain\tMain Branch\t Inactive\tEdit Reactivate\nQA-B\tQA Warehouse B\tMain Branch\t Active\tEdit Deactivate\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 244,
+    "stage": "canonical serial and duplicate rejected",
+    "text": "Serial Numbers\nWorkflow 201-250-remaining-verified Test Company\nDashboard\nStock\nSerial Numbers\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nAdd Serial Number\nProduct\nQA-SERVICE - QA Consulting Service\nQA-246-FG - QA Fractional Finished Goods\nP1 - QA Product A\nQA-244-SERIAL - QA Serialized Product\nWarehouse\nNone\nMain\nQA Warehouse B\nSerial Number\nStatus\nAvailable\nSold\nReturned\nDamaged\nNotes\nSave Serial\nSerial Numbers\n10\n25\n50\n100\nentries per page\nSearch:\nSerial\n\tProduct\n\tWarehouse\n\tStatus\n\tSale\n\nQA-244-ABC\tQA Serialized Product\tMain\tAvailable\t-\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 241,
+    "stage": "stock blocks deactivation",
+    "text": "Warehouses\nWorkflow 201-250-remaining-verified Test Company\nDashboard\nSettings\nWarehouses\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nWarehouse has remaining stock; transfer or reconcile it before deactivation\nAdd Warehouse\nWarehouse Name\nWarehouse Code\nBranch\nNo branch\nMain Branch\nAddress\nContact Person\nPhone\nEmail\nActive\nSave Warehouse\nWarehouses\nAll\nActive\nInactive\n10\n25\n50\n100\nentries per page\nSearch:\nCode\n\tName\n\tBranch\n\tStatus\n\t\n\nMAIN\tMain\tMain Branch\t Active\tEdit Deactivate\nQA-B\tQA Warehouse B\tMain Branch\t Active\tEdit Deactivate\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 241,
+    "stage": "open order blocks empty warehouse deactivation",
+    "text": "Warehouses\nWorkflow 201-250-remaining-verified Test Company\nDashboard\nSettings\nWarehouses\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nWarehouse has open orders; resolve them before deactivation\nAdd Warehouse\nWarehouse Name\nWarehouse Code\nBranch\nNo branch\nMain Branch\nAddress\nContact Person\nPhone\nEmail\nActive\nSave Warehouse\nWarehouses\nAll\nActive\nInactive\n10\n25\n50\n100\nentries per page\nSearch:\nCode\n\tName\n\tBranch\n\tStatus\n\t\n\nMAIN\tMain\tMain Branch\t Active\tEdit Deactivate\nQA-B\tQA Warehouse B\tMain Branch\t Active\tEdit Deactivate\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 241,
+    "stage": "deactivation after cancelling open order",
+    "text": "Warehouses\nWorkflow 201-250-remaining-verified Test Company\nDashboard\nSettings\nWarehouses\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nAdd Warehouse\nWarehouse Name\nWarehouse Code\nBranch\nNo branch\nMain Branch\nAddress\nContact Person\nPhone\nEmail\nActive\nSave Warehouse\nWarehouses\nAll\nActive\nInactive\n10\n25\n50\n100\nentries per page\nSearch:\nCode\n\tName\n\tBranch\n\tStatus\n\t\n\nMAIN\tMain\tMain Branch\t Active\tEdit Deactivate\nQA-B\tQA Warehouse B\tMain Branch\t Inactive\tEdit Reactivate\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 244,
+    "stage": "serialized sale completed",
+    "text": "Sale completed\n\nINV-2026-00001 · Total ₹1180.00 · Change ₹0.00\n\nPrint Receipt\nNew Sale"
+  },
+  {
+    "workflow": 244,
+    "stage": "serial sold with invoice link after refresh",
+    "text": "Serial Numbers\nWorkflow 201-250-remaining-final Test Company\nDashboard\nStock\nSerial Numbers\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nAdd Serial Number\nProduct\nQA-SERVICE - QA Consulting Service\nQA-246-FG - QA Fractional Finished Goods\nP1 - QA Product A\nQA-244-SERIAL - QA Serialized Product\nWarehouse\nNone\nMain\nQA Warehouse B\nSerial Number\nStatus\nAvailable\nSold\nReturned\nDamaged\nNotes\nSave Serial\nSerial Numbers\n10\n25\n50\n100\nentries per page\nSearch:\nSerial\n\tProduct\n\tWarehouse\n\tStatus\n\tSale\n\nQA-244-ABC\tQA Serialized Product\tMain\tSold\t1\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 237,
+    "stage": "missing destination before fix",
+    "text": "PO QA-237-DESTINATION\nWorkflow 201-250-remaining-final Test Company\nDashboard\nPurchase Orders\n1\nPrint\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nWorkflow 201-250-remaining-final Test Company\n\nNone\n\nPurchase Order\n\nQA-237-DESTINATION\n2026-11-06\n\nSupplier: Supplier\nExpected:\n\nItem\tQty\tRate\tTax\tTotal\nQA Product A\t2.000\t600.0000\t216.00\t1416.00\n\nSubtotal: 1200.00\nTax: 216.00\nGrand Total: 1416.00\n\nAuthorized Signature\nPrint"
+  },
+  {
+    "workflow": 237,
+    "stage": "supplier document after fix",
+    "text": "PO QA-237-DESTINATION\nWorkflow 201-250-remaining-final Test Company\nDashboard\nPurchase Orders\n1\nPrint\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nWorkflow 201-250-remaining-final Test Company\n\nNone\n\nPurchase Order\n\nQA-237-DESTINATION\n2026-11-06\n\nSupplier: Supplier\nExpected:\n\nItem\tQty\tRate\tTax\tTotal\nQA Product A\t2.000\t600.0000\t216.00\t1416.00\n\nSubtotal: 1200.00\nTax: 216.00\nGrand Total: 1416.00\n\nAuthorized Signature\nPrint"
+  },
+  {
+    "workflow": 237,
+    "stage": "receipt into selected warehouse",
+    "text": "Stock Valuation\nWorkflow 201-250-remaining-final Test Company\nDashboard\nReports\nValuation\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n Print\n Export Excel\nTotal Value: 1200.00\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tQty\n\tAverage Cost\n\tStock Value\n\nP1\tQA Product A\tQA Warehouse B\t2.000\t600.0000\t1200.00\nQA-244-SERIAL\tQA Serialized Product\tQA Warehouse B\t0\t600.0000\t0.00\nQA-246-FG\tQA Fractional Finished Goods\tQA Warehouse B\t0\t0.0000\t0.00\nQA-SERVICE\tQA Consulting Service\tQA Warehouse B\t0\t0.0000\t0.00\nShowing 1 to 4 of 4 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 237,
+    "stage": "restarted fixture verifies final printed destination",
+    "text": "PO QA-237-DESTINATION\nWorkflow 201-250-production-document-final Test Company\nDashboard\nPurchase Orders\n1\nPrint\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nWorkflow 201-250-production-document-final Test Company\n\nPurchase Order\n\nQA-237-DESTINATION\n2026-11-06\n\nSupplier: Supplier\nExpected:\n\nDeliver to\n\nQA Warehouse B\nQA Dock B, 22 Receiving Road, Hyderabad\n\nItem\tQty\tRate\tTax\tTotal\nQA Product A\t2.000\t600.0000\t216.00\t1416.00\n\nSubtotal: 1200.00\nTax: 216.00\nGrand Total: 1416.00\n\nNone\n\nAuthorized Signature\nPrint"
+  },
+  {
+    "workflow": 248,
+    "stage": "amended draft with zero posted output",
+    "text": "Manufacturing Orders\nWorkflow 201-250-production-document-final Test Company\nDashboard\nManufacturing\nOrders\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCreate MO\n10\n25\n50\n100\nentries per page\nSearch:\nMO No\n\tBOM\n\tWarehouse\n\tPlanned\n\tProduced\n\tStatus\n\t\n\nQA-248-FINAL-AMEND\tQA quarter-kg BOM\tMain\t6.000\t0.000\tDraft\tEdit QA-248-FINAL-AMEND\nComplete\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 248,
+    "stage": "completed amended order",
+    "text": "Manufacturing Orders\nWorkflow 201-250-production-document-final Test Company\nDashboard\nManufacturing\nOrders\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCreate MO\n10\n25\n50\n100\nentries per page\nSearch:\nMO No\n\tBOM\n\tWarehouse\n\tPlanned\n\tProduced\n\tStatus\n\t\n\nQA-248-FINAL-AMEND\tQA quarter-kg BOM\tMain\t6.000\t6.000\tCompleted\t\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 246,
+    "stage": "six output consumes1.5kg",
+    "text": "Current Stock\nWorkflow 201-250-production-document-final Test Company\nDashboard\nStock\nCurrent\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCurrent Stock\nBatches\nTransfers\nAdjust Stock\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tRack/Bin\n\tQty\n\tAvg Cost\n\tValue\n\nP1\tQA Product A\tMain\t\t8.500\t600.0000\t5100.00\nQA-244-SERIAL\tQA Serialized Product\tMain\t\t1.000\t600.0000\t600.00\nQA-246-FG\tQA Fractional Finished Goods\tMain\t\t6.000\t150.0000\t900.00\nQA-SERVICE\tQA Consulting Service\t\t\t0.000\t0.0000\t0.00\nShowing 1 to 4 of 4 entries\n«\n‹\n1\n›\n»"
+  }
+]

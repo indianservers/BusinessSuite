@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useCallback, useEffect, useState } from "react";
@@ -14,6 +15,7 @@ export default function WorkspaceActivity({ workspaceId, onOpen }: { workspaceId
   const [action, setAction] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const load = useCallback(async () => {
     setError("");
     try {
@@ -28,7 +30,7 @@ export default function WorkspaceActivity({ workspaceId, onOpen }: { workspaceId
   return <section className="ws-planning" aria-label="Workspace activity"><header><h2>Activity & export</h2><button className="ws-button ws-outline" onClick={() => { void load(); }}>Refresh</button></header>
     <p>Persistent project and task activity for this workspace. Available to workspace owners and administrators. This is an operational history, not a tamper-proof compliance archive.</p>
     <CompactForm className="ws-calendar-controls" onSubmit={e => { e.preventDefault(); setBefore(undefined); setAction(query.trim()); }}><input aria-label="Filter activity action" value={query} onChange={e => setQuery(e.target.value)} placeholder="Filter action, e.g. assignee or dependency" /><button>Apply filter</button>{!!items.length && <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`} download="workspace-activity.csv">Export displayed events ({items.length})</a>}</CompactForm>
-    {error && <p role="alert">{error}</p>}{loading ? <p role="status">Loading activity…</p> : <div className="ws-planning-tasks">{items.map(e => <article key={e.id} className="ws-activity-event"><strong>{e.summary}</strong><p>{e.actor} · {e.action} · {new Date(e.created_at.endsWith("Z") || /[+-]\d\d:\d\d$/.test(e.created_at) ? e.created_at : e.created_at + "Z").toLocaleString()}</p>{e.task_id && <button onClick={() => onOpen(e.task_id!)}>Open task</button>}</article>)}{!items.length && !error && <p>No matching project or task activity.</p>}</div>}
+    {error && <p role="alert">{error}</p>}{initialLoading ? <p role="status">Loading activity…</p> : <div className="ws-planning-tasks">{items.map(e => <article key={e.id} className="ws-activity-event"><strong>{e.summary}</strong><p>{e.actor} · {e.action} · {new Date(e.created_at.endsWith("Z") || /[+-]\d\d:\d\d$/.test(e.created_at) ? e.created_at : e.created_at + "Z").toLocaleString()}</p>{e.task_id && <button onClick={() => onOpen(e.task_id!)}>Open task</button>}</article>)}{!items.length && !error && <p>No matching project or task activity.</p>}</div>}
     <div className="ws-calendar-controls">{before && <button onClick={() => setBefore(undefined)}>Return to recent activity</button>}{next && <button onClick={() => setBefore(next)}>Older activity</button>}</div>
   </section>;
 }

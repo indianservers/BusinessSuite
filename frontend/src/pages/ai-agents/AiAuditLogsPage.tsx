@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useMemo, useState } from "react";
 import AuditLogTable from "@/components/ai-agents/AuditLogTable";
@@ -10,6 +11,7 @@ export default function AiAuditLogsPage() {
   const [moduleFilter, setModuleFilter] = useState<AiModule | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function AiAuditLogsPage() {
         </NativeSelect>
       </div>
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
-      {loading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">AI logs loading...</div> : <AuditLogTable logs={visibleLogs} />}
+      {initialLoading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">AI logs loading...</div> : <AuditLogTable logs={visibleLogs} />}
     </div>
   );
 }

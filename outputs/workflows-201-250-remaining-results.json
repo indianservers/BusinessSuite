@@ -1,0 +1,439 @@
+{
+  "scope": "Continuation of201-250: prior inventory checks plus newly implemented and browser-verified222-225,238-239. Other unexecuted workflows are not certified.",
+  "configuration": {
+    "inventory": "Disposable in-memory SQLite companies, ports5308-5312; separate before/fixed/final fixtures, not one combined balance. INR; negative stock disabled; component600/kg; BOM0.25kg per finished unit,yield1. Global serial identity:trim+uppercase.",
+    "production_final": "http://127.0.0.1:5312; QA-248-FINAL-AMEND; no reservation subsystem.",
+    "serial_final": "http://127.0.0.1:5311; QA-244-SERIAL opening1,price1000,tax18%; QA-244-ABC sold1.",
+    "warehouse_verified": "http://127.0.0.1:5310; Bempty with draftPO,then cancelledPO permitsdeactivation.",
+    "suite": "http://127.0.0.1:5297,backend1567; disposable navigation QA database; admin@suiteqa.example.com; companyIndianServers. Testcustomer1,engagement1,billingplan1. No invoices or external messages generated.",
+    "commercial_continuation": {
+      "url": "http://127.0.0.1:5313",
+      "backend": "http://127.0.0.1:1568",
+      "storage": "Disposable temporary SQLite, synthetic company/customer101; no external services",
+      "currency": "INR",
+      "period_rule": "Inclusive due-date range; active plan; approved/ready/completed unbilled milestones; future draft creation blocked",
+      "amendment_rule": "Optimistic original amount/date; reset approval; plan total changes by delta; billed milestones immutable",
+      "lifecycle_rule": "Reason and manage permission required; cancelled terminal; closed requires authorized reopen; open dependencies prevent closing"
+    }
+  },
+  "fixes": [
+    "Draft-only manufacturing amendment with validation,audit,zero unposted output,completion cap and repeat/completed-edit guards.",
+    "Shared serial normalization and duplicate rejection in manual entry,purchase and GRN; failed duplicate receipt rolls back stock.",
+    "POS tile hydration of trackingchoices,required distinct available serial validation,and atomic sold/receiptlink.",
+    "Warehouse deactivation guards across toggle/edit/legacy route for stock,openorders,transfers,batch/serialavailability and openPOS; inactive locations reject stockmovements.",
+    "Supplier-facing PO and detail show selectedwarehouse deliveryaddress.",
+    "Reasoned engagement cancel/close/reopen with terminal-state,dependency,permission and downstream guards; auditable history preserved.",
+    "Milestone amendment with optimistic checks,reapproval,plan-total adjustment,period eligibility and future/duplicate invoice guards.",
+    "Draft PO supplier and line amendments with review confirmation,audit,recalculated totals,stale/receipt guards; GRN supplier must match PO."
+  ],
+  "tests": {
+    "inventory_pytest": "92 passed",
+    "javascript": "5 checks passed",
+    "persisted_assertions": "Production6,consumption1.5kg,value900; serialSold linkedreceipt1,stock0; Bdeactivated onlyafter commitmentcancelled.",
+    "whitespace": "git diff --check passed",
+    "commercial": "16 passed; TypeScript passed"
+  },
+  "limitations": [
+    "Existing legacy serial spellings are not rewritten; ambiguous legacyduplicates require reconciliation.",
+    "True concurrent PostgreSQL execution notcertified by single-thread SQLite fixtures.",
+    "Other unexecuted201-250 workflows remain outstanding; this is not full-suite certification."
+  ],
+  "evidence": [
+    "workflows-201-250-remaining-observations.json",
+    "workflows-201-250-suite-remaining-observations.json",
+    "workflows-201-250-production-document-final-browser-records.json",
+    "workflows-201-250-remaining-final-browser-records.json",
+    "workflows-201-250-remaining-verified-browser-records.json",
+    "workflows-201-250-amended-production.png",
+    "workflows-201-250-serial-sold.png",
+    "workflows-201-250-warehouse-guard-verified.png",
+    "workflows-201-250-po-destination.png",
+    "workflows-201-250-engagement-gap.png",
+    "workflows-201-250-milestone-gap.png",
+    "workflows-201-250-remaining-final-regression.xml",
+    "workflows-222-225-results.json",
+    "workflows-238-239-results.json"
+  ],
+  "prior_reports": [
+    "workflows-201-250-results.json",
+    "workflows-201-250-price-current-results.json"
+  ],
+  "workflows": [
+    {
+      "workflow": 201,
+      "title": "Shipping charge refunded independently of goods",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 202,
+      "title": "Multiple partial returns against one invoice",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 203,
+      "title": "One return containing lines from different tax rates",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 204,
+      "title": "Return of a fractional-unit converted product",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 205,
+      "title": "Financial credit without a physical return",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 206,
+      "title": "Rejected return request",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 207,
+      "title": "Substitute an unavailable item before fulfillment",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 208,
+      "title": "Delivery destination changed after picking",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 209,
+      "title": "Duplicate customer PO reference policy",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 210,
+      "title": "Customer order minimum value",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 211,
+      "title": "Maximum discount approval",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 212,
+      "title": "Customer-specific product restriction",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 213,
+      "title": "Copy an order into a new draft",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 214,
+      "title": "Copy an invoice without duplicating settlement",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 215,
+      "title": "Order notes versus internal notes",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 216,
+      "title": "Attachments throughout the commercial lifecycle",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 217,
+      "title": "Unsafe or oversized attachment rejection",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 218,
+      "title": "Manual price override does not update the master",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 219,
+      "title": "Expired price-list fallback",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 220,
+      "title": "Conflicting applicable price lists",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 221,
+      "title": "Service quantity precision",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 222,
+      "title": "Billing milestone amount amended before invoicing",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement3",
+        "billingplan2",
+        "milestone2",
+        "invoice2 INV-000001"
+      ],
+      "expected": "Approved amendment4000 to4500 reconciles and bills once.",
+      "actual": "Browser amendment resets approval; plan4500; approved milestone invoiced once for4500; invoice issued and retained after reload. Billed row cannot amend or regenerate.",
+      "evidence": "workflows-222-issued.png"
+    },
+    {
+      "workflow": 223,
+      "title": "Billing milestone date moved across periods",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement4",
+        "billingplan3",
+        "milestone3"
+      ],
+      "expected": "Moving date moves eligibility to correct period without duplicate draft.",
+      "actual": "Nov15 moved toDec15; reapproval required; November eligible0,December1. Early generation rejected; draft link remains null.",
+      "evidence": "workflows-223-period-move.png"
+    },
+    {
+      "workflow": 224,
+      "title": "Engagement canceled before project creation",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement2 QA-224-CANCEL"
+      ],
+      "expected": "Cancel before handoff blocks project,plan,invoice creation.",
+      "actual": "Cancelled in browser with reason and actor. Project control disabled; plan attempt rejected. Persisted project null,plans0,invoices0; API tests also reject project/invoice/status bypass.",
+      "evidence": "workflows-224-cancelled.png"
+    },
+    {
+      "workflow": 225,
+      "title": "Reopen a mistakenly closed engagement",
+      "status": "Pass",
+      "execution": "Browser plus regression; capability implemented",
+      "documents": [
+        "engagement1 QA-225-CLOSED",
+        "historicalplan1",
+        "historicalinvoice1 QA-225-PAID-HISTORY",
+        "project1",
+        "task1 TASK-09a8c2e6-0fa"
+      ],
+      "expected": "Authorized reopen preserves history and permits distinct new completed delivery.",
+      "actual": "Seeded closed engagement reopened in browser with actor/reason; new project and task created; task Completed persisted after reload. Existing completedplan100,paidinvoice100 and invoicedmilestone remain unchanged. Close/reopen dependency and authorization checks pass in API regression.",
+      "evidence": "workflows-225-completed-task.png"
+    },
+    {
+      "workflow": 226,
+      "title": "Fixed billing and expense reimbursement",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 227,
+      "title": "Collection reminder excludes disputed invoices",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 228,
+      "title": "Promise-to-pay follow-up",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 229,
+      "title": "Partial write-off approval",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 230,
+      "title": "Reject a write-off request",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 231,
+      "title": "Settlement with a bank processing fee",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 232,
+      "title": "Payment method disabled after historical use",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 233,
+      "title": "Cash movement reversal within an open session",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 234,
+      "title": "Cashier closing with noncash sales only",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 235,
+      "title": "Rounding payable amount in POS",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 236,
+      "title": "Product sold while another user changes its master",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 237,
+      "title": "Purchase-order delivery address differs from company address",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-237-DESTINATION",
+        "QA-237-RECEIPT"
+      ],
+      "expected": "Supplier-facing PO shows selected warehouse address; receipt posts2 into B, not Main.",
+      "actual": "Before fix no delivery destination. Final document shows QA Warehouse B and QA Dock B,22 Receiving Road,Hyderabad. Earlier same-config browser receipt shows B2/value1200."
+    },
+    {
+      "workflow": 238,
+      "title": "Supplier changed on an unreceived PO",
+      "status": "Pass",
+      "execution": "Browser plus regression; draft amendment capability implemented",
+      "documents": [
+        "PO1 QA-237-DESTINATION",
+        "GRN-2026-00001",
+        "supplier2 QA Supplier B"
+      ],
+      "expected": "Amend unreceived draft fromA toB; revalidate terms and prices; receive againstB.",
+      "actual": "Browser amended supplier toB with explicit review and replacedA terms; issued then received. PO showsB after reload. Regression rejects mismatchedA GRN and missing revalidation.",
+      "evidence": "workflows-238-239-received.png"
+    },
+    {
+      "workflow": 239,
+      "title": "Purchase-order line removed before receipt",
+      "status": "Pass",
+      "execution": "Browser plus regression; draft amendment capability implemented",
+      "documents": [
+        "PO1",
+        "removedproduct4 QA-239-3",
+        "GRN-2026-00001"
+      ],
+      "expected": "Remove one of3 lines; recompute total; receive only remaining lines.",
+      "actual": "Removed product4,1616 became1516; remaining quantities2 and1 fully received at warehouse2. Product4 stock0 and no movement; order Received. Postreceipt edit and stale amendment rejected in regression.",
+      "evidence": "workflows-238-239-received.png"
+    },
+    {
+      "workflow": 240,
+      "title": "GRN with multiple batches for one PO line",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 241,
+      "title": "Warehouse deactivation with remaining stock",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-241-OPEN-PO"
+      ],
+      "expected": "Stock/open commitments block deactivation; resolved empty location can deactivate.",
+      "actual": "Main stock blocked. Empty B with open PO blocked. Cancelled that PO, then B deactivated; Main stayed active. Toggle,edit and legacy deactivation paths tested; new stock movements reject inactive warehouses."
+    },
+    {
+      "workflow": 242,
+      "title": "Reorder policy changed while a PO is open",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 243,
+      "title": "Batch number reused across different products",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 244,
+      "title": "Serial-number case and whitespace normalization",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-244-ABC",
+        "INV-2026-00001"
+      ],
+      "expected": "Case/space variants cannot create two available serial identities; accepted serial sells once.",
+      "actual": "Before fix two case variants persisted. New entries trim and uppercase, variant rejected. POS tile loads serial choices; selected QA-244-ABC sold for1180 by card, statusSold,sale_id1,productstock0. Missing/reused serial and duplicate receipt rollback tested."
+    },
+    {
+      "workflow": 245,
+      "title": "Stock adjustment requiring an attachment",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 246,
+      "title": "Manufacturing BOM with fractional consumption",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-248-FINAL-AMEND"
+      ],
+      "expected": "0.25kg per unit times6 consumes1.50kg and costs900.",
+      "actual": "Component P1 10kg to8.5kg at600/kg; finished0 to6 at150 each,value900. Two matching stock movements, eachvalue900."
+    },
+    {
+      "workflow": 247,
+      "title": "Production components issued from different warehouses",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 248,
+      "title": "Production order quantity amended before completion",
+      "status": "Pass",
+      "execution": "Browser plus regression",
+      "documents": [
+        "QA-248-FINAL-AMEND"
+      ],
+      "expected": "Unposted order10 amendedto6; no early output; post6 only.",
+      "actual": "Draft edit preserves orderidentity and audit, planned6/produced0. Completion gives6/6; componentconsumption1.5 not2.5. Overproduction7 rejected; repeatcompletion and completededit blocked. Operational fixture has no reservation subsystem."
+    },
+    {
+      "workflow": 249,
+      "title": "Saved report filter shared with another authorized user",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    },
+    {
+      "workflow": 250,
+      "title": "Dashboard drill-down reconciles after corrective activity",
+      "status": "Not executed in this continuation",
+      "execution": "See earlier reports; no new pass claim"
+    }
+  ]
+}

@@ -815,7 +815,9 @@ def collect_legacy_ownership(session, *args):
     roots = [
         item
         for item in session.new
-        if hasattr(type(item), "__table__") and legacy_root(type(item))
+        if hasattr(type(item), "__table__")
+        and item.__table__.metadata is Base.metadata
+        and legacy_root(type(item))
     ]
     if not roots:
         return

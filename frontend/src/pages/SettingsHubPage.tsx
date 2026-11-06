@@ -93,7 +93,7 @@ export default function SettingsHubPage() {
 
   return <div className="settings-hub">
 
-    <header className="suite-app-bar settings-header"><Link to="/dashboard"><ArrowLeft size={18}/>Home</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><div className="settings-branch-context"><BranchSwitcher/></div><button aria-label="Refresh settings" disabled={catalog.isFetching||selected.isFetching} aria-busy={catalog.isFetching||selected.isFetching} onClick={()=>{void catalog.refetch();if(section&&option)void selected.refetch();}}><RefreshCw size={18}/></button></header>
+    <header className="suite-app-bar settings-header"><Link to="/company-admin"><ArrowLeft size={18}/>Company Admin</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><div className="settings-branch-context"><BranchSwitcher/></div><button aria-label="Refresh settings" disabled={catalog.isFetching||selected.isFetching} aria-busy={catalog.isFetching||selected.isFetching} onClick={()=>{void catalog.refetch();if(section&&option)void selected.refetch();}}><RefreshCw size={18}/></button></header>
 
     <main>
 

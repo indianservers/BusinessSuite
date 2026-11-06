@@ -314,6 +314,10 @@ def test_no_private_api_is_accidentally_public():
         if not path.startswith("/api/v1/") or path == "/api/v1/files/blob":
             continue
         inspected += 1
+        if (path.startswith("/api/v1/platform/") and not is_public(path)) or path in {"/api/v1/auth/signup-requests", "/api/v1/auth/signup-requests/{ident}/review", "/api/v1/auth/platform/me"}:
+            assert "current_platform_admin" in set(dependency_names(route.dependant)), path
+            assert not is_public(path), path
+            continue
         assert is_public(path) or "get_current_user" in set(
             dependency_names(route.dependant)
         ), path

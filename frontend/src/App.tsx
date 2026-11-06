@@ -38,12 +38,14 @@ const SuiteAccountPage = React.lazy(() => import("@/pages/SuiteAccountPage"));
 const SuiteHelpPage = React.lazy(() => import("@/pages/SuiteHelpPage"));
 const PostLoginPage = React.lazy(() => import("@/pages/PostLoginPage"));
 const SettingsHubPage = React.lazy(() => import("@/pages/SettingsHubPage"));
+const CompanyAdminPage = React.lazy(() => import("@/pages/CompanyAdminPage"));
 const ModuleDashboardPage = React.lazy(() => import("@/pages/ModuleDashboardPage"));
 const IntegrationsPage = React.lazy(() => import("@/apps/power-apps/applications/integrations/IntegrationsPage"));
 const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
 const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
 const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
 const PublicCustomerForm = React.lazy(() => import("@/apps/communication/center/PublicCustomerForm"));
+const SignupPage = React.lazy(() => import("@/pages/auth/SignupPage"));
 const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
 const WorkspaceInvitationPage = React.lazy(() => import("@/pages/auth/WorkspaceInvitationPage"));
 const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
@@ -216,6 +218,7 @@ export default function App() {
     { path: "business-os/customer-720", element: <BusinessOSWorkspacePage /> },
     { path: "business-os/reports", element: <BusinessOSWorkspacePage /> },
     { path: "business-os/ai", element: <BusinessOSWorkspacePage /> },
+    { path: "company-admin", element: <CompanyAdminPage /> },
     { path: "analytics", element: <AnalyticsPage /> },
     { path: "analytics/report-builder", element: <AnalyticsPage /> },
     { path: "analytics/reports", element: <AnalyticsPage /> },
@@ -241,6 +244,8 @@ export default function App() {
         <Routes>
           <Route path="/f/:slug" element={<PublicFormPage />} />
           <Route path="/forms/communication/:slug" element={<PublicCustomerForm />} />
+          <Route path="/admin/signup-requests" element={<Navigate to="/platform/signup-requests" replace />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<ModuleDashboardPage />} />
           <Route path="/settings/:section?" element={<SettingsHubPage />} />

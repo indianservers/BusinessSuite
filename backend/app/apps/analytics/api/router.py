@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -31,6 +31,14 @@ from app.models.user import User
 
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
+
+
+@router.get("/overview")
+def overview(response: Response, days: int = Query(30, ge=1, le=90), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_view", "analytics_manage", "analytics_admin"))):
+    from app.apps.analytics.services.overview import business_overview
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Vary"] = "Authorization, X-Suite-Organization, X-Suite-Branch"
+    return business_overview(db, current_user, days)
 
 
 def _serialize(item) -> dict[str, Any] | None:

@@ -6,8 +6,11 @@ from flask_login import current_user, login_required
 from app.extensions import db
 from app.models import Batch, CompositeItem, CompositeItemComponent, InventoryLedger, Product, ProductBatch, PurchaseOrder, PurchaseOrderItem, RepackingItem, RepackingTransaction, SerialNumber, StockAdjustment, StockAdjustmentItem, StockOpening, StockTransfer, StockTransferItem, Supplier, Warehouse
 from app.services.numbering_service import next_number
+from app.services.serial_service import new_serial
 from app.services.audit_service import record_audit
 from app.services.stock_service import apply_repacking_line, apply_stock_adjustment, apply_stock_opening, apply_stock_transfer, apply_stock_transfer_in, apply_stock_transfer_out
+from app.utils.helpers import qty
+from decimal import InvalidOperation
 
 bp = Blueprint("stock", __name__, url_prefix="/stock")
 
@@ -133,13 +136,32 @@ def _date_or_none(value):
 @login_required
 def transfer_create():
     if request.method == "POST":
-        from_warehouse_id = request.form["from_warehouse_id"]
-        to_warehouse_id = request.form["to_warehouse_id"]
+        try:
+            from_warehouse_id = int(request.form["from_warehouse_id"])
+            to_warehouse_id = int(request.form["to_warehouse_id"])
+        except (ValueError, KeyError):
+            flash("Select valid source and destination warehouses.", "danger")
+            return redirect(url_for("stock.transfer_create"))
         if from_warehouse_id == to_warehouse_id:
             flash("From and to warehouses must be different.", "danger")
             return redirect(url_for("stock.transfer_create"))
 
         status = request.form.get("status") or "Draft"
+        try:
+            if not db.session.get(Warehouse, from_warehouse_id) or not db.session.get(Warehouse, to_warehouse_id):
+                raise ValueError("Select valid source and destination warehouses")
+            if status not in {"Draft", "Sent", "Received"}:
+                raise ValueError("Invalid transfer status")
+            lines = list(zip(request.form.getlist("product_id[]"), request.form.getlist("quantity[]"), request.form.getlist("rate[]")))
+            if not lines:
+                raise ValueError("At least one transfer line is required")
+            for product_id, quantity, rate in lines:
+                amount = qty(quantity)
+                if not product_id or not amount.is_finite() or amount <= 0:
+                    raise ValueError("Transfer quantities must be positive")
+        except (InvalidOperation, ValueError, TypeError) as exc:
+            flash(str(exc) or "Invalid transfer quantity", "danger")
+            return redirect(url_for("stock.transfer_create"))
         transfer = StockTransfer(
             transfer_no=request.form.get("transfer_no") or next_number("stock_transfer"),
             transfer_date=date.fromisoformat(request.form["transfer_date"]),
@@ -223,16 +245,15 @@ def transfer_cancel(id):
 @login_required
 def serial_numbers():
     if request.method == "POST":
-        serial = SerialNumber(
-            product_id=request.form["product_id"],
-            warehouse_id=request.form.get("warehouse_id") or None,
-            serial_no=request.form["serial_no"].strip(),
-            status=request.form.get("status") or "Available",
-            notes=request.form.get("notes"),
-        )
-        db.session.add(serial)
-        db.session.commit()
-        flash("Serial number saved.", "success")
+        try:
+            serial = new_serial(request.form["serial_no"], product_id=request.form["product_id"],
+                warehouse_id=request.form.get("warehouse_id") or None,
+                status=request.form.get("status") or "Available", notes=request.form.get("notes"))
+            db.session.add(serial); db.session.flush()
+            record_audit("Create", "SerialNumber", serial.id, new_data={"serial_no":serial.serial_no})
+            db.session.commit(); flash("Serial number saved.", "success")
+        except Exception as exc:
+            db.session.rollback(); flash(str(exc), "danger")
         return redirect(url_for("stock.serial_numbers"))
     return render_template("stock/serial_numbers.html", title="Serial Numbers", serials=SerialNumber.query.order_by(SerialNumber.id.desc()).all(), products=Product.query.order_by(Product.name).all(), warehouses=Warehouse.query.order_by(Warehouse.name).all(), statuses=SERIAL_STATUSES)
 

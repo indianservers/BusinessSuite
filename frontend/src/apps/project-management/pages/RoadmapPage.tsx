@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from "react";
@@ -41,6 +42,7 @@ export default function RoadmapPage() {
   const [zoom, setZoom] = useState<ZoomLevel>("month");
   const [expandedEpicIds, setExpandedEpicIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [savingEpicId, setSavingEpicId] = useState<number | null>(null);
 
@@ -144,14 +146,14 @@ export default function RoadmapPage() {
 
       <Card>
         <CardContent className="p-0">
-          {loading ? <div className="m-4 h-80 rounded-lg skeleton" /> : null}
-          {!loading && !scheduledEpics.length && !unscheduledEpics.length ? (
+          {initialLoading ? <div className="m-4 h-80 rounded-lg skeleton" /> : null}
+          {!initialLoading && !scheduledEpics.length && !unscheduledEpics.length ? (
             <div className="p-10 text-center">
               <h2 className="text-lg font-semibold">No roadmap epics found</h2>
               <p className="mt-1 text-sm text-muted-foreground">Adjust the date range or create epics from a project planning page.</p>
             </div>
           ) : null}
-          {!loading && scheduledEpics.length ? (
+          {!initialLoading && scheduledEpics.length ? (
             <div className="overflow-x-auto">
               <div className="min-w-[980px]" style={{ width: timeline.width + 360 }}>
                 <div className="sticky top-0 z-10 grid border-b bg-background" style={{ gridTemplateColumns: `360px ${timeline.width}px` }}>
@@ -186,7 +188,7 @@ export default function RoadmapPage() {
         </CardContent>
       </Card>
 
-      {!loading && unscheduledEpics.length ? (
+      {!initialLoading && unscheduledEpics.length ? (
         <Card>
           <CardHeader><CardTitle className="text-base">Unscheduled epics</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

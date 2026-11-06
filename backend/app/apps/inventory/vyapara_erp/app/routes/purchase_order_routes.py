@@ -8,7 +8,11 @@ from app.models import Batch, GoodsReceiptItem, GoodsReceiptNote, Product, Purch
 from app.services.accounting_service import post_purchase
 from app.services.invoice_service import calculate_document, line_totals
 from app.services.numbering_service import next_number
+from app.services.serial_service import new_serial, find_serial
 from app.services.stock_service import apply_purchase_item
+from app.utils.helpers import qty
+from app.utils.decorators import permission_required
+from app.services.audit_service import record_audit
 
 bp = Blueprint("purchase_orders", __name__, url_prefix="")
 
@@ -53,6 +57,56 @@ def create():
 def detail(id):
     po = PurchaseOrder.query.get_or_404(id)
     return render_template("purchase_orders/detail.html", title=f"PO {po.po_no}", po=po)
+
+
+@bp.route("/purchase-orders/<int:id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("purchases", "edit")
+def edit(id):
+    po = PurchaseOrder.query.filter_by(id=id).with_for_update().first_or_404()
+    if po.status != "Draft" or po.grns or any(qty(i.received_qty) for i in po.items):
+        flash("Only draft purchase orders with no receipts can be amended.", "danger")
+        return redirect(url_for("purchase_orders.detail", id=id))
+    if request.method == "POST":
+        try:
+            if request.form.get("version") != str(po.updated_at):
+                raise ValueError("Purchase order changed. Refresh before amending.")
+            supplier = db.session.get(Supplier, int(request.form["supplier_id"]))
+            warehouse = db.session.get(Warehouse, int(request.form["warehouse_id"]))
+            if not supplier or not supplier.status or not warehouse or not warehouse.status:
+                raise ValueError("Choose an active supplier and warehouse.")
+            if supplier.id != po.supplier_id and request.form.get("supplier_revalidated") != "on":
+                raise ValueError("Confirm revised supplier pricing and terms before saving.")
+            reason = request.form.get("amendment_reason", "").strip()
+            if not reason:
+                raise ValueError("An amendment reason is required.")
+            items = parse_po_items()
+            for item in items:
+                product = db.session.get(Product, item["product_id"])
+                if not product or not product.is_active or qty(item["quantity"]) <= 0:
+                    raise ValueError("Each line needs an active product and positive quantity.")
+            totals = calculate_document(items)
+            before = {"supplier_id":po.supplier_id,"terms":po.terms,"total":str(po.grand_total),"lines":[{"id":i.id,"product_id":i.product_id,"quantity":str(i.quantity)} for i in po.items]}
+            po.supplier_id = supplier.id
+            po.warehouse_id = warehouse.id
+            po.expected_date = date.fromisoformat(request.form["expected_date"]) if request.form.get("expected_date") else None
+            po.terms = request.form.get("terms", "")
+            po.notes = request.form.get("notes", "")
+            for key in ("subtotal", "discount_total", "tax_total", "grand_total"):
+                setattr(po, key, totals[key])
+            for old_item in po.items.all():
+                db.session.delete(old_item)
+            for item in items:
+                db.session.add(PurchaseOrderItem(po_id=po.id, **{k:item[k] for k in ("product_id","quantity","rate","discount","discount_amount","tax_rate","tax_amount","line_total")}))
+            db.session.flush()
+            record_audit("Amend", "PurchaseOrder", po.id, old_data=before, new_data={"supplier_id":supplier.id,"terms":po.terms,"total":str(po.grand_total),"reason":reason})
+            db.session.commit()
+            flash("Purchase order amended. Recheck the supplier-facing document before sending.", "success")
+            return redirect(url_for("purchase_orders.detail", id=id))
+        except (ValueError, KeyError) as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+    return render_template("purchase_orders/edit.html", title=f"Amend {po.po_no}", po=po, suppliers=Supplier.query.filter_by(status=True).all(), warehouses=Warehouse.query.filter_by(status=True).all(), products=Product.query.filter_by(is_active=True).all())
 
 
 @bp.route("/purchase-orders/<int:id>/send", methods=["POST"])
@@ -124,19 +178,32 @@ def grn_create():
 
 def save_grn(po):
     try:
+        if po and po.status in {"Cancelled", "Received"}:
+            raise ValueError("Cannot receive a cancelled or fully received purchase order")
         grn = GoodsReceiptNote(grn_no=request.form.get("grn_no") or next_number("grn"), grn_date=date.fromisoformat(request.form["grn_date"]), po_id=po.id if po else None, supplier_id=request.form.get("supplier_id") or po.supplier_id, warehouse_id=request.form.get("warehouse_id") or po.warehouse_id, notes=request.form.get("notes"), created_by=current_user.id)
         db.session.add(grn); db.session.flush()
         for index, (product_id, po_item_id, expected_qty, received_qty, rate, tax_rate) in enumerate(zip(request.form.getlist("product_id[]"), request.form.getlist("po_item_id[]"), request.form.getlist("expected_qty[]"), request.form.getlist("received_qty[]"), request.form.getlist("rate[]"), request.form.getlist("tax_rate[]"))):
             if not product_id or not received_qty or float(received_qty or 0) <= 0:
                 continue
+            if po:
+                po_item = PurchaseOrderItem.query.filter_by(id=po_item_id, po_id=po.id, product_id=product_id).first()
+                if not po_item:
+                    raise ValueError("Receipt line must match an item on this purchase order")
+                if qty(received_qty) > qty(po_item.quantity) - qty(po_item.received_qty):
+                    raise ValueError("Receipt quantity exceeds the remaining purchase order quantity")
+                if str(grn.warehouse_id) != str(po.warehouse_id):
+                    raise ValueError("Receipt warehouse must match the purchase order")
+                if str(grn.supplier_id) != str(po.supplier_id):
+                    raise ValueError("Receipt supplier must match the purchase order")
+            elif po_item_id:
+                raise ValueError("Direct receipts cannot update purchase order lines")
             totals = line_totals(received_qty, rate, 0, tax_rate)
             item = GoodsReceiptItem(grn_id=grn.id, product_id=product_id, po_item_id=po_item_id or None, expected_qty=expected_qty or 0, received_qty=received_qty, rate=rate, tax_rate=tax_rate, tax_amount=totals["tax_amount"], line_total=totals["line_total"])
             db.session.add(item)
             apply_purchase_item(product_id, grn.warehouse_id, received_qty, rate, grn.id, grn.grn_no)
             capture_grn_tracking(index, product_id, grn.warehouse_id, received_qty, rate, grn.id, grn.grn_no)
             if po_item_id:
-                po_item = PurchaseOrderItem.query.get(po_item_id)
-                po_item.received_qty = float(po_item.received_qty or 0) + float(received_qty or 0)
+                po_item.received_qty = qty(po_item.received_qty) + qty(received_qty)
         if po:
             total = sum(float(item.quantity or 0) for item in po.items)
             received = sum(float(item.received_qty or 0) for item in po.items)
@@ -160,5 +227,4 @@ def capture_grn_tracking(index, product_id, warehouse_id, quantity, rate, grn_id
         batch.quantity = float(batch.quantity or 0) + float(quantity or 0)
     serials = request.form.getlist("serial_numbers[]")[index] if index < len(request.form.getlist("serial_numbers[]")) else ""
     for serial in [s.strip() for s in serials.replace("\n", ",").split(",") if s.strip()]:
-        if not SerialNumber.query.filter_by(serial_no=serial).first():
-            db.session.add(SerialNumber(product_id=product_id, warehouse_id=warehouse_id, serial_no=serial, status="Available"))
+        db.session.add(new_serial(serial, product_id=product_id, warehouse_id=warehouse_id, status="Available"))

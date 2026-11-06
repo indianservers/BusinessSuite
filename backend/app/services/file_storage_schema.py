@@ -3,8 +3,13 @@ import sqlalchemy as sa
 
 
 def upgrade(op):
-    if sa.inspect(op.get_bind()).has_table("pms_private_note_attachments"):
-        op.add_column("pms_private_note_attachments", sa.Column("storage_path", sa.String(1000), nullable=True))
+    inspector = sa.inspect(op.get_bind())
+    if inspector.has_table("pms_private_note_attachments"):
+        # Earlier migrations create this table from its ORM model, which can
+        # already include the locator when replaying the chain on a fresh DB.
+        columns = {column["name"] for column in inspector.get_columns("pms_private_note_attachments")}
+        if "storage_path" not in columns:
+            op.add_column("pms_private_note_attachments", sa.Column("storage_path", sa.String(1000), nullable=True))
     op.create_table("file_storage_connections",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("organization_id", sa.Integer(), nullable=False),

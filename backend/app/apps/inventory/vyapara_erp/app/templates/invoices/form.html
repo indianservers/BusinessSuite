@@ -123,6 +123,6 @@
 </form>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/invoice.js') }}"></script>
+<script src="{{ url_for('static', filename='js/invoice.js', v='20261106-price-validity-2') }}"></script>
 <script>document.addEventListener("DOMContentLoaded",()=>{initInvoiceForm("sale"); setTimeout(calculateInvoice, 80);});</script>
 {% endblock %}

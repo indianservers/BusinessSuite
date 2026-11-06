@@ -1,0 +1,344 @@
+{
+  "scope": "51-100, partial execution; no full-suite certification",
+  "configuration": {
+    "company": "Workflow51-100 Test Company",
+    "url": "http://127.0.0.1:5304",
+    "database": "fresh in-memory SQLite, single-thread fixture",
+    "negative_stock": false,
+    "currency": "INR",
+    "cost_method": "weighted average; P1 cost600",
+    "fractional_item": "QA-056-FRACTION10.50 opening units, decimal unit enabled, price1000,tax18%"
+  },
+  "fixes": [
+    {
+      "issue": "Warehouse-specific stock could go negative while company-wide stock remained positive.",
+      "change": "Check selected warehouse ledger balance before outbound movements; legacy unledgered opening belongs to default warehouse. Refresh and lock products in stock services on row-locking databases.",
+      "browser": "Over-issue blocked and balances unchanged."
+    },
+    {
+      "issue": "Simultaneous invoice issue could act on stale draft status.",
+      "change": "Refresh invoice under row lock before testing draft status and posting.",
+      "verification": "Sequential repeated issue test has one stock movement and receivable; real database concurrency remains unverified."
+    }
+  ],
+  "tests": {
+    "pytest": "79 passed",
+    "javascript": "4 checks passed: POS recovery, numeric/fractional inputs, split tender inputs, invoice text escaping",
+    "whitespace": "git diff --check passed"
+  },
+  "remaining_limits": [
+    "True independent-user concurrent orders and approval need a row-locking database test environment.",
+    "Browser network fault injection not performed.",
+    "Company-wide product stock remains displayed on some entry/current-stock surfaces; filtered warehouse valuation is the verified location-specific view.",
+    "Remaining workflows explicitly marked unexecuted rather than passed."
+  ],
+  "evidence": [
+    "workflows-51-100-current-browser-observations.json",
+    "workflows-51-100-browser-records.json",
+    "workflows-51-100-fractional-stock.png",
+    "workflows-51-100-warehouse-guard.png",
+    "workflows-51-100-current-regression.xml"
+  ],
+  "workflows": [
+    {
+      "workflow": 51,
+      "title": "Concurrent orders competing for limited stock",
+      "status": "Partial\u2014browser sequential limits verified; concurrency unverified",
+      "actual": "Moved5 of10 units to B, leaving5 Main. Attempt6 rejected. Issued4 Main, then attempt another4 rejected; Main remains1,B5 before later tests. Product row locks added, but SQLite single-thread fixture does not certify true concurrent orders or reservations."
+    },
+    {
+      "workflow": 52,
+      "title": "Concurrent edits to the same sales order",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 53,
+      "title": "Retry after an uncertain payment response",
+      "status": "Automated recovery pass; browser fault injection not executed",
+      "actual": "test_pos_recovery.cjs simulates lost response, reload and identical request retry; server acceptance test confirms one sale/payment/stock issue. No browser network interruption performed."
+    },
+    {
+      "workflow": 54,
+      "title": "Double-click invoice approval",
+      "status": "Partial\u2014browser and automated repeat-issue checks",
+      "actual": "Draft QA-054-DRAFT4 units issued once; double-click first click navigated before second completed. Persisted stock issue quantity4 once. Repeated issue rejected by automated test. Sale row lock added; simultaneous PostgreSQL transactions not executed."
+    },
+    {
+      "workflow": 55,
+      "title": "Recover an unsaved sales document",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 56,
+      "title": "Fractional quantities through sale and return",
+      "status": "Browser quantity subcheck passed",
+      "actual": "Created fractional unit and product opening10.50; sold2.75, returned0.50 for590; stock8.25 after refresh. Opening stock used rather than a separate purchase receipt. Over-return fractional boundary covered in automated suite only."
+    },
+    {
+      "workflow": 57,
+      "title": "Alternate-unit conversion",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 58,
+      "title": "Tax-inclusive selling price",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 59,
+      "title": "Mixed tax rates on one invoice",
+      "status": "Browser calculation passed; dispatch/report grouping unverified",
+      "actual": "Two lines base1000 each at5%/18%; tax50+180,total2230 after refresh. Later cancelled under workflow69."
+    },
+    {
+      "workflow": 60,
+      "title": "Tax-exempt and taxable items together",
+      "status": "Partial\u2014zero-rate calculation and payment passed",
+      "actual": "Base1000 at0% plus1000 at18%;total2180;paid2180,balance0 after refresh. A zero rate was used; exemption classification/reporting not certified."
+    },
+    {
+      "workflow": 61,
+      "title": "Intrastate versus interstate tax treatment",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 62,
+      "title": "Document discount allocation",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 63,
+      "title": "Freight and additional charges",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 64,
+      "title": "Rounding across many small lines",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 65,
+      "title": "Invalid commercial amounts",
+      "status": "Partial\u2014invalid entries rejected",
+      "actual": "Browser negative/zeroquantity,negativeprice,discount101 all rejected with clear errors; none persisted. Zero-price free item not executed in browser."
+    },
+    {
+      "workflow": 66,
+      "title": "Foreign-currency invoice and settlement",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 67,
+      "title": "Backdated transaction and historical reporting",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 68,
+      "title": "Closed-period transaction protection",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 69,
+      "title": "Cancel a posted invoice safely",
+      "status": "Browser reversal subcheck passed",
+      "actual": "Unpaid QA-059-MIXED cancelled;balance0;customer debt reduced2230;P1 restored1 in B;service created no stock. Full tax/accounting export reconciliation not executed."
+    },
+    {
+      "workflow": 70,
+      "title": "Correct an approved invoice",
+      "status": "Partial\u2014direct edit protection passed",
+      "actual": "Direct /invoices/2/edit for issued invoice redirected to detail with Only draft invoices can be edited. Replacement/correction workflow not executed."
+    },
+    {
+      "workflow": 71,
+      "title": "Customer advance applied to a later invoice",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 72,
+      "title": "Unallocate and reallocate a receipt",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 73,
+      "title": "Reverse an incorrectly recorded receipt",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 74,
+      "title": "Prevent cross-customer receipt allocation",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 75,
+      "title": "Customer credit-limit enforcement",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 76,
+      "title": "Customer billing details changed after invoicing",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 77,
+      "title": "Deactivate a product with transaction history",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 78,
+      "title": "Prevent deletion of referenced master records",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 79,
+      "title": "Branch access isolation",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 80,
+      "title": "Tenant/company isolation",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 81,
+      "title": "Salesperson cannot approve their own restricted order",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 82,
+      "title": "Cashier cannot access administrative functions",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 83,
+      "title": "Warehouse operator cannot alter commercial values",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 84,
+      "title": "Approval threshold boundary",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 85,
+      "title": "Permission revoked during an active session",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 86,
+      "title": "Audit trail across a complete document lifecycle",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 87,
+      "title": "Product import with Unicode and quoted text",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 88,
+      "title": "Large-document completeness",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 89,
+      "title": "Search, filtering, and pagination consistency",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 90,
+      "title": "Date boundaries in dashboard and reports",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 91,
+      "title": "Inventory costing after purchases at different prices",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 92,
+      "title": "Return valuation after purchase cost changes",
+      "status": "Automated subcheck passed; browser not executed",
+      "actual": "Existing fractional-return regression verifies original unit cost600 after later purchase at900."
+    },
+    {
+      "workflow": 93,
+      "title": "Non-restockable damaged return",
+      "status": "Browser disposition subcheck passed",
+      "actual": "Non-restockable0.25 return QA-093-DAMAGED credits295 and stock remains8.25. No stock movement for damaged return; separate quarantine identity workflow not exercised."
+    },
+    {
+      "workflow": 94,
+      "title": "Purchase receipt correction",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 95,
+      "title": "Procurement schedule changes",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 96,
+      "title": "BOM revision after production order creation",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 97,
+      "title": "Multiple payments and partial POS refund",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 98,
+      "title": "Invoice dispatch failure and retry",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 99,
+      "title": "Sales-to-accounting integration retry",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    },
+    {
+      "workflow": 100,
+      "title": "Reconciliation detects and resolves a real discrepancy",
+      "status": "Not executed in this run",
+      "actual": "No full browser evidence; not marked passed."
+    }
+  ]
+}

@@ -56,9 +56,13 @@ def persist(db, context):
             branch = db.connection().execute(select(BranchOwnership.branch_id).where(
                 BranchOwnership.resource_table == obj.__tablename__, BranchOwnership.resource_key == str(obj.id),
                 BranchOwnership.company_id == obj.organization_id)).scalar()
-        db.add(CustomerEvent(organization_id=obj.organization_id, branch_id=branch,
+        captured = CustomerEvent(organization_id=obj.organization_id, branch_id=branch,
             event_key=key, trigger=spec[0]+'.changed', source_type=spec[0], source_id=obj.id,
-            snapshot=values(obj)))
+            snapshot=values(obj))
+        # Internal derivative of a source record already checked by its module.
+        # This marker is never accepted from a public request or persisted.
+        captured._suite_source_record = obj
+        db.add(captured)
 
 
 @event.listens_for(Session, 'after_soft_rollback')

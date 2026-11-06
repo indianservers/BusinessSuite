@@ -1,0 +1,19 @@
+[
+  {
+    "workflow": 219,
+    "stage": "saved invoice after refresh",
+    "text": "Invoice QA-219-VALID-FALLBACK\nWorkflow 201-250-price-fixed Test Company\nDashboard\nInvoices\n1\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nQA-219-VALID-FALLBACK\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 2124.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t2.000\t900.0000\t0.00\t324.00\t2124.00\nSubtotal\n1800.00\nDiscount\n0.00\nTax\n324.00\nGrand Total\n2124.00\nPaid\n0.00\nBalance\n2124.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 218,
+    "stage": "issued manual override",
+    "text": "Invoice QA-218-OVERRIDE\nWorkflow 201-250-price-fixed Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nQA-218-OVERRIDE\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 3245.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t950.0000\t0.00\t171.00\t1121.00\nSubtotal\n950.00\nDiscount\n0.00\nTax\n171.00\nGrand Total\n1121.00\nPaid\n0.00\nBalance\n1121.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 218,
+    "stage": "next invoice default",
+    "rate": "900",
+    "catalog": "QA Product A\nP1 | Stock 7.000\nINR 1000.00",
+    "source": "Assigned price list is inactive or outside its validity dates. Pricing: QA Valid Default"
+  }
+]

@@ -1,0 +1,349 @@
+{
+  "scope": "201-250 pricing follow-up, partial suite; continues prior tests without treating unexecuted workflows as passed",
+  "configuration": {
+    "company": "Workflow201-250-price-fixed Test Company",
+    "url": "http://127.0.0.1:5307",
+    "storage": "new in-memory SQLite test company",
+    "currency": "INR",
+    "pricing_date": "2026-11-06",
+    "assigned_list": "QA Expired Assigned:750, valid_to2026-11-05",
+    "default_lists": [
+      "QA Valid Default:900,2026-11-05 through2026-12-06 inclusive",
+      "QA Competing Default:850,no date limits"
+    ],
+    "selection_rule": "Active customer-assigned list valid on invoice date; otherwise oldest active default valid on that date; otherwise catalog. Tested single-unit defaults in global INR configuration.",
+    "manual_override": "Allowed as Super Admin; remains line-specific and labelled Manual rate; saved draft rates retained."
+  },
+  "reproduced_before_fix": {
+    "tile_rate": 1000,
+    "dropdown_rate": 750,
+    "expected_rate": 900
+  },
+  "fixes": [
+    "Price-list resolution validates active status and inclusive validity dates, with deterministic fallback and explicit source/reason.",
+    "New invoice tile lines apply selected customer/default pricing consistently with dropdown selection.",
+    "Saved manual overrides remain intact; invoice date changes reload applicable pricing; stale customer/date responses ignored on successful requests."
+  ],
+  "tests": {
+    "pytest": "84 passed",
+    "javascript": "4 checks passed",
+    "persisted_records": "2 issued invoices total2124 and1121;stock7; no receipts or unrelated company data used",
+    "whitespace": "git diff --check passed"
+  },
+  "evidence": [
+    "workflows-201-250-price-fallback.png",
+    "workflows-201-250-price-source.png",
+    "workflows-201-250-price-current-observations.json",
+    "workflows-201-250-price-fixed-browser-records.json",
+    "workflows-201-250-price-regression.xml"
+  ],
+  "prior_scope": "Earlier results remain in workflows-201-250-results.json; those earlier browser checks were not repeated in this follow-up.",
+  "workflows": [
+    {
+      "workflow": 201,
+      "title": "Shipping charge refunded independently of goods",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 202,
+      "title": "Multiple partial returns against one invoice",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 203,
+      "title": "One return containing lines from different tax rates",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 204,
+      "title": "Return of a fractional-unit converted product",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 205,
+      "title": "Financial credit without a physical return",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 206,
+      "title": "Rejected return request",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 207,
+      "title": "Substitute an unavailable item before fulfillment",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 208,
+      "title": "Delivery destination changed after picking",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 209,
+      "title": "Duplicate customer PO reference policy",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 210,
+      "title": "Customer order minimum value",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 211,
+      "title": "Maximum discount approval",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 212,
+      "title": "Customer-specific product restriction",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 213,
+      "title": "Copy an order into a new draft",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 214,
+      "title": "Copy an invoice without duplicating settlement",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 215,
+      "title": "Order notes versus internal notes",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 216,
+      "title": "Attachments throughout the commercial lifecycle",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 217,
+      "title": "Unsafe or oversized attachment rejection",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 218,
+      "title": "Manual price override does not update the master",
+      "status": "Blocked",
+      "reason": "Invoice-level subcheck passed: QA-218-OVERRIDE (invoice2) rate950 preserved through draft edit and issue, total1121. Next invoice rate900 and catalog1000 unchanged. Full order/approval lifecycle not tested.",
+      "documents": [
+        "QA-218-OVERRIDE"
+      ]
+    },
+    {
+      "workflow": 219,
+      "title": "Expired price-list fallback",
+      "status": "Pass",
+      "reason": "Expired assigned750 ignored; valid default900 selected and explained. Saved QA-219-VALID-FALLBACK (invoice1), quantity2,base1800,tax324,total2124 after refresh. Stock10 to8 exactly once.",
+      "documents": [
+        "QA-219-VALID-FALLBACK"
+      ]
+    },
+    {
+      "workflow": 220,
+      "title": "Conflicting applicable price lists",
+      "status": "Blocked",
+      "reason": "Partial checks passed: competing valid defaults900 and850 resolve deterministically to oldest valid default900; source visible in editor and rates survive save/refresh. Explicit list switching, quantity tiers, branch/currency eligibility and historical source snapshot were not certified."
+    },
+    {
+      "workflow": 221,
+      "title": "Service quantity precision",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 222,
+      "title": "Billing milestone amount amended before invoicing",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 223,
+      "title": "Billing milestone date moved across periods",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 224,
+      "title": "Engagement canceled before project creation",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 225,
+      "title": "Reopen a mistakenly closed engagement",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 226,
+      "title": "Fixed billing and expense reimbursement",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 227,
+      "title": "Collection reminder excludes disputed invoices",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 228,
+      "title": "Promise-to-pay follow-up",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 229,
+      "title": "Partial write-off approval",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 230,
+      "title": "Reject a write-off request",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 231,
+      "title": "Settlement with a bank processing fee",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 232,
+      "title": "Payment method disabled after historical use",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 233,
+      "title": "Cash movement reversal within an open session",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 234,
+      "title": "Cashier closing with noncash sales only",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 235,
+      "title": "Rounding payable amount in POS",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 236,
+      "title": "Product sold while another user changes its master",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 237,
+      "title": "Purchase-order delivery address differs from company address",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 238,
+      "title": "Supplier changed on an unreceived PO",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 239,
+      "title": "Purchase-order line removed before receipt",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 240,
+      "title": "GRN with multiple batches for one PO line",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 241,
+      "title": "Warehouse deactivation with remaining stock",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 242,
+      "title": "Reorder policy changed while a PO is open",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 243,
+      "title": "Batch number reused across different products",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 244,
+      "title": "Serial-number case and whitespace normalization",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 245,
+      "title": "Stock adjustment requiring an attachment",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 246,
+      "title": "Manufacturing BOM with fractional consumption",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 247,
+      "title": "Production components issued from different warehouses",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 248,
+      "title": "Production order quantity amended before completion",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 249,
+      "title": "Saved report filter shared with another authorized user",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    },
+    {
+      "workflow": 250,
+      "title": "Dashboard drill-down reconciles after corrective activity",
+      "status": "Blocked",
+      "reason": "Not executed in this follow-up; no new end-to-end browser certification."
+    }
+  ]
+}

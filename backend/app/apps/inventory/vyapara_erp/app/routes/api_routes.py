@@ -190,10 +190,32 @@ def sale_detail(id):
 @login_required
 def customer_price_list(id):
     customer = Customer.query.get_or_404(id)
-    pl = customer.price_list or PriceList.query.filter_by(is_default=True, status=True).first()
-    if not pl:
-        return jsonify({"price_list_id": None, "items": {}})
-    return jsonify({"price_list_id": pl.id, "items": {str(item.product_id): float(item.sales_price) for item in pl.items}})
+    try:
+        effective = date.fromisoformat(request.args["on"]) if request.args.get("on") else date.today()
+    except ValueError:
+        return jsonify({"error":"Invalid pricing date"}), 400
+    def eligible(candidate):
+        return bool(candidate and candidate.status
+                    and (not candidate.valid_from or candidate.valid_from <= effective)
+                    and (not candidate.valid_to or candidate.valid_to >= effective))
+    assigned = customer.price_list
+    fallback = bool(assigned and not eligible(assigned))
+    pl = assigned if eligible(assigned) else PriceList.query.filter(
+        PriceList.is_default.is_(True), PriceList.status.is_(True),
+        db.or_(PriceList.valid_from.is_(None), PriceList.valid_from <= effective),
+        db.or_(PriceList.valid_to.is_(None), PriceList.valid_to >= effective)
+    ).order_by(PriceList.id.asc()).first()
+    items = {}
+    if pl:
+        # This endpoint supplies single-unit defaults; quantity tiers are not selected here.
+        for item in sorted(pl.items, key=lambda item:(-item.min_qty, item.id)):
+            if item.min_qty <= 1:
+                items.setdefault(str(item.product_id), float(item.sales_price))
+    return jsonify({"price_list_id":pl.id if pl else None,
+                    "price_list_name":pl.name if pl else None,
+                    "source":"customer" if pl and pl is assigned else "default" if pl else "catalog",
+                    "fallback_reason":"Assigned price list is inactive or outside its validity dates" if fallback else None,
+                    "effective_date":effective.isoformat(), "items":items})
 
 
 @bp.route("/invoices")

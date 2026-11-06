@@ -1,0 +1,58 @@
+{
+  "fixture": "Isolated in-memory Workflow 201-250-remaining-fixed Test Company",
+  "invoices": [],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 8.5,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    },
+    {
+      "id": 3,
+      "sku": "QA-246-FG",
+      "stock": 6.0,
+      "track_inventory": true
+    }
+  ],
+  "receipts": [],
+  "stock_movements": [
+    {
+      "product_id": 1,
+      "warehouse_id": 1,
+      "reference": "QA-248-AMEND",
+      "type": "Manufacturing Issue",
+      "in": 0.0,
+      "out": 1.5,
+      "rate": 600.0,
+      "value": 900.0
+    },
+    {
+      "product_id": 3,
+      "warehouse_id": 1,
+      "reference": "QA-248-AMEND",
+      "type": "Manufacturing Receipt",
+      "in": 6.0,
+      "out": 0.0,
+      "rate": 150.0,
+      "value": 900.0
+    }
+  ],
+  "returns": [],
+  "credits": [],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [],
+  "transfers": []
+}

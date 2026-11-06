@@ -644,6 +644,7 @@ export default function LoginPage() {
                   Forgot password?
                 </button>
               </CompactForm>
+              <p className="mt-4 text-center text-sm"><Link className="text-violet-700 underline" to="/signup">New here? Request a software trial</Link></p>
               {hintedProvider && (
                 <p className="suite-login-context">
                   Your organization uses{" "}

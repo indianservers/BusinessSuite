@@ -1740,10 +1740,13 @@ function POSReturnsView() {
 }
 
 function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
+  const draftUser = useAuthStore(state => state.user);
+  const draftKey = `srm-order-draft:${draftUser?.id}:${sessionStorage.getItem("suite-organization") || draftUser?.access?.companyId || 1}:${sessionStorage.getItem("suite-branch") || "default"}`;
   const createRef = useNewRecordFocus();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
-  const [salesOrder, setSalesOrder] = useState({
+  const [salesOrder, setSalesOrder] = useState(() => {
+    const defaults = {
     title: "",
     customer_id: "",
     currency: defaultText("currency", "srm"),
@@ -1755,7 +1758,18 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
     quantity: "1",
     unit_price: "0",
     tax_amount: "0",
+    };
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(draftKey) || "null");
+      if (saved && typeof saved === "object") return Object.fromEntries(Object.entries(defaults).map(([key, value]) => [key, typeof saved[key] === "string" ? saved[key] : value])) as typeof defaults;
+    } catch { /* Invalid browser drafts fall back to an empty form. */ }
+    return defaults;
   });
+  const [restoredDraft] = useState(() => kind === "salesOrders" && !!sessionStorage.getItem(draftKey));
+  useEffect(() => {
+    if (kind !== "salesOrders") return;
+    try { sessionStorage.setItem(draftKey, JSON.stringify(salesOrder)); } catch { /* Saving the record remains available without browser storage. */ }
+  }, [draftKey, kind, salesOrder]);
   const [contract, setContract] = useState({
     title: "",
     sales_order_id: "",
@@ -1866,6 +1880,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
       throw new Error("Create form is not available for this SRM view.");
     },
     onSuccess: async (result) => {
+      if (kind === "salesOrders") sessionStorage.removeItem(draftKey);
       const text = `${viewMeta[kind].title.slice(0, -1) || viewMeta[kind].title} created`;
       setMessage(text);
       toast({ title: text });
@@ -1891,6 +1906,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
         <CardTitle className="text-base">Create {viewMeta[kind].title.slice(0, -1)}</CardTitle>
       </CardHeader>
       <CardContent>
+        {restoredDraft && <p role="status" className="mb-3 text-sm text-muted-foreground">Unsaved sales order restored for this company and branch. Review it before saving.</p>}
         <CompactForm className="space-y-4" onSubmit={(event: FormEvent) => { event.preventDefault(); mutation.mutate(); }}>
           {kind === "salesOrders" ? (
             <>

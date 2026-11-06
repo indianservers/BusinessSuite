@@ -1,0 +1,1757 @@
+{
+  "date": "2026-11-06",
+  "scope": "Isolated operational Inventory SQLite fixture and Suite/FAM/SRM automated regressions. No live company data used for test writes.",
+  "automated_results": {
+    "tests": 129,
+    "pass": 129,
+    "fail": 0,
+    "blocked": 0
+  },
+  "status_definition": "Pass applies only to the explicitly recorded execution scope, not certification of all 50 full browser workflows. Blocked includes unavailable/unestablished capabilities and incomplete execution.",
+  "fixes": [
+    "Skip inventory issue for non-stock services, prevent service restocking on cancellation, omit service lines from picklists, and reject service-only fulfillment documents.",
+    "Compute missing due dates from effective invoice date plus customer calendar-day terms; retain explicit overrides; remove misleading prefilled due dates.",
+    "Reject nonpositive/invalid transfer quantities and invalid statuses/warehouse IDs before creating stock records; normalize same-warehouse comparisons.",
+    "Bind an open POS drawer to its opening cashier even if a stale cookie references another drawer.",
+    "Show persisted change on the POS receipt."
+  ],
+  "reproduction_evidence": [
+    "workflows-101-150-reproductions.log",
+    "workflow-149-original-rule-reproduction.log",
+    "workflow-146-receipt-reproduction.log"
+  ],
+  "limitations": [
+    "All 50 complete browser workflows were not executed. Browser control later repeatedly timed out and reset while Chrome was active.",
+    "The screenshot captures the initial paid service invoice QA-BROWSER-101 before service fulfillment actions were hidden. The final QA-BROWSER-101-FINAL invoice, zero balance, correct due date and absent delivery/picklist actions were independently observed in Chrome accessibility state and saved fixture records.",
+    "Browser fixture was restarted between those two service executions; IDs are local to each disposable execution.",
+    "SQLite checks do not certify PostgreSQL concurrency, migrations, external gateway behavior, or unconfigured accounting policies.",
+    "The Suite React application and operational Inventory Flask application are distinct surfaces; a pass in one is not a pass in the other."
+  ],
+  "browser_saved_records": {
+    "fixture": "Isolated in-memory Workflow 101-150 Test Company",
+    "invoices": [
+      {
+        "id": 1,
+        "number": "QA-BROWSER-101-FINAL",
+        "status": "Paid",
+        "invoice_date": "2027-01-15",
+        "due_date": "2027-02-14",
+        "subtotal": 5000.0,
+        "tax": 900.0,
+        "total": 5900.0,
+        "paid": 5900.0,
+        "balance": 0.0
+      }
+    ],
+    "products": [
+      {
+        "id": 1,
+        "sku": "P1",
+        "stock": 10.0,
+        "track_inventory": true
+      },
+      {
+        "id": 2,
+        "sku": "QA-SERVICE",
+        "stock": 0.0,
+        "track_inventory": false
+      }
+    ],
+    "receipts": [
+      {
+        "id": 1,
+        "number": "REC-2026-00001",
+        "sale_id": 1,
+        "amount": 5900.0
+      }
+    ],
+    "stock_movements": [],
+    "transfers": []
+  },
+  "workflows": [
+    {
+      "number": 101,
+      "workflow": "Service-only order without inventory movements",
+      "status": "Blocked",
+      "checks_status": "Pass",
+      "execution_scope": "Browser and automated service invoice segment; complete order approval/confirmation chain not executed.",
+      "expected": "Revenue is ₹5,000, tax ₹900, and outstanding zero; no stock reservation, delivery requirement, or inventory movement is incorrectly created.",
+      "actual": "QA-BROWSER-101-FINAL: subtotal 5000, tax 900, total/paid 5900, balance 0. Service stock remains 0, physical stock 10, no inventory movements. Service fulfillment controls hidden and direct delivery/picklist actions blocked.",
+      "document_ids": [
+        "QA-BROWSER-101-FINAL"
+      ],
+      "browser_verified": true,
+      "evidence": [
+        "workflows-101-150-browser-records.json",
+        "workflow-101-browser-paid-service.png"
+      ]
+    },
+    {
+      "number": 102,
+      "workflow": "Mixed goods and services fulfillment",
+      "status": "Blocked",
+      "checks_status": "Pass",
+      "execution_scope": "Automated mixed goods/services invoicing, payment and picklist segment.",
+      "expected": "At 18% tax, invoice total is ₹5,900; only the 2 physical units affect stock; neither line is omitted or billed twice.",
+      "actual": "Invoice total 5900, settled; only 2 goods deducted; picklist includes only physical goods. Complete mixed order/service-prerequisite browser workflow not executed.",
+      "document_ids": [
+        "QA-101-MIX"
+      ],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-inventory.xml"
+      ]
+    },
+    {
+      "number": 103,
+      "workflow": "One order fulfilled from multiple warehouses",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Each warehouse loses its actual issued quantity; cumulative delivery is 6; the order has no remaining fulfillment balance.",
+      "actual": "Per-issue multiwarehouse fulfillment was not established; operational sale/order records carry one warehouse reference.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 104,
+      "workflow": "Cancel the remainder of a partially fulfilled order",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Delivered and invoiced quantities remain 4; canceled remainder is 6; unused reservations are released without reversing completed sales.",
+      "actual": "Partial remainder cancellation with explicit cancelled quantity was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 105,
+      "workflow": "Multiple orders consolidated into one invoice",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Every eligible line appears once; both source orders retain links; combined invoice totals equal the billable source totals.",
+      "actual": "A supported multi-order consolidation action was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 106,
+      "workflow": "Separate billing and shipping addresses",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Delivery documents use the shipping destination; invoice billing details remain correct; tax determination follows the configured place-of-supply rule.",
+      "actual": "Complete workflow not executed; related passing regressions are not acceptance certification.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 107,
+      "workflow": "Customer purchase-order reference throughout fulfillment",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "The exact reference persists on relevant documents; internal order numbers are not substituted for it.",
+      "actual": "Customer PO number/date propagation and search/export were not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 108,
+      "workflow": "Promotional free goods",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Stock decreases by 6; charged quantity/value follows the promotion; tax on the free item follows the configured treatment; cost includes all issued units.",
+      "actual": "The configured free-goods promotion and its tax treatment were not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 109,
+      "workflow": "Quantity-based pricing boundaries",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Base totals are ₹9,000, ₹9,000, and ₹9,900 respectively; the pricing tier uses the correct unit and quantity basis.",
+      "actual": "Quantity-tier configuration exists, but the complete boundary pricing and invoicing workflow was not executed.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 110,
+      "workflow": "Price-list effective dates",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Applicable prices follow the configured effective-date rule; saved transaction prices do not change merely because the current price list changed.",
+      "actual": "Date fields exist on price lists; historical effective-date selection and preserved pricing were not established end-to-end.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 111,
+      "workflow": "Payment terms calculate the due date",
+      "status": "Pass",
+      "checks_status": "Pass",
+      "execution_scope": "Browser issue/collection with blank due date, plus automated default and manual override persistence.",
+      "expected": "Due date is 14 February 2027; aging uses that due date; manually permitted overrides persist consistently.",
+      "actual": "Invoice dated 2027-01-15 has due date 2027-02-14; manual 2027-02-20 override persists. The paid browser document has zero outstanding. Dedicated aging report filtering was not independently verified.",
+      "document_ids": [
+        "QA-BROWSER-101-FINAL"
+      ],
+      "browser_verified": true,
+      "evidence": [
+        "workflows-101-150-browser-records.json",
+        "workflow-101-browser-paid-service.png"
+      ]
+    },
+    {
+      "number": 112,
+      "workflow": "Early-payment discount settlement",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "₹200 is recorded explicitly as discount; invoice balance becomes zero; the short payment is not left as unexplained outstanding.",
+      "actual": "A distinct eligible early-payment discount settlement action was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 113,
+      "workflow": "Customer withholding deduction",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Cash, withholding receivable, and remaining invoice balance reconcile; withholding is not misclassified as a sales discount.",
+      "actual": "Separate customer withholding settlement and allocation treatment was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 114,
+      "workflow": "Security deposit kept separate from revenue",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Deposit receipt/refund does not inflate sales or invoice collections; deposit liability returns to zero after refund.",
+      "actual": "A distinct refundable deposit liability workflow was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 115,
+      "workflow": "Payment request to confirmed collection",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Request, payment, receipt, and invoice remain linked; the payment request alone does not reduce outstanding.",
+      "actual": "Payment-request regression checks passed with a disconnected/test gateway. No live test-provider payment was attempted.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 116,
+      "workflow": "Expired or canceled payment request",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "The old request cannot produce an unauthorized collection; only the successful replacement payment affects the invoice balance.",
+      "actual": "Cancellation/regeneration request subchecks passed; old-link payment and successful replacement payment were not executed in a browser.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 117,
+      "workflow": "Payment rejection followed by success",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "The declined attempt creates no confirmed collection; the successful attempt settles the intended amount once.",
+      "actual": "No configured declined/successful test payment route was exercised.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 118,
+      "workflow": "Receipt exceeding invoice balance",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Invoice balance is zero, excess credit is ₹500, and no negative invoice outstanding is silently created.",
+      "actual": "Complete workflow not executed; related passing regressions are not acceptance certification.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 119,
+      "workflow": "One customer credit applied across later invoices",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "The first invoice is settled, the second has ₹540 outstanding, and the credit balance is zero.",
+      "actual": "Complete workflow not executed; related passing regressions are not acceptance certification.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 120,
+      "workflow": "Contract expiration stops new unauthorized activity",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Expiry policy is enforced; historical delivery and invoices remain accessible; existing obligations follow their explicit contractual rules.",
+      "actual": "Contract-expiry eligibility rules were not established for execution.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 121,
+      "workflow": "Terminate a contract with unbilled commitments",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Eligibility follows the effective-date policy; earned amounts remain traceable; future commitments are not billed automatically without authorization.",
+      "actual": "Termination effective-date billing rules were not established for execution.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 122,
+      "workflow": "Pause a billing plan with an existing draft",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Existing-draft handling follows the stated rule; pausing does not silently delete financial evidence or allow duplicate period billing.",
+      "actual": "Complete workflow not executed; related passing regressions are not acceptance certification.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 123,
+      "workflow": "Hybrid billing plan",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Base value is ₹8,000; at 18% tax, total is ₹9,440; fixed and time components remain separately traceable.",
+      "actual": "Hybrid component billing policy and end-to-end workflow were not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 124,
+      "workflow": "Change the billable rate prospectively",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Each entry uses the applicable rate under the configured policy; the rate change does not silently reprice already billed time.",
+      "actual": "Prospective rate effective-date policy was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 125,
+      "workflow": "Split an engagement into multiple projects",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Each project retains its own scope and billing references; engagement totals aggregate correctly without duplicating shared amounts.",
+      "actual": "Multi-project engagement billing was not established; the existing primary project linkage alone does not certify it.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 126,
+      "workflow": "Reassign a follow-up owner",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Current ownership and reminders move correctly; the original assignment and reassignment remain traceable; no duplicate follow-up is created.",
+      "actual": "Complete workflow not executed; related passing regressions are not acceptance certification.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 127,
+      "workflow": "Prevent stock transfer to the same warehouse",
+      "status": "Pass",
+      "checks_status": "Pass",
+      "execution_scope": "Automated transfer form and downstream stock checks.",
+      "expected": "Invalid transfer causes no movement; the corrected transfer changes each warehouse exactly once.",
+      "actual": "Same-warehouse and nonpositive quantities rejected with no records/movements. Corrected A-to-B transfer issues and receives 5 once. Warehouse IDs normalized and checked.",
+      "document_ids": [
+        "QA-129"
+      ],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-inventory.xml"
+      ]
+    },
+    {
+      "number": 128,
+      "workflow": "Transfer stock that is already reserved",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Transfer availability respects reservation policy; order commitments are not silently stranded or overallocated.",
+      "actual": "Reservation-aware transfer policy was not established in the operational Inventory fixture.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 129,
+      "workflow": "In-transit transfer lifecycle",
+      "status": "Pass",
+      "checks_status": "Pass",
+      "execution_scope": "Automated staged dispatch/receipt, including repeat submissions.",
+      "expected": "Dispatched stock is not simultaneously available at both locations; in-transit quantity clears upon receipt; company-wide quantity is conserved.",
+      "actual": "After dispatch: available stock 5 and sent transfer quantity 5. After receipt: company stock 10; exactly warehouse A out 5 and B in 5; repeated actions add no movements.",
+      "document_ids": [
+        "QA-129"
+      ],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-inventory.xml"
+      ]
+    },
+    {
+      "number": 130,
+      "workflow": "Transfer receipt shortage",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "The missing unit remains explicitly in transit or is resolved through an authorized adjustment; it does not disappear from reconciliation.",
+      "actual": "Partial staged transfer receipt/shortage resolution was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 131,
+      "workflow": "Quarantined goods receipt",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Quarantined quantity is excluded from sellable availability; release creates a traceable movement without increasing total stock twice.",
+      "actual": "Quarantine availability/release policy was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 132,
+      "workflow": "Rejected supplier goods",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Only accepted goods become available; supplier return references the receipt; received, rejected, and retained quantities reconcile.",
+      "actual": "Inspection acceptance/rejection and supplier-return linkage were not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 133,
+      "workflow": "Purchase-order cancellation after partial receipt",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Existing receipt remains valid; outstanding procurement becomes zero with 6 explicitly canceled; additional receipt is blocked under the configured rule.",
+      "actual": "Cancellation blocks later PO receipts in related regression; explicit cancellation of six outstanding units was not certified.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 134,
+      "workflow": "Supplier reference duplication",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Duplicate detection follows its configured scope; the app does not silently double-receive the same delivery.",
+      "actual": "Supplier delivery reference duplicate scope was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 135,
+      "workflow": "Purchase unit differs from stock unit",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Receipt creates 72 pieces; closing stock is 62; purchase cost per piece derives correctly from carton cost.",
+      "actual": "Carton-to-stock-unit conversion policy was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 136,
+      "workflow": "Procurement price variance",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "₹200 total variance is visible and authorized; inventory and accounting use the configured valuation policy; the original PO price remains traceable.",
+      "actual": "Receipt/bill price-variance approval policy was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 137,
+      "workflow": "Landed-cost allocation",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Freight allocates ₹100 to A and ₹200 to B; both unit costs become ₹110; the ₹300 charge is not capitalized twice.",
+      "actual": "A supported landed-cost allocation workflow was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 138,
+      "workflow": "Batch recall traceability",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Affected customers and quantities are identifiable; blocked batch stock cannot be issued normally; unrelated batches remain available.",
+      "actual": "Batch blocking and customer recall traceability were not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 139,
+      "workflow": "Serial number moved between warehouses",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Serial location follows the transfer; sale from the wrong warehouse is blocked; one serial cannot exist as available in both locations.",
+      "actual": "Serial-aware transfer/sale workflow was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 140,
+      "workflow": "Batch-specific stock adjustment",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Only the selected batch changes; total item quantity equals the sum of batch balances; damage does not alter the other batch’s expiry data.",
+      "actual": "Batch-specific adjustment behavior was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 141,
+      "workflow": "Manufacturing order cancellation before posting",
+      "status": "Blocked",
+      "checks_status": "Pass",
+      "execution_scope": "Automated posting guard using an explicitly cancelled production fixture.",
+      "expected": "Reservations are released; components and finished stock remain unchanged; canceled production cannot be posted inadvertently.",
+      "actual": "Cancelled QA-141 remains cancelled; components 10, finished 0, no movements. UI cancellation/reservation release action not established.",
+      "document_ids": [
+        "QA-141"
+      ],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-inventory.xml"
+      ]
+    },
+    {
+      "number": 142,
+      "workflow": "Partial production completion",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Finished quantity totals 10; remaining quantity moves from 6 to zero; components are consumed only for actual production.",
+      "actual": "Partial cumulative production completion was not established; the existing completion action closes the production order.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 143,
+      "workflow": "Manufacturing scrap and yield",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Good, rejected, and consumed quantities reconcile; only 9 units become sellable; scrap cost follows the configured allocation policy.",
+      "actual": "Explicit good/rejected/scrap production accounting was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 144,
+      "workflow": "Production posting reversal",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Reversal restores the correct quantities and values once; original and reversal remain linked; repeated reversal is blocked.",
+      "actual": "An authorized manufacturing reversal action was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 145,
+      "workflow": "Manufacturing of a serialized finished product",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Exactly 3 finished serials are created; each links to production; the sold serial alone changes availability.",
+      "actual": "Serial assignment during production completion was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 146,
+      "workflow": "POS change calculation",
+      "status": "Pass",
+      "checks_status": "Pass",
+      "execution_scope": "Automated POS checkout, persisted change, printed receipt HTML, and cashier closing.",
+      "expected": "Change is ₹820; net cash increase is ₹1,180; tendered amount is not mistaken for sales or retained cash.",
+      "actual": "Total 1180; tender 2000; change 820 saved and shown on receipt; net cash 1180; opening 100 produces closing 1280 and variance 0.",
+      "document_ids": [
+        "INV-2026-00001"
+      ],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-inventory.xml"
+      ]
+    },
+    {
+      "number": 147,
+      "workflow": "Park a bill across cashier sessions",
+      "status": "Pass",
+      "checks_status": "Pass",
+      "execution_scope": "Automated configured ownership rule: held bills require their original open session.",
+      "expected": "Access follows the configured ownership policy; completing it attributes payment and stock effects to the correct session without altering the closed session.",
+      "actual": "New-session recall returns 403; closed session total stays 0; no sale, receipt or stock movement created. A cross-session transfer/override capability was not established.",
+      "document_ids": [
+        "Recorded held-bill number in XML"
+      ],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-inventory.xml"
+      ]
+    },
+    {
+      "number": 148,
+      "workflow": "POS customer change before payment",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "The final receipt and collection belong to B; repricing follows an explicit rule; no residual A-specific details remain incorrectly attached.",
+      "actual": "Customer-switch repricing/tax rule was not established.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    },
+    {
+      "number": 149,
+      "workflow": "Cashier handover between users",
+      "status": "Blocked",
+      "checks_status": "Pass",
+      "execution_scope": "Automated independent cashier sessions with a stale foreign drawer reference.",
+      "expected": "Cash ownership and opening balances are explicit; A’s closed results remain unchanged; B’s transactions do not leak into A’s totals.",
+      "actual": "Original ownership rule reproduced an unauthorized sale; corrected rule rejects with 400, zero sales/movements and unchanged original drawer. Full counted-cash handover workflow not executed.",
+      "document_ids": [
+        "Recorded original session number in XML"
+      ],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-inventory.xml"
+      ]
+    },
+    {
+      "number": 150,
+      "workflow": "Report access with cost visibility restrictions",
+      "status": "Blocked",
+      "checks_status": "Blocked",
+      "execution_scope": "No complete execution in this pass.",
+      "expected": "Restricted users cannot obtain cost or margin through alternate screens or exports; authorized figures reconcile with the underlying transaction.",
+      "actual": "A separate configured cost/margin visibility restriction was not established for the operational Inventory fixture; alternate-screen/export protection cannot be certified.",
+      "document_ids": [],
+      "browser_verified": false,
+      "evidence": [
+        "workflows-101-150-regression.xml"
+      ]
+    }
+  ],
+  "automated_executions": [
+    {
+      "test": "tests.test_connected_commercial::test_one_invoice_customer_snapshot_payment_and_truthful_delivery",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_partial_time_reservations_and_server_totals",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_financial_permissions_and_tenant_boundaries",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_crm_account_customer_projection_and_reviewed_legacy_mapping",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_parallel_requests_keep_one_invoice_and_unique_numbers",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_migration_replay_preserves_legacy_documents_and_expands_precision",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_configured_smtp_path_uses_shared_delivery_and_does_not_send_twice",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_milestone_and_whole_order_cannot_bill_same_obligation",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_atomic_payment_retry_reversal_and_cancellation",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_commercial_handoff_carries_customer_contact_team_and_origin",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_pms_legacy_project_tenant_boundary_applies_before_global_role_and_membership",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_connected_commercial::test_pms_task_access_does_not_expose_srm_commercial_payload",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_fam_inventory_accounting_rbac::test_fam_inventory_accounting_rbac_blocks_employee_mutation",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_fam_inventory_stock_reservation::test_inventory_reserve_and_release_stock",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_fam_inventory_transfer_accounting::test_fam_inventory_transfer_accounting_posts_existing_transfer",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_fam_stock_transfers::test_fam_stock_transfer_posts_without_changing_total_quantity",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_saved_request_is_idempotent_and_does_not_record_money",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_reservation_amount_checks_cancel_and_forbidden_fields",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_tenant_boundary_and_cancelled_source",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_completed_cash_pos_order_cannot_request_money_again",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_uncertain_provider_create_reconciles_without_duplicate",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_provider_identity_amount_and_paid_status_are_verified",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_provider_payload_does_not_send_unsolicited_messages",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_invoice_handover_reserves_request_until_actual_receipt_is_matched",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_gateway_account_is_explicitly_tenant_bound",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_disabled_module_and_unauthenticated_requests_are_denied",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_payment_requests::test_additive_schema_matches_models_and_is_idempotent",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_reference_45_days_and_source_idempotency",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_delivery_reference_and_specific_date",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_reschedule_audit_recurring_and_closed_guard",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_reminders_are_persistent_and_duplicate_safe",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_terminal_quote_stops_follow_up_notifications[Accepted]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_terminal_quote_stops_follow_up_notifications[Rejected]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_terminal_quote_stops_follow_up_notifications[Declined]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_terminal_quote_stops_follow_up_notifications[Cancelled]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_terminal_quote_stops_follow_up_notifications[Superseded]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_terminal_quote_stops_follow_up_notifications[Expired]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_cross_tenant_links_and_visibility",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_cancellation_preserves_history",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_http_shared_directory_actions_and_branch_isolation",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_grid_filters_grouping_and_pagination",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_pos_order_creates_follow_up_once_on_retry",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_disabled_employee_reminders",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_reminder_failure_history_and_retry",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_contact_link_visibility_and_search",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_calendar_day_interval_preserves_local_time_across_dst",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_catalog_template_waits_for_customer_event",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_confirmed_purchase_creates_follow_up_and_draft_cancelled_do_not",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_service_follow_ups::test_line_can_disable_catalog_follow_up",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_billing_plan_from_sales_order::test_srm_billing_plan_from_sales_order_is_invoice_ready",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_billing_plans::test_srm_billing_plan_lifecycle_and_milestones",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_billing_plans::test_srm_billing_plan_rejects_invalid_type",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_collection_aging::test_srm_collection_aging_buckets_overdue_invoice",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_collection_engine::test_srm_receipt_allocation_updates_invoice_and_aging",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_collection_reminders::test_srm_collection_reminder_escalation_and_writeoff_request",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_contracts::test_srm_contract_create_persists",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_contracts::test_srm_contract_duplicate_number_is_blocked",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_finance_rbac::test_srm_finance_collection_and_sales_rbac",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_milestone_to_invoice::test_srm_billing_milestone_creates_invoice_once",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_milestone_to_invoice::test_srm_client_approved_pms_milestone_creates_invoice",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_rbac::test_srm_role_without_permission_is_api_blocked",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_receipt_allocation::test_srm_receipt_allocation_rejects_over_allocation",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_receipts::test_srm_receipt_create_and_confirm",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_timesheet_to_invoice::test_srm_approved_timesheets_create_invoice_and_prevent_rebilling",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "tests.test_srm_timesheet_to_invoice::test_srm_unapproved_timesheet_is_rejected",
+      "status": "Pass",
+      "evidence": "workflows-101-150-regression.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_login",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_product_api",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_product_master_ui_filters_render",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_journal_must_balance",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_invoice_issue_deducts_stock_and_posts_balance",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_invoice_payments_update_status_and_reject_overpayment",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_unpaid_invoice_cancellation_reverses_stock",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_invoice_pages_and_api_render",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_terminal_add_item_page",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_redirects_without_active_session",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_product_search_by_sku_and_barcode",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_hold_and_recall_bill",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_complete_sale_and_reduce_stock",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_complete_split_payment_sale",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_split_without_posting[1000-1000]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_split_without_posting[-1-2361]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_split_without_posting[0-2500]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_cash_movements_baseline_persists_after_close",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-2026-00001",
+        "sale_id": "1",
+        "expected_vs_actual": "total=2360/2360; expected_cash=4560/4560; variance=-10/-10; stock=8/8"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_held_bill_cannot_be_recalled_twice_or_after_deletion",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[-1-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[0-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[1--1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_rejects_invalid_lines_without_stock_changes[1-1000-101]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_split_change_and_session_boundaries",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "cash=1000/1000; card=1360/1360; change=100/100; expected_cash=3000/3000; stock=8/8"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_manufacturing_post_once_and_shortage_retry",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "QA-MO-001",
+        "expected_vs_actual": "failed_issue_movements=0/0; component_remaining=12/12; finished=6/6; ledger_entries=2/2"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_partial_grn_rejects_overreceipt_and_cancelled_po",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "QA-PO-001",
+        "receipt_ids": "GRN-2026-00001,GRN-2026-00002",
+        "expected_vs_actual": "received=10/10; stock=20/20; persisted_receipts=2/2; rejected_excess_and_cancelled_stock_change=0/0"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_cash_sale_baseline_customer_and_stock_reconcile[Cash-2360-0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "total=2360/2360; tax=360/360; stock=8/8; valuation=4800/4800; COGS=1200/1200; customer_balance=0/0; stock_issues=1/1"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_cash_sale_baseline_customer_and_stock_reconcile[Split-1000-1360]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "total=2360/2360; tax=360/360; stock=8/8; valuation=4800/4800; COGS=1200/1200; customer_balance=0/0; stock_issues=1/1"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_complete_credit_sale_with_customer_and_reject_without_customer",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_line_discount_and_duplicate_submit",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_add_service_item_without_stock_reduction",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_insufficient_stock_returns_json_error",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_pos_close_session_calculation",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_razorpay_valid_signature_marks_invoice_paid",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_razorpay_invalid_signature_does_not_mark_paid",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_razorpay_duplicate_callback_is_ignored",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_tax_validation_helpers",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_tally_export_xml_is_well_formed",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_core::test_customization_fields_views_and_modules_workflow",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_101_102_service_invoice_only_issues_physical_goods[False]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "QA-101-SVC",
+        "expected_vs_actual": "total=5900/5900; outstanding=0/0; service_movements=0/0; goods_stock=10"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_101_102_service_invoice_only_issues_physical_goods[True]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "QA-101-MIX",
+        "expected_vs_actual": "total=5900/5900; outstanding=0/0; service_movements=0/0; goods_stock=8"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_111_customer_terms_calculate_due_date_and_allow_override",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "QA-111-TERMS",
+        "expected_vs_actual": "default_due=2027-02-14/2027-02-14; override=2027-02-20/2027-02-20"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_127_transfer_rejects_invalid_quantities_without_movements[0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_127_transfer_rejects_invalid_quantities_without_movements[-2]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_146_cash_change_and_closed_session_stays_stable",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "total=1180/1180; change=820/820; retained_cash=1180/1180; closing=1280/1280"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_127_129_same_warehouse_rejected_and_staged_transfer_posts_once",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "QA-129",
+        "expected_vs_actual": "dispatch_available=5/5; in_transit=5/5; received_company_stock=10/10; movements=2/2"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_141_cancelled_manufacturing_order_cannot_post",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_147_held_bill_stays_with_original_open_session",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "HOLD-2026-00001",
+        "expected_vs_actual": "cross_session_recall=403/403; closed_sales=0/0; stock_movements=0/0"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_149_cashier_cannot_reuse_another_cashiers_open_session",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "POS-2026-00001",
+        "expected_vs_actual": "foreign_drawer_sale=400/400; sales=0/0; inventory_movements=0/0; original_drawer_total=0/0"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_101_150::test_101_service_fulfillment_actions_blocked_and_cancellation_does_not_restock",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_53_retry_without_response_cookie_does_not_repost",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-2026-00001",
+        "expected_vs_actual": "sales=1/1; receipts=1/1; stock_issues=1/1; stock=8/8; session_sales=2360/2360"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[-1-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[0-1000-0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[1--1-0]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_normal_invoice_rejects_invalid_values[1-1000-101]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_92_93_fractional_return_uses_original_cost[0-True]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "SR-2026-00001",
+        "expected_vs_actual": "return_credit=590/590; restock=True; original_unit_cost=600; remaining_stock=8.25"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_92_93_fractional_return_uses_original_cost[2-True]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "SR-2026-00001",
+        "expected_vs_actual": "return_credit=590/590; restock=True; original_unit_cost=600; remaining_stock=10.25"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_92_93_fractional_return_uses_original_cost[0-False]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "SR-2026-00001",
+        "expected_vs_actual": "return_credit=590/590; restock=False; original_unit_cost=600; remaining_stock=7.75"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_59_60_mixed_tax_invoice_persists[rates0-2230]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-T1",
+        "expected_vs_actual": "invoice_total=2230/2230.0; tax_rates=[5, 18]"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_59_60_mixed_tax_invoice_persists[rates1-2180]",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {
+        "document_id": "INV-T1",
+        "expected_vs_actual": "invoice_total=2180/2180.0; tax_rates=[0, 18]"
+      },
+      "document_ids_note": "IDs are scoped to a disposable test execution and may repeat between fresh databases."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_77_inactive_product_cannot_be_sold_by_direct_id",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_53_same_key_cannot_change_payment_and_can_recover_after_closing",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_56_cumulative_fractional_return_cannot_exceed_sale",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    },
+    {
+      "test": "app.apps.inventory.vyapara_erp.tests.test_workflows_51_100::test_65_zero_price_is_permitted_but_not_negative",
+      "status": "Pass",
+      "evidence": "workflows-101-150-inventory.xml",
+      "document_evidence": {},
+      "document_ids_note": "Legacy regression does not export business document IDs; test assertions and result are in the XML."
+    }
+  ]
+}

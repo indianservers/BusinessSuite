@@ -54,13 +54,13 @@ def index():
 @bp.route("/create", methods=["GET", "POST"])
 @login_required
 def create():
-    sale = Sale(invoice_no=next_number("sales"), invoice_date=date.today(), due_date=date.today() + timedelta(days=30), status="Draft")
+    sale = Sale(invoice_no=next_number("sales"), invoice_date=date.today(), due_date=None, status="Draft")
     if request.method == "POST":
         try:
             sale = create_or_update_invoice(sale, request.form, parse_invoice_items(), current_user.id)
             if request.form.get("action") == "issue":
                 issue_invoice(sale, current_user.id)
-                flash("Invoice issued, stock updated, and accounts posted.", "success")
+                flash("Invoice issued and accounts posted.", "success")
             else:
                 flash("Draft invoice saved.", "success")
             db.session.commit()
@@ -90,7 +90,7 @@ def edit(id):
             create_or_update_invoice(invoice, request.form, parse_invoice_items(), current_user.id)
             if request.form.get("action") == "issue":
                 issue_invoice(invoice, current_user.id)
-                flash("Invoice issued, stock updated, and accounts posted.", "success")
+                flash("Invoice issued and accounts posted.", "success")
             else:
                 flash("Draft invoice updated.", "success")
             db.session.commit()
@@ -108,7 +108,7 @@ def issue(id):
     try:
         issue_invoice(invoice, current_user.id)
         db.session.commit()
-        flash("Invoice issued, stock updated, and accounts posted.", "success")
+        flash("Invoice issued and accounts posted.", "success")
     except Exception as exc:
         db.session.rollback()
         flash(str(exc), "danger")

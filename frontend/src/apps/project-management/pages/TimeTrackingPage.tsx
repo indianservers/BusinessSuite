@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -43,6 +44,7 @@ export default function TimeTrackingPage() {
   const [form, setForm] = useState<TimeFormState>(initialForm());
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -210,8 +212,8 @@ export default function TimeTrackingPage() {
       <Card>
         <CardHeader><CardTitle>Backend time logs</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {loading ? <div className="skeleton h-32 rounded-lg" /> : null}
-          {!loading && !logs.length ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">No time logs found.</div> : null}
+          {initialLoading ? <div className="skeleton h-32 rounded-lg" /> : null}
+          {!initialLoading && !logs.length ? <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">No time logs found.</div> : null}
           {logs.map((log) => (
             <div key={log.id} className="rounded-lg border p-3 text-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

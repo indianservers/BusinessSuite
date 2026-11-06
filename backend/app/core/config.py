@@ -7,6 +7,7 @@ from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
+    FORM16_TRUST_ROOTS_PEM: str = ""
     IMPORT_QUICKBOOKS_CLIENT_ID: str = ""
     IMPORT_QUICKBOOKS_CLIENT_SECRET: str = ""
     IMPORT_QUICKBOOKS_REDIRECT_URI: str = ""
@@ -63,6 +64,8 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: Optional[str] = None
+    PLATFORM_DATABASE_URL: str = Field(default="", repr=False)
+    PLATFORM_SECRET_KEY: str = Field(default="", repr=False)
     POSTGRES_USER: str = "business_suite"
     POSTGRES_PASSWORD: str = ""
     POSTGRES_SERVER: str = "127.0.0.1"

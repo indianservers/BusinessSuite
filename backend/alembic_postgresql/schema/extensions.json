@@ -3838,5 +3838,68 @@
     "lead_id",
     "organization_id",
     "person_id"
+  ],
+  "suite_signup_requests": [
+    "applicant_type",
+    "company_id",
+    "company_name",
+    "created_at",
+    "email",
+    "id",
+    "name",
+    "notes",
+    "phone",
+    "phone_country_code",
+    "requested_modules",
+    "review_reason",
+    "reviewed_at",
+    "reviewed_by",
+    "status",
+    "trial_ends_at",
+    "user_id"
+  ],
+  "payroll_delivery_profiles": [
+    "id",
+    "company_id",
+    "ytd_basis",
+    "fy_start_month",
+    "regular_template",
+    "settlement_template",
+    "branding",
+    "payout_key_id",
+    "payout_secret_encrypted",
+    "payout_account",
+    "payout_mode",
+    "updated_by",
+    "updated_at"
+  ],
+  "payroll_payout_attempts": [
+    "batch_id",
+    "company_id",
+    "created_by",
+    "employee_id",
+    "error",
+    "id",
+    "idempotency_key",
+    "lease_until",
+    "mode",
+    "payroll_record_id",
+    "provider_id",
+    "request_hash",
+    "request_json",
+    "status",
+    "updated_at",
+    "utr"
+  ],
+  "form16_records": [
+    "reviewed_at",
+    "reviewed_by",
+    "signature_evidence_json",
+    "signature_status",
+    "signed_file_path",
+    "signed_sha256"
+  ],
+  "payroll_payment_batches": [
+    "company_id"
   ]
 }

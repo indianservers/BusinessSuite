@@ -1,0 +1,20 @@
+[
+  {
+    "workflows": [
+      224,
+      225
+    ],
+    "url": "http://127.0.0.1:5297/srm/engagements/1",
+    "text": "Sales & Inventory Management\nEngagements\nBusiness Suite\nTeam workspace\nEngagement Detail\n\nLinked commercial lifecycle record.\n\nOpen customer 360\nOverview\nTeam & projects\nShared team and projects\nCreate / open linked project",
+    "gap": "No cancel/reopen action on engagement; backend status enumeration has no cancelled state."
+  },
+  {
+    "workflows": [
+      222,
+      223
+    ],
+    "url": "http://127.0.0.1:5297/srm/billing-plans/1",
+    "text": "Sales & Inventory Management\nBilling Plans\nBusiness Suite\nTeam workspace\nBilling Plan Detail\n\nLinked commercial lifecycle record.\n\nOverview\nQA-222-MILESTONE-AMENDMENT\ndraft\n\nCUSTOMER ID\n\n-\n\nCRM DEAL ID\n\n-\n\nSALES ORDER ID\n\n-\n\nENGAGEMENT ID\n\n1\n\nCONTRACT VALUE\n\n-\n\nTOTAL AMOUNT\n\n4000\n\nBUDGET AMOUNT\n\n-\n\nPMS PROJECT ID\n\n-",
+    "gap": "No milestone amendment or due-date control; plan PATCH schema has no milestones and no milestone-update route."
+  }
+]

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import AnalyticsOverview from "./AnalyticsOverview";
+import "./analytics.css";
 
 type SectionKey = "home" | "builder" | "reports" | "dashboards" | "schedules" | "exports" | "funnel" | "forecast" | "profitability" | "collections" | "campaigns" | "anomalies";
 
@@ -29,9 +31,9 @@ const sections: Array<{ key: SectionKey; label: string; path: string; icon: type
 
 function activeSection(pathname: string): SectionKey {
   if (pathname.includes("report-builder")) return "builder";
+  if (pathname.includes("scheduled-reports")) return "schedules";
   if (pathname.includes("reports")) return "reports";
   if (pathname.includes("dashboards")) return "dashboards";
-  if (pathname.includes("scheduled-reports")) return "schedules";
   if (pathname.includes("exports")) return "exports";
   if (pathname.includes("funnel")) return "funnel";
   if (pathname.includes("forecast")) return "forecast";
@@ -48,21 +50,23 @@ export default function AnalyticsPage() {
   const params = useParams();
   const active = activeSection(location.pathname);
   return (
-    <div className="space-y-6">
-      <div className="border-b bg-background px-4 py-5 sm:px-6 lg:px-8">
-        <p className="text-sm font-medium uppercase text-muted-foreground">Business Suite</p>
-        <h1 className="text-2xl font-semibold">Analytics and Export Engine</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">Report builder, dashboard builder, cross-module CRM/SRM/PMS analytics, scheduled runs, audited CSV/XLSX/PDF exports, and anomaly placeholders.</p>
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+    <div className="analytics-workspace">
+      <div className="analytics-page-header">
+        <div className="analytics-header-inner">
+        <div className="analytics-eyebrow"><span className="analytics-workspace-mark">B</span> Business Suite <span>/</span> Insights</div>
+        <div className="analytics-title-row"><div><h1>Analytics</h1>
+        <p>Your workspace, by the numbers.</p></div>
+        <Button variant="outline" size="sm" onClick={() => navigate("/ai/report-explainer?module_name=analytics")}><Sparkles className="h-4 w-4" />Ask AI</Button></div>
+        <nav className="analytics-navigation" aria-label="Analytics sections">
           {sections.map((item) => {
             const Icon = item.icon;
-            return <Button key={item.key} variant={active === item.key ? "default" : "outline"} size="sm" onClick={() => navigate(item.path)}><Icon className="h-4 w-4" />{item.label}</Button>;
+            return <button key={item.key} type="button" aria-current={active === item.key ? "page" : undefined} onClick={() => navigate(item.path)}><Icon className="h-3.5 w-3.5" />{item.key === "home" ? "Overview" : item.label}</button>;
           })}
-          <Button variant="outline" size="sm" onClick={() => navigate("/ai/report-explainer?module_name=analytics")}><Sparkles className="h-4 w-4" />AI Explainer</Button>
+        </nav>
         </div>
       </div>
-      <div className="px-4 pb-8 sm:px-6 lg:px-8">
-        {active === "home" ? <Home /> : null}
+      <div className="analytics-page-content">
+        {active === "home" ? <AnalyticsOverview /> : null}
         {active === "builder" ? <ReportBuilder /> : null}
         {active === "reports" ? <Reports selectedId={params.id} /> : null}
         {active === "dashboards" ? <Dashboards selectedId={params.id} /> : null}
@@ -87,14 +91,6 @@ function useRefresh(key: string) {
 function actionError(error: unknown) {
   if (error instanceof Error) return error.message;
   return "Action failed. Please try again.";
-}
-
-function Home() {
-  return (
-    <div className="grid gap-3 md:grid-cols-3">
-      {["Report Builder", "Dashboard Builder", "Export Engine", "Forecast", "Profitability", "Collections"].map((item) => <Card key={item}><CardContent className="p-4"><p className="font-medium">{item}</p><p className="mt-1 text-sm text-muted-foreground">Cross-module analytics capability backed by `/api/v1/analytics`.</p></CardContent></Card>)}
-    </div>
-  );
 }
 
 function ReportBuilder() {

@@ -792,6 +792,8 @@ def create_user(
     actor: User = Depends(admin),
 ):
     company_access(db, actor, data.companyId)
+    from app.enterprise.controls import enforce_seat_capacity
+    enforce_seat_capacity(db, data.companyId)
     check_step(request, actor)
     from app.api.v1.auth import _validate_password_policy, _hash_reset_token
     from app.common.models import CommonPerson

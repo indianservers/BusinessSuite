@@ -675,7 +675,11 @@ def test_crm_email_templates_and_draft_send_log_to_timeline(client, superuser_he
     assert any(item["activityType"] == "email" and "Welcome Maya" in item["title"] for item in timeline.json()["items"])
 
 
-def test_crm_whatsapp_sms_templates_send_logs_and_timeline(client, db, superuser_headers):
+def test_crm_whatsapp_sms_templates_send_logs_and_timeline(client, db, superuser_headers, monkeypatch):
+    from app.core.config import settings
+    # This contract exercises the mock adapter, independent of local .env senders.
+    monkeypatch.setattr(settings, "CRM_WHATSAPP_PROVIDER", "mock")
+    monkeypatch.setattr(settings, "CRM_SMS_PROVIDER", "mock")
     lead = client.post(
         "/api/v1/crm/leads",
         headers=superuser_headers,

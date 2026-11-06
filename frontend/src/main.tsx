@@ -5,8 +5,9 @@ import React from "react";
 import { recoverChunkLoad } from "./lib/chunk-recovery";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import App from "./App.tsx";
+import PlatformApp from "./platform/PlatformApp";
 import { api } from "./services/api";
 import { installRecordCache } from "./lib/smart-cache/integration";
 import CacheDiagnostics from "./lib/smart-cache/CacheDiagnostics";
@@ -52,14 +53,17 @@ window.addEventListener("suite:organization-changed",()=>{void queryClient.cance
 let statisticsRefresh:number|undefined;
 window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statisticsRefresh);statisticsRefresh=window.setTimeout(()=>{void queryClient.invalidateQueries({predicate:query=>/dashboard|headcount|statistics|stats|summary|metrics|count|overview|portfolio|analytics|notification|people-workspace|report|approval|hr-work/i.test(JSON.stringify(query.queryKey))})},180)});
 
+function PortalRoot() {
+  const {pathname} = useLocation();
+  if (pathname.startsWith("/platform")) return <PlatformApp/>;
+  return <><AsyncProgress/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AsyncProgress />
-        {import.meta.env.DEV && <CacheDiagnostics />}
-        <App />
-        <RecordQuickPreview />
+        <PortalRoot />
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>

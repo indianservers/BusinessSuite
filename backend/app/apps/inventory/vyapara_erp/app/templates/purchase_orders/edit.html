@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="panel" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="version" value="{{ po.updated_at }}">
+  <h2>Amend {{ po.po_no }}</h2>
+  <p>Only unreceived draft orders can be amended. Review all prices and replace supplier-specific terms when changing supplier.</p>
+  <div class="form-grid">
+    <label>Supplier<select class="form-select" name="supplier_id" required>{% for x in suppliers %}<option value="{{ x.id }}" {% if x.id == po.supplier_id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></label>
+    <label>Warehouse<select class="form-select" name="warehouse_id" required>{% for x in warehouses %}<option value="{{ x.id }}" {% if x.id == po.warehouse_id %}selected{% endif %}>{{ x.name }}</option>{% endfor %}</select></label>
+    <label>Expected Date<input class="form-control" type="date" name="expected_date" value="{{ po.expected_date or '' }}"></label>
+  </div>
+  <h3 class="h6 mt-3">Items</h3>
+  <button class="btn btn-outline-primary" type="button" id="add-row">Add line</button>
+  <div id="items">{% for item in po.items %}<div class="item-row mb-2">
+    <select name="product_id[]" class="form-select product-select" aria-label="Product" required>{% for p in products %}<option value="{{ p.id }}" data-price="{{ p.sales_price }}" data-cost="{{ p.purchase_price }}" data-tax="{{ p.tax.rate if p.tax else 0 }}" {% if p.id == item.product_id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}</select>
+    <input aria-label="Quantity" name="quantity[]" class="form-control qty" type="number" min="0.001" step="0.001" value="{{ item.quantity }}" required>
+    <input aria-label="Rate" name="rate[]" class="form-control rate" type="number" min="0" step="0.0001" value="{{ item.rate }}" required>
+    <input aria-label="Discount percent" name="discount[]" class="form-control discount" type="number" min="0" max="100" value="{{ item.discount }}">
+    <input aria-label="Tax percent" name="tax_rate[]" class="form-control tax" type="number" min="0" value="{{ item.tax_rate }}">
+    <input aria-label="Line total" class="form-control line-total" readonly value="{{ item.line_total }}">
+    <button class="btn btn-outline-danger remove-row" type="button" aria-label="Remove line">Remove</button>
+    <div class="stock-hint"></div>
+  </div>{% endfor %}</div>
+  <div class="form-grid">
+    <label>Subtotal<input id="subtotal" class="form-control" readonly></label>
+    <label>Discount<input id="discount_total" class="form-control" readonly></label>
+    <label>Tax<input id="tax_total" class="form-control" readonly></label>
+    <label>Total<input id="grand_total" class="form-control" readonly></label>
+  </div>
+  <label class="form-label">Terms<textarea class="form-control" name="terms">{{ po.terms or '' }}</textarea></label>
+  <label class="form-label">Notes<textarea class="form-control" name="notes">{{ po.notes or '' }}</textarea></label>
+  <label class="d-block"><input type="checkbox" name="supplier_revalidated"> I reviewed pricing, terms and supplier references for the selected supplier.</label>
+  <label class="d-block">Amendment reason<input class="form-control" name="amendment_reason" required></label>
+  <button class="btn btn-primary mt-3">Save amendment</button>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/invoice.js') }}"></script><script>document.addEventListener('DOMContentLoaded',async()=>{await initInvoiceForm('purchase');calculateInvoice();});document.querySelector('[name="supplier_id"]').addEventListener('change',()=>{document.querySelector('[name="terms"]').value='';document.querySelector('[name="notes"]').value='';document.querySelector('[name="supplier_revalidated"]').checked=false;});</script>{% endblock %}

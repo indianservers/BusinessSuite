@@ -1,0 +1,351 @@
+{
+  "scope": "Workflows1-50; partial browser run; no full-suite certification",
+  "configuration": {
+    "company": "Workflow1-50 Test Company",
+    "url": "http://127.0.0.1:5301",
+    "database": "new in-memory SQLite; no production records",
+    "product": "P1 selling1000,cost600,opening10",
+    "tax": "GST18 exclusive",
+    "currency": "INR",
+    "precision": "Application stores quantity3 decimals; tested integer quantities. Requested2-decimal configuration not certified."
+  },
+  "open_issues": [
+    {
+      "priority": "high",
+      "workflow": 28,
+      "issue": "Selected warehouse availability is not enforced; company-wide stock allows negative warehouse balance.",
+      "evidence": "workflows-1-50-warehouse-failure.png",
+      "cleanup": "QA-028-WAREHOUSE-EXCESS cancelled; Main restored6."
+    },
+    {
+      "priority": "medium",
+      "workflow": 17,
+      "issue": "Closing dialog displays initial stale tender totals after checkout, while final Z-report is current."
+    },
+    {
+      "priority": "medium",
+      "workflow": 20,
+      "issue": "Fast completion can leave payment and success modals overlapping; manual dismissal needed."
+    }
+  ],
+  "fixed_this_run": [
+    "POS tender input now updates payment state on input as well as change, so adding another tender retains the typed cash amount. Browser reverified1000 cash+1360 card."
+  ],
+  "verification": [
+    "test_pos_tender_inputs.cjs passed",
+    "test_pos_recovery.cjs passed",
+    "test_browser_inputs.cjs passed",
+    "git diff --check passed"
+  ],
+  "evidence": [
+    "workflows-1-50-baseline-records.json",
+    "workflows-1-50-browser-records.json",
+    "workflows-1-50-browser-observations.json",
+    "workflows-1-50-profit.png",
+    "workflows-1-50-cash-close.png",
+    "workflows-1-50-split-close.png",
+    "workflows-1-50-warehouse-failure.png"
+  ],
+  "workflows": [
+    {
+      "workflow": 1,
+      "title": "Create a customer and complete a sale",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 2,
+      "title": "Convert a CRM deal into a sales order",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 3,
+      "title": "Quotation through order and invoice",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 4,
+      "title": "Revise a quotation before acceptance",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 5,
+      "title": "Proforma invoice to final invoice",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 6,
+      "title": "Sales order approval lifecycle",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 7,
+      "title": "Cancel an unfulfilled sales order",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 8,
+      "title": "Partial delivery and backorder completion",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 9,
+      "title": "Fulfill a shortage through procurement",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 10,
+      "title": "Picklist, package, and delivery flow",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 11,
+      "title": "Return part of an invoiced sale",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 12,
+      "title": "Prevent excessive returns and refunds",
+      "status": "Browser subchecks passed",
+      "actual": "One of2 units returned for1180; excess additional2 blocked; excessive5000 refund blocked; no refund persisted. Other invoice debt means customer available credit was zero. Not a full successful-refund test."
+    },
+    {
+      "workflow": 13,
+      "title": "Contract lifecycle and renewal",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 14,
+      "title": "Engagement to PMS delivery and billing",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 15,
+      "title": "Sales follow-up and schedule tracking",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 16,
+      "title": "POS cash sale and cashier closing",
+      "status": "Browser passed",
+      "actual": "Opening2000 + cash sale2360, counted4360, expected4360, variance0. Receipt INV-2026-00001."
+    },
+    {
+      "workflow": 17,
+      "title": "POS split payment",
+      "status": "Browser calculation passed; UI issue remains",
+      "actual": "Fixed typed cash resetting when adding another tender. Reverified cash1000+card1360 total2360; closing expected/count1000,variance0. Close dialog had stale tender totals until refresh; persisted Z-report correct."
+    },
+    {
+      "workflow": 18,
+      "title": "Hold, recall, and complete a POS bill",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 19,
+      "title": "Delete a held POS bill",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 20,
+      "title": "POS cash movement and variance",
+      "status": "Browser calculation passed; dialog issue remains",
+      "actual": "Opening2000+cashin500-withdrawal300+cashsale2360=expected4560;count4550;variance-10. Fast checkout left success/payment modals overlapping; required manual dismissal."
+    },
+    {
+      "workflow": 21,
+      "title": "POS return against the original sale",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 22,
+      "title": "Enforce POS session boundaries",
+      "status": "Browser subcheck passed",
+      "actual": "Before session and after closure, terminal navigates to opening-session screen. Three separate sessions completed and closed. Direct stale-session request not attempted."
+    },
+    {
+      "workflow": 23,
+      "title": "Create a product and use it across the module",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 24,
+      "title": "Reject duplicate product identities",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 25,
+      "title": "Import products with mixed valid and invalid rows",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 26,
+      "title": "Barcode label to POS sale",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 27,
+      "title": "Price-list accuracy",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 28,
+      "title": "Warehouse-specific availability",
+      "status": "Failed\u2014warehouse stock enforcement",
+      "actual": "After verified transfer Main6, B4, attempted invoice7 from Main. It issued and Main valuation became quantity-1,value-600 while company quantity3. Cancelled test invoice7; verified Main restored6,value3600. Negative stock setting disabled."
+    },
+    {
+      "workflow": 29,
+      "title": "Opening stock accuracy",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 30,
+      "title": "Transfer stock between warehouses",
+      "status": "Browser passed",
+      "actual": "Initial10 Main/0B; Received transfer4 at600; after refresh Main6/value3600,B4/value2400; total10/value6000 conserved."
+    },
+    {
+      "workflow": 31,
+      "title": "Physical count adjustment",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 32,
+      "title": "Negative-stock controls",
+      "status": "Browser passed with smaller boundary dataset",
+      "actual": "With1 remaining, issue2 rejected without persisted invoice; valid issue1 succeeded and stock became0. Original requested2/3 boundary scaled down to1/2."
+    },
+    {
+      "workflow": 33,
+      "title": "Batch tracking and expiry",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 34,
+      "title": "Serial-number lifecycle",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 35,
+      "title": "Composite item stock consumption",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 36,
+      "title": "Repack stock into smaller units",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 37,
+      "title": "Reorder alert through replenishment",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 38,
+      "title": "Purchase order and full goods receipt",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 39,
+      "title": "Partial receipt and over-receipt prevention",
+      "status": "Browser passed",
+      "actual": "PO10 at600; GRN6 then attempt5 rejected; valid4 received. PO Received10/10, stock10,value6000. Approval-specific role matrix not exercised."
+    },
+    {
+      "workflow": 40,
+      "title": "Manufacture finished goods from a BOM",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 41,
+      "title": "Manufacturing with insufficient components",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 42,
+      "title": "Fixed-fee billing plan",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 43,
+      "title": "Milestone billing without duplication",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 44,
+      "title": "Time-and-materials billing",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 45,
+      "title": "Recurring billing and pause/resume",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 46,
+      "title": "Manual invoice calculation and approval",
+      "status": "Browser financial subcheck passed",
+      "actual": "Draft2 units at1000 less10% persisted discount200,tax324,total2124 after refresh; issued with same values. Sending and role approval not certified."
+    },
+    {
+      "workflow": 47,
+      "title": "Partial collection and aging",
+      "status": "Browser payment subcheck passed",
+      "actual": "Invoice2360; receipt1000 gives balance1360; receipt1360 gives balance0 after refresh; ledger shows same running balances. Aging cutoff not certified."
+    },
+    {
+      "workflow": 48,
+      "title": "Allocate one receipt across multiple invoices",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 49,
+      "title": "Overdue reminder, escalation, and write-off request",
+      "status": "Not executed in this run",
+      "actual": "No complete browser evidence; do not mark passed."
+    },
+    {
+      "workflow": 50,
+      "title": "Reconcile the complete sale across reports",
+      "status": "Browser financial reconciliation passed; lifecycle gap",
+      "actual": "Before later scenarios, invoice2360 paid2360,balance0; stock8 at600,value4800;sales2000,tax360,cost1200,profit800,margin40. Browser stock,valuation,sales,profit/customerledger agree. Separate order-delivery and Customer360 surface not certified."
+    }
+  ]
+}

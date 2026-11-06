@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AgentConfigForm from "@/components/ai-agents/AgentConfigForm";
@@ -10,6 +11,7 @@ export default function AiAgentConfigPage() {
   const [rows, setRows] = useState<AiAgentConfigRow[]>([]);
   const [filter, setFilter] = useState<AiModule | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,8 +62,8 @@ export default function AiAgentConfigPage() {
           </button>
         ))}
       </div>
-      {loading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Configuration loading...</div> : null}
-      {!loading ? (
+      {initialLoading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Configuration loading...</div> : null}
+      {!initialLoading ? (
         <div className="space-y-3">
           {visibleRows.map((row) => (
             <AgentConfigForm key={row.agent.id} row={row} onChange={updateRow} onSave={save} saving={savingId === row.agent.id} />

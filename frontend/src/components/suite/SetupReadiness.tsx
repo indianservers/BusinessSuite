@@ -15,7 +15,7 @@ export default function SetupReadiness({embedded = false}: {embedded?: boolean})
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const company = sessionStorage.getItem("suite-organization") || user?.access?.companyId;
-  const enabled = isAuthenticated && !/^\/(login|f\/|forms\/communication\/|portal\/|invite-access|reset-password)/.test(location.pathname);
+  const enabled = isAuthenticated && !/^\/(platform\/|login|f\/|forms\/communication\/|portal\/|invite-access|reset-password)/.test(location.pathname);
   const query = useQuery({queryKey: ["company-setup", user?.id, company, location.pathname], enabled,
     queryFn: async () => {
       const {data} = await api.get<Readiness>("/access/setup", {progress:false, recordCache:false});
@@ -33,14 +33,14 @@ export default function SetupReadiness({embedded = false}: {embedded?: boolean})
   }, [query.refetch, embedded]);
   useEffect(() => {setOpen(false);}, [company, location.pathname]);
   const pageItems = [...(query.data?.items || []), ...(query.data?.moduleItems || [])]
-    .filter(item => location.pathname.replace(/\/$/, "") === item.destination);
+    .filter(item => item.required !== false && !item.ready && location.pathname.replace(/\/$/, "") === item.destination);
   const guidePath = location.pathname === "/pms/reports" && new URLSearchParams(location.search).get("operation") === "/pms/dashboards" ? "/pms/dashboards" : location.pathname.replace(/\/$/, "");
   const guideModule = ({"/hrms":"hrms", "/hrms/dashboard":"hrms", "/hrms/manager-dashboard":"hrms", "/fam":"fam", "/fam/dashboard":"fam", "/crm":"crm", "/crm/dashboard":"crm", "/crm/sales-home":"crm", "/srm":"srm", "/srm/dashboard":"srm", "/pms":"project_management", "/pms/overview":"project_management", "/pms/dashboards":"project_management"} as Record<string,string>)[guidePath];
   const showGuide = location.pathname === "/settings" || !!guideModule;
   if (!enabled || (!embedded && (query.isPending || (query.data?.ready && !open && !pageItems.length)))) return null;
   if (embedded) return showGuide ? <SetupGuide data={query.data} module={guideModule} loading={query.isPending} error={query.isError} refreshing={query.isFetching} refresh={()=>void query.refetch()}/> : null;
-  const missing = query.data?.items.filter(i => !i.ready) || [];
-  const moduleMissing = query.data?.moduleItems?.filter(i => !i.ready) || [];
+  const missing = query.data?.items.filter(i => i.required !== false && !i.ready) || [];
+  const moduleMissing = query.data?.moduleItems?.filter(i => i.required !== false && !i.ready) || [];
   const renderItem = (item: Item) => <li key={item.id} className="rounded-lg border p-3">
     <strong>{item.title} <span className="text-destructive" aria-label="mandatory">*</span></strong><p className="mb-2 text-sm text-muted-foreground">{item.description}</p>
     {item.canRepair ? <Link className="text-sm font-medium underline" to={item.destination} onClick={()=>setOpen(false)}>Add or repair {item.title.toLowerCase()}</Link> : <p className="text-sm">Ask your company administrator to complete this item.</p>}

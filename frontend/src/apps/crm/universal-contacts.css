@@ -884,3 +884,6 @@
 .uc-editor-tabs{flex-shrink:0}
 .uc-editor form>.md-shared-number{max-height:120px;overflow:auto;flex-shrink:0}
 @media(max-width:640px){.uc-editor{height:90dvh!important}.uc-editor form>footer button{flex:1;min-height:40px}}
+
+.uc-row-actions { flex-wrap: wrap; max-width: 350px; }
+.uc-row-actions > button:disabled { opacity: .4; cursor: not-allowed; }

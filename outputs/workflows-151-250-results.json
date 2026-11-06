@@ -1,0 +1,628 @@
+{
+  "scope": "151–250; partial execution, not full browser certification",
+  "configuration": {
+    "environment": "isolated in-memory SQLite test company; localhost5298",
+    "browser": "independent in-app browser",
+    "currency": "INR",
+    "tax": "18% default; mixed5% case",
+    "valuation": "global weighted average",
+    "refund_approval_limit": "10000 default; pending requests do not change balances",
+    "suite_tests": "isolated backend test database; 112 selected regressions passed",
+    "production_data": "not used"
+  },
+  "fixes": [
+    "Escape invoice cart and product option text; cache-bust shared invoice asset",
+    "Export helper writes explicit string cell types",
+    "Reject refunds above available credit, original collections, or credit note balance; validate references; pending refunds have no financial effect",
+    "Warehouse stock/valuation use warehouse movement quantities and preserve export filter",
+    "Zero-sales margin displayed as not applicable"
+  ],
+  "evidence": [
+    "workflows-151-250-browser-invoice.png",
+    "workflows-151-250-targeted.xml",
+    "workflows-151-250-inventory-regression.xml",
+    "workflows-151-200-regression.xml"
+  ],
+  "workflows": [
+    {
+      "workflow": 151,
+      "title": "Partial collection followed by a full sales return",
+      "status": "Partial—gap remains",
+      "actual": "Refund rejects 1001 when eligible credit is 1000; 1000 succeeds once. Customer credit=0, stock=10. Original invoice balance allocation remains unimplemented."
+    },
+    {
+      "workflow": 152,
+      "title": "Return goods after the original order is closed",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 153,
+      "title": "Replace a returned defective item",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 154,
+      "title": "Return against a discounted original sale",
+      "status": "Pass—automated scope",
+      "actual": "Original 10% discounted sale returns 1062 with tax162 after master price doubles."
+    },
+    {
+      "workflow": 155,
+      "title": "Pre-delivery deposit followed by order cancellation",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 156,
+      "title": "Delivery attempted before mandatory approval",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 157,
+      "title": "Reverse a delivery before invoicing",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 158,
+      "title": "Change an order after partial invoicing",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 159,
+      "title": "Customer tax classification changes between orders",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 160,
+      "title": "Sales invoice numbering under simultaneous creation",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 161,
+      "title": "Financial-year numbering rollover",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 162,
+      "title": "Deleted draft and document-number handling",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 163,
+      "title": "Business form with custom required fields",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 164,
+      "title": "Change a form without corrupting historical records",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 165,
+      "title": "Save module settings and verify operational effect",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 166,
+      "title": "Reject an invalid settings update",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 167,
+      "title": "Approval threshold changed while an order is pending",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 168,
+      "title": "Unauthorized change of record ownership or branch",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 169,
+      "title": "Text-field injection displayed safely",
+      "status": "Pass—browser scope",
+      "actual": "Harmless HTML product name escaped in basket and saved invoice QA-169-20261106, ID2; injected DOM nodes 2 before fix, 0 after; total1180, due2026-12-06."
+    },
+    {
+      "workflow": 170,
+      "title": "Spreadsheet formula injection in exports",
+      "status": "Pass—helper scope",
+      "actual": "XLSX strings beginning =,+,-,@ remain string cells with exact values; negative numeric amount remains numeric. Other export paths not comprehensively certified."
+    },
+    {
+      "workflow": 171,
+      "title": "Import interruption and recovery",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 172,
+      "title": "Product export and re-import round trip",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 173,
+      "title": "Barcode lookup with leading zeros",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 174,
+      "title": "Scanner rapid-repeat input",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 175,
+      "title": "Keyboard-only checkout",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 176,
+      "title": "Mobile order entry with a long item list",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 177,
+      "title": "Expired login during document submission",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 178,
+      "title": "Browser back after successful checkout",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 179,
+      "title": "Network failure during stock transfer posting",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 180,
+      "title": "Network failure during goods receipt",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 181,
+      "title": "Receipt document versus collection report",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 182,
+      "title": "Gross margin percentage with zero sales",
+      "status": "Pass—automated scope",
+      "actual": "Free goods sale has cost100 and profit-100; margin is undefined, displayed as Not applicable (zero sales)."
+    },
+    {
+      "workflow": 183,
+      "title": "Net sales reporting after a return",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 184,
+      "title": "Warehouse filter applied to valuation and stock",
+      "status": "Pass—automated scope",
+      "actual": "Warehouse1 quantity5/value3000; warehouse2 quantity8/value4800; filtered export link retained. Global weighted-average valuation; legacy unledgered balance assigned to default warehouse."
+    },
+    {
+      "workflow": 185,
+      "title": "ABC analysis classification",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 186,
+      "title": "Dead-stock report boundary",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 187,
+      "title": "Sales velocity calculation",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 188,
+      "title": "Expiry report cutoff dates",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 189,
+      "title": "Serial-number report history",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 190,
+      "title": "Dashboard excludes canceled commitments",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 191,
+      "title": "Customer 360 distinguishes similarly named customers",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 192,
+      "title": "Customer 360 after receipt reversal and return",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 193,
+      "title": "Procurement report ordered-versus-received totals",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 194,
+      "title": "Manufacturing report planned-versus-produced totals",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 195,
+      "title": "Inventory-to-GL reconciliation as of a cutoff",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 196,
+      "title": "GRNI clearing after supplier billing",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 197,
+      "title": "Sales register reconciles with invoice tax details",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 198,
+      "title": "Inventory HSN summary accuracy",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 199,
+      "title": "Reconciliation resolution permission control",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 200,
+      "title": "End-to-end period close readiness",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 201,
+      "title": "Shipping charge refunded independently of goods",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 202,
+      "title": "Multiple partial returns against one invoice",
+      "status": "Pass—automated scope",
+      "actual": "Returns2+3+1 against10 retain June1/2/3 dates and original sale; fourth return5 rejected; credit7080, stock6."
+    },
+    {
+      "workflow": 203,
+      "title": "One return containing lines from different tax rates",
+      "status": "Pass—automated scope",
+      "actual": "Mixed tax return retains18% and5%, tax180+25, total1705 despite submitted tax0 and inflated rates."
+    },
+    {
+      "workflow": 204,
+      "title": "Return of a fractional-unit converted product",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 205,
+      "title": "Financial credit without a physical return",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 206,
+      "title": "Rejected return request",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 207,
+      "title": "Substitute an unavailable item before fulfillment",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 208,
+      "title": "Delivery destination changed after picking",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 209,
+      "title": "Duplicate customer PO reference policy",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 210,
+      "title": "Customer order minimum value",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 211,
+      "title": "Maximum discount approval",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 212,
+      "title": "Customer-specific product restriction",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 213,
+      "title": "Copy an order into a new draft",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 214,
+      "title": "Copy an invoice without duplicating settlement",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 215,
+      "title": "Order notes versus internal notes",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 216,
+      "title": "Attachments throughout the commercial lifecycle",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 217,
+      "title": "Unsafe or oversized attachment rejection",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 218,
+      "title": "Manual price override does not update the master",
+      "status": "Pass—automated scope",
+      "actual": "Manual invoice rate1000 leaves master selling price150 unchanged."
+    },
+    {
+      "workflow": 219,
+      "title": "Expired price-list fallback",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 220,
+      "title": "Conflicting applicable price lists",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 221,
+      "title": "Service quantity precision",
+      "status": "Pass—automated scope",
+      "actual": "Nonstock service1.25 at800: base1000,tax180,total1180; no inventory ledger movements."
+    },
+    {
+      "workflow": 222,
+      "title": "Billing milestone amount amended before invoicing",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 223,
+      "title": "Billing milestone date moved across periods",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 224,
+      "title": "Engagement canceled before project creation",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 225,
+      "title": "Reopen a mistakenly closed engagement",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 226,
+      "title": "Fixed billing and expense reimbursement",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 227,
+      "title": "Collection reminder excludes disputed invoices",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 228,
+      "title": "Promise-to-pay follow-up",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 229,
+      "title": "Partial write-off approval",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 230,
+      "title": "Reject a write-off request",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 231,
+      "title": "Settlement with a bank processing fee",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 232,
+      "title": "Payment method disabled after historical use",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 233,
+      "title": "Cash movement reversal within an open session",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 234,
+      "title": "Cashier closing with noncash sales only",
+      "status": "Pass—automated scope",
+      "actual": "Card1180 with opening/closing cash1000 leaves expected drawer1000, variance0."
+    },
+    {
+      "workflow": 235,
+      "title": "Rounding payable amount in POS",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 236,
+      "title": "Product sold while another user changes its master",
+      "status": "Partial—concurrency untested",
+      "actual": "Issued invoice retains rate1000/tax18/total2360 after later master update. Simultaneous-user race not exercised."
+    },
+    {
+      "workflow": 237,
+      "title": "Purchase-order delivery address differs from company address",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 238,
+      "title": "Supplier changed on an unreceived PO",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 239,
+      "title": "Purchase-order line removed before receipt",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 240,
+      "title": "GRN with multiple batches for one PO line",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 241,
+      "title": "Warehouse deactivation with remaining stock",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 242,
+      "title": "Reorder policy changed while a PO is open",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 243,
+      "title": "Batch number reused across different products",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 244,
+      "title": "Serial-number case and whitespace normalization",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 245,
+      "title": "Stock adjustment requiring an attachment",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 246,
+      "title": "Manufacturing BOM with fractional consumption",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 247,
+      "title": "Production components issued from different warehouses",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 248,
+      "title": "Production order quantity amended before completion",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 249,
+      "title": "Saved report filter shared with another authorized user",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    },
+    {
+      "workflow": 250,
+      "title": "Dashboard drill-down reconciles after corrective activity",
+      "status": "Not executed",
+      "actual": "No end-to-end evidence from this run; selected existing regressions are supporting evidence only."
+    }
+  ]
+}

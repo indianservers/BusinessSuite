@@ -1,12 +1,17 @@
 let invoiceProducts = [];
 let activePriceList = {};
+let activePriceListName = "";
+
+function escapeInvoiceText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
 
 function optionLabel(product) {
   return `${product.sku} - ${product.name}${product.current_stock <= 0 ? " (Out)" : ""}`;
 }
 
 function optionsHtml(products, selectedId = "") {
-  return products.map((p) => `<option value="${p.id}" data-price="${p.sales_price}" data-cost="${p.purchase_price}" data-tax="${p.tax_rate}" data-stock="${p.current_stock}" ${String(p.id) === String(selectedId) ? "selected" : ""}>${optionLabel(p)}</option>`).join("");
+  return products.map((p) => `<option value="${p.id}" data-price="${p.sales_price}" data-cost="${p.purchase_price}" data-tax="${p.tax_rate}" data-stock="${p.current_stock}" ${String(p.id) === String(selectedId) ? "selected" : ""}>${escapeInvoiceText(optionLabel(p))}</option>`).join("");
 }
 
 function legacyRowTemplate(products) {
@@ -29,7 +34,7 @@ function cartRowTemplate(product) {
     <button class="drag-handle" type="button" title="Drag item"><i class="bi bi-grip-vertical"></i></button>
     <select name="product_id[]" class="form-select product-select" required><option value="">Product</option>${optionsHtml(invoiceProducts, selectedId)}</select>
     <div class="cart-row-main">
-      <strong class="cart-row-title">${product ? product.name : "Select product"}</strong>
+      <strong class="cart-row-title">${product ? escapeInvoiceText(product.name) : "Select product"}</strong>
       <span class="stock-hint">${product ? `Available: ${product.current_stock}` : ""}</span>
     </div>
     <label>Qty<input name="quantity[]" class="form-control qty line-tab" type="number" min="0.001" step="0.001" value="1"></label>
@@ -46,7 +51,13 @@ async function initInvoiceForm(mode) {
   const holder = document.querySelector("#items");
   if (!holder) return;
   invoiceProducts = await fetch("/api/products").then((r) => r.json());
-  document.querySelector('[name="customer_id"]')?.addEventListener("change", loadCustomerPriceList);
+  const customerField = document.querySelector('[name="customer_id"]');
+  customerField?.addEventListener("change", loadCustomerPriceList);
+  document.querySelector('[name="invoice_date"]')?.addEventListener("change", () => {
+    if (customerField) loadCustomerPriceList({target:customerField});
+  });
+  document.querySelectorAll("#items .item-row").forEach(row => row.dataset.manualRate = "true");
+  if (customerField?.value) await loadCustomerPriceList({target:customerField});
   document.querySelector(".currency-select")?.addEventListener("change", (event) => {
     const rate = event.target.selectedOptions[0]?.dataset.rate || 1;
     const input = document.querySelector('[name="exchange_rate_snapshot"]');
@@ -153,7 +164,13 @@ function wireLineItemEvents(mode, holder) {
       updateCartState();
     }
   });
-  holder.addEventListener("input", () => {
+  holder.addEventListener("input", (event) => {
+    if (event.target.classList.contains("rate")) {
+      const row = event.target.closest(".item-row");
+      row.dataset.manualRate = "true";
+      const label = row.querySelector(".price-list-label");
+      if (label) label.textContent = "(Manual rate)";
+    }
     calculateInvoice();
     updateCartState();
   });
@@ -189,6 +206,7 @@ function addProductToCart(productId) {
     setTimeout(() => row.classList.remove("row-pulse"), 420);
   } else {
     holder.insertAdjacentHTML("beforeend", cartRowTemplate(product));
+    syncRowFromSelect(holder.lastElementChild, "sale", true);
   }
   calculateInvoice();
   updateCartState();
@@ -212,15 +230,43 @@ function syncRowFromSelect(row, mode, applyPricing = true) {
     label.className = "price-list-label small text-success";
     row.querySelector(".rate").insertAdjacentElement("afterend", label);
   }
-  if (label) label.textContent = priceListPrice ? "(Price List)" : "";
+  if (label) {
+    const manual = !applyPricing && Number(row.querySelector(".rate").value) !== Number(price);
+    label.textContent = manual ? "(Manual rate)" : priceListPrice !== undefined ? `(${activePriceListName || "Price List"})` : "";
+  }
 }
 
 async function loadCustomerPriceList(event) {
   const id = event.target.value;
   activePriceList = {};
+  activePriceListName = "";
+  const dateField = document.querySelector('[name="invoice_date"]');
+  const pricingDate = dateField?.value || "";
+  let status = document.querySelector("#price-list-status");
+  if (!status) {
+    status = document.createElement("p");
+    status.id = "price-list-status";
+    status.className = "small text-muted mb-0";
+    status.setAttribute("role", "status");
+    event.target.insertAdjacentElement("afterend", status);
+  }
+  status.textContent = id ? "Loading pricing..." : "Catalog pricing";
   if (!id) return;
-  const data = await fetch(`/api/customer/${id}/price-list`).then((r) => r.json());
-  activePriceList = data.items || {};
+  try {
+    const response = await fetch(`/api/customer/${id}/price-list?on=${encodeURIComponent(pricingDate)}`);
+    const data = await response.json();
+    if (event.target.value !== id || (dateField?.value || "") !== pricingDate) return;
+    if (!response.ok) throw new Error(data.error || "Pricing unavailable");
+    activePriceList = data.items || {};
+    activePriceListName = data.price_list_name || "";
+    status.textContent = `${data.fallback_reason ? data.fallback_reason + ". " : ""}${activePriceListName ? "Pricing: " + activePriceListName : "Catalog pricing"}`;
+    document.querySelectorAll("#items .item-row").forEach(row => {
+      if (row.dataset.manualRate !== "true") syncRowFromSelect(row, "sale", true);
+    });
+    calculateInvoice();
+  } catch (error) {
+    status.textContent = "Pricing unavailable; review rates before saving.";
+  }
 }
 
 function filterProductTiles() {

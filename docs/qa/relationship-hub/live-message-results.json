@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "messages": [
+    {
+      "id": 1,
+      "channel": "sms",
+      "status": "sent",
+      "provider": "mock",
+      "providerMessageId": "mock-sms-1793971747009",
+      "failureReason": null
+    }
+  ]
+}

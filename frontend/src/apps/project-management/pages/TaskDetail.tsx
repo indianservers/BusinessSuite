@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import CompactActions from "@/components/actions/CompactActions";
 import { ActionToolbar } from "@/components/actions";
 import RecordSectionNav from "@/components/RecordSectionNav";
@@ -163,6 +164,7 @@ export default function TaskDetail() {
   const [timeLogError, setTimeLogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   const numericTaskId = Number(taskId);
@@ -268,7 +270,7 @@ export default function TaskDetail() {
   const subtaskProgress = subtasks.length ? Math.round((completedSubtasks / subtasks.length) * 100) : 0;
   const canNavigateBoard = hasProjectRoute && Boolean(effectiveProjectId);
 
-  if (loading) return <div className="skeleton h-96 rounded-lg" />;
+  if (initialLoading) return <div className="skeleton h-96 rounded-lg" />;
   if (error) return <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>;
   if (!task) return <div className="rounded-lg border p-8 text-center text-muted-foreground">Task not found.</div>;
 

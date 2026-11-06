@@ -708,6 +708,7 @@ class PayrollUnlockRequestSchema(BaseModel):
 
 
 class PayslipPublishBatchCreate(BaseModel):
+    send_email: bool = True
     output_file_url: Optional[str] = None
     email_dispatch_status: str = "Queued"
 

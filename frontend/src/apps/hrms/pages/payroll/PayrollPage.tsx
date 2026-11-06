@@ -23,6 +23,9 @@ import { toast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useAuthStore } from "@/store/authStore";
 import GuidedPayroll from "./GuidedPayroll";
+import PayrollDeliverySettings from "./PayrollDeliverySettings";
+import SalaryPayouts from "./SalaryPayouts";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import EmployeeSearchSelect from "../../components/EmployeeSearchSelect";
 import PayrollDepartmentSelect from "./PayrollDepartmentSelect";
 
@@ -48,6 +51,7 @@ interface PayslipRecord {
   deductions?: { component_name: string; amount: number }[];
   employer_contributions?: { component_name: string; amount: number }[];
   reimbursements?: { component_name: string; amount: number }[];
+  ytd_period_label?: string;
   ytd?: {
     gross_salary: number;
     total_deductions: number;
@@ -227,7 +231,7 @@ const MONTHS = [
 
 const normalizeRunStatus = (status?: string) => (status || "draft").toLowerCase().replace(/\s+/g, "_");
 
-type PayrollTab = "guided" | "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
+type PayrollTab = "templates" | "payouts" | "guided" | "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
 
 export default function PayrollPage() {
   usePageTitle("Payroll");
@@ -235,7 +239,7 @@ export default function PayrollPage() {
   const { user } = useAuthStore();
   const isEmployee = user?.role === "employee" && !user?.is_superuser;
   const today = new Date();
-  const [activeTab, setActiveTab] = useHRSession<PayrollTab>("payroll-active-tab",isEmployee ? "viewer" : "guided");
+  const [activeTab, setActiveTab] = useHRSession<PayrollTab>("payroll-active-tab",isEmployee ? "viewer" : "guided");  const location = useLocation();  const navigate = useNavigate();  useEffect(() => {    const requested = new URLSearchParams(location.search).get("tab");    if (!isEmployee && (requested === "templates" || requested === "payouts") && activeTab !== requested) setActiveTab(requested);  }, [location.search, isEmployee, activeTab, setActiveTab]);
   const [wizardStep, setWizardStep] = useState(0);
   const [slipMonth, setSlipMonth] = useState(today.getMonth() + 1);
   const [slipYear, setSlipYear] = useState(today.getFullYear());
@@ -309,7 +313,7 @@ export default function PayrollPage() {
   const [slipEmployeeId, setSlipEmployeeId] = useState("");
   const visibleTabs: PayrollTab[] = isEmployee
     ? ["viewer"]
-    : ["guided", "wizard", "run", "viewer", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
+    : ["guided", "wizard", "run", "viewer", "templates", "payouts", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
 
   useEffect(() => {
     if (isEmployee && activeTab !== "viewer") setActiveTab("viewer");
@@ -337,7 +341,7 @@ export default function PayrollPage() {
   const { data: runRecords } = useQuery({
     queryKey: ["run-records", selectedRun?.id],
     queryFn: () => payrollApi.runRecords(selectedRun!.id).then((r) => r.data),
-    enabled: !!selectedRun && ["run","variance"].includes(activeTab),
+    enabled: !!selectedRun && ["run","variance","viewer"].includes(activeTab),
   });
 
   const { data: runVariance, refetch: refetchVariance } = useQuery({
@@ -941,12 +945,31 @@ export default function PayrollPage() {
     onError: () => toast({ title: "Could not generate payslip PDF", variant: "destructive" }),
   });
 
+  const [sendPayslipEmail, setSendPayslipEmail] = useState(true);
   const publishPayslipsMutation = useMutation({
-    mutationFn: (runId: number) => payrollApi.publishPayslips(runId, { send_email: true }),
+    mutationFn: (runId: number) => payrollApi.publishPayslips(runId, { send_email: sendPayslipEmail }),
     onSuccess: (response) => {
-      toast({ title: "Payslips published", description: `${response.data.total_payslips} payslips queued for email` });
+      toast({ title: "Payslips published", description: `${response.data.published_count} PDFs ready. Email: ${response.data.email_dispatch_status}.` });
+      qc.invalidateQueries({ queryKey: ["run-records"] });
+      qc.invalidateQueries({ queryKey: ["my-payslip-history"] });
+      qc.invalidateQueries({ queryKey: ["payslip"] });
     },
     onError: () => toast({ title: "Could not publish payslips", variant: "destructive" }),
+  });
+
+  const downloadPayslipMutation = useMutation({
+    mutationFn: (recordId: number) => payrollApi.downloadPayslipPdf(recordId),
+    onSuccess: (response) => {
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "payslip.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+    onError: () => toast({ title: "Could not download payslip PDF", variant: "destructive" }),
   });
 
   const saveToolResult = (key: string, data: unknown, title: string) => {
@@ -1103,6 +1126,7 @@ export default function PayrollPage() {
       <div>
         <h1 className="page-title">Payroll</h1>
         <p className="page-description">Configure salary setup, run monthly payroll, publish payslips, and review variance.</p>
+        {!isEmployee && <Button asChild variant="link" className="px-0"><Link to="/hrms/statutory-compliance?tab=form16">Open Form 16 &amp; Statutory Compliance</Link></Button>}
       </div>
 
       {/* Tabs */}
@@ -1110,18 +1134,20 @@ export default function PayrollPage() {
         {visibleTabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => { setActiveTab(tab); if (location.search) navigate({ pathname: location.pathname, search: "" }, { replace: true }); }}
             className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab === "guided" ? "Guided Payroll" : tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
+            {tab === "templates" ? "Payslip Templates" : tab === "payouts" ? "Salary Payouts" : tab === "guided" ? "Guided Payroll" : tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
           </button>
         ))}
       </div>
 
+      {activeTab === "templates" && !isEmployee && <PayrollDeliverySettings />}
+      {activeTab === "payouts" && !isEmployee && <SalaryPayouts />}
       {activeTab === "guided" && !isEmployee && <GuidedPayroll onOpenTool={setActiveTab} />}
       {activeTab === "viewer" && (
         <div className="space-y-4">
@@ -1145,14 +1171,19 @@ export default function PayrollPage() {
                   <CardTitle className="text-base">Run Payslip Browser</CardTitle>
                   <CardDescription>Select a payroll run to render employee payslips, generate PDFs, and bulk publish by email.</CardDescription>
                 </div>
+                <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sendPayslipEmail} disabled={publishPayslipsMutation.isPending} onChange={(event) => setSendPayslipEmail(event.target.checked)} />Notify employees by email</label>
                 <Button
                   variant="outline"
-                  disabled={!selectedRun || publishPayslipsMutation.isPending}
+                  disabled={!selectedRun || !["locked", "paid"].includes(selectedRun.status.toLowerCase()) || publishPayslipsMutation.isPending}
+                  aria-label="Bulk publish"
+                  title="Lock payroll before publishing payslips"
                   onClick={() => selectedRun && publishPayslipsMutation.mutate(selectedRun.id)}
                 >
                   <Mail className="mr-2 h-4 w-4" />
                   Bulk publish
                 </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -1217,10 +1248,13 @@ export default function PayrollPage() {
                     <CardTitle>Employee Payslip Preview</CardTitle>
                     <CardDescription>{selectedPayslipRecord.employee?.first_name} {selectedPayslipRecord.employee?.last_name} | {selectedRun ? `${MONTHS[selectedRun.month - 1]} ${selectedRun.year}` : "Selected run"}</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => generatePdfMutation.mutate(selectedPayslipRecord.id)}>
+                  <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" disabled={generatePdfMutation.isPending} onClick={() => generatePdfMutation.mutate(selectedPayslipRecord.id)}>
                     <Download className="mr-2 h-4 w-4" />
                     Generate PDF
                   </Button>
+                  <Button size="sm" disabled={downloadPayslipMutation.isPending} onClick={() => downloadPayslipMutation.mutate(selectedPayslipRecord.id)}>Download PDF</Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1277,7 +1311,7 @@ export default function PayrollPage() {
                     )}
                   </div>
                   <div className="rounded-md border p-4">
-                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">YTD</h3>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">YTD · {selectedPayslipRecord.ytd_period_label || "Financial year"}</h3>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div><p className="text-muted-foreground">Gross</p><p className="font-medium">{formatCurrency(selectedPayslipRecord.ytd?.gross_salary || 0)}</p></div>
                       <div><p className="text-muted-foreground">Net</p><p className="font-medium">{formatCurrency(selectedPayslipRecord.ytd?.net_salary || 0)}</p></div>
@@ -1430,7 +1464,7 @@ export default function PayrollPage() {
 
                 {payslip.ytd && (
                   <div>
-                    <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Year to Date</h3>
+                    <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">Year to Date · {payslip.ytd_period_label || payslip.financial_year || "Financial year"}</h3>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                       <div className="rounded-md border p-3">
                         <p className="text-muted-foreground">Gross</p>

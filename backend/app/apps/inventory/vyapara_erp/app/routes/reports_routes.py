@@ -3,15 +3,17 @@ import json
 from collections import defaultdict
 from datetime import date, timedelta
 from io import StringIO
+from types import SimpleNamespace
 from xml.sax.saxutils import escape
 
-from flask import Blueprint, Response, render_template, request, send_file
+from flask import Blueprint, Response, abort, render_template, request, send_file
 from flask_login import current_user, login_required
 from sqlalchemy import extract, func
 
 from app.extensions import db
 from app.models import AccountGroup, AuditLog, Batch, Branch, Category, ChartOfAccounts, CreditNote, Customer, CustomerLedger, Expense, ITCEntry, InventoryLedger, PaymentMade, PaymentReceived, POSSession, Product, ProductBatch, Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem, Register, Sale, SaleItem, SalesReturn, SalesReturnItem, SerialNumber, Supplier, SupplierLedger, Tax, Warehouse
 from app.utils.excel_export import export_to_excel
+from app.utils.helpers import money
 
 bp = Blueprint("reports", __name__, url_prefix="/reports")
 XLSX_MIMETYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -57,10 +59,36 @@ def purchase_report():
     return render_template("reports/table.html", title="Purchase Report", rows=rows, columns=columns)
 
 
+def warehouse_stock_rows():
+    products = Product.query.order_by(Product.name).all()
+    if not request.args.get("warehouse_id"):
+        return products
+    warehouse = db.session.get(Warehouse, request.args.get("warehouse_id", type=int))
+    if warehouse is None:
+        abort(400, "Unknown warehouse")
+    balances = defaultdict(dict)
+    for product_id, warehouse_id, quantity in db.session.query(
+        InventoryLedger.product_id, InventoryLedger.warehouse_id,
+        func.sum(InventoryLedger.qty_in - InventoryLedger.qty_out)
+    ).group_by(InventoryLedger.product_id, InventoryLedger.warehouse_id).all():
+        balances[product_id][warehouse_id] = quantity
+    rows = []
+    for product in products:
+        ledger = balances[product.id]
+        quantity = ledger.get(warehouse.id, 0)
+        # Legacy opening balances without ledger entries belong to the default warehouse.
+        if product.warehouse_id == warehouse.id:
+            quantity += product.current_stock - sum(ledger.values())
+        rows.append(SimpleNamespace(sku=product.sku, name=product.name,
+            current_stock=quantity, average_cost=product.average_cost,
+            stock_value=quantity * product.average_cost, warehouse=warehouse))
+    return rows
+
+
 @bp.route("/stock")
 @login_required
 def stock_report():
-    rows = Product.query.order_by(Product.name).all()
+    rows = warehouse_stock_rows()
     columns = ["sku", "name", "current_stock", "average_cost"]
     if request.args.get("export") == "xlsx":
         return excel_response("stock-report.xlsx", "Stock", [c.replace("_", " ").title() for c in columns], [[getattr(r, c) for c in columns] for r in rows])
@@ -93,10 +121,7 @@ def reorder_report():
 @bp.route("/valuation")
 @login_required
 def valuation_report():
-    query = Product.query
-    if request.args.get("warehouse_id"):
-        query = query.filter(Product.warehouse_id == request.args["warehouse_id"])
-    products = query.order_by(Product.name).all()
+    products = warehouse_stock_rows()
     total_value = sum(product.stock_value for product in products)
     if request.args.get("export") == "xlsx":
         rows = [[p.sku, p.name, p.warehouse.name if p.warehouse else "", p.current_stock, p.average_cost, p.stock_value] for p in products]
@@ -137,12 +162,24 @@ def inventory_ledger():
 @bp.route("/profit-loss")
 @login_required
 def profit_loss():
-    sales = sum(float(s.grand_total or 0) for s in Sale.query.filter(Sale.status.notin_(["Draft", "Cancelled"])).all())
-    purchases = sum(float(p.grand_total or 0) for p in Purchase.query.all())
-    rows = [["Sales Income", sales], ["Purchases / Cost", purchases], ["Net Profit", sales - purchases]]
+    posted = Sale.query.filter(Sale.status.notin_(["Draft", "Cancelled"])).all()
+    sales = sum((money(s.grand_total) - money(s.tax_total) for s in posted), money(0))
+    purchases = sum((money(item.cost_price * item.quantity) for sale in posted for item in sale.items), money(0))
+    for returned in SalesReturn.query.filter_by(status="Approved").all():
+        sales -= money(returned.grand_total) - money(returned.tax_total)
+        if returned.restock and returned.sale:
+            for item in returned.items:
+                original = [line for line in returned.sale.items if line.product_id == item.product_id]
+                sold_qty = sum(line.quantity for line in original)
+                if sold_qty:
+                    average_cost = sum(line.cost_price * line.quantity for line in original) / sold_qty
+                    purchases -= money(average_cost * item.quantity)
+    profit = sales - purchases
+    gross_margin = money(profit / sales * 100) if sales else None
+    rows = [["Sales Income (excluding tax)", sales], ["Cost of Goods Sold", purchases], ["Gross Profit", profit], ["Gross Margin (%)", gross_margin if gross_margin is not None else "Not applicable (zero sales)"]]
     if request.args.get("export") == "xlsx":
         return excel_response("profit-loss.xlsx", "Profit Loss", ["Particular", "Amount"], rows)
-    return render_template("reports/profit_loss.html", title="Profit and Loss", sales=sales, purchases=purchases, profit=sales - purchases)
+    return render_template("reports/profit_loss.html", title="Profit and Loss", sales=sales, purchases=purchases, profit=profit, gross_margin=gross_margin)
 
 
 @bp.route("/receivables-aging")

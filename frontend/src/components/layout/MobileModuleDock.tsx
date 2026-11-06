@@ -76,7 +76,7 @@ export const mobileModuleMenus: Record<string, Item[]> = {
 
     item("Leave", BriefcaseBusiness, "/hrms/leave", [["Apply for leave", "/hrms/leave?new=leave"], ["Leave balances & requests", "/hrms/leave"], ["Request inbox", "/hrms/workflow"], ["Approvals", "/hrms/approval-os"]]),
 
-    item("Payroll", Receipt, "/hrms/payroll", [["My payslips", "/hrms/my-payslips"], ["Manage payroll", "/hrms/payroll"], ["Investment declaration", "/hrms/investment-declaration"], ["Final settlements", "/hrms/fnf-settlements"]]),
+    item("Payroll", Receipt, "/hrms/payroll", [["My payslips", "/hrms/my-payslips"], ["Manage payroll", "/hrms/payroll"], ["Payslip templates", "/hrms/payroll?tab=templates"], ["Salary payouts", "/hrms/payroll?tab=payouts"], ["Form 16", "/hrms/statutory-compliance?tab=form16"], ["Investment declaration", "/hrms/investment-declaration"], ["Final settlements", "/hrms/fnf-settlements"]]),
 
   ],
 
@@ -104,10 +104,13 @@ export default function MobileModuleDock() {
   const allowed = (to: string) => canAccessRoute(to.split("?")[0], user?.role, user?.is_superuser);
 
   const actions = selected?.actions.filter(([, to]) => allowed(to)) || [];
+  const canReadLeaveApprovals = Boolean(user?.is_superuser || (user?.access?.managed
+    ? user.access.grants.hrms?.permissions.includes("leave_approve")
+    : /admin|manager|hr|ceo/i.test(user?.role || "")));
 
   const badges = useQuery<Record<string, number>>({
 
-    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module],
+    queryKey: ["mobile-action-badges", user?.id, user?.access?.companyId, module, canReadLeaveApprovals],
 
     queryFn: async (): Promise<Record<string, number>> => {
 
@@ -115,7 +118,7 @@ export default function MobileModuleDock() {
 
       if (module === "pms" && allowed("/pms/my-work")) { const r = await api.get("/project-management/tasks", { params: { workView: "mine", pageSize: 1 }, progress: false }); return { "My Work": Number(r.data.summary?.overdue || 0), Tasks: Number(r.data.summary?.in_review || 0) }; }
 
-      if (module === "hrms" && /admin|manager|hr|ceo/i.test(user?.role || "")) { const r = await api.get("/leave/requests", { params: { status: "Pending" }, progress: false }); const rows = Array.isArray(r.data) ? r.data : r.data.items; return { Leave: Array.isArray(rows) ? rows.length : 0 }; }
+      if (module === "hrms" && canReadLeaveApprovals) { const r = await api.get("/leave/requests", { params: { status: "Pending" }, progress: false, recordCache: false }); const rows = Array.isArray(r.data) ? r.data : r.data.items; return { Leave: Array.isArray(rows) ? rows.length : 0 }; }
 
       return {};
 

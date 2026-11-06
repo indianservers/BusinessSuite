@@ -1,0 +1,73 @@
+{
+  "scope": "222-225 continuation of201-250; these four previous blockers resolved. Other unexecuted workflows remain outstanding.",
+  "configuration": {
+    "url": "http://127.0.0.1:5313",
+    "backend": "http://127.0.0.1:1568",
+    "storage": "Disposable temporary SQLite, synthetic company/customer101; no external services",
+    "currency": "INR",
+    "period_rule": "Inclusive due-date range; active plan; approved/ready/completed unbilled milestones; future draft creation blocked",
+    "amendment_rule": "Optimistic original amount/date; reset approval; plan total changes by delta; billed milestones immutable",
+    "lifecycle_rule": "Reason and manage permission required; cancelled terminal; closed requires authorized reopen; open dependencies prevent closing"
+  },
+  "tests": {
+    "backend": "16 passed",
+    "typescript": "tsc --noEmit passed",
+    "persisted_assertions": "Passed: exact invoice count,amended plan total,no cancellation orphans,no future milestone draft,historical billing links preserved"
+  },
+  "workflows": [
+    {
+      "workflow": 222,
+      "status": "Pass",
+      "documents": [
+        "engagement3",
+        "billingplan2",
+        "milestone2",
+        "invoice2 INV-000001"
+      ],
+      "expected": "Approved amendment4000 to4500 reconciles and bills once.",
+      "actual": "Browser amendment resets approval; plan4500; approved milestone invoiced once for4500; invoice issued and retained after reload. Billed row cannot amend or regenerate.",
+      "evidence": "workflows-222-issued.png"
+    },
+    {
+      "workflow": 223,
+      "status": "Pass",
+      "documents": [
+        "engagement4",
+        "billingplan3",
+        "milestone3"
+      ],
+      "expected": "Moving date moves eligibility to correct period without duplicate draft.",
+      "actual": "Nov15 moved toDec15; reapproval required; November eligible0,December1. Early generation rejected; draft link remains null.",
+      "evidence": "workflows-223-period-move.png"
+    },
+    {
+      "workflow": 224,
+      "status": "Pass",
+      "documents": [
+        "engagement2 QA-224-CANCEL"
+      ],
+      "expected": "Cancel before handoff blocks project,plan,invoice creation.",
+      "actual": "Cancelled in browser with reason and actor. Project control disabled; plan attempt rejected. Persisted project null,plans0,invoices0; API tests also reject project/invoice/status bypass.",
+      "evidence": "workflows-224-cancelled.png"
+    },
+    {
+      "workflow": 225,
+      "status": "Pass",
+      "documents": [
+        "engagement1 QA-225-CLOSED",
+        "historicalplan1",
+        "historicalinvoice1 QA-225-PAID-HISTORY",
+        "project1",
+        "task1 TASK-09a8c2e6-0fa"
+      ],
+      "expected": "Authorized reopen preserves history and permits distinct new completed delivery.",
+      "actual": "Seeded closed engagement reopened in browser with actor/reason; new project and task created; task Completed persisted after reload. Existing completedplan100,paidinvoice100 and invoicedmilestone remain unchanged. Close/reopen dependency and authorization checks pass in API regression.",
+      "evidence": "workflows-225-completed-task.png"
+    }
+  ],
+  "evidence": [
+    "workflows-222-225-browser-observations.json",
+    "workflows-222-225-browser-records.json",
+    "workflows-222-225-regression.xml"
+  ]
+}

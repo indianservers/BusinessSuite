@@ -43,7 +43,7 @@ def create_journal(entry_date, reference_type, reference_id, narration, lines, u
 
 def post_sale(sale, user_id=None):
     customer = Customer.query.get(sale.customer_id)
-    customer.current_balance = money(customer.current_balance) + money(sale.balance_amount)
+    customer.current_balance = money(customer.current_balance) + money(sale.grand_total)
     balance = customer.outstanding + float(sale.grand_total)
     db.session.add(CustomerLedger(date=sale.invoice_date, customer_id=sale.customer_id, reference_type="Sale", reference_id=sale.id, reference_no=sale.invoice_no, debit=sale.grand_total, credit=0, balance=balance, narration="Sales invoice"))
     lines = [

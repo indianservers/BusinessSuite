@@ -186,7 +186,7 @@ export default function Sidebar({
         className="min-h-0 flex-1 overflow-y-auto py-3"
       >
         <ModuleNavigation collapsed={collapsed} onNavigate={onClose} />
-      <Link to="/settings" className={cn("nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2", collapsed && "justify-center")} title="Suite settings" onClick={onClose}><SettingsIcon className="h-4 w-4" />{!collapsed && "Suite settings"}</Link>
+      <Link to="/company-admin" className={cn("nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2", collapsed && "justify-center")} title="Company Admin" onClick={onClose}><SettingsIcon className="h-4 w-4" />{!collapsed && "Company Admin"}</Link>
       </nav>
       <div className="shrink-0 border-t border-sidebar-border p-2">
         <Link

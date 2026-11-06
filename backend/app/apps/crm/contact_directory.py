@@ -73,7 +73,14 @@ def tagged(label):
     clean = label.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     normalized = func.replace(func.coalesce(CRMContact.tags_text, ""), ", ", ",")
     exact = func.lower("," + normalized + ",").like(f"%,{clean},%", escape="\\")
-    return or_(exact, CRMContact.lifecycle_stage == label)
+    predicate = or_(exact, CRMContact.lifecycle_stage == label)
+    if label == "Prospect":
+        from app.apps.crm.lead_models import CRMLeadOperatingState
+        potential = select(CRMLeadOperatingState.lead_id).where(
+            CRMLeadOperatingState.data_json["recordType"].as_string() == "Potential")
+        predicate = or_(predicate, CRMContact.id.in_(select(ContactIdentityLink.contact_id).where(
+            ContactIdentityLink.lead_id.in_(potential))))
+    return predicate
 
 
 class Condition(BaseModel):

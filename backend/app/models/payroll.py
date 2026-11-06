@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Date, Numeric, Text, JSON, Index
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Date, Numeric, Text, JSON, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -1065,10 +1065,49 @@ class OffCyclePayrollRun(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class PayrollDeliveryProfile(Base):
+    __tablename__ = "payroll_delivery_profiles"
+    id = Column(Integer, primary_key=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, unique=True)
+    ytd_basis = Column(String(20), nullable=False, default="financial")
+    fy_start_month = Column(Integer, nullable=False, default=4)
+    regular_template = Column(JSON, nullable=False, default=dict)
+    settlement_template = Column(JSON, nullable=False, default=dict)
+    branding = Column(JSON, nullable=False, default=dict)
+    payout_key_id = Column(String(120))
+    payout_secret_encrypted = Column(Text)
+    payout_account = Column(String(120))
+    payout_mode = Column(String(10), nullable=False, default="test")
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class PayrollPayoutAttempt(Base):
+    __tablename__ = "payroll_payout_attempts"
+    __table_args__ = (UniqueConstraint("payroll_record_id", "mode", name="uq_payroll_payout_record_mode"),)
+    id = Column(Integer, primary_key=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    batch_id = Column(Integer, ForeignKey("payroll_payment_batches.id", ondelete="CASCADE"), nullable=False, index=True)
+    payroll_record_id = Column(Integer, ForeignKey("payroll_records.id"), nullable=False)
+    idempotency_key = Column(String(36), nullable=False, unique=True)
+    request_hash = Column(String(64), nullable=False)
+    request_json = Column(JSON, nullable=False)
+    provider_id = Column(String(100), unique=True)
+    mode = Column(String(10), nullable=False)
+    status = Column(String(30), nullable=False, default="prepared")
+    error = Column(String(300))
+    utr = Column(String(120))
+    lease_until = Column(DateTime(timezone=True))
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class PayrollPaymentBatch(Base):
     __tablename__ = "payroll_payment_batches"
 
     id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="SET NULL"))
     payroll_run_id = Column(Integer, ForeignKey("payroll_runs.id", ondelete="CASCADE"), nullable=False, index=True)
     bank_format_id = Column(Integer, ForeignKey("bank_advice_formats.id", ondelete="SET NULL"), nullable=True)
     debit_account = Column(String(120))

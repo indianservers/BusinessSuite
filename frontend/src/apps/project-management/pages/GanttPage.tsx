@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -59,6 +60,7 @@ export default function GanttPage() {
   const [dependencyType, setDependencyType] = useState("Finish To Start");
   const [lagDays, setLagDays] = useState("0");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
@@ -251,9 +253,9 @@ export default function GanttPage() {
 
       <Card>
         <CardContent ref={scrollRef} className="max-w-full overflow-auto p-0" aria-label="Scrollable task timeline">
-          {loading ? <div className="skeleton m-5 h-96 rounded-lg" /> : null}
-          {!loading && !rows.length ? <div className="m-5 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Add task start or due dates to populate the Gantt timeline.</div> : null}
-          {!loading && rows.length ? (
+          {initialLoading ? <div className="skeleton m-5 h-96 rounded-lg" /> : null}
+          {!initialLoading && !rows.length ? <div className="m-5 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Add task start or due dates to populate the Gantt timeline.</div> : null}
+          {!initialLoading && rows.length ? (
             <div className="min-w-full" style={{ width: labelWidth + timeline.width }}>
               <div className="sticky top-0 z-20 grid bg-background" style={{ gridTemplateColumns: `${labelWidth}px ${timeline.width}px` }}>
                 <div className="sticky left-0 z-30 border-b border-r bg-background p-3 text-xs font-semibold uppercase text-muted-foreground">Task</div>

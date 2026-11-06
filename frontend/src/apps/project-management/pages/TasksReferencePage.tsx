@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { RecordCustomFields } from "../components/CustomFields";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
@@ -158,6 +159,7 @@ export default function TasksReferencePage() {
   );
   const [data, setData] = useState<PMSTaskListResponse>();
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
   const [menu, setMenu] = useState(false);
@@ -500,7 +502,7 @@ export default function TasksReferencePage() {
                     </span>
                     <div>
                       <span>{m.label}</span>
-                      <strong>{loading ? "—" : m.value}</strong>
+                      <strong>{initialLoading ? "—" : m.value}</strong>
                       <small>{m.caption}</small>
                     </div>
                     <BarChart3 className="tr-chart" size={18} />
@@ -1000,7 +1002,7 @@ export default function TasksReferencePage() {
                       </RecordActions>
                     ))
                   )}
-                  {!loading && !data?.items.length && (
+                  {!initialLoading && !data?.items.length && (
                     <div className="tr-empty">
                       <ClipboardList />
                       <h2>
@@ -1024,7 +1026,7 @@ export default function TasksReferencePage() {
                 </div>
                 <div className="tr-pagination">
                   <span>
-                    {loading
+                    {initialLoading
                       ? "Loading tasks…"
                       : `Showing ${data?.total ? (page - 1) * pageSize + 1 : 0} to ${Math.min(page * pageSize, data?.total || 0)} of ${data?.total || 0} tasks`}
                   </span>

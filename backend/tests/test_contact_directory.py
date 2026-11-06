@@ -124,6 +124,22 @@ def test_directory_branch_scope_and_bulk_atomicity(db):
         cleanup()
 
 
+def test_potential_customers_are_in_prospect_view(client, db, superuser_headers, directory_identity):
+    from app.apps.crm.lead_models import CRMLeadOperatingState
+    from app.branches.migration import backfill
+    lead = CRMLead(organization_id=1, branch_id=directory_identity.id, first_name="Potential", full_name="Potential customer", status="New")
+    db.add(lead); db.flush()
+    db.add(CRMLeadOperatingState(organization_id=1, lead_id=lead.id, data_json={"recordType": "Potential"}))
+    db.commit()
+    backfill(db.connection(), 1); db.commit()
+    result = client.post(ROOT + "/backfill", headers=superuser_headers)
+    assert result.status_code == 200, result.text
+    contact_id = db.query(ContactIdentityLink).filter_by(lead_id=lead.id).one().contact_id
+    result = client.get(ROOT, headers=superuser_headers, params={"relationship": "Prospect"})
+    assert result.status_code == 200, result.text
+    assert contact_id in {row["id"] for row in result.json()["items"]}
+
+
 def test_conversion_reuses_identity_preserves_history_and_correction(client, db, superuser_headers, directory_identity):
     from app.branches.migration import backfill
     lead = CRMLead(organization_id=1, branch_id=directory_identity.id, first_name="Canonical", full_name="Canonical Customer", email="canonical@example.com", status="Qualified", notes="Lead history")

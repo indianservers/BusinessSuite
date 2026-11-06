@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { defaultText, defaultNumber, defaultId, defaultOwner, defaultDateAfter, formDefaults } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
@@ -2589,6 +2590,7 @@ function CustomFieldsSettingsPageOld() {
   const [fields, setFields] = useState<CRMApiRecord[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>({ entityType: "leads", fieldName: "", fieldKey: "", fieldType: "text", options: "", isRequired: false, isUnique: false, isVisible: true, isFilterable: false, displayOrder: 1 });
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const load = () => {
     setLoading(true);
@@ -2673,7 +2675,7 @@ function CustomFieldsSettingsPageOld() {
       <Card>
         <CardHeader><CardTitle>{customFieldEntities.find((item) => item.value === entity)?.label} Fields</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {loading ? <p className="text-sm text-muted-foreground">Loading custom fields...</p> : null}
+          {initialLoading ? <p className="text-sm text-muted-foreground">Loading custom fields...</p> : null}
           {fields.map((field) => (
             <div key={String(field.id)} className="grid gap-2 rounded-md border p-3 xl:grid-cols-[5rem_1fr_10rem_10rem_1fr_6rem_6rem_6rem_6rem_auto] xl:items-center">
               <div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => moveField(field, -1)}><ChevronLeft className="h-4 w-4" /></Button><Button variant="ghost" size="sm" onClick={() => moveField(field, 1)}><ChevronRight className="h-4 w-4" /></Button></div>
@@ -2688,7 +2690,7 @@ function CustomFieldsSettingsPageOld() {
               <Button variant="outline" size="sm" onClick={() => deleteField(field)}>Delete</Button>
             </div>
           ))}
-          {!loading && !fields.length ? <p className="text-sm text-muted-foreground">No custom fields configured for this entity yet.</p> : null}
+          {!initialLoading && !fields.length ? <p className="text-sm text-muted-foreground">No custom fields configured for this entity yet.</p> : null}
         </CardContent>
       </Card>
     </div>
@@ -2803,6 +2805,7 @@ function CRMCalendarPage() {
   const [cursor, setCursor] = useState(() => new Date());
   const [events, setEvents] = useState<CRMCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<CalendarFilters>({ ownerId: "all", type: "all", status: "all" });
   const [selected, setSelected] = useState<CRMCalendarEvent | null>(null);
@@ -2941,7 +2944,7 @@ function CRMCalendarPage() {
             </div>
           </div>
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-          {loading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-muted-foreground">Loading CRM calendar...</div> : null}
+          {initialLoading ? <div className="rounded-md border bg-white px-4 py-3 text-sm text-muted-foreground">Loading CRM calendar...</div> : null}
           <DndContext onDragEnd={onDragEnd}>
             {view === "agenda" ? (
               <CalendarAgenda events={visibleEvents} onOpen={setSelected} />
@@ -3575,6 +3578,7 @@ function LeadSelect({ label, value, values, onChange }: { label: string; value: 
 }
 
 function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, ownerNames, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMLead[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; ownerNames: Map<number, string>; onSort: (sort: SortState) => void; onSelect: (lead: CRMLead) => void; onEdit: (lead: CRMLead) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (lead: CRMLead, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => {
     onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
   };
@@ -3603,8 +3607,8 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">Loading leads...</td></tr> : null}
-            {!loading && rows.map((lead) => (
+            {initialLoading ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">Loading leads...</td></tr> : null}
+            {!initialLoading && rows.map((lead) => (
               <tr {...recordPreviewProps(lead)} data-context-record="Lead" data-context-open="Open lead details" key={lead.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === lead.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(lead)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(lead.id)])} onChange={(event) => onToggleRow(lead, event.target.checked)} aria-label={`Select ${lead.name}`} /></td>
                 <td className="px-3 py-3"><div className="flex items-center gap-3"><LeadAvatar lead={lead} /><button type="button" className="font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" onClick={(event) => { event.stopPropagation(); onSelect(lead); }}>{lead.name}</button></div></td>
@@ -3619,7 +3623,7 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
               </tr>
             ))}
-            {!loading && !rows.length ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">No leads match the current search or filters.</td></tr> : null}
+            {!initialLoading && !rows.length ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">No leads match the current search or filters.</td></tr> : null}
           </tbody>
         </GridTable>
       </div>
@@ -4320,6 +4324,7 @@ function ContactFilterPanel({ filters, owners, companies, statuses, stages, sour
 }
 
 function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onMessage, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMContact[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (contact: CRMContact) => void; onEdit: (contact: CRMContact) => void; onMessage:(record:CRMContact,channel:"email"|"whatsapp")=>void; onToggleAll: (checked: boolean) => void; onToggleRow: (contact: CRMContact, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => {
     onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
   };
@@ -4345,8 +4350,8 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading contacts...</td></tr> : null}
-            {!loading && rows.map((contact) => (
+            {initialLoading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading contacts...</td></tr> : null}
+            {!initialLoading && rows.map((contact) => (
               <tr {...recordPreviewProps(contact)} data-context-record="Contact" data-context-open="Open contact details" key={contact.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === contact.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(contact)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(contact.id)])} onChange={(event) => onToggleRow(contact, event.target.checked)} aria-label={`Select ${contact.name}`} /></td>
                 <td className="px-3 py-3"><div className="flex items-center gap-3"><ContactAvatar contact={contact} /><button type="button" className="max-w-44 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={contact.name} onDoubleClick={(event) => { event.stopPropagation(); openRecordPreview(contact, "/crm/contacts"); }} onClick={(event) => { event.stopPropagation(); onSelect(contact); }}>{contact.name}</button></div></td>
@@ -4361,7 +4366,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 <td className="sticky right-0 z-10 bg-card px-2 py-3 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]" onClick={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={()=>onEdit(contact)}/></td>
               </tr>
             ))}
-            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
+            {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
           </tbody>
         </GridTable>
       </div>
@@ -4954,6 +4959,7 @@ function AccountFilterPanel({ filters, owners, territories, industries, types, s
 }
 
 function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMAccount[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (account: CRMAccount) => void; onEdit: (account: CRMAccount) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (account: CRMAccount, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
   const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
   return (
@@ -4976,8 +4982,8 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
             </tr>
           </thead>
           <tbody>
-            {loading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading accounts...</td></tr> : null}
-            {!loading && rows.map((account) => (
+            {initialLoading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading accounts...</td></tr> : null}
+            {!initialLoading && rows.map((account) => (
               <tr {...recordPreviewProps(account)} data-context-record="Account" data-context-open="Open account details" key={account.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(account.id)])} onChange={(event) => onToggleRow(account, event.target.checked)} aria-label={`Select ${account.name}`} /></td>
                 <td className="px-3 py-3"><div className="flex items-center gap-3"><AccountAvatar account={account} /><div><button type="button" className="max-w-52 truncate font-semibold text-foreground hover:text-emerald-700 dark:text-emerald-300" title={account.name} onClick={(event) => { event.stopPropagation(); onSelect(account); }}>{account.name}</button>{account.branchName && <div className="text-xs text-muted-foreground">{account.branchName}</div>}</div></div></td>
@@ -4991,7 +4997,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
               </tr>
             ))}
-            {!loading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No accounts match the current search or filters.</td></tr> : null}
+            {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No accounts match the current search or filters.</td></tr> : null}
           </tbody>
         </GridTable>
       </div>
@@ -5536,6 +5542,7 @@ function DealFilterSelect({ label, value, options, onChange }: { label: string; 
 }
 
 function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMDealRow[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (deal: CRMDealRow) => void; onEdit: (deal: CRMDealRow) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (deal: CRMDealRow, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const initialLoading = useInitialLoading(Boolean(loading));
   const sortButton = (key: string, label: string) => <button type="button" className="inline-flex items-center gap-1 text-left" onClick={() => onSort(sort?.key === key ? { key, direction: sort.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" })}>{label}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></button>;
   return (
     <div>
@@ -5559,10 +5566,10 @@ function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected,
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
-            {loading ? <tr><td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">Loading deals...</td></tr> : null}
+            {initialLoading ? <tr><td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">Loading deals...</td></tr> : null}
             {error ? <tr><td colSpan={13} className="px-3 py-10 text-center text-red-700 dark:text-red-300">{error}</td></tr> : null}
-            {!loading && !error && !rows.length ? <tr><td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">No deals found.</td></tr> : null}
-            {!loading && !error && rows.map((deal) => (
+            {!initialLoading && !error && !rows.length ? <tr><td colSpan={13} className="px-3 py-10 text-center text-muted-foreground">No deals found.</td></tr> : null}
+            {!initialLoading && !error && rows.map((deal) => (
               <tr {...recordPreviewProps(deal)} data-context-record="Deal" data-context-open="Open deal details" key={deal.id} className={`group cursor-pointer transition hover:bg-white/[0.04] ${selectedId === deal.id ? "bg-emerald-400/[0.06]" : ""}`} onClick={() => onSelect(deal)}>
                 <td className="px-3 py-3"><input type="checkbox" checked={Boolean(selectedIds[String(deal.id)])} onChange={(event) => onToggleRow(deal, event.target.checked)} onClick={(event) => event.stopPropagation()} aria-label={`Select ${deal.name}`} /></td>
                 <td className="min-w-56 px-3 py-3"><div className="flex items-center gap-3"><DealAvatar deal={deal} /><div><p className="font-semibold text-foreground">{deal.name}</p><p className="text-xs text-muted-foreground">{deal.pipelineName || "Pipeline not set"}</p></div></div></td>
@@ -6625,6 +6632,7 @@ function GuidedSellingPage() {
 function ApprovalSettingsPage() {
   const [workflows, setWorkflows] = useState<CRMApprovalWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const load = () => {
@@ -6642,7 +6650,7 @@ function ApprovalSettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Approval Settings" description={descriptionFor("approvalSettings")} action="Create workflow" onAction={() => setShowCreate(true)} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-      {loading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading approval workflows...</div> : null}
+      {initialLoading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading approval workflows...</div> : null}
       <div className="grid gap-4">
         {workflows.map((workflow) => (
           <Card key={workflow.id}>
@@ -6661,7 +6669,7 @@ function ApprovalSettingsPage() {
             </CardContent>
           </Card>
         ))}
-        {!loading && !workflows.length ? <Card><CardContent className="p-5 text-sm text-muted-foreground">No approval workflows configured yet.</CardContent></Card> : null}
+        {!initialLoading && !workflows.length ? <Card><CardContent className="p-5 text-sm text-muted-foreground">No approval workflows configured yet.</CardContent></Card> : null}
       </div>
       {showCreate ? <ApprovalWorkflowDialog onClose={() => setShowCreate(false)} onCreated={(workflow) => { setWorkflows((items) => [workflow, ...items]); setShowCreate(false); }} /> : null}
     </div>
@@ -6729,6 +6737,7 @@ function ApprovalWorkflowDialog({ onClose, onCreated }: { onClose: () => void; o
 function MyApprovalsPage() {
   const [approvals, setApprovals] = useState<CRMApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const load = () => {
     setLoading(true);
@@ -6745,7 +6754,7 @@ function MyApprovalsPage() {
     <div className="space-y-6">
       <PageHeader title="My Approvals" description={descriptionFor("myApprovals")} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-      {loading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading pending approvals...</div> : null}
+      {initialLoading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading pending approvals...</div> : null}
       <div className="grid gap-4">
         {approvals.map((approval) => (
           <Card key={approval.id}>
@@ -6763,7 +6772,7 @@ function MyApprovalsPage() {
             </CardContent>
           </Card>
         ))}
-        {!loading && !approvals.length ? <Card><CardContent className="p-5 text-sm text-muted-foreground">No approvals are waiting on you.</CardContent></Card> : null}
+        {!initialLoading && !approvals.length ? <Card><CardContent className="p-5 text-sm text-muted-foreground">No approvals are waiting on you.</CardContent></Card> : null}
       </div>
     </div>
   );
@@ -7539,6 +7548,7 @@ function ForecastingPage() {
   const [teamRows, setTeamRows] = useState<CRMApiRecord[]>([]);
   const [territoryRows, setTerritoryRows] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const load = () => {
     setLoading(true);
@@ -7584,7 +7594,7 @@ function ForecastingPage() {
           ))}
         </CardContent>
       </Card>
-      {loading ? <p className="text-sm text-muted-foreground">Loading forecast...</p> : null}
+      {initialLoading ? <p className="text-sm text-muted-foreground">Loading forecast...</p> : null}
       <div className="grid gap-4 xl:grid-cols-3">
         <ReportTable title="Forecast by Owner" rows={forecast?.items || []} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount", "invoicedAmount", "collectedAmount"]} />
         <ReportTable title="Forecast by Team" rows={teamRows} columns={["label", "dealCount", "pipelineAmount", "weightedAmount", "committedAmount"]} />
@@ -7836,6 +7846,7 @@ const preferredGridColumns: Partial<Record<CRMPageKind, string[]>> = {
 };
 
 function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBulkDelete, loading, error }: { rows: CRMRecord[]; title: string; kind: CRMPageKind; onSelect: (row: CRMRecord) => void; onOpen?: (row: CRMRecord) => void; onInlineSave?: (row: CRMRecord, key: string, value: string | number | boolean | null) => Promise<unknown>; onBulkDelete?: (rows: CRMRecord[]) => Promise<unknown>; loading?: boolean; error?: string | null }) {
+  const initialLoading = useInitialLoading(Boolean(loading));
   const [sort, setSort] = useState<SortState>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
   const [widths, setWidths] = useState<Record<string, number>>({});
@@ -7971,10 +7982,10 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {initialLoading ? (
                 <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(visibleColumns.length + 1, 1)}>Loading CRM records...</td></tr>
               ) : null}
-              {!loading && pagedRows.map((row, index) => (
+              {!initialLoading && pagedRows.map((row, index) => (
                 <tr {...recordPreviewProps(row)} key={index} className="border-t hover:bg-muted/35">
                   <td className="px-3 py-3">
                     <input type="checkbox" checked={Boolean(selectedIds[String(row.id)])} disabled={row.id === undefined || row.id === null} onChange={(event) => toggleRow(row, event.target.checked)} aria-label={`Select record ${String(row.id || index + 1)}`} />
@@ -7986,7 +7997,7 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
                   ))}
                 </tr>
               ))}
-              {!loading && !visibleRows.length ? (
+              {!initialLoading && !visibleRows.length ? (
                 <tr><td className="px-4 py-12 text-center text-muted-foreground" colSpan={Math.max(visibleColumns.length + 1, 1)}>No CRM records found</td></tr>
               ) : null}
             </tbody>

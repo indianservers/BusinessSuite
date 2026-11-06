@@ -30,7 +30,7 @@ const checkbox = (element: Element) => element.type === "input" && element.props
 const editor = (element: Element) => element.type === "input" && element.props.type !== "checkbox" || element.type === "textarea" || typeof element.type !== "string" && /Input|Editor|Composer/.test((element.type as { displayName?: string; name?: string }).displayName || (element.type as { name?: string }).name || "");
 
 /** Retains page-owned React cells and handlers; only the surrounding record grid changes. */
-export default function GridTable({ children, gridId, allowExport = false, variant = "records", ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; variant?: "records" | "matrix" }) {
+export default function GridTable({ children, gridId, allowExport = false, pinActions = false, variant = "records", ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; pinActions?: boolean; variant?: "records" | "matrix" }) {
   const location = useLocation(), instance = useId();
   const sections = elements(children);
   const heads = elements(sections.find(e => e.type === "thead")?.props.children);
@@ -52,7 +52,7 @@ export default function GridTable({ children, gridId, allowExport = false, varia
     const isAction = /^(actions?|quick actions|select)$/i.test(title);
     const hasControl = contains(header.props.children, e => e.type === "button" || checkbox(e) || typeof e.type !== "string");
     return {
-      id: `column-${index}`, title, width: isAction ? 100 : index === (hasSelection ? 1 : 0) ? 260 : 180,
+      id: `column-${index}`, title, width: typeof header.props.style?.width === "number" ? header.props.style.width : isAction ? 100 : index === (hasSelection ? 1 : 0) ? 260 : 180,
       header: hasControl ? header.props.children : undefined,
       sortable: !isAction && !hasControl, filterable: !isAction, groupable: !isAction,
       accessor: row => row.values[index],
@@ -82,7 +82,7 @@ export default function GridTable({ children, gridId, allowExport = false, varia
       dataScope="loaded"
       columns={columns} dataSource={source} getRowId={row => row.id}
       selectionEnabled={!hasSelection} exportFormats={["csv", "clipboard"]}
-      initialLayout={{ pinning: { left: hasSelection ? ["column-0", "column-1"] : ["column-0"], right: [] }, rowHeight: 64 }}
+      initialLayout={{ pinning: { left: hasSelection ? ["column-0", "column-1"] : ["column-0"], right: pinActions ? columns.filter(column => /^(actions?|quick actions)$/i.test(column.title)).map(column => column.id) : [] }, rowHeight: 64 }}
       height={Math.min(600, Math.max(240, records.length * 64 + 42))}
       rowProps={row => {
         const { children: _children, className: _className, style: _style, ...props } = rowMap.get(row.id)?.props || {};

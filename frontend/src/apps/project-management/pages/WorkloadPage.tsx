@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { api } from "@/services/api";
@@ -39,6 +40,7 @@ export default function WorkloadPage() {
   const [data, setData] = useState<PMSWorkloadHeatmapResponse | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ userName: string; week: string; cell: PMSWorkloadHeatmapResponse["rows"][number]["cells"][number] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
@@ -119,14 +121,14 @@ export default function WorkloadPage() {
 
       <Card>
         <CardContent className="p-0">
-          {loading ? <div className="m-4 h-80 rounded-lg skeleton" /> : null}
-          {!loading && !data?.rows.length ? (
+          {initialLoading ? <div className="m-4 h-80 rounded-lg skeleton" /> : null}
+          {!initialLoading && !data?.rows.length ? (
             <div className="p-10 text-center">
               <h2 className="text-lg font-semibold">No workload found</h2>
               <p className="mt-1 text-sm text-muted-foreground">Assign tasks to team members or adjust the date range.</p>
             </div>
           ) : null}
-          {!loading && data?.rows.length ? (
+          {!initialLoading && data?.rows.length ? (
             <div className="overflow-x-auto">
               <div className="min-w-[980px]">
                 <div className="grid border-b bg-muted/30" style={{ gridTemplateColumns: `260px repeat(${data.weeks.length}, minmax(132px, 1fr)) 150px` }}>

@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -32,6 +33,7 @@ export default function OrgChartPage() {
     teams: [],
   });
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -436,7 +438,7 @@ export default function OrgChartPage() {
             </div>
           </details>
         </div>
-        {loading ? (
+        {initialLoading ? (
           <p role="status" className="org-empty">
             Loading organization chart…
           </p>
@@ -640,7 +642,7 @@ export default function OrgChartPage() {
           </>
         )}
       </section>
-      {!loading &&
+      {!initialLoading &&
         data.people.length > 0 &&
         data.people.every((p) => p.manager_id === null) && (
           <p className="org-setup-hint">

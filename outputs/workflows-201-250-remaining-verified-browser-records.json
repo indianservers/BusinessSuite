@@ -1,0 +1,65 @@
+{
+  "fixture": "Isolated in-memory Workflow 201-250-remaining-verified Test Company",
+  "invoices": [],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 10.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    },
+    {
+      "id": 3,
+      "sku": "QA-246-FG",
+      "stock": 0.0,
+      "track_inventory": true
+    },
+    {
+      "id": 4,
+      "sku": "QA-244-SERIAL",
+      "stock": 1.0,
+      "track_inventory": true
+    }
+  ],
+  "receipts": [],
+  "stock_movements": [],
+  "warehouses": [
+    {
+      "id": 1,
+      "name": "Main",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "QA Warehouse B",
+      "active": false
+    }
+  ],
+  "manufacturing": [],
+  "serials": [
+    {
+      "id": 1,
+      "product_id": 4,
+      "number": "QA-244-ABC",
+      "status": "Available",
+      "sale_id": null
+    }
+  ],
+  "returns": [],
+  "credits": [],
+  "refunds": [],
+  "customer_balances": [
+    {
+      "id": 1,
+      "outstanding": 0.0
+    }
+  ],
+  "customer_ledger": [],
+  "transfers": []
+}

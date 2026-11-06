@@ -2686,6 +2686,7 @@ def create_payment_batch(
         raise HTTPException(status_code=400, detail="No payroll records available for payment batch")
     batch = PayrollPaymentBatch(
         payroll_run_id=run.id,
+        company_id=run.company_id or _current_company_id(current_user),
         bank_format_id=data.bank_format_id,
         debit_account=data.debit_account,
         created_by=current_user.id,
@@ -3104,14 +3105,22 @@ def publish_payslips(
     current_user: User = Depends(RequirePermission("payroll_run")),
 ):
     run = _get_payroll_run_or_404(db, run_id)
-    total = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id).count()
+    if not _payslip_run_finalized(run):
+        raise HTTPException(status_code=409, detail="Lock payroll before publishing payslips")
+    records = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id).all()
+    if not records:
+        raise HTTPException(status_code=409, detail="No payslips to publish")
+    # Generate every document before recording success or queuing notifications.
+    for record in records:
+        _generate_payslip_pdf(db, record, current_user, "dob_or_aadhaar")
+    total = len(records)
     batch = PayslipPublishBatch(
         payroll_run_id=run_id,
         status="Completed",
         total_payslips=total,
         published_count=total,
-        email_dispatch_status=data.email_dispatch_status,
-        output_file_url=data.output_file_url or f"/exports/payroll/{run_id}/payslips.zip",
+        email_dispatch_status="Not requested",
+        output_file_url=None,
         created_by=current_user.id,
         completed_at=datetime.now(timezone.utc),
     )
@@ -3120,25 +3129,53 @@ def publish_payslips(
     from app.services.email_dispatch import queue_email
     from app.services.email_events import _employee
     from app.core.config import settings
-    if settings.EMAIL_NOTIFICATIONS_ENABLED:
-        for record in db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run_id):
+    queued = 0
+    if data.send_email and settings.EMAIL_NOTIFICATIONS_ENABLED:
+        for record in records:
             contact = _employee(db, record.employee_id, getattr(run, "company_id", None))
             if contact:
                 address, recipient_user_id, organization_id = contact
-                queue_email(db, recipient=address, user_id=recipient_user_id, organization_id=organization_id,
+                notification = queue_email(db, recipient=address, user_id=recipient_user_id, organization_id=organization_id,
                     module="payroll", event_key=f"payslip-published:{run_id}:{record.employee_id}",
                     subject="Your payslip is available",
                     body=f"Your payslip for {run.month}/{run.year} has been published.\n"
-                        + settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/hrms/payroll")
+                        + settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/hrms/my-payslips")
+                queued += int(notification is not None)
+        batch.email_dispatch_status = "Queued" if queued else "No new emails"
+    elif data.send_email:
+        batch.email_dispatch_status = "Disabled"
     db.commit()
     db.refresh(batch)
     return batch
 
 
+def _payslip_run_finalized(run: PayrollRun) -> bool:
+    return run.deleted_at is None and crud_payroll.normalize_payroll_run_status(run.status) in {"locked", "paid"}
+
+
+@router.get("/my-payslips")
+def my_payslip_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.employee:
+        raise HTTPException(status_code=400, detail="No employee profile")
+    records = db.query(PayrollRecord).join(PayrollRun).filter(
+        PayrollRecord.employee_id == current_user.employee.id,
+        PayrollRun.deleted_at.is_(None),
+        func.lower(PayrollRun.status).in_(["locked", "paid"]),
+    ).order_by(PayrollRun.year.desc(), PayrollRun.month.desc(), PayrollRun.id.desc()).all()
+    from app.services.payroll_delivery import record_policy
+    return [{"id": record.id, "month": record.payroll_run.month, "year": record.payroll_run.year,
+             "financial_year": record_policy(db, record)["label"],
+             "net_salary": record.net_salary, "currency": record.converted_currency or "INR"}
+            for record in records]
+
+
 @router.get("/payslip")
 def get_payslip(
-    month: int = Query(...),
-    year: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
+    year: int = Query(..., ge=2020, le=2100),
     employee_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -3152,9 +3189,11 @@ def get_payslip(
         if not current_user.employee or current_user.employee.id != emp_id:
             raise HTTPException(status_code=403, detail="Not authorized to view this payslip")
 
-    record = crud_payroll.get_payslip(db, emp_id, month, year)
+    record = crud_payroll.get_payslip(db, emp_id, month, year, finalized_only=not _can_view_other_payslips(current_user))
     if not record:
         raise HTTPException(status_code=404, detail="Payslip not found for this period")
+    if not _can_view_other_payslips(current_user) and not _payslip_run_finalized(record.payroll_run):
+        raise HTTPException(status_code=404, detail="Payslip is not available until payroll is locked")
     return crud_payroll.build_payslip_payload(db, record)
 
 
@@ -3168,10 +3207,16 @@ def generate_payslip_pdf(
     record = db.query(PayrollRecord).filter(PayrollRecord.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Payroll record not found")
+    result = _generate_payslip_pdf(db, record, current_user, password_policy)
+    db.commit()
+    return result
+
+
+def _generate_payslip_pdf(db: Session, record: PayrollRecord, current_user: User, password_policy: str):
     run = record.payroll_run
     pdf_dir = os.path.join(settings.UPLOAD_DIR, "payslips", str(run.year), str(run.month))
     os.makedirs(pdf_dir, exist_ok=True)
-    file_name = f"payslip_{record.employee_id}_{run.year}_{run.month}.pdf"
+    file_name = f"payslip_{record.employee_id}_{run.year}_{run.month}_run_{run.id}.pdf"
     file_path = os.path.join(pdf_dir, file_name)
     payload = crud_payroll.build_payslip_payload(db, record)
     employee_name = f"{record.employee.first_name} {record.employee.last_name}" if record.employee else str(record.employee_id)
@@ -3183,39 +3228,18 @@ def generate_payslip_pdf(
         ("Reimbursements", payload["reimbursements"]),
     ]
     try:
-        from reportlab.lib.pagesizes import A4
-        from reportlab.pdfgen import canvas
-
-        c = canvas.Canvas(file_path, pagesize=A4)
-        y = 800
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(50, y, "Payslip")
-        y -= 28
-        c.setFont("Helvetica", 10)
-        c.drawString(50, y, f"Employee: {employee_code} - {employee_name}")
-        y -= 18
-        c.drawString(50, y, f"Period: {run.month}/{run.year}")
-        y -= 30
-        for title, rows in sections:
-            c.setFont("Helvetica-Bold", 11)
-            c.drawString(50, y, title)
-            y -= 16
-            c.setFont("Helvetica", 10)
-            for row in rows:
-                c.drawString(60, y, row["component_name"])
-                c.drawRightString(520, y, str(row["amount"]))
-                y -= 14
-            y -= 8
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(50, y, f"Net Salary: {record.net_salary}")
-        c.save()
+        from app.services.payslip_pdf import render_payslip
+        company = record.employee.branch.company if record.employee and record.employee.branch else None
+        from app.services.payroll_delivery import profile_for, template_for
+        profile = profile_for(db, company.id if company else run.company_id)
+        render_payslip(file_path, payload, company.name if company else "", template_for(profile), profile.branding if profile else {})
     except ModuleNotFoundError:
         lines = ["Payslip", f"Employee: {employee_code} - {employee_name}", f"Period: {run.month}/{run.year}", ""]
         for title, rows in sections:
             lines.append(title)
             lines.extend(f"{row['component_name']}: {row['amount']}" for row in rows)
             lines.append("")
-        lines.append(f"Net Salary: {record.net_salary}")
+        lines.extend([f"Gross Salary: {record.gross_salary}", f"Total Deductions: {record.total_deductions}", f"Net Salary: {record.net_salary}"])
         _write_basic_pdf(file_path, lines)
     protected = False
     password = _payslip_password_for_employee(record.employee, password_policy) if record.employee else None
@@ -3223,7 +3247,7 @@ def generate_payslip_pdf(
         try:
             from pypdf import PdfReader, PdfWriter
 
-            protected_name = f"payslip_{record.employee_id}_{run.year}_{run.month}_protected.pdf"
+            protected_name = f"payslip_{record.employee_id}_{run.year}_{run.month}_run_{run.id}_protected.pdf"
             protected_path = os.path.join(pdf_dir, protected_name)
             reader = PdfReader(file_path)
             writer = PdfWriter()
@@ -3232,17 +3256,18 @@ def generate_payslip_pdf(
             writer.encrypt(password)
             with open(protected_path, "wb") as handle:
                 writer.write(handle)
-            persist_file(protected_path)
+            os.remove(file_path)
             file_name = protected_name
             file_path = protected_path
             protected = True
         except Exception as exc:
-            _audit(db, run.id, "payslip_pdf_password_protection_skipped", current_user.id, str(exc))
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            raise HTTPException(status_code=503, detail="Could not protect payslip PDF; please retry") from exc
     persist_file(file_path)
     record.payslip_pdf_url = f"/uploads/payslips/{run.year}/{run.month}/{file_name}"
     record.payslip_generated_at = datetime.now(timezone.utc)
     _audit(db, run.id, "payslip_pdf_generated", current_user.id, f"record_id={record.id}")
-    db.commit()
     return {"record_id": record.id, "payslip_pdf_url": record.payslip_pdf_url, "password_protected": protected}
 
 
@@ -3253,15 +3278,19 @@ def download_payslip_pdf(
     current_user: User = Depends(get_current_user),
 ):
     record = db.query(PayrollRecord).filter(PayrollRecord.id == record_id).first()
-    if not record or not record.payslip_pdf_url:
+    if not record or record.payroll_run.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Payslip PDF not found")
     if not _can_view_other_payslips(current_user):
         if not current_user.employee or current_user.employee.id != record.employee_id:
             raise HTTPException(status_code=403, detail="Not authorized")
-    file_path = os.path.join(settings.UPLOAD_DIR, record.payslip_pdf_url.replace("/uploads/", "").replace("/", os.sep))
-    if not upload_exists(file_path):
-        raise HTTPException(status_code=404, detail="Payslip PDF missing on disk")
-    return FileResponse(file_path, media_type="application/pdf", filename=os.path.basename(file_path))
+        if not _payslip_run_finalized(record.payroll_run):
+            raise HTTPException(status_code=404, detail="Payslip is not available until payroll is locked")
+    file_path = os.path.join(settings.UPLOAD_DIR, record.payslip_pdf_url.replace("/uploads/", "").replace("/", os.sep)) if record.payslip_pdf_url else None
+    if not file_path or not upload_exists(file_path):
+        _generate_payslip_pdf(db, record, current_user, "dob_or_aadhaar")
+        db.commit()
+        file_path = os.path.join(settings.UPLOAD_DIR, record.payslip_pdf_url.replace("/uploads/", "").replace("/", os.sep))
+    return FileResponse(file_path, media_type="application/pdf", filename=os.path.basename(file_path), headers={"Cache-Control": "private, no-store"})
 
 
 # ── Reimbursements ────────────────────────────────────────────────────────────

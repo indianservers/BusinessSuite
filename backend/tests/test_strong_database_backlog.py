@@ -156,14 +156,6 @@ def test_payroll_database_backlog_foundations(client, db):
     assert manual_review.status_code == 200
     assert manual_review.json()["status"] == "Approved"
 
-    publish = client.post(
-        f"/api/v1/payroll/runs/{run.id}/payslip-publish",
-        json={"email_dispatch_status": "Queued"},
-        headers=admin_headers,
-    )
-    assert publish.status_code == 201
-    assert publish.json()["published_count"] == 1
-
     reimbursement = client.post(
         "/api/v1/payroll/reimbursements",
         json={"category": "Travel", "amount": "1200", "date": "2026-05-12", "description": "Client visit"},
@@ -179,6 +171,20 @@ def test_payroll_database_backlog_foundations(client, db):
     ledger = client.get(f"/api/v1/payroll/reimbursements/{reimbursement.json()['id']}/ledger", headers=admin_headers)
     assert ledger.status_code == 200
     assert len(ledger.json()) == 2
+
+    # Corrections require a fresh approval and lock before payslip publication.
+    for action in ("approve", "lock"):
+        response = client.put(f"/api/v1/payroll/runs/{run.id}/approve", json={"action": action, "force_approve": True}, headers=admin_headers)
+        assert response.status_code == 200, response.text
+
+    publish = client.post(
+        f"/api/v1/payroll/runs/{run.id}/payslip-publish",
+        json={"email_dispatch_status": "Queued"},
+        headers=admin_headers,
+    )
+    assert publish.status_code == 201
+    assert publish.json()["published_count"] == 1
+
 
     loan = client.post(
         "/api/v1/payroll/loans",

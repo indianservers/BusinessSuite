@@ -110,9 +110,17 @@ async def lifespan(app: FastAPI):
     if settings.BUSINESSSUITE_BACKUP_SCHEDULER:
         from app.services.backup_scheduler import start_scheduler
         backup_worker = start_scheduler()
+    import asyncio
+    from app.platform_owner.worker import run as run_platform_checks
+    platform_worker = asyncio.create_task(run_platform_checks())
     try:
         yield
     finally:
+        platform_worker.cancel()
+        try:
+            await platform_worker
+        except asyncio.CancelledError:
+            pass
         if follow_up_worker:
             follow_up_worker[0].set()
         if email_worker:

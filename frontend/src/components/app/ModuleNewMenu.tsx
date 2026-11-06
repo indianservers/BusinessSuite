@@ -1,5 +1,5 @@
 import {useQueryClient} from "@tanstack/react-query";
-import {lazy,Suspense,useState} from "react";
+import {lazy,Suspense,useState,useEffect} from "react";
 const HRQuickAdd=lazy(()=>import("@/apps/hrms/workbench/shared").then(m=>({default:m.HRQuickAdd})));
 const CRMQuickCreate=lazy(()=>import("@/apps/crm/SalesActions").then(m=>({default:m.CRMQuickCreate})));
 import { Bell, Building2, CalendarDays, CheckCircle2, FileText, LifeBuoy, Receipt, ShoppingBag, UserPlus, Users, Wallet } from "lucide-react";
@@ -13,6 +13,7 @@ export default function ModuleNewMenu() {
   const { pathname } = useLocation();
   const [crmQuick,setCRMQuick]=useState("");
   const [hrQuick,setHRQuick]=useState(false);
+  useEffect(() => { setCRMQuick(""); setHRQuick(false); }, [pathname]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const user = useAuthStore(s => s.user);

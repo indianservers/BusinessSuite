@@ -8,7 +8,7 @@ from urllib.parse import quote_plus
 
 import qrcode
 import requests
-from flask import Blueprint, flash, jsonify, redirect, render_template, render_template_string, send_file, request, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, render_template_string, send_file, request, url_for
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -21,6 +21,7 @@ from app.services.invoice_service import calculate_document, line_totals
 from app.services.numbering_service import next_number
 from app.services.stock_service import apply_sale_item, apply_sales_return_item
 from app.utils.pdf_generator import render_pdf
+from app.utils.helpers import money, qty
 
 bp = Blueprint("sales", __name__, url_prefix="/sales")
 
@@ -91,6 +92,9 @@ def create_delivery_bill(customer_id, sale_id=None, order_id=None, address=None)
 
 
 def build_picklist(source, source_type):
+    physical_items = [item for item in source.items if item.product.track_inventory]
+    if not physical_items:
+        raise ValueError("Service-only documents do not require a picklist")
     if source_type == "order":
         items = source.items
         customer_id = source.customer_id
@@ -104,7 +108,7 @@ def build_picklist(source, source_type):
     picklist = Picklist(picklist_no=next_number("picklist"), warehouse_id=warehouse_id, created_by=current_user.id, **kwargs)
     db.session.add(picklist)
     db.session.flush()
-    for item in items:
+    for item in physical_items:
         db.session.add(PicklistItem(picklist_id=picklist.id, product_id=item.product_id, quantity=item.quantity, picked_qty=0, is_picked=False))
     return picklist
 
@@ -444,24 +448,80 @@ def return_create():
     if request.method == "POST":
         try:
             items = parse_return_items()
+            original = None
+            if request.form.get("sale_id"):
+                original = Sale.query.filter_by(id=request.form["sale_id"]).with_for_update().first()
+                if not original or original.status in {"Draft", "Cancelled"}:
+                    raise ValueError("Returns require a valid issued sale")
+                if str(original.customer_id) != request.form["customer_id"]:
+                    raise ValueError("Return customer must match the original sale")
+            requested = {}
+            for item in items:
+                quantity = qty(item["quantity"])
+                if not quantity.is_finite() or quantity <= 0:
+                    raise ValueError("Return quantities must be positive")
+                if original:
+                    source = original.items.filter_by(product_id=item["product_id"]).all()
+                    sold_qty = sum((qty(line.quantity) for line in source), qty(0))
+                    previous = db.session.query(db.func.coalesce(db.func.sum(SalesReturnItem.quantity), 0)).join(SalesReturn).filter(
+                        SalesReturn.sale_id == original.id, SalesReturn.status == "Approved",
+                        SalesReturnItem.product_id == item["product_id"]).scalar()
+                    requested[item["product_id"]] = requested.get(item["product_id"], qty(0)) + quantity
+                    if not sold_qty or qty(previous) + requested[item["product_id"]] > sold_qty:
+                        raise ValueError("Cumulative returns cannot exceed the original sold quantity")
+                    # The issued sale determines credit and cost; ignore submitted price/tax overrides.
+                    base = sum((money(line.line_total) - money(line.tax_amount) for line in source), money(0))
+                    tax = sum((money(line.tax_amount) for line in source), money(0))
+                    item["rate"] = base / sold_qty
+                    item["tax_rate"] = tax / base * 100 if base else 0
+                    item["return_cost"] = sum(line.cost_price * line.quantity for line in source) / sold_qty
+                    item.update(line_totals(quantity, item["rate"], 0, item["tax_rate"]))
             totals = calculate_document(items)
             ret = SalesReturn(return_no=request.form.get("return_no") or next_number("sales_return"), return_date=date.fromisoformat(request.form["return_date"]), sale_id=request.form.get("sale_id") or None, customer_id=request.form["customer_id"], warehouse_id=request.form["warehouse_id"], reason=request.form.get("reason"), restock=bool(request.form.get("restock")), status="Approved" if request.form.get("sale_id") else "Pending Approval", refund_mode=request.form.get("refund_mode") or "Credit Note", notes=request.form.get("notes"), created_by=current_user.id, subtotal=totals["subtotal"], tax_total=totals["tax_total"], grand_total=totals["grand_total"])
             db.session.add(ret); db.session.flush()
-            balance = ret.sales_return_customer.outstanding - float(ret.grand_total or 0)
-            db.session.add(CustomerLedger(date=ret.return_date, customer_id=ret.customer_id, reference_type="SalesReturn", reference_id=ret.id, reference_no=ret.return_no, debit=0, credit=ret.grand_total, balance=balance, narration="Sales return credit note"))
-            credit_note = CreditNote(cn_no=next_number("credit_note"), cn_date=ret.return_date, customer_id=ret.customer_id, sale_id=ret.sale_id, reason=ret.reason, adjustment_type="Return", status="Issued", created_by=current_user.id, subtotal=ret.subtotal, tax_total=ret.tax_total, grand_total=ret.grand_total)
-            db.session.add(credit_note); db.session.flush()
+            credit_note = None
+            if ret.status == "Approved":
+                balance = ret.sales_return_customer.outstanding - float(ret.grand_total or 0)
+                db.session.add(CustomerLedger(date=ret.return_date, customer_id=ret.customer_id, reference_type="SalesReturn", reference_id=ret.id, reference_no=ret.return_no, debit=0, credit=ret.grand_total, balance=balance, narration="Sales return credit note"))
+                ret.sales_return_customer.current_balance = money(ret.sales_return_customer.current_balance) - money(ret.grand_total)
+                credit_note = CreditNote(cn_no=next_number("credit_note"), cn_date=ret.return_date, customer_id=ret.customer_id, sale_id=ret.sale_id, reason=ret.reason, adjustment_type="Return", status="Issued", created_by=current_user.id, subtotal=ret.subtotal, tax_total=ret.tax_total, grand_total=ret.grand_total)
+                db.session.add(credit_note); db.session.flush()
             for item in items:
                 db.session.add(SalesReturnItem(sales_return_id=ret.id, product_id=item["product_id"], quantity=item["quantity"], rate=item["rate"], tax_rate=item["tax_rate"], tax_amount=item["tax_amount"], line_total=item["line_total"]))
-                db.session.add(CreditNoteItem(cn_id=credit_note.id, product_id=item["product_id"], quantity=item["quantity"], rate=item["rate"], tax_rate=item["tax_rate"], tax_amount=item["tax_amount"], line_total=item["line_total"]))
+                if credit_note:
+                    db.session.add(CreditNoteItem(cn_id=credit_note.id, product_id=item["product_id"], quantity=item["quantity"], rate=item["rate"], tax_rate=item["tax_rate"], tax_amount=item["tax_amount"], line_total=item["line_total"]))
                 if ret.restock and ret.status == "Approved":
-                    apply_sales_return_item(item["product_id"], ret.warehouse_id, item["quantity"], item["rate"], ret.id, ret.return_no)
+                    apply_sales_return_item(item["product_id"], ret.warehouse_id, item["quantity"], item.get("return_cost", item["rate"]), ret.id, ret.return_no)
             record_audit("Create", "SalesReturn", ret.id, new_data={"return_no": ret.return_no, "restock": ret.restock})
-            db.session.commit(); flash("Sales return saved and credit note generated.", "success")
+            db.session.commit(); flash("Sales return saved and credit note generated." if credit_note else "Return request saved pending approval; no stock or credit posted.", "success")
             return redirect(url_for("sales.returns"))
         except Exception as exc:
             db.session.rollback(); flash(str(exc), "danger")
     return render_template("sales/return_form.html", title="Create Sales Return", customers=Customer.query.all(), warehouses=Warehouse.query.all(), sales=Sale.query.order_by(Sale.id.desc()).all(), today=date.today(), return_no=next_number("sales_return"))
+
+
+@bp.route("/returns/<int:id>/reject", methods=["POST"])
+@login_required
+def return_reject(id):
+    if not current_user.has_permission("sales", "approve"):
+        abort(403)
+    returned = SalesReturn.query.filter_by(id=id).with_for_update().first_or_404()
+    if returned.status != "Pending Approval":
+        abort(409, "Only pending return requests can be rejected")
+    reason = request.form.get("rejection_reason", "").strip()
+    if not reason:
+        flash("A rejection reason is required.", "danger")
+        return redirect(url_for("sales.returns"))
+    # Never disguise legacy pending requests whose financial effects already posted.
+    if CustomerLedger.query.filter_by(reference_type="SalesReturn", reference_id=id).first():
+        abort(409, "This legacy request already has financial effects; reconcile it before rejection")
+    returned.status = "Rejected"
+    record_audit("Reject", "SalesReturn", id, old_data={"status":"Pending Approval"},
+                 new_data={"status":"Rejected", "reason":reason})
+    returned.notes = (returned.notes or "") + "\nRejection reason: " + reason
+    db.session.commit()
+    flash("Return request rejected; stock and customer balance unchanged.", "success")
+    return redirect(url_for("sales.returns"))
 
 
 @bp.route("/refunds", methods=["GET", "POST"])
@@ -469,8 +529,30 @@ def return_create():
 def refunds():
     if request.method == "POST":
         try:
-            amount = float(request.form.get("amount") or 0)
-            limit = float(os.environ.get("REFUND_APPROVAL_LIMIT", "10000"))
+            amount = money(request.form.get("amount") or 0)
+            limit = money(os.environ.get("REFUND_APPROVAL_LIMIT", "10000"))
+            if not amount.is_finite() or amount <= 0:
+                raise ValueError("Refund amount must be positive")
+            customer = Customer.query.filter_by(id=request.form["customer_id"]).with_for_update().first()
+            if not customer:
+                raise ValueError("Refund customer does not exist")
+            note = CreditNote.query.filter_by(id=request.form.get("credit_note_id"), customer_id=customer.id).with_for_update().first() if request.form.get("credit_note_id") else None
+            returned = SalesReturn.query.filter_by(id=request.form.get("sale_return_id"), customer_id=customer.id, status="Approved").first() if request.form.get("sale_return_id") else None
+            if (request.form.get("credit_note_id") and not note) or (request.form.get("sale_return_id") and not returned):
+                raise ValueError("Refund references must belong to this customer and an approved return")
+            if note and returned and note.sale_id != returned.sale_id:
+                raise ValueError("Credit note and return must reference the same sale")
+            if amount > max(money(0), -money(customer.outstanding)):
+                raise ValueError("Refund exceeds the customer's available credit")
+            if note and amount > money(note.grand_total) - money(note.refunded_amount):
+                raise ValueError("Refund exceeds the credit note balance")
+            original_id = note.sale_id if note else returned.sale_id if returned else None
+            if original_id:
+                original = Sale.query.filter_by(id=original_id, customer_id=customer.id).with_for_update().first()
+                previous = db.session.query(db.func.coalesce(db.func.sum(Refund.amount), 0)).outerjoin(CreditNote, Refund.credit_note_id == CreditNote.id).outerjoin(SalesReturn, Refund.sale_return_id == SalesReturn.id).filter(
+                    Refund.approval_status == "Approved", db.or_(CreditNote.sale_id == original_id, SalesReturn.sale_id == original_id)).scalar()
+                if not original or amount > money(original.paid_amount) - money(previous):
+                    raise ValueError("Refund exceeds payments collected against the original sale")
             refund = Refund(
                 refund_no=request.form.get("refund_no") or next_number("refund"),
                 refund_date=date.fromisoformat(request.form["refund_date"]),
@@ -485,12 +567,12 @@ def refunds():
                 created_by=current_user.id,
             )
             db.session.add(refund)
-            if refund.credit_note_id:
-                note = CreditNote.query.get(refund.credit_note_id)
-                note.refunded_amount = float(note.refunded_amount or 0) + amount
-            customer = Customer.query.get(refund.customer_id)
-            customer.current_balance = float(customer.current_balance or 0) + amount
-            db.session.add(CustomerLedger(date=refund.refund_date, customer_id=refund.customer_id, reference_type="Refund", reference_id=refund.id, reference_no=refund.refund_no, debit=amount, credit=0, balance=customer.outstanding + amount, narration="Customer refund"))
+            db.session.flush()
+            if refund.approval_status == "Approved":
+                if note:
+                    note.refunded_amount = money(note.refunded_amount) + amount
+                customer.current_balance = money(customer.current_balance) + amount
+                db.session.add(CustomerLedger(date=refund.refund_date, customer_id=refund.customer_id, reference_type="Refund", reference_id=refund.id, reference_no=refund.refund_no, debit=amount, credit=0, balance=customer.outstanding + float(amount), narration="Customer refund"))
             record_audit("Payment Update", "Refund", refund.id, new_data={"refund_no": refund.refund_no, "amount": str(refund.amount)})
             db.session.commit()
             flash("Refund saved.", "success")
@@ -525,6 +607,8 @@ def delivery_bill_status(id):
 @login_required
 def sale_delivery_bill(id):
     sale = Sale.query.get_or_404(id)
+    if not any(item.product.track_inventory for item in sale.items):
+        abort(400, "Service-only invoices do not require a delivery bill")
     bill = create_delivery_bill(sale.customer_id, sale_id=sale.id, address=request.form.get("delivery_address") or getattr(sale.customer, "shipping_address", None))
     record_audit("Create", "DeliveryBill", bill.id, new_data={"invoice_no": sale.invoice_no})
     db.session.commit()

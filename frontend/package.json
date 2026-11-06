@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:background-refresh": "node scripts/test-background-refresh.cjs",
     "test:defaults": "node scripts/test-form-defaults.cjs && node scripts/test-currency-selector.cjs && node scripts/test-phone-selector.cjs",
     "test:record-360": "node scripts/test-record-360.cjs && node scripts/test-task-record-links.cjs",
     "test:quick-actions": "node scripts/test-quick-actions.cjs && node scripts/test-suite-actions.cjs",
@@ -95,6 +96,9 @@
     "zustand": "^4.5.2"
   },
   "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.5"
+    },
     "postcss-selector-parser": "7.1.7",
     "@grpc/grpc-js": "^1.13.6"
   },
@@ -104,8 +108,8 @@
     "@types/react-dom": "^18.3.0",
     "@types/react-grid-layout": "^1.3.5",
     "@types/validator": "^13.15.10",
-    "@typescript-eslint/eslint-plugin": "^7.13.0",
-    "@typescript-eslint/parser": "^7.13.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",

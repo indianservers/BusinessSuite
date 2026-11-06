@@ -4,6 +4,7 @@ const POS = {
   paymentRows: [],
   lastReceiptUrl: "",
   submitting: false,
+  pendingSale: null,
   activeLine: null,
   heldRows: [],
   activeQtyIndex: null,
@@ -40,6 +41,7 @@ function saveCartState() {
   try {
     localStorage.setItem(cartStorageKey(), JSON.stringify({
       cart: POS.cart,
+      pending_sale: POS.pendingSale,
       customer_id: qs("#posCustomer")?.value || "",
       bill_discount: qs("#billDiscount")?.value || "0",
       coupon_code: qs("#couponCode")?.value || "",
@@ -76,6 +78,7 @@ function restoreCartState() {
     if (!raw) return;
     const saved = JSON.parse(raw);
     POS.cart = Array.isArray(saved.cart) ? saved.cart : [];
+    POS.pendingSale = saved.pending_sale || null;
     if (saved.customer_id && qs("#posCustomer")) qs("#posCustomer").value = saved.customer_id;
     if (qs("#billDiscount")) qs("#billDiscount").value = saved.bill_discount || "0";
     if (qs("#couponCode")) qs("#couponCode").value = saved.coupon_code || "";
@@ -136,15 +139,23 @@ function validateLine(item) {
   if (item.track_inventory && money(item.stock) <= 0) return `${item.name} is out of stock`;
   if (item.track_inventory && money(item.qty) > money(item.stock)) return `Only ${item.stock} available for ${item.name}`;
   if (!item.decimal_allowed && !Number.isInteger(money(item.qty))) return `${item.name} does not allow decimal quantity`;
+  if (item.serial_tracking && !item.serial_id) return `${item.name} requires a serial number`;
   if (item.serial_tracking && money(item.qty) !== 1) return `${item.name} requires one serial per line`;
   return "";
 }
 
-function addProduct(product, options = {}) {
+async function addProduct(product, options = {}) {
+  if ((product.batch_tracking || product.serial_tracking) && !product.tracking_loaded) {
+    try {
+      const found = (await searchProducts(product.sku)).find(row => Number(row.id) === Number(product.id));
+      if (!found) return toast("Tracked product is unavailable; refresh product data", "warning");
+      product = normalizeProduct(found);
+    } catch (error) { return toast("Unable to load batch or serial choices", "warning"); }
+  }
   if (product.track_inventory && product.stock <= 0) return toast(`${product.name} is out of stock`, "warning");
   const hasSelectableBatches = product.batch_tracking && Array.isArray(product.batches) && product.batches.length > 0;
   const hasSelectableSerials = product.serial_tracking && Array.isArray(product.serials) && product.serials.length > 0;
-  const needsDetail = hasSelectableBatches || hasSelectableSerials || options.forceQuantity;
+  const needsDetail = product.batch_tracking || product.serial_tracking || options.forceQuantity;
   if (needsDetail) return openLineDetail(product);
   const existing = POS.cart.find(item => item.product_id === product.id && !item.batch_id && !item.serial_id);
   if (existing) existing.qty = money(existing.qty) + 1;
@@ -245,7 +256,7 @@ function bindCartEvents() {
     }
     if (detail) openLineDetail(POS.cart[Number(detail.dataset.detail)], Number(detail.dataset.detail));
   });
-  qs("#cartItems").addEventListener("change", event => {
+  const editLine = event => {
     const qty = event.target.closest("[data-qty]");
     const rate = event.target.closest("[data-rate]");
     const discount = event.target.closest("[data-discount]");
@@ -263,8 +274,19 @@ function bindCartEvents() {
       item.discount = Math.min(50, Math.max(0, money(discount.value)));
       if (money(discount.value) > 50) toast("Discount capped at 50% without supervisor override", "warning");
     }
-    renderCart();
-  });
+    if (!qty && !rate && !discount) return;
+    if (event.type === "change") renderCart();
+    else {
+      updateSummary();
+      updateProductTileCounts();
+      saveCartState();
+      const index = Number((qty || rate || discount).dataset.qty ?? (qty || rate || discount).dataset.rate ?? (qty || rate || discount).dataset.discount);
+      const total = event.target.closest(".cart-line")?.querySelector(".cart-line-top > strong");
+      if (total) total.textContent = `₹${fmt(lineTotal(POS.cart[index]))}`;
+    }
+  };
+  qs("#cartItems").addEventListener("input", editLine);
+  qs("#cartItems").addEventListener("change", editLine);
   qs("#cartItems").addEventListener("focusin", event => {
     const qty = event.target.closest("[data-qty]");
     if (!qty || window.matchMedia("(pointer: fine)").matches) return;
@@ -356,6 +378,7 @@ function normalizeProduct(product) {
     expiry_tracking: !!product.expiry_tracking,
     decimal_allowed: !!product.decimal_allowed,
     low_stock: !!product.low_stock,
+    tracking_loaded: true,
     batches: product.batches || [],
     serials: product.serials || [],
   };
@@ -471,7 +494,7 @@ async function completeSale(after = "done") {
   POS.submitting = true;
   qsa(".complete-sale").forEach(btn => { btn.disabled = true; btn.textContent = "Completing..."; });
   const completedItems = [...POS.cart];
-  const body = {
+  const body = POS.pendingSale || {
     request_id: uid(),
     customer_id: qs("#posCustomer").value,
     warehouse_id: terminal().dataset.warehouseId,
@@ -481,11 +504,23 @@ async function completeSale(after = "done") {
     delivery_bill: false,
     ...pay,
   };
-  const res = await fetch(terminal().dataset.saleUrl, {method:"POST", headers:csrfHeaders({"Content-Type":"application/json"}), body:JSON.stringify(body)});
-  const data = await res.json().catch(() => ({}));
-  POS.submitting = false;
-  qsa(".complete-sale").forEach(btn => { btn.disabled = false; btn.textContent = btn.dataset.after === "done" ? "Complete Sale" : `Complete + ${btn.dataset.after[0].toUpperCase()}${btn.dataset.after.slice(1)}`; });
-  if (!res.ok) return toast(data.error || "Sale failed", "danger");
+  POS.pendingSale = body;
+  saveCartState();
+  let res, data;
+  try {
+    res = await fetch(terminal().dataset.saleUrl, {method:"POST", headers:csrfHeaders({"Content-Type":"application/json"}), body:JSON.stringify(body)});
+    data = await res.json();
+  } catch (error) {
+    return toast("Checkout response unavailable. Retry to recover the same sale; do not start a new bill.", "warning");
+  } finally {
+    POS.submitting = false;
+    qsa(".complete-sale").forEach(btn => { btn.disabled = false; btn.textContent = btn.dataset.after === "done" ? "Complete Sale" : `Complete + ${btn.dataset.after[0].toUpperCase()}${btn.dataset.after.slice(1)}`; });
+  }
+  if (!res.ok) {
+    if (res.status < 500) { POS.pendingSale = null; saveCartState(); }
+    return toast(data.error || "Sale failed", "danger");
+  }
+  POS.pendingSale = null;
   POS.lastReceiptUrl = `/pos/receipt/${data.sale_id}`;
   rememberRecentProducts(completedItems);
   POS.cart = [];
@@ -624,13 +659,15 @@ function bindStaticEvents() {
     POS.paymentMode = btn.dataset.paymentMode;
     buildPaymentRows(POS.paymentMode);
   }));
-  qs("#paymentRows").addEventListener("change", event => {
+  const editPayment = event => {
     const mode = event.target.closest("[data-pay-mode]");
     const amount = event.target.closest("[data-pay-amount]");
     if (mode) POS.paymentRows[Number(mode.dataset.payMode)].mode = mode.value;
     if (amount) POS.paymentRows[Number(amount.dataset.payAmount)].amount = money(amount.value);
     updatePaymentModal();
-  });
+  };
+  qs("#paymentRows").addEventListener("input", editPayment);
+  qs("#paymentRows").addEventListener("change", editPayment);
   qs("#paymentRows").addEventListener("click", event => {
     const remove = event.target.closest("[data-pay-remove]");
     if (remove) { POS.paymentRows.splice(Number(remove.dataset.payRemove), 1); renderPaymentRows(); }

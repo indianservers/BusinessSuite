@@ -30,7 +30,7 @@ const categories: Record<string, readonly Category[]> = {
   crm: [
     { name: "Dashboard", paths: ["/crm", "/crm/dashboard"] },
     { name: "Customer growth", paths: ["/crm/product-customers", "/crm/customer-follow-ups", "/crm/greetings"] },
-    { name: "Customers & leads", paths: ["/crm/records", "/crm/record-metadata", "/crm/leads", "/crm/contacts", "/crm/customers", "/crm/vendors", "/crm/companies", "/crm/customer-360", "/crm/lead-scoring", "/crm/duplicates", "/crm/territories"] },
+    { name: "Customers & leads", paths: ["/crm/potential-clients", "/crm/records", "/crm/record-metadata", "/crm/leads", "/crm/contacts", "/crm/customers", "/crm/vendors", "/crm/companies", "/crm/customer-360", "/crm/lead-scoring", "/crm/duplicates", "/crm/territories"] },
     { name: "Sales & pipeline", paths: ["/crm/payment-requests", "/crm/deals", "/crm/pipeline", "/crm/templates", "/crm/lead-to-cash", "/crm/products-services", "/crm/products", "/crm/services", "/crm/quotations", "/crm/my-approvals"] },
     { name: "Activities & planning", paths: ["/crm/follow-ups", "/crm/activities", "/crm/tasks", "/crm/calendar", "/crm/gantt", "/crm/calendar-integrations"] },
     { name: "Communication", paths: ["/crm/send-reminders", "/crm/birthdays", "/crm/campaigns", "/crm/webforms", "/crm/forms", "/crm/consents", "/crm/communication-hub", "/crm/email-templates", "/crm/emails", "/crm/whatsapp", "/crm/whatsapp/inbox", "/crm/whatsapp/sent", "/crm/whatsapp/templates", "/crm/whatsapp/profile", "/crm/auto-responses", "/crm/delivery-logs", "/crm/communication-timeline", "/crm/messages"] },

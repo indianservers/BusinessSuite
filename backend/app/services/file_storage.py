@@ -62,6 +62,16 @@ def route_upload(path, *, db=None, company=None, module=None, filename=None):
     policy = db.get(StoragePolicy, int(company))
     route = ((policy.routes or {}).get(module) or (policy.routes or {}).get("default")) if policy and policy.enabled else None
     content = Path(path).read_bytes()
+    from app.enterprise.controls import subscription
+    from sqlalchemy import func
+    contract = subscription(db, int(company))
+    if contract and contract["values"].get("enforce") and contract["values"].get("storage_mib"):
+        from app.models.company import Company
+        db.query(Company).filter_by(id=int(company)).with_for_update().first()
+        used = db.query(func.coalesce(func.sum(StorageObject.size), 0)).filter_by(organization_id=int(company)).scalar()
+        existing = locator(path, db, company)
+        if int(used or 0) - (existing.size if existing else 0) + len(content) > int(contract["values"]["storage_mib"]) * 1048576:
+            raise HTTPException(409, "Your company has reached its licensed storage allowance. Contact Indian Servers to increase it.")
     digest = hashlib.sha256(content).hexdigest()
     row = locator(path, db, company)
     if row and row.status == "cloud" and row.sha256 == digest:

@@ -1,0 +1,21 @@
+{
+  "create_source_status": 201,
+  "linked_hub_ids": [
+    1367
+  ],
+  "potential_filter_ids": [
+    1367
+  ],
+  "potential_source_visible": true,
+  "read_and_filter": "passed",
+  "cleanup_source_status": 200,
+  "cleanup_contact_status": 200,
+  "existing_lead_links": [
+    {
+      "lead_id": 781,
+      "hub_contact_ids": [
+        1125
+      ]
+    }
+  ]
+}

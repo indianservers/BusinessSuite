@@ -1,0 +1,96 @@
+[
+  {
+    "workflow": 46,
+    "stage": "reopened draft",
+    "text": "Invoice QA-046-DISCOUNT\nWorkflow 1-50 Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nQA-046-DISCOUNT\n2026-11-06 | Due 2026-12-06\n Draft\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 0.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t2.000\t1000.0000\t200.00\t324.00\t2124.00\nSubtotal\n2000.00\nDiscount\n200.00\nTax\n324.00\nGrand Total\n2124.00\nPaid\n0.00\nBalance\n2124.00\nTerms\n\nNone\n\nActions\n Edit Draft\n Issue Invoice\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 46,
+    "stage": "issued",
+    "text": "Invoice QA-046-DISCOUNT\nWorkflow 1-50 Test Company\nDashboard\nInvoices\n2\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nInvoice issued and accounts posted.\nQA-046-DISCOUNT\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 2124.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t2.000\t1000.0000\t200.00\t324.00\t2124.00\nSubtotal\n2000.00\nDiscount\n200.00\nTax\n324.00\nGrand Total\n2124.00\nPaid\n0.00\nBalance\n2124.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 12,
+    "stage": "excess return",
+    "text": "Create Sales Return\nWorkflow 1-50 Test Company\nDashboard\nSales\nReturns\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nCumulative returns cannot exceed the original sold quantity\nReturn No\nDate\nCustomer\nSelect\nQA Customer A\nWarehouse\nSelect\nMain\nQA Warehouse B\nOriginal Invoice\nNone\nQA-046-DISCOUNT\nQA-050-BASELINE\nRefund Mode\nCredit Note\nCash Refund\nBank Refund\nRestock returned items\nItems\nProduct\nP1 - QA Product A\nQA-SERVICE - QA Consulting Service (Out)\nSubtotal\nDiscount\nTax\nShipping\nOther Charges\nRound Off\nGrand Total\nPaid Amount\nFull\nBalance\nStatus\nReason\nNotes\nReview return totals before saving.\nSave Return"
+  },
+  {
+    "workflow": 12,
+    "stage": "excess refund",
+    "text": "Refunds\nWorkflow 1-50 Test Company\nDashboard\nSales\nRefunds\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nRefund exceeds the customer's available credit\nRecord Refund\nQA Customer A\nCredit note optional\nCN-2026-00001 - QA Customer A\nReturn optional\nQA-012-RETURN-1\nCash\nBank\nCard\nUPI\nSave Refund\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tCustomer\n\tMode\n\tAmount\n\tApproval\n\nNo data available in table\nShowing 0 to 0 of 0 entries\n«\n‹\n›\n»"
+  },
+  {
+    "workflow": 16,
+    "text": "Z Report POS-2026-00001\nWorkflow 1-50 Test Company\nDashboard\nPos\nClose Session\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nZ Report POS-2026-00001\nOpened\t2026-11-06 14:51:10.744681\nClosed\t2026-11-06 14:51:18.026783\nOpening Cash\t2000.00\nCash Sales\t2360.00\nCash In\t0\nCash Withdrawals\t0.00\nExpected Closing Cash\t4360.00\nActual Closing Cash\t4360.00\nDifference\t0.00\nTotal Sales\t2360.00\nCard\t0.00\nUPI\t0.00\nWallet\t0.00\nCredit Sales\t0.00\nRefunds\t0.00\nPrint"
+  },
+  {
+    "workflow": 17,
+    "text": "Z Report POS-2026-00002\nWorkflow 1-50 Test Company\nDashboard\nPos\nClose Session\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nZ Report POS-2026-00002\nOpened\t2026-11-06 14:51:37.055683\nClosed\t2026-11-06 14:52:48.646566\nOpening Cash\t0.00\nCash Sales\t1000.00\nCash In\t0\nCash Withdrawals\t0.00\nExpected Closing Cash\t1000.00\nActual Closing Cash\t1000.00\nDifference\t0.00\nTotal Sales\t2360.00\nCard\t1360.00\nUPI\t0.00\nWallet\t0.00\nCredit Sales\t0.00\nRefunds\t0.00\nPrint",
+    "gap": "Close-session modal displayed stale initial tender totals before reload."
+  },
+  {
+    "workflow": 22,
+    "stage": "closed session returns to open-session screen",
+    "text": "Open POS Session\nWorkflow 1-50 Test Company\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nOpen POS Session\nRegister\nDefault register\nMain POS - Main Branch / Main\nOpening Cash\nOpen Terminal"
+  },
+  {
+    "workflow": 20,
+    "text": "Z Report POS-2026-00003\nWorkflow 1-50 Test Company\nDashboard\nPos\nClose Session\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nZ Report POS-2026-00003\nOpened\t2026-11-06 14:53:09.330706\nClosed\t2026-11-06 14:54:34.515136\nOpening Cash\t2000.00\nCash Sales\t2360.00\nCash In\t500.00\nCash Withdrawals\t300.00\nExpected Closing Cash\t4560.00\nActual Closing Cash\t4550.00\nDifference\t-10.00\nTotal Sales\t2360.00\nCard\t0.00\nUPI\t0.00\nWallet\t0.00\nCredit Sales\t0.00\nRefunds\t0.00\nPrint",
+    "gap": "Fast checkout left overlapping payment/success dialogs; manual dismissal needed."
+  },
+  {
+    "workflow": 32,
+    "stage": "excess stock issue",
+    "text": "Create Invoice\nWorkflow 1-50 Test Company\nDashboard\nInvoices\nCreate\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n400 Bad Request: Insufficient stock for QA Product A\nINVOICE BUILDER\nQA-032-EXCESS\nInvoice No\nDate\nDue\nCustomer\nSelect\nQA Customer A | Due 944.00\nWarehouse\nSelect\nMain\nQA Warehouse B\nCurrency\nINR\nExchange Rate\nType\nCredit\nCash\nAll Items\nUncategorized\nQA Consulting Service\nQA-SERVICE | Stock 0.000\nINR 5000.00\nQA Product A\nP1 | Stock 1.000\nINR 1000.00\nCART\nInvoice Items\nClick or drag products here\nTerms\nNotes\nSubtotal\nDiscount\nTax\nShipping\nOther\nRound Off\nTotal\nPaid\nBalance\nBack\nSave Draft\nIssue Invoice"
+  },
+  {
+    "workflow": 32,
+    "stage": "valid remaining unit issued",
+    "text": "Invoice QA-032-VALID\nWorkflow 1-50 Test Company\nDashboard\nInvoices\n6\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nInvoice issued and accounts posted.\nQA-032-VALID\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 2124.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t1.000\t1000.0000\t0.00\t180.00\t1180.00\nSubtotal\n1000.00\nDiscount\n0.00\nTax\n180.00\nGrand Total\n1180.00\nPaid\n0.00\nBalance\n1180.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 39,
+    "stage": "six received",
+    "text": "PO QA-039-PO\nWorkflow 1-50 Test Company\nDashboard\nPurchase Orders\n1\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nGoods receipt QA-039-GRN-6 saved and stock updated.\nQA-039-PO\n\n2026-11-06 | Supplier | Partially Received\n\nProduct\tOrdered\tReceived\tRate\tTotal\nQA Product A\t10.000\t6.000\t600.0000\t7080.00\nTotal: 7080.00\nActions\nMark Sent\nCreate GRN\nConvert to Purchase Bill\nPrint PO\nCancel PO"
+  },
+  {
+    "workflow": 39,
+    "stage": "overreceipt attempt",
+    "text": "GRN for QA-039-PO\nWorkflow 1-50 Test Company\nDashboard\nPurchase Orders\n1\nGrn\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nReceipt quantity exceeds the remaining purchase order quantity\nStep 1: PO\nStep 2: GRN\nStep 3: Purchase Bill\nGRN No\nDate\nSupplier\nSupplier\nWarehouse\nMain\nQA Warehouse B\nProduct\tExpected\tReceived\tRate\tTax %\tBatch\tMFG\tExpiry\tSerials\nQA Product A\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\nNotes\nSave GRN"
+  },
+  {
+    "workflow": 39,
+    "stage": "remaining four received",
+    "text": "PO QA-039-PO\nWorkflow 1-50 Test Company\nDashboard\nPurchase Orders\n1\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nGoods receipt QA-039-GRN-4 saved and stock updated.\nQA-039-PO\n\n2026-11-06 | Supplier | Received\n\nProduct\tOrdered\tReceived\tRate\tTotal\nQA Product A\t10.000\t10.000\t600.0000\t7080.00\nTotal: 7080.00\nActions\nMark Sent\nCreate GRN\nConvert to Purchase Bill\nPrint PO\nCancel PO"
+  },
+  {
+    "workflow": 30,
+    "stage": "reopened transfer",
+    "text": "Stock Transfers\nWorkflow 1-50 Test Company\nDashboard\nStock\nTransfers\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nStock Transfers\n Transfer\n10\n25\n50\n100\nentries per page\nSearch:\nNo\n\tDate\n\tFrom\n\tTo\n\tStatus\n\tItems\n\t\n\nQA-030-TRANSFER\t2026-11-06\tMain\tQA Warehouse B\tReceived\t1\t\nShowing 1 to 1 of 1 entry\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 30,
+    "warehouse": "1",
+    "text": "Stock Valuation\nWorkflow 1-50 Test Company\nDashboard\nReports\nValuation\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n Print\n Export Excel\nTotal Value: 3600.00\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tQty\n\tAverage Cost\n\tStock Value\n\nP1\tQA Product A\tMain\t6.000\t600.0000\t3600.00\nQA-SERVICE\tQA Consulting Service\tMain\t0\t0.0000\t0.00\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 30,
+    "warehouse": "2",
+    "text": "Stock Valuation\nWorkflow 1-50 Test Company\nDashboard\nReports\nValuation\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n Print\n Export Excel\nTotal Value: 2400.00\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tQty\n\tAverage Cost\n\tStock Value\n\nP1\tQA Product A\tQA Warehouse B\t4.000\t600.0000\t2400.00\nQA-SERVICE\tQA Consulting Service\tQA Warehouse B\t0\t0.0000\t0.00\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 28,
+    "stage": "attempt seven from warehouse with six",
+    "text": "Invoice QA-028-WAREHOUSE-EXCESS\nWorkflow 1-50 Test Company\nDashboard\nInvoices\n7\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\nInvoice issued and accounts posted.\nQA-028-WAREHOUSE-EXCESS\n2026-11-06 | Due 2026-12-06\nIssued\nBill To\nQA Customer A\nQA Billing Office\nWarehouse\nMain\nOutstanding: 10384.00\nProduct\tQty\tRate\tDiscount\tTax\tTotal\nP1 - QA Product A\t7.000\t1000.0000\t0.00\t1260.00\t8260.00\nSubtotal\n7000.00\nDiscount\n0.00\nTax\n1260.00\nGrand Total\n8260.00\nPaid\n0.00\nBalance\n8260.00\nTerms\n\nNone\n\nActions\n Print\n PDF\n Create Delivery Bill\n Generate Picklist\nSet Razorpay keys to enable payment links.\nRecord Payment\nDate\nAmount\nMode\nCash\nBank Transfer\nUPI\nCard\nCheque\nReference\nNotes\nSave Payment\nPayment History\nNo payments recorded\nCancel Invoice\nCancel"
+  },
+  {
+    "workflow": 28,
+    "stage": "warehouse negative after issue",
+    "text": "Stock Valuation\nWorkflow 1-50 Test Company\nDashboard\nReports\nValuation\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n Print\n Export Excel\nTotal Value: -600.00\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tQty\n\tAverage Cost\n\tStock Value\n\nP1\tQA Product A\tMain\t-1.000\t600.0000\t-600.00\nQA-SERVICE\tQA Consulting Service\tMain\t0\t0.0000\t0.00\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  },
+  {
+    "workflow": 28,
+    "stage": "cleanup restored warehouse six",
+    "text": "Stock Valuation\nWorkflow 1-50 Test Company\nDashboard\nReports\nValuation\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n Print\n Export Excel\nTotal Value: 3600.00\n10\n25\n50\n100\nentries per page\nSearch:\nSKU\n\tProduct\n\tWarehouse\n\tQty\n\tAverage Cost\n\tStock Value\n\nP1\tQA Product A\tMain\t6.000\t600.0000\t3600.00\nQA-SERVICE\tQA Consulting Service\tMain\t0\t0.0000\t0.00\nShowing 1 to 2 of 2 entries\n«\n‹\n1\n›\n»"
+  }
+]

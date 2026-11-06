@@ -1,8 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="panel print-template">
-  <div class="d-flex justify-content-between"><div><h2>{{ company.company_name if company else 'Vyapara ERP' }}</h2><p>{{ company.address if company }}</p></div><div class="text-end"><h3>Purchase Order</h3><p>{{ po.po_no }}<br>{{ po.po_date }}</p></div></div>
+  <div class="d-flex justify-content-between"><div><h2>{{ company.company_name if company else 'Vyapara ERP' }}</h2><p>{{ company.address or "" if company else "" }}</p></div><div class="text-end"><h3>Purchase Order</h3><p>{{ po.po_no }}<br>{{ po.po_date }}</p></div></div>
   <p><strong>Supplier:</strong> {{ po.supplier.name }}<br><strong>Expected:</strong> {{ po.expected_date or '' }}</p>
+  <section aria-label="Delivery destination"><h4>Deliver to</h4>
+    <p><strong>{{ po.warehouse.name }}</strong><br>{{ po.warehouse.address or 'Delivery address not configured' }}
+    {% if po.warehouse.contact_person %}<br>Contact: {{ po.warehouse.contact_person }}{% endif %}
+    {% if po.warehouse.phone %}<br>Phone: {{ po.warehouse.phone }}{% endif %}</p>
+  </section>
   <table class="table"><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Total</th></tr></thead><tbody>{% for item in po.items %}<tr><td>{{ item.product.name }}</td><td>{{ item.quantity }}</td><td>{{ item.rate }}</td><td>{{ item.tax_amount }}</td><td>{{ item.line_total }}</td></tr>{% endfor %}</tbody></table>
   <div class="text-end"><p>Subtotal: {{ po.subtotal }}<br>Tax: {{ po.tax_total }}<br><strong>Grand Total: {{ po.grand_total }}</strong></p></div>
   <p>{{ po.terms }}</p><div class="text-end mt-5">Authorized Signature</div>

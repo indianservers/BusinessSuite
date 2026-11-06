@@ -273,6 +273,7 @@ function isMobileCrmRole(role?: string | null, isSuperuser = false) {
 }
 
 function canAccessSaaSPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname === "/admin/signup-requests") return isSuperuser;
   if (pathname.startsWith("/mobile")) return isMobileCrmRole(role, isSuperuser);
   if (pathname.startsWith("/developer")) return isDeveloperHubRole(role, isSuperuser);
   if (pathname.startsWith("/marketplace")) return isDeveloperHubRole(role, isSuperuser);
@@ -833,7 +834,7 @@ const crmNav: RoleNavItem[] = [
  {label:"Contact birthdays",icon:CalendarDays,to:"/crm/birthdays",group:"Communication"},
   { label: "Dashboard", icon: LayoutDashboard, to: "/crm", group: "Core", exact: true },
   { label: "Forms", icon: FileText, to: "/crm/forms", group: "Workspace" },
-  { label: "Potential Clients", icon: Users, to: "/crm/potential-clients", group: "Core" },
+  { label: "Potential Clients", icon: Users, to: "/crm/potential-clients", group: "Customers & leads" },
   { label: "Leads", icon: Users, to: "/crm/leads", group: "Core" },
   { label: "Contacts", icon: UserRound, to: "/crm/contacts", group: "Core" },
   { label: "Relationship Hub", icon: TableProperties, to: "/crm/records", group: "Core" },
@@ -1146,6 +1147,7 @@ export function getActiveModule(pathname: string) {
   const normalizedPathname = pathname.toLowerCase();
   if (pathname === "/" || pathname === "" || pathname === "/analytics" || pathname.startsWith("/analytics/")) return "suite";
   if (isAdminSecurityPath(pathname)) return "admin_security";
+  if (pathname === "/admin/signup-requests") return "saas";
   if (pathname.startsWith("/mobile") || pathname.startsWith("/developer") || pathname.startsWith("/marketplace") || pathname.startsWith("/admin/sandbox") || pathname.startsWith("/admin/company-settings") || pathname.startsWith("/admin/feature-flags") || pathname.startsWith("/admin/subscription") || pathname.startsWith("/admin/usage")) return "saas";
   if (pathname.startsWith("/ai/")) return "ai_copilot";
   if (pathname.startsWith("/ai-agents")) return "ai_agents";
@@ -1367,6 +1369,7 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname === "/admin/signup-requests") return Boolean(isSuperuser);
   if (/^\/(crm|srm|hrms|pms|fam)\/import-data\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
   if (pathname === "/settings" || pathname.startsWith("/settings/")) return true;
   if (["/dashboard", "/account", "/notifications", "/help"].includes(pathname.split(/[?#]/)[0])) return true;
@@ -1388,6 +1391,7 @@ export function canAccessRoute(pathname: string, role?: string | null, isSuperus
   if (/^\/srm\/invoices\/\d+\/?$/.test(pathname) || /^\/pms\/projects\/\d+\/billing\/?$/.test(pathname)) return true;
   const lowercasePathname = pathname.toLowerCase();
   if (pathname === "/") return true;
+  if (pathname === "/company-admin") return true;
   if (pathname.startsWith("/crm") && !isFrontendModuleEnabled("crm")) return false;
   if (pathname.startsWith("/pms") && !isFrontendModuleEnabled("project_management")) return false;
   if (pathname.startsWith("/srm") && !isFrontendModuleEnabled("srm")) return false;

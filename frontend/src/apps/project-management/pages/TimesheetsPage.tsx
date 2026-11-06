@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -44,6 +45,7 @@ export default function TimesheetsPage() {
   const [approvalStatus, setApprovalStatus] = useState("submitted");
   const [approvalUserId, setApprovalUserId] = useState("");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -197,7 +199,7 @@ export default function TimesheetsPage() {
         </CardHeader>
         <CardContent>
           {sheet?.rejection_reason ? <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Rejected: {sheet.rejection_reason}</div> : null}
-          {loading ? <div className="skeleton h-48 rounded-lg" /> : (
+          {initialLoading ? <div className="skeleton h-48 rounded-lg" /> : (
             <div className="overflow-x-auto">
               <GridTable gridId="apps/project-management/pages/TimesheetsPage:table-1" className="min-w-[980px] w-full border-collapse text-sm">
                 <thead>

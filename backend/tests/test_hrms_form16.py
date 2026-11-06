@@ -19,7 +19,7 @@ from app.models.statutory_compliance import Form16Record
 def _pdf_bytes() -> bytes:
     stream = BytesIO()
     pdf = canvas.Canvas(stream)
-    pdf.drawString(72, 720, "TRACES Part A")
+    pdf.drawString(72, 720, "TRACES Part A - ABCDE1234F")
     pdf.save()
     return stream.getvalue()
 
@@ -75,7 +75,9 @@ def _seed_form16_employee(db):
     return employee
 
 
-def test_form16_generate_upload_publish_and_download(client, db, superuser_headers):
+def test_form16_generate_upload_publish_and_download(client, db, superuser_headers, tmp_path, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
     employee = _seed_form16_employee(db)
 
     generated = client.post(
@@ -108,6 +110,17 @@ def test_form16_generate_upload_publish_and_download(client, db, superuser_heade
     assert normalize_upload_references(uploaded.json()["partAFilePath"]).endswith(".pdf")
     assert normalize_upload_references(uploaded.json()["combinedFilePath"]).endswith(".pdf")
 
+    assert client.post(f"/api/v1/hrms/form16/{record_id}/publish", headers=superuser_headers).status_code == 409
+    assert client.post(f"/api/v1/hrms/form16/{record_id}/review", headers=superuser_headers).status_code == 200
+    from tests.payroll_signing_utils import signing_material, sign_pdf
+    pfx, pem = signing_material(tmp_path)
+    trust = client.post("/api/v1/hrms/form16/signing-trust", files={"file": ("signer.pem", pem, "application/x-pem-file")}, headers=superuser_headers)
+    assert trust.status_code == 200, trust.text
+    original = client.get(f"/api/v1/hrms/form16/{record_id}/download?part=combined", headers=superuser_headers)
+    signed_bytes = sign_pdf(original.content, pfx)
+    signed = client.post(f"/api/v1/hrms/form16/{record_id}/upload-signed", files={"file": ("signed.pdf", signed_bytes, "application/pdf")}, headers=superuser_headers)
+    assert signed.status_code == 200, signed.text
+    assert signed.json()["digitalSignatureStatus"] == "verified"
     published = client.post(f"/api/v1/hrms/form16/{record_id}/publish", headers=superuser_headers)
     assert published.status_code == 200
     assert published.json()["status"] == "published"

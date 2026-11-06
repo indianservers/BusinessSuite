@@ -4,13 +4,17 @@ from app.core.storage import persist_file, upload_exists, materialize_file, File
 
 import os
 import uuid
+import re
+import json
+import hashlib
+from io import BytesIO
 from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
@@ -41,13 +45,16 @@ def _has_permission(user: User, permission: str) -> bool:
 
 
 def _can_manage(user: User) -> bool:
+    grants = getattr(user, "_suite_grants", None) or {}
+    role = grants.get("hrms", {}).get("role") or (user.role.name if user.role else "")
+    if not user.is_superuser and role in {"employee", "intern"}:
+        return False
     return _has_permission(user, "payroll_run") or _has_permission(user, "payroll_view") or _has_permission(user, "payroll_approve")
 
 
 def _current_company_id(user: User) -> int | None:
-    if user.employee and user.employee.branch:
-        return user.employee.branch.company_id
-    return None
+    from app.services.payroll_delivery import company_for
+    return company_for(user)
 
 
 def _employee_name(employee: Employee | None) -> str:
@@ -57,6 +64,8 @@ def _employee_name(employee: Employee | None) -> str:
 
 
 def _fy_window(financial_year: str) -> tuple[date, date]:
+    if not re.fullmatch(r"(?:20\d{2})-\d{2}", financial_year) or int(financial_year[-2:]) != (int(financial_year[:4]) + 1) % 100:
+        raise HTTPException(422, "Financial year must be a consecutive YYYY-YY value, for example 2026-27")
     start_text = financial_year.split("-")[0]
     if len(start_text) != 4 or not start_text.isdigit():
         raise HTTPException(status_code=400, detail="Financial year must be formatted as YYYY-YY, for example 2025-26")
@@ -80,10 +89,11 @@ def _payroll_records(db: Session, financial_year: str, employee_id: int, company
         db.query(PayrollRecord)
         .join(PayrollRun, PayrollRun.id == PayrollRecord.payroll_run_id)
         .filter(PayrollRecord.employee_id == employee_id, PayrollRun.deleted_at.is_(None))
+        .filter(func.lower(PayrollRun.status).in_(["locked", "paid"]))
         .filter(tuple_(PayrollRun.year, PayrollRun.month).in_(months))
     )
     if company_id:
-        query = query.filter(PayrollRun.company_id == company_id)
+        query = query.filter(or_(PayrollRun.company_id == company_id, PayrollRun.company_id.is_(None)))
     return query.order_by(PayrollRun.year, PayrollRun.month).all()
 
 
@@ -142,7 +152,7 @@ def _disk_path(file_url: str | None) -> str | None:
         return None
     path = os.path.abspath(os.path.join(settings.UPLOAD_DIR, file_url.replace("/uploads/", "", 1).replace("/", os.sep)))
     root = os.path.abspath(settings.UPLOAD_DIR)
-    if not path.startswith(root):
+    if os.path.commonpath([path, root]) != root:
         return None
     return path
 
@@ -209,7 +219,7 @@ def _write_part_b_pdf(path: str, employee: Employee, company_name: str, financia
         Table(declaration_rows, repeatRows=1),
         Spacer(1, 0.35 * inch),
         Paragraph("This certificate has been generated from payroll records and approved tax proofs.", styles["Italic"]),
-        Paragraph("Digital signature status: pending external signing connector.", styles["Italic"]),
+        Paragraph("Prepared for review. Verify this computation against tax records before signing; an externally reviewed Part B can replace this worksheet.", styles["Italic"]),
     ]
     for item in story:
         if isinstance(item, Table):
@@ -263,9 +273,11 @@ def _serialize(record: Form16Record, include_employee: bool = True) -> dict[str,
         "status": record.status,
         "taxableIncome": record.taxable_income,
         "taxDeducted": record.tax_deducted,
-        "digitalSignatureStatus": "pending_signature" if record.status == "generated" else "not_configured",
-        "digitalSignatureProvider": None,
-        "signatureHookStatus": "connector_not_configured",
+        "digitalSignatureStatus": record.signature_status or "pending",
+        "digitalSignatureProvider": "External DSC / verified upload",
+        "signedFilePath": record.signed_file_path,
+        "reviewedAt": record.reviewed_at,
+        "signatureEvidence": json.loads(record.signature_evidence_json) if record.signature_evidence_json else None,
         "generatedBy": record.generated_by,
         "generatedAt": record.generated_at,
         "publishedAt": record.published_at,
@@ -299,6 +311,7 @@ def list_form16(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _fy_window(financialYear)
     query = db.query(Form16Record).options(joinedload(Form16Record.employee)).filter(Form16Record.financial_year == financialYear)
     if _can_manage(current_user):
         if employeeId:
@@ -320,7 +333,9 @@ def generate_form16(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("payroll_run")),
 ):
-    company_id = None if current_user.is_superuser else _current_company_id(current_user)
+    from app.services.payroll_delivery import company_for
+    company_id = company_for(current_user)
+    _fy_window(payload.financialYear)
     if not current_user.is_superuser and not company_id:
         raise HTTPException(status_code=403, detail="Company scope is required")
     employee_query = db.query(Employee).filter(Employee.deleted_at.is_(None))
@@ -331,6 +346,11 @@ def generate_form16(
         employee_query = employee_query.filter(Employee.id.in_(employee_ids))
     records: list[Form16Record] = []
     for employee in employee_query.all():
+        if not employee.pan_number or not re.fullmatch(r"[A-Z]{5}[0-9]{4}[A-Z]", employee.pan_number.upper()):
+            raise HTTPException(422, f"Configure a valid PAN for employee {employee.employee_id}")
+        existing = db.query(Form16Record).filter_by(employee_id=employee.id, financial_year=payload.financialYear, organization_id=company_id).first()
+        if existing and existing.status == "published":
+            raise HTTPException(409, "Withdraw the published Form 16 before regenerating it")
         computation = _compute_form16(db, employee, payload.financialYear, company_id)
         if computation["gross_salary"] <= 0 and computation["tax_deducted"] <= 0:
             continue
@@ -350,6 +370,7 @@ def generate_form16(
         record.taxable_income = computation["taxable_income"]
         record.tax_deducted = computation["tax_deducted"]
         record.status = "generated"
+        _reset_signing(record)
         record.generated_by = current_user.id
         record.generated_at = datetime.now(timezone.utc)
         records.append(record)
@@ -371,9 +392,9 @@ def _payroll_records_for_fy(db: Session, financial_year: str, company_id: int | 
             year += 1
     from sqlalchemy import tuple_
 
-    query = db.query(PayrollRecord).join(PayrollRun, PayrollRun.id == PayrollRecord.payroll_run_id).filter(tuple_(PayrollRun.year, PayrollRun.month).in_(months))
+    query = db.query(PayrollRecord).join(PayrollRun, PayrollRun.id == PayrollRecord.payroll_run_id).filter(tuple_(PayrollRun.year, PayrollRun.month).in_(months), PayrollRun.deleted_at.is_(None), func.lower(PayrollRun.status).in_(["locked", "paid"]))
     if company_id:
-        query = query.filter(PayrollRun.company_id == company_id)
+        query = query.filter(or_(PayrollRun.company_id == company_id, PayrollRun.company_id.is_(None)))
     return query.all()
 
 
@@ -386,15 +407,21 @@ def upload_part_a(
 ):
     record = _load_record(db, record_id)
     _enforce_access(record, current_user, manage_required=True)
-    if (file.content_type or "").lower() != "application/pdf" and not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Part A upload must be a PDF")
+    if record.status == "published":
+        raise HTTPException(409, "Withdraw this certificate before changing its files")
+    data = _read_pdf(file)
+    from pypdf import PdfReader
+    text = " ".join(page.extract_text() or "" for page in PdfReader(BytesIO(data)).pages)
+    if not record.employee.pan_number or record.employee.pan_number.upper() not in text.upper():
+        raise HTTPException(422, "Part A must contain this employee's PAN")
     out_dir = _form16_dir(record.employee_id, record.financial_year)
     filename = f"form16_part_a_{uuid.uuid4().hex}.pdf"
     out_path = os.path.join(out_dir, filename)
     with open(out_path, "wb") as handle:
-        handle.write(file.file.read())
+        handle.write(data)
     persist_file(out_path)
     record.part_a_file_path = _file_url(out_path)
+    _reset_signing(record)
     if record.part_b_file_path:
         record.combined_file_path = _combine_pdfs(record.part_a_file_path, record.part_b_file_path, record.employee_id, record.financial_year)
     db.commit()
@@ -410,10 +437,26 @@ def publish_form16(
 ):
     record = _load_record(db, record_id)
     _enforce_access(record, current_user, manage_required=True)
-    if not record.combined_file_path and not record.part_b_file_path:
-        raise HTTPException(status_code=400, detail="Generate Form 16 PDF before publishing")
+    if record.status == "published":
+        return _serialize(record)
+    if not record.reviewed_at or record.signature_status != "verified" or not record.signed_file_path:
+        raise HTTPException(409, "Review the merged certificate and upload a verified DSC-signed PDF before publishing")
+    signed = _disk_path(record.signed_file_path)
+    if not signed or not upload_exists(signed):
+        raise HTTPException(409, "The verified signed certificate is unavailable")
+    materialize_file(signed)
+    if hashlib.sha256(open(signed, "rb").read()).hexdigest() != record.signed_sha256:
+        raise HTTPException(409, "Signed certificate changed; repeat signature verification")
     record.status = "published"
     record.published_at = datetime.now(timezone.utc)
+    from app.services.email_dispatch import queue_email
+    from app.services.email_events import _employee
+    contact = _employee(db, record.employee_id, record.organization_id)
+    if settings.EMAIL_NOTIFICATIONS_ENABLED and contact:
+        address, user_id, organization_id = contact
+        queue_email(db, recipient=address, user_id=user_id, organization_id=organization_id, module="payroll",
+            event_key=f"form16-published:{record.id}:{record.signed_sha256}", subject="Your Form 16 is available",
+            body=f"Form 16 for {record.financial_year} is available in your employee portal.")
     db.commit()
     db.refresh(record)
     return _serialize(record)
@@ -422,13 +465,130 @@ def publish_form16(
 @router.get("/{record_id}/download")
 def download_form16(
     record_id: int,
+    part: str = Query("current", pattern="^(current|combined|part_b)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     record = _load_record(db, record_id)
     _enforce_access(record, current_user)
-    file_url = record.combined_file_path or record.part_b_file_path or record.part_a_file_path
+    if part != "current" and not _can_manage(current_user):
+        raise HTTPException(403, "Employees can download only the published signed certificate")
+    file_url = (record.part_b_file_path if part == "part_b" else record.combined_file_path if part == "combined" else record.signed_file_path or record.combined_file_path or record.part_b_file_path)
     path = _disk_path(file_url)
     if not path or not upload_exists(path):
         raise HTTPException(status_code=404, detail="Form 16 PDF not found")
-    return FileResponse(path, media_type="application/pdf", filename=os.path.basename(path))
+    return FileResponse(path, media_type="application/pdf", filename=os.path.basename(path), headers={"Cache-Control": "private, no-store"})
+
+
+def _reset_signing(record):
+    record.signed_file_path = record.signed_sha256 = record.signature_evidence_json = None
+    record.signature_status = "pending"
+    record.reviewed_at = record.reviewed_by = None
+    record.published_at = None
+
+
+def _read_pdf(file):
+    from pypdf import PdfReader
+    data = file.file.read(10 * 1024 * 1024 + 1)
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(413, "PDF must be under 10 MB")
+    try:
+        reader = PdfReader(BytesIO(data))
+        if not data.startswith(b"%PDF") or reader.is_encrypted or not 1 <= len(reader.pages) <= 100:
+            raise ValueError()
+    except Exception:
+        raise HTTPException(422, "Upload a valid, unencrypted PDF with 1 to 100 pages") from None
+    return data
+
+
+@router.post("/signing-trust")
+def signing_trust(file: UploadFile = File(...), db: Session = Depends(get_db), current_user=Depends(RequirePermission("payroll_approve"))):
+    from app.services.form16_signing import certificates
+    from app.services.payroll_delivery import company_for, profile_for
+    data = file.file.read(100001)
+    if len(data) > 100000 or b"PRIVATE KEY" in data:
+        raise HTTPException(422, "Upload only the authorized signatory's public PEM certificate (maximum 100 KB)")
+    certs = certificates(data)
+    profile = profile_for(db, company_for(current_user), True)
+    profile.branding = {**(profile.branding or {}), "form16_trust_roots": data.decode("ascii")}
+    profile.updated_by = current_user.id
+    from app.services.payroll_delivery import audit_delivery
+    audit_delivery(db, current_user, profile.company_id, "form16_signing_trust_updated", f"company={profile.company_id}:certificates={len(certs)}")
+    db.commit()
+    return {"configured": True, "subjects": [cert.subject.human_friendly for cert in certs]}
+
+
+@router.post("/{record_id}/upload-part-b")
+def upload_part_b(record_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user=Depends(RequirePermission("payroll_run"))):
+    record = _load_record(db, record_id)
+    _enforce_access(record, current_user, True)
+    if record.status == "published":
+        raise HTTPException(409, "Withdraw this certificate before changing its files")
+    data = _read_pdf(file)
+    from pypdf import PdfReader
+    text = " ".join(page.extract_text() or "" for page in PdfReader(BytesIO(data)).pages)
+    if not record.employee.pan_number or record.employee.pan_number.upper() not in text.upper():
+        raise HTTPException(422, "Reviewed Part B must contain this employee's PAN")
+    path = os.path.join(_form16_dir(record.employee_id, record.financial_year), f"part_b_reviewed_{uuid.uuid4().hex}.pdf")
+    with open(path, "wb") as target:
+        target.write(data)
+    record.part_b_file_path = _file_url(path)
+    record.combined_file_path = _combine_pdfs(record.part_a_file_path, record.part_b_file_path, record.employee_id, record.financial_year)
+    _reset_signing(record)
+    db.commit()
+    return _serialize(record)
+
+
+@router.post("/{record_id}/review")
+def review_form16(record_id: int, db: Session = Depends(get_db), current_user=Depends(RequirePermission("payroll_approve"))):
+    record = _load_record(db, record_id)
+    _enforce_access(record, current_user, True)
+    if not record.part_a_file_path or not record.part_b_file_path or not record.combined_file_path:
+        raise HTTPException(409, "Upload Part A and prepare Part B before reviewing the merged certificate")
+    if record.status == "published":
+        raise HTTPException(409, "Withdraw a published certificate before review")
+    record.reviewed_at, record.reviewed_by = datetime.now(timezone.utc), current_user.id
+    db.commit()
+    return _serialize(record)
+
+
+@router.post("/{record_id}/upload-signed")
+def upload_signed(record_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user=Depends(RequirePermission("payroll_approve"))):
+    from app.services.form16_signing import verify_signed_pdf
+    from app.services.payroll_delivery import profile_for
+    record = _load_record(db, record_id)
+    _enforce_access(record, current_user, True)
+    if record.status == "published" or not record.reviewed_at:
+        raise HTTPException(409, "Review the unpublished merged certificate before uploading its signed copy")
+    profile = profile_for(db, record.organization_id)
+    trust = (profile.branding or {}).get("form16_trust_roots") if profile else None
+    trust = trust or settings.FORM16_TRUST_ROOTS_PEM
+    if not trust:
+        raise HTTPException(409, "Configure the company's trusted public signing certificate first")
+    original_path = _disk_path(record.combined_file_path)
+    if not original_path or not upload_exists(original_path):
+        raise HTTPException(409, "Merged certificate is unavailable; regenerate and review it")
+    materialize_file(original_path)
+    data = _read_pdf(file)
+    with open(original_path, "rb") as source:
+        evidence = verify_signed_pdf(data, source.read(), trust)
+    path = os.path.join(_form16_dir(record.employee_id, record.financial_year), f"signed_{uuid.uuid4().hex}.pdf")
+    with open(path, "wb") as target:
+        target.write(data)
+    record.signed_file_path = _file_url(path)
+    record.signed_sha256, record.signature_status = evidence["sha256"], "verified"
+    record.signature_evidence_json = json.dumps(evidence)
+    db.commit()
+    return _serialize(record)
+
+
+@router.post("/{record_id}/withdraw")
+def withdraw_form16(record_id: int, db: Session = Depends(get_db), current_user=Depends(RequirePermission("payroll_approve"))):
+    record = _load_record(db, record_id)
+    _enforce_access(record, current_user, True)
+    record.status, record.published_at = "generated", None
+    _reset_signing(record)
+    from app.services.payroll_delivery import audit_delivery
+    audit_delivery(db, current_user, record.organization_id, "form16_withdrawn", f"record={record.id}")
+    db.commit()
+    return _serialize(record)

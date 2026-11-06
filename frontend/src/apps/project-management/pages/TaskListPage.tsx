@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import LocalRecordGrid from "@/shared/data-grid/LocalRecordGrid";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -212,6 +213,7 @@ export default function TaskListPage() {
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkPriority, setBulkPriority] = useState("");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [updatingTaskId, setUpdatingTaskId] = useState<number | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
@@ -728,15 +730,15 @@ export default function TaskListPage() {
 
       <Card>
         <CardContent className="p-0">
-          {loading ? <div className="m-4 h-48 rounded-lg skeleton" /> : null}
-          {!loading && !data?.items.length ? (
+          {initialLoading ? <div className="m-4 h-48 rounded-lg skeleton" /> : null}
+          {!initialLoading && !data?.items.length ? (
             <div className="p-10 text-center">
               <h2 className="text-lg font-semibold">No tasks found</h2>
               <p className="mt-1 text-sm text-muted-foreground">Adjust filters or create tasks from a project board.</p>
             </div>
           ) : null}
 
-          {!loading && data?.items.length ? (
+          {!initialLoading && data?.items.length ? (
             <>
               <div className={cn("overflow-x-auto", layout === "gallery" ? "hidden" : "hidden lg:block")}>
                 <LocalRecordGrid<PMSTaskListItem>

@@ -61,6 +61,8 @@ from app.apps.srm.schemas import (
     SRMBillingPlanCreate,
     SRMBillingPlanUpdate,
     SRMBillingMilestoneInput,
+    SRMBillingMilestoneAmend,
+    SRMLifecycleReason,
     SRMBillOfMaterialCreate,
     SRMContractCreate,
     SRMContractUpdate,
@@ -113,7 +115,7 @@ router = APIRouter(prefix="/srm", tags=["Sales & Inventory Management"])
 
 SALES_ORDER_STATUSES = {"draft", "pending_approval", "approved", "confirmed", "cancelled", "closed"}
 CONTRACT_STATUSES = {"draft", "under_review", "active", "expired", "terminated", "renewed"}
-ENGAGEMENT_STATUSES = {"created", "project_pending", "project_created", "delivery_in_progress", "billing_in_progress", "completed", "closed"}
+ENGAGEMENT_STATUSES = {"created", "project_pending", "project_created", "delivery_in_progress", "billing_in_progress", "completed", "closed", "cancelled"}
 BILLING_PLAN_STATUSES = {"draft", "active", "paused", "completed", "cancelled"}
 INVOICE_STATUSES = {"draft", "pending_approval", "approved", "sent", "partially_paid", "paid", "overdue", "cancelled"}
 RECEIPT_STATUSES = {"draft", "confirmed", "allocated", "partially_allocated", "cancelled"}
@@ -2622,6 +2624,54 @@ def list_engagements(db: Session = Depends(get_db), current_user: User = Depends
     return [_serialize(item) for item in engagement_query(db, current_user).order_by(SRMEngagement.id.desc()).limit(200).all()]
 
 
+def _require_open_engagement(engagement):
+    if engagement and engagement.status in {"closed", "cancelled"}:
+        raise HTTPException(409, "Closed or cancelled engagements cannot create delivery or billing activity")
+
+
+def _change_engagement_status(db, item, target, reason=None, reopen=False):
+    _assert_status(target, ENGAGEMENT_STATUSES, "engagement")
+    if item.status == "cancelled":
+        raise HTTPException(409, "Cancelled engagements cannot be reopened")
+    if item.status == "closed" and not reopen:
+        raise HTTPException(409, "Use the authorized reopen action for a closed engagement")
+    if target == "cancelled":
+        if not reason or not reason.strip():
+            raise HTTPException(422, "Cancellation reason is required")
+        if item.pms_project_id or db.query(SRMBillingPlan.id).filter_by(engagement_id=item.id).first() or db.query(SRMInvoice.id).filter(SRMInvoice.engagement_id==item.id, SRMInvoice.deleted_at==None).first():
+            raise HTTPException(409, "Resolve existing project or billing dependencies before cancellation")
+    if target == "closed":
+        if db.query(SRMBillingPlan.id).filter(SRMBillingPlan.engagement_id==item.id, SRMBillingPlan.status.notin_(["completed","cancelled"])).first() or db.query(SRMInvoice.id).filter(SRMInvoice.engagement_id==item.id, SRMInvoice.deleted_at==None, SRMInvoice.status.notin_(["paid","cancelled"])).first():
+            raise HTTPException(409, "Resolve open billing before closing the engagement")
+        if item.pms_project_id:
+            from app.apps.project_management.models import PMSProject
+            project=db.get(PMSProject,item.pms_project_id)
+            if project and str(project.status).lower() not in {"completed","closed","cancelled"}:
+                raise HTTPException(409,"Complete the delivery project before closing")
+    if reopen and item.sales_order_id:
+        order=db.get(SRMSalesOrder,item.sales_order_id)
+        if order and order.status=="cancelled":
+            raise HTTPException(409,"A cancelled source order prevents reopening")
+    item.status=target
+
+
+@router.post("/engagements/{engagement_id}/lifecycle/{action}")
+def transition_engagement_lifecycle(engagement_id: int, action: str, data: SRMLifecycleReason, db: Session=Depends(get_db), current_user: User=Depends(RequirePermission("srm_manage","srm_admin"))):
+    lock_tenant(db,current_user)
+    item=get_engagement_for_user(db,engagement_id,current_user)
+    if not data.reason.strip(): raise HTTPException(422,"A reason is required")
+    before=item.status
+    if action=="reopen":
+        if before!="closed": raise HTTPException(409,"Only closed engagements can be reopened")
+        target="project_created" if item.pms_project_id else "created"
+    elif action in {"cancel","close"}: target="cancelled" if action=="cancel" else "closed"
+    else: raise HTTPException(404,"Unknown lifecycle action")
+    _change_engagement_status(db,item,target,data.reason,reopen=action=="reopen")
+    _audit(db,current_user,"engagement",item.id,action,before={"status":before},after={"status":target,"reason":data.reason.strip()})
+    db.commit();db.refresh(item)
+    return _serialize(item)
+
+
 @router.post("/engagements", status_code=201)
 def create_engagement(data: SRMEngagementCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     if data.sales_order_id:
@@ -2648,16 +2698,19 @@ def get_engagement(engagement_id: int, db: Session = Depends(get_db), current_us
 
 @router.patch("/engagements/{engagement_id}")
 def update_engagement(engagement_id: int, data: SRMEngagementUpdate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    lock_tenant(db,current_user)
     if data.pms_project_id:
         from app.apps.srm.commercial_api import project as accessible_billing_project
         accessible_billing_project(db, data.pms_project_id, current_user)
     item = get_engagement_for_user(db, engagement_id, current_user)
+    if item.status in {"closed","cancelled"} and any(key!="status" for key in data.model_fields_set):
+        raise HTTPException(409,"Reopen the engagement before changing its delivery or commercial details")
     _validate_schedule_dates(item, data.model_dump(exclude_unset=True), "planned_start_date", "planned_end_date")
     before = _serialize(item)
     for key, value in data.model_dump(exclude_unset=True).items():
         if key == "status":
-            _assert_status(value, ENGAGEMENT_STATUSES, "engagement")
-        setattr(item, key, value)
+            _change_engagement_status(db,item,value)
+        else: setattr(item, key, value)
     from app.shared.follow_ups import create_for_engagement
     create_for_engagement(db, item, current_user)
     _audit(db, current_user, "engagement", item.id, "updated", before=before, after=data.model_dump(mode="json", exclude_unset=True))
@@ -2669,6 +2722,7 @@ def update_engagement(engagement_id: int, data: SRMEngagementUpdate, db: Session
 @router.post("/engagements/{engagement_id}/links", status_code=201)
 def link_engagement(engagement_id: int, data: SRMEngagementLinkCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     item = get_engagement_for_user(db, engagement_id, current_user)
+    _require_open_engagement(item)
     existing = db.query(SRMEngagementLink).filter(
         SRMEngagementLink.engagement_id == item.id,
         SRMEngagementLink.linked_module == data.linked_module,
@@ -2688,10 +2742,11 @@ def link_engagement(engagement_id: int, data: SRMEngagementLinkCreate, db: Sessi
 
 @router.post("/engagements/{engagement_id}/status/{target_status}")
 def update_engagement_status(engagement_id: int, target_status: str, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    lock_tenant(db,current_user)
     _assert_status(target_status, ENGAGEMENT_STATUSES, "engagement")
     item = get_engagement_for_user(db, engagement_id, current_user)
     before = item.status
-    item.status = target_status
+    _change_engagement_status(db,item,target_status)
     from app.shared.follow_ups import create_for_engagement
     create_for_engagement(db, item, current_user)
     _audit(db, current_user, "engagement", item.id, "status_changed", before={"status": before}, after={"status": item.status})
@@ -2746,6 +2801,8 @@ def engagement_lifecycle(engagement_id: int, db: Session = Depends(get_db), curr
 
 @router.post("/engagements/{engagement_id}/create-pms-project")
 def create_pms_project(engagement_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    lock_tenant(db,current_user)
+    _require_open_engagement(get_engagement_for_user(db,engagement_id,current_user))
     company_id = bos_company_id_for(current_user)
     if not is_module_enabled(db, "project_management", company_id):
         db.add(BOSLifecycleEvent(company_id=company_id, module_key="srm", entity_type="engagement", entity_id=str(engagement_id), event_name="srm_pms_handoff_skipped", status="skipped", message="PMS is not enabled", source_module="srm", target_module="project_management", actor_user_id=current_user.id))
@@ -2867,7 +2924,9 @@ def create_billing_plan_from_sales_order(sales_order_id: int, db: Session = Depe
 
 @router.post("/billing-plans", status_code=201)
 def create_billing_plan(data: SRMBillingPlanCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    lock_tenant(db,current_user)
     engagement = get_engagement_for_user(db, data.engagement_id, current_user)
+    _require_open_engagement(engagement)
     if data.billing_type not in {"fixed_fee", "milestone", "t&m", "time_and_material", "recurring", "hybrid"}:
         raise HTTPException(status_code=400, detail="Invalid billing plan type")
     item = SRMBillingPlan(organization_id=engagement.organization_id, created_by=current_user.id, **data.model_dump(exclude={"milestones"}))
@@ -2922,6 +2981,53 @@ def update_billing_plan(billing_plan_id: int, data: SRMBillingPlanUpdate, db: Se
     db.commit()
     db.refresh(item)
     return _serialize(item)
+
+
+def _accessible_milestone(db, milestone_id, user):
+    milestone=db.query(SRMBillingMilestone).filter_by(id=milestone_id).with_for_update().first()
+    if not milestone: raise HTTPException(404,"Billing milestone not found")
+    plan=db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id,user),SRMBillingPlan.id==milestone.billing_plan_id).first()
+    if not plan: raise HTTPException(404,"Billing milestone not found")
+    _require_open_engagement(get_engagement_for_user(db,plan.engagement_id,user))
+    return milestone,plan
+
+
+@router.patch("/billing-milestones/{milestone_id}")
+def amend_billing_milestone(milestone_id: int,data: SRMBillingMilestoneAmend,db: Session=Depends(get_db),current_user: User=Depends(RequirePermission("srm_manage","srm_admin"))):
+    lock_tenant(db,current_user)
+    milestone,plan=_accessible_milestone(db,milestone_id,current_user)
+    if milestone.invoice_draft_id or milestone.status=="invoiced": raise HTTPException(409,"An invoiced milestone cannot be amended")
+    if not data.reason.strip(): raise HTTPException(422,"An amendment reason is required")
+    if _decimal(milestone.amount)!=data.expected_amount or milestone.due_date!=data.expected_due_date: raise HTTPException(409,"Milestone changed; refresh before amending")
+    before=_serialize(milestone)
+    plan.total_amount=_decimal(plan.total_amount)+data.amount-_decimal(milestone.amount)
+    milestone.amount,milestone.due_date,milestone.status=data.amount,data.due_date,"pending"
+    _audit(db,current_user,"billing_milestone",milestone.id,"amended",before=before,after={"amount":str(data.amount),"due_date":str(data.due_date) if data.due_date else None,"reason":data.reason.strip(),"status":"pending"})
+    db.commit();db.refresh(milestone)
+    return _serialize(milestone)
+
+
+@router.post("/billing-milestones/{milestone_id}/approve")
+def approve_billing_milestone(milestone_id: int,db: Session=Depends(get_db),current_user: User=Depends(RequirePermission("srm_invoice_approve","srm_admin"))):
+    lock_tenant(db,current_user)
+    milestone,plan=_accessible_milestone(db,milestone_id,current_user)
+    if milestone.invoice_draft_id or milestone.status=="invoiced": raise HTTPException(409,"Milestone is already invoiced")
+    before=milestone.status;milestone.status="approved"
+    _audit(db,current_user,"billing_milestone",milestone.id,"approved",before={"status":before},after={"status":"approved"})
+    db.commit();db.refresh(milestone)
+    return _serialize(milestone)
+
+
+@router.get("/billing-plans/{billing_plan_id}/eligibility")
+def billing_eligibility(billing_plan_id: int,date_from: date,date_to: date,db: Session=Depends(get_db),current_user: User=Depends(RequirePermission("srm_view","srm_manage","srm_admin"))):
+    if date_to<date_from: raise HTTPException(422,"End date must not precede start date")
+    plan=db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id,current_user),SRMBillingPlan.id==billing_plan_id).first()
+    if not plan: raise HTTPException(404,"Billing plan not found")
+    engagement=get_engagement_for_user(db,plan.engagement_id,current_user)
+    rows=[]
+    if engagement.status not in {"closed","cancelled"} and plan.status=="active":
+        rows=db.query(SRMBillingMilestone).filter(SRMBillingMilestone.billing_plan_id==plan.id,SRMBillingMilestone.invoice_draft_id==None,SRMBillingMilestone.status.in_(["approved","ready","completed"]),SRMBillingMilestone.due_date>=date_from,SRMBillingMilestone.due_date<=date_to).all()
+    return {"rule":"Active plan; approved, unbilled milestones with due dates in the inclusive range","milestones":[_serialize(row) for row in rows]}
 
 
 @router.post("/billing-plans/{billing_plan_id}/milestones", status_code=201)
@@ -2986,6 +3092,7 @@ def _create_invoice_from_lines(
     billing_plan_id: int | None = None,
 ) -> SRMInvoice:
     lock_tenant(db, user)
+    _require_open_engagement(engagement)
     from app.apps.srm.services.commercial import currency_code
     currency_code(currency)
     lines = normalize_lines(lines)
@@ -3124,6 +3231,8 @@ def draft_from_billing_milestone(milestone_id: int, db: Session = Depends(get_db
     if not plan or not plan.engagement_id:
         raise HTTPException(422, "Billing milestone must belong to an accessible engagement")
     engagement = get_engagement_for_user(db, plan.engagement_id, current_user)
+    _require_open_engagement(engagement)
+    if milestone.due_date and milestone.due_date>date.today(): raise HTTPException(409,"Milestone is not yet due for billing")
     if milestone.invoice_draft_id:
         raise HTTPException(status_code=409, detail="Billing milestone is already invoiced")
     order = db.query(SRMSalesOrder).filter(SRMSalesOrder.id == engagement.sales_order_id).first() if engagement and engagement.sales_order_id else None

@@ -134,6 +134,11 @@ def test_multi_currency_payroll_converts_and_exposes_currency_metadata(client, d
     assert snapshot.result_json["salary_currency"] == "USD"
     assert snapshot.result_json["converted_currency"] == "INR"
 
+    # Employee access starts only after approval and payroll lock.
+    assert client.get("/api/v1/payroll/payslip?month=5&year=2026", headers=employee_headers).status_code == 404
+    for action in ("approve", "lock"):
+        finalized = client.put(f"/api/v1/payroll/runs/{run_id}/approve", json={"action": action, "force_approve": True}, headers=admin_headers)
+        assert finalized.status_code == 200, finalized.text
     payslip = client.get("/api/v1/payroll/payslip?month=5&year=2026", headers=employee_headers)
     assert payslip.status_code == 200
     assert payslip.json()["salary_currency"] == "USD"

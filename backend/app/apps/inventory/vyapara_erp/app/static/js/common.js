@@ -202,7 +202,7 @@ function dateInputValue(date) {
 function initIndianNumberInputs() {
   const selector = ['amount','total','balance','paid','quantity','qty','rate','price','charges','discount','tax','stock'].map((part) => `input[name*="${part}"]`).join(",");
   const prepare = (input) => {
-    if (input.type === "hidden" || input.readOnly || input.dataset.noFormat === "true") return;
+    if (!["text", "number"].includes(input.type) || input.readOnly || input.dataset.noFormat === "true") return;
     if (input.type === "number") input.type = "text";
     input.inputMode = "decimal";
     if (input.dataset.indianFormat === "true") return;
@@ -220,7 +220,9 @@ function initIndianNumberInputs() {
   });
   document.querySelectorAll("form").forEach((form) => {
     form.addEventListener("submit", () => {
-      form.querySelectorAll(selector).forEach((input) => input.value = rawNumber(input.value));
+      form.querySelectorAll(selector).forEach((input) => {
+        if (input.dataset.indianFormat === "true") input.value = rawNumber(input.value);
+      });
     });
   });
 }

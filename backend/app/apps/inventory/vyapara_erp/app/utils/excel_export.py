@@ -14,11 +14,16 @@ def export_to_excel(headers: list, rows: list[list], sheet_name: str) -> BytesIO
 
     ws.append(headers)
     for cell in ws[1]:
+        if isinstance(cell.value, str):
+            cell.data_type = "s"
         cell.font = Font(bold=True)
         cell.fill = header_fill
 
     for row_index, row in enumerate(rows, start=2):
         ws.append(row)
+        for cell in ws[row_index]:
+            if isinstance(cell.value, str):
+                cell.data_type = "s"
         if row_index % 2 == 0:
             for cell in ws[row_index]:
                 cell.fill = alt_fill

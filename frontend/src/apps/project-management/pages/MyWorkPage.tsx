@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -261,6 +262,7 @@ export default function MyWorkPage() {
   const layout = params.get("layout") || "list";
   const [data, setData] = useState<WorkData>();
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [revision, setRevision] = useState(0);
@@ -640,7 +642,7 @@ export default function MyWorkPage() {
             <span>
               <small>{s.label}</small>
               <strong>
-                {loading
+                {initialLoading
                   ? "…"
                   : (data?.summary[s.key as keyof WorkData["summary"]] ?? 0)}
               </strong>
@@ -989,7 +991,7 @@ export default function MyWorkPage() {
         </section>
       )}
       <section className="mw-results" aria-busy={loading}>
-        {loading ? (
+        {initialLoading ? (
           <div className="mw-skeleton" role="status" aria-label="Loading tasks">
             {Array.from({ length: 6 }, (_, i) => (
               <div key={i} />

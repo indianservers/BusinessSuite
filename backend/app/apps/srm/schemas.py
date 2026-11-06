@@ -464,6 +464,18 @@ class SRMBillingMilestoneInput(BaseModel):
     metadata_json: dict[str, Any] | None = None
 
 
+class SRMBillingMilestoneAmend(BaseModel):
+    amount: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
+    due_date: date | None = None
+    reason: str = Field(min_length=1, max_length=1000)
+    expected_amount: Decimal
+    expected_due_date: date | None = None
+
+
+class SRMLifecycleReason(BaseModel):
+    reason: str = Field(min_length=1, max_length=1000)
+
+
 class SRMBillingPlanCreate(BaseModel):
     engagement_id: int
     name: str

@@ -9,13 +9,13 @@
   </div>
   <div class="form-grid">
     <div><label class="form-label">MO No</label><input class="form-control" name="mo_no" value="{{ order.mo_no }}"></div>
-    <div><label class="form-label">BOM</label><select class="form-select" name="bom_id" required><option value="">Select</option>{% for bom in boms %}<option value="{{ bom.id }}">{{ bom.name }} - {{ bom.product.name }}</option>{% endfor %}</select></div>
-    <div><label class="form-label">Warehouse</label><select class="form-select" name="warehouse_id" required><option value="">Select</option>{% for w in warehouses %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}</select></div>
-    <div><label class="form-label">Planned Qty</label><input class="form-control" type="number" step="0.001" name="planned_qty" value="1" required></div>
-    <div><label class="form-label">Produced Qty</label><input class="form-control" type="number" step="0.001" name="produced_qty" value="1"></div>
+    <div><label class="form-label">BOM</label><select class="form-select" name="bom_id" required><option value="">Select</option>{% for bom in boms %}<option value="{{ bom.id }}" {% if order.bom_id == bom.id %}selected{% endif %}>{{ bom.name }} - {{ bom.product.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">Warehouse</label><select class="form-select" name="warehouse_id" required><option value="">Select</option>{% for w in warehouses %}<option value="{{ w.id }}" {% if order.warehouse_id == w.id %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">Planned Qty</label><input class="form-control" type="number" step="0.001" name="planned_qty" value="{{ order.planned_qty }}" required></div>
+    <div><label class="form-label">Produced Qty</label><input class="form-control" type="number" step="0.001" value="{{ order.produced_qty or 0 }}" readonly></div>
     <div><label class="form-label">Planned Date</label><input class="form-control" type="date" name="planned_date" value="{{ order.planned_date }}"></div>
   </div>
-  <label class="form-label mt-3">Notes</label><textarea class="form-control" name="notes"></textarea>
+  <label class="form-label mt-3">Notes</label><textarea class="form-control" name="notes">{{ order.notes or "" }}</textarea>
   <div class="sticky-actions"><button class="btn btn-primary">Save Manufacturing Order</button></div>
 </form>
 {% endblock %}

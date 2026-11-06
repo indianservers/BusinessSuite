@@ -96,6 +96,10 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             logger.error('audit_persistence_failed request_id=%s user_id=%s role=%s error_type=%s', getattr(request.state, 'request_id', None), actor.get('user_id'), actor.get('role'), type(exc).__name__)
 
     def _persist(self, request, status_code, duration_ms, error):
+        # The independent owner control plane records its actions in its own
+        # database. Never copy owner activity into a customer's audit console.
+        if request.url.path.startswith(("/api/v1/platform/", "/api/v1/auth/platform/", "/api/v1/auth/signup")):
+            return
         from app.db.session import SessionLocal
         from app.models.audit import AuditLog, AuditLogTask
         from app.models.user import User

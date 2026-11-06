@@ -1,3 +1,4 @@
+from app.services.warehouse_service import assert_can_deactivate
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 
@@ -105,6 +106,10 @@ def warehouses():
 @login_required
 def delete_warehouse(id):
     warehouse = Warehouse.query.get_or_404(id)
+    try: assert_can_deactivate(warehouse)
+    except ValueError as exc:
+        db.session.rollback(); flash(str(exc), "danger")
+        return redirect(url_for("settings.warehouses"))
     warehouse.status = False
     db.session.commit()
     flash("Warehouse deactivated.", "success")

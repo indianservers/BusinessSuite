@@ -77,6 +77,8 @@ def durable_store(db_engine):
         )
         db.add(user)
         db.flush()
+        from test_identity_utils import attach_workflow_branch
+        attach_workflow_branch(db, user, company_id=101)
         db.add(PowerEnvironment(organization_id=101, key="testing", enabled=True))
         db.commit()
         user_id = user.id

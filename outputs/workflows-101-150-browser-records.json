@@ -1,0 +1,68 @@
+{
+  "fixture": "Isolated in-memory Workflow 101-150 Test Company",
+  "invoices": [
+    {
+      "id": 1,
+      "number": "QA-BROWSER-101-FINAL",
+      "status": "Paid",
+      "invoice_date": "2027-01-15",
+      "due_date": "2027-02-14",
+      "subtotal": 5000.0,
+      "tax": 900.0,
+      "total": 5900.0,
+      "paid": 5900.0,
+      "balance": 0.0
+    },
+    {
+      "id": 2,
+      "number": "QA-169-20261106",
+      "status": "Issued",
+      "invoice_date": "2026-11-06",
+      "due_date": "2026-12-06",
+      "subtotal": 1000.0,
+      "tax": 180.0,
+      "total": 1180.0,
+      "paid": 0.0,
+      "balance": 1180.0
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "sku": "P1",
+      "stock": 10.0,
+      "track_inventory": true
+    },
+    {
+      "id": 2,
+      "sku": "QA-SERVICE",
+      "stock": 0.0,
+      "track_inventory": false
+    },
+    {
+      "id": 3,
+      "sku": "QA-169-TEXT",
+      "stock": 9.0,
+      "track_inventory": true
+    }
+  ],
+  "receipts": [
+    {
+      "id": 1,
+      "number": "REC-2026-00001",
+      "sale_id": 1,
+      "amount": 5900.0
+    }
+  ],
+  "stock_movements": [
+    {
+      "product_id": 3,
+      "warehouse_id": 1,
+      "reference": "QA-169-20261106",
+      "type": "Sale",
+      "in": 0.0,
+      "out": 1.0
+    }
+  ],
+  "transfers": []
+}

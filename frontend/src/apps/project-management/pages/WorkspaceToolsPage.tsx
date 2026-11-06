@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -39,6 +40,7 @@ export default function WorkspaceToolsPage() {
   const [templateFormOpen, setTemplateFormOpen] = useState(false);
   const [draft, setDraft] = useState(initial);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -114,7 +116,7 @@ export default function WorkspaceToolsPage() {
     {error && <div role="alert" className="rounded border border-destructive p-3 text-destructive">{error}<Button variant="outline" disabled={busy} onClick={() => void act("Refreshing workspace tools", async () => { if (!workspaces.length) await loadWorkspaces(); })}>Retry</Button></div>}
     {notice && <p role="status">{notice}</p>}
     {!!created.length && <div className="flex flex-wrap gap-3" aria-label="Created tasks">{created.map(id => <Link className="text-primary underline" key={id} to={`/pms/workspaces?workspace=${selected}&task=${id}`}>Open created task #{id}</Link>)}</div>}
-    {workspaceLoading || loading ? <p role="status">Loading workspace tools…</p> : !workspace ? <p>Create or join a workspace first.</p> : <Tabs value={tab} onValueChange={value => { setTab(value); setDraft(initial); setError(""); }}>
+    {workspaceLoading || initialLoading ? <p role="status">Loading workspace tools…</p> : !workspace ? <p>Create or join a workspace first.</p> : <Tabs value={tab} onValueChange={value => { setTab(value); setDraft(initial); setError(""); }}>
       <TabsList className="flex h-auto flex-wrap justify-start">{[["overview", "Overview"], ["goal", "Goals"], ["template", "Blueprints"], ["intake", "Intake forms"]].map(([value, label]) => <TabsTrigger disabled={busy} className="min-h-11 rounded px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground" key={value} value={value}>{label}</TabsTrigger>)}</TabsList>
       <TabsContent value="overview" className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">{[["Projects", projects.length], ["Open tasks", tasks.filter(t => taskBucket(t.status) !== "Done").length], ["Completed tasks", tasks.filter(t => taskBucket(t.status) === "Done").length]].map(([label, count]) => <div className="rounded border p-5" key={label}><strong className="text-2xl">{count}</strong><p>{label}</p></div>)}</div>

@@ -462,6 +462,14 @@ def install_scope(db, user, company, grants):
                         403, "Global configuration requires a global Super Admin"
                     )
             key = scoped_model_module(type(item))
+            source = getattr(item, "_suite_source_record", None)
+            if (item in session.new and type(item).__tablename__ == "communication_customer_events"
+                    and source is not None and source in session
+                    and getattr(source, "organization_id", None) == company
+                    and getattr(item, "source_id", None) == source.id):
+                # Capturing an event is part of the authorized source write.
+                # Reading or dispatching it still requires Communication access.
+                key = scoped_model_module(type(source))
             if key is None:
                 continue
             grant = grants.get(key, {})

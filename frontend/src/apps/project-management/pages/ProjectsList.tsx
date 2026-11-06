@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -29,6 +30,7 @@ export default function ProjectsList() {
   const shownFields=customFields.filter(f=>!hiddenFields.includes(f.id));
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   useRefreshableEffect(() => {
@@ -72,7 +74,7 @@ export default function ProjectsList() {
       {custom.error&&<p role="alert" className="text-sm text-destructive">{custom.error}</p>}
       {table&&<div className="overflow-x-auto rounded-xl border bg-card"><GridTable gridId="apps/project-management/pages/ProjectsList:table-1" className="w-full text-left text-sm"><thead className="border-b bg-muted/30"><tr><th className="p-4">Project</th><th className="p-4">Status</th><th className="p-4">Due date</th>{shownFields.map(f=><th key={f.id} className="min-w-44 p-4">{f.name}</th>)}</tr></thead><tbody>{filtered.map(p=><tr {...recordPreviewProps(p)} key={p.id} className="border-b last:border-0 hover:bg-muted/10"><td className="p-4"><Link className="font-medium text-primary" to={`/pms/projects/${p.id}`}>{p.name}</Link><p className="text-xs text-muted-foreground">{p.project_key}</p></td><td className="p-4"><Badge className={statusColor(p.status)}>{p.status}</Badge></td><td className="p-4">{formatDate(p.due_date||null)}</td>{shownFields.map(f=>{const record=custom.records[p.id];const field=record?.fields.find(item=>item.id===f.id);return <td key={f.id} className="p-4">{field?<CustomFieldCell entity="project" id={p.id} field={field} canEdit={record.can_edit} onSaved={custom.reload}/>:"—"}</td>;})}</tr>)}</tbody></GridTable>{!filtered.length&&!loading&&<p className="p-8 text-center text-muted-foreground">No projects found.</p>}</div>}
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-      {loading ? <div className="skeleton h-40 rounded-lg" /> : null}
+      {initialLoading ? <div className="skeleton h-40 rounded-lg" /> : null}
 
       <div className={table?"hidden":"grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"}>
         {filtered.map((project) => (

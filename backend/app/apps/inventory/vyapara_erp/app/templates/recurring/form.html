@@ -31,4 +31,4 @@
   <div class="sticky-actions d-flex justify-content-between align-items-center"><span class="text-muted">Recurring invoices generate draft sales invoices on schedule.</span><button class="btn btn-primary">Save</button></div>
 </form>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/invoice.js') }}"></script><script>document.addEventListener("DOMContentLoaded",()=>initInvoiceForm("sale"));</script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/invoice.js', v='20261106-price-validity-2') }}"></script><script>document.addEventListener("DOMContentLoaded",()=>initInvoiceForm("sale"));</script>{% endblock %}

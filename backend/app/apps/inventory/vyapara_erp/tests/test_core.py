@@ -1,4 +1,6 @@
 import os
+import pytest
+from datetime import date
 import hmac
 from hashlib import sha256
 
@@ -263,6 +265,236 @@ def test_pos_complete_split_payment_sale():
             assert float(pos_session.total_card) == 60
 
 
+@pytest.mark.parametrize("cash,card", [(1000, 1000), (-1, 2361), (0, 2500)])
+def test_pos_rejects_invalid_split_without_posting(cash, card):
+    app = app_with_db()
+    with app.test_client() as client:
+        login(client)
+        open_pos_session(client)
+        response = client.post("/pos/sale", json={"customer_id": 1, "warehouse_id": 1,
+            "items": [{"product_id": 1, "qty": 2, "rate": 1000, "tax_rate": 18}],
+            "payment_mode": "Split", "cash_tendered": cash, "card_amount": card})
+        assert response.status_code == 400, response.json
+        with app.app_context():
+            assert Sale.query.count() == 0
+            assert PaymentReceived.query.count() == 0
+            assert float(db.session.get(Product, 1).current_stock) == 10
+            assert float(POSSession.query.first().total_sales) == 0
+
+
+def test_pos_cash_movements_baseline_persists_after_close(record_property):
+    app = app_with_db()
+    with app.test_client() as client:
+        login(client)
+        client.post("/pos/open-session", data={"register_id": 1, "opening_cash": 2000})
+        for kind, amount in [("Cash In", 500), ("Withdrawal", 300)]:
+            response = client.post("/pos/cash-movement", data={"movement_type": kind, "amount": amount, "reason": "QA float"})
+            assert response.status_code == 302
+        response = client.post("/pos/sale", json={"customer_id": 1, "warehouse_id": 1,
+            "items": [{"product_id": 1, "qty": 2, "rate": 1000, "tax_rate": 18}],
+            "payment_mode": "Cash", "cash_tendered": 2360})
+        assert response.status_code == 200, response.json
+        assert response.json["grand_total"] == 2360
+        record_property("document_id", response.json["invoice_no"])
+        record_property("sale_id", response.json["sale_id"])
+        assert client.post("/pos/close-session", data={"closing_cash": 4550}).status_code == 200
+        with app.app_context():
+            closing = POSSession.query.first()
+            assert float(closing.expected_closing_cash) == 4560
+            assert float(closing.cash_difference) == -10
+            assert float(db.session.get(Product, 1).current_stock) == 8
+            record_property("expected_vs_actual", "total=2360/2360; expected_cash=4560/4560; variance=-10/-10; stock=8/8")
+
+
+def test_pos_held_bill_cannot_be_recalled_twice_or_after_deletion():
+    app = app_with_db()
+    with app.test_client() as client:
+        login(client)
+        open_pos_session(client)
+        for deleted in (False, True):
+            held = client.post("/pos/hold", json={"items": [{"product_id": 1, "qty": 1, "rate": 150}]}).json["id"]
+            if deleted:
+                assert client.post(f"/pos/held/{held}/delete").status_code == 200
+            else:
+                assert client.get(f"/pos/held/{held}/json").status_code == 200
+            assert client.get(f"/pos/held/{held}/json").status_code == 409
+        with app.app_context():
+            assert Sale.query.count() == 0
+            assert float(db.session.get(Product, 1).current_stock) == 10
+
+
+@pytest.mark.parametrize("quantity,rate,discount", [(-1, 1000, 0), (0, 1000, 0), (1, -1000, 0), (1, 1000, 101)])
+def test_pos_rejects_invalid_lines_without_stock_changes(quantity, rate, discount):
+    app = app_with_db()
+    with app.test_client() as client:
+        login(client)
+        open_pos_session(client)
+        response = client.post("/pos/sale", json={"customer_id": 1, "warehouse_id": 1,
+            "items": [{"product_id": 1, "qty": quantity, "rate": rate, "discount": discount, "tax_rate": 18}],
+            "payment_mode": "Credit"})
+        assert response.status_code == 400, response.json
+        with app.app_context():
+            assert Sale.query.count() == 0
+            assert float(db.session.get(Product, 1).current_stock) == 10
+
+
+def test_pos_split_change_and_session_boundaries(record_property):
+    app = app_with_db()
+    payload = {"customer_id": 1, "warehouse_id": 1,
+        "items": [{"product_id": 1, "qty": 2, "rate": 1000, "tax_rate": 18}],
+        "payment_mode": "Split", "cash_tendered": 1100, "card_amount": 1360}
+    with app.test_client() as client:
+        login(client)
+        assert client.post("/pos/sale", json=payload).status_code == 400
+        client.post("/pos/open-session", data={"register_id": 1, "opening_cash": 2000})
+        response = client.post("/pos/sale", json=payload)
+        assert response.status_code == 200, response.json
+        assert response.json["change_due"] == 100
+        record_property("document_id", response.json["invoice_no"])
+        assert client.post("/pos/close-session", data={"closing_cash": 3000}).status_code == 200
+        assert client.post("/pos/sale", json=payload).status_code == 400
+        with app.app_context():
+            closing = POSSession.query.first()
+            assert float(closing.expected_closing_cash) == 3000
+            assert float(closing.total_card) == 1360
+            assert float(closing.cash_difference) == 0
+            assert Sale.query.count() == 1
+            assert float(db.session.get(Product, 1).current_stock) == 8
+            record_property("expected_vs_actual", "cash=1000/1000; card=1360/1360; change=100/100; expected_cash=3000/3000; stock=8/8")
+
+
+def test_manufacturing_post_once_and_shortage_retry(record_property):
+    from app.models import BillOfMaterials, BOMItem, ManufacturingOrder, InventoryLedger
+    app = app_with_db()
+    with app.app_context():
+        finished = Product(sku="QA-FG", name="QA finished", warehouse_id=1, current_stock=0, purchase_price=200)
+        db.session.add(finished)
+        db.session.flush()
+        bom = BillOfMaterials(product_id=finished.id, name="QA BOM", yield_qty=1)
+        db.session.add(bom)
+        db.session.flush()
+        db.session.add(BOMItem(bom_id=bom.id, component_id=1, quantity=2))
+        order = ManufacturingOrder(mo_no="QA-MO-001", bom_id=bom.id, warehouse_id=1, planned_qty=6, produced_qty=6)
+        db.session.add(order)
+        db.session.commit()
+        order_id, finished_id = order.id, finished.id
+    with app.test_client() as client:
+        login(client)
+        url = f"/manufacturing/orders/{order_id}/complete"
+        client.post(url)
+        with app.app_context():
+            assert db.session.get(ManufacturingOrder, order_id).status != "Completed"
+            assert float(db.session.get(Product, 1).current_stock) == 10
+            assert InventoryLedger.query.count() == 0
+            db.session.get(Product, 1).current_stock = 24
+            db.session.commit()
+        client.post(url)
+        client.post(url)
+        with app.app_context():
+            assert db.session.get(ManufacturingOrder, order_id).status == "Completed"
+            assert float(db.session.get(Product, 1).current_stock) == 12
+            assert float(db.session.get(Product, finished_id).current_stock) == 6
+            assert InventoryLedger.query.count() == 2
+            record_property("document_id", "QA-MO-001")
+            record_property("expected_vs_actual", "failed_issue_movements=0/0; component_remaining=12/12; finished=6/6; ledger_entries=2/2")
+
+
+def test_partial_grn_rejects_overreceipt_and_cancelled_po(record_property):
+    from app.models import PurchaseOrder, PurchaseOrderItem, GoodsReceiptNote
+    app = app_with_db()
+    with app.app_context():
+        po = PurchaseOrder(po_no="QA-PO-001", po_date=date.today(), supplier_id=1, warehouse_id=1, status="Issued")
+        db.session.add(po)
+        db.session.flush()
+        line = PurchaseOrderItem(po_id=po.id, product_id=1, quantity=10, rate=600, line_total=6000)
+        db.session.add(line)
+        db.session.commit()
+        po_id, line_id = po.id, line.id
+    with app.test_client() as client:
+        login(client)
+        def receive(amount):
+            return client.post(f"/purchase-orders/{po_id}/grn", data={"grn_date": date.today().isoformat(),
+                "supplier_id": 1, "warehouse_id": 1, "product_id[]": "1", "po_item_id[]": str(line_id),
+                "expected_qty[]": "10", "received_qty[]": str(amount), "rate[]": "600", "tax_rate[]": "0"})
+        receive(6)
+        receive(5)
+        with app.app_context():
+            assert float(db.session.get(PurchaseOrderItem, line_id).received_qty) == 6
+            assert float(db.session.get(Product, 1).current_stock) == 16
+            assert GoodsReceiptNote.query.count() == 1
+        receive(4)
+        with app.app_context():
+            assert float(db.session.get(PurchaseOrderItem, line_id).received_qty) == 10
+            assert float(db.session.get(Product, 1).current_stock) == 20
+            assert db.session.get(PurchaseOrder, po_id).status == "Received"
+            db.session.get(PurchaseOrder, po_id).status = "Cancelled"
+            db.session.commit()
+        receive(1)
+        with app.app_context():
+            assert float(db.session.get(Product, 1).current_stock) == 20
+            assert GoodsReceiptNote.query.count() == 2
+            record_property("document_id", "QA-PO-001")
+            record_property("receipt_ids", ",".join(row.grn_no for row in GoodsReceiptNote.query.order_by(GoodsReceiptNote.id).all()))
+            record_property("expected_vs_actual", "received=10/10; stock=20/20; persisted_receipts=2/2; rejected_excess_and_cancelled_stock_change=0/0")
+
+
+@pytest.mark.parametrize("payment_mode,cash,card", [("Cash", 2360, 0), ("Split", 1000, 1360)])
+def test_cash_sale_baseline_customer_and_stock_reconcile(record_property, payment_mode, cash, card):
+    from app.models import InventoryLedger, SaleItem, CustomerLedger
+    app = app_with_db()
+    with app.app_context():
+        product = db.session.get(Product, 1)
+        product.sales_price = 1000
+        product.purchase_price = product.average_cost = 600
+        db.session.commit()
+    with app.test_client() as client:
+        login(client)
+        client.post("/pos/open-session", data={"register_id": 1, "opening_cash": 2000})
+        payload = {"request_id": "QA-BASELINE-001", "customer_id": 1, "warehouse_id": 1,
+            "items": [{"product_id": 1, "qty": 2, "rate": 1000, "tax_rate": 18}],
+            "payment_mode": payment_mode, "cash_tendered": cash, "card_amount": card}
+        response = client.post("/pos/sale", json=payload)
+        assert response.status_code == 200, response.json
+        recovered = client.post("/pos/sale", json=payload)
+        assert recovered.status_code == 200
+        assert recovered.json["recovered"] is True
+        assert client.get(f"/api/invoices/{response.json['sale_id']}").status_code == 200
+        from flask import template_rendered
+        contexts = []
+        def capture(sender, template, context, **extra):
+            contexts.append(context)
+        template_rendered.connect(capture, app)
+        try:
+            assert client.get("/reports/profit-loss").status_code == 200
+        finally:
+            template_rendered.disconnect(capture, app)
+        assert float(contexts[-1]["sales"]) == 2000
+        assert float(contexts[-1]["purchases"]) == 1200
+        assert float(contexts[-1]["profit"]) == 800
+        assert float(contexts[-1]["gross_margin"]) == 40
+        closing_response = client.post("/pos/close-session", data={"closing_cash": 2000 + cash})
+        assert closing_response.status_code == 200
+        with app.app_context():
+            sale = db.session.get(Sale, response.json["sale_id"])
+            product = db.session.get(Product, 1)
+            customer = db.session.get(Customer, 1)
+            assert float(sale.grand_total) == 2360
+            assert float(sale.tax_total) == 360
+            assert float(sale.balance_amount) == 0
+            assert float(product.current_stock) == 8
+            assert float(product.stock_value) == 4800
+            assert InventoryLedger.query.count() == 1
+            assert float(SaleItem.query.first().cost_price) * 2 == 1200
+            assert customer.outstanding == 0
+            assert float(customer.current_balance) == 0
+            assert sum(float(row.debit) - float(row.credit) for row in CustomerLedger.query.all()) == 0
+            closing = POSSession.query.first()
+            assert float(closing.expected_closing_cash) == 2000 + cash
+            assert float(closing.cash_difference) == 0
+            record_property("document_id", sale.invoice_no)
+            record_property("expected_vs_actual", "total=2360/2360; tax=360/360; stock=8/8; valuation=4800/4800; COGS=1200/1200; customer_balance=0/0; stock_issues=1/1")
+
+
 def test_pos_complete_credit_sale_with_customer_and_reject_without_customer():
     app = app_with_db()
     with app.test_client() as client:
@@ -288,7 +520,8 @@ def test_pos_line_discount_and_duplicate_submit():
         second = client.post("/pos/sale", json=payload)
         assert first.status_code == 200
         assert round(first.json["grand_total"], 2) == 90
-        assert second.status_code == 409
+        assert second.status_code == 200
+        assert second.json["sale_id"] == first.json["sale_id"]
 
 
 def test_pos_add_service_item_without_stock_reduction():

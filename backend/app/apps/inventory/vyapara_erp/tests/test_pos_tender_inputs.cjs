@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const listeners=new Map(),nodes=new Map();
+const node=s=>{if(!nodes.has(s)) nodes.set(s,{value:'',dataset:{},addEventListener:(type,fn)=>listeners.set(s+':'+type,fn)}); return nodes.get(s);};
+const context=vm.createContext({document:{querySelector:node,querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}}});
+vm.runInContext(fs.readFileSync('app/static/js/pos-terminal.js','utf8'),context);
+vm.runInContext('markRecentProductTiles=()=>{};updatePaymentModal=()=>{};renderPaymentRows=()=>{};bindStaticEvents();POS.paymentRows=[{mode:"Cash",amount:2360}];',context);
+const amount={dataset:{payAmount:'0'},value:'1000'};
+listeners.get('#paymentRows:input')({target:{closest:s=>s==='[data-pay-amount]'?amount:null}});
+listeners.get('#addPaymentRow:click')();
+assert.equal(vm.runInContext('POS.paymentRows[0].amount',context),1000);
+const card={dataset:{payMode:'1'},value:'Card'};
+listeners.get('#paymentRows:change')({target:{closest:s=>s==='[data-pay-mode]'?card:null}});
+amount.dataset.payAmount='1';amount.value='1360';
+listeners.get('#paymentRows:input')({target:{closest:s=>s==='[data-pay-amount]'?amount:null}});
+assert.equal(vm.runInContext('POS.paymentRows.reduce((sum,p)=>sum+p.amount,0)',context),2360);
+assert.equal(vm.runInContext('POS.paymentRows[1].mode',context),'Card');
+console.log('PASS: adding a tender preserves typed cash1000; cash1000 plus card1360 totals2360');

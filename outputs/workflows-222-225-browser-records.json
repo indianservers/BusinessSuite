@@ -1,0 +1,255 @@
+{
+  "environment": "Disposable Suite QA SQLite, commercial cases222-225",
+  "engagements": [
+    {
+      "id": 1,
+      "number": "QA-225-CLOSED",
+      "status": "project_created",
+      "project_id": 1
+    },
+    {
+      "id": 2,
+      "number": "QA-224-CANCEL",
+      "status": "cancelled",
+      "project_id": null
+    },
+    {
+      "id": 3,
+      "number": "QA-222-AMEND",
+      "status": "created",
+      "project_id": null
+    },
+    {
+      "id": 4,
+      "number": "QA-223-MOVE",
+      "status": "created",
+      "project_id": null
+    }
+  ],
+  "plans": [
+    {
+      "id": 1,
+      "engagement_id": 1,
+      "name": "QA-225-HISTORY",
+      "status": "completed",
+      "total": 100.0
+    },
+    {
+      "id": 2,
+      "engagement_id": 3,
+      "name": "QA-222-PLAN",
+      "status": "active",
+      "total": 4500.0
+    },
+    {
+      "id": 3,
+      "engagement_id": 4,
+      "name": "QA-223-PLAN",
+      "status": "active",
+      "total": 4000.0
+    }
+  ],
+  "milestones": [
+    {
+      "id": 1,
+      "plan_id": 1,
+      "amount": 100.0,
+      "due_date": "None",
+      "status": "invoiced",
+      "draft_id": 1
+    },
+    {
+      "id": 2,
+      "plan_id": 2,
+      "amount": 4500.0,
+      "due_date": "2026-11-06",
+      "status": "invoiced",
+      "draft_id": 2
+    },
+    {
+      "id": 3,
+      "plan_id": 3,
+      "amount": 4000.0,
+      "due_date": "2026-12-15",
+      "status": "approved",
+      "draft_id": null
+    }
+  ],
+  "invoices": [
+    {
+      "id": 1,
+      "number": "QA-225-PAID-HISTORY",
+      "engagement_id": 1,
+      "status": "paid",
+      "total": 100.0,
+      "paid": 100.0,
+      "balance": 0.0
+    },
+    {
+      "id": 2,
+      "number": "INV-000001",
+      "engagement_id": 3,
+      "status": "approved",
+      "total": 4500.0,
+      "paid": 0.0,
+      "balance": 4500.0
+    }
+  ],
+  "audit": [
+    {
+      "entity": "billing_milestone",
+      "id": 2,
+      "action": "amended",
+      "actor": 1,
+      "before": {
+        "id": 2,
+        "billing_plan_id": 2,
+        "name": "QA-222-4000",
+        "status": "pending",
+        "due_date": "2026-11-06",
+        "amount": 4000.0,
+        "invoice_draft_id": null,
+        "metadata_json": null
+      },
+      "after": {
+        "amount": "4500",
+        "due_date": "2026-11-06",
+        "reason": "QA-222 approved scope increase from 4000 to 4500",
+        "status": "pending"
+      }
+    },
+    {
+      "entity": "billing_milestone",
+      "id": 2,
+      "action": "approved",
+      "actor": 1,
+      "before": {
+        "status": "pending"
+      },
+      "after": {
+        "status": "approved"
+      }
+    },
+    {
+      "entity": "invoice",
+      "id": 2,
+      "action": "draft_created",
+      "actor": 1,
+      "before": null,
+      "after": {
+        "source_type": "billing_milestone",
+        "source_id": 2
+      }
+    },
+    {
+      "entity": "billing_milestone",
+      "id": 2,
+      "action": "invoiced",
+      "actor": 1,
+      "before": null,
+      "after": {
+        "invoice_id": 2,
+        "invoice_draft_id": 2
+      }
+    },
+    {
+      "entity": "invoice",
+      "id": 2,
+      "action": "identity_updated",
+      "actor": 1,
+      "before": null,
+      "after": {
+        "customer_id": 101,
+        "contact_id": null,
+        "seller_id": 1,
+        "team_id": null,
+        "currency": "INR",
+        "opportunity_id": null,
+        "sales_order_id": null,
+        "engagement_id": null
+      }
+    },
+    {
+      "entity": "invoice",
+      "id": 2,
+      "action": "approved",
+      "actor": 1,
+      "before": {
+        "status": "draft"
+      },
+      "after": {
+        "status": "approved"
+      }
+    },
+    {
+      "entity": "billing_milestone",
+      "id": 3,
+      "action": "amended",
+      "actor": 1,
+      "before": {
+        "id": 3,
+        "billing_plan_id": 3,
+        "name": "QA-223-PERIOD",
+        "status": "approved",
+        "due_date": "2026-11-15",
+        "amount": 4000.0,
+        "invoice_draft_id": null,
+        "metadata_json": null
+      },
+      "after": {
+        "amount": "4000",
+        "due_date": "2026-12-15",
+        "reason": "QA-223 move billing into December",
+        "status": "pending"
+      }
+    },
+    {
+      "entity": "billing_milestone",
+      "id": 3,
+      "action": "approved",
+      "actor": 1,
+      "before": {
+        "status": "pending"
+      },
+      "after": {
+        "status": "approved"
+      }
+    },
+    {
+      "entity": "engagement",
+      "id": 2,
+      "action": "cancel",
+      "actor": 1,
+      "before": {
+        "status": "created"
+      },
+      "after": {
+        "status": "cancelled",
+        "reason": "QA-224 cancelled before project and billing"
+      }
+    },
+    {
+      "entity": "engagement",
+      "id": 1,
+      "action": "reopen",
+      "actor": 1,
+      "before": {
+        "status": "closed"
+      },
+      "after": {
+        "status": "created",
+        "reason": "QA-225 authorize additional delivery after mistaken closure"
+      }
+    },
+    {
+      "entity": "engagement",
+      "id": 1,
+      "action": "pms_project_created",
+      "actor": 1,
+      "before": null,
+      "after": {
+        "pms_project_id": 1
+      }
+    }
+  ]
+}

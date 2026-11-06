@@ -710,7 +710,8 @@ def ess_summary(
     latest_records = (
         db.query(PayrollRecord, PayrollRun)
         .join(PayrollRun, PayrollRun.id == PayrollRecord.payroll_run_id)
-        .filter(PayrollRecord.employee_id == employee.id, PayrollRun.deleted_at.is_(None))
+        .filter(PayrollRecord.employee_id == employee.id, PayrollRun.deleted_at.is_(None),
+                func.lower(PayrollRun.status).in_(["locked", "paid"]))
         .order_by(PayrollRun.year.desc(), PayrollRun.month.desc())
         .limit(12)
         .all()

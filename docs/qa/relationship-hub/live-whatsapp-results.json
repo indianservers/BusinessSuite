@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "items": [
+    {
+      "id": 1,
+      "status": "accepted",
+      "kind": "template",
+      "providerMessageId": "wamid.HBgMOTE5NjE4MjIyMjIwFQIAERgSMDlDNUUyM0M4Q0U2MkJDRENBAA==",
+      "entityType": null,
+      "entityId": null,
+      "errorCode": null
+    }
+  ]
+}

@@ -36,6 +36,7 @@ function loadingChildren(children: ReactNode, text: string): ReactNode {
 export const NativeSelect = forwardRef<HTMLSelectElement, Props>(function NativeSelect({
   children, loading = false, error = false, loadingText = "Loading choices…", emptyText = "No data found", searchable, recentKey, ...props
 }, ref) {
+  const initialLoading = loading && !hasChoices(children);
   const node = useRef<HTMLSelectElement | null>(null);
   const interactedOutside = useRef(false);
   const [open, setOpen] = useState(false);
@@ -49,7 +50,7 @@ export const NativeSelect = forwardRef<HTMLSelectElement, Props>(function Native
   const storageKey = () => `suite:choices:${userId || "anonymous"}:${sessionStorage.getItem("suite-organization") || ""}:${sessionStorage.getItem("suite-branch") || ""}:${recentKey || `${location.pathname}:${props.id || label}`}`;
   const readRecent = (): string[] => { try { const value = JSON.parse(localStorage.getItem(storageKey()) || "[]"); return Array.isArray(value) ? value.filter(v => typeof v === "string").slice(0, 5) : []; } catch { return []; } };
   const remember = (value: string) => { if (!value) return; try { localStorage.setItem(storageKey(), JSON.stringify([value, ...readRecent().filter(v => v !== value)].slice(0, 5))); } catch { /* Storage may be unavailable. Selection still works. */ } };
-  const canSearch = () => (!props.size || props.size === 1) && !props.disabled && !loading && !error && searchable !== false && (searchable === true || (node.current?.options.length || 0) > 8);
+  const canSearch = () => (!props.size || props.size === 1) && !props.disabled && !initialLoading && !error && searchable !== false && (searchable === true || (node.current?.options.length || 0) > 8);
   const show = () => {
     if (!canSearch() || !node.current) return;
     setChoices(Array.from(node.current.options).map(option => ({value: option.value, label: option.text, disabled: option.disabled || (option.parentElement instanceof HTMLOptGroupElement && option.parentElement.disabled), group: option.parentElement instanceof HTMLOptGroupElement ? option.parentElement.label : ""})));
@@ -60,7 +61,7 @@ export const NativeSelect = forwardRef<HTMLSelectElement, Props>(function Native
   const ordered = !query.trim() ? [...matches.filter(choice => recent.includes(choice.value) && !choice.disabled).sort((a, b) => recent.indexOf(a.value) - recent.indexOf(b.value)), ...matches.filter(choice => !recent.includes(choice.value) || choice.disabled)] : matches;
   useEffect(() => {if (open) document.getElementById(`${listId}-${active}`)?.scrollIntoView({block: "nearest"});}, [open, active, query, listId]);
   const choose = (value: string) => {
-    if (!node.current || props.disabled || loading || error) return;
+    if (!node.current || props.disabled || initialLoading || error) return;
     const option = Array.from(node.current.options).find(option => option.value === value);
     if (!option || option.disabled || (option.parentElement instanceof HTMLOptGroupElement && option.parentElement.disabled)) return;
     if (props.multiple) option.selected = !option.selected;
@@ -71,13 +72,13 @@ export const NativeSelect = forwardRef<HTMLSelectElement, Props>(function Native
     else setChoices(current => [...current]);
   };
   const empty = !hasChoices(children);
-  return <Popover.Root open={open && !props.disabled && !loading && !error} onOpenChange={setOpen}><Popover.Anchor asChild><select {...props} ref={element => { node.current = element; if (typeof ref === "function") ref(element); else if (ref) ref.current = element; }} aria-busy={loading || undefined} data-choice-state={loading ? "loading" : error ? "error" : empty ? "empty" : "ready"}
+  return <Popover.Root open={open && !props.disabled && !initialLoading && !error} onOpenChange={setOpen}><Popover.Anchor asChild><select {...props} ref={element => { node.current = element; if (typeof ref === "function") ref(element); else if (ref) ref.current = element; }} aria-busy={loading || undefined} data-choice-state={initialLoading ? "loading" : error ? "error" : empty ? "empty" : "ready"}
     onChange={event => { remember(event.currentTarget.value); props.onChange?.(event); }}
     onPointerDown={event => { props.onPointerDown?.(event); if (!event.defaultPrevented && event.button === 0 && canSearch()) { event.preventDefault(); show(); } }}
     onKeyDown={event => { props.onKeyDown?.(event); if (!event.defaultPrevented && ["Enter", " "].includes(event.key) && canSearch()) { event.preventDefault(); show(); } }}>
-    {loading ? loadingChildren(children, loadingText) : children}
-    {(loading ? !hasPlaceholder(children) : error || empty) && <option disabled value="">
-      {loading ? loadingText : error ? "Could not load choices" : emptyText}
+    {initialLoading ? loadingChildren(children, loadingText) : children}
+    {(initialLoading ? !hasPlaceholder(children) : error || empty) && <option disabled value="">
+      {initialLoading ? loadingText : error ? "Could not load choices" : emptyText}
     </option>}
   </select></Popover.Anchor>
   <Popover.Portal><Popover.Content aria-label={`Search ${label}`} sideOffset={4} collisionPadding={12} onInteractOutside={() => {interactedOutside.current = true;}} onCloseAutoFocus={event => {event.preventDefault(); if (!interactedOutside.current) node.current?.focus();}} className="z-[180] w-[max(16rem,var(--radix-popover-trigger-width))] max-w-[calc(100vw-1rem)] rounded-xl border bg-popover p-2 text-popover-foreground shadow-xl">

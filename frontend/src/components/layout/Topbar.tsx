@@ -97,7 +97,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <div className="hidden xl:block"><BranchSwitcher /></div>
-        <Link to="/settings" className="hidden rounded-md border px-3 py-2 text-sm font-medium lg:inline-flex" aria-label="Main settings">Settings</Link>
+        <Link to="/company-admin" className="hidden rounded-md border px-3 py-2 text-sm font-medium lg:inline-flex" aria-label="Company Admin">Company Admin</Link>
         <span className="hidden lg:contents">{location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}<RefreshPagesCatalog /></span>
         <ModuleNewMenu />
         <Button className="hidden 2xl:inline-flex" variant="outline" size="sm" onClick={openOperator} aria-label="Open suite AI operator"><span className="text-emerald-600">✦</span><span>AI operator</span></Button>

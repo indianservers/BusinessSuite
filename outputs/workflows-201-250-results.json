@@ -1,0 +1,337 @@
+{
+  "scope": "201-250, partial execution; not a certification of all50 workflows",
+  "environment": {
+    "company": "Workflow201-250 Test Company",
+    "url": "http://127.0.0.1:5299",
+    "storage": "new disposable in-memory SQLite database",
+    "currency": "INR",
+    "inventory": "negative stock disabled; weighted average600 for P1",
+    "service": "800 per QA Hour, fractional units enabled, nonstock, GST18%",
+    "return_rule": "original-linked returns autoapproved subject to cumulative sold-quantity limit; unlinked returns remain pending with no effects",
+    "review": "sales/approve permission required to reject; required reason and audit actor; terminal rejection",
+    "production": "not used"
+  },
+  "reproduced_and_fixed": [
+    "Pending return immediately posted customer credit: approved-only financial posting now enforced; pending rejection action records reason and actor without financial effects.",
+    "Number formatter matched restock checkbox and cleared on value: only text/number inputs are prepared and only prepared fields normalized on submit.",
+    "POS typed fractional quantity displayed while totals retained old quantity: input events now update cart state, line amount, summary and recovery storage without replacing focused input."
+  ],
+  "tests": {
+    "inventory_pytest": "77 passed",
+    "javascript": [
+      "test_browser_inputs.cjs passed",
+      "test_pos_recovery.cjs passed",
+      "test_invoice_text.cjs passed"
+    ],
+    "whitespace": "git diff --check passed"
+  },
+  "evidence": [
+    "workflows-201-250-browser-records.json",
+    "workflows-201-250-rejected-return.png",
+    "workflows-201-250-noncash-close.png",
+    "workflows-201-250-restock.png",
+    "workflows-201-250-regression.xml"
+  ],
+  "workflows": [
+    {
+      "workflow": 201,
+      "title": "Shipping charge refunded independently of goods",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 202,
+      "title": "Multiple partial returns against one invoice",
+      "status": "Partial browser pass; automated pass",
+      "evidence": "Browser: sold10 for11800; returns2,3,1 on Nov7/8/9 credited2360,3540,1180; excess5 blocked. Found formatter suppressed restock in those first three requests. After fix remaining4 returned and restocked4 at cost600. Earlier six units were not retroactively repaired. Automated isolated test confirms full2+3+1 restock and eligibility."
+    },
+    {
+      "workflow": 203,
+      "title": "One return containing lines from different tax rates",
+      "status": "Automated pass; browser not executed",
+      "evidence": "Mixed18% and5% original tax preserved; credits1705 including205 tax. See test_203 in regression XML."
+    },
+    {
+      "workflow": 204,
+      "title": "Return of a fractional-unit converted product",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 205,
+      "title": "Financial credit without a physical return",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 206,
+      "title": "Rejected return request",
+      "status": "Verified pending rejection branch; policy gap",
+      "evidence": "Browser QA-206-PENDING-FIX rejected with reason; no ledger, stock, credit note or refund. Permission, required reason and repeated rejection tested. Configurable policy and reviewer approval for original-linked returns not implemented in this work. Legacy pending requests with posted credits are blocked from rejection and require reconciliation."
+    },
+    {
+      "workflow": 207,
+      "title": "Substitute an unavailable item before fulfillment",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 208,
+      "title": "Delivery destination changed after picking",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 209,
+      "title": "Duplicate customer PO reference policy",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 210,
+      "title": "Customer order minimum value",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 211,
+      "title": "Maximum discount approval",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 212,
+      "title": "Customer-specific product restriction",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 213,
+      "title": "Copy an order into a new draft",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 214,
+      "title": "Copy an invoice without duplicating settlement",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 215,
+      "title": "Order notes versus internal notes",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 216,
+      "title": "Attachments throughout the commercial lifecycle",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 217,
+      "title": "Unsafe or oversized attachment rejection",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 218,
+      "title": "Manual price override does not update the master",
+      "status": "Automated subcheck pass",
+      "evidence": "Manual invoice override leaves master unchanged; full order lifecycle not browser verified."
+    },
+    {
+      "workflow": 219,
+      "title": "Expired price-list fallback",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 220,
+      "title": "Conflicting applicable price lists",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 221,
+      "title": "Service quantity precision",
+      "status": "Browser pass",
+      "evidence": "Configured QA Hour with decimal_allowed enabled; nonstock service800; POS1.25 base1000,tax180,total1180; card collected1180; receipt INV-2026-00001 sale2; no service stock movements."
+    },
+    {
+      "workflow": 222,
+      "title": "Billing milestone amount amended before invoicing",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 223,
+      "title": "Billing milestone date moved across periods",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 224,
+      "title": "Engagement canceled before project creation",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 225,
+      "title": "Reopen a mistakenly closed engagement",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 226,
+      "title": "Fixed billing and expense reimbursement",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 227,
+      "title": "Collection reminder excludes disputed invoices",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 228,
+      "title": "Promise-to-pay follow-up",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 229,
+      "title": "Partial write-off approval",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 230,
+      "title": "Reject a write-off request",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 231,
+      "title": "Settlement with a bank processing fee",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 232,
+      "title": "Payment method disabled after historical use",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 233,
+      "title": "Cash movement reversal within an open session",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 234,
+      "title": "Cashier closing with noncash sales only",
+      "status": "Browser pass",
+      "evidence": "POS-2026-00001 opening1000; card1180,cash0; closing1000,expected1000,variance0."
+    },
+    {
+      "workflow": 235,
+      "title": "Rounding payable amount in POS",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 236,
+      "title": "Product sold while another user changes its master",
+      "status": "Automated snapshot subcheck pass",
+      "evidence": "Issued invoice retains original rate/tax after later master change. Simultaneous actors and POS repricing policy not certified."
+    },
+    {
+      "workflow": 237,
+      "title": "Purchase-order delivery address differs from company address",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 238,
+      "title": "Supplier changed on an unreceived PO",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 239,
+      "title": "Purchase-order line removed before receipt",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 240,
+      "title": "GRN with multiple batches for one PO line",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 241,
+      "title": "Warehouse deactivation with remaining stock",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 242,
+      "title": "Reorder policy changed while a PO is open",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 243,
+      "title": "Batch number reused across different products",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 244,
+      "title": "Serial-number case and whitespace normalization",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 245,
+      "title": "Stock adjustment requiring an attachment",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 246,
+      "title": "Manufacturing BOM with fractional consumption",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 247,
+      "title": "Production components issued from different warehouses",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 248,
+      "title": "Production order quantity amended before completion",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 249,
+      "title": "Saved report filter shared with another authorized user",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    },
+    {
+      "workflow": 250,
+      "title": "Dashboard drill-down reconciles after corrective activity",
+      "status": "Not executed",
+      "evidence": "No complete browser evidence in this run; do not treat as passed."
+    }
+  ]
+}

@@ -834,7 +834,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               table.getLeftTotalSize()),
         )
       : 0;
-  const actionWidth = rowActions.length ? Math.min(4, rowActions.filter(action => action.quick).length) * 34 + 40 : 0;
+  const actionWidth = rowActions.length ? Math.min(props.quickActionLimit ?? 4, rowActions.filter(action => action.quick).length) * 34 + 40 : 0;
   const selectionWidth = props.selectionEnabled === false ? 0 : 40;
   const totalWidth = table.getTotalSize() + selectionWidth + actionWidth;
   function style(
@@ -1982,7 +1982,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                       a.quick &&
                                       (!a.visible || a.visible(record)),
                                   )
-                                  .slice(0, 4)
+                                  .slice(0, props.quickActionLimit ?? 4)
                                   .map((action) => (
                                     <button
                                       key={action.id}
@@ -2002,7 +2002,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                       )}
                                     </button>
                                   ))}
-                                <Dropdown.Root>
+                                {rowActions.filter(a => !a.visible || a.visible(record)).some((a, _, actions) => !a.quick || actions.filter(item => item.quick).indexOf(a) >= (props.quickActionLimit ?? 4)) && <Dropdown.Root>
                                   <Dropdown.Trigger
                                     aria-label={`Actions for ${textFor(record, columns[0])}`}
                                   >
@@ -2018,6 +2018,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                           (a) =>
                                             !a.visible || a.visible(record),
                                         )
+                                        .filter((a, _, actions) => !a.quick || actions.filter(item => item.quick).indexOf(a) >= (props.quickActionLimit ?? 4))
                                         .map((action) => (
                                           <Dropdown.Item
                                             disabled={action.disabled?.(record)}
@@ -2037,7 +2038,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                         ))}
                                     </Dropdown.Content>
                                   </Dropdown.Portal>
-                                </Dropdown.Root>
+                                </Dropdown.Root>}
                               </div>
                             )}
                           </div>

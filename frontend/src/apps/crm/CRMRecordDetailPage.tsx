@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import FieldControl, { fieldShown } from "@/shared/custom-fields/FieldControl";
 import Record360Workspace from "@/shared/records/Record360Workspace";
 import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
@@ -205,6 +206,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
   const recordId = Number(id);
   const [record, setRecord] = useState<DetailRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -434,9 +436,9 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
       </nav>}
 
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
-      {loading ? <div className="rounded-md border bg-card px-4 py-8 text-center text-sm text-muted-foreground">Loading {config.singular.toLowerCase()} details...</div> : null}
+      {initialLoading ? <div className="rounded-md border bg-card px-4 py-8 text-center text-sm text-muted-foreground">Loading {config.singular.toLowerCase()} details...</div> : null}
 
-      {!loading && record ? (
+      {!initialLoading && record ? (
         <>
           {mobile && kind === "leads" ? <MobileLeadDetails key={recordId} record={record} title={title} actions={recordActions}
             pinned={!!useCRMProductivity.getState().scopes[crmScope(actingUser?.id,actingUser?.access?.companyId)]?.pins.some(p => p.path === `/crm/leads/${recordId}`)}
@@ -1193,7 +1195,7 @@ export function EmailComposeModal({ kind, record, disabled = false, approvalStat
   );
 }
 
-function MessageComposeModal({ kind, record, onClose, onDone, initialChannel = "sms" }: { kind: DetailKind; record: DetailRecord; onClose: () => void; onDone: () => void; initialChannel?: "sms" | "whatsapp" }) {
+export function MessageComposeModal({ kind, record, onClose, onDone, initialChannel = "sms" }: { kind: DetailKind; record: DetailRecord; onClose: () => void; onDone: () => void; initialChannel?: "sms" | "whatsapp" }) {
   const entityType = kind === "accounts" ? "account" : kind.replace(/s$/, "");
   const recordName = titleFor(record, detailConfig[kind].nameKeys, detailConfig[kind].singular);
   const [templates, setTemplates] = useState<CRMApiRecord[]>([]);

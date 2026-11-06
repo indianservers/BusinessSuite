@@ -62,16 +62,16 @@ def test_deployed_postgres_task_upgrade_preserves_rows(db_engine):
             db.execute(text("INSERT INTO pms_projects (name,project_key) VALUES ('Existing project','KEEP')"))
             db.execute(text("INSERT INTO pms_tasks (project_id,title,task_key) SELECT id,'Existing task','KEEP-1' FROM pms_projects WHERE project_key='KEEP'"))
             db.commit()
-            command.upgrade(config, "head")
+            command.upgrade(config, HEAD)
             db.commit()
-            assert db.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == ScriptDirectory.from_config(config).get_current_head()
+            assert db.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == HEAD
             assert db.execute(text("SELECT title FROM pms_tasks WHERE task_key='KEEP-1'")).scalar_one() == "Existing task"
             assert db.execute(text("SELECT is_task_collection FROM pms_projects WHERE project_key='KEEP'")).scalar_one() is False
             tables = set(inspect(db).get_table_names(schema=schema))
             assert {"pms_task_group_targets","pms_task_workspace_state","pms_task_watchers","pms_task_read_positions","pms_comment_reactions","pms_task_update_entries","pms_file_folders","crm_file_folders"} <= tables
             for table,column in [("pms_projects","is_task_collection"),("pms_comments","is_resolved"),("pms_file_assets","folder_id"),("crm_file_assets","folder_id"),("crm_quotation_items","sort_order")]:
                 assert column in {c['name'] for c in inspect(db).get_columns(table,schema=schema)}
-            command.upgrade(config, "head")  # second deployment remains a no-op
+            command.upgrade(config, HEAD)  # second deployment remains a no-op
             db.commit()
             assert db.execute(text("SELECT count(*) FROM pms_tasks WHERE task_key='KEEP-1'")).scalar_one() == 1
         finally:

@@ -1,0 +1,48 @@
+[
+  {
+    "workflow": 222,
+    "stage": "amended milestone invoiced once",
+    "text": "Sales & Inventory Management\nBilling Plans\nBusiness Suite\nTeam workspace\nBilling Plan Detail\n\nLinked commercial lifecycle record.\n\nBilling milestones\n\nPlan total: 4500 INR · active\n\nEligibility from\nEligibility to\nCheck billing eligibility\n\nInvoice INV-000001 · 4500\n\nQA-222-4000 · invoiced\n\nAgreed amount: 4500 · Due: 2026-11-06\n\nThis milestone is invoiced and cannot be amended or billed again.\n\nOverview\nQA-222-PLAN\nactive\n\nCUSTOMER ID\n\n-\n\nCRM DEAL ID\n\n-\n\nSALES ORDER ID\n\n-\n\nENGAGEMENT ID\n\n3\n\nCONTRACT VALUE\n\n-\n\nTOTAL AMOUNT\n\n4500\n\nBUDGET AMOUNT\n\n-\n\nPMS PROJECT ID\n\n-"
+  },
+  {
+    "workflow": 222,
+    "stage": "issued4500 after refresh",
+    "text": "Sales & Inventory Management\nInvoices\nBusiness Suite\nTeam workspace\n← Sales invoices\nINV-000001\nOpen customer 360\n\nDocument: issued\n\nDelivery: not_sent\n\nPayment: unpaid\n\nTotal: INR 4500\n\nPaid: 0\n\nOutstanding: 4500\n\nInvoice lines\n\nQA-222-4000\n\n1 × 4500\nDiscount 0; tax 0\n4500\nPreview / download PDF\nSend to billing recipient\n\nBilled to: Synthetic customer 101 — Test customer address\n\nRequest payment\nPayment and collection actions\nHistory and delivery attempts\n\n2026-11-06T16:40:38 — approved —\n\n2026-11-06T16:40:08 — draft — Invoice draft created\n\nFinance adjustments"
+  },
+  {
+    "workflow": 223,
+    "stage": "November before move",
+    "text": "Sales & Inventory Management\nBilling Plans\nBusiness Suite\nTeam workspace\nBilling Plan Detail\n\nLinked commercial lifecycle record.\n\nBilling milestones\n\nPlan total: 4000 INR · active\n\nEligibility from\nEligibility to\nCheck billing eligibility\n\n1 eligible milestones in this period.\n\nQA-223-PERIOD · approved\n\nAgreed amount: 4000 · Due: 2026-11-15\n\nMilestone amount\nMilestone due date\nAmendment reason\nSave milestone amendment\nApprove milestone\nGenerate milestone invoice\nOverview\nQA-223-PLAN\nactive\n\nCUSTOMER ID\n\n-\n\nCRM DEAL ID\n\n-\n\nSALES ORDER ID\n\n-\n\nENGAGEMENT ID\n\n4\n\nCONTRACT VALUE\n\n-\n\nTOTAL AMOUNT\n\n4000\n\nBUDGET AMOUNT\n\n-\n\nPMS PROJECT ID\n\n-"
+  },
+  {
+    "workflow": 223,
+    "stage": "November after move",
+    "text": "Sales & Inventory Management\nBilling Plans\nBusiness Suite\nTeam workspace\nBilling Plan Detail\n\nLinked commercial lifecycle record.\n\nBilling milestones\n\nPlan total: 4000 INR · active\n\nEligibility from\nEligibility to\nCheck billing eligibility\n\n0 eligible milestones in this period.\n\nQA-223-PERIOD · approved\n\nAgreed amount: 4000 · Due: 2026-12-15\n\nMilestone amount\nMilestone due date\nAmendment reason\nSave milestone amendment\nApprove milestone\nGenerate milestone invoice\nOverview\nQA-223-PLAN\nactive\n\nCUSTOMER ID\n\n-\n\nCRM DEAL ID\n\n-\n\nSALES ORDER ID\n\n-\n\nENGAGEMENT ID\n\n4\n\nCONTRACT VALUE\n\n-\n\nTOTAL AMOUNT\n\n4000\n\nBUDGET AMOUNT\n\n-\n\nPMS PROJECT ID\n\n-"
+  },
+  {
+    "workflow": 223,
+    "stage": "December eligible, premature draft blocked",
+    "text": "Sales & Inventory Management\nBilling Plans\nBusiness Suite\nTeam workspace\nBilling Plan Detail\n\nLinked commercial lifecycle record.\n\nBilling milestones\n\nPlan total: 4000 INR · active\n\nEligibility from\nEligibility to\nCheck billing eligibility\n\n1 eligible milestones in this period.\n\nQA-223-PERIOD · approved\n\nAgreed amount: 4000 · Due: 2026-12-15\n\nMilestone amount\nMilestone due date\nAmendment reason\nSave milestone amendment\nApprove milestone\nGenerate milestone invoice\n\nMilestone is not yet due for billing\n\nOverview\nQA-223-PLAN\nactive\n\nCUSTOMER ID\n\n-\n\nCRM DEAL ID\n\n-\n\nSALES ORDER ID\n\n-\n\nENGAGEMENT ID\n\n4\n\nCONTRACT VALUE\n\n-\n\nTOTAL AMOUNT\n\n4000\n\nBUDGET AMOUNT\n\n-\n\nPMS PROJECT ID\n\n-"
+  },
+  {
+    "workflow": 224,
+    "stage": "cancelled status and audit after refresh",
+    "text": "Sales & Inventory Management\nEngagements\nBusiness Suite\nTeam workspace\nEngagement Detail\n\nLinked commercial lifecycle record.\n\nOpen customer 360\nEngagement lifecycle\n\nStatus: cancelled\n\nCancelled engagements cannot create projects or billing plans.\n\nOverview\nTeam & projects\nQA-224-CANCEL\ncancelled\n\nCUSTOMER ID\n\n101\n\nCRM DEAL ID\n\n-\n\nSALES ORDER ID\n\n-\n\nENGAGEMENT ID\n\n-\n\nCONTRACT VALUE\n\n-\n\nTOTAL AMOUNT\n\n-\n\nBUDGET AMOUNT\n\n0\n\nPMS PROJECT ID\n\n-"
+  },
+  {
+    "workflow": 224,
+    "stage": "billing plan creation rejected",
+    "text": "Sales & Inventory Management\nBilling Plans\nTeam workspace\nBilling Plans\n\nMonitor fixed fee, milestone, T&M, recurring, and hybrid billing schedules.\n\nAI Copilot\nRefresh\nCreate Billing Plan\nEngagement ID\nPlan name\nBilling type\nTotal\nCurrency\n₹\nINR\nRecurrence\nMilestone\nMilestone amount\nCreate Billing Plan\nClosed or cancelled engagements cannot create delivery or billing activity\nClose form\nPipeline\nSALES OPERATIONS\nSales order pipeline\n\nA shared view of customer commitments, delivery readiness and the next step.\n\nLive workspace\n2 stages\nMetrics reflect loaded records\nLoaded records\n3\nAcross this board\nActive\n3\nOpen work to move forward\nNeeds attention\n0\nOverdue or stalled work\nOwners\n0\nNo named owners on loaded cards\n0%\nClosed\n0 / 3\nCompleted or closed outcomes\n3 loaded records\nOpen a record to perform its available document actions.\nActive\n2 records\nQA-223-PLAN\nActive\n₹4,000.00\nQA-222-PLAN\nActive\n₹4,500.00\nCompleted\n1 records\nQA-225-HISTORY\nCompleted\n₹100.00"
+  },
+  {
+    "workflow": 225,
+    "stage": "reopened engagement new task persisted after reload",
+    "status": "Completed",
+    "task": 1
+  },
+  {
+    "workflow": 225,
+    "stage": "engagement after new delivery",
+    "text": "Sales & Inventory Management\nEngagements\nBusiness Suite\nTeam workspace\nEngagement Detail\n\nLinked commercial lifecycle record.\n\nOpen customer 360\nEngagement lifecycle\n\nStatus: project_created\n\nLifecycle reason\nClose engagement\nCancel engagement\n\nreopen · 2026-11-06T16:44:55 · Actor 1 · QA-225 authorize additional delivery after mistaken closure\n\nOverview\nTeam & projects\nQA-225-CLOSED\nproject created\n\nCUSTOMER ID\n\n101\n\nCRM DEAL ID\n\n-\n\nSALES ORDER ID\n\n1\n\nENGAGEMENT ID\n\n-\n\nCONTRACT VALUE\n\n-\n\nTOTAL AMOUNT\n\n-\n\nBUDGET AMOUNT\n\n0\n\nPMS PROJECT ID\n\n1"
+  }
+]

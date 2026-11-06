@@ -8,6 +8,11 @@ SHARED = GLOBAL_CATALOGUES | INTERNAL_TABLES | frozenset({
     # Company-admin storage configuration and locator index. Native record
     # permissions still authorize file contents through signed attachment links.
     "file_storage_connections", "file_storage_policies", "file_storage_oauth_states", "file_storage_objects",
+    # Company-level payroll presentation and provider settings; API checks company and payroll permissions.
+    "payroll_delivery_profiles",
+    # Installation-wide signup review is a Super Admin control-plane queue.
+    # Tenant isolation still applies; no public account can read this queue.
+    "suite_signup_requests",
     "companies", "suite_access_memberships", "suite_access_policies", "suite_access_roles",
     "suite_access_templates", "suite_access_audit", "suite_branch_policies", "suite_branch_grants",
     "suite_accounting_branch_map", "suite_branch_ownership", "suite_branch_audit",

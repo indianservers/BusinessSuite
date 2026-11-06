@@ -251,7 +251,13 @@ class RequestBoundaryMiddleware:
                     )
                 more = message.get("more_body", False)
             raw = bytes(body)
-            if raw and "application/json" in request.headers.get("content-type", ""):
+            media_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+            # Match JSON media types accepted by FastAPI, including vendor +json.
+            # Header casing and parameters must not bypass structural limits.
+            is_json = media_type.startswith("application/") and (
+                media_type == "application/json" or media_type.endswith("+json")
+            )
+            if raw and is_json:
                 try:
                     value = json.loads(raw)
                     validate_json(value)

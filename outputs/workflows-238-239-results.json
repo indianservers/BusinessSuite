@@ -1,0 +1,38 @@
+{
+  "scope": "238-239 continuation",
+  "configuration": "New disposable in-memory company at127.0.0.1:5314; INR,defaultGST18%,warehouseB,supplierB. Draft-only amendments; no reservation subsystem.",
+  "workflows": [
+    {
+      "workflow": 238,
+      "status": "Pass",
+      "documents": [
+        "PO1 QA-237-DESTINATION",
+        "GRN-2026-00001",
+        "supplier2 QA Supplier B"
+      ],
+      "expected": "Amend unreceived draft fromA toB; revalidate terms and prices; receive againstB.",
+      "actual": "Browser amended supplier toB with explicit review and replacedA terms; issued then received. PO showsB after reload. Regression rejects mismatchedA GRN and missing revalidation.",
+      "evidence": "workflows-238-239-received.png"
+    },
+    {
+      "workflow": 239,
+      "status": "Pass",
+      "documents": [
+        "PO1",
+        "removedproduct4 QA-239-3",
+        "GRN-2026-00001"
+      ],
+      "expected": "Remove one of3 lines; recompute total; receive only remaining lines.",
+      "actual": "Removed product4,1616 became1516; remaining quantities2 and1 fully received at warehouse2. Product4 stock0 and no movement; order Received. Postreceipt edit and stale amendment rejected in regression.",
+      "evidence": "workflows-238-239-received.png"
+    }
+  ],
+  "evidence": [
+    "workflows-201-250-po-amend-browser-records.json",
+    "workflows-238-239-regression.xml"
+  ],
+  "tests": {
+    "persisted_assertions": "passed",
+    "inventory": "92 passed"
+  }
+}

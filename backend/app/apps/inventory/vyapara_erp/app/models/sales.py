@@ -6,6 +6,9 @@ class Sale(db.Model):
     __tablename__ = 'sales'
     id = db.Column(db.Integer, primary_key=True)
     invoice_no = db.Column(db.String(30), unique=True, nullable=False)
+    pos_request_key = db.Column(db.String(64), unique=True)
+    pos_request_fingerprint = db.Column(db.String(64))
+    pos_change_due = db.Column(db.Numeric(12, 2), default=0)
     invoice_date = db.Column(db.Date, nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=False)

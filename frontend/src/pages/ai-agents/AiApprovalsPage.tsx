@@ -1,3 +1,4 @@
+import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { useEffect, useState } from "react";
 import ApprovalPanel from "@/components/ai-agents/ApprovalPanel";
 import { aiAgentsApi, type AiApproval, type AiModule } from "@/services/aiAgentsApi";
@@ -8,6 +9,7 @@ export default function AiApprovalsPage() {
   const [approvals, setApprovals] = useState<AiApproval[]>([]);
   const [filter, setFilter] = useState<AiModule | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
@@ -43,7 +45,7 @@ export default function AiApprovalsPage() {
         ))}
       </div>
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
-      {loading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Pending approvals loading...</div> : <ApprovalPanel approvals={approvals} onStatusChange={load} />}
+      {initialLoading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Pending approvals loading...</div> : <ApprovalPanel approvals={approvals} onStatusChange={load} />}
     </div>
   );
 }

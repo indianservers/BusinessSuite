@@ -19,6 +19,9 @@ PUBLIC_CAPABILITIES = (
     r"/power-apps/native-hooks/[^/]+",
     r"/power-apps/native-apps/[^/]+/[^/]+",
     r"/power-apps/integrations/oauth/callback",
+    r"/auth/signup(?:/options)?",
+    r"/auth/platform/login",
+    r"/platform/(?:password-reset|public/[^/]+)",
     r"/auth/(branding|login|refresh|forgot-password|reset-password|mfa/verify|firebase/(config|login))",
     r"/auth/sso/(providers/active|initiate/[^/]+|callback/oidc/[^/]+|complete/[^/]+)",
     r"/forms/public/[^/]+(?:/(?:challenge|submit))?",
@@ -55,7 +58,7 @@ def enforce_private_defaults(router, prefix=""):
                 route.original_router, prefix + route.include_context.prefix
             )
         elif isinstance(route, APIRoute) and not is_public(prefix + route.path):
-            if "get_current_user" not in set(dependency_names(route.dependant)):
+            if not {"get_current_user", "current_platform_admin"}.intersection(dependency_names(route.dependant)):
                 dependency = Depends(get_current_user)
                 route.dependencies.insert(0, dependency)
                 route.dependant.dependencies.insert(
