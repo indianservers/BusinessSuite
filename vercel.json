@@ -66,6 +66,10 @@
   ],
   "crons": [
     {
+      "path": "/api/v1/internal/pms-automations",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/v1/internal/email-dispatch",
       "schedule": "*/5 * * * *"
     },

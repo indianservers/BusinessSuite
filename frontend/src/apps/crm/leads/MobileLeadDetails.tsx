@@ -14,9 +14,9 @@ import "./mobile-lead-details.css";
 type Props = {
   record: Record<string, any>; title: string; actions: ActionSpec[];
   pinned: boolean; onPin: () => void; onAssign: () => void; onCreateDeal?: () => void; onAddActivity: () => void; assignment: ReactNode;
-  discussion: ReactNode; ai: ReactNode; insights: ReactNode; details: ReactNode; activity: ReactNode; related: ReactNode;
+  templates?: ReactNode; discussion: ReactNode; ai: ReactNode; insights: ReactNode; details: ReactNode; activity: ReactNode; related: ReactNode;
 };
-export default function MobileLeadDetails({ record, title, actions, pinned, onPin, onAssign, onCreateDeal, onAddActivity, assignment, discussion, ai, insights, details, activity, related }: Props) {
+export default function MobileLeadDetails({ record, title, actions, pinned, onPin, onAssign, onCreateDeal, onAddActivity, assignment, discussion, templates, ai, insights, details, activity, related }: Props) {
   const navigate = useNavigate();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const user = useAuthStore(state => state.user);
@@ -53,6 +53,7 @@ export default function MobileLeadDetails({ record, title, actions, pinned, onPi
         <div className="ml-business"><span><Building2/>{company || "No company linked"}</span><span><MapPin/>{location || "Location not added"}</span></div>
         <div className="ml-communications" role="group" aria-label="Lead contact actions">{["whatsapp", "email", "call"].map(id => { const item = action(id); return item && item.available !== false && <ActionButton key={id} action={item.kind} disabled={item.disabled} disabledReason={item.disabledReason} tooltip={item.tooltip} onClick={() => run(item)}>{id === "whatsapp" ? "WhatsApp" : id === "email" ? "Email" : "Call"}</ActionButton>; })}<MoreActionsMenu triggerLabel="More" open={more} onOpenChange={setMore} actions={[...actions, {id:"history",kind:"view",label:"Communication history",onSelect:() => setTab("activity")}, {id:"activity",kind:"note",label:"Add activity",onSelect:onAddActivity}, {id:"assign",kind:"assign",label:"Assign employee",onSelect:() => {setTab("overview");onAssign();}}, ...(onCreateDeal ? [{id:"deal",kind:"quotation" as const,label:"Create deal",onSelect:onCreateDeal}] : [])]} onAction={run}/></div>
         <button className="ml-convert" disabled={action("convert")?.disabled || action("convert")?.loading} aria-busy={action("convert")?.loading} onClick={() => run(action("convert"))}><ArrowRightLeft/>{action("convert")?.loading ? "Converting…" : converted ? "Converted to Customer" : "Convert Lead to Customer"}</button>
+        {templates&&<div className="ml-template-action">{templates}</div>}
       </section>
       <Tabs.Root value={tab} onValueChange={setTab} className="ml-tabs">
         <Tabs.List aria-label="CRM record information" className="ml-tab-list">{tabs.map(([id, label, Icon]) => <Tabs.Trigger key={id} value={id}><Icon/>{label}</Tabs.Trigger>)}</Tabs.List>

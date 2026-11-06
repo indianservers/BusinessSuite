@@ -111,6 +111,7 @@ class ButtonPayload(BaseModel):
 class ButtonExecutePayload(BaseModel):
     record_id: int | None = None
     payload: dict[str, Any] | None = None
+    request_key: str = Field(..., min_length=8, max_length=100)
 
 
 class PicklistPayload(BaseModel):
@@ -140,6 +141,7 @@ class RollupPayload(BaseModel):
     related_module_name: str
     aggregate_function: str
     aggregate_field: str | None = None
+    lookup_field: str | None = None
     filter_json: dict[str, Any] | None = None
     active: bool = True
 

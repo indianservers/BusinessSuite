@@ -1,6 +1,7 @@
 from tests.rich_text_test_utils import organization_context
 from tests.test_pms_workspaces import account, middleware_database, BASE
 from app.apps.project_management.models import PMSWorkspaceMember
+import pytest
 
 
 def setup_workspace(client, db):
@@ -16,6 +17,42 @@ def setup_workspace(client, db):
     db.commit()
     pid = client.post(BASE + "/projects", json={"name": "Rules", "project_key": "AUTO", "workspace_id": wid}, headers=oh).json()["id"]
     return wid, pid, owner, oh, ah, member, mh, guest, gh
+
+
+def test_compound_conditions_reuse_shared_runtime(client, db):
+    wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
+    conditions = {"all": [{"field": "work_type", "operator": "equals", "value": "Bug"},
+        {"any": [{"field": "title", "operator": "contains", "value": "outage"},
+                 {"field": "priority", "operator": "in", "value": ["High", "Urgent"]}]}]}
+    path = f"{BASE}/workspaces/{wid}/automations"
+    response = client.post(path, headers=oh, json={"name": "Critical bugs", "project_id": pid,
+        "trigger": "task.created", "action": "set_priority", "priority": "Urgent", "conditions": conditions})
+    assert response.status_code == 201, response.text
+    assert client.get(path, headers=oh).json()[0]["conditions"] == conditions
+    for key, work_type, title, priority, expected in [
+        ("MATCH-TEXT", "Bug", "Service OUTAGE", "Low", "Urgent"),
+        ("MATCH-PRIO", "Bug", "Broken", "High", "Urgent"),
+        ("MISS-OR", "Bug", "Cosmetic", "Low", "Low"),
+        ("MISS-AND", "Task", "Service outage", "Low", "Low")]:
+        task = client.post(f"{BASE}/projects/{pid}/tasks", headers=mh,
+            json={"task_key": key, "title": title, "work_type": work_type, "priority": priority})
+        assert task.status_code == 200, task.text
+        assert task.json()["priority"] == expected
+    assert len(client.get(f"{BASE}/workspaces/{wid}/automation-runs", headers=oh).json()) == 2
+
+
+@pytest.mark.parametrize("condition", [
+    {"all": []}, {"field": "organization_id", "value": 2},
+    {"field": "title", "operator": "in", "value": "wrong"},
+    {"field": "priority", "operator": "date_before", "value": "2026-11-07"},
+    {"field": "title", "operator": "equals", "value": {"script": "no"}},
+])
+def test_invalid_compound_conditions_fail_before_saving(client, db, condition):
+    wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
+    result = client.post(f"{BASE}/workspaces/{wid}/automations", headers=oh,
+        json={"name": "Invalid", "project_id": pid, "trigger": "task.created", "action": "set_priority", "conditions": condition})
+    assert result.status_code in (400, 422), result.text
+    assert client.get(f"{BASE}/workspaces/{wid}/automations", headers=oh).json() == []
 
 
 def test_automation_executes_persists_and_enforces_roles(client, db):

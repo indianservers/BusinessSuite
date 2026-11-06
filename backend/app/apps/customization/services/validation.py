@@ -3,6 +3,7 @@ from app.core.input_validation import normalize_phone
 
 import ast
 import re
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from app.core.input_validation import email_address, national_phone, calling_code
 from urllib.parse import urlsplit
@@ -140,6 +141,27 @@ def validate_field_value(db: Session, field: CustomizationField, value: Any, rec
         raise HTTPException(status_code=400, detail=f"{field.field_label} is required")
     if value in (None, ""):
         return
+    if field.field_type in {'lookup', 'user_lookup'}:
+        if type(value) is not int or value < 1:
+            raise HTTPException(422, f'{field.field_label} requires a record identifier')
+        if field.field_type == 'lookup':
+            from app.apps.customization.services.records import record
+            record(db, field.lookup_module, value, lock=True)
+        else:
+            from app.models.user import User
+            if not db.query(User).filter_by(id=value, is_active=True).first():
+                raise HTTPException(422, 'Choose an active user in your company')
+    if field.field_type in {'date', 'datetime'}:
+        try:
+            if not isinstance(value, str):
+                raise ValueError()
+            (date.fromisoformat if field.field_type == 'date' else datetime.fromisoformat)(value)
+        except ValueError:
+            raise HTTPException(422, f'{field.field_label} requires a valid ISO {field.field_type}') from None
+    if field.field_type == 'multi_select':
+        allowed = {o['value'] for o in (field.validation_json or {}).get('options', [])}
+        if not isinstance(value, list) or any(not isinstance(v, str) for v in value) or len(value) != len(set(value)) or (allowed and set(value) - allowed):
+            raise HTTPException(422, f'{field.field_label} requires distinct configured options')
     if field.field_type in {"number"} and (isinstance(value,bool) or not isinstance(value, int)):
         raise HTTPException(status_code=400, detail=f"{field.field_label} must be a whole number")
     if field.field_type in {"decimal", "percentage", "currency"}:
@@ -172,12 +194,14 @@ def validate_field_value(db: Session, field: CustomizationField, value: Any, rec
                 raise HTTPException(status_code=400, detail=f"{field.field_label} must be unique")
 
 
-def validate_record_payload(db: Session, module_name: str, values: dict[str, Any], record_id: int | None = None) -> None:
+def validate_record_payload(db: Session, module_name: str, values: dict[str, Any], record_id: int | None = None, *, run_rules: bool = True) -> None:
     fields = db.query(CustomizationField).filter(CustomizationField.module_name == module_name).all()
     field_map = {field.field_api_name: field for field in fields}
     existing = db.get(CustomizationRecord,record_id) if record_id else None
     previous = existing.values_json or {} if existing else {}
     for field in fields:
+        if field.field_type in {'formula', 'rollup', 'auto_number'}:
+            continue
         if not field.visible or not field.editable:
             if field.field_api_name in values and values[field.field_api_name]!=previous.get(field.field_api_name):
                 raise HTTPException(403,f"{field.field_label} is read-only or hidden")
@@ -191,9 +215,13 @@ def validate_record_payload(db: Session, module_name: str, values: dict[str, Any
             if values.get(key) not in (None,''):
                 try:normalize_phone(values[key],values.get(key+'_country_code'))
                 except ValueError as exc:raise HTTPException(422,detail=[{'loc':['body',key],'msg':str(exc),'type':'value_error'}]) from None
-    unknown = [key for key in values if key not in field_map and key not in companions]
+    from app.apps.customization.services.records import definitions
+    _, formulas, rollups = definitions(db, module_name)
+    unknown = [key for key in values if key not in field_map and key not in companions and key not in formulas and key not in rollups]
     if unknown:
         raise HTTPException(status_code=400, detail=f"Unknown custom fields: {', '.join(sorted(unknown))}")
+    if not run_rules:
+        return
     rules = db.query(CustomizationValidationRule).filter(CustomizationValidationRule.module_name == module_name, CustomizationValidationRule.active == True).all()
     for rule in rules:
         if evaluate_condition(rule.condition_json, values):

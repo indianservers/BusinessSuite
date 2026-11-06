@@ -22,6 +22,10 @@ from app.platform_owner import service as s
 from app.access.signup import SignupInput, ReviewInput, review_signup, available_modules
 
 router = APIRouter(prefix="/platform", tags=["Indian Servers Platform Owner"])
+from app.platform_owner.clients import router as clients_router
+router.include_router(clients_router)
+from app.platform_owner.company_removal import router as company_removal_router
+router.include_router(company_removal_router)
 
 
 @router.get("/databases")
@@ -42,7 +46,7 @@ def tenant_databases(actor=Depends(current_platform_admin),db: Session=Depends(g
 def database_servers(actor=Depends(current_platform_admin),db: Session=Depends(get_platform_db)):
     from app.platform_owner.models import PlatformTenantDatabase as D,PlatformDatabaseServer as S
     s.require(actor,"settings.manage")
-    return [{**s.encode(server),"database_count":db.query(D).filter_by(server_id=server.id).count()} for server in db.query(S).order_by(S.id)]
+    return [{**s.encode(server),"database_count":db.query(D).filter(D.server_id==server.id,D.status!="removed").count()} for server in db.query(S).order_by(S.id)]
 
 
 @router.post("/databases/{ident}/check")
@@ -199,7 +203,9 @@ def create_signup(data: SignupCreate, actor=Depends(current_platform_admin), db:
     s.require(actor, "signup.create")
     if db.query(Signup.id).filter_by(email=str(data.email).lower()).first():
         raise HTTPException(409, "A signup already uses this email")
-    row = Signup(**data.model_dump(exclude={"consent", "website"}), assigned_to=actor.id)
+    row = Signup(**data.model_dump(exclude={"consent", "website", "sample_data_requested"}), assigned_to=actor.id)
+    if data.sample_data_requested:
+        row.workflow = {**(row.workflow or {}), "sample_data_requested": True}
     db.add(row); db.flush()
     s.event(db, actor, "signup.created", "signup", row.id, data.consent_evidence)
     db.commit()
@@ -665,7 +671,7 @@ def plan_edit(ident: int, data: PlanInput, actor=Depends(current_platform_admin)
 @router.get("/customers")
 def customers(search: str = "", status: str = "", actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     s.require(actor, "tenant.read")
-    query = s.scoped(db.query(PlatformTenant), actor, PlatformTenant)
+    query = s.scoped(db.query(PlatformTenant).filter(PlatformTenant.status != "removed"), actor, PlatformTenant)
     if search: query = query.filter(or_(PlatformTenant.name.ilike("%"+search[:150]+"%"), PlatformTenant.admin_email.ilike("%"+search[:150]+"%")))
     if status: query = query.filter_by(status=status)
     return [s.encode(r) for r in query.order_by(PlatformTenant.id.desc()).limit(1000)]
@@ -674,7 +680,8 @@ def customers(search: str = "", status: str = "", actor=Depends(current_platform
 @router.get("/customers/{ident}")
 def customer(ident: int, actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     row = s.tenant_for(db, actor, ident)
-    return {**s.encode(row), "history": [s.encode(e) for e in db.query(PlatformEvent).filter_by(entity="tenant", entity_id=ident).order_by(PlatformEvent.id.desc()).limit(100)]}
+    plan = db.get(PlatformPlan, row.plan_id) if row.plan_id else None
+    return {**s.encode(row), "plan_name": plan.name if plan else None, "history": [s.encode(e) for e in db.query(PlatformEvent).filter_by(entity="tenant", entity_id=ident).order_by(PlatformEvent.id.desc()).limit(100)]}
 
 
 def int_value(values, key, default, low, high):
@@ -690,9 +697,14 @@ def customer_action(ident: int, data: Change, actor=Depends(current_platform_adm
     from app.platform_owner import bridge
     row = s.tenant_for(db, actor, ident, "billing.manage" if data.action in {"convert_paid", "plan", "payment"} else "tools.manage" if data.action == "support_request" else "tenant.manage", lock=True)
     before, config, status = s.encode(row), {**row.config}, row.status
+    if status in {"removed", "deleting"}:
+        raise HTTPException(409, "Company removal prevents further subscription changes")
     result = {}
+    if status == "offboarded" and data.action in {"plan", "convert_paid", "entitlements", "suspend", "resume", "cancel", "resend_invitation", "admin_transfer"}:
+        raise HTTPException(409, "Restore a reviewed configuration snapshot before reopening an offboarded account")
     if data.action == "sync_usage":
-        row.usage = bridge.usage(business, row)
+        from app.platform_owner.clients import save_usage
+        save_usage(db, row, bridge.usage(business, row))
         if row.usage["activated"] and not config.get("activated_at"): config["activated_at"] = s.now().isoformat()
         for invitation in db.query(PlatformRecord).filter_by(kind="customer_invitation", signup_id=row.signup_id):
             if row.usage["activated"]: invitation.state = "accepted"
@@ -732,12 +744,16 @@ def customer_action(ident: int, data: Change, actor=Depends(current_platform_adm
         if used["seats"] > config["seats"] or used["storage_bytes"] > config["storage_mib"]*1048576:
             raise HTTPException(409, "Entitlements cannot be lower than current usage")
     elif data.action == "suspend":
-        if status == "suspended": raise HTTPException(409, "Already suspended")
+        if status not in {"trial", "active"}: raise HTTPException(409, "Only a trial or active customer can be suspended")
         config["resume_status"], status = status, "suspended"
     elif data.action == "resume":
         if status not in {"suspended", "cancelled"}: raise HTTPException(409, "This customer is not suspended or cancelled")
-        status = config.get("resume_status", "trial")
+        status = config.get("resume_status")
+        if status not in {"trial", "active"}:
+            status = "active" if config.get("paid_at") or row.plan_id else "trial"
     elif data.action == "cancel":
+        if status not in {"trial", "active", "suspended"}: raise HTTPException(409, "This customer is already cancelled or offboarded")
+        if status != "suspended": config["resume_status"] = status
         config["cancelled_at"], config["cancellation_reason"], status = s.now().isoformat(), data.reason, "cancelled"
     elif data.action == "offboard":
         if status != "cancelled": raise HTTPException(409, "Cancel the subscription before offboarding")

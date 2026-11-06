@@ -1,0 +1,20 @@
+{
+  "databases_checked": 9,
+  "differences": [
+    {
+      "database": "legacy",
+      "table": "suite_branch_ownership",
+      "removed": 0,
+      "added": 41,
+      "changed": 0
+    },
+    {
+      "database": "20647911-dd1d-4cd0-9f8e-8fed5f4d7dc9",
+      "table": "suite_branch_ownership",
+      "removed": 0,
+      "added": 44,
+      "changed": 0
+    }
+  ],
+  "unchanged": false
+}

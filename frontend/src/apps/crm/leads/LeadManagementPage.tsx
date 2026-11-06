@@ -1,4 +1,5 @@
 import { useInitialLoading } from "@/hooks/use-initial-loading";
+import { defaultText, leadSourceOptions } from "@/lib/form-defaults";
 import { leadsApi as defaultLeadsApi } from "./api";
 import { LeadRecordContext, useLeadRecord } from "./LeadRecordContext";
 import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
@@ -1105,10 +1106,10 @@ export function CaptureDialog({
     try {
       return JSON.parse(
         sessionStorage.getItem(key) ||
-          '{"full_name":"","email":"","phone":"","company_name":"","source":"Manual"}',
+          JSON.stringify({full_name:"",email:"",phone:"",company_name:"",source:defaultText("lead_source", "crm")}),
       );
     } catch {
-      return { full_name: "", source: "Manual" };
+      return { full_name: "", source: defaultText("lead_source", "crm") };
     }
   });
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>(() => { try { const draft = JSON.parse(sessionStorage.getItem(`${key}:catalog`) || "[]"); return Array.isArray(draft) ? draft : []; } catch { return []; } });
@@ -1177,7 +1178,7 @@ export function CaptureDialog({
                   Object.entries({
                     ...values,
                     full_name: values.full_name.trim(),
-                    source: values.source || "Manual",
+                    source: values.source || defaultText("lead_source", "crm"),
                     status: values.status || bootstrap.settings.stages[0]?.name || "New",
                     notes: [values.notes, `Priority: ${priority}`].filter(Boolean).join("\n"),
                     owner_user_id: values.owner_user_id ?? defaultOwner,
@@ -1202,7 +1203,7 @@ export function CaptureDialog({
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
               {mobile && <label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>}
-              <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><NativeSelect value={values.source || "Manual"} onChange={e => update("source", e.target.value)}>{[...new Set(["Manual", "Website", "Referral", "Social Media", "Email", "Phone", "Event", ...(values.source ? [values.source] : [])])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
+              <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><NativeSelect value={values.source || defaultText("lead_source", "crm")} onChange={e => update("source", e.target.value)}>{[...new Set([...(values.source ? [values.source] : [defaultText("lead_source", "crm")]), ...leadSourceOptions()])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
               {mobile && <button type="button" className="mobile-filter-trigger" onClick={() => setExpandedMobileCapture(v => !v)} aria-expanded={expandedMobileCapture}>{expandedMobileCapture ? "Fewer details" : "More details"}</button>}
               {(!mobile || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
               <label className="lead-create-field">Priority<span className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>

@@ -17,6 +17,65 @@ from app.shared.data_transfer import inspect_file, spreadsheet_cell
 router = APIRouter(prefix="/imports", tags=["Import workspace"])
 
 
+class SampleRequest(BaseModel):
+    confirmation: Literal["import"]
+
+
+@router.get("/sample-data/status")
+def sample_status(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.shared import sample_data
+    ctx, plan = sample_data.context(db, user, request)
+    return sample_data.status(db, ctx, plan)
+
+
+@router.post("/sample-data/import")
+def import_samples(data: SampleRequest, request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.shared import sample_data
+    ctx, plan = sample_data.context(db, user, request)
+    current = sample_data.status(db, ctx, plan)
+    if current["batch"]:
+        return current  # One active pack per company, including concurrent retries.
+    from app.access.models import AccessPolicy
+    from app.access.service import resolved_grants
+    from app.module_registry import is_app_enabled
+    policy = db.query(AccessPolicy).filter_by(company_id=ctx.company_id, user_id=user.id, status="active").first()
+    grants = getattr(user, "_suite_grants", None) or (resolved_grants(db, policy) if policy else {})
+    modules = [key for key in current["modules"] if grants.get(key, {}).get("enabled") and is_app_enabled(key)]
+    if not modules:
+        raise HTTPException(403, "No approved applications are enabled for this administrator")
+    with db.begin_nested():
+        changes, counts = sample_data.populate(db, ctx, user, modules)
+        db.add(ImportBatch(id=str(uuid4()), organization_id=ctx.company_id, branch_id=ctx.branch_id,
+            module="sample", entity="suite", filename="Standard company sample pack", source="company_sample",
+            created_by=user.id, status="imported", table_json={}, preview_json={"counts": counts}, changes_json=changes, committed_at=service.now()))
+        from app.apps.saas.models import TenantSubscriptionPlan
+        table = TenantSubscriptionPlan.__table__
+        db.connection().execute(table.update().where(table.c.id == plan.id).values(config_json={**plan.config_json, "sample_data_requested": True}))
+        plan.config_json = {**plan.config_json, "sample_data_requested": True}
+        db.flush()
+    db.commit()
+    return sample_data.status(db, ctx, plan)
+
+
+@router.post("/sample-data/delete")
+def delete_samples(data: dict, request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    from app.shared import sample_data
+    ctx, plan = sample_data.context(db, user, request)
+    if data.get("confirmation") != "delete":
+        raise HTTPException(422, "Type delete to remove the sample pack")
+    batch = db.query(ImportBatch).filter_by(id=data.get("batch_id"), organization_id=ctx.company_id,
+        branch_id=ctx.branch_id, source="company_sample", status="imported").with_for_update().first()
+    if not batch:
+        raise HTTPException(404, "Sample pack not found in this branch")
+    try:
+        with db.begin_nested():
+            sample_data.remove(db, batch)
+    except IntegrityError:
+        raise HTTPException(409, "Sample data is used by other records. No records were deleted") from None
+    db.commit()
+    return sample_data.status(db, ctx, plan)
+
+
 class PreviewRequest(BaseModel):
     version: int
     mapping: dict[str, str]

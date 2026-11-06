@@ -4,13 +4,15 @@ import CompactForm from "@/components/forms/CompactForm";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { InvoicePaymentForm } from "./ConnectedCollectionsPage";
 import { useAuthStore } from "@/store/authStore";
-import { useState } from "react";
+import {lazy, Suspense, useState} from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CommercialIdentityForm } from "@/apps/project-management/pages/ProjectBillingPage";
+
+const RecordTemplatePicker=lazy(()=>import('@/shared/template-design/RecordTemplatePicker'));
 
 export default function SharedInvoicePage() {
   const { id } = useParams();
@@ -73,7 +75,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
   return (
     <div className="space-y-5">
       <Link to="/srm/invoices">← Sales invoices</Link>
-      <h1 className="page-title">{r.invoice_number}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="page-title">{r.invoice_number}</h1><Suspense fallback={null}><RecordTemplatePicker entity="invoice" recordId={Number(id)} source="srm"/></Suspense></div>
       {r.customer_id && <Button variant="outline" asChild><Link to={`/srm/customers/${r.customer_id}/360`}>Open customer 360</Link></Button>}
       {r.project_id && (
         <Link

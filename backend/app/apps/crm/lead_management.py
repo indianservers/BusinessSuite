@@ -861,6 +861,7 @@ def get_settings(
     settings.pop("capture", None)
     settings.pop("productivityViews",None)
     settings.pop("dealStageGuidance",None)
+    settings.pop("sources", None)
     can_manage = bool(
         user.is_superuser or core()._crm_permission_names(user).intersection(WRITE)
     )
@@ -938,7 +939,7 @@ def save_settings(
         **{
             key: value
             for key, value in (row.settings_json or {}).items()
-            if key in {"capture", "assignmentCursor", "productivityViews", "dealStageGuidance"}
+            if key in {"capture", "assignmentCursor", "productivityViews", "dealStageGuidance", "sources"}
         },
         **values,
     }

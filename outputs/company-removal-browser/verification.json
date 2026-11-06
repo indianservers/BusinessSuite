@@ -1,0 +1,13 @@
+{
+  "removed_workspace": "company-38",
+  "company_database_removed": true,
+  "database_role_removed": true,
+  "remaining_qa_portal_records": 0,
+  "only_minimal_removal_receipt_retained": true,
+  "company_signup_anonymized": true,
+  "other_databases_checked": 11,
+  "tables_checked": 9134,
+  "non_rate_limit_table_changes": 0,
+  "only_expected_database_and_role_removed": true,
+  "removed_company_login_status": 410
+}

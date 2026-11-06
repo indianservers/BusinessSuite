@@ -11,7 +11,7 @@ import { Team, Records, Plans, SettingsPage, Operations, Profile, Audit } from "
 import "./platform.css";
 const pages = [
     ["overview", "Overview", LayoutDashboard, "reports.read"], ["signups", "Signups", Users, "signup.read"],
-    ["customers", "Customers", Building2, "tenant.read"], ["plans", "Plans & billing", Wallet, "billing.read"],
+    ["customers", "Clients", Building2, "tenant.read"], ["plans", "Plans & billing", Wallet, "billing.read"],
     ["team", "Team", UserCog, "staff.manage"], ["tasks", "Tasks", ClipboardList, ""],
     ["databases", "Company databases", Building2, "settings.manage"],
     ["communications", "Communications", Mail, "signup.review"], ["reports", "Reports", BarChart3, "reports.read"],

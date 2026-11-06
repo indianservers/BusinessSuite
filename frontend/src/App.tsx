@@ -280,6 +280,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+            <Route path="setup-guide" element={<></>} />
             {routes.map((route) => (
               <Route key={route.path} path={route.path} element={getOperationWorkspace(`/${route.path}`) ? <OperationsWorkspace key={route.path} route={route} routes={routes} /> : route.element} caseSensitive={route.caseSensitive} />
             ))}

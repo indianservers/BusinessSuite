@@ -1,0 +1,92 @@
+{
+  "checks": [
+    {
+      "name": "independent owner login",
+      "passed": true
+    },
+    {
+      "name": "filtered directory and profile persistence",
+      "passed": true
+    },
+    {
+      "name": "live dedicated database aggregate refresh",
+      "passed": true
+    },
+    {
+      "name": "statistics show own database and positive size",
+      "passed": true
+    },
+    {
+      "name": "history samples retained",
+      "passed": true
+    },
+    {
+      "name": "filtered CSV excludes other businesses",
+      "passed": true
+    },
+    {
+      "name": "stale client profile rejected",
+      "passed": true
+    },
+    {
+      "name": "company login still works",
+      "passed": true
+    },
+    {
+      "name": "company denied /platform/client-directory",
+      "passed": true
+    },
+    {
+      "name": "company denied /platform/client-directory/export",
+      "passed": true
+    },
+    {
+      "name": "company denied /platform/clients/12/statistics",
+      "passed": true
+    },
+    {
+      "name": "company denied client management",
+      "passed": true
+    },
+    {
+      "name": "company denied batch statistics refresh",
+      "passed": true
+    }
+  ],
+  "passed": 13,
+  "failed": 0,
+  "client_id": 12,
+  "workspace": "company-37",
+  "usage": {
+    "seats": 1,
+    "active_seats": 1,
+    "active_30d": 1,
+    "storage_bytes": 0,
+    "activated": true,
+    "recorded_at": "2026-11-06T19:19:16.874202+00:00",
+    "last_login_at": "2026-11-07T00:17:04.974296+05:30",
+    "last_activity_at": "2026-11-07T00:49:12.591666+05:30",
+    "requests_30d": 249,
+    "server_errors_30d": 0,
+    "requests_by_day": {
+      "2026-11-07": 249
+    },
+    "record_counts": {
+      "crm_leads": 1,
+      "crm_contacts": 1,
+      "crm_deals": 0,
+      "crm_activities": 6,
+      "pms_projects": 0,
+      "pms_tasks": 0
+    },
+    "database_bytes": 80606899
+  },
+  "database": {
+    "workspace": "company-37",
+    "database_name": "suite_c_20647911dd1d4cd09f8e8fed5f4d7dc9",
+    "state": "ready",
+    "server": "Local PostgreSQL 01",
+    "routing_version": 1
+  },
+  "build": "TypeScript and Vite bundling passed; final freshness guard detected concurrent source changes."
+}

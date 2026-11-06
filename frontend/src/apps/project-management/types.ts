@@ -42,6 +42,7 @@ export interface CreateClientInput {
 
 // ============= PROJECT TYPES =============
 export interface PMSProject {
+  client_name?: string | null;
   can_upload_files?: boolean;
   can_edit_project?: boolean;
   can_manage_members?: boolean;

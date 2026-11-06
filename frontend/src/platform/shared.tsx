@@ -13,14 +13,14 @@ export function message(error: any): string {
         return detail.map(e => `${e.loc?.slice(1).join(".") || "Form"}: ${e.msg}`).join("; ");
     return typeof detail === "string" ? detail : detail?.message || error?.message || "Could not complete this operation.";
 }
-export function useData<T = any>(url: string) {
+export function useData<T = any>(url: string, enabled = true) {
     const [data, setData] = useState<T>();
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(true);
     const [rev, setRev] = useState(0);
-    useEffect(() => { const controller = new AbortController(); setBusy(true); setError(""); api.get<T>(url, { signal: controller.signal }).then(r => setData(r.data)).catch(e => { if (!controller.signal.aborted)
+    useEffect(() => { if (!enabled) { setBusy(false); setError(""); setData(undefined); return; } const controller = new AbortController(); setBusy(true); setError(""); api.get<T>(url, { signal: controller.signal }).then(r => setData(r.data)).catch(e => { if (!controller.signal.aborted)
         setError(message(e)); }).finally(() => { if (!controller.signal.aborted)
-        setBusy(false); }); return () => controller.abort(); }, [url, rev]);
+        setBusy(false); }); return () => controller.abort(); }, [url, rev, enabled]);
     return { data, error, busy, refresh: () => setRev(r => r + 1), setData };
 }
 export function date(value?: string | null) { return value ? new Date(value).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }) : "—"; }

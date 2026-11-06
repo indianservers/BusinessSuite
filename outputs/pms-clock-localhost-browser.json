@@ -1,0 +1,11 @@
+{
+  "site": "http://localhost:5198",
+  "checks": [
+    "Scheduler requires dedicated credentials",
+    "Daily UI rule runs through real scheduler, retries do not replay",
+    "Due-date offset, overdue catchup, future/undated exclusion and pause/resume",
+    "Rescheduled due date creates a fresh occurrence",
+    "Saved schedule reloads and mobile layout fits"
+  ],
+  "passed": true
+}

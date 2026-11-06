@@ -3,19 +3,11 @@ const { chromium, expect } = require('../frontend/node_modules/playwright/test')
 const assert = require('node:assert/strict');
 const origin = process.env.CRM_TASK_QA_ORIGIN || 'http://127.0.0.1:5194';
 const legacyKey = 'productivity:crm:7:v1';
-const html = `<!DOCTYPE html><html><head><script type="module">import RefreshRuntime from '/@react-refresh'; RefreshRuntime.injectIntoGlobalHook(window); window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;</script></head><body><div id="root"></div><script type="module">
-import React from '/node_modules/.vite/deps/react.js';
-import ReactDOM from '/node_modules/.vite/deps/react-dom_client.js';
-import Workspace from '/src/apps/crm/CRMTasksWorkspace.tsx';
-import {useAuthStore} from '/src/store/authStore.ts';
-import '/src/index.css';
-useAuthStore.setState({user:{id:7,email:'me@example.test',name:'Me',is_superuser:true},accessToken:'qa',isAuthenticated:true});
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Workspace,{legacyKey:'${legacyKey}',onNotes:()=>{}}));
-</script></body></html>`;
+const html = `<!DOCTYPE html><html><head><script type="module">import RefreshRuntime from '/@react-refresh'; RefreshRuntime.injectIntoGlobalHook(window); window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;</script></head><body><div id="root"></div><script type="module" src="/scripts/fixtures/crm-tasks-qa.tsx"></script></body></html>`;
 (async () => {
   const browser = await chromium.launch({ headless: true });
   let rows = [], nextId = 1, failNextSave = false;
-  const errors = [];
+  const errors = [], reads = [];
   async function device(seed = false) {
     const context = await browser.newContext();
     if (seed) await context.addInitScript(({key}) => localStorage.setItem(key, JSON.stringify({ entries: [{id:'legacy-one',kind:'task',title:'Old browser task',content:'Keep me',status:'To Do',due:''},{id:'note-one',kind:'note',title:'Old note',content:'Keep note'}], notebooks: [{id:'inbox',name:'Inbox'}] })), { key: legacyKey });
@@ -27,6 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(
       const match = url.pathname.match(/\/crm\/tasks(?:\/(\d+))?$/);
       if (!match) return route.fulfill({json:{items:[]}});
       if (request.method() === 'GET') {
+        reads.push(Object.fromEntries(url.searchParams));
         const search = url.searchParams.get('search') || '';
         const items = rows.filter(r => !r.deleted && r.title.toLowerCase().includes(search.toLowerCase()));
         return route.fulfill({json:{items,pages:items.length ? 1 : 0}});
@@ -51,6 +44,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(
     assert.deepEqual(old.entries.map(e=>e.kind), ['note']);
     await page.getByRole('button',{name:'New task',exact:true}).click();
     await page.getByLabel('Task Title',{exact:true}).fill('Cross-device task');
+    await page.getByRole('button',{name:'Assignment',exact:true}).click();
     await page.getByRole('button',{name:'Assign to me',exact:true}).click();
     failNextSave = true;
     await page.getByRole('button',{name:'Create Task',exact:true}).first().click();
@@ -78,7 +72,45 @@ ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(
     await second.page.reload();
     await expect(second.page.getByRole('button',{name:'Old browser task',exact:true})).toBeVisible();
     await expect(second.page.getByRole('button',{name:'Edited from another device',exact:true})).toHaveCount(0);
+    await page.getByRole('button',{name:'Overdue',exact:true}).click();
+    await expect.poll(() => reads.at(-1)?.task_queue).toBe('overdue');
+    await page.getByLabel('Filter task priority').selectOption('High');
+    await expect.poll(() => reads.at(-1)?.priority).toBe('High');
+    await page.getByLabel('Assigned to me',{exact:true}).check();
+    await expect.poll(() => reads.at(-1)?.owner_id).toBe('7');
+    await page.getByLabel('Sort tasks').selectOption('title:asc');
+    await expect.poll(() => reads.at(-1)?.sort_by).toBe('title');
+    await page.getByLabel('Task view name').fill('My urgent follow-ups');
+    await page.getByRole('button',{name:'Save view',exact:true}).click();
+    await page.reload();
+    await page.getByLabel('Apply saved task view').selectOption('My urgent follow-ups');
+    await expect(page.getByRole('button',{name:'Overdue',exact:true})).toHaveAttribute('aria-pressed','true');
+    await expect(page.getByLabel('Filter task priority')).toHaveValue('High');
+    await expect(page.getByLabel('Assigned to me',{exact:true})).toBeChecked();
+    await page.getByRole('button',{name:'Reset filters',exact:true}).click();
+    failNextSave = true;
+    await page.getByRole('button',{name:'Complete task Old browser task',exact:true}).click();
+    await expect(page.getByRole('alert')).toContainText('Save temporarily unavailable');
+    assert.equal(rows[0].status,'To Do');
+    await page.getByRole('button',{name:'Complete task Old browser task',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Complete task Old browser task',exact:true})).toHaveCount(0);
+    assert.equal(rows[0].status,'Done');
+    rows.push({id:nextId++,title:'Bulk follow-up A',status:'To Do',priority:'High',ownerId:7,task_details:{acceptance:'Preserve this criterion'}},{id:nextId++,title:'Bulk follow-up B',status:'To Do',priority:'High',ownerId:7});
+    await page.getByRole('button',{name:'Refresh tasks',exact:true}).click();
+    await page.getByLabel('Select task Bulk follow-up A',{exact:true}).check();
+    await page.getByLabel('Select task Bulk follow-up B',{exact:true}).check();
+    failNextSave=true;
+    await page.getByRole('button',{name:'Complete selected',exact:true}).click();
+    await expect(page.getByRole('status').filter({hasText:'1 of 2 selected tasks completed.'})).toContainText('1 tasks could not be completed');
+    await expect(page.getByLabel('Select task Bulk follow-up A',{exact:true})).toBeChecked();
+    assert.equal(rows.find(r=>r.title==='Bulk follow-up B').status,'Done');
+    await page.getByRole('button',{name:'Complete selected',exact:true}).click();
+    await expect(page.getByRole('status').filter({hasText:'1 of 1 selected tasks completed.'})).toBeVisible();
+    assert.equal(rows.find(r=>r.title==='Bulk follow-up A').task_details.acceptance,'Preserve this criterion');
+    await page.setViewportSize({width:390,height:844});
+    await page.screenshot({path:'outputs/crm-task-queues-mobile.png',fullPage:true});
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Task workspace must fit mobile width');
     assert.deepEqual(errors,[]);
-    console.log('PASS: import preserves notes, failed save retains form, self assignment, fresh-device load, edit, delete confirmation and reload');
+    console.log('PASS: preserved CRUD and import; queue, owner, priority and sort requests; saved view reload; completion failure/retry; mobile layout');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode=1; });

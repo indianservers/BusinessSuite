@@ -56,6 +56,7 @@ import TaskAssignmentPanel, {
 } from "../components/TaskAssignmentPanel";
 import { FilesTab, MentionMarkdownTextarea } from "./TaskDetail";
 import WorkReviewPanel from "../components/WorkReviewPanel";
+import TransitionApprovals from "../components/TransitionApprovals";
 import RunningTimer from "../components/RunningTimer";
 import { usePMSRealtime, useRealtimeStore } from "../realtime";
 import { workspaceError } from "./workspaceTypes";
@@ -1293,6 +1294,7 @@ export default function TaskWorkspacePage() {
               {data.source_managed && (
                 <WorkReviewPanel taskId={id} onReviewed={refresh} />
               )}
+              <TransitionApprovals taskId={id} onChanged={refresh} disabled={busy} />
             </section>
           )}
           {timer && (

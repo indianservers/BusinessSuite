@@ -1,4 +1,5 @@
 import {AccountingSyncPanel} from "./AccountingSyncPanel";
+import CompanySampleData from "./CompanySampleData";
 import {useEffect,useRef,useState} from "react";
 import {useLocation} from "react-router-dom";
 import {ArrowRight,CheckCircle2,Download,FileSpreadsheet,History,Link2,RefreshCw,RotateCcw,Upload,X} from "lucide-react";
@@ -60,6 +61,7 @@ function ImportWorkspaceContent({module}:{module:string}){
  const changeOptions=(patch:Partial<Options>)=>{setOptions(previous=>({...previous,...patch}));setAck(false);};
  function setSource(target:string,source:string){if(target)setOptions(previous=>{const constants={...previous.constants};delete constants[target];return {...previous,constants};});setMapping(previous=>{const next={...previous};Object.keys(next).forEach(key=>{if(next[key]===source||key===target)delete next[key];});if(target&&source)next[target]=source;return next;});setAck(false);}
  return <main className="import-workspace" aria-busy={busy}>
+  <CompanySampleData/>
   <header className="iw-header"><span className="iw-heading-icon"><FileSpreadsheet size={26}/></span><div><h1>Import into {names[module]||module}</h1><p>Bring your data across. Match columns, review every change, then import.</p></div><Button variant="outline" onClick={()=>void run(template)} disabled={busy||!spec}><Download size={16}/>Excel template</Button></header>
   <nav className="iw-tabs" aria-label="Import workspace"><button aria-current={tab==="new"?"page":undefined} onClick={()=>setTab("new")}><Upload size={16}/>New import</button><button aria-current={tab==="history"?"page":undefined} onClick={()=>{setTab("history");void run(refreshHistory);}}><History size={16}/>Import history</button></nav>
   {error&&<p role="alert" className="iw-error">{error}<button aria-label="Dismiss import error" onClick={()=>setError("")}><X size={16}/></button></p>}

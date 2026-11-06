@@ -1,9 +1,10 @@
 """Workspace-scoped, deterministic task automation. No scripts or external calls."""
 import json
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, get_db
@@ -13,16 +14,72 @@ from .models import PMSActivity, PMSProject, PMSWorkspaceEntry, PMSWorkspaceMemb
 router = APIRouter()
 
 
+class RuleSchedule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    at: str = Field(default="09:00", pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    timezone: str = Field(default="Asia/Kolkata", max_length=80)
+    due_offset_days: int = Field(default=0, ge=-365, le=365)
+
+    @model_validator(mode="after")
+    def valid_zone(self):
+        try:
+            ZoneInfo(self.timezone)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("Choose an IANA timezone") from None
+        return self
+
+
 class RuleInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=120)
     project_id: int = Field(gt=0)
-    trigger: Literal["task.created", "task.status_changed"]
+    trigger: Literal["task.created", "task.status_changed", "schedule.daily", "task.due_date"]
     status: Literal["", "To Do", "In Progress", "In Review", "Blocked", "Done"] = ""
     action: Literal["set_priority", "assign_user"]
     priority: Literal["Low", "Medium", "High", "Urgent"] = "High"
     assignee_id: int | None = None
     enabled: bool = True
+    conditions: dict | None = None
+    schedule: RuleSchedule | None = None
+
+    @model_validator(mode="after")
+    def validate_conditions(self):
+        timed = self.trigger in {"schedule.daily", "task.due_date"}
+        if timed != (self.schedule is not None):
+            raise ValueError("Time-based triggers require a schedule; event triggers do not use one")
+        if self.trigger == "schedule.daily" and self.schedule.due_offset_days:
+            raise ValueError("Due-date offset applies only to due-date triggers")
+        if self.conditions is None:
+            return self
+        from app.shared.runtime import validate_condition
+        validate_condition(self.conditions)
+        remaining = [self.conditions]
+        count = 0
+        while remaining:
+            node = remaining.pop()
+            count += 1
+            if count > 40:
+                raise ValueError("Use at most 40 condition nodes")
+            if "all" in node or "any" in node:
+                remaining.extend(node.get("all", node.get("any")))
+                continue
+            field, operator, value = node["field"], node.get("operator", "equals"), node.get("value")
+            if set(node) - {"field", "operator", "value"}:
+                raise ValueError("Unsupported condition fields")
+            if field not in {"status", "priority", "work_type", "title", "due_date", "assignee_user_id"}:
+                raise ValueError("Choose a supported task condition field")
+            if operator not in {"equals", "not_equals", "contains", "in", "not_in", "is_empty", "is_not_empty", "date_before", "date_after"}:
+                raise ValueError("Choose a supported task condition operator")
+            if operator in {"date_before", "date_after"} and field != "due_date":
+                raise ValueError("Date comparisons require a due date")
+            if operator in {"in", "not_in"}:
+                if not isinstance(value, list) or len(value) > 30 or any(not isinstance(v, (str, int)) or isinstance(v, bool) for v in value):
+                    raise ValueError("Membership conditions need a list of up to 30 values")
+            elif operator not in {"is_empty", "is_not_empty"} and (not isinstance(value, (str, int)) or isinstance(value, bool)):
+                raise ValueError("Condition value must be text or a user ID")
+            if len(json.dumps(node)) > 2000:
+                raise ValueError("Condition value is too long")
+        return self
 
 
 class ToggleInput(BaseModel):
@@ -35,7 +92,7 @@ def _manage(db, workspace_id, user):
 
 
 def _payload(row):
-    return {**json.loads(row.body), "id": row.id, "created_at": row.created_at}
+    return {**{k: v for k, v in json.loads(row.body).items() if not k.startswith("_")}, "id": row.id, "created_at": row.created_at}
 
 
 @router.get("/workspaces/{workspace_id}/automations")
@@ -87,7 +144,8 @@ def edit_rule(workspace_id: int, rule_id: int, data: RuleInput, db: Session = De
         raise HTTPException(404, "Project not found in this workspace")
     if data.action == "assign_user" and not _eligible_assignee(db, workspace_id, data.assignee_id):
         raise HTTPException(422, "Choose an active workspace collaborator")
-    row.body = data.model_dump_json()
+    revision = int(json.loads(row.body).get("_revision", 1)) + 1
+    row.body = json.dumps({**data.model_dump(mode="json"), "_revision": revision})
     db.commit()
     return _payload(row)
 
@@ -116,20 +174,37 @@ def apply_task_rules(db, task, project, actor, trigger):
     rows = db.query(PMSWorkspaceEntry).filter_by(workspace_id=project.workspace_id, kind="auto_rule").order_by(PMSWorkspaceEntry.id).limit(100).all()
     for row in rows:
         rule = json.loads(row.body)
-        if not rule.get("enabled") or rule["project_id"] != project.id or rule["trigger"] != trigger or (rule.get("status") and rule["status"] != task.status):
+        if not rule.get("enabled") or rule["project_id"] != project.id or rule["trigger"] != trigger or not _matches(rule, task):
             continue
-        skipped = False
-        if rule["action"] == "set_priority":
-            if task.priority == rule["priority"]:
-                continue
-            task.priority = rule["priority"]
+        _apply_rule(db, row, rule, task, project, actor)
+
+
+def _matches(rule, task):
+    if rule.get("status") and rule["status"] != task.status:
+        return False
+    if not rule.get("conditions"):
+        return True
+    from app.shared.runtime import condition
+    values = {key: getattr(task, key) for key in ("status", "priority", "work_type", "title", "assignee_user_id")}
+    values["due_date"] = task.due_date.isoformat() if task.due_date else None
+    return condition(rule["conditions"], values)
+
+
+def _apply_rule(db, row, rule, task, project, actor):
+    """Shared action path for event and clock triggers. Return False on revoked assignment."""
+    skipped = False
+    if rule["action"] == "set_priority":
+        if task.priority == rule["priority"]:
+            return True
+        task.priority = rule["priority"]
+    else:
+        target = rule.get("assignee_id")
+        if not _eligible_assignee(db, project.workspace_id, target):
+            skipped = True
+        elif target in task.assignee_user_ids:
+            return True
         else:
-            target = rule.get("assignee_id")
-            if not _eligible_assignee(db, project.workspace_id, target):
-                skipped = True
-            elif target in task.assignee_user_ids:
-                continue
-            else:
-                task.assignee_user_ids = sorted(set(task.assignee_user_ids + [target]))
-                task.assignee_user_id = task.assignee_user_id or target
-        db.add(PMSActivity(project_id=project.id, task_id=task.id, actor_user_id=actor.id, action="automation.skipped" if skipped else "automation.executed", entity_type="automation", entity_id=row.id, summary=f'{rule["name"]}: {"assignee no longer eligible" if skipped else rule["action"]} on {task.task_key}'[:300], metadata_json=json.dumps({"rule_id": row.id, "trigger": trigger})))
+            task.assignee_user_ids = sorted(set(task.assignee_user_ids + [target]))
+            task.assignee_user_id = task.assignee_user_id or target
+    db.add(PMSActivity(project_id=project.id, task_id=task.id, actor_user_id=actor.id, action="automation.skipped" if skipped else "automation.executed", entity_type="automation", entity_id=row.id, summary=f'{rule["name"]}: {"assignee no longer eligible" if skipped else rule["action"]} on {task.task_key}'[:300], metadata_json=json.dumps({"rule_id": row.id, "trigger": rule["trigger"]})))
+    return not skipped

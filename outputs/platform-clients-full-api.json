@@ -1,0 +1,758 @@
+{
+  "fixtures": [
+    {
+      "id": 14,
+      "signup_id": 39,
+      "email": "cmqa1107.1@example.com",
+      "workspace": "company-39",
+      "company_id": 1000000039
+    },
+    {
+      "id": 15,
+      "signup_id": 40,
+      "email": "cmqa1107.2@example.com",
+      "workspace": "company-40",
+      "company_id": 1000000040
+    }
+  ],
+  "checks": [
+    {
+      "name": "POST /auth/platform/login returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me returns 200",
+      "passed": true
+    },
+    {
+      "name": "owner authenticated independently",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/records/backup returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me returns 200",
+      "passed": true
+    },
+    {
+      "name": "company login has own tenant",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory/export returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory/export returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/clients/14/statistics returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/clients/14/statistics returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases returns 401",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/databases returns 401",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 401",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 401",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 401",
+      "passed": true
+    },
+    {
+      "name": "company token cannot override database routing",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "both QA clients in directory",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "filter status matches returned records",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "filter module matches returned records",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "filter attention matches returned records",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "filter priority matches returned records",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "pagination contains distinct clients with stable totals",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 422",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 422",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 422",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "empty search returns empty summary",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory/export returns 200",
+      "passed": true
+    },
+    {
+      "name": "CSV is filtered",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 200",
+      "passed": true
+    },
+    {
+      "name": "profile increments optimistic version",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 409",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 422",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 422",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 422",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 422",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 422",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "review and renewal flags derived from dates",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 200",
+      "passed": true
+    },
+    {
+      "name": "both dedicated database refreshes succeed",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/clients/14/statistics returns 200",
+      "passed": true
+    },
+    {
+      "name": "statistics correctly routed",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 422",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 422",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 404",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/records/note returns 201",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/records/note returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/records/note returns 200",
+      "passed": true
+    },
+    {
+      "name": "note listed only for its client",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14/export returns 200",
+      "passed": true
+    },
+    {
+      "name": "configuration export excludes business records and credentials",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/records/backup returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "trial extension changes end",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 422",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 422",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 422",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "snapshot restores subscription configuration",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/15/action returns 404",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/plans returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 422",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "paid cancellation reactivation preserves paid status without prior suspension",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "suspended company cannot read CRM",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "reactivation restores correct paid lifecycle",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "cancelled paid client reactivates as paid",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/15/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "invitation retains dedicated tenant routing",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/15/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/reset-password returns 400",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/15/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/public/SfRIQLtbcWy9o3i42mKToBtiYk2uZy1JuNIy5s6x6I-1hE8j_t91mw returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/public/SfRIQLtbcWy9o3i42mKToBtiYk2uZy1JuNIy5s6x6I-1hE8j_t91mw returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/public/SfRIQLtbcWy9o3i42mKToBtiYk2uZy1JuNIy5s6x6I-1hE8j_t91mw returns 404",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/platform/login returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me returns 200",
+      "passed": true
+    },
+    {
+      "name": "support authenticated with correct role",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "assigned support sees only its client and aggregates",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/clients/15/statistics returns 404",
+      "passed": true
+    },
+    {
+      "name": "PATCH /platform/clients/14/profile returns 403",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/platform/login returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me returns 200",
+      "passed": true
+    },
+    {
+      "name": "billing authenticated with correct role",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 403",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/platform/login returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/me returns 200",
+      "passed": true
+    },
+    {
+      "name": "analyst authenticated with correct role",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 403",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/client-usage-refresh returns 403",
+      "passed": true
+    },
+    {
+      "name": "client subscription rows remain in own company DB",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "history records management operations",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/plans returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "future plan change schedules without immediate activation",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/operations/run-checks returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "due-work applies scheduled plan",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 409",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/14 returns 200",
+      "passed": true
+    },
+    {
+      "name": "offboarding records retention while preserving company DB",
+      "passed": true
+    },
+    {
+      "name": "offboarding preserves user and company rows",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/records/backup returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/14/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/15/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/reset-password returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/customers/15/action returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/public/mmpB_Ba-RbKBR-hvJyxogHZ1aL7lQz9y9z1Ns01in8e-1QZnlvySag returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/15 returns 200",
+      "passed": true
+    },
+    {
+      "name": "one party cannot complete admin transfer",
+      "passed": true
+    },
+    {
+      "name": "POST /platform/public/EmFV_LUNNZf7nriD-1jd6yjNZF-D6hXjPqjD2U4swvjva58iXIMp6w returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/customers/15 returns 200",
+      "passed": true
+    },
+    {
+      "name": "two-party consent changes primary admin",
+      "passed": true
+    },
+    {
+      "name": "former administrator loses company authorization",
+      "passed": true
+    },
+    {
+      "name": "transferred invite still routes to own tenant",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/reset-password returns 200",
+      "passed": true
+    },
+    {
+      "name": "POST /auth/login returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /access/me returns 200",
+      "passed": true
+    },
+    {
+      "name": "GET /auth/me returns 200",
+      "passed": true
+    },
+    {
+      "name": "replacement remains scoped company admin",
+      "passed": true
+    },
+    {
+      "name": "GET /platform/client-directory returns 401",
+      "passed": true
+    },
+    {
+      "name": "invalid batch ID True rejected",
+      "passed": true
+    },
+    {
+      "name": "invalid batch ID 0 rejected",
+      "passed": true
+    },
+    {
+      "name": "invalid batch ID -1 rejected",
+      "passed": true
+    },
+    {
+      "name": "boolean optimistic version rejected",
+      "passed": true
+    },
+    {
+      "name": "QA client restored to trial after browser suspension",
+      "passed": true
+    },
+    {
+      "name": "browser decimal amount stored accurately in minor units",
+      "passed": true
+    },
+    {
+      "name": "browser-created note persisted in owner store",
+      "passed": true
+    }
+  ],
+  "passed": 184,
+  "failed": 0
+}

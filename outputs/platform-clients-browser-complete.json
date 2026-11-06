@@ -1,0 +1,150 @@
+{
+  "checks": [
+    {
+      "feature": "Authenticated independent owner login",
+      "passed": true
+    },
+    {
+      "feature": "Empty search and combined lifecycle/application filters",
+      "passed": true
+    },
+    {
+      "feature": "Attention queue and priority filter",
+      "passed": true
+    },
+    {
+      "feature": "Single-client aggregate refresh",
+      "passed": true
+    },
+    {
+      "feature": "Required reason blocks empty profile submission",
+      "passed": true
+    },
+    {
+      "feature": "Complete account profile save",
+      "passed": true
+    },
+    {
+      "feature": "Create client note",
+      "passed": true
+    },
+    {
+      "feature": "Create configuration snapshot",
+      "passed": true
+    },
+    {
+      "feature": "Snapshot restore uses in-page reviewed confirmation",
+      "passed": true
+    },
+    {
+      "feature": "Snapshot restore and audit history persisted",
+      "passed": true
+    },
+    {
+      "feature": "Trial extension form validates day range",
+      "passed": true
+    },
+    {
+      "feature": "Allowance form saves numeric limits and existing module choices",
+      "passed": true
+    },
+    {
+      "feature": "Paid-plan and scheduling fields render with active plan catalog",
+      "passed": true
+    },
+    {
+      "feature": "Offline payment form submits successfully",
+      "passed": true
+    },
+    {
+      "feature": "Suspend workflow persists suspended state",
+      "passed": true
+    },
+    {
+      "feature": "Primary admin transfer form validates email input",
+      "passed": true
+    },
+    {
+      "feature": "Support request prepares private consent link",
+      "passed": true
+    },
+    {
+      "feature": "Customer configuration downloads as JSON",
+      "passed": true
+    },
+    {
+      "feature": "Statistics render own database, aggregates and historical samples",
+      "passed": true
+    },
+    {
+      "feature": "Batch refresh completes and clears selection",
+      "passed": true
+    },
+    {
+      "feature": "Filtered CSV download verified on disk after browser permission handoff",
+      "passed": true
+    },
+    {
+      "feature": "Assigned support role sees one client without owner actions",
+      "passed": true
+    },
+    {
+      "feature": "Support cannot edit account profile",
+      "passed": true
+    },
+    {
+      "feature": "Support subscription view loads without forbidden billing/snapshot errors",
+      "passed": true
+    },
+    {
+      "feature": "Company admin signs into correct dedicated business",
+      "passed": true
+    },
+    {
+      "feature": "Selection capped at ten clients",
+      "passed": true
+    },
+    {
+      "feature": "Clear selection resets batch action",
+      "passed": true
+    },
+    {
+      "feature": "Company administrator is redirected to independent owner login",
+      "passed": true
+    },
+    {
+      "feature": "Sort control newest",
+      "passed": true
+    },
+    {
+      "feature": "Sort control name",
+      "passed": true
+    },
+    {
+      "feature": "Sort control seats",
+      "passed": true
+    },
+    {
+      "feature": "Sort control attention",
+      "passed": true
+    },
+    {
+      "feature": "Sort control last_login",
+      "passed": true
+    },
+    {
+      "feature": "Assigned support cannot open another client detail",
+      "passed": true
+    },
+    {
+      "feature": "Refresh directory and retain search filter",
+      "passed": true
+    },
+    {
+      "feature": "Pagination disables unavailable pages",
+      "passed": true
+    }
+  ],
+  "passed": 36,
+  "failed": 0
+}

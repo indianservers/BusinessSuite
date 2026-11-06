@@ -115,9 +115,14 @@ def module_requirements(db, company_id, modules):
             CRMPipeline.active.is_(True), CRMPipeline.deleted_at.is_(None), CRMPipelineStage.active.is_(True),
             CRMPipelineStage.deleted_at.is_(None)))
     if "project_management" in modules:
-        from app.apps.project_management.models import PMSWorkspace
+        from app.apps.project_management.models import PMSWorkspace, PMSProject
         add("workspace", "Project workspace", "Before creating projects", "/pms/workspaces",
             select(PMSWorkspace.id).where(PMSWorkspace.organization_id == company_id))
+        add("project", "Create your first project", "Create a workspace first, then add a project before creating project tasks.", "/pms/projects",
+            select(PMSProject.id).join(PMSWorkspace, PMSProject.workspace_id == PMSWorkspace.id).where(
+                PMSProject.organization_id == company_id, PMSWorkspace.organization_id == company_id,
+                PMSProject.deleted_at.is_(None), PMSProject.is_archived.is_(False),
+                PMSProject.is_template.is_(False), PMSProject.is_task_collection.is_(False)))
     if "fam" in modules:
         from datetime import date
         from app.apps.fam.models import FAMFinancialYear, FAMLedger
@@ -243,7 +248,7 @@ def readiness(db: Session = Depends(get_db), user: User = Depends(get_current_us
         item["canRepair"] = bool(can_edit_company(ctx) if key in {"company-profile", "business-defaults"} else allows(option, ctx))
     modules = {key for key, grant in ctx["grants"].items() if grant.get("enabled")}
     module_items = module_requirements(db, user.organization_id, modules)
-    module_by_id = {"pipeline": "crm", "workspace": "project_management", "warehouse": "srm", "financial-year": "fam", "ledgers": "fam"}
+    module_by_id = {"pipeline": "crm", "workspace": "project_management", "project": "project_management", "warehouse": "srm", "financial-year": "fam", "ledgers": "fam"}
     for item in items:
         item.update(module="company", required=True)
     for item in module_items:

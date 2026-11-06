@@ -1,0 +1,54 @@
+{
+  "verified_at": "2026-11-06T19:27:49.727Z",
+  "database": "business_suite_accounting_local_69918736_test",
+  "frontend_url": "http://127.0.0.1:5196",
+  "backend_url": "http://127.0.0.1:1542",
+  "checks": [
+    "real app login and branch selection",
+    "automatic Zoho and QuickBooks sync through real adapters and PostgreSQL",
+    "authenticated Tally bridge snapshot",
+    "Finance automatic sync controls in real app",
+    "explicit CRM links and three-provider customer 360",
+    "unlinked customer has no accounting history",
+    "read-only invoice register and real filtering",
+    "daily sales chart, actual document dates and separate account/currency totals",
+    "full-app mobile layouts",
+    "automatic settlement updates CRM balances and daily receipts",
+    "paused accounts are skipped; failed sync preserves last successful data",
+    "automatic retry recovery and resumed sync",
+    "settled invoice status and zero balance visible in the app",
+    "updated daily receipts visible in the app",
+    "no accounting request failures or browser runtime errors"
+  ],
+  "connections": [
+    {
+      "provider": "tally",
+      "connection_id": "6e0e60ac-2ed4-432e-8d09-96e02ccd1c94",
+      "last_success_at": "2026-11-06T19:24:38.682362+00:00",
+      "schedule_error": null,
+      "enabled": true,
+      "next_sync_at": null,
+      "runs": 4
+    },
+    {
+      "provider": "quickbooks",
+      "connection_id": "dc6d8263-5cad-4af4-b68f-8eb1d123e07c",
+      "last_success_at": "2026-11-06T19:27:37.842182+00:00",
+      "schedule_error": null,
+      "enabled": true,
+      "next_sync_at": "2026-11-06T19:32:37.842182+00:00",
+      "runs": 4
+    },
+    {
+      "provider": "zoho",
+      "connection_id": "26223940-dec9-4d15-922b-372ae8e1fa99",
+      "last_success_at": "2026-11-06T19:27:38.000733+00:00",
+      "schedule_error": null,
+      "enabled": true,
+      "next_sync_at": "2026-11-06T19:32:38.000733+00:00",
+      "runs": 9
+    }
+  ],
+  "provider_requests": 35,
+  "live_accounts_connected": 0
+}

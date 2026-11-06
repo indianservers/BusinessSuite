@@ -1,0 +1,7 @@
+{
+  "checked_at_utc": "2026-11-06T19:20:40.559470+00:00",
+  "model_tables": 831,
+  "migration_head": "pg_20261107_087_crm_templates",
+  "missing_model_columns": {},
+  "passed": true
+}

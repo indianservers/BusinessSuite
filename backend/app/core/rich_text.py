@@ -144,6 +144,10 @@ def rich_text_type(max_length=200000, min_length=0):
 def email_body_parts(value):
     """Safe HTML alternative plus readable plain text for rich and legacy email."""
     from html import escape
+    if 'data-suite-template="v1"' in value:
+        from app.core.template_email import sanitize_template_email
+        safe = sanitize_template_email(value.removeprefix(PREFIX))
+        return rich_text_plain(PREFIX + safe), safe
     if value.startswith(PREFIX) or re.search(r"<(?:p|div|span|strong|b|em|i|u|h[1-4]|table|a|br)\b", value, re.I):
         safe = sanitize_rich_text(value if value.startswith(PREFIX) else PREFIX + value)
         return rich_text_plain(safe), safe.removeprefix(PREFIX)

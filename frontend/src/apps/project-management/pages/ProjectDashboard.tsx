@@ -1,34 +1,27 @@
 import { api } from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
-import { milestonesAPI } from "../services/api";
-import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import { milestonesAPI, activityAPI, filesAPI } from "../services/api";
+import ProjectOverview from "../components/ProjectOverview";
 import CatalogAssociations from "@/shared/catalog/CatalogLinesEditor";
 import AddExistingPeopleDialog from "../components/people/AddExistingPeopleDialog";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { RecordCustomFields } from "../components/CustomFields";
-import { ConversationLauncher } from "@/shared/communication";
-import { RichTextContent } from "@/components/rich-text/RichTextContent";
-import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AlertTriangle, BarChart3, CheckCircle2, Clock, Kanban, ListChecks, Milestone, ShieldAlert, Timer } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import AskAiButton from "@/components/ai-agents/AskAiButton";
-import { formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import { projectsAPI, tasksAPI } from "../services/api";
 import { useProjectStore, useTaskStore } from "../store";
 import type { DashboardData, PMSTask } from "../types";
-import ProjectCommunication from "../components/ProjectCommunication";
 
-export default function ProjectDashboard({ communication = false }: { communication?: boolean }) {
+export default function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = Number(projectId || 0);
   const mobileMembers=useQuery({queryKey:["mobile-project-members",id],queryFn:()=>api.get<{user_id:number;name?:string;email?:string}[]>(`/project-management/projects/${id}/members`).then(r=>r.data),enabled:!!id});
   const mobileMilestones=useQuery({queryKey:["mobile-project-milestones",id],queryFn:()=>milestonesAPI.list(id),enabled:!!id});
-  const nextMilestone=mobileMilestones.data?.filter(m=>!["Completed","Done","Cancelled"].includes(m.status)).sort((a,b)=>(a.due_date||"9999").localeCompare(b.due_date||"9999"))[0];
+  const projectFiles=useQuery({queryKey:["project-overview-files",id],queryFn:()=>filesAPI.list({project_id:id}),enabled:!!id});
+  const recentActivity=useQuery({queryKey:["project-overview-activity",id],queryFn:()=>activityAPI.list(id,{limit:4}),enabled:!!id});
+  const [moreOpen,setMoreOpen]=useState(false);
   const { selectedProject, setSelectedProject } = useProjectStore();
   const { tasks, setTasks } = useTaskStore();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -40,6 +33,7 @@ export default function ProjectDashboard({ communication = false }: { communicat
 
   useEffect(() => {
     let active=true;
+    document.getElementById("suite-main")?.scrollTo({top:0,left:0,behavior:"auto"});
     setLoading(true);setError("");
     if(loadedProjectId.current!==id){setSelectedProject(null);setDashboard(null);setTasks([]);loadedProjectId.current=id;}
     if(!id){setLoading(false);setError("Choose a valid project.");return;}
@@ -53,142 +47,24 @@ export default function ProjectDashboard({ communication = false }: { communicat
   usePageRefresh(() => setRetryVersion(value => value + 1));
 
   const project = selectedProject || dashboard?.project;
-  const taskChart=Object.entries(dashboard?.status_counts||{}).map(([status,tasks])=>({status,tasks}));
-  const overdue = tasks.filter(isOverdue);
 
   if (loading && !dashboard) return <div className="skeleton h-72 rounded-lg" />;
   if (!project) return <div role="alert" className="rounded-xl border bg-card p-6 space-y-3"><h1 className="text-xl font-semibold">Project unavailable</h1><p className="text-sm text-muted-foreground">{error || "Project not found."}</p><div className="flex gap-3"><Button variant="outline" onClick={()=>setRetryVersion(version=>version+1)}>Retry</Button><Button asChild><Link to="/pms/projects">Back to projects</Link></Button></div></div>;
 
-  return (
-    <div className="space-y-6" aria-busy={loading}>
-      {error && <p role="alert" className="rounded border border-destructive/30 p-3 text-sm">{error}</p>}
-      <AddExistingPeopleDialog open={addingPeople} onClose={() => setAddingPeople(false)} projectId={id} workspaceId={project.workspace_id} />
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="page-title">{project.name}</h1><ConversationLauncher module="PMS" workspaceId={project.workspace_id} context={{type:"project",id}}/>
-            <Badge className={statusColor(project.status)}>{project.status}</Badge>
-          </div>
-          <div className="page-description"><RichTextContent value={project.description || "Project workspace overview"}/></div>
-        </div>
-        <div className="flex flex-wrap items-start gap-2"><Button id="project-board" asChild><Link to={`/pms/projects/${id}/board`}><Kanban className="h-4 w-4" />Open board</Link></Button><details className="relative"><summary className="cursor-pointer rounded-md border px-4 py-2 text-sm font-medium">Project actions</summary><div className="absolute right-0 z-20 grid w-64 gap-2 rounded-lg border bg-popover p-3">
-          <Button disabled={!project.can_manage_members && !project.can_edit_project} onClick={() => setAddingPeople(true)}>Add existing person</Button><Button asChild variant="outline"><Link to={`/pms/projects/${id}/members`}>Manage project members</Link></Button>
-          {project.can_edit_project && <Button asChild variant="outline"><Link to={`/pms/projects/${id}/edit`}>Edit project</Link></Button>}
-          <AskAiButton
-            module="PMS"
-            relatedEntityType="project"
-            relatedEntityId={id}
-            defaultAgentCode="pms_project_status"
-            defaultPrompt="Summarize this project status with delays, blockers, and risks."
-          />
-          <Button asChild variant="outline"><Link to={`/pms/projects/${id}/billing`}>Billing & invoices</Link></Button>
-          <Button asChild variant="outline"><Link to={`/pms/projects/${id}/milestones`}><Milestone className="h-4 w-4" />Milestones</Link></Button>
-          <Button asChild variant="outline"><Link to={`/pms/projects/${id}/risks`}><ShieldAlert className="h-4 w-4" />Risks</Link></Button>
-          <Button asChild variant="outline"><Link to={`/pms/projects/${id}/notes`}>My Notes</Link></Button>
-        </div></details></div>
+  return <div aria-busy={loading}>
+    {error && <p role="alert" className="mb-4 rounded border border-destructive/30 p-3 text-sm">{error}</p>}
+    <AddExistingPeopleDialog open={addingPeople} onClose={() => setAddingPeople(false)} projectId={id} workspaceId={project.workspace_id} />
+    <ProjectOverview project={project} fileCount={projectFiles.data?.length} dashboard={dashboard} tasks={tasks} members={mobileMembers.data || []} milestones={mobileMilestones.data || []} activity={recentActivity.data || []} membersError={mobileMembers.isError} milestonesError={mobileMilestones.isError} activityError={recentActivity.isError} onAddMember={() => setAddingPeople(true)} onMore={() => { setMoreOpen(true); setTimeout(() => document.getElementById("project-more-details")?.scrollIntoView({behavior:"smooth",block:"start"}),0); }} />
+    <details id="project-more-details" className="pd-extra" open={moreOpen} onToggle={event=>setMoreOpen(event.currentTarget.open)}>
+      <summary>Project actions</summary>
+      <div className="pd-extra-content">
+        <div className="pd-actions-menu"><button disabled={!project.can_manage_members && !project.can_edit_project} onClick={() => setAddingPeople(true)}>Add existing person</button><Link to={`/pms/projects/${id}/members`}>Manage project members</Link>{project.can_edit_project && <Link to={`/pms/projects/${id}/edit`}>Edit project</Link>}<Link to={`/pms/projects/${id}/billing`}>Billing & invoices</Link><Link to={`/pms/projects/${id}/milestones`}>Milestones</Link><Link to={`/pms/projects/${id}/risks`}>Risks</Link><Link to={`/pms/projects/${id}/notes`}>My Notes</Link></div>
+        <CatalogAssociations source="pms" target="project" id={id}/>
+        <RecordCustomFields entity="project" id={id}/>
+        {project.srm_links && <Card><CardHeader><CardTitle>SRM Engagement Link</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-4"><LinkedSummary label="Engagement" value={textValue(project.srm_links.engagement?.engagement_number || project.srm_links.engagement?.name)} /><LinkedSummary label="Sales Order" value={textValue(project.srm_links.sales_order?.order_number || project.srm_links.sales_order?.title)} /><LinkedSummary label="Contract" value={textValue(project.srm_links.contract?.contract_number || project.srm_links.contract?.title)} /><LinkedSummary label="Billing Plan" value={textValue(project.srm_links.billing_plan?.name || project.srm_links.billing_plan?.billing_type)} /></CardContent></Card>}
       </div>
-
-      <nav aria-label="Project views" className="flex gap-6 overflow-x-auto border-b">
-        {[["Overview", ""], ["Tasks", "/board"], ["Milestones", "/milestones"], ["Files", "/files"], ["Communication", "/communication"]].map(([label, suffix]) => <Link key={label} to={`/pms/projects/${id}${suffix}`} aria-current={(communication ? suffix === "/communication" : suffix === "") ? "page" : undefined} className={`whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium ${(communication ? suffix === "/communication" : suffix === "") ? "border-emerald-600 text-emerald-700 dark:text-emerald-400" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{label}</Link>)}
-      </nav>
-      {communication ? <ProjectCommunication key={`${id}:${project.workspace_id}`} project={project} tasks={tasks} /> : <>
-      <section className="rounded-2xl border bg-card p-4 space-y-3"><h2 className="font-semibold">Project at a glance</h2><div className="flex items-center justify-between"><strong>{project.progress_percent}% complete</strong><span className="text-sm">{project.health} · Due {formatDate(project.due_date || null)}</span></div><progress aria-label="Project completion" className="h-2 w-full accent-primary" value={project.progress_percent} max={100}/><div className="flex justify-between text-sm"><span>Blockers: {dashboard?.status_counts?.Blocked ?? 0}</span><span>Overdue: {dashboard?.metrics.overdue_tasks ?? 0}</span></div><Link className="block rounded-md border px-3 py-2 text-sm hover:bg-muted" to={`/pms/projects/${id}/milestones`}>{nextMilestone ? `${nextMilestone.name} · ${nextMilestone.due_date || "No due date"}` : "View milestones"}</Link><Link className="block rounded-md border px-3 py-2 text-sm hover:bg-muted" to={`/pms/projects/${id}/members`}>Owner: {project.manager_user_id ? (mobileMembers.data?.find(member=>member.user_id===project.manager_user_id)?.name || "Assigned") : "Unassigned"} · View team</Link></section>
-      <section aria-labelledby="project-attention" className="space-y-3">
-        <h2 id="project-attention" className="text-base font-semibold">Needs attention</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Link className="rounded-lg border bg-card p-4 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary" to={`/pms/tasks?projectId=${id}`}><span className="text-sm text-muted-foreground">Overdue tasks</span><strong className="block text-2xl text-destructive">{dashboard?.metrics.overdue_tasks ?? "—"}</strong><span className="text-xs">Review project tasks →</span></Link>
-          <Link className="rounded-lg border bg-card p-4 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary" to={`/pms/projects/${id}/board`}><span className="text-sm text-muted-foreground">Blocked tasks</span><strong className="block text-2xl">{dashboard ? (dashboard.status_counts?.Blocked ?? 0) : "—"}</strong><span className="text-xs">Review blockers on board →</span></Link>
-          <Link className="rounded-lg border bg-card p-4 hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary" to={`/pms/projects/${id}/risks`}><span className="text-sm text-muted-foreground">High risks</span><strong className="block text-2xl">{dashboard?.metrics.high_risks ?? "—"}</strong><span className="text-xs">Review project risks →</span></Link>
-        </div>
-        {overdue.length > 0 && <div className="divide-y rounded-lg border">{overdue.slice(0,3).map(task=><Link key={task.id} className="flex flex-wrap justify-between gap-2 p-3 text-sm hover:bg-muted" to={`/pms/tasks/${task.id}`}><span>{task.title}</span><span className="text-destructive">Due {formatDate(task.due_date || null)}</span></Link>)}<p className="p-3 text-xs text-muted-foreground">Preview of loaded tasks; open project tasks for the complete list.</p></div>}
-      </section>
-      <MobileDisclosure title="Project metrics">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Metric icon={ListChecks} label="Total tasks" value={dashboard?.metrics.total_tasks ?? "Unavailable"} />
-        <Metric icon={CheckCircle2} label="Completed" value={dashboard?.metrics.completed_tasks ?? "Unavailable"} />
-        <Metric icon={Clock} label="Overdue" value={dashboard?.metrics.overdue_tasks ?? "Unavailable"} tone="text-red-600" />
-        <Metric icon={AlertTriangle} label="High risks" value={dashboard?.metrics.high_risks ?? "Unavailable"} tone="text-amber-600" />
-        <Metric icon={Timer} label="Progress" value={`${project.progress_percent}%`} />
-      </div>
-
-      </MobileDisclosure>
-      <p className="text-xs text-muted-foreground">Unique live task records, including subtasks. {dashboard?.assignment_count} individual assignments. The status chart includes the full permitted project; task previews below may be paginated.</p>
-      <CatalogAssociations source="pms" target="project" id={id}/>
-      <RecordCustomFields entity="project" id={id}/>
-      <SecondaryDetails title="Task status and project details">
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Task status</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={taskChart}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="status" tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Bar dataKey="tasks" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Project summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <Summary label="Key" value={project.project_key} />
-            <Summary label="Priority" value={project.priority} />
-            <Summary label="Health" value={project.health} />
-            <Summary label="Start" value={formatDate(project.start_date || null)} />
-            <Summary label="Due" value={formatDate(project.due_date || null)} />
-            <Summary label="Budget" value={formatCurrency(Number(project.budget_amount || 0))} />
-          </CardContent>
-        </Card>
-      </div>
-
-      </SecondaryDetails>
-
-      {project.srm_links ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>SRM Engagement Link</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-4">
-            <LinkedSummary label="Engagement" value={textValue(project.srm_links.engagement?.engagement_number || project.srm_links.engagement?.name)} />
-            <LinkedSummary label="Sales Order" value={textValue(project.srm_links.sales_order?.order_number || project.srm_links.sales_order?.title)} />
-            <LinkedSummary label="Contract" value={textValue(project.srm_links.contract?.contract_number || project.srm_links.contract?.title)} />
-            <LinkedSummary label="Billing Plan" value={textValue(project.srm_links.billing_plan?.name || project.srm_links.billing_plan?.billing_type)} />
-          </CardContent>
-        </Card>
-      ) : null}
-
-      </>}
-    </div>
-  );
-}
-
-function isOverdue(task: PMSTask) {
-  return Boolean(task.due_date && new Date(task.due_date) < new Date() && !["Done", "Completed", "Cancelled"].includes(task.status));
-}
-
-function Metric({ icon: Icon, label, value, tone }: { icon: typeof ListChecks; label: string; value: string | number; tone?: string }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className="rounded-lg bg-primary/10 p-3 text-primary"><Icon className="h-5 w-5" /></div>
-        <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className={`text-2xl font-semibold ${tone || ""}`}>{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return <div className="flex items-center justify-between border-b pb-2 last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-medium">{value}</span></div>;
+    </details>
+  </div>;
 }
 
 function LinkedSummary({ label, value }: { label: string; value: string }) {

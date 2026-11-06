@@ -1,0 +1,42 @@
+[
+  {
+    "panel": "customer",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "panel": "invoices",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "panel": "daily",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "panel": "admin",
+    "width": 1440,
+    "passed": true
+  },
+  {
+    "panel": "customer",
+    "width": 390,
+    "passed": true
+  },
+  {
+    "panel": "invoices",
+    "width": 390,
+    "passed": true
+  },
+  {
+    "panel": "daily",
+    "width": 390,
+    "passed": true
+  },
+  {
+    "panel": "admin",
+    "width": 390,
+    "passed": true
+  }
+]

@@ -83,6 +83,15 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    const currentSession = useAuthStore.getState();
+    const companyRemoved = error.response?.status === 410 &&
+      (error.response.data as {detail?:unknown} | undefined)?.detail === "This company workspace has been removed";
+    // Never sign out a newer/different company session because an old request
+    // finished after navigation. Logout also clears this identity's record cache.
+    if (companyRemoved && currentSession.accessToken && error.config?.headers?.Authorization === `Bearer ${currentSession.accessToken}`) {
+      currentSession.logout();
+      return Promise.reject(error);
+    }
     if (error.response?.status === 409 && error.response.headers?.["x-suite-setup-required"] === "1") {
       window.dispatchEvent(new Event("suite:setup-required"));
     }

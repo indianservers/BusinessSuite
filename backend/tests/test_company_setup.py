@@ -259,3 +259,29 @@ def test_shared_leave_type_readiness_uses_company_ownership(client, db, scope):
     db.add(Company(id=2, name="Other setup company"))
     db.flush()
     assert not next(item for item in module_requirements(db, 2, {"hrms"}) if item["id"] == "leave-types")["ready"]
+
+
+def test_project_setup_requires_live_project_in_company_workspace(db, scope):
+    from datetime import datetime
+    from app.access.setup import module_requirements
+    from app.apps.project_management.models import PMSWorkspace, PMSProject
+
+    def project_ready(company_id):
+        return next(i for i in module_requirements(db, company_id, {"project_management"}) if i["id"] == "project")["ready"]
+
+    workspace = PMSWorkspace(organization_id=1, name="Setup workspace")
+    db.add(workspace)
+    db.flush()
+    project = PMSProject(organization_id=1, workspace_id=workspace.id, name="Setup project", project_key="SETUP")
+    db.add(project)
+    db.flush()
+    assert project_ready(1)
+    assert not project_ready(2)
+    for attribute, value in [("is_archived", True), ("is_template", True), ("is_task_collection", True), ("deleted_at", datetime.now())]:
+        original = getattr(project, attribute)
+        setattr(project, attribute, value)
+        db.flush()
+        assert not project_ready(1)
+        setattr(project, attribute, original)
+        db.flush()
+    assert project_ready(1)

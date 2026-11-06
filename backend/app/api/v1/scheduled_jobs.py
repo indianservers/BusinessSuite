@@ -69,9 +69,23 @@ def cron(response: Response, authorization: str = Header(""), db=Depends(get_db)
     from app.shared.runtime import process_batch
     result["shared_services"] = process_batch(db, limit=10)
     if is_app_enabled("project_management"):
+        from app.apps.project_management.automation_schedules import dispatch_due
+        result["pms_automation"] = dispatch_due(db)
         from app.shared.communication.reminders import run_reminders
         result["communication_reminders"] = run_reminders(db)
     return result
+
+
+@router.get("/internal/pms-automations")
+def pms_automations(response: Response, authorization: str = Header(""), db=Depends(get_db)):
+    if not settings.CRON_SECRET or not secrets.compare_digest(authorization, f"Bearer {settings.CRON_SECRET}"):
+        raise HTTPException(401, "Invalid scheduler credentials")
+    response.headers["Cache-Control"] = "no-store"
+    from app.module_registry import is_app_enabled
+    if not is_app_enabled("project_management"):
+        raise HTTPException(404, "PMS is unavailable")
+    from app.apps.project_management.automation_schedules import dispatch_due
+    return dispatch_due(db)
 
 
 @router.get("/internal/jobs")

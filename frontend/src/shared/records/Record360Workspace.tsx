@@ -11,6 +11,7 @@ import { RecordMessageDraft } from "./RecordWorkspace";
 import "./record-360.css";
 import TaskRecordLinks from "./TaskRecordLinks";
 import { useCursorPages } from "./useCursorPages";
+const RecordTemplatePicker = lazy(()=>import('@/shared/template-design/RecordTemplatePicker'));
 const CustomerAccounting = lazy(()=>import("@/shared/accounting/ConnectedAccounting").then(m=>({default:m.CustomerAccounting})));
 const QuickAction = lazy(()=>import("@/apps/crm/CRMRecordDetailPage").then(module=>({default:module.QuickActionModal})));
 
@@ -53,7 +54,7 @@ export default function Record360Workspace({kind,id,source="crm",actions,details
   return <section className="r360" aria-label={`${kind} 360 view`}>
     {query.isPending&&<p role="status">Loading record 360…</p>}
     {query.isError&&<SectionError error={query.error} retry={()=>void query.refetch()}/>}
-    {record&&<><header className="r360-header"><div><p className="r360-eyebrow">{kind} · 360°</p><h2>{record.name}</h2><p>{record.status||""}</p></div><div className="r360-actions">{actions}{location.pathname!==fullPath&&<Button variant="outline" size="sm" asChild><Link to={fullPath}>Open full record</Link></Button>}<Button variant="outline" size="sm" onClick={refresh}>Refresh</Button></div></header>
+    {record&&<><header className="r360-header"><div><p className="r360-eyebrow">{kind} · 360°</p><h2>{record.name}</h2><p>{record.status||""}</p></div><div className="r360-actions">{(source==='crm'||source==='srm')&&['company','contact','lead','deal'].includes(kind)&&<Suspense fallback={null}><RecordTemplatePicker entity={kind==='company'?'account':kind as 'lead'|'contact'|'deal'} recordId={id} source={source}/></Suspense>}{actions}{location.pathname!==fullPath&&<Button variant="outline" size="sm" asChild><Link to={fullPath}>Open full record</Link></Button>}<Button variant="outline" size="sm" onClick={refresh}>Refresh</Button></div></header>
       <div className="r360-layout"><aside className="r360-summary"><h3>Summary</h3><dl>{Object.entries(record.fields).filter(([,value])=>value!==null&&value!=="").map(([key,value])=><div key={key}><dt>{key.replace(/_/g," ")}</dt><dd>{String(value)}</dd></div>)}</dl>
         {record.customer&&kind!=="company"&&<section><h3>Customer</h3><Link to={`/${module}/customers/${record.customer.id}/360`}>{record.customer.name}</Link></section>}
         {record.project&&<section><h3>Project</h3><Link to={`/pms/projects/${record.project.id}`}>{record.project.name}</Link></section>}

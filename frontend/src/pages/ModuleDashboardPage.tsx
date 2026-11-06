@@ -1,4 +1,5 @@
 import PremiumLauncher from "@/components/suite/PremiumLauncher";
+import CompanySampleData from "@/shared/data-transfer/CompanySampleData";
 import { useEffect } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -81,5 +82,6 @@ export default function ModuleDashboardPage() {
       {recent.map(path => <Link key={path} to={path}>{suitePageLabel(path)}</Link>)}
       <button onClick={() => updatePreferences(scope, { recent: [] })}>Clear recent pages</button>
     </div></details>}
+  <CompanySampleData/>
   </PremiumLauncher>;
 }

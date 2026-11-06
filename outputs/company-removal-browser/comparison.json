@@ -1,0 +1,23 @@
+{
+  "other_databases_checked": 11,
+  "changed_tables": [
+    {
+      "database": "legacy",
+      "table": "security_rate_buckets",
+      "before": {
+        "count": 1,
+        "checksum": "3a00db84959b3139e13d712d1596dc70"
+      },
+      "after": {
+        "count": 2,
+        "checksum": "aebad96dfc35d58f914a77db2ca92b64"
+      }
+    }
+  ],
+  "databases_removed": {
+    "suite_c_9fdfdc0273d34927881f3f1b6c20f3ae": 6696736
+  },
+  "roles_removed": [
+    "suite_r_9fdfdc0273d34927881f3f1b6c20f3ae"
+  ]
+}

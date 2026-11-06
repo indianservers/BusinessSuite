@@ -107,13 +107,15 @@ def ensure_database(signup_id):
             # Serialize placement accounting; capacity is an owner-controlled
             # limit, not a promise that a server can handle a fixed tenant count.
             servers=registry.query(S).filter_by(active=True).order_by(S.id).with_for_update().all()
-            server=next((s for s in servers if registry.query(D).filter_by(server_id=s.id).count()<s.max_databases),None)
+            server=next((s for s in servers if registry.query(D).filter(D.server_id==s.id,D.status!="removed").count()<s.max_databases),None)
             if not server:raise HTTPException(503,"No company database server has free placement capacity")
             ident=str(uuid.uuid4())
             row=D(signup_id=signup_id,tenant_uuid=ident,workspace_code=f"company-{signup_id}",company_id=1_000_000_000+signup_id,
                 server_id=server.id,database_name="suite_c_"+ident.replace("-",""),runtime_role="suite_r_"+ident.replace("-",""),
                 encrypted_password=cipher().encrypt(secrets.token_urlsafe(36).encode()).decode(),status="provisioning")
             registry.add(row);registry.commit()
+        if row.status in {"removed", "deleting"}:
+            raise HTTPException(409,"A removed company database cannot be provisioned again")
         server=registry.get(S,row.server_id)
         if row.status=="ready":return row.tenant_uuid
         try:

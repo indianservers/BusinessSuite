@@ -13,6 +13,7 @@ import {
 import { useCompanyBranding } from "@/features/access/useCompanyBranding";
 import ModuleSwitcher from "./ModuleSwitcher";
 import ModuleNavigation from "./ModuleNavigation";
+import SetupReadiness from "@/components/suite/SetupReadiness";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { assetUrl, cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -185,6 +186,7 @@ export default function Sidebar({
         aria-label="Module navigation"
         className="min-h-0 flex-1 overflow-y-auto py-3"
       >
+        <SetupReadiness navigation collapsed={collapsed} onNavigate={onClose} />
         <ModuleNavigation collapsed={collapsed} onNavigate={onClose} />
       <Link to="/company-admin" className={cn("nav-link nav-link-inactive mx-2 mt-3 flex items-center gap-2", collapsed && "justify-center")} title="Company Admin" onClick={onClose}><SettingsIcon className="h-4 w-4" />{!collapsed && "Company Admin"}</Link>
       </nav>

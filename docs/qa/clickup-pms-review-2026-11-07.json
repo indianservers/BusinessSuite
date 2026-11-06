@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-07",
+  "scope": "Read-only inspection of the user's authenticated ClickUp workspace and local PMS implementation",
+  "coverage_complete": false,
+  "observed": [
+    {"surface": "VAT List", "result": "Inspected grouped statuses, custom Tax Period field, assignee controls, search, filter, group, columns, view navigation and task links."},
+    {"surface": "Task detail", "result": "Inspected status, assignees, start/due dates, priority, timer, tags, description editor, fields, subtask/checklist/file entry points, dependency/relationship menu and discussion/activity tabs. No writes performed."},
+    {"surface": "VAT Board", "result": "Navigation attempted; snapshot retained list content. Board rendering not verified."},
+    {"surface": "VAT Calendar", "result": "Verified month grid, month navigation, Today, period selector, assignee/search/filter controls and overdue/unscheduled counts."},
+    {"surface": "Add View", "result": "Inspected catalog including list, Gantt, calendar, doc, board, form, artifact, dashboard, gallery, table, whiteboard, timeline, activity, workload, mind map, team, map, collection and embeds. Catalog visibility does not establish functionality."},
+    {"surface": "VAT Dashboard", "result": "Blocked by account dashboard trial limit and upgrade modal. No upgrade attempted."},
+    {"surface": "Teams Analytics", "result": "Inspected team/people/org-chart navigation, online/offline activity, date navigation, status/team/account/manager filtering and work focus display."}
+  ],
+  "implemented": {
+    "feature": "PMS workspace attention queues",
+    "behavior": "All work, overdue, due today, blocked, unassigned and unscheduled controls with contextual counts, icons, selected states and mobile layout. Existing project/assignee/status/priority/type/search filters continue to apply. Focus saves with existing device-scoped workspace view. Outstanding queues exclude terminal/cancelled tasks. Local date changes refresh without reload.",
+    "preservation": "Existing grid, custom fields, bulk actions, assignment drag/drop, workflow checks, task cards and team views retained.",
+    "validation": ["frontend TypeScript --noEmit passed", "node frontend/scripts/test-workspace-focus.cjs passed", "node qa/workspace_focus_browser.cjs passed at 1440px and 390px with mocked API data: list/board filtering, saved view restoration, clear filters and empty results"],
+    "deployment": "Local source only; production behavior and production data not tested."
+  },
+  "remaining_review": ["Verify Board rendering", "Planner", "Inbox", "Channels and discussions", "Docs and artifacts", "Workspace/list settings", "Team membership and organization screens", "Individual advanced view functionality and plan availability", "Broader PMS workflow acceptance against the user's own configured projects"]
+}

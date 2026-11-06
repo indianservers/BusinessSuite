@@ -1,8 +1,9 @@
+import { useParams } from "react-router-dom";
 import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
-import { Upload, FolderPlus, Download } from "lucide-react";
+import { Upload, FolderPlus, Download, Search, LayoutGrid, Folder, Files, HardDrive } from "lucide-react";
 import { api } from "@/services/api";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import type { PMSFileAsset, PMSProject } from "../types";
 
 type Folder = { id: number; name: string };
 export default function FilesPage() {
+  const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [projectId, setProjectId] = useState("");
   const [files, setFiles] = useState<PMSFileAsset[]>([]);
@@ -21,17 +23,24 @@ export default function FilesPage() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
+  const [fileQuery, setFileQuery] = useState("");
+  const [folderFilter, setFolderFilter] = useState("all");
+  const [fileView, setFileView] = useState<"library" | "folders">("library");
+  const fileInput = useRef<HTMLInputElement>(null);
   const projectRef = useRef(projectId);
   projectRef.current = projectId;
   useEffect(() => {
-    projectsAPI
-      .list()
-      .then((items) => {
-        setProjects(items);
-        setProjectId(String(items[0]?.id || ""));
-      })
-      .catch(() => setError("Unable to load projects."));
-  }, []);
+    let active = true;
+    setProjectId(routeProjectId || ""); setFolder(""); setFileQuery(""); setFolderFilter("all");
+    void projectsAPI.list().then(async items => {
+      const selected = routeProjectId && !items.some(project => String(project.id) === routeProjectId) ? await projectsAPI.get(Number(routeProjectId)) : null;
+      if (!active) return;
+      setProjects(selected ? [selected, ...items] : items);
+      setProjectId(routeProjectId || String(items[0]?.id || ""));
+    }).catch(() => { if (active) setError("Unable to load projects."); });
+    return () => { active = false; };
+  }, [routeProjectId]);
+
   async function load(id = projectId) {
     if (!id) return;
     const [assets, directories] = await Promise.all([
@@ -53,7 +62,7 @@ export default function FilesPage() {
   }, [projectId]);
   usePageRefresh(() => load());
   const canEdit = !!projects.find((p) => String(p.id) === projectId)
-    ?.can_upload_files;
+    ?.can_upload_files && (!routeProjectId || projectId === routeProjectId);
   async function upload(selected: File[]) {
     if (!selected.length || !projectId || busy || !canEdit) return;
     setBusy(true);
@@ -101,6 +110,34 @@ export default function FilesPage() {
       setError("Unable to download this file.");
     }
   }
+  async function moveFile(file: PMSFileAsset, folderId: string) {
+    if (!canEdit || busy || String(file.visibility) === "Work Evidence") return;
+    setBusy(true); setError("");
+    try {
+      await api.patch(`/project-management/files/${file.id}`, { folder_id: folderId === "root" ? null : Number(folderId), previous_folder_id: file.folder_id || null });
+      await load(); setNotice("File moved to folder");
+    } catch { setError("Unable to move this file. Please try again."); }
+    finally { setBusy(false); }
+  }
+  async function createFolder() {
+    if (!folder.trim() || !canEdit || busy) return;
+    setBusy(true); setError("");
+    try { await api.post("/project-management/file-folders", { project_id: Number(projectId), name: folder.trim() }); setFolder(""); await load(); setNotice("Folder created"); }
+    catch { setError("Unable to create the folder."); }
+    finally { setBusy(false); }
+  }
+  const visibleFiles = files.filter(file => file.original_name.toLowerCase().includes(fileQuery.toLowerCase()) && (folderFilter === "all" || String(file.folder_id || "root") === folderFilter));
+  const totalBytes = files.reduce((sum, file) => sum + file.size_bytes, 0);
+  if (routeProjectId) return <div className="pd-files space-y-4">
+    <div className="pd-file-stats"><div><Files /><span><strong>{files.length}</strong><small>Loaded files</small></span></div><div><Folder /><span><strong>{folders.length}</strong><small>Project folders</small></span></div><div><HardDrive /><span><strong>{totalBytes >= 1048576 ? `${(totalBytes / 1048576).toFixed(1)} MB` : `${Math.ceil(totalBytes / 1024)} KB`}</strong><small>Loaded file size</small></span></div></div>
+    {error && <p role="alert" className="move-error">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
+    <div className={`pd-file-drop ${over ? "is-over" : ""}`} onDragOver={e => { if (canEdit && e.dataTransfer.types.includes("Files")) { e.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)} onDrop={e => { e.preventDefault(); setOver(false); void upload(Array.from(e.dataTransfer.files)); }}><Upload /><div><p>{busy ? "Saving your files…" : "Drop project files here"}</p><small>{canEdit ? "Designs, documents, and deliverables — organized in one place." : "You have read-only access to this project’s files."}</small></div><input ref={fileInput} className="sr-only" type="file" multiple aria-label="Upload project files" disabled={busy || !canEdit} onChange={e => { void upload(Array.from(e.target.files || [])); e.target.value = ""; }} /><Button disabled={busy || !canEdit} onClick={() => fileInput.current?.click()}><Upload size={15} />Upload files</Button></div>
+    <div className="pd-file-toolbar"><label className="pd-file-search"><Search size={17} /><input aria-label="Search project files" value={fileQuery} onChange={e => setFileQuery(e.target.value)} placeholder="Search files by name…" /></label><NativeSelect aria-label="Filter files by folder" value={folderFilter} onChange={e => setFolderFilter(e.target.value)}><option value="all">All folders</option><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect><NativeSelect aria-label="Upload folder" disabled={busy || !canEdit} value={target} onChange={e => setTarget(e.target.value)}><option value="">Upload to: Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>Upload to: {f.name}</option>)}</NativeSelect><div className="pd-file-views" aria-label="File layout"><button aria-pressed={fileView === "library"} onClick={() => setFileView("library")}><LayoutGrid size={15} />Library</button><button aria-pressed={fileView === "folders"} onClick={() => setFileView("folders")}><Folder size={15} />Folders</button></div></div>
+    {fileView === "library" ? <div className="pd-file-grid">{visibleFiles.map(file => <article className="pd-file-card" key={file.id}><div className="pd-file-preview"><SuiteFileIcon name={file.original_name} /></div><h3>{file.original_name}</h3><small>{Math.max(1, Math.ceil(file.size_bytes / 1024))} KB · {file.visibility} · v{file.version_number}</small><div className="pd-file-card-footer"><NativeSelect aria-label={`Move ${file.original_name} to folder`} disabled={busy || !canEdit || String(file.visibility) === "Work Evidence"} value={file.folder_id || "root"} onChange={e => void moveFile(file, e.target.value)}><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect><button aria-label={`Download ${file.original_name}`} disabled={busy} onClick={() => void download(file)}><Download size={17} /></button></div></article>)}</div> : <MoveBoard label="Project file folders" reorder={false} disabled={busy || !canEdit} groups={[{ id: "root", label: "Unfiled" }, ...folders.map(f => ({ id: String(f.id), label: f.name }))]} items={visibleFiles.map(file => ({ id: file.id, label: file.original_name, group: file.folder_id ? String(file.folder_id) : "root", disabled: String(file.visibility) === "Work Evidence", content: <div className="flex justify-between text-xs"><span>{Math.ceil(file.size_bytes / 1024)} KB · {file.visibility}</span><button aria-label={`Download ${file.original_name}`} onClick={() => void download(file)}><Download size={15} /></button></div> }))} onMove={async ({ item, group }) => { const file = files.find(f => f.id === item.id); if (file) await moveFile(file, group); }} />}
+    {!visibleFiles.length && <p className="pd-files-empty">{files.length ? "No files match your search. Try another name or folder." : "No files yet. Upload the first project document to get started."}</p>}
+    {canEdit && <form className="pd-folder-create" onSubmit={e => { e.preventDefault(); void createFolder(); }}><FolderPlus size={17} /><input aria-label="Folder name" placeholder="New folder name" value={folder} onChange={e => setFolder(e.target.value)} maxLength={120} /><Button variant="outline" disabled={!folder.trim() || busy}>Create folder</Button></form>}
+    <p className="text-xs text-muted-foreground">Showing up to 100 files available to you in this project.</p>
+  </div>;
   return (
     <div className="space-y-5">
       <div>
@@ -116,7 +153,7 @@ export default function FilesPage() {
             className="input"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
-            disabled={busy}
+            disabled={busy || !!routeProjectId}
           >
             {projects.map((p) => (
               <option key={p.id} value={p.id}>

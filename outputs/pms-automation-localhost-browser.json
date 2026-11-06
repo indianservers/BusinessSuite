@@ -1,0 +1,10 @@
+{
+  "site": "http://localhost:5198",
+  "checks": [
+    "Create nested AND/OR rule in full localhost UI",
+    "Reload and edit preserves nested condition tree",
+    "Real task events execute matching rule and exclude both nonmatches",
+    "Mobile layout and browser runtime"
+  ],
+  "passed": true
+}

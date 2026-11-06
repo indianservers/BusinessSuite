@@ -7,7 +7,7 @@ import hashlib
 import json
 from pydantic import BaseModel, ConfigDict, Field
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.apps.customization.models import (
@@ -64,6 +64,7 @@ from app.apps.customization.services.validation import (
 )
 from app.core.deps import RequirePermission, get_db
 from app.models.user import User
+from app.apps.customization.services import records as runtime
 
 
 router = APIRouter(tags=["Customization Studio"])
@@ -175,10 +176,20 @@ def _validate_field_presentation(data):
         raise HTTPException(422,"Choice fields require options")
 
 
+def _validate_lookup(db, data):
+    if data.field_type == 'lookup':
+        if not data.lookup_module:
+            raise HTTPException(422, 'Lookup fields require a target custom module')
+        runtime.module(db, data.lookup_module)
+    if data.field_type in {'formula', 'rollup', 'auto_number'} and data.required:
+        raise HTTPException(422, 'Computed fields cannot require user input')
+
+
 @customization_router.post("/fields", status_code=201)
 def create_field(data: FieldPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_fields_manage", "customization_manage"))):
     validate_api_name(data.field_api_name, "Field API name")
     _validate_field_presentation(data)
+    _validate_lookup(db, data)
     validate_field_metadata(data.field_type, data.formula_expression, data.rollup_config_json)
     if db.query(CustomizationField).filter(CustomizationField.module_name == data.module_name, CustomizationField.field_api_name == data.field_api_name).first():
         raise HTTPException(status_code=400, detail="Field API name already exists for module")
@@ -212,6 +223,9 @@ def update_field(field_id: int, data: FieldPayload, db: Session = Depends(get_db
     if not item:
         raise HTTPException(status_code=404, detail="Field not found")
     _validate_field_presentation(data)
+    _validate_lookup(db, data)
+    if item.lookup_module != data.lookup_module:
+        raise HTTPException(409, 'Lookup target cannot change; create a new field')
     validate_field_metadata(data.field_type, data.formula_expression, data.rollup_config_json)
     if (item.module_name,item.field_api_name,item.field_type)!=(data.module_name,data.field_api_name,data.field_type):
         raise HTTPException(409,"Field module, identifier and type cannot change; existing values are preserved")
@@ -380,6 +394,9 @@ def _crud_collection(model, payload_model, permission: str, entity_type: str):
         if entity_type == "formulas":
             validate_formula_expression(payload["expression"])
         if entity_type == "rollups":
+            lookup = payload.pop('lookup_field', None)
+            if lookup:
+                payload['filter_json'] = {**(payload.get('filter_json') or {}), 'lookup_field': lookup}
             validate_rollup_config(
                 {
                     "aggregate_function": payload["aggregate_function"],
@@ -445,11 +462,14 @@ def execute_button(button_id: int, data: ButtonExecutePayload, db: Session = Dep
     button = db.query(CustomizationButton).filter(CustomizationButton.id == button_id, CustomizationButton.active == True).first()
     if not button:
         raise HTTPException(status_code=404, detail="Button not found")
-    if button.action_type not in SAFE_ACTION_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported button action type")
-    _audit(db, current_user, "button", button.id, "executed", after={"record_id": data.record_id, "payload": data.payload})
+    from app.apps.customization.services.actions import execute
+    if button.action_type == 'webhook':
+        result = execute(db, current_user, button, data)
+    else:
+        with db.begin_nested():
+            result = execute(db, current_user, button, data)
     db.commit()
-    return {"status": "executed", "action_type": button.action_type, "record_id": data.record_id}
+    return result
 
 
 @customization_router.get("/picklists")
@@ -485,76 +505,93 @@ def audit_logs(db: Session = Depends(get_db), current_user: User = Depends(Requi
 
 
 @dynamic_router.get("/{module_api_name}")
-def list_dynamic_records(module_api_name: str, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_view", "customization_manage"))):
-    _require_module(db, module_api_name)
-    items = db.query(CustomizationRecord).filter(CustomizationRecord.module_api_name == module_api_name, CustomizationRecord.deleted_at == None).order_by(CustomizationRecord.created_at.desc()).all()
-    return {"items": [_serialize(item) for item in items], "total": len(items)}
+def list_dynamic_records(module_api_name: str, search: str | None = Query(None, max_length=200), page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_view", "customization_manage"))):
+    query = runtime.query_records(db, module_api_name, search)
+    total = query.count()
+    items = query.order_by(CustomizationRecord.id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    reader = runtime.Reader(db)
+    return {"items": [reader.serialize(item) for item in items], "total": total, 'page': page, 'per_page': per_page}
+
+
+@dynamic_router.get("/{module_api_name}/{record_id}/related/{related_list_id}")
+def related_custom_records(module_api_name: str, record_id: int, related_list_id: int, page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission('customization_view', 'customization_manage'))):
+    runtime.record(db, module_api_name, record_id)
+    relation = db.query(CustomizationRelatedList).filter_by(id=related_list_id, module_name=module_api_name, active=True).first()
+    if not relation:
+        raise HTTPException(404, 'Related list not found')
+    field = db.query(CustomizationField).filter_by(module_name=relation.related_module_name, field_api_name=relation.lookup_field, field_type='lookup', lookup_module=module_api_name).first()
+    if not field:
+        raise HTTPException(422, 'Related list must reference a lookup to this module')
+    query = runtime.query_records(db, relation.related_module_name).filter(CustomizationRecord.values_json[field.field_api_name].as_integer() == record_id)
+    total = query.count()
+    rows = query.order_by(CustomizationRecord.id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    reader = runtime.Reader(db)
+    return {'items': [reader.serialize(row) for row in rows], 'total': total, 'page': page, 'per_page': per_page}
 
 
 @dynamic_router.post("/{module_api_name}", status_code=201)
 def create_dynamic_record(module_api_name: str, data: DynamicRecordPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_manage"))):
-    _require_module(db, module_api_name)
-    validate_record_payload(db, module_api_name, data.values)
-    item = CustomizationRecord(module_api_name=module_api_name, owner_user_id=data.owner_user_id or current_user.id, values_json=data.values, created_by=current_user.id)
-    db.add(item)
-    db.flush()
-    for field in db.query(CustomizationField).filter(CustomizationField.module_name == module_api_name).all():
-        if field.field_api_name in data.values:
-            db.add(CustomizationRecordValue(record_id=item.id, field_id=field.id, value_json=data.values[field.field_api_name], value_text=str(data.values[field.field_api_name]) if data.values[field.field_api_name] is not None else None))
-    _audit(db, current_user, "dynamic_record", item.id, "created", after={"module": module_api_name, "values": data.values})
+    runtime.module(db, module_api_name, lock=True)
+    with db.begin_nested():
+        values = runtime.prepare(db, module_api_name, data.values)
+        _validate_owner(db, data.owner_user_id)
+        validate_record_payload(db, module_api_name, values, run_rules=False)
+        item = CustomizationRecord(module_api_name=module_api_name, owner_user_id=data.owner_user_id or current_user.id, values_json=values, created_by=current_user.id)
+        db.add(item)
+        db.flush()
+        # Stable identifiers reuse the existing primary key, not a racy counter.
+        for field in db.query(CustomizationField).filter_by(module_name=module_api_name, field_type='auto_number').all():
+            values[field.field_api_name] = f'{module_api_name.upper()}-{item.id:06d}'
+        item.values_json = dict(values)
+        runtime.persist_values(db, item)
+        result = runtime.Reader(db).serialize(item)
+        validate_record_payload(db, module_api_name, result['values_json'], item.id)
+        _audit(db, current_user, "dynamic_record", item.id, "created", after={"module": module_api_name, "values": result['values_json']})
     db.commit()
     db.refresh(item)
-    return _serialize(item)
+    return result
 
 
 @dynamic_router.get("/{module_api_name}/{record_id}")
 def get_dynamic_record(module_api_name: str, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_view", "customization_manage"))):
-    _require_module(db, module_api_name)
-    item = db.query(CustomizationRecord).filter(CustomizationRecord.module_api_name == module_api_name, CustomizationRecord.id == record_id, CustomizationRecord.deleted_at == None).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Custom record not found")
-    return _serialize(item)
+    return runtime.Reader(db).serialize(runtime.record(db, module_api_name, record_id))
 
 
 @dynamic_router.put("/{module_api_name}/{record_id}")
 def update_dynamic_record(module_api_name: str, record_id: int, data: DynamicRecordPayload, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_manage"))):
-    _require_module(db, module_api_name)
-    item = db.query(CustomizationRecord).filter(CustomizationRecord.module_api_name == module_api_name, CustomizationRecord.id == record_id, CustomizationRecord.deleted_at == None).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Custom record not found")
-    merged_values={**(item.values_json or {}),**data.values}
-    validate_record_payload(db, module_api_name, merged_values, record_id)
-    before = _serialize(item)
-    item.values_json = merged_values
-    for field in db.query(CustomizationField).filter_by(module_name=module_api_name).all():
-        if field.field_api_name not in merged_values:
-            continue
-        value=merged_values[field.field_api_name]
-        stored=db.query(CustomizationRecordValue).filter_by(record_id=item.id,field_id=field.id).first()
-        if stored is None:
-            stored=CustomizationRecordValue(record_id=item.id,field_id=field.id)
-            db.add(stored)
-        stored.value_json=value
-        stored.value_text=str(value) if value is not None else None
-    if data.owner_user_id is not None:
-        item.owner_user_id = data.owner_user_id
-    item.updated_by = current_user.id
-    _audit(db, current_user, "dynamic_record", item.id, "updated", before=before, after={"module": module_api_name, "values": data.values})
+    runtime.module(db, module_api_name, lock=True)
+    item = runtime.record(db, module_api_name, record_id, lock=True)
+    with db.begin_nested():
+        merged_values = runtime.prepare(db, module_api_name, data.values, item.values_json)
+        _validate_owner(db, data.owner_user_id)
+        validate_record_payload(db, module_api_name, merged_values, record_id, run_rules=False)
+        before = _serialize(item)
+        item.values_json = merged_values
+        runtime.persist_values(db, item)
+        if data.owner_user_id is not None:
+            item.owner_user_id = data.owner_user_id
+        item.updated_by = current_user.id
+        result = runtime.Reader(db).serialize(item)
+        validate_record_payload(db, module_api_name, result['values_json'], record_id)
+        _audit(db, current_user, "dynamic_record", item.id, "updated", before=before, after={"module": module_api_name, "values": result['values_json']})
     db.commit()
-    return _serialize(item)
+    return result
 
 
 @dynamic_router.delete("/{module_api_name}/{record_id}", status_code=204)
 def delete_dynamic_record(module_api_name: str, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_manage"))):
-    _require_module(db, module_api_name)
-    item = db.query(CustomizationRecord).filter(CustomizationRecord.module_api_name == module_api_name, CustomizationRecord.id == record_id, CustomizationRecord.deleted_at == None).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Custom record not found")
+    item = runtime.record(db, module_api_name, record_id, lock=True)
+    runtime.prevent_linked_delete(db, item)
     before = _serialize(item)
     item.deleted_at = datetime.now(timezone.utc)
     _audit(db, current_user, "dynamic_record", item.id, "deleted", before=before)
     db.commit()
     return None
+
+
+def _validate_owner(db, identifier):
+    if identifier is not None and not db.query(User).filter_by(id=identifier, is_active=True).first():
+        raise HTTPException(422, 'Choose an active owner in your company')
 
 
 router.include_router(customization_router)

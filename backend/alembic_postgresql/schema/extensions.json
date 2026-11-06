@@ -3929,16 +3929,21 @@
   "accounting_sync_connections": [
     "account_id",
     "active_token",
+    "auto_sync",
     "branch_id",
     "bridge_secret",
+    "consecutive_failures",
     "created_by",
     "enabled",
     "id",
+    "interval_minutes",
     "last_success_at",
     "lease_until",
+    "next_sync_at",
     "organization_id",
     "provider",
     "sandbox",
+    "schedule_error",
     "source_connection_id"
   ],
   "accounting_sync_records": [
@@ -3959,5 +3964,31 @@
     "id",
     "started_at",
     "status"
+  ],
+  "accounting_sync_customer_links": [
+    "branch_id",
+    "connection_id",
+    "created_by",
+    "crm_company_id",
+    "external_id",
+    "id",
+    "organization_id"
+  ],
+  "crm_visual_templates": [
+    "category",
+    "created_at",
+    "created_by",
+    "design",
+    "document_type",
+    "email_template_id",
+    "folder",
+    "id",
+    "module",
+    "name",
+    "organization_id",
+    "status",
+    "subject",
+    "updated_at",
+    "version"
   ]
 }

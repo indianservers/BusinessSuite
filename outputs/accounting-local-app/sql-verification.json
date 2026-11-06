@@ -1,0 +1,60 @@
+{
+  "database": "business_suite_accounting_local_69918736_test",
+  "counts": {
+    "accounting_sync_connections": 3,
+    "accounting_sync_customer_links": 3,
+    "accounting_sync_records": 10,
+    "accounting_sync_runs": 17,
+    "srm_invoices": 0,
+    "srm_receipts": 0,
+    "fam_vouchers": 0
+  },
+  "present_records_by_provider": [
+    {
+      "provider": "quickbooks",
+      "entity": "customers",
+      "records": 1
+    },
+    {
+      "provider": "quickbooks",
+      "entity": "invoices",
+      "records": 1
+    },
+    {
+      "provider": "quickbooks",
+      "entity": "payments",
+      "records": 1
+    },
+    {
+      "provider": "tally",
+      "entity": "customers",
+      "records": 1
+    },
+    {
+      "provider": "tally",
+      "entity": "invoices",
+      "records": 1
+    },
+    {
+      "provider": "tally",
+      "entity": "payments",
+      "records": 1
+    },
+    {
+      "provider": "zoho",
+      "entity": "customers",
+      "records": 1
+    },
+    {
+      "provider": "zoho",
+      "entity": "invoices",
+      "records": 2
+    },
+    {
+      "provider": "zoho",
+      "entity": "payments",
+      "records": 1
+    }
+  ],
+  "live_accounts_connected": 0
+}

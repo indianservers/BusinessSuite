@@ -28,7 +28,7 @@ PUBLIC_CAPABILITIES = (
     r"/public/webforms/[^/]+(?:/submit)?",
     r"/public/customer-preferences/[^/]+",
     r"/access/services/webhooks/[^/]+/receive",
-    r"/internal/(?:cron|intern-correction-reminders|email-dispatch|accounting-sync)",
+    r"/internal/(?:cron|intern-correction-reminders|email-dispatch|accounting-sync|pms-automations)",
     r"/(?:customer|partner)-portal(?:/.*)?",
     r"/interns-hub/(?:application-options|application-uploads|applications(?:/(?:status|corrections|receipt))?|signup/(?:session|providers|firebase|login))",
     r"/background-verification/webhooks/[^/]+",

@@ -101,6 +101,7 @@ def key_for_source(source, default=None):
     if source in {
         "app.shared.payment_requests",
         "app.shared.record_360",
+        "app.shared.record_templates",
         "app.access.api",
         "app.access.control",
         "app.shared.data_transfer", "app.shared.api", "app.shared.catalog", "app.shared.follow_ups", "app.shared.communication.gateway", "app.enterprise.api", "app.ai_agents.security_api",
@@ -163,6 +164,10 @@ def register_routes(router, source, default=None):
 
 
 def request_module(request):
+    if request.url.path.startswith("/api/v1/imports/sample-data/"):
+        # Company administration; the endpoint checks approval, membership and
+        # the current application grants before creating any sample records.
+        return None
     if request.url.path.startswith("/api/v1/scheduling/"):
         source = request.url.path.split("/")[4]
         return {"crm": "crm", "srm": "srm", "inventory": "srm", "hrms": "hrms", "fam": "fam"}.get(source)

@@ -1,0 +1,37 @@
+{
+  "local_only": true,
+  "databases": [
+    {
+      "purpose": "application",
+      "host": "127.0.0.1",
+      "port": 5432,
+      "database": "business_suite",
+      "revision": [
+        "pg_20261107_087_crm_templates"
+      ],
+      "accounting_tables": [
+        "accounting_sync_connections",
+        "accounting_sync_customer_links",
+        "accounting_sync_records",
+        "accounting_sync_runs"
+      ],
+      "connection_count": 0
+    },
+    {
+      "purpose": "mock_acceptance",
+      "host": "127.0.0.1",
+      "port": 5432,
+      "database": "business_suite_accounting_local_69918736_test",
+      "revision": [
+        "pg_20261107_087_crm_templates"
+      ],
+      "accounting_tables": [
+        "accounting_sync_connections",
+        "accounting_sync_customer_links",
+        "accounting_sync_records",
+        "accounting_sync_runs"
+      ],
+      "connection_count": 3
+    }
+  ]
+}

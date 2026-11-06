@@ -465,6 +465,8 @@ CRM_ENTITY_PERMISSION_KEYS = {
     "deals": "deals",
     "activities": "activities",
     "tasks": "activities",
+    "meetings": "activities",
+    "calls": "activities",
     "pipelines": "pipeline",
     "pipeline-stages": "pipeline",
     "sales-targets": "targets",
@@ -8722,6 +8724,9 @@ router.include_router(deal_grid_router)
 from ..file_workspace import router as file_workspace_router
 router.include_router(file_workspace_router)
 
+from ..engagements import router as engagements_router
+router.include_router(engagements_router)
+
 @router.post("/pipelines/{pipeline_id}/stages/reorder")
 def reorder_pipeline_stages(pipeline_id: int, payload: OrderInput, db: Session = Depends(get_db), user: User = Depends(RequirePermission(*CRM_ANY_PERMISSIONS))):
     _assert_entity_permission("pipelines", user, "manage")
@@ -8772,6 +8777,9 @@ def list_records(
     if resource.model is CRMTask:
         from ..task_filters import apply_task_queue
         query = apply_task_queue(query, request.query_params.get("task_queue", "all"), request.query_params.get("timezone", "UTC"))
+    if resource.model in {CRMMeeting, CRMCallLog}:
+        from ..engagements import apply_engagement_view
+        query = apply_engagement_view(query, resource.model, request.query_params.get("activity_view", "all"), request.query_params.get("timezone", "UTC"))
     query = _apply_custom_field_filters(db, query, resource, request, organization_id)
     query = _apply_search(query, resource, search or q)
     total = query.count()
@@ -8941,6 +8949,9 @@ def create_record(
         for transient_key in ("syncToCalendar", "sync_to_calendar", "provider"):
             validation_payload.pop(transient_key, None)
     data = _validate_and_build(resource, validation_payload, partial=False)
+    if resource.model in {CRMMeeting, CRMCallLog}:
+        from ..engagements import validate_engagement
+        validate_engagement(resource.model, data)
     if resource.model is CRMLead:
         from app.apps.crm.lead_management import guard_existing_api
         guard_existing_api(db, current_user, None, data)
@@ -9123,6 +9134,9 @@ def update_record(
         for transient_key in ("syncToCalendar", "sync_to_calendar", "provider"):
             validation_payload.pop(transient_key, None)
     data = _validate_and_build(resource, validation_payload, partial=True)
+    if resource.model in {CRMMeeting, CRMCallLog}:
+        from ..engagements import validate_engagement
+        validate_engagement(resource.model, data, record)
     if master_capture is not None and any(key in data for key in ("phone", "phone_country_code", "email")):
         from app.shared.master_data import duplicate_guard
         duplicate_guard(db, current_user, "crm", data.get("phone", record.phone), data.get("phone_country_code", record.phone_country_code), data.get("email", record.email), master_capture["confirmed"], master_capture["reason"], "contact" if resource.model is CRMContact else "company", record.id)

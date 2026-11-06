@@ -1,5 +1,5 @@
 import { useInitialLoading } from "@/hooks/use-initial-loading";
-import { defaultText, defaultNumber, defaultId, defaultOwner, defaultDateAfter, formDefaults } from "@/lib/form-defaults";
+import { defaultText, defaultNumber, defaultId, defaultOwner, defaultDateAfter, formDefaults, leadSourceOptions } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
@@ -1027,7 +1027,7 @@ function kindlessEntity(entity: string) {
 
 export default function CRMWorkspacePage({ kind }: { kind: CRMPageKind }) {
   if (kind === "files") return <CrmFilesPage />;
-  if (kind === "pipeline") return window.location.pathname.endsWith("/templates") ? <PipelinePage /> : <EnterpriseDealsPage initialView="kanban" />;
+  if (kind === "pipeline") return /\/(?:pipeline-)?templates$/.test(window.location.pathname) ? <PipelinePage /> : <EnterpriseDealsPage initialView="kanban" />;
   if (kind === "pipelineSettings") return <PipelineSettingsPage />;
   if (kind === "leadScoring") return <LeadScoringSettingsPage />;
   if (kind === "calendar") return <CRMCalendarPage />;
@@ -1959,7 +1959,7 @@ function PipelinePage() {
   const [transitioningDealId, setTransitioningDealId] = useState<number | null>(null);
   const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   const [stageReview,setStageReview]=useState<{id:number;stage:number}>();
-  const isTemplateLibrary = location.pathname.includes("/crm/templates");
+  const isTemplateLibrary = location.pathname.includes("/crm/templates") || location.pathname.includes("/crm/pipeline-templates");
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const activeDeal = deals.find((deal) => deal.id === activeId);
   const visibleDeals = deals.filter((deal) => [deal.name, deal.company, deal.owner].join(" ").toLowerCase().includes(filter.toLowerCase()));
@@ -3309,7 +3309,7 @@ function CRMLeadsPage() {
   const leadCountLabel = view === "all" && !activeFilters && !debouncedSearch ? `${state.total} leads` : `${rows.length} shown`;
   const statusOptions = useMemo(() => leadOptionValues(state.rows, "status", ["New", "Contacted", "Qualified", "Converted", "Lost"]), [state.rows]);
   const ratingOptions = useMemo(() => leadOptionValues(state.rows, "rating", ["Hot", "Warm", "Cold"]), [state.rows]);
-  const sourceOptions = useMemo(() => leadOptionValues(state.rows, "source", ["Website", "Referral", "Phone Call", "Email Campaign", "Event", "Other"]), [state.rows]);
+  const sourceOptions = useMemo(() => leadOptionValues(state.rows, "source", leadSourceOptions()), [state.rows]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -4002,7 +4002,7 @@ export function CRMContactsPage() {
   const contactCountLabel = view === "all" && !activeFilters && !debouncedSearch ? `${state.total} contacts` : `${rows.length} shown`;
   const stageOptions = useMemo(() => contactOptionValues(state.rows, "stage", ["Lead", "Subscriber", "Customer", "Evangelist", "Inactive"]), [state.rows]);
   const statusOptions = useMemo(() => contactOptionValues(state.rows, "status", ["Active", "Inactive", "Do Not Contact"]), [state.rows]);
-  const sourceOptions = useMemo(() => contactOptionValues(state.rows, "source", ["Website", "Referral", "Phone Call", "Email Campaign", "Event", "Other"]), [state.rows]);
+  const sourceOptions = useMemo(() => contactOptionValues(state.rows, "source", leadSourceOptions()), [state.rows]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -5315,7 +5315,7 @@ function CRMDealsPage() {
   const visibleIds = rows.map((row) => String(row.id));
   const allSelected = Boolean(visibleIds.length) && visibleIds.every((id) => selectedIds[id]);
   const dealCountLabel = view === "all" && !activeFilters && !debouncedSearch ? `${state.total} deal${state.total === 1 ? "" : "s"}` : `${rows.length} shown`;
-  const sourceOptions = useMemo(() => dealOptionValues(state.rows, "source", ["Website", "Referral", "Event", "Partner", "Phone Call", "Email Campaign", "Other"]), [state.rows]);
+  const sourceOptions = useMemo(() => dealOptionValues(state.rows, "source", leadSourceOptions()), [state.rows]);
   const statusOptions = useMemo(() => dealOptionValues(state.rows, "status", ["Open", "Won", "Lost"]), [state.rows]);
 
   useEffect(() => {
@@ -8080,7 +8080,7 @@ function InlineEditor({ config, value, autoFocus, onChange, onCommit, onCancel }
   if (config.type === "select") {
     return (
       <NativeSelect className="h-9 w-full rounded-md border bg-background px-2 text-sm" {...common}>
-        {(config.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+        {(config.apiField === "source" ? [...new Set([String(value || ""), ...leadSourceOptions()])].filter(Boolean) : config.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
       </NativeSelect>
     );
   }
@@ -8231,7 +8231,7 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
             {formFields.map((field) => (
               <div key={field.key} className={field.width === "full" ? "md:col-span-2" : undefined}>
                 <Field label={`${field.label}${field.required ? " *" : ""}`}>
-                  <QuickFormInput field={field} draft={draft} patchDraft={patchDraft} />
+                  <QuickFormInput field={field.key === "source" && ["leads", "contacts"].includes(kind) ? {...field, options: leadSourceOptions()} : field} draft={draft} patchDraft={patchDraft} />
                 </Field>
               </div>
             ))}
@@ -8375,7 +8375,7 @@ function CreateDealDialog({ placement="quick_create", saving, error, onClose, on
                   </DealField>
                   <DealField label="Source">
                     <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(draft.source || "")} onChange={(event) => patchDraft("source", event.target.value)}>
-                      {["Manual Entry", "Website", "Referral", "Partner", "Event", "Outbound"].map((source) => <option key={source}>{source}</option>)}
+                      {leadSourceOptions().map((source) => <option key={source}>{source}</option>)}
                     </NativeSelect>
                   </DealField>
                   <DealField label="Probability">
@@ -8560,7 +8560,7 @@ function QuickFormInput({
     return (
       <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={value} onChange={(event) => updateValue(event.target.value)}>
         <option value="">{field.placeholder || "Select"}</option>
-        {(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+        {(field.key === "source" ? [...new Set([value, ...(field.options || [])])].filter(Boolean) : field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
       </NativeSelect>
     );
   }

@@ -24,7 +24,8 @@ def run(base, credentials_file, destination):
         report["checks"].append({"check": label, "status": response.status_code, "passed": response.status_code in statuses})
         destination.write_text(json.dumps(report, indent=2))
         if response.status_code not in statuses:
-            raise RuntimeError(f"{label}: HTTP {response.status_code}")
+            detail = response.json().get("detail", "") if response.headers.get("content-type", "").startswith("application/json") else ""
+            raise RuntimeError(f"{label}: HTTP {response.status_code}: {detail}")
         return response.json() if response.content else {}
     with httpx.Client(base_url=base, timeout=40) as client:
         try:
@@ -42,7 +43,7 @@ def run(base, credentials_file, destination):
             destination.write_text(json.dumps(report, indent=2))
             admin.update({"X-Suite-Branch": str(branch), "X-Suite-Organization": str(company)})
             actors = []
-            for name in ["requester", "reviewer"]:
+            for name in ["requester", "reviewer", "final-reviewer"]:
                 password = "Qa7!"+secrets.token_urlsafe(24)
                 email = f"workflow-acceptance-{run_id}-{name}@example.com"
                 created = record("create QA "+name, client.post("/api/v1/access/users", headers=admin, json={
@@ -62,7 +63,7 @@ def run(base, credentials_file, destination):
                 session = record("QA login "+name, client.post("/api/v1/auth/login", json={"email": email, "password": password}))
                 actors.append({"id": uid, "headers": {"Authorization": "Bearer "+session["access_token"],
                     "X-Suite-Branch": str(branch), "X-Suite-Organization": str(company)}})
-            requester, reviewer = actors
+            requester, reviewer, final_reviewer = actors
             workspace = record("create QA workspace", client.post(PMS+"/workspaces", headers=admin,
                 json={"name": "Workflow acceptance "+run_id+" (QA only)"}), (201,))
             fixture["workspace_id"] = wid = workspace["id"]
@@ -75,9 +76,9 @@ def run(base, credentials_file, destination):
             fixture["project_id"] = pid = project["id"]
             destination.write_text(json.dumps(report, indent=2))
             route = {"revision": 0, "enabled": True, "transitions": [
-                {"source": "To Do", "target": "Done", "approval_user_ids": [reviewer["id"], profile["id"]]},
+                {"source": "To Do", "target": "Done", "approval_user_ids": [reviewer["id"], final_reviewer["id"]]},
                 {"source": "Done", "target": "To Do"}], "work_type_transitions": {"Bug": [
-                {"source": "To Do", "target": "In Review", "approval_user_ids": [profile["id"]]}]}}
+                {"source": "To Do", "target": "In Review", "approval_user_ids": [final_reviewer["id"]]}]}}
             record("publish type-aware approval routes", client.put(f"{PMS}/projects/{pid}/workflow-scheme", headers=admin, json=route))
             normal = record("create QA task", client.post(f"{PMS}/projects/{pid}/tasks", headers=requester["headers"],
                 json={"title": "Workflow acceptance "+run_id, "task_key": "WQA-"+run_id}))
@@ -96,7 +97,7 @@ def run(base, credentials_file, destination):
             record("partial review cannot apply", client.patch(url, headers=requester["headers"], json={"status": "Done"}), (409,))
             current = record("read ordered reviews", client.get(url+"/transition-approvals", headers=admin))["requests"][0]
             pending = next(s for s in current["steps"] if s["status"] == "Pending")
-            record("final ordered review", decision(current, admin, "approve", step_id=pending["id"]))
+            record("final ordered review", decision(current, final_reviewer["headers"], "approve", step_id=pending["id"]))
             record("apply approved transition", client.patch(url, headers=requester["headers"], json={"status": "Done"}))
             record("cycle task back", client.patch(url, headers=requester["headers"], json={"status": "To Do"}))
             record("approval replay denied", client.patch(url, headers=requester["headers"], json={"status": "Done"}), (409,))
@@ -108,7 +109,7 @@ def run(base, credentials_file, destination):
             bug_url = f"{PMS}/tasks/{bug['id']}"
             record("Bug override blocks default edge", client.patch(bug_url, headers=requester["headers"], json={"status": "Done"}), (409,))
             bug_review = record("request Bug review", client.post(bug_url+"/transition-approvals", headers=requester["headers"], json={"target": "In Review"}), (201,))
-            record("approve Bug route", decision(bug_review, admin, "approve", task_url=bug_url))
+            record("approve Bug route", decision(bug_review, final_reviewer["headers"], "approve", task_url=bug_url))
             record("apply Bug route", client.patch(bug_url, headers=requester["headers"], json={"status": "In Review"}))
             report["passed"] = True
         except Exception as exc:

@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -38,10 +39,11 @@ const initialForm = (projectId = ""): TimeFormState => ({
 });
 
 export default function TimeTrackingPage() {
+  const [projectParams] = useSearchParams();
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [tasks, setTasks] = useState<PMSTask[]>([]);
   const [logs, setLogs] = useState<PMSTimeLog[]>([]);
-  const [form, setForm] = useState<TimeFormState>(initialForm());
+  const [form, setForm] = useState<TimeFormState>(() => initialForm(projectParams.get("projectId") || ""));
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const initialLoading = useInitialLoading(loading);
@@ -53,7 +55,7 @@ export default function TimeTrackingPage() {
       .then((items) => {
         setProjects(items);
         const firstProjectId = String(items[0]?.id || "");
-        setForm(initialForm(firstProjectId));
+        setForm(initialForm(projectParams.get("projectId") || firstProjectId));
       })
       .catch((err) => setError(err?.response?.data?.detail || "Unable to load projects."));
     loadLogs();

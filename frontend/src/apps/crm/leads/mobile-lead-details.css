@@ -29,3 +29,5 @@
 .mobile-lead-page~.fixed>div>div:last-child{min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .mobile-lead-page~.fixed>div>div:last-child>div:last-child{position:sticky;bottom:0;background:hsl(var(--card));padding:8px 0;z-index:1}
 @media(prefers-reduced-motion:reduce){.mobile-lead-page *{scroll-behavior:auto!important;transition:none!important}}
+
+.ml-template-action{margin-top:10px}.ml-template-action>button{width:100%;min-height:42px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;border:1px solid #e2def5;background:#fff;color:#6554c0;font-size:13px}

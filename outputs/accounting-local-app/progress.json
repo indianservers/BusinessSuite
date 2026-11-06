@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "real app login and branch selection",
+    "automatic Zoho and QuickBooks sync through real adapters and PostgreSQL",
+    "authenticated Tally bridge snapshot",
+    "Finance automatic sync controls in real app",
+    "explicit CRM links and three-provider customer 360",
+    "unlinked customer has no accounting history",
+    "read-only invoice register and real filtering",
+    "daily sales chart, actual document dates and separate account/currency totals",
+    "full-app mobile layouts",
+    "automatic settlement updates CRM balances and daily receipts",
+    "paused accounts are skipped; failed sync preserves last successful data",
+    "automatic retry recovery and resumed sync",
+    "settled invoice status and zero balance visible in the app",
+    "updated daily receipts visible in the app",
+    "no accounting request failures or browser runtime errors"
+  ],
+  "frontend_url": "http://127.0.0.1:5196"
+}

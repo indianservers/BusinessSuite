@@ -6,9 +6,27 @@ from app.models.user import User, Permission
 from app.models.company import Company, Branch
 from app.models.email_outbox import EmailOutbox
 from app.apps.saas.models import TenantSubscription
+from app.shared.starter_values import lead_sources, LEAD_SOURCES
 
 ROOT = "/api/v1/auth"
 PASSWORD = "TrialPassword@12345"
+
+
+def test_approved_signup_includes_starter_sales_setup(client, db, platform_headers):
+    from app.apps.crm.models import CRMPipeline, CRMPipelineStage
+    row = submit(client, db, email="starter-signup@example.com")
+    approved = approve(client, db, platform_headers, row)
+    company_id = db._platform_db.get(SignupRequest, row.id).company_id
+    pipeline = db.query(CRMPipeline).filter_by(organization_id=company_id).one()
+    assert pipeline.active and pipeline.is_default
+    stages = db.query(CRMPipelineStage).filter_by(pipeline_id=pipeline.id).order_by(CRMPipelineStage.position).all()
+    assert [stage.name for stage in stages] == ["Qualification", "Proposal", "Negotiation", "Won", "Lost"]
+    assert lead_sources(db, company_id) == LEAD_SOURCES
+    # Retrying provisioning uses its receipt rather than duplicating starters.
+    from app.access.signup import provision_signup
+    recovered = provision_signup(row, None, db)
+    assert recovered["company_id"] == company_id
+    assert db.query(CRMPipeline).filter_by(organization_id=company_id).count() == 1
 
 
 import pytest
@@ -74,6 +92,40 @@ def login(client, email):
     assert response.status_code == 200, response.text
     assert response.json()["is_superuser"] is False
     return {"Authorization": "Bearer " + response.json()["access_token"]}
+
+
+def test_company_sample_import_is_explicit_approved_and_reversible(client, db, platform_headers):
+    from app.shared.import_models import ImportBatch
+    from app.apps.saas.models import TenantSubscriptionPlan
+    row = submit(client, db)
+    assert not (row.workflow or {}).get("sample_data_requested")
+    assert client.post("/api/v1/imports/sample-data/import", json={"confirmation":"import"}).status_code in {401,403}
+    approved = approve(client, db, platform_headers, row)
+    assert not db.query(ImportBatch).filter_by(source="company_sample").first()
+    activate(client, approved)
+    headers = login(client, row.email)
+    initial = client.get("/api/v1/imports/sample-data/status", headers=headers)
+    assert initial.status_code == 200, initial.text
+    assert initial.json()["batch"] is None
+    assert client.post("/api/v1/imports/sample-data/import", headers=headers, json={"confirmation":"yes"}).status_code == 422
+    imported = client.post("/api/v1/imports/sample-data/import", headers=headers, json={"confirmation":"import"})
+    assert imported.status_code == 200, imported.text
+    pack = imported.json()["batch"]
+    assert pack["total"] >= 300
+    repeated = client.post("/api/v1/imports/sample-data/import", headers=headers, json={"confirmation":"import"})
+    assert repeated.status_code == 200 and repeated.json()["batch"]["id"] == pack["id"]
+    assert db.query(TenantSubscriptionPlan).filter_by(code=f"platform-signup-{row.id}").one().config_json["sample_data_requested"]
+    deleted = client.post("/api/v1/imports/sample-data/delete", headers=headers, json={"confirmation":"delete","batch_id":pack["id"]})
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json()["batch"] is None
+
+
+def test_sample_preference_only_remembered_for_company_opt_in(client, db):
+    payload = {"applicant_type":"company", "name":"Sample Owner", "company_name":"Sample Co", "email":"samples@example.com",
+               "phone":"+919876543210", "requested_modules":["crm"], "consent":True, "sample_data_requested":True}
+    assert client.post(ROOT+"/signup", json=payload).status_code == 202
+    assert db._platform_db.query(SignupRequest).filter_by(email="samples@example.com").one().workflow["sample_data_requested"]
+    assert client.post(ROOT+"/signup", json={**payload,"applicant_type":"individual","email":"person@example.com"}).status_code == 422
 
 
 def test_public_signup_is_pending_and_cannot_choose_authority(client, db):

@@ -45,6 +45,8 @@ OPTIONS = [
 ]
 # Reuse native module authorization and storage for these central editors.
 OPTIONS += [
+    ("starter-values", "Starter values", "Business defaults", "Add editable starter leave types, salary components, sales stages and payment methods.", None, None, (), True),
+    ("crm-lead-sources", "Lead sources", "CRM", "Manage the lead sources available in sales forms.", None, "crm", ("crm_admin",), True),
     ("api-credentials", "API credentials", "Integrations", "API keys for approved integrations.", None, None, (), True),
     ("webhooks", "Integration webhooks", "Integrations", "Outbound event subscriptions and delivery configuration.", None, None, (), True),
     ("crm-webhooks", "CRM webhooks", "CRM", "CRM event subscriptions.", None, "crm", ("crm_admin",), True),
@@ -62,7 +64,7 @@ OPTIONS += [
     ("tax-settings", "GST & tax settings", "Finance", "GST defaults and statutory configuration.", None, "fam", ("fam_settings_manage", "fam_admin"), True),
     ("roles", "Roles & permission templates", "Company & access", "Custom module roles and reusable permission templates.", None, None, (), True),
 ]
-ADMIN_ONLY = {"files-storage", "appearance", "roles", "users", "security", "audit", "modules", "connections", "communication", "global"}
+ADMIN_ONLY = {"starter-values", "files-storage", "appearance", "roles", "users", "security", "audit", "modules", "connections", "communication", "global"}
 GLOBAL_ONLY = {"files-storage", "api-credentials", "webhooks", "security", "connections", "communication", "global", "ai"}
 HR_SECTIONS = {"branches", "departments", "designations", "shifts", "holidays", "leaveTypes", "salaryComponents"}
 
@@ -259,11 +261,13 @@ class DefaultsUpdate(BaseModel):
 
 @router.get("/defaults/effective")
 def effective_form_defaults(module: str | None = None, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.starter_values import lead_sources
     from app.shared.form_defaults import effective
     from app.branches.service import access
     branch_id = getattr(actor, "_suite_branch_id", None)
     branch_id = branch_id if isinstance(branch_id, int) else None
     result = effective(db, actor.organization_id, module, branch_id)
+    result["leadSources"] = lead_sources(db, actor.organization_id)
     allowed, _, all_branches, _ = access(db, actor, actor.organization_id)
     if result["values"].get("branch_id") and not all_branches and result["values"]["branch_id"] not in allowed:
         result["values"]["branch_id"] = None
@@ -295,7 +299,9 @@ def form_defaults_configuration(module: str | None = None, branch_id: int | None
     from sqlalchemy import select
     allowed, _, _, _ = branch_access(db, actor, ctx["company"])
     available["branches"] = [{"value": row.id, "label": row.name} for row in db.connection().execute(select(Branch.id, Branch.name).where(Branch.company_id == ctx["company"], Branch.id.in_(allowed), Branch.is_active.is_(True)).order_by(Branch.name))]
-    return {"fields": defaults.FIELDS, "choices": available, "overrides": row.values_json if row else {}, "version": row.version if row else 0, "inherited": inherited["values"], "effective": defaults.effective(db, ctx["company"], module, branch_id)["values"], "companyId": ctx["company"]}
+    from app.shared.starter_values import lead_sources
+    fields = [{**field, "options": [{"value": value, "label": value} for value in lead_sources(db, ctx["company"])]} if field["key"] == "lead_source" else field for field in defaults.FIELDS]
+    return {"fields": fields, "choices": available, "overrides": row.values_json if row else {}, "version": row.version if row else 0, "inherited": inherited["values"], "effective": defaults.effective(db, ctx["company"], module, branch_id)["values"], "companyId": ctx["company"]}
 
 
 @router.put("/defaults/configuration")
@@ -338,3 +344,75 @@ def update_form_defaults(data: DefaultsUpdate, request: Request, module: str | N
 def get_setting(key: str, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     option, ctx = require_option(db, actor, key)
     return item(option, ctx)
+
+
+class StarterValuesInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    modules: list[str] = Field(min_length=1, max_length=3)
+
+
+@router.get("/starter-values/catalog")
+def starter_values_catalog(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.starter_values import CATALOG
+    _, ctx = require_option(db, actor, "starter-values")
+    return {"groups": [group for group in CATALOG if ctx["grants"].get(group["key"], {}).get("enabled")]}
+
+
+@router.post("/starter-values/apply")
+def apply_starter_values(data: StarterValuesInput, request: Request, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from sqlalchemy import select
+    from app.models.company import Branch
+    from app.shared.starter_values import populate, CATALOG
+    _, ctx = require_option(db, actor, "starter-values")
+    allowed = {group["key"] for group in CATALOG if ctx["grants"].get(group["key"], {}).get("enabled")}
+    if not set(data.modules) <= allowed:
+        raise HTTPException(422, "Choose enabled applications")
+    branch_id = getattr(actor, "_suite_branch_id", None)
+    if not isinstance(branch_id, int):
+        branch_id = db.connection().execute(select(Branch.id).where(Branch.company_id == ctx["company"], Branch.is_active.is_(True)).order_by(Branch.id).limit(1)).scalar()
+    try:
+        counts = populate(db, ctx["company"], branch_id, set(data.modules))
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    service.audit(db, actor, ctx["company"], "settings.starter-values.added", str(ctx["company"]), {}, counts, request=request)
+    db.commit()
+    return {"created": counts, "total": sum(counts.values())}
+
+
+class LeadSourcesInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    sources: list[str] = Field(min_length=1, max_length=100)
+
+
+@router.get("/crm-lead-sources/options")
+def get_lead_sources(db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from app.shared.starter_values import lead_sources, LEAD_SOURCES
+    require_option(db, actor, "crm-lead-sources")
+    return {"sources": lead_sources(db, actor.organization_id), "defaults": LEAD_SOURCES}
+
+
+@router.put("/crm-lead-sources/options")
+def update_lead_sources(data: LeadSourcesInput, request: Request, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
+    from sqlalchemy import select
+    from app.apps.crm.lead_models import CRMLeadManagementConfig
+    from app.shared.starter_values import lead_sources
+    _, ctx = require_option(db, actor, "crm-lead-sources")
+    sources = ["Other" if value.strip().casefold() == "other" else value.strip() for value in data.sources]
+    if any(not value or len(value) > 80 for value in sources) or len({value.casefold() for value in sources}) != len(sources):
+        raise HTTPException(422, "Use unique, non-empty source names of up to 80 characters")
+    # Keep the built-in fallback valid for unconfigured or inherited form defaults.
+    if "Other" not in sources:
+        if len(sources) == 100:
+            raise HTTPException(422, "Keep at most 99 sources plus Other")
+        sources.append("Other")
+    db.connection().execute(select(Company.id).where(Company.id == ctx["company"]).with_for_update()).one()
+    before = lead_sources(db, ctx["company"])
+    row = db.query(CRMLeadManagementConfig).filter_by(organization_id=ctx["company"]).with_for_update().first()
+    if row is None:
+        row = CRMLeadManagementConfig(organization_id=ctx["company"], settings_json={})
+        db.add(row)
+    row.settings_json = {**(row.settings_json or {}), "sources": sources}
+    row.updated_by = actor.id
+    service.audit(db, actor, ctx["company"], "settings.lead-sources.updated", str(ctx["company"]), {"sources": before}, {"sources": sources}, request=request)
+    db.commit()
+    return {"sources": sources}

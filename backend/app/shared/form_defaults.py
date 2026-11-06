@@ -127,7 +127,11 @@ def validate(db, company_id, values, inherited):
             else:
                 valid = type(value) is int and bool(query.filter(model.id == value).first())
         elif kind == "select":
-            valid = any(type(value) is type(option["value"]) and value == option["value"] for option in field["options"])
+            if key == "lead_source":
+                from app.shared.starter_values import lead_sources
+                valid = value in lead_sources(db, company_id)
+            else:
+                valid = any(type(value) is type(option["value"]) and value == option["value"] for option in field["options"])
         elif kind == "number":
             valid = type(value) in (int, float) and field["min"] <= value <= field["max"] and (key == "tax_rate" or type(value) is int)
         elif kind == "days":

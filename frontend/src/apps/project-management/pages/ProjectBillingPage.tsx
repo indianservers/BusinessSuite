@@ -1,3 +1,4 @@
+import { FileText, Wallet, Globe2 } from "lucide-react";
 import { defaultText } from "@/lib/form-defaults";
 import SharedCompanySelect from "@/shared/master-data/CompanySelect";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -315,11 +316,10 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
           Invoices, payments and customers shared with Sales.
         </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Commercial identity</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="pd-finance-metrics" aria-label="Invoice overview"><div><FileText /><span><strong>{data.invoices.length}</strong><small>Project invoices</small></span></div><div><Wallet /><span><strong>{data.invoices.filter((invoice: Row) => Number(invoice.balance_amount) > 0).length}</strong><small>With outstanding balance</small></span></div><div><Globe2 /><span><strong>{new Set(data.invoices.map((invoice: Row) => invoice.currency).filter(Boolean)).size}</strong><small>Invoice currencies</small></span></div></div>
+      <details className="pd-commercial-panel">
+        <summary>Commercial identity & billing settings</summary>
+        <div>
           <CommercialIdentityForm
             showSources
             key={JSON.stringify(data.commercial)}
@@ -332,10 +332,10 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
               await billing.refetch();
             }}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </details>
       {data.can_create && (
-        <Card>
+        <details className="pd-commercial-panel"><summary>Create invoice draft</summary><div><Card>
           <CardHeader>
             <CardTitle>Create invoice draft</CardTitle>
           </CardHeader>
@@ -541,7 +541,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
               </fieldset>
             </CompactForm>
           </CardContent>
-        </Card>
+        </Card></div></details>
       )}
       <Card>
         <CardHeader>
@@ -601,7 +601,7 @@ export function InvoiceList({
             key={row.id}
             role="group"
             aria-label={`Invoice ${row.invoice_number}`}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+            className="pd-invoice flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
           >
             <Link
               className="font-medium text-primary underline"

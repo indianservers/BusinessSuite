@@ -1,0 +1,20 @@
+{
+  "regression_tests": 50,
+  "api_checks": 184,
+  "browser_checks": 36,
+  "failures": 0,
+  "local_only": true,
+  "qa_clients": [
+    14,
+    15
+  ],
+  "fixes": [
+    "Paid cancellation and reactivation retain the correct paid lifecycle",
+    "Cancelled and offboarded accounts reject inconsistent lifecycle transitions",
+    "Snapshot restore uses an in-page reason and confirmation",
+    "Support view does not request billing catalogs or owner-only snapshots",
+    "Optimistic versions and batch IDs reject boolean or nonpositive identifiers"
+  ],
+  "build": "TypeScript and bundling passed; final source-freshness guard detected concurrent repository edits",
+  "browser_download": "Filtered CSV and configuration JSON verified on disk after user handled Chrome download permission"
+}

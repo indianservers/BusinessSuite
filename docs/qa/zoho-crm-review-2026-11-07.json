@@ -1,0 +1,414 @@
+{
+  "review_date": "2026-11-07",
+  "source": "Read-only live-browser inspection of the user-provided Zoho CRM account",
+  "scope": "Exposed navigation areas and available page types, not every record or nested option in every edition.",
+  "not_complete": true,
+  "entries": [
+    {
+      "area": "Home",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Home/begin",
+      "status": "inspected",
+      "observed": "Open-task and meeting widgets; several deal/lead/call widgets blocked by edition."
+    },
+    {
+      "area": "Leads list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Leads",
+      "status": "inspected",
+      "observed": "No records in this account. Webform, email, visitor capture and import entry points."
+    },
+    {
+      "area": "Leads create",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Leads/create",
+      "status": "inspected",
+      "observed": "Ownership, contact details, source, industry, qualification, revenue, opt-out and address fields."
+    },
+    {
+      "area": "Contacts list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Contacts",
+      "status": "inspected",
+      "observed": "No records in this account; channel engagement and import entry points."
+    },
+    {
+      "area": "Contacts create",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Contacts/create",
+      "status": "inspected",
+      "observed": "Account association, multiple phones/emails, assistant, reporting contact, birthday, opt-out and dual addresses."
+    },
+    {
+      "area": "Accounts list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Accounts",
+      "status": "inspected",
+      "observed": "Field/related-module filters, custom views, sort, selection and view settings."
+    },
+    {
+      "area": "Account detail",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Accounts/6186108000000478020",
+      "status": "inspected",
+      "observed": "Next action, business card, related records, open/closed activities, attachments, notes and email tabs."
+    },
+    {
+      "area": "Deals list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Potentials",
+      "status": "inspected",
+      "observed": "No records in this account; stage setup and import entry points."
+    },
+    {
+      "area": "Deals create",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Potentials/create",
+      "status": "inspected",
+      "observed": "Account/contact association, next step, stage, probability, weighted revenue and campaign source."
+    },
+    {
+      "area": "Tasks list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Tasks/custom-view/6186108000000331292/list",
+      "status": "inspected",
+      "observed": "Field filters, sorting, saved views, task owners and related records. Inspected in this and preceding turns."
+    },
+    {
+      "area": "Tasks create",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Tasks/create",
+      "status": "inspected",
+      "observed": "Owner, due date, contact/account links, status, priority, reminder, repeat and description. Inspected in preceding turn."
+    },
+    {
+      "area": "Meetings list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Events",
+      "status": "inspected",
+      "observed": "Weekly custom view, field/related-module filtering and creation. Default current-week view is empty."
+    },
+    {
+      "area": "Meetings create",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Events",
+      "status": "inspected",
+      "observed": "Start/end, venue, all-day option, host, participants, record association and repeat entry."
+    },
+    {
+      "area": "Meeting detail",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Events/6186108000000711001",
+      "status": "inspected",
+      "observed": "Populated meeting: host, times, participants, notes, attachments, reminder and check-in fields."
+    },
+    {
+      "area": "Calls list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Calls",
+      "status": "inspected",
+      "observed": "No records. Manual call logging, scheduled calls, telephony integration and import."
+    },
+    {
+      "area": "Call log form",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Calls",
+      "status": "inspected",
+      "observed": "Direction, time, duration, subject, agenda, result, description, recording and record association."
+    },
+    {
+      "area": "Campaigns list",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Campaigns",
+      "status": "inspected",
+      "observed": "No records. Campaign create and import entry points."
+    },
+    {
+      "area": "Campaigns create",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Campaigns/create",
+      "status": "inspected",
+      "observed": "Owner, type/status, schedule, budget, actual cost, expected revenue/response and sent count."
+    },
+    {
+      "area": "Visits",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Visits",
+      "status": "inspected",
+      "observed": "SalesIQ visitor-tracking integration landing page; integration was not enabled."
+    },
+    {
+      "area": "Projects",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Projects",
+      "status": "inspected",
+      "observed": "Separate Zoho Projects integration landing page; integration was not enabled."
+    },
+    {
+      "area": "Calendar",
+      "url": "https://crm.zoho.com/crm/dsbchartered/calendar?date=07-11-2026&viewType=day",
+      "status": "inspected",
+      "observed": "Personal/all-user calendars, month/week/day views and creation/options."
+    },
+    {
+      "area": "Reports directory",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Reports",
+      "status": "inspected",
+      "observed": "Inventoried 50 report links across sales, leads, accounts, products, inventory, email and activity metrics."
+    },
+    {
+      "area": "Pipeline report",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Reports/6186108000000459719",
+      "status": "inspected",
+      "observed": "Report details: filter criteria and grouped columns; no data for this account."
+    },
+    {
+      "area": "Sent email status report",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Reports/6186108000000459799",
+      "status": "inspected",
+      "observed": "Sent-on date filter, recipient/subject/module, last opened/clicked and bounced columns; no data."
+    },
+    {
+      "area": "Setup directory",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/index",
+      "status": "inspected",
+      "observed": "Enumerated 28 linked setup destinations in eight categories."
+    },
+    {
+      "area": "Workflow rules",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/workflow-rules",
+      "status": "inspected",
+      "observed": "Rule list, enabled state, trigger, action count, create/reorder actions; existing Big Deal Rule."
+    },
+    {
+      "area": "Workflow actions",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/alerts",
+      "status": "inspected",
+      "observed": "Email notification and task actions; recipients, modules and templates."
+    },
+    {
+      "area": "Webforms",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/webform",
+      "status": "inspected",
+      "observed": "Website lead-capture form creation and auto-response rules."
+    },
+    {
+      "area": "Email configuration",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/email-configuration",
+      "status": "inspected",
+      "observed": "Compose defaults, signatures, organization email, custom email fields, deliverability and unsubscribe navigation."
+    },
+    {
+      "area": "Modules and Fields",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/modules",
+      "status": "inspected",
+      "observed": "Module layouts, profile access, visibility switches; custom module creation disabled in this edition."
+    },
+    {
+      "area": "Home customization",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/home-customization",
+      "status": "inspected",
+      "observed": "Custom homepage list, role sharing, status and create/edit entries."
+    },
+    {
+      "area": "Import",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/data-migration",
+      "status": "inspected",
+      "observed": "Migration sources and import-history navigation."
+    },
+    {
+      "area": "Export",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/export",
+      "status": "inspected",
+      "observed": "Module export workflow with displayed 200,000-record limit."
+    },
+    {
+      "area": "Data backup",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/data-backup",
+      "status": "inspected",
+      "observed": "Complete backup download/purchase entry; no backup was requested or downloaded."
+    },
+    {
+      "area": "Storage",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/storage",
+      "status": "inspected",
+      "observed": "Data/file/email storage categories and module record usage."
+    },
+    {
+      "area": "Recycle bin",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/recyclebin",
+      "status": "inspected",
+      "observed": "Record restoration rules, deleted-record list and stated 60-day retention."
+    },
+    {
+      "area": "Personal settings",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/personal-settings",
+      "status": "inspected",
+      "observed": "Locale and display-name preferences. No settings changed."
+    },
+    {
+      "area": "Users",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/users",
+      "status": "inspected",
+      "observed": "User directory and new-user entry. No users created or changed."
+    },
+    {
+      "area": "Company settings",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/company-details",
+      "status": "inspected",
+      "observed": "Company details, fiscal year, business hours, holidays and currencies navigation."
+    },
+    {
+      "area": "Profiles",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/profiles",
+      "status": "inspected",
+      "observed": "Permission profiles, descriptions and profile detail entry points. No permissions changed."
+    },
+    {
+      "area": "Roles and sharing",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/roles",
+      "status": "inspected",
+      "observed": "Role hierarchy, sharing explanation and create-role entry. No roles changed."
+    },
+    {
+      "area": "Compliance",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/compliance",
+      "status": "inspected",
+      "observed": "GDPR collection, processing and request lifecycle introduction; disabled in this account."
+    },
+    {
+      "area": "Support access",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/support-access",
+      "status": "inspected",
+      "observed": "Time-bounded support-access configuration; no access granted."
+    },
+    {
+      "area": "Audit log",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/auditlog",
+      "status": "inspected",
+      "observed": "Audit-history interface and export entry. No audit data exported."
+    },
+    {
+      "area": "Zoho integrations",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/extensions/zoho/apps",
+      "status": "inspected",
+      "observed": "Project, support, analytics, forms, campaign, contracts, signing, booking and field-service integration catalog."
+    },
+    {
+      "area": "Microsoft integration",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/extensions/microsoft/outlook",
+      "status": "inspected",
+      "observed": "Outlook add-in capabilities and Word integration entry. Nothing installed."
+    },
+    {
+      "area": "APIs and SDKs",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/api/usage/graph-view",
+      "status": "inspected",
+      "observed": "API usage dashboard, module API names, SDK navigation and notification configuration."
+    },
+    {
+      "area": "AI agent MCP",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/mcp",
+      "status": "inspected",
+      "observed": "Read-only insights, data operations, customization and automation server catalog. Nothing installed."
+    },
+    {
+      "area": "Catalyst solutions",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/catalyst-solutions",
+      "status": "inspected",
+      "observed": "Serverless CRM bulk-data processor catalog."
+    },
+    {
+      "area": "Email gallery - Leads",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/templates?module=Leads&step=showGallery&type=email",
+      "status": "inspected",
+      "observed": "Gallery layouts and goal categories; inspected in preceding turn."
+    },
+    {
+      "area": "Email gallery - Contacts",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/templates?module=Contacts&step=showGallery&type=email",
+      "status": "inspected",
+      "observed": "Gallery categories and module choices; inspected in preceding turn."
+    },
+    {
+      "area": "Email gallery - Accounts",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/templates?module=Accounts&step=showGallery&type=email",
+      "status": "inspected",
+      "observed": "Gallery categories and module choices; inspected in preceding turn."
+    },
+    {
+      "area": "Documents",
+      "url": "https://crm.zoho.com/crm/dsbchartered/tab/Documents",
+      "status": "unavailable",
+      "observed": "Embedded document area remained blank after DOM and screenshot inspection. Functionality not verified."
+    },
+    {
+      "area": "Wizards",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/wizard",
+      "status": "edition_blocked",
+      "observed": "Permission Denied: feature not available in this edition."
+    },
+    {
+      "area": "Notification SMS",
+      "url": "https://crm.zoho.com/crm/dsbchartered/settings/notificationsms",
+      "status": "unavailable",
+      "observed": "Only the shell/empty content rendered. Functionality not verified."
+    }
+  ],
+  "report_coverage": {
+    "directory_links_inventoried": 50,
+    "confirmed_detail_pages": [
+      "Pipeline by Stage",
+      "Sent Email Status"
+    ],
+    "remaining": "Other report detail executions and report-builder options remain unverified; no claim that all 50 were tested."
+  },
+  "implemented_this_batch": [
+    {
+      "feature": "Dedicated Meetings workspace",
+      "route": "/crm/meetings",
+      "details": "Create/edit, timezone-aware worklists, status/owner filtering, personal conflict warnings, outcomes and related records."
+    },
+    {
+      "feature": "Dedicated Calls workspace",
+      "route": "/crm/calls",
+      "details": "Create/edit, calling-code-aware phone input, duration/outcome/notes and linked records."
+    },
+    {
+      "feature": "Conversation follow-up tasks",
+      "details": "Creates a task using existing CRM creation rules; copies visible record links; equivalent retries reuse the task."
+    },
+    {
+      "feature": "Bulk task completion",
+      "route": "/crm/tasks",
+      "details": "Page-scoped selection, per-task existing API permission checks, partial success and retry of failed tasks."
+    },
+    {
+      "feature": "Report directory",
+      "route": "/crm/reports",
+      "details": "Search and category filtering for 11 existing report/worklist destinations; retains win/loss analysis."
+    }
+  ],
+  "preserved": [
+    "Existing task creation/custom fields/import/notes",
+    "Template Studio and all existing templates",
+    "CRM pipeline and quote workflows",
+    "Shared company/contact identity",
+    "Built-in CRM-to-project/accounting handoffs",
+    "Existing calendar and activity history",
+    "Existing record permissions and audit hooks"
+  ],
+  "remaining_validation_or_implementation": [
+    {
+      "area": "Full page coverage",
+      "work": "Nested setup tabs, 48 remaining report detail executions, unavailable Documents/SMS areas, and unavailable lead/contact/deal record-detail workflows."
+    },
+    {
+      "area": "Meeting recurrence, attendees and RSVP",
+      "work": "Compare end-to-end recurrence/invitation lifecycle against existing calendar/provider adapters before extending it."
+    },
+    {
+      "area": "Provider integrations",
+      "work": "Live acceptance of email/calendar/telephony providers is separate from local API and browser tests; no account connections changed."
+    },
+    {
+      "area": "Marketing automation and guided selling",
+      "work": "Exercise existing automation, webform, campaign and shared workflow engines before marking further capabilities missing."
+    },
+    {
+      "area": "Custom reporting",
+      "work": "Assess ad-hoc report construction, subscriptions and export-volume behavior against existing shared reporting/analytics services."
+    },
+    {
+      "area": "Governance and mobile",
+      "work": "Validate field policies, consent enforcement, recovery, and offline write/reconciliation behavior; responsive layout alone does not prove these."
+    }
+  ],
+  "validation": {
+    "core_crm_and_activity_regression": "39 API tests passed on disposable SQLite before the follow-up endpoint was added.",
+    "follow_up": "The additional follow-up API case passed, including copying contact links, equivalent-time retries and cross-organization rejection.",
+    "browser": "qa/crm_engagements_browser.cjs and qa/crm_tasks_database_browser.cjs passed against isolated in-memory API fixtures. Includes filters, CRUD, save failures, permissions UI, follow-up creation, partial bulk completion and mobile layout.",
+    "typescript": "Full frontend no-emit TypeScript check passed.",
+    "production": "No deployment, provider connection, email sending, or production data mutation performed. PostgreSQL concurrency and live-provider acceptance were not tested by these SQLite/mocked-browser runs."
+  }
+}

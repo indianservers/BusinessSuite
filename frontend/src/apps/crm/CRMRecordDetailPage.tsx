@@ -1,3 +1,4 @@
+import RecordTemplatePicker from '@/shared/template-design/RecordTemplatePicker';
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import FieldControl, { fieldShown } from "@/shared/custom-fields/FieldControl";
 import Record360Workspace from "@/shared/records/Record360Workspace";
@@ -446,6 +447,7 @@ export default function CRMRecordDetailPage({ kind }: { kind: DetailKind }) {
             onAssign={() => setMobileAssignmentOpen(true)} onAddActivity={() => setAction("meeting")} onCreateDeal={mayCreateDeal ? () => setMobileQuickCreate("deal") : undefined}
             assignment={<LeadEmployeeAssignment compact open={mobileAssignmentOpen} onOpenChange={setMobileAssignmentOpen} leadId={recordId} ownerId={Number(record.ownerId || record.owner_user_id) || undefined} onAssigned={loadRecord}/>}
             discussion={<ConversationLauncher module="CRM" context={{type:"lead",id:recordId}} label="Discuss"/>}
+            templates={<RecordTemplatePicker entity="lead" recordId={recordId}/>}
             ai={<AskAiButton module="CRM" relatedEntityType={aiContext.entityType} relatedEntityId={recordId} defaultAgentCode={aiContext.agentCode} defaultPrompt={aiContext.prompt} buttonLabel="Ask AI"/>}
             insights={<AICopilotPanel kind={kind} recordId={recordId}/>}
             details={<>{["Contact", "Business", "CRM"].map(group => <details className="ml-detail-group" key={group} open={group === "Contact"}><summary>{group} information</summary><FullDetails kind={kind} record={record} onSave={saveInlineField} group={group}/>{group === "CRM" && <CustomFields fields={record.customFields || []} onSave={saveCustomField}/>}</details>)}</>}

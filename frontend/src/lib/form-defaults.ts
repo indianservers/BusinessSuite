@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 
 export type DefaultValue = string | number | boolean | number[] | null;
 export type DefaultValues = Record<string, DefaultValue>;
-export type DefaultsPayload = { values: DefaultValues; modules: Record<string, DefaultValues>; companyId: number; branchId: number | null };
+export type DefaultsPayload = { values: DefaultValues; modules: Record<string, DefaultValues>; companyId: number; branchId: number | null; leadSources?: string[] };
 const builtIn = Object.fromEntries(definitions.map(field => [field.key, field.default])) as DefaultValues;
 function storedContext(key: string): string | null { try { return sessionStorage.getItem(key); } catch { return null; } }
 let snapshot: { scope: string; payload: DefaultsPayload } | undefined;
@@ -24,6 +24,10 @@ export function formDefaults(module = currentModule()): DefaultValues {
   return { ...builtIn, ...snapshot.payload.values, ...(snapshot.payload.modules[module] || {}) };
 }
 export function defaultText(key: string, module?: string): string { return String(formDefaults(module)[key] ?? ""); }
+export function leadSourceOptions(): string[] {
+  const field = definitions.find(field => field.key === "lead_source");
+  return snapshot?.scope === defaultsScope() && snapshot.payload.leadSources ? snapshot.payload.leadSources : (field?.options || []).map(option=>String(option.value));
+}
 export function defaultNumber(key: string, module?: string): number { return Number(formDefaults(module)[key] ?? 0); }
 export function defaultId(key: string, module?: string): number | undefined { return defaultNumber(key, module) || undefined; }
 export function defaultOwner(module?: string): number | undefined {

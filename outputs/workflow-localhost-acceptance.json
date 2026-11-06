@@ -1,0 +1,307 @@
+{
+  "site": "http://127.0.0.1:1538",
+  "run_id": "bf96c8b509",
+  "checked_at_utc": "2026-11-06T19:08:35.769640+00:00",
+  "checks": [
+    {
+      "check": "administrator login",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "administrator profile",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "administrator reauthentication",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "branch context",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "create isolated QA branch",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "create QA requester",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "grant PMS-only access requester",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "read QA branch policy requester",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "grant QA branch requester",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "QA login requester",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "create QA reviewer",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "grant PMS-only access reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "read QA branch policy reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "grant QA branch reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "QA login reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "create QA final-reviewer",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "grant PMS-only access final-reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "read QA branch policy final-reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "grant QA branch final-reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "QA login final-reviewer",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "create QA workspace",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "add QA member",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "add QA member",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "add QA member",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "create QA project",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "publish type-aware approval routes",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "create QA task",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "unreviewed transition blocked",
+      "status": 409,
+      "passed": true
+    },
+    {
+      "check": "request transition",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "request transition",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "self review denied",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "check": "reviewer rejection",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "request transition",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "first ordered review",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "partial review cannot apply",
+      "status": 409,
+      "passed": true
+    },
+    {
+      "check": "read ordered reviews",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "final ordered review",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "apply approved transition",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "cycle task back",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "approval replay denied",
+      "status": 409,
+      "passed": true
+    },
+    {
+      "check": "request transition",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "edit saved task",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "stale review denied",
+      "status": 409,
+      "passed": true
+    },
+    {
+      "check": "create QA Bug",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "Bug override blocks default edge",
+      "status": 409,
+      "passed": true
+    },
+    {
+      "check": "request Bug review",
+      "status": 201,
+      "passed": true
+    },
+    {
+      "check": "approve Bug route",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "apply Bug route",
+      "status": 200,
+      "passed": true
+    }
+  ],
+  "cleanup": [
+    {
+      "action": "suspend QA user 84",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "action": "suspend QA user 85",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "action": "suspend QA user 86",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "action": "remove QA workspace member 81",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "action": "remove QA workspace member 82",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "action": "remove QA workspace member 83",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "action": "trash QA project",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "action": "trash isolated QA branch",
+      "status": 200,
+      "passed": true
+    }
+  ],
+  "fixture": {
+    "user_ids": [
+      84,
+      85,
+      86
+    ],
+    "member_ids": [
+      81,
+      82,
+      83
+    ],
+    "branch_id": 24,
+    "workspace_id": 21,
+    "project_id": 22,
+    "task_id": 21
+  },
+  "passed": true,
+  "cleanup_note": "Created QA accounts are suspended and the QA project/branch are in Trash. Workspace and audit history are retained. No invitations or mail were sent."
+}

@@ -50,6 +50,7 @@ export default function SignupPage() {
               source: (new URLSearchParams(window.location.search).get("utm_source") || "website").slice(0, 80),
               campaign: (new URLSearchParams(window.location.search).get("utm_campaign") || "").slice(0, 120),
               consent: form.get("consent") === "on", website: String(form.get("website") || ""),
+              sample_data_requested: kind === "company" && form.get("sample_data_requested") === "on",
             });
             setSent(true);
           } catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
@@ -69,6 +70,7 @@ export default function SignupPage() {
             </fieldset>
             <label className="trial-notes"><span><Pencil size={17}/> What would you like to manage? <span className="text-slate-500">(optional)</span></span><textarea className="block min-h-24 w-full rounded-md border p-3" placeholder="e.g., employee management, customer relationships, project tracking, inventory, accounting, etc." name="notes" maxLength={2000}/></label>
             <div className="hidden" aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off"/></label></div>
+            {kind === "company" && <label className="trial-consent"><input type="checkbox" name="sample_data_requested"/><span>Ask me to import sample data after company approval. Includes 300+ fictional records per approved application, with an option to delete them.</span></label>}
             <label className="trial-consent"><input className="mt-1" type="checkbox" name="consent" required/><span>I agree to be contacted about this trial request and understand that access requires approval.</span></label>
             {error && <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}{!modules && <Button type="button" variant="link" onClick={load}>Retry</Button>}</div>}
             <Button type="submit" className="trial-submit" disabled={busy || !modules?.length}>{busy ? "Submitting…" : <>Request trial access <ArrowRight size={20}/></>}</Button>

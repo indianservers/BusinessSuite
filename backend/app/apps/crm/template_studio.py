@@ -2,8 +2,9 @@
 import html
 import re
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, RequirePermission
 from app.apps.srm.services.commercial import tenant
@@ -47,6 +48,25 @@ FIELDS = [
     ("Relationship", "meeting.time", "Meeting time", "10:30 AM IST"),
     ("Relationship", "contract.start_date", "Agreement start date", "1 December 2026"),
     ("Relationship", "contract.end_date", "Agreement end date", "30 November 2027"),
+    ("Work", "task.title", "Task title", "Review the implementation plan"),
+    ("Work", "task.due_date", "Task due date", "14 November 2026"),
+    ("Support", "ticket.subject", "Support request subject", "Help with account setup"),
+    ("Lead", "lead.full_name", "Lead full name", "Ananya Rao"),
+    ("Lead", "lead.status", "Lead status", "Qualified"),
+    ("Lead", "lead.source", "Lead source", "Website"),
+    ("Contact", "contact.full_name", "Contact full name", "Ananya Rao"),
+    ("Contact", "contact.job_title", "Contact job title", "Operations Manager"),
+    ("Account", "account.name", "Account name", "Northstar Technologies"),
+    ("Account", "account.address", "Account address", "18 Residency Road, Bengaluru 560025"),
+    ("Account", "account.email", "Account email", "accounts@example.com"),
+    ("Account", "account.phone", "Account phone", "+91 98765 43210"),
+    ("Account", "account.industry", "Account industry", "Technology"),
+    ("Deal", "deal.currency", "Deal currency", "INR"),
+    ("Deal", "deal.status", "Deal status", "Open"),
+    ("Deal", "deal.expected_close_date", "Expected close date", "21 November 2026"),
+    ("Invoice", "invoice.number", "Invoice reference", "INV-2026-0042"),
+    ("Invoice", "invoice.status", "Invoice status", "approved"),
+    ("Invoice", "invoice.paid", "Amount paid", "0.00"),
 ]
 SAMPLES = {key: sample for _, key, _, sample in FIELDS}
 
@@ -57,14 +77,23 @@ class Strict(BaseModel):
 
 class Block(Strict):
     id: str = Field(min_length=1, max_length=80, pattern=r"^[\w-]+$")
-    type: Literal["heading", "text", "brand", "image", "button", "divider", "spacer", "items", "totals", "signature"]
+    type: Literal["heading", "text", "brand", "image", "button", "divider", "spacer", "items", "totals", "signature", "columns"]
     text: str = Field(default="", max_length=15000)
+    html: str = Field(default="", max_length=100000)
+    columns: Literal[2, 3] = 2
     url: str = Field(default="", max_length=2000)
     align: Literal["left", "center", "right"] = "left"
     size: int = Field(default=14, ge=10, le=64)
     color: str = Field(default="#243047", pattern=r"^#[0-9a-fA-F]{6}$")
     bold: bool = False
     padding: int = Field(default=12, ge=0, le=80)
+
+    @field_validator('html')
+    @classmethod
+    def safe_html(cls, value):
+        if not value: return ''
+        from app.core.rich_text import PREFIX, sanitize_rich_text
+        return sanitize_rich_text(value if value.startswith(PREFIX) else PREFIX + value)
 
 
 class Design(Strict):
@@ -83,7 +112,7 @@ class TemplateInput(Strict):
     name: str = Field(min_length=2, max_length=180)
     category: Literal["email", "inventory", "mail_merge"]
     document_type: Literal["email", "invoice", "quotation", "sales_order", "purchase_order", "letter", "agreement", "form", "label", "envelope"]
-    module: Literal["lead", "contact", "account", "deal", "quotation"] = "contact"
+    module: Literal["lead", "contact", "account", "deal", "quotation", "task", "meeting", "call", "campaign", "ticket", "invoice"] = "contact"
     subject: str = Field(default="", max_length=240)
     folder: str = Field(default="General", min_length=1, max_length=100)
     status: Literal["draft", "ready"] = "draft"
@@ -100,7 +129,7 @@ class TemplateInput(Strict):
 
 
 class Line(Strict):
-    description: str = Field(max_length=500)
+    description: str = Field(max_length=20000)
     quantity: str = Field(default="1", max_length=30)
     rate: str = Field(default="0.00", max_length=40)
     amount: str = Field(default="0.00", max_length=40)
@@ -109,7 +138,7 @@ class Line(Strict):
 class RenderInput(Strict):
     template: TemplateInput
     values: dict[str, str] = Field(default_factory=dict, max_length=100)
-    lines: list[Line] = Field(default_factory=list, max_length=100)
+    lines: list[Line] = Field(default_factory=list, max_length=1000)
     sample: bool = False
 
 
@@ -140,27 +169,37 @@ def render(data: RenderInput):
     for b in t.design.blocks:
         style = f"padding:{b.padding}px 24px;text-align:{b.align};font-size:{b.size}px;color:{b.color};font-weight:{700 if b.bold else 400};line-height:1.6;overflow-wrap:anywhere;"
         content = merge(b.text)
-        if b.type == "heading": content = f'<h1 style="margin:0;font-size:inherit;font-weight:700;color:inherit">{content}</h1>'
+        if b.html and b.type in {'text', 'heading', 'brand', 'signature'}:
+            from app.core.rich_text import PREFIX
+            content = TOKEN.sub(lambda match: merge(match.group(0)), b.html.removeprefix(PREFIX))
+        if b.type == "heading":
+            tag = 'div' if b.html else 'h1'
+            content = f'<{tag} style="margin:0;font-size:inherit;font-weight:700;color:inherit">{content}</{tag}>'
         elif b.type == "brand": content = f'<div style="font-weight:700;letter-spacing:1px;color:{t.design.accent}">{content}</div>'
         elif b.type == "divider": content = f'<hr style="border:0;border-top:1px solid {t.design.accent};margin:0">'
         elif b.type == "spacer": content = '<div style="height:24px"></div>'
+        elif b.type == "columns":
+            sections = b.text.split('\n---\n')[:b.columns]
+            sections += [''] * (b.columns - len(sections))
+            cells = ''.join(f'<td style="width:{100 / b.columns}%;padding:16px;vertical-align:top;border-right:1px solid #e2e8f0">{merge(section)}</td>' for section in sections)
+            content = f'<table style="width:100%;border-collapse:collapse;table-layout:fixed"><tbody><tr>{cells}</tr></tbody></table>'
         elif b.type == "image":
             url = safe_url(b.url, image=True)
             content = f'<img src="{url}" alt="{html.escape(b.text, quote=True)}" style="max-width:100%;max-height:240px;height:auto">' if url else '<div style="padding:30px;border:1px dashed #cbd5e1;color:#64748b">Add a logo or image · HTTPS image URL</div>'
         elif b.type == "button":
             url = safe_url(b.url)
-            content = f'<a href="{url}" style="display:inline-block;background:{t.design.accent};color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px">{content}</a>'
+            content = f'<a href="{url}" style="display:inline-block;background-color:{t.design.accent};color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px">{content}</a>'
         elif b.type == "items":
             lines = data.lines or ([Line(description="Professional subscription", quantity="1", rate="25,000.00", amount="25,000.00")] if data.sample else [])
             rows = ''.join('<tr>'+''.join(f'<td style="padding:12px 8px;border-bottom:1px solid #e2e8f0;text-align:{"left" if i == 0 else "right"}">{html.escape(v)}</td>' for i, v in enumerate([line.description, line.quantity, line.rate, line.amount]))+'</tr>' for line in lines)
             if not lines: unresolved.add("document.items")
-            content = f'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:{t.design.accent};color:#fff">'+''.join(f'<th style="padding:10px 8px;text-align:{"left" if i == 0 else "right"}">{label}</th>' for i, label in enumerate(["Description", "Qty", "Rate", "Amount"]))+f'</tr></thead><tbody>{rows or "<tr><td colspan=\"4\" style=\"padding:16px\">{{document.items}}</td></tr>"}</tbody></table>'
+            content = f'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background-color:{t.design.accent};color:#fff">'+''.join(f'<th style="padding:10px 8px;text-align:{"left" if i == 0 else "right"}">{label}</th>' for i, label in enumerate(["Description", "Qty", "Rate", "Amount"]))+f'</tr></thead><tbody>{rows or "<tr><td colspan=\"4\" style=\"padding:16px\">{{document.items}}</td></tr>"}</tbody></table>'
         elif b.type == "totals":
             content = '<table style="width:65%;margin-left:auto;font-size:14px">'+''.join(f'<tr><td style="padding:5px">{label}</td><td style="text-align:right;padding:5px;font-weight:700">{merge("{{document."+key+"}}")}</td></tr>' for label, key in [("Subtotal", "subtotal"), ("Discount", "discount"), ("Tax", "tax"), ("Total", "total"), ("Balance due", "balance")])+'</table>'
         elif b.type == "signature": content = f'<div style="border-top:1px solid #cbd5e1;padding-top:12px;display:inline-block;min-width:180px">{content}</div>'
         blocks.append({"id": b.id, "html": f'<div style="{style}">{content}</div>'})
     subject = merge(t.subject)
-    body = f'<div style="max-width:{640 if t.category == "email" else 794}px;margin:0 auto;background:{t.design.background};font-family:{t.design.font},serif;padding:28px 12px;box-sizing:border-box">'+''.join(b['html'] for b in blocks)+'</div>'
+    body = f'<div data-suite-template="v1" style="max-width:{640 if t.category == "email" else 794}px;margin:0 auto;background-color:{t.design.background};font-family:{t.design.font},serif;padding:28px 12px;box-sizing:border-box">'+''.join(b['html'] for b in blocks)+'</div>'
     document = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+html.escape(t.name)+'</title><style>@page{size:A4;margin:12mm}body{margin:0;background:#fff}img{max-width:100%}tr{break-inside:avoid}@media print{a{color:inherit}}</style></head><body>'+body+'</body></html>'
     return {"html": document, "body": body, "blocks": blocks, "subject": html.unescape(subject), "unresolved": sorted(unresolved), "sample": data.sample}
 
@@ -193,6 +232,21 @@ def preview(data: RenderInput, user=Depends(READ)):
     return render(data)
 
 
+@router.get("/records")
+def merge_choices(module: Literal["lead", "contact", "account", "deal", "quotation", "task", "meeting", "call", "campaign", "ticket"], search: str = Query(default="", max_length=100), db: Session = Depends(get_db), user=Depends(READ)):
+    from .api import router as crm
+    entity = {"lead": "leads", "contact": "contacts", "account": "accounts", "deal": "deals", "quotation": "quotations", "task": "tasks", "meeting": "meetings", "call": "calls", "campaign": "campaigns", "ticket": "tickets"}[module]
+    crm._assert_entity_permission(entity, user, "view")
+    resource = crm._get_resource(entity)
+    query = crm._apply_record_visibility(crm._base_query(db, resource, tenant(user)), resource, user, db)
+    name_fields = [getattr(resource.model, k) for k in ("full_name", "name", "title", "subject") if hasattr(resource.model, k)]
+    if search and name_fields:
+        escaped = search.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+        query = query.filter(or_(*(field.ilike('%' + escaped + '%', escape='\\') for field in name_fields)))
+    records = query.order_by(resource.model.id.desc()).limit(40).all()
+    return {"items": [{"id": r.id, "name": next((str(getattr(r, key)) for key in ("full_name", "name", "title", "subject") if getattr(r, key, None)), f"{module.title()} {r.id}")} for r in records]}
+
+
 @router.post("/templates", status_code=201)
 def create(data: TemplateInput, db: Session = Depends(get_db), user=Depends(WRITE)):
     render(RenderInput(template=data))  # Validate URLs before persisting.
@@ -222,11 +276,7 @@ def delete(identity: int, db: Session = Depends(get_db), user=Depends(WRITE)):
 def publish(identity: int, db: Session = Depends(get_db), user=Depends(RequirePermission("communication_templates_manage"))):
     row = scoped(db, user, identity)
     if row.category != "email" or row.status != "ready": raise HTTPException(422, "Save a ready email template before publishing")
-    t = TemplateInput.model_validate(output(row) | {} if False else {k: getattr(row, k) for k in TemplateInput.model_fields})
-    # The existing composer resolves these fields. Other merge values must be filled before sending.
-    supported = {"name", "email", "company", "phone"}
-    keys = set(TOKEN.findall(t.subject + ' '.join(b.text for b in t.design.blocks)))
-    if keys - supported: raise HTTPException(422, "The email composer supports {{name}}, {{email}}, {{company}}, {{phone}}. Replace other placeholders with your company / sender details before publishing.")
+    t = TemplateInput.model_validate({k: getattr(row, k) for k in TemplateInput.model_fields})
     rendered = render(RenderInput(template=t))
     email = db.query(CommunicationEmailTemplate).filter_by(id=row.email_template_id, organization_id=tenant(user)).first() if row.email_template_id else None
     if not email:
@@ -241,7 +291,7 @@ def publish(identity: int, db: Session = Depends(get_db), user=Depends(RequirePe
 
 
 class MergeInput(Strict):
-    entity: Literal["leads", "contacts", "accounts", "deals", "quotations"]
+    entity: Literal["leads", "contacts", "accounts", "deals", "quotations", "tasks", "meetings", "calls", "campaigns", "tickets"]
     record_ids: list[int] = Field(min_length=1, max_length=50)
     values: dict[str, str] = Field(default_factory=dict, max_length=100)
 
@@ -250,7 +300,7 @@ class MergeInput(Strict):
 def merge_records(identity: int, data: MergeInput, db: Session = Depends(get_db), user=Depends(READ)):
     from .api import router as crm
     row = scoped(db, user, identity)
-    expected = {"lead": "leads", "contact": "contacts", "account": "accounts", "deal": "deals", "quotation": "quotations"}
+    expected = {"lead": "leads", "contact": "contacts", "account": "accounts", "deal": "deals", "quotation": "quotations", "task": "tasks", "meeting": "meetings", "call": "calls", "campaign": "campaigns", "ticket": "tickets"}
     if expected[row.module] != data.entity: raise HTTPException(422, "Choose records from the template's module")
     crm._assert_entity_permission(data.entity, user, "view")
     resource = crm._get_resource(data.entity)
@@ -262,10 +312,17 @@ def merge_records(identity: int, data: MergeInput, db: Session = Depends(get_db)
     for record in records:
         # Only explicitly supported visible fields are exposed; never serialize arbitrary CRM data.
         values = dict(data.values)
-        for key, attrs in {"name": ("full_name", "name", "title"), "email": ("email",), "phone": ("phone",), "company": ("company_name",), "address": ("address",)}.items():
+        for key, attrs in {"name": ("full_name", "name", "title", "subject"), "email": ("email",), "phone": ("phone",), "company": ("company_name",), "address": ("address",)}.items():
             value = next((getattr(record, a, None) for a in attrs if getattr(record, a, None)), None)
             if value is not None: values[key] = str(value)
         if values.get("name"): values["first_name"] = values["name"].split()[0]
+        if data.entity == 'tasks':
+            values['task.title'] = str(getattr(record, 'title', '') or '')
+            values['task.due_date'] = str(getattr(record, 'due_date', '') or '')
+        elif data.entity == 'tickets': values['ticket.subject'] = str(getattr(record, 'subject', '') or getattr(record, 'title', '') or '')
+        elif data.entity == 'deals':
+            values['deal.name'] = str(getattr(record, 'name', '') or getattr(record, 'title', '') or '')
+            values['deal.amount'] = str(getattr(record, 'amount', '') or '')
         result = render(RenderInput(template=t, values=values))
         results.append({"record_id": record.id, "name": values.get("name", str(record.id)), **result})
     return {"items": results}

@@ -56,6 +56,10 @@ def lookup_route(workspace):
     try:
         with registry_factory()() as db:
             result=db.execute(select(D,S).join(S,S.id==D.server_id).where(or_(D.tenant_uuid==workspace,D.workspace_code==workspace))).first()
+            if result and result[0].status == "removed":
+                raise HTTPException(410,"This company workspace has been removed")
+            if result and result[0].status == "deleting":
+                raise HTTPException(423,"This company workspace is being removed")
             if not result or result[0].status!="ready":
                 raise HTTPException(503,"Company database is not ready or is under maintenance")
             d,s=result

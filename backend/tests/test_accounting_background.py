@@ -142,3 +142,45 @@ def test_tally_agent_renews_session_without_reposting_successful_upload(monkeypa
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         assert session.upload(client,'connection',provider_snapshot())['status']=='completed'
     assert len(calls)==3 and session.refresh=='next'
+
+
+def test_active_owner_without_finance_grants_is_blocked(client,db,import_headers,setup,monkeypatch):
+    connection,company,other,actor,factory=setup
+    user=db.get(User,actor);user.is_superuser=False;db.commit()
+    calls=[]
+    monkeypatch.setattr(service,'pull',lambda *a:calls.append(1))
+    result=jobs.process_due(factory)
+    assert result['blocked']==1,result
+    assert calls==[]
+
+
+def test_scheduler_capability_rejects_missing_or_wrong_secret(client,db,monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings,'CRON_SECRET','mock-scheduler-secret-only')
+    calls=[]
+    monkeypatch.setattr(jobs,'dispatch_due',lambda **kwargs:calls.append(kwargs) or {"completed":1})
+    path='/api/v1/internal/accounting-sync'
+    assert client.get(path).status_code==401
+    assert client.get(path,headers={"Authorization":"Bearer wrong"}).status_code==401
+    assert calls==[]
+    response=client.get(path,headers={"Authorization":"Bearer mock-scheduler-secret-only"})
+    assert response.status_code==200,response.text
+    assert response.json()=={"completed":1} and calls==[{"limit":2}]
+
+
+def test_shared_reader_sees_only_explicit_customer_links(client,db,import_headers,setup,monkeypatch):
+    connection,company,other,actor,factory=setup
+    monkeypatch.setattr(service,'pull',lambda *a:deepcopy(provider_snapshot()))
+    assert jobs.process_due(factory)['completed']==1
+    assert client.put(f"{BASE}/connections/{connection['id']}/customer-links",headers=import_headers,json={"external_id":"c1","crm_company_id":company}).status_code==200
+    from tests.test_pms_workspaces import account
+    viewer,headers=account(db,'accounting-finance-viewer@test.com',True)
+    headers['X-Suite-Branch']=import_headers['X-Suite-Branch']
+    # A different reader can see linked business data but not the owner's unlinked customer.
+    data=client.get(BASE+'/invoices',headers=headers)
+    assert data.status_code==200,data.text
+    assert data.json()['total']==3
+    assert all(r['customer_external_id']=='c1' for r in data.json()['items'])
+    # Owner-only connection administration remains private.
+    assert client.get(BASE+'/connections',headers=headers).json()['items']==[]
+    assert client.get(f"{BASE}/connections/{connection['id']}/records?entity=customers",headers=headers).status_code==404

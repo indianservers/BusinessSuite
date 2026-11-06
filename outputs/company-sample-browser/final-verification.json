@@ -1,0 +1,10 @@
+{
+  "sample_rows_deleted": 1765,
+  "sample_rows_remaining": 0,
+  "retained_lead_unchanged": true,
+  "batch_status": "revoked",
+  "databases_checked": 9,
+  "preexisting_records_checked": 115751,
+  "preexisting_business_records_checked": 15933,
+  "preexisting_records_changed_or_removed": 0
+}

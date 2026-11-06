@@ -38,9 +38,39 @@ def usage(db, tenant):
     size = db.query(func.coalesce(func.sum(StorageObject.size), 0)).filter_by(organization_id=tenant.company_id).scalar()
     activated = any(user.is_active for user in users)
     since = s.now()-timedelta(days=30)
+    from sqlalchemy import text, inspect
+    from app.models.audit import AuditLog
+    last_login = max((s.aware(u.last_login) for u in users if u.last_login), default=None)
+    audits = db.query(AuditLog).filter(AuditLog.organization_id == tenant.company_id, AuditLog.created_at >= since)
+    requests = audits.count()
+    errors = audits.filter(AuditLog.status_code >= 500).count()
+    last_activity = audits.with_entities(func.max(AuditLog.created_at)).scalar()
+    daily = {str(day): int(count) for day, count in audits.with_entities(func.date(AuditLog.created_at), func.count(AuditLog.id)).group_by(func.date(AuditLog.created_at))}
+    counts = {}
+    inspector = inspect(db.get_bind())
+    # Fixed allowlist; never interpolate names supplied by a browser.
+    for module, tables in {"crm": ["crm_leads", "crm_contacts", "crm_deals", "crm_activities"],
+                           "project_management": ["pms_projects", "pms_tasks"]}.items():
+        if module not in tenant.config.get("modules", []): continue
+        for table in tables:
+            if not inspector.has_table(table): continue
+            columns = {c["name"] for c in inspector.get_columns(table)}
+            if table == "pms_tasks":
+                clause = " AND t.deleted_at IS NULL" if "deleted_at" in columns else ""
+                counts[table] = int(db.execute(text("SELECT count(*) FROM pms_tasks t JOIN pms_projects p ON p.id=t.project_id WHERE p.organization_id=:company" + clause), {"company": tenant.company_id}).scalar())
+                continue
+            clause = " AND deleted_at IS NULL" if "deleted_at" in columns else ""
+            counts[table] = int(db.execute(text(f"SELECT count(*) FROM {table} WHERE organization_id=:company{clause}"), {"company": tenant.company_id}).scalar())
+    database_bytes = None
+    if db.info.get("tenant_uuid") and db.get_bind().dialect.name == "postgresql":
+        database_bytes = int(db.execute(text("SELECT pg_database_size(current_database())")).scalar())
     return {"seats": len(users), "active_seats": sum(bool(u.is_active) for u in users),
             "active_30d": sum(bool(u.last_login and s.aware(u.last_login) >= since) for u in users),
-            "storage_bytes": int(size or 0), "activated": activated, "recorded_at": s.now().isoformat()}
+            "storage_bytes": int(size or 0), "activated": activated, "recorded_at": s.now().isoformat(),
+            "last_login_at": last_login.isoformat() if last_login else None,
+            "last_activity_at": s.aware(last_activity).isoformat() if last_activity else None,
+            "requests_30d": requests, "server_errors_30d": errors, "requests_by_day": daily,
+            "record_counts": counts, "database_bytes": database_bytes}
 
 
 @tenant_bridge

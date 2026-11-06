@@ -13,6 +13,6 @@ export default function TransitionApprovalInbox(){
   <p className="text-sm text-muted-foreground">Reviews assigned to you by project workflows. Open a task to review its saved details and approve or reject the transition.</p>
   {error&&<p role="alert" className="text-destructive">{error}</p>}
   {rows?.length===0&&<p>No pending transition reviews.</p>}
-  {rows?.map(r=><div key={r.id} className="border-b py-3"><Link className="font-medium underline" to={`/pms/tasks/${r.task_id}`}>{r.title}</Link><p className="text-sm">Requested status: {r.target}{!r.current?" · Out of date; the requester must submit a fresh request":""}</p></div>)}
+  {rows?.map(r=><div key={r.id} className="border-b py-3"><Link className="font-medium underline" to={`/pms/tasks/${r.task_id}?tab=review`}>{r.title}</Link><p className="text-sm">Requested status: {r.target}{!r.current?" · Out of date; the requester must submit a fresh request":""}</p></div>)}
  </main>;
 }

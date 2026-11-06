@@ -14,7 +14,10 @@ import type { FrontendRoute } from "@/appRegistry";
 const CRMStatisticsWorklist=React.lazy(()=>import("./CRMStatisticsWorklist"));
 const CRMSalesHome = React.lazy(() => import("./CRMSalesHome"));
 const CRMActivitiesWorkspace = React.lazy(() => import("./CRMActivitiesWorkspace"));
+const EngagementWorkspace = React.lazy(() => import("./EngagementWorkspace"));
+const CRMReportDirectory = React.lazy(() => import("./CRMReportDirectory"));
 const CRMWorkspacePage = React.lazy(() => import("./CRMWorkspacePage"));
+const TemplateStudio = React.lazy(() => import("./templates/TemplateStudio"));
 const CRMRecordDetailPage = React.lazy(() => import("./CRMRecordDetailPage"));
 const LeadManagementPage = React.lazy(() => import("./leads/LeadManagementPage"));
 const CommunicationHubPage = React.lazy(() => import("@/apps/communication/CommunicationHubPage"));
@@ -67,18 +70,23 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/deals", element: <CRMWorkspacePage kind="deals" /> },
   { path: "crm/deals/:id", element: <Deal360Page /> },
   { path: "crm/pipeline", element: <CRMWorkspacePage kind="pipeline" /> },
-  { path: "crm/templates", element: <CRMWorkspacePage kind="pipeline" /> },
+  { path: "crm/templates", element: <TemplateStudio /> },
+  { path: "crm/pipeline-templates", element: <CRMWorkspacePage kind="pipeline" /> },
+  { path: "crm/inventory-templates", element: <TemplateStudio /> },
+  { path: "crm/mail-merge-templates", element: <TemplateStudio /> },
   { path: "crm/pipeline-settings", element: <CentralSettingsRedirect section="crm-pipelines" /> },
   { path: "crm/pipelines", element: <CRMWorkspacePage kind="pipelineSettings" /> },
   { path: "crm/pipelines/:id", element: <CRMWorkspacePage kind="pipelineSettings" /> },
   { path: "crm/activities", element: <CRMWorkspacePage kind="activities" /> },
+  { path: "crm/meetings", element: <EngagementWorkspace key="meetings" kind="meetings" /> },
+  { path: "crm/calls", element: <EngagementWorkspace key="calls" kind="calls" /> },
   { path: "crm/tasks", element: <CRMActivitiesWorkspace /> },
   { path: "crm/calendar", element: <CRMWorkspacePage kind="calendar" /> },
   { path: "crm/calendar-integrations", element: <CRMWorkspacePage kind="calendarIntegrations" /> },
   { path: "crm/webhooks", element: <CentralSettingsRedirect section="crm-webhooks" /> },
   { path: "crm/send-reminders", element: <CommunicationHubPage /> },
   { path: "crm/communication-hub", element: <CommunicationHubPage /> },
-  { path: "crm/email-templates", element: <CommunicationHubPage /> },
+  { path: "crm/email-templates", element: <TemplateStudio /> },
   { path: "crm/emails", element: <CommunicationHubPage /> },
   { path: "crm/webforms", element: <CommunicationHubPage /> },
   { path: "crm/webforms/:id", element: <CommunicationHubPage /> },
@@ -114,7 +122,7 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/territories", element: <CentralSettingsRedirect section="crm-territories" /> },
   { path: "crm/tickets", element: <CRMWorkspacePage kind="tickets" /> },
   { path: "crm/files", element: <CRMWorkspacePage kind="files" /> },
-  { path: "crm/reports", element: <CRMWorkspacePage kind="reports" /> },
+  { path: "crm/reports", element: <div className="space-y-6"><CRMReportDirectory/><CRMWorkspacePage kind="reports" /></div> },
   { path: "crm/automation", element: <CentralSettingsRedirect section="crm-automation" /> },
   { path: "crm/lead-to-cash", element: <CRMWorkspacePage kind="leadCash" /> },
   { path: "crm/forecasting", element: <CRMWorkspacePage kind="forecasting" /> },

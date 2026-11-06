@@ -185,7 +185,7 @@ export default function RisksPage() {
 
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
-          <Filter label="Project" value={filters.projectId} onChange={(value) => updateFilter("projectId", value)}>
+          <Filter disabled={!!projectId} label="Project" value={filters.projectId} onChange={(value) => updateFilter("projectId", value)}>
             <option value="">All accessible projects</option>
             {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
           </Filter>
@@ -220,12 +220,12 @@ export default function RisksPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>{editing ? "Edit risk" : "Add risk"}</CardTitle>
-            <Button variant="ghost" size="sm" onClick={resetForm}><X className="h-4 w-4" /></Button>
+            <Button aria-label="Close risk form" variant="ghost" size="sm" onClick={resetForm}><X className="h-4 w-4" /></Button>
           </CardHeader>
           <CardContent>
             <CompactForm className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
               <Field label="Project">
-                <NativeSelect className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
+                <NativeSelect disabled={!!projectId} className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
                   <option value="">Select project</option>
                   {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
                 </NativeSelect>
@@ -367,11 +367,11 @@ export default function RisksPage() {
   );
 }
 
-function Filter({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
+function Filter({ label, value, onChange, children, disabled = false }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode; disabled?: boolean }) {
   return (
     <label className="space-y-1 text-sm">
       <span className="text-xs font-medium uppercase text-muted-foreground">{label}</span>
-      <NativeSelect className="input" value={value} onChange={(event) => onChange(event.target.value)}>{children}</NativeSelect>
+      <NativeSelect aria-label={label} disabled={disabled} className="input" value={value} onChange={(event) => onChange(event.target.value)}>{children}</NativeSelect>
     </label>
   );
 }

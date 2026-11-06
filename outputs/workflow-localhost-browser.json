@@ -1,0 +1,18 @@
+{
+  "site": "http://127.0.0.1:5198",
+  "checked_at_utc": "2026-11-06T19:18:10.424124+00:00",
+  "passed": true,
+  "checks": [
+    "Owner login and persisted workflow editor",
+    "PMS-only requester requests from default task workspace Reviews tab",
+    "PMS-only reviewer follows inbox link to Reviews tab and approves",
+    "Ordered second reviewer approves",
+    "Requester explicitly applies approved transition and sees Applied"
+  ],
+  "task_id": 19,
+  "project_id": 20,
+  "screenshots": [
+    "workflow-localhost-editor.png",
+    "workflow-localhost-applied.png"
+  ]
+}

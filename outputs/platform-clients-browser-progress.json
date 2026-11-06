@@ -1,0 +1,82 @@
+[
+  {
+    "feature": "Authenticated independent owner login",
+    "passed": true
+  },
+  {
+    "feature": "Empty search and combined lifecycle/application filters",
+    "passed": true
+  },
+  {
+    "feature": "Attention queue and priority filter",
+    "passed": true
+  },
+  {
+    "feature": "Single-client aggregate refresh",
+    "passed": true
+  },
+  {
+    "feature": "Required reason blocks empty profile submission",
+    "passed": true
+  },
+  {
+    "feature": "Complete account profile save",
+    "passed": true
+  },
+  {
+    "feature": "Create client note",
+    "passed": true
+  },
+  {
+    "feature": "Create configuration snapshot",
+    "passed": true
+  },
+  {
+    "feature": "Snapshot restore uses in-page reviewed confirmation",
+    "passed": true
+  },
+  {
+    "feature": "Snapshot restore and audit history persisted",
+    "passed": true
+  },
+  {
+    "feature": "Trial extension form validates day range",
+    "passed": true
+  },
+  {
+    "feature": "Allowance form saves numeric limits and existing module choices",
+    "passed": true
+  },
+  {
+    "feature": "Paid-plan and scheduling fields render with active plan catalog",
+    "passed": true
+  },
+  {
+    "feature": "Offline payment form submits successfully",
+    "passed": true
+  },
+  {
+    "feature": "Suspend workflow persists suspended state",
+    "passed": true
+  },
+  {
+    "feature": "Primary admin transfer form validates email input",
+    "passed": true
+  },
+  {
+    "feature": "Support request prepares private consent link",
+    "passed": true
+  },
+  {
+    "feature": "Customer configuration downloads as JSON",
+    "passed": true
+  },
+  {
+    "feature": "Statistics render own database, aggregates and historical samples",
+    "passed": true
+  },
+  {
+    "feature": "Batch refresh completes and clears selection",
+    "passed": true
+  }
+]

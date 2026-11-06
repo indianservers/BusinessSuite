@@ -261,6 +261,10 @@ def build_api_router() -> APIRouter:
             module = import_module(module_name)
             register_routes(module.router, module_name, app_module.key)
             api_router.include_router(module.router)
+    if is_app_enabled("crm") or is_app_enabled("srm"):
+        from app.shared.record_templates import router as record_templates_router
+        register_routes(record_templates_router, "app.shared.record_templates")
+        api_router.include_router(record_templates_router)
     for app_module in iter_enabled_modules():
         if app_module.shared_services and app_module.service_registration:
             import_module(app_module.service_registration).register_services()

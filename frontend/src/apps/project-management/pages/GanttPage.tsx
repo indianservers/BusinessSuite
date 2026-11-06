@@ -218,7 +218,7 @@ export default function GanttPage() {
       <Card>
         <CardContent className="space-y-4 p-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <SelectFilter label="Project" value={filters.projectId} onChange={(value) => setFilters((current) => ({ ...current, projectId: value, sprintId: "", epicId: "" }))}>
+            <SelectFilter disabled={!!projectId} label="Project" value={filters.projectId} onChange={(value) => setFilters((current) => ({ ...current, projectId: value, sprintId: "", epicId: "" }))}>
               <option value="">All projects</option>
               {data?.filters.projects.map((item) => <option key={item.id} value={item.id}>{item.project_key || item.name}</option>)}
             </SelectFilter>
@@ -402,11 +402,11 @@ function buildScheduleFocus(tasks: PMSTaskListItem[], dependencies: PMSTaskDepen
     .slice(0, 5);
 }
 
-function SelectFilter({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
+function SelectFilter({ label, value, onChange, children, disabled = false }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode; disabled?: boolean }) {
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <NativeSelect value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-md border bg-background px-3 text-sm">
+      <NativeSelect aria-label={label} disabled={disabled} value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-md border bg-background px-3 text-sm">
         {children}
       </NativeSelect>
     </label>

@@ -48,6 +48,7 @@ class SignupInput(BaseModel):
     website: str = Field(default="", max_length=200)  # Honeypot; never provisions access.
     source: str = Field(default="website", max_length=80)
     campaign: str = Field(default="", max_length=120)
+    sample_data_requested: bool = False
 
     @field_validator("email")
     @classmethod
@@ -58,6 +59,8 @@ class SignupInput(BaseModel):
     def validate_selection(self):
         if self.applicant_type == "company" and not self.company_name:
             raise ValueError("Company name is required")
+        if self.sample_data_requested and self.applicant_type != "company":
+            raise ValueError("Sample data is available for company signups only")
         from app.core.input_validation import normalize_phone
         self.phone = normalize_phone(self.phone, self.phone_country_code)[0]
         allowed = {m["key"] for m in available_modules()}
@@ -99,7 +102,9 @@ def signup(data: SignupInput, request: Request, db: Session = Depends(get_platfo
         return response
     if db.query(SignupRequest.id).filter_by(email=data.email).first():
         return response
-    signup_row = SignupRequest(**data.model_dump(exclude={"consent", "website"}))
+    signup_row = SignupRequest(**data.model_dump(exclude={"consent", "website", "sample_data_requested"}))
+    if data.sample_data_requested:
+        signup_row.workflow = {"sample_data_requested": True}
     db.add(signup_row)
     db.flush()
     owner_service.event(db, None, "signup.received", "signup", signup_row.id,
@@ -221,12 +226,15 @@ def provision_signup(row, data, db, company_id=None):
     from app.branches.models import BranchPolicy
     db.add(BranchPolicy(user_id=user.id, company_id=company.id, all_branches=True, manage_access=True))
     db.add(AccessMembership(user_id=user.id, company_id=company.id, is_admin=True, active=True))
+    from app.shared.starter_values import populate as populate_starter_values
+    populate_starter_values(db, company.id, branch.id, set(selected))
     grants = {m["key"]: {"enabled": True, "role": "Workspace Admin", "permissions": [p["name"] for p in m["permissions"]], "actions": list(ACTIONS), "scope": "organization"} for m in catalog(db) if m["key"] in selected}
     if set(grants) != set(selected):
         raise HTTPException(422, "Trial module configuration is unavailable")
     db.add(AccessPolicy(user_id=user.id, company_id=company.id, grants=validate_grants(db, grants, company.id), status="invited", version=1, updated_by=None))
     ends = now + timedelta(days=data.trial_days)
-    plan = TenantSubscriptionPlan(code=code, name="Public Trial", active=True, config_json={"modules": selected, "seats": data.seats, "storage_mib": data.storage_mib})
+    plan = TenantSubscriptionPlan(code=code, name="Public Trial", active=True, config_json={"modules": selected, "seats": data.seats, "storage_mib": data.storage_mib,
+        "company_signup": row.applicant_type == "company", **({"sample_data_requested": True} if (row.workflow or {}).get("sample_data_requested") else {})})
     db.add(plan)
     db.flush()
     db.add(TenantSubscription(company_id=company.id, plan_id=plan.id, status="trial", admin_override=False, config_json={"enforce": True, "modules": selected, "seats": data.seats, "storage_mib": data.storage_mib, "expiry_policy": "restrict", "renewal_at": ends.isoformat(), "grace_until": ends.isoformat()}))

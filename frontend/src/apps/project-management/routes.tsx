@@ -1,3 +1,4 @@
+import { ProjectDetailFrame } from "./components/ProjectDetailHeader";
 import React from "react";
 const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
 const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
@@ -38,6 +39,8 @@ const TrashPage = React.lazy(() => import("./pages/TrashPage"));
 const ProjectManagementHomePage = React.lazy(() => import("./ProjectManagementHomePage"));
 const ProjectBillingPage = React.lazy(() => import("./pages/ProjectBillingPage"));
 const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
+const ProjectCommunicationPage = React.lazy(() => import("./pages/ProjectCommunicationPage"));
+const TeamCommunicationPage = React.lazy(() => import("./pages/TeamCommunicationPage"));
 const KanbanBoard = React.lazy(() => import("./pages/KanbanBoard"));
 const ProjectsList = React.lazy(() => import("./pages/ProjectsList"));
 const CreateProjectPage = React.lazy(() => import("./pages/CreateProjectPage"));
@@ -101,7 +104,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
  {path:"pms/admin/configuration",element:<AdminPage/>},
  {path:"pms/my-work",element:<MyWorkPage/>},
  {path:"pms/members",element:<MemberManagementPage/>},
- {path:"pms/projects/:projectId/members",element:<MemberManagementPage/>},
+ {path:"pms/projects/:projectId/members",element:<ProjectDetailFrame><MemberManagementPage /></ProjectDetailFrame>},
  {path:"pms/people",element:<PeopleDirectoryPage/>},
  {path:"pms/people/:personId",element:<PeopleDirectoryProfile/>},
  {path:"pms/directory",element:<PeopleDirectoryPage/>},
@@ -145,16 +148,16 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/projects/:projectId/edit", element: <CreateProjectPage /> },
   
   // Project Dashboard & Views
-  { path: "pms/projects/:projectId/billing", element: <ProjectBillingPage /> },
+  { path: "pms/projects/:projectId/billing", element: <ProjectDetailFrame><ProjectBillingPage /></ProjectDetailFrame> },
   { path: "pms/projects/:projectId", element: <ProjectDashboard /> },
-  { path: "pms/projects/:projectId/communication", element: <ProjectDashboard communication /> },
-  { path: "pms/projects/:projectId/board", element: <KanbanBoard /> },
-  { path: "pms/projects/:projectId/timeline", element: <GanttPage /> },
-  { path: "pms/projects/:projectId/gantt", element: <GanttPage /> },
-  { path: "pms/projects/:projectId/milestones", element: <MilestonesPage /> },
-  { path: "pms/projects/:projectId/files", element: <FilesPage /> },
-  { path: "pms/projects/:projectId/reports", element: <ReportsPage /> },
-  { path: "pms/projects/:projectId/risks", element: <RisksPage /> },
+  { path: "pms/projects/:projectId/communication", element: <ProjectCommunicationPage /> },
+  { path: "pms/projects/:projectId/board", element: <ProjectDetailFrame><KanbanBoard /></ProjectDetailFrame> },
+  { path: "pms/projects/:projectId/timeline", element: <ProjectDetailFrame><GanttPage /></ProjectDetailFrame> },
+  { path: "pms/projects/:projectId/gantt", element: <ProjectDetailFrame><GanttPage /></ProjectDetailFrame> },
+  { path: "pms/projects/:projectId/milestones", element: <ProjectDetailFrame><MilestonesPage /></ProjectDetailFrame> },
+  { path: "pms/projects/:projectId/files", element: <ProjectDetailFrame><FilesPage /></ProjectDetailFrame> },
+  { path: "pms/projects/:projectId/reports", element: <ProjectDetailFrame><ReportsPage /></ProjectDetailFrame> },
+  { path: "pms/projects/:projectId/risks", element: <ProjectDetailFrame><RisksPage /></ProjectDetailFrame> },
   
   // Tasks
   { path: "pms/tasks", element: <TaskExperiencePage /> },
@@ -185,6 +188,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/goals", element: <CommandCenterPage /> },
   { path: "pms/forms", element: <FormsPage /> },
   { path: "pms/messages", element: <DirectMessagesPage /> },
+  { path: "pms/team-communication", element: <TeamCommunicationPage /> },
   { path: "pms/custom-fields", element: <CustomFieldManagerPage /> },
   { path: "pms/teams", element: <TeamsPage /> },
   { path: "pms/org-chart", element: <OrgChartPage /> },
@@ -199,7 +203,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/dashboards", element: <DashboardsPage /> },
   { path: "pms/docs", element: <DocsPage /> },
   { path: "pms/notes", element: <NotesPage /> },
-  { path: "pms/projects/:projectId/notes", element: <NotesPage /> },
+  { path: "pms/projects/:projectId/notes", element: <ProjectDetailFrame><NotesPage /></ProjectDetailFrame> },
   { path: "pms/task-types", element: <TaskTypesPage /> },
   { path: "pms/tags", element: <TagManagerPage /> },
   { path: "pms/plans", element: <PlansPage /> },

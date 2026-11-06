@@ -40,7 +40,7 @@ export const mobileModuleMenus: Record<string, Item[]> = {
 
     item("Deals", Handshake, "/crm/deals", [["Create deal", "/crm/deals?new=deals"], ["View pipeline", "/crm/pipeline"], ["View quotes", "/crm/quotes"], ["Sales forecast", "/crm/forecasting"]]),
 
-    item("Follow-ups", CalendarCheck, "/crm/follow-ups", [["Follow-up worklist", "/crm/follow-ups"], ["Follow-up calendar", "/crm/follow-ups/calendar"], ["Customer follow-ups", "/crm/customer-follow-ups"], ["Activity history", "/crm/activities"]]),
+    item("Follow-ups", CalendarCheck, "/crm/follow-ups", [["Follow-up worklist", "/crm/follow-ups"], ["Follow-up calendar", "/crm/follow-ups/calendar"], ["Customer follow-ups", "/crm/customer-follow-ups"], ["Activity history", "/crm/activities"], ["Meetings", "/crm/meetings"], ["Calls", "/crm/calls"]]),
 
   ],
 

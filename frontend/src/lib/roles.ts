@@ -52,6 +52,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Smartphone,
+  Phone,
   Store,
   TableProperties,
   Target,
@@ -506,6 +507,7 @@ const pmsDeliveryOnlyPaths = [
 ];
 
 function canAccessPmsPath(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname.replace(/\/$/, "") === "/pms/team-communication") return true;
   if (["/pms/management", "/pms/my-work", "/pms/tasks-follow-ups"].includes(pathname) || /^\/pms\/(?:follow-ups(?:\/[^/]+)?|customers\/\d+\/360)$/.test(pathname)) return true;
   if (["/pms/projects", "/pms/tasks", "/pms/products-services", "/pms/products"].includes(pathname) || /^\/pms\/projects\/\d+(?:\/(?:board|members))?$/.test(pathname)) return true;
   if (pathname === "/pms/members" || /^\/pms\/projects\/\d+\/members\/?$/.test(pathname)) return true;
@@ -844,9 +846,11 @@ const crmNav: RoleNavItem[] = [
   { label: "Payment requests", icon: DollarSign, to: "/crm/payment-requests", group: "Sales" },
   { label: "Deals", icon: DollarSign, to: "/crm/deals", group: "Sales" },
   { label: "Pipeline", icon: GitBranch, to: "/crm/pipeline", group: "Sales", badge: "Drag" },
-  { label: "Pipeline templates", icon: LayoutGrid, to: "/crm/templates", group: "Sales" },
+  { label: "Templates", icon: LayoutGrid, to: "/crm/templates", group: "Sales" },
   { label: "Forecasting", icon: BarChart3, to: "/crm/forecasting", group: "Sales", badge: "Quota" },
   { label: "Activities", icon: Clock, to: "/crm/activities", group: "Sales" },
+  { label: "Meetings", icon: CalendarDays, to: "/crm/meetings", group: "Sales" },
+  { label: "Calls", icon: Phone, to: "/crm/calls", group: "Sales" },
   { label: "Tasks", icon: ClipboardCheck, to: "/crm/tasks", group: "Sales" },
   { label: "Follow-Ups", icon: ClipboardCheck, to: "/crm/follow-ups", group: "Sales" },
   { label: "Calendar", icon: CalendarDays, to: "/crm/calendar", group: "Sales" },
@@ -941,6 +945,7 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "People directory", icon: Users, to: "/pms/people", group: "People & access" },
   { label: "Teams", icon: Users, to: "/pms/teams", group: "People & access" },
   { label: "Messages", icon: MessageCircle, to: "/pms/messages", group: "Collaboration" },
+  { label: "Team Communication", icon: MessageCircle, to: "/pms/team-communication", group: "Collaboration" },
   { label: "Docs", icon: FileText, to: "/pms/docs", group: "Collaboration" },
   { label: "Timesheets", icon: Clock, to: "/pms/timesheets", group: "Collaboration" },
   { label: "Workload", icon: Users, to: "/pms/workload", group: "Planning & delivery" },
