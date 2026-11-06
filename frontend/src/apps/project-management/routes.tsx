@@ -147,6 +147,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   // Project Dashboard & Views
   { path: "pms/projects/:projectId/billing", element: <ProjectBillingPage /> },
   { path: "pms/projects/:projectId", element: <ProjectDashboard /> },
+  { path: "pms/projects/:projectId/communication", element: <ProjectDashboard communication /> },
   { path: "pms/projects/:projectId/board", element: <KanbanBoard /> },
   { path: "pms/projects/:projectId/timeline", element: <GanttPage /> },
   { path: "pms/projects/:projectId/gantt", element: <GanttPage /> },

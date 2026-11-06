@@ -21,8 +21,9 @@ import { formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import { projectsAPI, tasksAPI } from "../services/api";
 import { useProjectStore, useTaskStore } from "../store";
 import type { DashboardData, PMSTask } from "../types";
+import ProjectCommunication from "../components/ProjectCommunication";
 
-export default function ProjectDashboard() {
+export default function ProjectDashboard({ communication = false }: { communication?: boolean }) {
   const { projectId } = useParams<{ projectId: string }>();
   const id = Number(projectId || 0);
   const mobileMembers=useQuery({queryKey:["mobile-project-members",id],queryFn:()=>api.get<{user_id:number;name?:string;email?:string}[]>(`/project-management/projects/${id}/members`).then(r=>r.data),enabled:!!id});
@@ -87,6 +88,10 @@ export default function ProjectDashboard() {
         </div></details></div>
       </div>
 
+      <nav aria-label="Project views" className="flex gap-6 overflow-x-auto border-b">
+        {[["Overview", ""], ["Tasks", "/board"], ["Milestones", "/milestones"], ["Files", "/files"], ["Communication", "/communication"]].map(([label, suffix]) => <Link key={label} to={`/pms/projects/${id}${suffix}`} aria-current={(communication ? suffix === "/communication" : suffix === "") ? "page" : undefined} className={`whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium ${(communication ? suffix === "/communication" : suffix === "") ? "border-emerald-600 text-emerald-700 dark:text-emerald-400" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{label}</Link>)}
+      </nav>
+      {communication ? <ProjectCommunication key={`${id}:${project.workspace_id}`} project={project} tasks={tasks} /> : <>
       <section className="rounded-2xl border bg-card p-4 space-y-3"><h2 className="font-semibold">Project at a glance</h2><div className="flex items-center justify-between"><strong>{project.progress_percent}% complete</strong><span className="text-sm">{project.health} · Due {formatDate(project.due_date || null)}</span></div><progress aria-label="Project completion" className="h-2 w-full accent-primary" value={project.progress_percent} max={100}/><div className="flex justify-between text-sm"><span>Blockers: {dashboard?.status_counts?.Blocked ?? 0}</span><span>Overdue: {dashboard?.metrics.overdue_tasks ?? 0}</span></div><Link className="block rounded-md border px-3 py-2 text-sm hover:bg-muted" to={`/pms/projects/${id}/milestones`}>{nextMilestone ? `${nextMilestone.name} · ${nextMilestone.due_date || "No due date"}` : "View milestones"}</Link><Link className="block rounded-md border px-3 py-2 text-sm hover:bg-muted" to={`/pms/projects/${id}/members`}>Owner: {project.manager_user_id ? (mobileMembers.data?.find(member=>member.user_id===project.manager_user_id)?.name || "Assigned") : "Unassigned"} · View team</Link></section>
       <section aria-labelledby="project-attention" className="space-y-3">
         <h2 id="project-attention" className="text-base font-semibold">Needs attention</h2>
@@ -159,6 +164,7 @@ export default function ProjectDashboard() {
         </Card>
       ) : null}
 
+      </>}
     </div>
   );
 }
