@@ -94,10 +94,9 @@ def process_operator_queue() -> dict:
 
 
 @celery_app.task(name="app.worker.sync_connected_accounting")
-@all_company_job
 def sync_connected_accounting() -> dict:
     from app.module_registry import is_app_enabled
     if not is_app_enabled("fam"):
         return {"disabled": True}
-    from app.shared.accounting_sync.jobs import process_due
-    return process_due(SessionLocal)
+    from app.shared.accounting_sync.jobs import dispatch_due
+    return dispatch_due()

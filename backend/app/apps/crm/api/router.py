@@ -114,6 +114,8 @@ from app.apps.crm.growth import router as growth_router
 router.include_router(growth_router)
 from app.apps.crm.deal_workspace import router as deal_workspace_router
 router.include_router(deal_workspace_router)
+from app.apps.crm.template_studio import router as template_studio_router
+router.include_router(template_studio_router)
 
 
 
@@ -8767,6 +8769,9 @@ def list_records(
         query = query.filter(resource.model.deleted_at.isnot(None))
     query = _apply_record_visibility(query, resource, current_user, db)
     query = _apply_filters(query, resource, request, owner_id)
+    if resource.model is CRMTask:
+        from ..task_filters import apply_task_queue
+        query = apply_task_queue(query, request.query_params.get("task_queue", "all"), request.query_params.get("timezone", "UTC"))
     query = _apply_custom_field_filters(db, query, resource, request, organization_id)
     query = _apply_search(query, resource, search or q)
     total = query.count()
@@ -8791,7 +8796,8 @@ def list_records(
         query = query.order_by(asc(closed_order), asc(priority_order), asc(CRMTicket.due_date), desc(CRMTicket.created_at))
     else:
         sort_column = getattr(resource.model, sort_key)
-        query = query.order_by(asc(sort_column) if sort_order == "asc" else desc(sort_column))
+        order = asc(sort_column) if sort_order == "asc" else desc(sort_column)
+        query = query.order_by(order.nulls_last(), resource.model.id.asc()) if resource.model is CRMTask else query.order_by(order)
     rows = query.offset((page - 1) * per_page).limit(per_page).all()
     items = _custom_field_columns_for_rows(db, canonical, rows, organization_id) if canonical in CUSTOM_FIELD_SUPPORTED_ENTITIES else [_serialize(row) for row in rows]
 

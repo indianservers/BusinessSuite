@@ -52,6 +52,10 @@ def model_module(model):
 
 def install_scope(db, user, company, grants):
     def scoped_model_module(model):
+        if model.__module__ == "app.models.workflow_engine" and getattr(user, "_suite_current_module", None) == "project_management":
+            # PMS owns its shared-engine transitions; this does not grant the
+            # reviewer access to the Automation API or its other workflows.
+            return "project_management"
         if model.__tablename__ in {"crm_companies", "crm_contacts", "suite_contact_identity_links"}:
             source = getattr(user, "_suite_current_module", None)
             if source in {"crm", "srm", "project_management"}:
@@ -326,6 +330,14 @@ def install_scope(db, user, company, grants):
             if scope == "department" and department and "department_id" in columns:
                 owner.append(model.department_id == department)
         guards, parent_access = [], []
+        pms_engine = model.__module__ == "app.models.workflow_engine" and getattr(user, "_suite_current_module", None) == "project_management"
+        if pms_engine:
+            if model.__tablename__ == "workflow_definitions":
+                guards += [model.module == "project_management", model.trigger_event == "pms.transition"]
+            elif model.__tablename__ == "workflow_instances":
+                guards += [model.module == "project_management", model.entity_type == "pms_transition"]
+            elif model.__tablename__ == "workflow_delegations":
+                guards.append(or_(model.module.is_(None), model.module == "project_management"))
         for field in (
             "employee_id",
             "task_id",
@@ -340,6 +352,7 @@ def install_scope(db, user, company, grants):
             "approval_id",
             "quote_id",
             "quotation_id",
+            *(("workflow_id", "step_definition_id") if pms_engine else ()),
             *(("product_id", "service_id") if model.__tablename__ in {"shared_catalog_details", "shared_catalog_links"} else ()),
         ):
             if field not in columns:
@@ -462,6 +475,13 @@ def install_scope(db, user, company, grants):
                         403, "Global configuration requires a global Super Admin"
                     )
             key = scoped_model_module(type(item))
+            pms_engine = type(item).__module__ == "app.models.workflow_engine" and getattr(user, "_suite_current_module", None) == "project_management"
+            workflow_parent = getattr(item, "workflow", None) if pms_engine else None
+            pending_workflow = bool(workflow_parent is not None and workflow_parent.organization_id == company
+                                    and workflow_parent.module == "project_management" and workflow_parent.trigger_event == "pms.transition")
+            if pms_engine and type(item).__tablename__ in {"workflow_definitions", "workflow_instances"}:
+                if item.module != "project_management" or (type(item).__tablename__ == "workflow_instances" and item.entity_type != "pms_transition"):
+                    raise HTTPException(403, "PMS requests cannot change another module's workflows")
             source = getattr(item, "_suite_source_record", None)
             if (item in session.new and type(item).__tablename__ == "communication_customer_events"
                     and source is not None and source in session
@@ -502,6 +522,7 @@ def install_scope(db, user, company, grants):
                     "workspace_id",
                     "user_id",
                     "owner_user_id",
+                    *(("instance_id", "workflow_id", "step_definition_id") if pms_engine else ()),
                 )
             ):
                 raise HTTPException(
@@ -526,8 +547,9 @@ def install_scope(db, user, company, grants):
                     "instance_id",
                     "form_id",
                     "approval_id",
+                    *(("workflow_id", "step_definition_id") if pms_engine else ()),
                 )
-            ):
+            ) and not pending_workflow:
                 origin = next(
                     (
                         field

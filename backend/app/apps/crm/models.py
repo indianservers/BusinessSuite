@@ -1357,3 +1357,4 @@ class CRMApprovalRequestStep(Base):
     step = relationship("CRMApprovalStep")
 
 from app.apps.crm.financial_models import ContactFinancialProfile, ContactFinancialTransaction  # noqa: F401,E402
+from app.apps.crm.template_models import CRMVisualTemplate  # noqa: F401,E402

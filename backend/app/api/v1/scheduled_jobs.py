@@ -90,3 +90,12 @@ def service_follow_up_reminders(response: Response, authorization: str = Header(
     from app.shared.follow_ups import dispatch
     dispatch(db)
     return {"status": "processed"}
+
+
+@router.get("/internal/accounting-sync")
+def accounting_sync(response: Response, authorization: str = Header("")):
+    if not settings.CRON_SECRET or not secrets.compare_digest(authorization, f"Bearer {settings.CRON_SECRET}"):
+        raise HTTPException(401,"Invalid scheduler credentials")
+    response.headers["Cache-Control"]="no-store"
+    from app.shared.accounting_sync.jobs import dispatch_due
+    return dispatch_due(limit=2)

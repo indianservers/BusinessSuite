@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     INSTALLED_APPS: Union[List[str], str] = ["hrms", "crm", "project_management", "srm", "fam"]
 
     SERVERLESS: bool = False
+    ACCOUNTING_SYNC_WORKER_ENABLED: bool = True
     BUSINESSSUITE_BACKUP_SCHEDULER: bool = False
     BUSINESSSUITE_BACKUP_DIR: str = ""
     CRON_SECRET: str = ""

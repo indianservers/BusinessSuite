@@ -107,6 +107,10 @@ async def lifespan(app: FastAPI):
     if settings.EMAIL_WORKER_ENABLED:
         from app.services.email_dispatch import start_email_worker
         email_worker = start_email_worker()
+    accounting_worker = None
+    if settings.ACCOUNTING_SYNC_WORKER_ENABLED and is_app_enabled("fam"):
+        from app.shared.accounting_sync.jobs import start_worker as start_accounting_worker
+        accounting_worker = start_accounting_worker()
     if settings.BUSINESSSUITE_BACKUP_SCHEDULER:
         from app.services.backup_scheduler import start_scheduler
         backup_worker = start_scheduler()
@@ -127,6 +131,8 @@ async def lifespan(app: FastAPI):
             email_worker[0].set()
         if backup_worker:
             backup_worker[0].set()
+        if accounting_worker:
+            accounting_worker[0].set()
     # Shutdown
 
 

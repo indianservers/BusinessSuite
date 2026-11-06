@@ -33,6 +33,8 @@ def owner_scope(db, connection):
         stack.callback(tenant_boundary(db,user,connection.organization_id))
         ctx=context(db,user,connection.organization_id,str(connection.branch_id))
         stack.callback(branch_boundary(db,user,ctx))
+        from app.shared.record_360 import module_access
+        module_access(db,user,"fam")
         finance_context(db,user,request)
         # Verify ownership under the installed row guards, not just the discovery query.
         visible=db.query(SyncConnection).filter_by(id=connection.id,organization_id=ctx.company_id,branch_id=ctx.branch_id,created_by=user.id).first()
@@ -78,3 +80,28 @@ def process_due(factory, limit=10):
                     db.commit()
                 result["failed"]+=1
     return result
+
+
+def dispatch_due(limit=10):
+    from app.db.session import SessionLocal
+    from app.db.tenant import run_for_company_databases, current_tenant
+    from app.module_registry import is_app_enabled
+    if not is_app_enabled("fam"):return {"disabled":True}
+    if current_tenant.get():return process_due(SessionLocal,limit)
+    results=[]
+    run_for_company_databases(lambda:results.append(process_due(SessionLocal,limit)))
+    return {"databases_processed":len(results),"results":results}
+
+
+def start_worker():
+    import logging
+    import threading
+    stop=threading.Event()
+    def loop():
+        while not stop.is_set():
+            try:dispatch_due()
+            except Exception:logging.getLogger(__name__).warning("accounting_sync_tick_failed; check migrations and account settings")
+            stop.wait(60)
+    thread=threading.Thread(target=loop,daemon=True,name="suite-accounting-sync")
+    thread.start()
+    return stop,thread

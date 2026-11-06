@@ -1,5 +1,5 @@
 {
-  "scope": "Latest203/233/240/242/243 browser passes;245/247/249 capability gaps. See cumulative status for all runs.",
+  "scope": "Nine further browser passes, including previously blocked245,247,249. See cumulative status for28 passes and22 outstanding cases.",
   "configuration": {
     "inventory": "Disposable in-memory SQLite companies, ports5308-5312; separate before/fixed/final fixtures, not one combined balance. INR; negative stock disabled; component600/kg; BOM0.25kg per finished unit,yield1. Global serial identity:trim+uppercase.",
     "production_final": "http://127.0.0.1:5312; QA-248-FINAL-AMEND; no reservation subsystem.",
@@ -27,7 +27,7 @@
     "Draft PO supplier and line amendments with review confirmation,audit,recalculated totals,stale/receipt guards; GRN supplier must match PO."
   ],
   "tests": {
-    "inventory_pytest": "96 passed",
+    "inventory_pytest": "102 passed",
     "javascript": "5 checks passed",
     "persisted_assertions": "Production6,consumption1.5kg,value900; serialSold linkedreceipt1,stock0; Bdeactivated onlyafter commitmentcancelled.",
     "whitespace": "git diff --check passed",
@@ -53,7 +53,8 @@
     "workflows-201-250-remaining-final-regression.xml",
     "workflows-222-225-results.json",
     "workflows-238-239-results.json",
-    "workflows-201-250-next-results.json"
+    "workflows-201-250-next-results.json",
+    "workflows-201-250-unblocked-results.json"
   ],
   "prior_reports": [
     "workflows-201-250-results.json",
@@ -63,14 +64,33 @@
     {
       "workflow": 201,
       "title": "Shipping charge refunded independently of goods",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "INV-2026-00001",
+        "CN-2026-00001",
+        "RF-2026-00001"
+      ],
+      "expected": "Only shipping 100 and its original tax 18 reverse; goods remain sold; refund once.",
+      "actual": "Browser sold goods plus separately identified non-stock shipping service for1298. Shipping-only credit118, bank refund118. Original-tax18 applied even when zero was submitted. Repeat refund and second original-linked shipping credit rejected. Product stock9, one goods issue, no return document; customer netbalance0.",
+      "persisted_evidence": "workflows-201-shipping-final-browser-records.json",
+      "browser_evidence": "workflows-201-shipping-credit.png"
     },
     {
       "workflow": 202,
       "title": "Multiple partial returns against one invoice",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "INV-2026-00001",
+        "QA-202-2",
+        "QA-202-3",
+        "QA-202-1"
+      ],
+      "expected": "Sell10; dated returns2+3+1 credit7080 and restock6; eligibility4.",
+      "actual": "Browser sale10 for11800; approved returns2 onNov7,3 onNov8,1 onNov9 credited2360/3540/1180 and restored6 units. Attempt5 rejected. Found and fixed dynamic input type change that turned replacement2 into21. Final stock16 from initial20.",
+      "persisted_evidence": "workflows-202-complete-browser-records.json",
+      "browser_evidence": "workflows-202-three-dated-returns.png"
     },
     {
       "workflow": 203,
@@ -95,8 +115,16 @@
     {
       "workflow": 205,
       "title": "Financial credit without a physical return",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "INV-2026-00003",
+        "CN-2026-00001"
+      ],
+      "expected": "Authorized financial credit118 reduces1180 receivable to1062 without physical return.",
+      "actual": "Browser issued Price credit100+tax18 and applied118 to invoice3. Refreshed balance1062; no return or extra inventory movement. Stock7 after three issued one-unit invoices remains7. Added same-customer, issued-status and exact available-balance checks for application.",
+      "persisted_evidence": "workflows-205-214-browser-records.json",
+      "browser_evidence": "workflows-205-financial-credit-applied.png"
     },
     {
       "workflow": 206,
@@ -149,8 +177,18 @@
     {
       "workflow": 214,
       "title": "Copy an invoice without duplicating settlement",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "INV-2026-00001",
+        "INV-2026-00002",
+        "REC-2026-00001",
+        "REC-2026-00002"
+      ],
+      "expected": "Copied invoice starts as a distinct unpaid draft with no reused receipts, issue stamps or delivery links.",
+      "actual": "Added supported copy action. Browser copied paid source into new draft1180, paid0, balance1180 and no payment history. Issued and collected with independent cash receipt1180; source retained its card receipt1180. Regression also checks external payment/IRN identities are not copied.",
+      "persisted_evidence": "workflows-214-paid-browser-records.json",
+      "browser_evidence": "workflows-214-unpaid-copy.png"
     },
     {
       "workflow": 215,
@@ -173,8 +211,17 @@
     {
       "workflow": 218,
       "title": "Manual price override does not update the master",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "INV-2026-00002",
+        "INV-2026-00003",
+        "P1"
+      ],
+      "expected": "Override is transaction-only; next sale uses unchanged master1000.",
+      "actual": "Browser authorized rate800 produced paid944 invoice. Next basket loaded1000 and completed paid1180. Product master remained1000 until the separate later236 edit.",
+      "persisted_evidence": "workflows-202-218-236-browser-records.json",
+      "browser_evidence": "workflows-218-next-sale-normal-price.png"
     },
     {
       "workflow": 219,
@@ -323,8 +370,18 @@
     {
       "workflow": 236,
       "title": "Product sold while another user changes its master",
-      "status": "Not executed in this continuation",
-      "execution": "See earlier reports; no new pass claim"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "INV-2026-00004",
+        "P1",
+        "cashier user1",
+        "master editor user2"
+      ],
+      "expected": "Loaded basket follows documented snapshot policy; final amount and collection agree after a master edit.",
+      "actual": "Separate localhost editor session changed master from1000/18% to1200/5% while the cashier basket was loaded. Authorized cashier retained explicit1000/18% snapshot; saved invoice and card receipt both1180 after reload. Master edit verified separately.",
+      "persisted_evidence": "workflows-202-218-236-browser-records.json",
+      "browser_evidence": "workflows-236-basket-snapshot-invoice.png"
     },
     {
       "workflow": 237,
@@ -435,12 +492,18 @@
     {
       "workflow": 245,
       "title": "Stock adjustment requiring an attachment",
-      "status": "Blocked",
-      "execution": "Browser capability inspection; unsupported configuration",
-      "documents": [],
-      "expected": "Supported configuration and complete workflow execution",
-      "actual": "Form exposes immediate Post Adjustment only; no attachment or approval capability. No posting attempted.",
-      "evidence": "workflows-201-250-next-capability-observations.json"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "QA-245-EVIDENCE",
+        "StockAdjustment1",
+        "qa-245-count-sheet.csv"
+      ],
+      "expected": "Required evidence gates approval and exactly one stock posting; approved attachment remains linked.",
+      "actual": "Added configurable policy, pending review, private validated evidence and authorized approval. Browser submission and evidence-free approval left stock unchanged. Executable and oversized CSV rejected; valid count sheet attached, approved and posted once. Reload retained hash/reviewer and stock12. Repeat posting/frozen evidence/unauthenticated download guards tested.",
+      "evidence": "workflows-201-250-next-capability-observations.json",
+      "persisted_evidence": "workflows-245-posted-browser-records.json",
+      "browser_evidence": "workflows-245-posted-with-evidence.png"
     },
     {
       "workflow": 246,
@@ -456,12 +519,18 @@
     {
       "workflow": 247,
       "title": "Production components issued from different warehouses",
-      "status": "Blocked",
-      "execution": "Browser capability inspection; unsupported configuration",
-      "documents": [],
-      "expected": "Supported configuration and complete workflow execution",
-      "actual": "No component-specific source locations or separate destination are configurable. No production posted.",
-      "evidence": "workflows-201-250-next-capability-observations.json"
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
+      "documents": [
+        "QA-247-FINAL",
+        "ManufacturingOrder1",
+        "BOM1"
+      ],
+      "expected": "Components issue from assigned warehouses; output goes to destination; cost reconciles.",
+      "actual": "Added persisted per-component sources and distinct finished destination. Browser produced2: Main issued2 at100, WarehouseB issued4 at200, finished warehouse received2 at500. Total cost1000. Source balances8 and6, finished2. Regression confirms insufficient source rolls back all movements and repeated completion adds none.",
+      "evidence": "workflows-201-250-next-capability-observations.json",
+      "persisted_evidence": "workflows-247-final-browser-records.json",
+      "browser_evidence": "workflows-247-two-source-ledger-final.png"
     },
     {
       "workflow": 248,
@@ -477,14 +546,20 @@
     {
       "workflow": 249,
       "title": "Saved report filter shared with another authorized user",
-      "status": "Blocked",
-      "execution": "Browser capability inspection; unsupported configuration",
+      "status": "Pass",
+      "execution": "Browser and persisted-record verification",
       "documents": [
-        "CustomView1 QA-249 November warehouse report"
+        "CustomView1 QA-249 November Main Paid",
+        "CustomView2 QA-249 Other Warehouse Paid",
+        "reader user2",
+        "QA-249-MAIN",
+        "QA-249-OTHER"
       ],
-      "expected": "Supported configuration and complete workflow execution",
-      "actual": "Saved report JSON record persists, but Sales Summary exposes manual filters only and no apply/share saved-view action. Narrow-user shared-view execution/export could not be performed; no access-control pass claimed.",
-      "evidence": "workflows-201-250-next-capability-observations.json"
+      "expected": "Shared date/warehouse/status filters persist; reader restrictions intersect with filters and export.",
+      "actual": "Added apply/save shared report flow and Sales Summary warehouse restrictions. Admin saved Nov1-Nov30,Main,Paid view and restricted reader toMain. Reader reload showed one118 invoice; shared WarehouseB view showed zero rows. Browser-downloaded workbook contains header and only QA-249-MAIN118; no999 unauthorized invoice.",
+      "evidence": "workflows-201-250-next-capability-observations.json",
+      "persisted_evidence": "workflows-249-restricted-export.xlsx",
+      "browser_evidence": "workflows-249-restricted-shared-view.png"
     },
     {
       "workflow": 250,

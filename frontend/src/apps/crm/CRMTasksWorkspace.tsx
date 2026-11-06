@@ -26,6 +26,13 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
+  const [queue, setQueue] = useState("all");
+  const [taskStatus, setTaskStatus] = useState("all");
+  const [priority, setPriority] = useState("all");
+  const [mine, setMine] = useState(false);
+  const [sort, setSort] = useState("due_date:asc");
+  const [total, setTotal] = useState(0);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(0);
   const [refresh, setRefresh] = useState(0);
@@ -42,12 +49,22 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
   useEffect(() => {
     let active = true;
     setLoading(true); setError("");
-    api.get<{ items: Task[]; pages: number }>("/crm/tasks", { params: { page, per_page: 25, search } })
-      .then(({ data }) => { if (active) { setTasks(data.items); setPages(data.pages); if (page > Math.max(1, data.pages)) setPage(Math.max(1, data.pages)); } })
+    api.get<{ items: Task[]; pages: number; total: number }>("/crm/tasks", { params: { page, per_page: 25, search, task_queue: queue, timezone, status: taskStatus, priority, owner_id: mine ? user?.id : undefined, sort_by: sort.split(":")[0], sort_order: sort.split(":")[1] } })
+      .then(({ data }) => { if (active) { setTasks(data.items); setTotal(data.total ?? data.items.length); setPages(data.pages); if (page > Math.max(1, data.pages)) setPage(Math.max(1, data.pages)); } })
       .catch(e => { if (active) setError(errorMessage(e)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [page, search, refresh]);
+  }, [page, search, refresh, queue, timezone, taskStatus, priority, mine, sort, user?.id]);
+  function filterChange(update: () => void) { update(); setPage(1); }
+  async function complete(task: Task) {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true); setError("");
+    try {
+      await api.patch(`/crm/tasks/${task.id}`, { status: "Done", task_details: { ...task.task_details, status: "Done" } });
+      setMessage(`Completed “${task.title}”.`); setRefresh(v => v + 1);
+    } catch (e) { setError(errorMessage(e)); }
+    finally { busyRef.current = false; setBusy(false); }
+  }
   function payload(draft: TaskCreationDraft) {
     return { ...(user && draft.assignees.some(person => person === user.email || person === user.name) ? { owner_user_id: user.id } : {}), title: draft.title, description: draft.description, status: draft.status, priority: draft.priority, due_date: draft.due ? `${draft.due}T12:00:00Z` : null, task_details: draft };
   }
@@ -88,6 +105,15 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
     {!!legacy.length && <div className="rounded-md border p-3">{legacy.length} tasks are still saved only in this browser. <button className="underline" disabled={busy} onClick={() => void importLegacy()}>{busy ? "Importing…" : "Save browser tasks to CRM"}</button></div>}
     {error && <p role="alert" className="text-red-600">{error} <button onClick={() => setRefresh(v => v + 1)} className="underline">Retry</button></p>}
     {message && <p role="status">{message}</p>}
+    <nav aria-label="Task queues" className="flex flex-wrap gap-2">{[["all", "All tasks"], ["open", "Open"], ["overdue", "Overdue"], ["today", "Due today"], ["week", "Next 7 days"], ["unscheduled", "Unscheduled"], ["completed", "Completed"]].map(([value, label]) => <button key={value} aria-pressed={queue === value} className={`rounded-md border px-3 py-2 text-sm ${queue === value ? "bg-primary text-primary-foreground" : "bg-background"}`} onClick={() => filterChange(() => setQueue(value))}>{label}</button>)}</nav>
+    <div className="flex flex-wrap items-center gap-3 rounded-md border p-3">
+      <label className="text-sm">Status <select aria-label="Filter task status" className="rounded border bg-background p-2" value={taskStatus} onChange={e => filterChange(() => setTaskStatus(e.target.value))}>{["all", "To Do", "In Progress", "Done", "Not Started", "Deferred", "Completed"].map(value => <option key={value} value={value}>{value === "all" ? "All statuses" : value}</option>)}</select></label>
+      <label className="text-sm">Priority <select aria-label="Filter task priority" className="rounded border bg-background p-2" value={priority} onChange={e => filterChange(() => setPriority(e.target.value))}>{["all", "Low", "Medium", "High", "Urgent", "Highest"].map(value => <option key={value} value={value}>{value === "all" ? "All priorities" : value}</option>)}</select></label>
+      <label className="text-sm">Sort <select aria-label="Sort tasks" className="rounded border bg-background p-2" value={sort} onChange={e => filterChange(() => setSort(e.target.value))}>{[["due_date:asc", "Due soonest"], ["due_date:desc", "Due latest"], ["created_at:desc", "Newest first"], ["title:asc", "Title A–Z"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={mine} onChange={e => filterChange(() => setMine(e.target.checked))}/>Assigned to me</label>
+      <button className="text-sm underline" onClick={() => filterChange(() => { setQueue("all"); setTaskStatus("all"); setPriority("all"); setMine(false); setSearch(""); setSort("due_date:asc"); })}>Reset filters</button>
+    </div>
+    <p className="text-sm text-muted-foreground" aria-live="polite">{loading ? "Updating tasks…" : `${total} matching tasks`} · Dates use {timezone}</p>
     <div className="flex items-center gap-2"><label className="flex flex-1 items-center gap-2 rounded-md border px-3 py-2"><Search size={16}/><input className="w-full bg-transparent outline-none" aria-label="Search CRM tasks" placeholder="Search tasks…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}/></label><button className="rounded-md border p-2" aria-label="Refresh tasks" onClick={() => setRefresh(v => v + 1)}><RefreshCw size={18}/></button></div>
     {initialLoading ? <p role="status">Loading tasks…</p> : <div className="space-y-2">{!tasks.length && !error && <p className="rounded-md border p-6">No tasks found. Create a task to get started.</p>}{tasks.map(task => <article key={task.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-4"><div className="min-w-0 flex-1"><button className="text-left font-semibold" onClick={() => setEditing(task)}>{task.title}</button><p className="line-clamp-2 text-sm text-muted-foreground">{richTextPlainText(task.description || "")}</p><p className="mt-2 text-sm">{task.status} · {task.priority}{task.dueDate ? ` · Due ${task.dueDate.slice(0, 10)}` : ""}{task.ownerId === user?.id ? " · Assigned to me" : ""}</p></div><div className="flex gap-2"><button type="button" className="rounded-md border px-3 py-2 text-sm" aria-label={`View task details ${task.title}`} onClick={()=>setDetailTask(task)}>Details</button><button className="inline-flex items-center gap-1 rounded-md border px-3 py-2" aria-label={`Edit task ${task.title}`} onClick={() => setEditing(task)}><Pencil size={14}/>Edit</button><button className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-red-600" aria-label={`Delete task ${task.title}`} onClick={() => setDeleting(task)}><Trash2 size={14}/>Delete</button></div></article>)}</div>}
     <div className="flex items-center justify-end gap-3"><button disabled={loading || page <= 1} onClick={() => setPage(v => v - 1)}>Previous</button><span>Page {page} of {Math.max(1, pages)}</span><button disabled={loading || page >= pages} onClick={() => setPage(v => v + 1)}>Next</button></div>

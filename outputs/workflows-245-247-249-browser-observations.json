@@ -48,5 +48,10 @@
     "stage": "allowed shared view after refresh and export",
     "text": "Sales Summary\nWorkflow 245-247-249 Test Company\nDashboard\nReports\nSales Summary\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n QA Narrow Reader\nShared saved report views\n\nSaved filters are shared with authorized report users. Each viewer's warehouse restrictions also apply to rows and exports.\n\nSaved report view\nChoose view\nQA-249 November Main Paid\nQA-249 Other Warehouse Paid\nApply saved view\n\nApplied: QA-249 November Main Paid · From 2026-11-01 to 2026-11-30 · Warehouse 1 · Status Paid\n\nYour warehouse access is restricted to: 1.\n\nFrom\nTo\nWarehouse\nAll permitted warehouses\nMain\nQA Finished Warehouse\nQA Warehouse B\nStatus\nAny issued status\nIssued\nPaid\nPartially Paid\nFilter Export Excel\n\n1 matching invoices.\n\nInvoice\tDate\tCustomer\tWarehouse\tBranch\tTotal\tPaid\tBalance\nQA-249-MAIN\t2026-11-06\tQA Customer A\tMain\tMain Branch\t118.00\t118.00\t0.00",
     "export": "workflows-249-restricted-export.xlsx"
+  },
+  {
+    "workflow": 247,
+    "stage": "fresh final warehouse and valuation columns",
+    "text": "Inventory Ledger\nWorkflow 247-final Test Company\nDashboard\nStock\nLedger\n⌘K\nAll Branches\nMain Branch\nFY 2026-27\nFY 2025-26\n Create\n POS\n Admin\n10\n25\n50\n100\nentries per page\nSearch:\nDate\n\tProduct\n\tWarehouse\n\tMovement\n\tReference\n\tIn\n\tOut\n\tProduct Balance\n\tRate\n\tValue\n\n2026-11-07\tQA Finished Goods\tQA Finished Warehouse\tManufacturing Receipt\tQA-247-FINAL\t2.000\t0.000\t2.000\t500.0000\t1000.00\n2026-11-07\tQA Component B\tQA Warehouse B\tManufacturing Issue\tQA-247-FINAL\t0.000\t4.000\t6.000\t200.0000\t800.00\n2026-11-07\tQA Product A\tMain\tManufacturing Issue\tQA-247-FINAL\t0.000\t2.000\t8.000\t100.0000\t200.00\nShowing 1 to 3 of 3 entries\n«\n‹\n1\n›\n»"
   }
 ]

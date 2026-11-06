@@ -1,0 +1,175 @@
+{
+  "scope": "201-250 continuation: nine browser-verified workflows, including all three requested blockers. Other workflows remain outstanding.",
+  "executed_at_local": "2026-11-06 to 2026-11-07, Asia/Calcutta",
+  "configuration": {
+    "environment": "Independent disposable in-memory SQLite companies on loopback; no live external payments, messages or filings.",
+    "controls": "Port5319 for245 and249; initial P1 stock10, adjustment+2. Report invoices118(Main) and999(WarehouseB), reader report-view/export permissions.",
+    "production": "Fresh final port5324; components P1(Main10,cost100) and B(WarehouseB10,cost200); BOM1+2 per unit, yield1; output2 to warehouse3. Earlier combined run at5319 retained separately.",
+    "financial": "Port5320; initial P1 stock10, price1000,tax18%. Source and copied invoices independently collected; a third invoice used for credit-only test.",
+    "returns_pricing": "Port5321; initial stock20, price1000,tax18%; separate editor session via localhost. Original returns datesNov7/8/9. Cart snapshots allowed for authorized override user; server permissions remain enforced.",
+    "shipping": "Final port5323; goods1000+tax180, separately identified non-stock shipping100+tax18. Earlier fixture5322 retained separately.",
+    "evidence_policy": "Enabled through browser. Pending submission has no stock effects. PDF/PNG/UTF8 CSV accepted up to2MB; private bytes with SHA256. Existing immediate posting remains default until policy enabled.",
+    "saved_report_policy": "Saved Sales Summary filters intersect with per-user warehouse restrictions for rows and exports. No warehouse selection denies all; no configured restriction retains existing report-permission scope."
+  },
+  "tests": {
+    "inventory_pytest": "102 passed",
+    "javascript": "All five regression scripts passed, including new dynamic number input assertions.",
+    "migration": "New PostgreSQL migration included; additive upgrade/downgrade round-trip tested against disposable SQLite.",
+    "whitespace": "git diff --check passed for inventory changes.",
+    "persisted_assertions": "All passed: one adjustment movement/evidence hash, exact component sources and cost, restricted workbook rows, copy receipts, financial-credit stock invariance, cumulative dated returns and credits, pricing totals, shipping refund count and balances."
+  },
+  "fixes": [
+    "Evidence-required stock adjustment policy, pending approval, private attachment validation/download and atomic single posting.",
+    "Persisted manufacturing component source warehouse selection, separate output destination and warehouse/cost ledger columns.",
+    "Shared Sales Summary filter saving/application and restricted exports.",
+    "Explicit invoice copy to new unpaid draft with new identity and isolated settlement/delivery history.",
+    "Original-linked credit eligibility and original tax, exact credit application limits, authorized serialized refunds with persisted ledger reference.",
+    "Dynamic numeric fields prepared before focus; avoid changing input type during replacement."
+  ],
+  "workflows": [
+    {
+      "workflow": 201,
+      "title": "Shipping charge refunded independently of goods",
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00001",
+        "CN-2026-00001",
+        "RF-2026-00001"
+      ],
+      "expected": "Only shipping 100 and its original tax 18 reverse; goods remain sold; refund once.",
+      "actual": "Browser sold goods plus separately identified non-stock shipping service for1298. Shipping-only credit118, bank refund118. Original-tax18 applied even when zero was submitted. Repeat refund and second original-linked shipping credit rejected. Product stock9, one goods issue, no return document; customer netbalance0.",
+      "persisted_evidence": "workflows-201-shipping-final-browser-records.json",
+      "browser_evidence": "workflows-201-shipping-credit.png"
+    },
+    {
+      "workflow": 202,
+      "title": "Multiple partial returns against one invoice",
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00001",
+        "QA-202-2",
+        "QA-202-3",
+        "QA-202-1"
+      ],
+      "expected": "Sell10; dated returns2+3+1 credit7080 and restock6; eligibility4.",
+      "actual": "Browser sale10 for11800; approved returns2 onNov7,3 onNov8,1 onNov9 credited2360/3540/1180 and restored6 units. Attempt5 rejected. Found and fixed dynamic input type change that turned replacement2 into21. Final stock16 from initial20.",
+      "persisted_evidence": "workflows-202-complete-browser-records.json",
+      "browser_evidence": "workflows-202-three-dated-returns.png"
+    },
+    {
+      "workflow": 205,
+      "title": "Financial credit without a physical return",
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00003",
+        "CN-2026-00001"
+      ],
+      "expected": "Authorized financial credit118 reduces1180 receivable to1062 without physical return.",
+      "actual": "Browser issued Price credit100+tax18 and applied118 to invoice3. Refreshed balance1062; no return or extra inventory movement. Stock7 after three issued one-unit invoices remains7. Added same-customer, issued-status and exact available-balance checks for application.",
+      "persisted_evidence": "workflows-205-214-browser-records.json",
+      "browser_evidence": "workflows-205-financial-credit-applied.png"
+    },
+    {
+      "workflow": 214,
+      "title": "Copy an invoice without duplicating settlement",
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00001",
+        "INV-2026-00002",
+        "REC-2026-00001",
+        "REC-2026-00002"
+      ],
+      "expected": "Copied invoice starts as a distinct unpaid draft with no reused receipts, issue stamps or delivery links.",
+      "actual": "Added supported copy action. Browser copied paid source into new draft1180, paid0, balance1180 and no payment history. Issued and collected with independent cash receipt1180; source retained its card receipt1180. Regression also checks external payment/IRN identities are not copied.",
+      "persisted_evidence": "workflows-214-paid-browser-records.json",
+      "browser_evidence": "workflows-214-unpaid-copy.png"
+    },
+    {
+      "workflow": 218,
+      "title": "Manual price override does not update the master",
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00002",
+        "INV-2026-00003",
+        "P1"
+      ],
+      "expected": "Override is transaction-only; next sale uses unchanged master1000.",
+      "actual": "Browser authorized rate800 produced paid944 invoice. Next basket loaded1000 and completed paid1180. Product master remained1000 until the separate later236 edit.",
+      "persisted_evidence": "workflows-202-218-236-browser-records.json",
+      "browser_evidence": "workflows-218-next-sale-normal-price.png"
+    },
+    {
+      "workflow": 236,
+      "title": "Product sold while another user changes its master",
+      "status": "Pass",
+      "documents": [
+        "INV-2026-00004",
+        "P1",
+        "cashier user1",
+        "master editor user2"
+      ],
+      "expected": "Loaded basket follows documented snapshot policy; final amount and collection agree after a master edit.",
+      "actual": "Separate localhost editor session changed master from1000/18% to1200/5% while the cashier basket was loaded. Authorized cashier retained explicit1000/18% snapshot; saved invoice and card receipt both1180 after reload. Master edit verified separately.",
+      "persisted_evidence": "workflows-202-218-236-browser-records.json",
+      "browser_evidence": "workflows-236-basket-snapshot-invoice.png"
+    },
+    {
+      "workflow": 245,
+      "title": "Stock adjustment requiring an attachment",
+      "status": "Pass",
+      "documents": [
+        "QA-245-EVIDENCE",
+        "StockAdjustment1",
+        "qa-245-count-sheet.csv"
+      ],
+      "expected": "Required evidence gates approval and exactly one stock posting; approved attachment remains linked.",
+      "actual": "Added configurable policy, pending review, private validated evidence and authorized approval. Browser submission and evidence-free approval left stock unchanged. Executable and oversized CSV rejected; valid count sheet attached, approved and posted once. Reload retained hash/reviewer and stock12. Repeat posting/frozen evidence/unauthenticated download guards tested.",
+      "persisted_evidence": "workflows-245-posted-browser-records.json",
+      "browser_evidence": "workflows-245-posted-with-evidence.png"
+    },
+    {
+      "workflow": 247,
+      "title": "Production components issued from different warehouses",
+      "status": "Pass",
+      "documents": [
+        "QA-247-FINAL",
+        "ManufacturingOrder1",
+        "BOM1"
+      ],
+      "expected": "Components issue from assigned warehouses; output goes to destination; cost reconciles.",
+      "actual": "Added persisted per-component sources and distinct finished destination. Browser produced2: Main issued2 at100, WarehouseB issued4 at200, finished warehouse received2 at500. Total cost1000. Source balances8 and6, finished2. Regression confirms insufficient source rolls back all movements and repeated completion adds none.",
+      "persisted_evidence": "workflows-247-final-browser-records.json",
+      "browser_evidence": "workflows-247-two-source-ledger-final.png"
+    },
+    {
+      "workflow": 249,
+      "title": "Saved report filter shared with another authorized user",
+      "status": "Pass",
+      "documents": [
+        "CustomView1 QA-249 November Main Paid",
+        "CustomView2 QA-249 Other Warehouse Paid",
+        "reader user2",
+        "QA-249-MAIN",
+        "QA-249-OTHER"
+      ],
+      "expected": "Shared date/warehouse/status filters persist; reader restrictions intersect with filters and export.",
+      "actual": "Added apply/save shared report flow and Sales Summary warehouse restrictions. Admin saved Nov1-Nov30,Main,Paid view and restricted reader toMain. Reader reload showed one118 invoice; shared WarehouseB view showed zero rows. Browser-downloaded workbook contains header and only QA-249-MAIN118; no999 unauthorized invoice.",
+      "persisted_evidence": "workflows-249-restricted-export.xlsx",
+      "browser_evidence": "workflows-249-restricted-shared-view.png"
+    }
+  ],
+  "evidence": [
+    "workflows-245-247-249-browser-observations.json",
+    "workflows-205-214-browser-observations.json",
+    "workflows-202-218-236-browser-observations.json",
+    "workflows-201-shipping-browser-observations.json",
+    "workflows-245-247-249-regression.xml"
+  ],
+  "limitations": [
+    "This is not full50-workflow certification.",
+    "Actual PostgreSQL concurrent execution and deployment migration not exercised.",
+    "Report warehouse restrictions implemented here govern Sales Summary and its saved views/exports; other reports retain their existing permission behavior.",
+    "Invoice copy supports active untracked products; batch/serial products require new allocations and are rejected by the copy action.",
+    "Shipping-only refund certified for the separately identified non-stock shipping service configuration, not an untested header-charge-only flow."
+  ]
+}
