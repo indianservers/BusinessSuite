@@ -358,6 +358,8 @@ class Engine:
             ]
         if kind in {"deadlines", "calendar"}:
             rows = sorted([r for r in rows if r.due_date], key=lambda r: r.due_date)
+        if kind == "deadlines":
+            rows = [r for r in rows if r.due_date >= today]
         return rows
 
     def payload(self, row, source):

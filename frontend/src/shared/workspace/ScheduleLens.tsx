@@ -18,7 +18,7 @@ export default function ScheduleLens({view, records, onOpen}: Props) {
   useEffect(() => {
     const element = scroll.current;
     if (!element) return;
-    const observer = new ResizeObserver(([entry]) => setViewport(entry.contentRect.width));
+    const observer = new ResizeObserver(() => setViewport(element.clientWidth));
     observer.observe(element);
     return () => observer.disconnect();
   }, []);

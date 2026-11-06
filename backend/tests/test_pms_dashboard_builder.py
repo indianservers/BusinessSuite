@@ -6,6 +6,28 @@ from app.apps.project_management.models import PMSWorkspace, PMSTask
 from app.apps.project_management.dashboard_config import template_config, WIDGETS
 
 
+def test_upcoming_deadlines_excludes_overdue_but_calendar_retains_history():
+    from datetime import datetime, timedelta
+    from types import SimpleNamespace
+    from zoneinfo import ZoneInfo
+    from app.apps.project_management.dashboard_config import Filters
+    from app.apps.project_management.dashboard_engine import Engine
+
+    filters = Filters(timezone="Asia/Kolkata")
+    today = datetime.now(ZoneInfo(filters.timezone)).date()
+    rows = [SimpleNamespace(id=index, due_date=due, status=status) for index, (due, status) in enumerate([
+        (today-timedelta(days=1), "To Do"),
+        (today, "To Do"),
+        (today+timedelta(days=1), "In Progress"),
+        (today+timedelta(days=2), "Done"),
+        (None, "To Do"),
+    ])]
+    engine = SimpleNamespace(rows=lambda source, scope: rows)
+    assert [row.id for row in Engine.task_rows(engine, "deadlines", filters)] == [1, 2]
+    assert [row.id for row in Engine.task_rows(engine, "calendar", filters)] == [0, 1, 2]
+    assert [row.id for row in Engine.task_rows(engine, "overdue_list", filters)] == [0]
+
+
 def test_builder_layout_cas_history_and_source_security(client, db):
     wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
     path = BASE + "/dashboards"

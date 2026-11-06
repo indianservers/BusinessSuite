@@ -624,10 +624,10 @@ function LeadWorkbench() {
                 value={viewName}
                 onChange={(e) => setViewName(e.target.value)}
               />
-              <button onClick={saveView}>Save personal view</button>{bootstrap?.canAssign&&<button onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button>}
+              <button disabled={!viewName.trim()} onClick={saveView}>Save personal view</button>{bootstrap?.canAssign&&<button disabled={!viewName.trim()} onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button>}
             </>
           )}
-          <details>
+          {view === "table" && <details>
             <summary>Columns</summary>
             <div className="lm-column-options">
               {["company", "owner", "score", "follow", "action"].map(
@@ -649,7 +649,7 @@ function LeadWorkbench() {
                 ),
               )}
             </div>
-          </details>
+          </details>}
           {bootstrap?.canManage && (
             <button
               onClick={async () => {
