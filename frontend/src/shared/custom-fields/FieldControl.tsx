@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
+import RecordLookup from '@/apps/customization/RecordLookup';
 
 export type Placement = "create" | "edit" | "quick_create" | "detail";
 export type FieldDefinition = Record<string, unknown>;
@@ -30,7 +31,7 @@ export default function FieldControl({ field, value, onChange, disabled = false 
   const settings = fieldSettings(field);
   const label = String(field.fieldName || field.field_label || field.label || field.name || "Custom field");
   const type = String(field.fieldType || field.field_type || "text").toLowerCase().replace(/ /g,"_");
-  const lookup = type === "user" || type === "owner";
+  const lookup = type === "user" || type === "owner" || type === 'user_lookup';
   const [people,setPeople]=useState<{value:string;label:string}[]>([]),[lookupError,setLookupError]=useState("");
   useEffect(()=>{
     if(!lookup)return;
@@ -50,7 +51,9 @@ export default function FieldControl({ field, value, onChange, disabled = false 
   }
   if (type === "radio") return <div role="radiogroup" aria-label={label} aria-required={required} className="flex flex-wrap gap-2">{[...new Set([...options, ...(value != null && value !== "" ? [String(value)] : [])])].map(option => <label key={option} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5"><input name={id} type="radio" value={option} checked={value === option} disabled={locked} required={required} onChange={() => onChange(option)}/>{option}</label>)}{!required && value != null && value !== "" && <button type="button" disabled={locked} className="text-xs text-muted-foreground underline" onClick={() => onChange(null)}>Clear</button>}</div>;
   if (type === "dropdown" || type === "select") return <NativeSelect {...common} value={String(value ?? "")} onChange={e => onChange(e.target.value || null)}><option value="">Select {label.toLowerCase()}</option>{[...new Set([...options, ...(value != null && value !== "" ? [String(value)] : [])])].map(option => <option key={option}>{option}</option>)}</NativeSelect>;
-  if (["combobox", "multi_select", "picklist", "multi_picklist", "user", "owner"].includes(type)) {
+  if (type === 'lookup') return <RecordLookup module={String(field.lookup_module || '')} label={label} value={value} onChange={onChange} disabled={locked} />;
+  if (['formula', 'rollup', 'auto_number'].includes(type)) return <Input aria-label={label} readOnly value={String(value ?? '')} placeholder="Calculated after saving" />;
+  if (["combobox", "multi_select", "picklist", "multi_picklist", "user", "owner", "user_lookup"].includes(type)) {
     const multi = type === "multi_select" || type === "multi_picklist";
     const selected = Array.isArray(value) ? value.map(String) : value == null || value === "" ? [] : multi ? String(value).split(",").map(v => v.trim()) : [String(value)];
     const choices = [...new Set([...options, ...selected])].filter(option => optionLabel(option).toLowerCase().includes(query.toLowerCase()));
