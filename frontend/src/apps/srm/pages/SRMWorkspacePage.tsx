@@ -1,3 +1,4 @@
+import {ExternalInvoices,DailyAccountingReport} from "@/shared/accounting/ConnectedAccounting";
 import { defaultText, defaultDateAfter, displayDate } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import CompaniesPage from "@/shared/master-data/CompaniesPage";
@@ -18,7 +19,7 @@ import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useEffect, useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Area,
@@ -1138,6 +1139,8 @@ function InvoiceDraftsView() {
 }
 
 function InvoicesView() {
+  const [invoiceSearchParams]=useSearchParams();
+  const accountingCustomer=Number(invoiceSearchParams.get("accounting_customer"))||undefined;
   const canManage = useCanManageRevenue();
   const list = useQuery({ queryKey: ["srm", "invoices"], queryFn: srmApi.invoices });
   const invoiceId = Number(asList(list.data)[0]?.id || 0);
@@ -1148,6 +1151,7 @@ function InvoicesView() {
   const pdfHref = `/api/v1/srm/invoices/${invoiceId}/pdf`;
   return (
     <div className="space-y-5">
+      <ExternalInvoices key={accountingCustomer||"all"} crmCompanyId={accountingCustomer}/>
       <InvoiceList invoices={asList(list.data)} />
       <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); if (invoiceId) detail.refetch(); }} />
       <ActionMessage message={!canManage ? "Read-only revenue access: invoice approval, send/export, and line edits are hidden for this role." : action.message} />
@@ -1339,6 +1343,7 @@ function ReportsView() {
   };
   return (
     <div className="space-y-5">
+      <DailyAccountingReport/>
       <PageHeader meta={viewMeta.reports} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       <ActionMessage message={message} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">

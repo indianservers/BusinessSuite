@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
+from app.schemas.workflow_engine import WorkflowTaskDecision, WorkflowTaskSchema
 from app.models.workflow_engine import WorkflowDefinition, WorkflowStepDefinition, WorkflowInstance, WorkflowTask, WorkflowAuditEvent
 from .access import get_task_project_for_action, can_access_project, organization_id_for, revalidate_project_actor
 from .models import PMSWorkspace, PMSTask, PMSProject
@@ -13,6 +14,20 @@ from .recovery import task_state, digest, ready
 router = APIRouter()
 MODULE = "project_management"
 ENTITY = "pms_transition"
+
+
+@router.put("/tasks/{task_id}/transition-approvals/{instance_id}/steps/{step_id}/decision", response_model=WorkflowTaskSchema)
+def decide_transition(task_id: int, instance_id: int, step_id: int, data: WorkflowTaskDecision,
+                      db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    # Keep the request in PMS's authorization boundary. The generic engine API
+    # belongs to Automation, which a PMS-only reviewer need not be licensed for.
+    task, project = get_task_project_for_action(db, task_id, user, "manage_tasks")
+    instance = instances(db, task).filter_by(id=instance_id).first()
+    review = db.query(WorkflowTask).filter_by(id=step_id, instance_id=instance_id).first() if instance else None
+    if not review:
+        raise HTTPException(404, "Review not found for this PMS task")
+    from app.api.v1.workflow_engine import decide_task
+    return decide_task(step_id, data, db, user)
 
 
 def is_transition(instance):

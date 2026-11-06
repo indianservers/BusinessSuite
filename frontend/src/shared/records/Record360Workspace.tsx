@@ -11,6 +11,7 @@ import { RecordMessageDraft } from "./RecordWorkspace";
 import "./record-360.css";
 import TaskRecordLinks from "./TaskRecordLinks";
 import { useCursorPages } from "./useCursorPages";
+const CustomerAccounting = lazy(()=>import("@/shared/accounting/ConnectedAccounting").then(m=>({default:m.CustomerAccounting})));
 const QuickAction = lazy(()=>import("@/apps/crm/CRMRecordDetailPage").then(module=>({default:module.QuickActionModal})));
 
 export type RecordKind = "company" | "contact" | "lead" | "deal" | "project" | "task";
@@ -67,6 +68,7 @@ export default function Record360Workspace({kind,id,source="crm",actions,details
           {record.customer&&<Button variant="ghost" size="sm" asChild><Link to={`/${module}/follow-ups?new=1&customer=${record.customer.id}${kind==="deal"?`&deal=${id}`:""}`}>Schedule follow-up</Link></Button>}
           {kind==="task"&&<Button variant="ghost" size="sm" asChild><Link to={`/pms/tasks/${id}?tab=followups`}>Task follow-up</Link></Button>}
         </nav>
+        {(source==="crm"||source==="srm")&&["company","contact","lead","deal"].includes(kind)&&<Suspense fallback={<p>Loading connected accounting…</p>}><CustomerAccounting key={`${scope}:${kind}:${id}`} kind={kind} id={id} source={source}/></Suspense>}
         <section aria-label="Focus" className="r360-focus"><header><h3>Focus</h3><span>Work linked to this {kind}</span></header>
           {work.isPending&&<p role="status">Loading commitments…</p>}{work.isError&&<SectionError error={work.error} retry={()=>{workPages.reset();void work.refetch();}}/>}
           {work.data&&<><WorkRows items={work.data.items.filter(item=>!["completed","done","cancelled","missed"].includes(item.status.toLowerCase()))}/>{work.data.items.length===0&&<p>No work is linked to this record.</p>}<FeedPager pages={workPages} data={work.data} busy={work.isFetching}/></>}

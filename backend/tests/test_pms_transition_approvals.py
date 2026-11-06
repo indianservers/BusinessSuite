@@ -166,6 +166,26 @@ def test_invalid_reviewer_and_reviewer_revoked_after_approval(client, db):
     assert client.patch(f"{BASE}/tasks/{tid}", headers=mh, json={"status": "Done"}).status_code == 409
 
 
+def test_pms_only_reviewer_uses_shared_engine_without_automation_grant(client, db):
+    from app.access.models import AccessPolicy
+    wid, pid, tid, owner, oh, ah, member, mh, guest, gh, scheme = setup_route(client, db)
+    reviewer = db.query(PMSWorkspaceMember).filter_by(workspace_id=wid, role="Admin").one().user_id
+    db.add(AccessPolicy(user_id=reviewer, company_id=1, status="active", version=1, grants={
+        "project_management": {"enabled": True, "role": "PMS reviewer", "scope": "organization",
+            "permissions": ["pms_view", "pms_manage_tasks"], "actions": ["view", "edit", "approve"]}}))
+    db.commit()
+    approval = request(client, tid, mh)
+    step = approval["steps"][0]["id"]
+    assert decide(client, step, ah).status_code == 403
+    url = f"{BASE}/tasks/{tid}/transition-approvals/{approval['id']}/steps/{step}/decision"
+    response = client.put(url, headers=ah, json={"decision": "approve"})
+    assert response.status_code == 200, response.text
+    assert db.get(WorkflowInstance, approval["id"]).status == "Approved"
+    other = task(client, pid, mh, "UNRELATED")
+    wrong = f"{BASE}/tasks/{other}/transition-approvals/{approval['id']}/steps/{step}/decision"
+    assert client.put(wrong, headers=oh, json={"decision": "approve"}).status_code == 404
+
+
 @pytest.mark.skipif(os.environ.get("RUN_PMS_WORKFLOW_BROWSER") != "1", reason="Explicit real-browser integration run")
 def test_approval_browser_with_disposable_api(client, db):
     if db.get_bind().dialect.name == "postgresql":

@@ -13,7 +13,7 @@ PMS = "/api/v1/project-management"
 
 
 def run(base, credentials_file, destination):
-    assert urlsplit(base).hostname in {"app.dsbchartered.com", "app.indianservers.com"}
+    assert urlsplit(base).hostname in {"app.dsbchartered.com", "app.indianservers.com", "127.0.0.1", "localhost"}
     credentials = json.loads(Path(credentials_file).read_text())
     run_id = uuid4().hex[:10]
     report = {"site": base, "run_id": run_id, "checked_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -85,29 +85,30 @@ def run(base, credentials_file, destination):
             url = f"{PMS}/tasks/{tid}"
             record("unreviewed transition blocked", client.patch(url, headers=requester["headers"], json={"status": "Done"}), (409,))
             def ask(): return record("request transition", client.post(url+"/transition-approvals", headers=requester["headers"], json={"target": "Done"}), (201,))
-            def decision(step_id, actor, value):
-                return client.put(f"/api/v1/workflow-engine/tasks/{step_id}/decision", headers=actor, json={"decision": value, "reason": "Workflow acceptance "+run_id})
+            def decision(approval, actor, value, *, step_id=None, task_url=url):
+                review_id = step_id or approval["steps"][0]["id"]
+                return client.put(f"{task_url}/transition-approvals/{approval['id']}/steps/{review_id}/decision", headers=actor, json={"decision": value, "reason": "Workflow acceptance "+run_id})
             first = ask(); duplicate = ask(); assert first["id"] == duplicate["id"]
-            record("self review denied", decision(first["steps"][0]["id"], requester["headers"], "approve"), (403,))
-            record("reviewer rejection", decision(first["steps"][0]["id"], reviewer["headers"], "reject"))
+            record("self review denied", decision(first, requester["headers"], "approve"), (403,))
+            record("reviewer rejection", decision(first, reviewer["headers"], "reject"))
             second = ask(); assert second["id"] != first["id"]
-            record("first ordered review", decision(second["steps"][0]["id"], reviewer["headers"], "approve"))
+            record("first ordered review", decision(second, reviewer["headers"], "approve"))
             record("partial review cannot apply", client.patch(url, headers=requester["headers"], json={"status": "Done"}), (409,))
             current = record("read ordered reviews", client.get(url+"/transition-approvals", headers=admin))["requests"][0]
             pending = next(s for s in current["steps"] if s["status"] == "Pending")
-            record("final ordered review", decision(pending["id"], admin, "approve"))
+            record("final ordered review", decision(current, admin, "approve", step_id=pending["id"]))
             record("apply approved transition", client.patch(url, headers=requester["headers"], json={"status": "Done"}))
             record("cycle task back", client.patch(url, headers=requester["headers"], json={"status": "To Do"}))
             record("approval replay denied", client.patch(url, headers=requester["headers"], json={"status": "Done"}), (409,))
             stale = ask()
             record("edit saved task", client.patch(url, headers=requester["headers"], json={"description": "New acceptance revision"}))
-            record("stale review denied", decision(stale["steps"][0]["id"], reviewer["headers"], "approve"), (409,))
+            record("stale review denied", decision(stale, reviewer["headers"], "approve"), (409,))
             bug = record("create QA Bug", client.post(f"{PMS}/projects/{pid}/tasks", headers=requester["headers"],
                 json={"title": "Workflow Bug acceptance "+run_id, "task_key": "WQAB-"+run_id, "work_type": "Bug"}))
             bug_url = f"{PMS}/tasks/{bug['id']}"
             record("Bug override blocks default edge", client.patch(bug_url, headers=requester["headers"], json={"status": "Done"}), (409,))
             bug_review = record("request Bug review", client.post(bug_url+"/transition-approvals", headers=requester["headers"], json={"target": "In Review"}), (201,))
-            record("approve Bug route", decision(bug_review["steps"][0]["id"], admin, "approve"))
+            record("approve Bug route", decision(bug_review, admin, "approve", task_url=bug_url))
             record("apply Bug route", client.patch(bug_url, headers=requester["headers"], json={"status": "In Review"}))
             report["passed"] = True
         except Exception as exc:
