@@ -652,7 +652,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
         </div>
         <div>
           <small>Due date</small>
-          {embeddedTaskId ? <input type="date" aria-label="Task due date" key={`${id}:${task.due_date}`} defaultValue={task.due_date || ""} disabled={!data.can_manage || busy} onBlur={event => {if(event.currentTarget.value !== (task.due_date || "")) void run(() => tasksAPI.update(id,{due_date:event.currentTarget.value || null} as Parameters<typeof tasksAPI.update>[1]), "Due date saved");}}/> : <strong>{task.due_date || "No due date"}</strong>}
+          {embeddedTaskId ? <input type="date" aria-label="Task due date" key={`${id}:${task.due_date}`} defaultValue={task.due_date || ""} disabled={!data.can_manage || busy} onBlur={event => {const due_date = event.currentTarget.value; if(due_date !== (task.due_date || "")) void run(() => tasksAPI.update(id,{due_date:due_date || null} as Parameters<typeof tasksAPI.update>[1]), "Due date saved");}}/> : <strong>{task.due_date || "No due date"}</strong>}
         </div>
         <div>
           <small>Time logged</small>

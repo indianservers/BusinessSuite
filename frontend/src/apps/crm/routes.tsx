@@ -1,3 +1,4 @@
+import ModuleWorkspaceFrame from "@/shared/workspace/ModuleWorkspaceFrame";
 import React from "react";
 const WhatsAppCommunicationPage = React.lazy(() => import("@/apps/communication/WhatsAppCommunicationPage"));
 const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
@@ -137,4 +138,4 @@ export const crmRoutes: FrontendRoute[] = [
   { path: "crm/lead-scoring", element: <CentralSettingsRedirect section="crm-scoring" /> },
   { path: "crm/feature-checklist", element: <CRMWorkspacePage kind="featureChecklist" /> },
   { path: "crm/admin", element: <CRMWorkspacePage kind="admin" /> },
-];
+].map(route => ({...route, element: <ModuleWorkspaceFrame module="crm">{route.element}</ModuleWorkspaceFrame>}));

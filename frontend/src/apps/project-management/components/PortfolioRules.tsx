@@ -24,6 +24,10 @@ export const readRules = (value: string): PortfolioRule[] => {
       ? rules.filter(
           (r) =>
             r &&
+            fields.some(([key]) => key === r.field) &&
+            ["empty", "contains", "equals", "not", "gte", "lte"].includes(
+              r.operator,
+            ) &&
             typeof r.field === "string" &&
             typeof r.operator === "string" &&
             typeof r.value === "string",
@@ -45,7 +49,10 @@ export function matchesRules(
         : r.field === "team"
           ? project.team?.map((m) => m.name).join(", ")
           : project[r.field as keyof PMSProject];
-    const raw = String(value ?? "").toLowerCase(),
+    const dateField = r.field.endsWith("_date") || r.field.endsWith("_at");
+    const raw = (
+        dateField ? String(value ?? "").slice(0, 10) : String(value ?? "")
+      ).toLowerCase(),
       target = r.value.toLowerCase();
     if (r.operator === "empty") return !raw;
     if (r.operator === "contains") return raw.includes(target);

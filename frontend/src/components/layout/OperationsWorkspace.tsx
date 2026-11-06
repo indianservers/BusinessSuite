@@ -49,7 +49,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
     navigate({ pathname: canonical, search: searchFor(path) });
   };
   return <section aria-label={`${workspace.label} workspace`}>
-    {pages.length > 1 && <div className="mb-5 border-b border-border pb-3">
+    {pages.length > 1 && workspace.label !== "Deals" && <div className={`mb-5 border-b border-border pb-3 ${/^\/(crm|pms)(\/|$)/.test(pathname) ? "ws-operation-navigation" : ""}`}>
       <h1 className="mb-3 text-xl font-semibold">{workspace.label}</h1>
       <div role="tablist" aria-label={`${workspace.label} operations`} className="flex flex-wrap gap-2">
         {pages.map(page => <button key={page.path} id={`operation-tab-${page.path}`} type="button" role="tab"
@@ -67,7 +67,7 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
       </div>
     </div>}
     {pages.filter(page => visited.includes(page.path) || page.path === selected).map(page => <div key={page.path}
-      role="tabpanel" hidden={selected !== page.path} id={`operation-panel-${page.path}`} aria-labelledby={`operation-tab-${page.path}`}>
+      role="tabpanel" hidden={selected !== page.path} id={`operation-panel-${page.path}`} aria-label={workspace.label === "Deals" ? page.label : undefined} aria-labelledby={workspace.label === "Deals" ? undefined : `operation-tab-${page.path}`}>
       <ErrorBoundary><Suspense fallback={<LoadingState label={`Loading ${page.label}`} />}>
         <LocationContext.Provider value={{ ...locationContext, location: { ...location, pathname: page.path } }}>
           {page.element}

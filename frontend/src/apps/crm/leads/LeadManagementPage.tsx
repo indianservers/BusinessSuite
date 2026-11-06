@@ -1,3 +1,5 @@
+import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
+import RecordLensViews from "@/shared/workspace/RecordLensViews";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { defaultText, leadSourceOptions } from "@/lib/form-defaults";
 import { leadsApi as defaultLeadsApi } from "./api";
@@ -32,8 +34,6 @@ import {
   Check,
   Download,
   FileSpreadsheet,
-  LayoutGrid,
-  List,
   Loader2,
   Mail,
   Phone,
@@ -71,6 +71,30 @@ import {
   LeadTeamPanel,
   LeadWorkflowBoard,
 } from "./LeadWorkflow";
+
+const leadLenses = ["gallery", "gantt", "timeline", "calendar", "team", "mindmap", "whiteboard"];
+// Follow-ups are instants; display their date in the user's timezone before
+// passing them to the date-only planning lenses.
+const leadCalendarDay = (value?: string) => {
+  if (!value) return undefined;
+  const date = new Date(/(Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`);
+  return Number.isFinite(date.getTime()) ? `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}` : undefined;
+};
+const leadViews: WorkspaceView[] = [
+  {id:"table",label:"Table",description:"Detailed qualification and inline actions",color:"#159d8c"},
+  {id:"board",label:"Board",description:"Move leads through their qualification stages",color:"#6585e8"},
+  {id:"compact",label:"List",icon:"list",description:"Focus on people and their next follow-up"},
+  {id:"gallery",label:"Gallery",description:"Relationship cards with owner and next action",color:"#c36596"},
+  {id:"gantt",label:"Gantt",description:"Lead age and upcoming follow-up windows",category:"Plan",color:"#e98279"},
+  {id:"timeline",label:"Timeline",description:"See relationship and follow-up schedules",category:"Plan",color:"#cb9138"},
+  {id:"calendar",label:"Calendar",description:"Follow-ups arranged by their due date",category:"Plan",color:"#e2a15d"},
+  {id:"team",label:"Team",description:"Lead ownership across your team",category:"Explore",color:"#159d8c"},
+  {id:"mindmap",label:"Mind map",description:"Explore relationships by stage or owner",category:"Explore",color:"#c36596"},
+  {id:"whiteboard",label:"Whiteboard",description:"Arrange relationship cards in your personal workspace",category:"Explore",color:"#cb9138"},
+  {id:"channel",label:"Channel",description:"Sales conversations with your team",category:"Collaborate",href:"/crm/messages"},
+  {id:"files",label:"Files",description:"Shared collateral and customer documents",category:"Collaborate",href:"/crm/files",color:"#528bd2"},
+  {id:"form",label:"Forms",description:"Structured enquiry and lead capture",category:"Collaborate",href:"/crm/webforms"},
+];
 
 const formatDate = (date?: string) =>
   date
@@ -561,25 +585,6 @@ function LeadWorkbench() {
             ))}
           </NativeSelect>
           </MobileFilters>
-          <div className="lm-view-toggle">
-            {[
-              ["table", List],
-              ["board", LayoutGrid],
-              ["compact", Users],
-            ].map(([key, Icon]) => {
-              const Component = Icon as typeof List;
-              return (
-                <button
-                  key={String(key)}
-                  aria-label={`${key} view`}
-                  aria-pressed={view === key}
-                  onClick={() => updateParams({ view: String(key) })}
-                >
-                  <Component size={17} />
-                </button>
-              );
-            })}
-          </div>
           <Button
             size="sm"
             variant="ghost"
@@ -589,6 +594,7 @@ function LeadWorkbench() {
             <RefreshCw size={16} />
           </Button>
         </div>
+        <WorkspaceViewBar label="Lead views" scope={potential ? "crm-potential-clients" : "crm-leads"} active={view} views={leadViews} onChange={view=>updateParams({view})} primary={["table","board","compact","gallery","calendar","team"]}/>
         <div className="lm-view-tools">
           <NativeSelect
             aria-label="Saved views"
@@ -740,6 +746,8 @@ function LeadWorkbench() {
               Reset filters
             </Button>
           </div>
+        ) : leadLenses.includes(view) ? (
+          <><RecordLensViews view={view} scope={potential ? "crm-potential-clients" : "crm-leads"} records={result.items.map(lead=>({id:String(lead.id),title:lead.full_name,subtitle:lead.company_name || lead.job_title,status:lead.status,owner:bootstrap?.owners.find(owner=>owner.id===lead.owner_user_id)?.name,start:leadCalendarDay(lead.created_at),due:leadCalendarDay(lead.next_follow_up_at),tags:[lead.source || "Other",lead.signals.followUpLabel].filter(Boolean)}))} onOpen={record=>openLead(Number(record.id))}/><p className="lm-help">Current result page · Calendar uses next follow-up dates. Open a lead to update its schedule.</p></>
         ) : view === "board" ? (
           bootstrap && (
             <LeadWorkflowBoard

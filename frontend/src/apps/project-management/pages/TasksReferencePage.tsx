@@ -1,3 +1,7 @@
+import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
+import RecordLensViews from "@/shared/workspace/RecordLensViews";
+import ProjectCommunicationPage from "./ProjectCommunicationPage";
+import TeamCommunicationPage from "./TeamCommunicationPage";
 import { api } from "@/services/api";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -200,7 +204,7 @@ export default function TasksReferencePage() {
   const page = Number(params.get("page") || 1),
     pageSize = Number(params.get("pageSize") || 16),
     layout = params.get("layout") || "list";
-  const alternateView = ["board", "gantt", "timeline", "calendar", "workload", "dashboard"].includes(layout);
+  const alternateView = ["board", "gantt", "timeline", "calendar", "workload", "dashboard", "activity", "team", "mindmap", "whiteboard", "channel"].includes(layout);
   const cardLayout = layout === "gallery" || (narrowScreen && layout === "list");
   const filterKeys = ["search", "taskIds", "workspaceId", "projectId", "projectIds", "assigneeId", "assigneeIds", "reporterId", "workView", "teamId", "batchId", "workType", "status", "priority", "dueFrom", "dueTo", "createdFrom", "createdTo", "updatedFrom", "updatedTo", "storyPointsMin", "storyPointsMax", "overdue", "openOnly", "sprintId", "epicId", "tag"];
   const taskQuery = new URLSearchParams([...params].filter(([key]) => [...filterKeys, "page", "pageSize", "sortBy", "sortOrder"].includes(key))).toString();
@@ -285,6 +289,26 @@ export default function TasksReferencePage() {
   const allowed = (to: string) =>
     canAccessRoute(to, user?.role, user?.is_superuser);
   const projects = data?.filters.projects || [];
+  const selectedProjectId = Number(params.get("projectId")) || undefined;
+  const taskViews: WorkspaceView[] = [
+    {id:"list",label:"List",description:"Fast inline editing and task execution",color:"#8b5cf6"},
+    {id:"table",label:"Table",icon:"table",description:"Dense rows for detailed comparisons",color:"#14b8a6"},
+    {id:"board",label:"Board",description:"Move work through its workflow",color:"#6585e8"},
+    {id:"gallery",label:"Gallery",description:"A clear card for every task",color:"#df79a8"},
+    {id:"gantt",label:"Gantt",description:"Schedules, dates and delivery planning",category:"Plan",color:"#f07876"},
+    {id:"timeline",label:"Timeline",description:"See when the work comes together",category:"Plan",color:"#dc9b46"},
+    {id:"calendar",label:"Calendar",description:"Plan the month and reschedule deadlines",category:"Plan",color:"#eb9853"},
+    {id:"workload",label:"Workload",description:"Understand assignment and effort",category:"Plan",color:"#14a797"},
+    {id:"dashboard",label:"Dashboard",description:"Progress, risk and attention in one place",category:"Explore",color:"#a16ed3"},
+    {id:"channel",label:"Channel",description:"Project conversations connected to work",category:"Collaborate",color:"#8b5cf6"},
+    {id:"activity",label:"Activity",description:"Recently updated tasks in sequence",category:"Collaborate",color:"#4a9fda"},
+    {id:"team",label:"Team",description:"Explore work by its owner",category:"Explore",color:"#47a7a0"},
+    {id:"mindmap",label:"Mind map",icon:"mindmap",description:"Branch out by status or assignee",category:"Explore",color:"#db78a8"},
+    {id:"whiteboard",label:"Whiteboard",description:"Arrange task cards on a personal canvas",category:"Explore",color:"#c5a13e"},
+    {id:"docs",label:"Docs",description:"Decisions, briefs and shared knowledge",category:"Collaborate",href:"/pms/docs",color:"#479be0"},
+    {id:"files",label:"Files",description:"Browse project assets and deliverables",category:"Collaborate",href:selectedProjectId ? `/pms/projects/${selectedProjectId}/files` : "/pms/files",color:"#799ac1"},
+    {id:"form",label:"Forms",description:"Collect structured requests and responses",category:"Collaborate",href:"/pms/forms",color:"#9773db"},
+  ];
   const editable = projects.filter((p) => p.can_manage_tasks);
   const projectId =
     editable.find((p) => p.id === Number(params.get("projectId")))?.id ||
@@ -580,27 +604,7 @@ export default function TasksReferencePage() {
                   {id:"all",label:"All tasks"}, {id:"mine",label:"My tasks"}, {id:"created",label:"Created by me"}, {id:"today",label:"Today"}, {id:"upcoming",label:"Upcoming"}, {id:"overdue",label:"Overdue"}, {id:"blocked",label:"Blocked"}, {id:"completed",label:"Completed"},
                 ].map(tab => <button key={tab.id} aria-pressed={(params.get("quick") || "all") === tab.id} onClick={() => { const next = new URLSearchParams(params); ["workView", "reporterId", "dueFrom", "dueTo", "status", "overdue", "openOnly", "page"].forEach(key => next.delete(key)); if(tab.id === "mine") next.set("workView", "mine"); if(tab.id === "created") next.set("reporterId", String(user?.id || "")); if(tab.id === "today") {next.set("dueFrom", localDay()); next.set("dueTo", localDay());} if(tab.id === "upcoming") {const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1); next.set("dueFrom", `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`);next.set("openOnly", "true");} if(tab.id === "overdue")next.set("overdue", "true");if(tab.id === "blocked")next.set("status", "Blocked");if(tab.id === "completed")next.set("workView", "completed"); next.set("quick", tab.id); setParams(next); }}>{tab.label}</button>)}</div>
                 <div className="tr-viewbar">
-                  <div className="tr-tabs" role="group" aria-label="Task view">
-                    {[
-                      { label: "List", icon: List, value: "list" },
-                      { label: "Board", icon: Box, value: "board" },
-                      { label: "Gantt", icon: Activity, value: "gantt" },
-                      { label: "Timeline", icon: Activity, value: "timeline" },
-                      { label: "Calendar", icon: CalendarDays, value: "calendar" },
-                      { label: "Workload", icon: Users, value: "workload" },
-                      { label: "Dashboard", icon: BarChart3, value: "dashboard" },
-                    ].map((v) => (
-                      <button
-                        key={v.value}
-                        aria-pressed={layout === v.value}
-                        className={layout === v.value ? "active" : ""}
-                        onClick={() => change("layout", v.value)}
-                      >
-                        <v.icon size={17} />
-                        {v.label}
-                      </button>
-                    ))}
-                  </div>
+                  <WorkspaceViewBar scope={`pms-tasks:${selectedProjectId || "all"}`} label="Task views" active={layout} views={taskViews} onChange={id => change("layout", id)} primary={["list","board","gantt","timeline","calendar","workload","dashboard","channel"]}/>
                   <div className="tr-tools">
                     <details className="tr-customize"><summary className="tr-button"><Settings2 size={15} />Customize</summary><div>
                       <label>Row density<NativeSelect aria-label="Row density" value={params.get("density") || "compact"} onChange={e => change("density", e.target.value)}><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></NativeSelect></label>
@@ -831,7 +835,7 @@ export default function TasksReferencePage() {
                   </div>
                 )}
                 {!alternateView && <details className="tr-arrange"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>}
-                {alternateView ? <TaskWorkspaceViews view={layout} tasks={visibleTasks} summary={data?.summary} busy={busy} canEdit={task => editable.some(project => project.id === task.project_id)} onOpen={open} onUpdate={inlineUpdate} /> : <div
+                {layout === "channel" ? <div className="tr-channel-view">{selectedProjectId ? <ProjectCommunicationPage selectedProjectId={selectedProjectId}/> : <TeamCommunicationPage/>}</div> : ["activity","team","mindmap","whiteboard"].includes(layout) ? <RecordLensViews scope={`pms-tasks:${selectedProjectId || "all"}`} view={layout} records={visibleTasks.map(task => ({id:String(task.id),title:task.title,subtitle:task.project_name,status:task.status,owner:task.assignee_name,start:task.start_date,due:task.due_date,updated:task.updated_at,progress:(task as PMSTaskListItem & {progress?:number}).progress,tags:task.tags?.map(tag => typeof tag === "string" ? tag : tag.name)}))} onOpen={record => open(visibleTasks.find(task => String(task.id) === record.id))}/> : alternateView ? <TaskWorkspaceViews view={layout} tasks={visibleTasks} summary={data?.summary} busy={busy} canEdit={task => editable.some(project => project.id === task.project_id)} onOpen={open} onUpdate={inlineUpdate} /> : <div
                   className={
                     cardLayout
                       ? "tr-gallery"

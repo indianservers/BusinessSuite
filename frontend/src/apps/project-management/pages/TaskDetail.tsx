@@ -1597,6 +1597,7 @@ export function FilesTab({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewText, setPreviewText] = useState("");
+  const [fileError, setFileError] = useState("");
 
   useRefreshableEffect(() => {
     let objectUrl: string | null = null;
@@ -1606,13 +1607,14 @@ export function FilesTab({
     }
     setPreviewLoading(true);
     setPreviewText("");
+    setFileError("");
     filesAPI.downloadBlob(previewFile.id)
       .then(async (blob) => {
         if ((previewFile.mime_type || "").startsWith("text/")) setPreviewText((await blob.text()).slice(0, 100000));
         objectUrl = URL.createObjectURL(blob);
         setPreviewUrl(objectUrl);
       })
-      .catch(() => setPreviewUrl(null))
+      .catch(error => { setPreviewUrl(null); setFileError(error instanceof Error ? error.message : "Could not load attachment. Please retry."); })
       .finally(() => setPreviewLoading(false));
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -1626,13 +1628,18 @@ export function FilesTab({
   };
 
   const openAttachment = async (file: PMSFileAsset) => {
+    setFileError("");
+    try {
     const blob = await filesAPI.downloadBlob(file.id);
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank", "noopener,noreferrer");
     window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch(error) {setFileError(error instanceof Error ? error.message : "Could not open attachment.");}
   };
 
   const downloadAttachment = async (file: PMSFileAsset) => {
+    setFileError("");
+    try {
     const blob = await filesAPI.downloadBlob(file.id);
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -1641,7 +1648,8 @@ export function FilesTab({
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch(error) {setFileError(error instanceof Error ? error.message : "Could not download attachment.");}
   };
 
   const canPreview = (file: PMSFileAsset) => {
@@ -1679,7 +1687,7 @@ export function FilesTab({
           }}
         />
       </label>}
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+      {(error || fileError) ? <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error || fileError}</p> : null}
       <div className="space-y-2">
         {files.map((item) => (
           <div key={item.id} className="rounded-md border p-3">

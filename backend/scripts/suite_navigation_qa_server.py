@@ -1,5 +1,6 @@
 """Loopback-only UI verification against disposable SQLite, never the app database."""
 import asyncio
+from contextvars import ContextVar
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 import os
@@ -145,10 +146,20 @@ async def qa_lifespan(application):
     yield
 app.router.lifespan_context = qa_lifespan
 request_lock = asyncio.Lock()
+inside_qa_request = ContextVar("inside_qa_request", default=False)
 @app.middleware("http")
 async def sqlite_requests(request, call_next):
-    async with request_lock:
+    # Canonical record adapters make nested ASGI requests from a worker thread.
+    # They belong to the already-serialized outer request and must not acquire
+    # an asyncio lock owned by the server's different event loop.
+    if inside_qa_request.get():
         return await call_next(request)
+    async with request_lock:
+        token = inside_qa_request.set(True)
+        try:
+            return await call_next(request)
+        finally:
+            inside_qa_request.reset(token)
 
 if __name__ == "__main__":
     import uvicorn

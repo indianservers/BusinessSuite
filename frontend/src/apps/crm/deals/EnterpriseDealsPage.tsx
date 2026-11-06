@@ -1,3 +1,6 @@
+import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
+import RecordLensViews from "@/shared/workspace/RecordLensViews";
+import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
 import PipelineDomainDetails from "@/shared/pipeline/PipelineDomainDetails";
 import PipelineBoard, { PipelineViewSwitch, PipelineSearch } from "@/shared/pipeline/PipelineBoard";
 import CompactActions from "@/components/actions/CompactActions";
@@ -103,14 +106,24 @@ const columnLabel = (column: string) =>
       amount: "Value",
     }) as Record<string, string>
   )[column] || label(column);
-const modes = [
-  ["grid", "Data grid", Table2],
-  ["cards", "Cards", LayoutGrid],
-  ["kanban", "Pipeline", LayoutGrid],
-  ["list", "List", List],
-  ["timeline", "Timeline", Calendar],
-  ["forecast", "Forecast", TrendingUp],
-] as const;
+const dealLensModes = ["calendar","gantt","team","activity","mindmap","whiteboard"];
+const dealViews: WorkspaceView[] = [
+ {id:"grid",label:"Table",icon:"table",description:"A precise, customisable data grid",color:"#16a596"},
+ {id:"kanban",label:"Board",icon:"board",description:"Opportunities moving through sales stages",color:"#6b8be8"},
+ {id:"cards",label:"Gallery",icon:"gallery",description:"Rich cards for every opportunity",color:"#d97aa5"},
+ {id:"list",label:"List",description:"An expandable view of your deals",color:"#9370d9"},
+ {id:"gantt",label:"Gantt",description:"Opportunity schedules and closing windows",category:"Plan",color:"#ec8276"},
+ {id:"timeline",label:"Timeline",description:"Upcoming close dates and milestones",category:"Plan",color:"#d7a14d"},
+ {id:"calendar",label:"Calendar",description:"Closing dates on your calendar",category:"Plan",color:"#e29c58"},
+ {id:"forecast",label:"Forecast",icon:"dashboard",description:"Revenue, probabilities and performance",category:"Explore",color:"#9b70d0"},
+ {id:"team",label:"Team",description:"Ownership and opportunity distribution",category:"Explore",color:"#46a79a"},
+ {id:"mindmap",label:"Mind map",description:"Explore deals by owner or sales stage",category:"Explore",color:"#d776a7"},
+ {id:"whiteboard",label:"Whiteboard",description:"Arrange your opportunity strategy",category:"Explore",color:"#c1a04b"},
+ {id:"activity",label:"Activity",description:"Recently updated opportunities",category:"Collaborate",color:"#509edb"},
+ {id:"channel",label:"Channel",description:"Team conversations in your CRM",category:"Collaborate",href:"/crm/messages",color:"#8b5cf6"},
+ {id:"files",label:"Files",description:"Sales collateral and shared documents",category:"Collaborate",href:"/crm/files",color:"#7999be"},
+ {id:"form",label:"Forms",description:"Capture enquiries and lead requests",category:"Collaborate",href:"/crm/webforms",color:"#9672d7"},
+];
 
 export default function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | "kanban" }) {
   const navigate = useNavigate();
@@ -122,11 +135,10 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
   }));
   const [gridReady, setGridReady] = useState(false);
   const [selectedRecords, setSelectedRecords] = useState<Row[]>([]);
-  const [filtersOpen, setFiltersOpen] = useState(
-    () => initialView !== "kanban" && window.matchMedia("(min-width: 900px)").matches,
-  );
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(empty),
     [search, setSearch] = useState("");
+  const [lensPreview,setLensPreview] = useState<string>();
   const [forecastGroup, setForecastGroup] = useState("month");
   const [mode, setMode] = useState<string>(initialView),
     [page, setPage] = useState(1),
@@ -637,6 +649,7 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
           </div>
         ))}
       </section>}
+      <WorkspaceViewBar scope="crm-deals" label="Deal views" active={mode} views={dealViews} onChange={setMode} primary={["grid","kanban","cards","gantt","timeline","calendar","forecast","channel"]}/>
       <section className="ed-controls">
         <div className="ed-toolbar">
           {mode !== "grid" && (
@@ -650,18 +663,6 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
               />
             </div>
           )}
-          <div className="ed-mode-buttons">
-            {modes.map(([id, title, Icon]) => (
-              <button
-                className={mode === id ? "active" : ""}
-                key={id}
-                onClick={() => setMode(id)}
-              >
-                <Icon size={15} />
-                {title}
-              </button>
-            ))}
-          </div>
           {mode !== "grid" && data?.can_export && (
             <details>
               <summary className="ed-link-button">
@@ -1028,6 +1029,7 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
               }}
             />
           )}
+          {dealLensModes.includes(mode) && <RecordLensViews scope={`crm-deals:${filters.pipeline_id || "all"}`} view={mode} records={rows.map(row => ({id:String(row.id),title:String(row.name || "Untitled deal"),subtitle:row.company_name || lookup("companies",row.company_id),status:row.stage_name || lookup("pipeline-stages",row.stage_id) || row.status,owner:row.owner_name || lookup("deal-workspace/assignees",row.owner_user_id),value:dealMoney(row.amount,row.currency),start:row.planning?.start_date || row.start_date,due:row.expected_close_date,updated:row.updated_at,color:stageOptions.find(stage => stage.id === row.stage_id)?.color,tags:[row.priority || "Medium",row.currency || ""]}))} onOpen={record => setLensPreview(record.id)}/>}
           {mode === "cards" && (
             <div className="ed-shared-cards">{rows.map(card)}</div>
           )}
@@ -1262,6 +1264,7 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
           </div>
         </footer>
       )}
+      <PipelineDrawer open={!!lensPreview} onClose={() => setLensPreview(undefined)} title={rows.find(row => String(row.id) === lensPreview)?.name || "Deal workspace"}>{lensPreview && <><Link className="ed-link-button" to={`/crm/deals/${lensPreview}`}>Open complete deal</Link><PipelineDomainDetails module="crm" id={lensPreview} canEdit={!!data?.can_manage}/></>}</PipelineDrawer>
       <details className="ed-definitions">
         <summary>Calculation definitions</summary>
         {Object.entries(summary?.definitions || {}).map(([key, text]) => (

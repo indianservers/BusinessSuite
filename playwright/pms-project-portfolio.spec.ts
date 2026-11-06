@@ -109,10 +109,10 @@ test("portfolio filters, edits, previews, export and views", async ({
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("projects.csv");
-  await page.getByRole("button", { name: "grid view", exact: true }).click();
+  await page.getByRole("navigation",{name:"Portfolio views"}).getByRole("button", { name: "Gallery", exact: true }).click();
   await expect(page.locator(".portfolio-cards article")).toHaveCount(1);
   await page
-    .getByRole("button", { name: "analytics view", exact: true })
+    .getByRole("button", { name: "Dashboard", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Projects by status" }),

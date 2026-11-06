@@ -1,3 +1,4 @@
+import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
 import { useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
@@ -14,19 +15,24 @@ import "./ProjectTabs.css";
 
 export function ProjectDetailHeader({ project, taskCount, memberCount, riskCount, fileCount }: { project: PMSProject; taskCount?: number; memberCount?: number; riskCount?: number; fileCount?: number }) {
   const location = useLocation(), base = `/pms/projects/${project.id}`;
-  const tabs = [
-    { label: "Overview", suffix: "", icon: LayoutDashboard },
-    { label: "Tasks", suffix: "/board", icon: ListChecks, count: taskCount },
-    { label: "Timeline", suffix: "/timeline", icon: CalendarDays },
-    { label: "Team", suffix: "/members", icon: Users, count: memberCount },
-    { label: "Files", suffix: "/files", icon: Files, count: fileCount },
-    { label: "Finance", suffix: "/billing", icon: Wallet },
-    { label: "Notes", suffix: "/notes", icon: MessageSquare },
-    { label: "Risks", suffix: "/risks", icon: ShieldAlert, count: riskCount },
+  const detailViews: WorkspaceView[] = [
+    {id:"overview",label:"Overview",icon:"dashboard",description:"Project health, context and delivery",href:base},
+    {id:"list",label:"List",description:"All project tasks with inline editing",href:`/pms/tasks?projectId=${project.id}`},
+    {id:"board",label:"Board",description:"Move work through delivery stages",href:base+"/board",color:"#6d8be5"},
+    {id:"gantt",label:"Gantt",description:"Dependencies and task schedules",category:"Plan",href:base+"/gantt",color:"#e88378"},
+    {id:"timeline",label:"Timeline",description:"The project delivery plan",category:"Plan",href:base+"/timeline",color:"#d8a150"},
+    {id:"calendar",label:"Calendar",description:"Project deadlines on a calendar",category:"Plan",href:`/pms/tasks?projectId=${project.id}&layout=calendar`,color:"#e39d59"},
+    {id:"channel",label:"Channel",description:"Discuss decisions with the project team",category:"Collaborate",href:base+"/communication",color:"#8b5cf6"},
+    {id:"team",label:`Team${memberCount !== undefined ? ` (${memberCount})` : ""}`,description:"Project people and responsibilities",category:"Collaborate",href:base+"/members",color:"#4da89c"},
+    {id:"files",label:`Files${fileCount !== undefined ? ` (${fileCount})` : ""}`,description:"Documents, designs and deliverables",category:"Collaborate",href:base+"/files",color:"#7999bd"},
+    {id:"notes",label:"Notes",icon:"docs",description:"Capture decisions and project knowledge",category:"Collaborate",href:base+"/notes",color:"#549dde"},
+    {id:"finance",label:"Finance",icon:"table",description:"Billing and project commercial details",category:"Explore",href:base+"/billing",color:"#29a38f"},
+    {id:"risks",label:"Risks",icon:"activity",description:"Delivery risks and mitigation plans",category:"Explore",href:base+"/risks",color:"#d9838f"},
   ];
+  const activeView = detailViews.find(view => view.href === location.pathname)?.id || "overview";
   return <>
     <header className="pd-hero"><div className="pd-project-icon"><ClipboardList size={30} /></div><div className="pd-hero-text"><h1>{project.name}</h1><RichTextContent value={project.description || "Project workspace overview"} /><div className="pd-pills"><span className="pd-pill pd-green"><Flag size={13} />{project.status}</span>{(project.client_name || project.client_id) && <span className="pd-pill"><Building2 size={13} />{project.client_name || `Client #${project.client_id}`}</span>}<span className="pd-pill pd-pink"><CalendarDays size={13} />Due: {formatDate(project.due_date || null)}</span><span className="pd-pill pd-orange"><Flag size={13} />{project.priority || "Normal"} Priority</span></div></div><div className="pd-hero-art" aria-hidden="true"><div className="pd-art-window"><span /><span /><span /><div className="pd-art-layout"><i /><i /><i /><i /></div></div><div className="pd-art-phone"><ListChecks size={24} /></div></div></header>
-    <nav className="pd-tabs" aria-label="Project views">{tabs.map(({ label, suffix, icon: Icon, count }) => { const active = suffix ? location.pathname === base + suffix || (suffix === "/timeline" && location.pathname === base + "/gantt") : location.pathname === base; return <Link key={label} to={base + suffix} aria-current={active ? "page" : undefined}><Icon size={17} />{label}{count !== undefined && <span>{count}</span>}</Link>; })}</nav>
+    <WorkspaceViewBar scope={`pms-project:${project.id}`} label="Project views" active={activeView} views={detailViews} primary={["overview","list","board","gantt","timeline","calendar","channel"]} onChange={() => {}}/>
   </>;
 }
 

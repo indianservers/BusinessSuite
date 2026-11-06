@@ -1,3 +1,4 @@
+import ScheduleLens from "@/shared/workspace/ScheduleLens";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -7,16 +8,13 @@ import type { tasksAPI } from "../services/api";
 type Props = { view: string; tasks: PMSTaskListItem[]; summary?: PMSTaskListResponse["summary"]; busy: boolean; canEdit: (task: PMSTaskListItem) => boolean; onOpen: (task: PMSTaskListItem) => void; onUpdate: (task: PMSTaskListItem, patch: Parameters<typeof tasksAPI.update>[1]) => Promise<void> };
 const states = ["Backlog", "To Do", "In Progress", "In Review", "Blocked", "Done", "Cancelled"];
 const dayKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
-const asDate = (value: string) => new Date(value.slice(0,10)+"T12:00:00");
 const done = (task: PMSTaskListItem) => ["Done", "Completed", "Closed", "Cancelled"].includes(task.status);
 const color = (status: string) => status === "Blocked" ? "#e46a7a" : ["Done","Completed","Closed"].includes(status) ? "#39a77e" : status === "In Progress" ? "#8a67dd" : status === "In Review" ? "#deaa4c" : "#a6adc0";
 
 /** Alternate presentations of the exact result page used by the list. Mutations use existing task APIs. */
 export default function TaskWorkspaceViews({ view, tasks, summary, busy, canEdit, onOpen, onUpdate }: Props) {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(),1));
-  const [zoom, setZoom] = useState("week");
   const [dragged, setDragged] = useState<number>();
-  const scheduled = tasks.filter(task => task.due_date || task.start_date);
   if (view === "board") return <div className="tr-board" aria-label="Task board">{Array.from(new Set([...states,...tasks.map(task=>task.status)])).filter(status=>status!=="Cancelled" || tasks.some(task=>task.status===status)).map(status => <section key={status} className={dragged ? "tr-board-column is-droppable" : "tr-board-column"} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();const task=tasks.find(item=>item.id===Number(event.dataTransfer.getData("text/plain")));setDragged(undefined);if(task && canEdit(task) && task.status!==status)void onUpdate(task,{status:status as PMSTaskListItem["status"]});}}>
     <h3><i style={{background:color(status)}}/>{status}<span>{tasks.filter(task=>task.status===status).length}</span></h3>
     {tasks.filter(task=>task.status===status).map(task=><article className="tr-board-card" key={task.id} draggable={!busy && canEdit(task)} onDragStart={event=>{setDragged(task.id);event.dataTransfer.setData("text/plain",String(task.id));}} onDragEnd={()=>setDragged(undefined)}>
@@ -32,17 +30,7 @@ export default function TaskWorkspaceViews({ view, tasks, summary, busy, canEdit
       <p className="tr-view-note">Drag tasks to change their deadline, or open a task to edit dates. Calendar shows the current result page.</p>
     </section>;
   }
-  if (view === "timeline" || view === "gantt") {
-    const dates=scheduled.flatMap(task=>[task.start_date,task.due_date].filter((value):value is string=>!!value).map(asDate));
-    const start=new Date(dates.length?Math.min(...dates.map(date=>date.getTime())):Date.now());start.setDate(start.getDate()-2);
-    const end=new Date(dates.length?Math.max(...dates.map(date=>date.getTime())):Date.now());end.setDate(end.getDate()+4);
-    const duration=Math.max(7,Math.round((end.getTime()-start.getTime())/86400000));
-    const dayWidth=zoom==="day"?44:zoom==="week"?18:5;
-    const width=Math.max(640,duration*dayWidth);
-    return <section className="tr-schedule" aria-label={`${view === "gantt" ? "Gantt" : "Timeline"} task schedule`}><header><span>{scheduled.length} scheduled / {tasks.length-scheduled.length} unscheduled</span><NativeSelect aria-label="Schedule zoom" value={zoom} onChange={event=>setZoom(event.target.value)}><option value="day">Days</option><option value="week">Weeks</option><option value="month">Months</option></NativeSelect></header><div className="tr-schedule-scroll"><div style={{minWidth:width+220}}><div className="tr-schedule-axis"><strong>Task</strong><div style={{width}}>{Array.from({length:Math.ceil(duration/(zoom==="day"?1:zoom==="week"?7:30))},(_,index)=>{const day=index*(zoom==="day"?1:zoom==="week"?7:30);const date=new Date(start);date.setDate(date.getDate()+day);return <span key={index} style={{left:day*dayWidth}}>{date.toLocaleDateString("en",{month:"short",day:"numeric"})}</span>;})}</div></div>
-      {tasks.map(task=>{const from=task.start_date||task.due_date;const to=task.due_date||task.start_date;const offset=from?Math.max(0,Math.round((asDate(from).getTime()-start.getTime())/86400000))*dayWidth:0;const length=from&&to?Math.max(1,Math.round((asDate(to).getTime()-asDate(from).getTime())/86400000)+1)*dayWidth:0;return <div className="tr-schedule-row" key={task.id}><button onClick={()=>onOpen(task)} title={task.title}>{task.title}<small>{task.task_key}</small></button><div style={{width,backgroundSize:`${dayWidth*(zoom==="day"?1:7)}px 100%`}}>{from?<button className="tr-schedule-bar" title={`${task.title}: ${from} to ${to}. Open to reschedule.`} style={{left:offset,width:Math.max(18,length),background:color(task.status)}} onClick={()=>onOpen(task)}>{view==="timeline"?task.title:task.status}</button>:<span className="tr-unscheduled">No dates set</span>}</div></div>;})}
-    </div></div><p className="tr-view-note">Current result page. Open a bar for task details. <a href="/pms/gantt">Open dependency planning</a></p></section>;
-  }
+  if (view === "timeline" || view === "gantt") return <><ScheduleLens view={view} records={tasks.map(task=>({id:String(task.id),title:task.title,subtitle:task.task_key,status:task.status,owner:task.assignee_name,start:task.start_date||undefined,due:task.due_date||undefined,color:color(task.status)}))} onOpen={record=>{const task=tasks.find(item=>String(item.id)===record.id);if(task)onOpen(task);}}/><p className="tr-view-note">Current result page. <a href="/pms/gantt">Open dependency planning</a></p></>;
   if (view === "workload") {
     const people=new Map<string,PMSTaskListItem[]>();tasks.forEach(task=>{const assignees=task.assignees?.length?task.assignees.map(person=>person.name):[task.assignee_name||"Unassigned"];assignees.forEach(name=>people.set(name,[...(people.get(name)||[]),task]));});
     return <section className="tr-workload-view" aria-label="Task workload"><header><h3>Assignment distribution</h3><span>Current result page / estimated and logged effort</span></header>{[...people.entries()].sort((a,b)=>b[1].length-a[1].length).map(([name,work])=><details key={name}><summary><span className="tr-workload-person"><i>{name.split(" ").map(part=>part[0]).slice(0,2).join("")}</i>{name}</span><span className="tr-workload-meter"><span style={{width:`${100*work.length/Math.max(1,tasks.length)}%`}}/></span><span>{work.filter(task=>!done(task)).length} open</span><span>{work.reduce((sum,task)=>sum+(task.estimated_hours||0),0)}h planned</span><span>{work.reduce((sum,task)=>sum+(task.actual_hours||0),0)}h logged</span></summary><div>{work.map(task=><button key={task.id} onClick={()=>onOpen(task)}>{task.title}<span>{task.status}</span></button>)}</div></details>)}<p className="tr-view-note">For availability and capacity planning, <a href="/pms/workload">open team workload</a>.</p></section>;

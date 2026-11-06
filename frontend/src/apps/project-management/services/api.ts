@@ -76,7 +76,8 @@ export const projectsAPI = {
   list: async (
     skip: number = 0,
     limit: number = 100,
-    status?: string
+    status?: string,
+    fresh: boolean = false
   ) => {
     const params = new URLSearchParams();
     params.append("skip", skip.toString());
@@ -84,7 +85,8 @@ export const projectsAPI = {
     if (status) params.append("status", status);
 
     const response = await api.get<PMSProject[]>(
-      `${BASE_URL}/projects?${params}`
+      `${BASE_URL}/projects?${params}`,
+      fresh ? {recordCache:false,headers:{"Cache-Control":"no-cache"}} : undefined
     );
     return response.data;
   },
@@ -935,8 +937,8 @@ export const filesAPI = {
   },
 
   downloadBlob: async (fileId: number) => {
-    const response = await api.get<Blob>(`${BASE_URL}/attachments/${fileId}/download`, { responseType: "blob" });
-    return response.data;
+    const response = await api.get<ArrayBuffer>(`${BASE_URL}/attachments/${fileId}/download`, { responseType: "arraybuffer", recordCache: false });
+    return new Blob([response.data], { type: String(response.headers["content-type"] || "application/octet-stream") });
   },
 
   deleteAttachment: async (fileId: number) => {

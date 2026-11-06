@@ -1,3 +1,4 @@
+import ModuleWorkspaceFrame from "@/shared/workspace/ModuleWorkspaceFrame";
 import { ProjectDetailFrame } from "./components/ProjectDetailHeader";
 import React from "react";
 const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
@@ -225,5 +226,5 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/client-portal", element: <ClientPortalPage /> },
   { path: "pms/settings", element: <CentralSettingsRedirect section="pms" /> },
   { path: "pms/admin", element: <ManagementHomePage /> },
-];
+].map(route => ({...route, element: <ModuleWorkspaceFrame module="pms">{route.element}</ModuleWorkspaceFrame>}));
 

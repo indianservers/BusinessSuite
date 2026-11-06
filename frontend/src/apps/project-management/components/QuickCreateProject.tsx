@@ -21,6 +21,7 @@ export default function QuickCreateProject({
   const [workspaces, setWorkspaces] = useState<
     { id: number; name: string; role: string }[]
   >([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
   const [workspace, setWorkspace] = useState("");
   const [name, setName] = useState(""),
     [priority, setPriority] = useState<ProjectPriority>("Medium");
@@ -39,6 +40,7 @@ export default function QuickCreateProject({
     setError("");
     projectKey.current = `P${crypto.randomUUID().replace(/-/g, "").slice(0, 9).toUpperCase()}`;
     let active = true;
+    setLoadingWorkspaces(true);
     void api
       .get<typeof workspaces>("/project-management/workspaces")
       .then(({ data }) => {
@@ -50,6 +52,9 @@ export default function QuickCreateProject({
       })
       .catch((e) => {
         if (active) setError(workspaceError(e));
+      })
+      .finally(() => {
+        if (active) setLoadingWorkspaces(false);
       });
     return () => {
       active = false;
@@ -112,6 +117,8 @@ export default function QuickCreateProject({
               Workspace
               <NativeSelect
                 required
+                aria-label="Project workspace"
+                loading={loadingWorkspaces}
                 className="rounded-md border bg-background p-2"
                 value={workspace}
                 onChange={(e) => setWorkspace(e.target.value)}
@@ -133,6 +140,7 @@ export default function QuickCreateProject({
                   Priority
                   <NativeSelect
                     className="rounded-md border bg-background p-2"
+                    aria-label="New project priority"
                     value={priority}
                     onChange={(e) =>
                       setPriority(e.target.value as ProjectPriority)
@@ -178,7 +186,9 @@ export default function QuickCreateProject({
               </Button>
               <Button
                 type="submit"
-                disabled={!name.trim() || !workspace || busy}
+                disabled={
+                  !name.trim() || !workspace || busy || loadingWorkspaces
+                }
               >
                 {busy ? "Creating…" : "Create project"}
               </Button>

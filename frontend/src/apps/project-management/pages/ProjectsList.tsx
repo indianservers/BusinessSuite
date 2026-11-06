@@ -1,3 +1,5 @@
+import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
+import RecordLensViews from "@/shared/workspace/RecordLensViews";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Link } from "react-router-dom";
@@ -58,6 +60,7 @@ import {
 
 import RecordActions from "../components/RecordActions";
 
+import InlineProjectDate from "../components/InlineProjectDate";
 import ProjectPreviewDetails from "../components/ProjectPreviewDetails";
 import PortfolioRules, {
   readRules,
@@ -102,6 +105,25 @@ const health = (p: PMSProject) =>
         ? "At Risk"
         : "On Track";
 
+const projectLenses = ["board","timeline","gantt","calendar","workload","team","activity","mindmap","whiteboard"];
+const projectViews: WorkspaceView[] = [
+ {id:"list",label:"List",description:"Compare projects and edit inline",color:"#8b5cf6"},
+ {id:"grid",label:"Gallery",icon:"gallery",description:"A beautiful overview of every project",color:"#d980ac"},
+ {id:"board",label:"Board",description:"See projects by delivery status",color:"#6b8ee8"},
+ {id:"gantt",label:"Gantt",description:"Project schedules and delivery windows",category:"Plan",color:"#ed8475"},
+ {id:"timeline",label:"Timeline",description:"See your portfolio across time",category:"Plan",color:"#d7a350"},
+ {id:"calendar",label:"Calendar",description:"Project deadlines in a monthly view",category:"Plan",color:"#e79c60"},
+ {id:"workload",label:"Workload",description:"Project ownership and distribution",category:"Plan",color:"#24a595"},
+ {id:"analytics",label:"Dashboard",icon:"dashboard",description:"Delivery health and portfolio insights",category:"Explore",color:"#9b70d0"},
+ {id:"team",label:"Team",description:"Projects organised around their owners",category:"Explore",color:"#54a99c"},
+ {id:"mindmap",label:"Mind map",description:"Explore portfolio relationships",category:"Explore",color:"#d476ac"},
+ {id:"whiteboard",label:"Whiteboard",description:"Arrange project cards on a personal canvas",category:"Explore",color:"#bd9b4a"},
+ {id:"activity",label:"Activity",description:"Recently updated projects",category:"Collaborate",color:"#4d9fe0"},
+ {id:"channel",label:"Channel",description:"Conversations tied to project work",category:"Collaborate",href:"/pms/team-communication",color:"#8b5cf6"},
+ {id:"docs",label:"Docs",description:"Project briefs and shared knowledge",category:"Collaborate",href:"/pms/docs",color:"#479ddd"},
+ {id:"files",label:"Files",description:"Deliverables and project assets",category:"Collaborate",href:"/pms/files",color:"#7898b9"},
+ {id:"form",label:"Forms",description:"Collect structured project requests",category:"Collaborate",href:"/pms/forms",color:"#9a76d7"},
+];
 const defaults = {
   tab: "All Projects",
   query: "",
@@ -118,6 +140,19 @@ const defaults = {
 };
 
 type Filters = typeof defaults;
+function restoreFilters(value: unknown): Filters {
+  try {
+    const object = typeof value === "string" ? JSON.parse(value) : value;
+    return Object.fromEntries(
+      Object.entries(defaults).map(([key, fallback]) => [
+        key,
+        object && typeof object[key] === "string" ? object[key] : fallback,
+      ]),
+    ) as Filters;
+  } catch {
+    return { ...defaults };
+  }
+}
 
 const read = <T,>(key: string, fallback: T): T => {
   try {
@@ -148,8 +183,7 @@ export default function ProjectsList() {
   const { projects, setProjects } = useProjectStore();
 
   const [filters, setFilters] = useState<Filters>(() => ({
-    ...defaults,
-    ...read(key, {}),
+    ...restoreFilters(read(key, {})),
   }));
 
   const [stars, setStars] = useState<number[]>(() => read(`${key}:stars`, []));
@@ -167,11 +201,16 @@ export default function ProjectsList() {
     [shareView, setShareView] = useState(false),
     [preferencesReady, setPreferencesReady] = useState(false);
 
+  const preferencesModified = useRef<number>(read(`${key}:modified`, 0));
   const preferencesBase = "/pipeline-workspaces/project_management/portfolio";
 
   useEffect(() => {
     let active = true;
     setPreferencesReady(false);
+    const local = restoreFilters(read(key, {}));
+    setFilters({ ...defaults, ...local });
+    setSearch(typeof local.query === "string" ? local.query : "");
+    setStars(read<number[]>(`${key}:stars`, []));
     void api
       .get<{
         preferences: { module_filters: Record<string, string> };
@@ -183,12 +222,14 @@ export default function ProjectsList() {
         setSaved(data.views);
         setCanShare(data.can_share);
         const values = data.preferences.module_filters;
-        if (values?.portfolio) {
-          const f = JSON.parse(values.portfolio);
+        const preferLocal =
+          read<number>(`${key}:modified`, 0) > Number(values?.modified || 0);
+        if (values?.portfolio && !preferLocal) {
+          const f = restoreFilters(values.portfolio);
           setFilters({ ...defaults, ...f });
           setSearch(f.query || "");
         }
-        if (values?.stars) setStars(JSON.parse(values.stars));
+        if (values?.stars && !preferLocal) setStars(JSON.parse(values.stars));
         setPreferencesReady(true);
       })
       .catch((e) => {
@@ -202,23 +243,38 @@ export default function ProjectsList() {
 
   useEffect(() => {
     if (!preferencesReady) return;
+    preferencesModified.current = Date.now();
+    try {
+      localStorage.setItem(
+        `${key}:modified`,
+        String(preferencesModified.current),
+      );
+    } catch {
+      /* Optional local cache. */
+    }
     const timer = setTimeout(() => {
       void api
-        .put(`${preferencesBase}/preferences`, {
-          module_filters: {
-            portfolio: JSON.stringify(filters),
-            stars: JSON.stringify(stars),
+        .put(
+          `${preferencesBase}/preferences`,
+          {
+            module_filters: {
+              portfolio: JSON.stringify(filters),
+              stars: JSON.stringify(stars),
+              modified: String(preferencesModified.current),
+            },
           },
-        })
+          { progress: false },
+        )
         .catch((e) => setError(workspaceError(e)));
-    }, 650);
+    }, 300);
     return () => clearTimeout(timer);
   }, [filters, stars, preferencesReady]);
 
   async function saveView() {
     const name = viewName;
-    if (!name?.trim()||saveViewLock.current) return;
-    saveViewLock.current=true;setSavingView(true);
+    if (!name?.trim() || saveViewLock.current) return;
+    saveViewLock.current = true;
+    setSavingView(true);
     try {
       const { data } = await api.post(`${preferencesBase}/views`, {
         name: name.trim(),
@@ -230,7 +286,10 @@ export default function ProjectsList() {
       setViewName("");
     } catch (e) {
       setError(workspaceError(e));
-    } finally {saveViewLock.current=false;setSavingView(false);}
+    } finally {
+      saveViewLock.current = false;
+      setSavingView(false);
+    }
   }
 
   const [loading, setLoading] = useState(true),
@@ -244,11 +303,28 @@ export default function ProjectsList() {
   const [selected, setSelected] = useState<number[]>([]),
     [previewId, setPreviewId] = useState<number>();
 
-  const [savingView,setSavingView]=useState(false);
-  const saveViewLock=useRef(false);
-  const [previewWidth,setPreviewWidth]=useState(600);
-  const [resizing,setResizing]=useState(false);
-  useEffect(()=>{if(!resizing)return;const move=(e:PointerEvent)=>setPreviewWidth(Math.min(window.innerWidth-24,Math.max(360,window.innerWidth-e.clientX)));const end=()=>setResizing(false);window.addEventListener("pointermove",move);window.addEventListener("pointerup",end,{once:true});return()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",end);};},[resizing]);
+  const [confirmation, setConfirmation] = useState<"archive" | "trash">();
+  const [savingView, setSavingView] = useState(false);
+  const saveViewLock = useRef(false);
+  const [previewWidth, setPreviewWidth] = useState(600);
+  const [resizing, setResizing] = useState(false);
+  useEffect(() => {
+    if (!resizing) return;
+    const move = (e: PointerEvent) =>
+      setPreviewWidth(
+        Math.min(
+          window.innerWidth - 24,
+          Math.max(360, window.innerWidth - e.clientX),
+        ),
+      );
+    const end = () => setResizing(false);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end, { once: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+    };
+  }, [resizing]);
   const [viewName, setViewName] = useState("");
   const [renaming, setRenaming] = useState<number>();
   const [renameDraft, setRenameDraft] = useState("");
@@ -288,7 +364,7 @@ export default function ProjectsList() {
     const rows: PMSProject[] = [];
 
     for (let skip = 0; ; skip += 500) {
-      const batch = await projectsAPI.list(skip, 500);
+      const batch = await projectsAPI.list(skip, 500, undefined, true);
       rows.push(...batch);
       if (batch.length < 500) break;
     }
@@ -321,11 +397,23 @@ export default function ProjectsList() {
     };
   }, [uid, companyId]);
 
+  function markPreferenceChange() {
+    preferencesModified.current = Date.now();
+    try {
+      localStorage.setItem(
+        `${key}:modified`,
+        String(preferencesModified.current),
+      );
+    } catch {
+      /* Optional local cache. */
+    }
+  }
   function filter(field: keyof Filters, value: string) {
+    markPreferenceChange();
     setFilters((f) => ({ ...f, [field]: value }));
     setPage(0);
     setSelected([]);
-    if(field==="query")setSearch(value);
+    if (field === "query") setSearch(value);
   }
 
   function matches(p: PMSProject, tab: string) {
@@ -379,8 +467,17 @@ export default function ProjectsList() {
     [projects, filters, uid, stars],
   );
 
-  useEffect(()=>{setPage(p=>Math.min(p,Math.max(0,Math.ceil(filtered.length/30)-1)));},[filtered.length]);
-  const activeFilters=Object.entries(filters).filter(([field,value])=>!["view","sort","match","tab"].includes(field)&&value!==""&&value!=="[]");
+  useEffect(() => {
+    setPage((p) =>
+      Math.min(p, Math.max(0, Math.ceil(filtered.length / 30) - 1)),
+    );
+  }, [filtered.length]);
+  const activeFilters = Object.entries(filters).filter(
+    ([field, value]) =>
+      !["view", "sort", "match", "tab"].includes(field) &&
+      value !== "" &&
+      value !== "[]",
+  );
   const rows = filtered.slice(page * 30, page * 30 + 30);
 
   const custom = useCustomFieldRecords(
@@ -477,6 +574,13 @@ export default function ProjectsList() {
               ? {
                   ...row,
                   ...patch,
+                  ...(patch.owner_user_id !== undefined
+                    ? {
+                        owner_name:
+                          p.team?.find((m) => m.id === patch.owner_user_id)
+                            ?.name || null,
+                      }
+                    : {}),
                   owner_user_id:
                     patch.owner_user_id === null
                       ? undefined
@@ -507,12 +611,6 @@ export default function ProjectsList() {
   }
 
   async function deleteSelected() {
-    if (
-      !window.confirm(
-        `Move ${selected.length} selected projects to Trash? They can be restored from Trash.`,
-      )
-    )
-      return;
     setBusy(true);
     setError("");
     const failures: string[] = [];
@@ -602,6 +700,7 @@ export default function ProjectsList() {
       }),
       "projects.csv",
     );
+    setNotice(`${data.length} projects exported to projects.csv.`);
   }
 
   const progressBar = (p: PMSProject) => (
@@ -611,7 +710,12 @@ export default function ProjectsList() {
       onClick={() => setPreviewId(p.id)}
     >
       <span>
-        <i style={{ width: `${Math.max(0, Math.min(100, progress(p)))}%` }} />
+        <i
+          style={{
+            width: `${Math.max(0, Math.min(100, progress(p)))}%`,
+            background: progress(p) >= 80 ? "#16a34a" : undefined,
+          }}
+        />
       </span>
       <b>{progress(p)}%</b>
     </button>
@@ -622,18 +726,21 @@ export default function ProjectsList() {
       className={`portfolio-star ${stars.includes(p.id) ? "is-starred" : ""}`}
       aria-label={`${stars.includes(p.id) ? "Unstar" : "Star"} ${p.name}`}
       aria-pressed={stars.includes(p.id)}
-      onClick={() =>
+      onClick={() => {
+        markPreferenceChange();
         setStars((s) =>
           s.includes(p.id) ? s.filter((id) => id !== p.id) : [...s, p.id],
-        )
-      }
+        );
+      }}
     >
       <Star size={16} />
     </button>
   );
 
   return (
-    <main className={`project-portfolio ${advanced?"portfolio-filters-expanded":""}`}>
+    <main
+      className={`project-portfolio ${advanced ? "portfolio-filters-expanded" : ""}`}
+    >
       <header className="portfolio-header">
         <div className="portfolio-heading">
           <span className="portfolio-logo">
@@ -653,7 +760,12 @@ export default function ProjectsList() {
               Import
             </Link>
           </Button>
-          <Button title="Export filtered projects as CSV" variant="outline" onClick={exportCSV} disabled={loading}>
+          <Button
+            title="Export filtered projects as CSV"
+            variant="outline"
+            onClick={exportCSV}
+            disabled={loading}
+          >
             <Download size={15} />
             Export
           </Button>
@@ -663,9 +775,12 @@ export default function ProjectsList() {
               Trash
             </Link>
           </Button>
-          <Button onClick={() => setCreating(true)}>
+          <Button aria-label="New Project" onClick={() => setCreating(true)}>
             <Plus size={16} />
-            New Project
+            <span className="portfolio-new-desktop">New Project</span>
+            <span className="portfolio-new-mobile" aria-hidden="true">
+              New
+            </span>
           </Button>
         </div>
       </header>
@@ -715,7 +830,17 @@ export default function ProjectsList() {
           <button
             key={label}
             className={`portfolio-kpi ${tone}`}
-            onClick={() => {setFilters({...defaults,tab,view:filters.view,sort:filters.sort});setSearch("");setPage(0);setSelected([]);}}
+            onClick={() => {
+              setFilters({
+                ...defaults,
+                tab,
+                view: filters.view,
+                sort: filters.sort,
+              });
+              setSearch("");
+              setPage(0);
+              setSelected([]);
+            }}
             aria-pressed={filters.tab === tab}
           >
             <span className="kpi-icon">
@@ -763,26 +888,10 @@ export default function ProjectsList() {
               </button>
             ))}
           </nav>
-          <div className="portfolio-switch" aria-label="Display mode">
-            {[
-              { value: "list", Icon: List },
-              { value: "grid", Icon: LayoutGrid },
-              { value: "analytics", Icon: BarChart3 },
-            ].map(({ value, Icon }) => (
-              <button
-                key={value}
-                title={`${value} view`}
-                aria-label={`${value} view`}
-                aria-pressed={filters.view === value}
-                className={filters.view === value ? "active" : ""}
-                onClick={() => filter("view", value)}
-              >
-                <Icon size={18} />
-              </button>
-            ))}
-          </div>
+
         </div>
 
+        <WorkspaceViewBar scope="pms-projects" label="Portfolio views" active={filters.view} views={projectViews} onChange={view => filter("view", view)} primary={["list","grid","board","gantt","timeline","calendar","analytics"]}/>
         <div className="portfolio-filters">
           <label className="portfolio-search">
             <Search size={17} />
@@ -791,8 +900,10 @@ export default function ProjectsList() {
               placeholder="Search projects, codes, clients, people…"
               value={search}
               onChange={(e) => {
+                markPreferenceChange();
                 setSearch(e.target.value);
-                setPage(0);setSelected([]);
+                setPage(0);
+                setSelected([]);
               }}
             />
           </label>
@@ -909,15 +1020,18 @@ export default function ProjectsList() {
                 value=""
                 aria-label="Saved project views"
                 onChange={(e) => {
+                  if (!e.target.value) return;
+                  markPreferenceChange();
                   const view = saved[Number(e.target.value)];
                   if (view) {
                     const f = {
                       ...defaults,
-                      ...JSON.parse(
-                        view.preferences.module_filters.portfolio || "{}",
+                      ...restoreFilters(
+                        view.preferences.module_filters.portfolio,
                       ),
                     };
                     setFilters(f);
+                    setNotice(`Loaded view: ${view.name}`);
                     setSearch(f.query);
                     setPage(0);
                   }
@@ -1007,13 +1121,50 @@ export default function ProjectsList() {
           </div>
         )}
 
-        {!!activeFilters.length&&<div className="portfolio-active-filters" aria-label="Active filters"><span>{filtered.length} matching projects</span>{activeFilters.map(([field,value])=><button key={field} onClick={()=>filter(field as keyof Filters,field==="rules"?"[]":"")} aria-label={`Clear ${field} filter`}>{field==="rules"?`${readRules(value).length} conditions`:field==="query"?`Search: ${value}`:`${field}: ${value}`} <span aria-hidden="true">×</span></button>)}<button className="portfolio-clear-filters" onClick={()=>{setFilters(f=>({...defaults,view:f.view,sort:f.sort,tab:f.tab}));setSearch("");setPage(0);setSelected([]);}}>Clear all</button></div>}
+        {!!activeFilters.length && (
+          <div className="portfolio-active-filters" aria-label="Active filters">
+            <span>{filtered.length} matching projects</span>
+            {activeFilters.map(([field, value]) => (
+              <button
+                key={field}
+                onClick={() =>
+                  filter(field as keyof Filters, field === "rules" ? "[]" : "")
+                }
+                aria-label={`Clear ${field} filter`}
+              >
+                {field === "rules"
+                  ? `${readRules(value).length} conditions`
+                  : field === "query"
+                    ? `Search: ${value}`
+                    : `${field}: ${value}`}{" "}
+                <span aria-hidden="true">×</span>
+              </button>
+            ))}
+            <button
+              className="portfolio-clear-filters"
+              onClick={() => {
+                setFilters((f) => ({
+                  ...defaults,
+                  view: f.view,
+                  sort: f.sort,
+                  tab: f.tab,
+                }));
+                setSearch("");
+                setPage(0);
+                setSelected([]);
+              }}
+            >
+              Clear all
+            </button>
+          </div>
+        )}
         {(error || custom.error) && (
           <p className="portfolio-error" role="alert">
             {error || custom.error}{" "}
             <button
               onClick={() => {
-                setError("");custom.reload();
+                setError("");
+                custom.reload();
                 void load().catch((e) => setError(workspaceError(e)));
               }}
             >
@@ -1096,10 +1247,7 @@ export default function ProjectsList() {
             <Button
               variant="outline"
               disabled={busy}
-              onClick={() => {
-                if (window.confirm(`Archive ${selected.length} projects?`))
-                  void bulk({ is_archived: true }, "Archived");
-              }}
+              onClick={() => setConfirmation("archive")}
             >
               Archive
             </Button>
@@ -1120,7 +1268,7 @@ export default function ProjectsList() {
             <Button
               variant="outline"
               disabled={busy}
-              onClick={() => void deleteSelected()}
+              onClick={() => setConfirmation("trash")}
             >
               Move to Trash
             </Button>
@@ -1138,7 +1286,7 @@ export default function ProjectsList() {
           <div className="p-12 text-center text-muted-foreground" role="status">
             Loading your project portfolio…
           </div>
-        ) : filters.view === "analytics" ? (
+        ) : projectLenses.includes(filters.view) ? <RecordLensViews scope="pms-projects" view={filters.view} records={filtered.map(project => ({id:String(project.id),title:project.name,subtitle:project.client_name || "Internal project",status:project.status,owner:project.owner_name || "Unassigned",progress:progress(project),start:project.start_date,due:project.due_date,updated:project.updated_at,tags:[health(project),project.priority]}))} statuses={statuses} canMove={record => !busy && !!filtered.find(project => String(project.id) === record.id)?.can_edit_project} onMove={(record,status) => {const project=filtered.find(project => String(project.id) === record.id);if(project?.can_edit_project && !busy)void update(project,{status:status as PMSProject["status"]});}} onOpen={record => setPreviewId(Number(record.id))}/> : filters.view === "analytics" ? (
           <div className="portfolio-analytics">
             <div>
               <h2>Projects by status</h2>
@@ -1236,7 +1384,10 @@ export default function ProjectsList() {
                 </thead>
                 <tbody>
                   {rows.map((p) => (
-                    <tr key={p.id}>
+                    <tr
+                      key={p.id}
+                      className={selected.includes(p.id) ? "is-selected" : ""}
+                    >
                       <td>
                         <input
                           aria-label={`Select ${p.name}`}
@@ -1388,21 +1539,12 @@ export default function ProjectsList() {
                       {(["start_date", "due_date"] as const).map((field) => (
                         <td key={field}>
                           {p.can_edit_project ? (
-                            <input
-                              aria-label={`${field === "due_date" ? "Due" : "Start"} date for ${p.name}`}
-                              type="date"
-                              className={
-                                field === "due_date" && overdue(p)
-                                  ? "is-overdue"
-                                  : ""
-                              }
+                            <InlineProjectDate
+                              label={`${field === "due_date" ? "Due" : "Start"} date for ${p.name}`}
+                              value={p[field]}
                               disabled={busy}
-                              value={p[field]?.slice(0, 10) || ""}
-                              onChange={(e) =>
-                                void update(p, {
-                                  [field]: e.target.value || null,
-                                })
-                              }
+                              overdue={field === "due_date" && overdue(p)}
+                              onSave={(value) => update(p, { [field]: value })}
                             />
                           ) : (
                             formatDate(p[field] || null)
@@ -1508,7 +1650,24 @@ export default function ProjectsList() {
               {rows.map((p) => (
                 <article key={p.id} data-testid={`project-card-${p.id}`}>
                   <div className="flex items-center justify-between">
-                    <small>{p.project_key}</small>
+                    <div className="portfolio-card-identity">
+                      {p.can_edit_project && (
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${p.name}`}
+                          disabled={busy}
+                          checked={selected.includes(p.id)}
+                          onChange={(e) =>
+                            setSelected((v) =>
+                              e.target.checked
+                                ? [...v, p.id]
+                                : v.filter((id) => id !== p.id),
+                            )
+                          }
+                        />
+                      )}
+                      <small>{p.project_key}</small>
+                    </div>
                     {favorite(p)}
                   </div>
                   <h2>
@@ -1517,7 +1676,11 @@ export default function ProjectsList() {
                   <p>{p.client_name || "No client linked"}</p>
                   <div className="flex justify-between">
                     <Badge className={statusColor(p.status)}>{p.status}</Badge>
-                    <span className="portfolio-health">{health(p)}</span>
+                    <span
+                      className={`portfolio-health health-${health(p).toLowerCase().replace(" ", "-")}`}
+                    >
+                      {health(p)}
+                    </span>
                   </div>
                   {progressBar(p)}
                   <footer>
@@ -1590,8 +1753,35 @@ export default function ProjectsList() {
           if (!open) setPreviewId(undefined);
         }}
       >
-        <DialogContent className={`portfolio-preview ${resizing?"is-resizing":""}`} style={{width:previewWidth}}>
-          <div className="portfolio-preview-resizer" role="separator" aria-orientation="vertical" aria-label="Resize project preview" aria-valuemin={360} aria-valuemax={1200} aria-valuenow={previewWidth} tabIndex={0} onPointerDown={e=>{e.preventDefault();setResizing(true);}} onKeyDown={e=>{if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();setPreviewWidth(w=>Math.min(1200,Math.max(360,w+(e.key==="ArrowLeft"?40:-40))));}}}/>
+        <DialogContent
+          className={`portfolio-preview ${resizing ? "is-resizing" : ""}`}
+          style={{ width: previewWidth }}
+        >
+          <div
+            className="portfolio-preview-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize project preview"
+            aria-valuemin={360}
+            aria-valuemax={1200}
+            aria-valuenow={previewWidth}
+            tabIndex={0}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              setResizing(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                e.preventDefault();
+                setPreviewWidth((w) =>
+                  Math.min(
+                    1200,
+                    Math.max(360, w + (e.key === "ArrowLeft" ? 40 : -40)),
+                  ),
+                );
+              }
+            }}
+          />
 
           {preview && (
             <>
@@ -1716,6 +1906,51 @@ export default function ProjectsList() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={!!confirmation}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmation(undefined);
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>
+            {confirmation === "archive"
+              ? "Archive selected projects?"
+              : "Move selected projects to Trash?"}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {selected.length} selected projects will{" "}
+            {confirmation === "archive"
+              ? "leave active portfolio views. You can restore them from Archived."
+              : "move to Trash with their tasks and files preserved. You can restore them from Trash."}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setConfirmation(undefined)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={() => {
+                void (
+                  confirmation === "archive"
+                    ? bulk({ is_archived: true }, "Archived")
+                    : deleteSelected()
+                ).finally(() => setConfirmation(undefined));
+              }}
+            >
+              {busy
+                ? "Applying…"
+                : confirmation === "archive"
+                  ? "Archive projects"
+                  : "Move to Trash"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <QuickCreateProject
         open={creating}
         onClose={() => setCreating(false)}
