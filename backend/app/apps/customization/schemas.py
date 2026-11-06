@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field
 
 class ModulePayload(BaseModel):
     module_api_name: str = Field(..., min_length=1, max_length=100)
-    module_label: str
-    plural_label: str
+    module_label: str = Field(..., min_length=1, max_length=160)
+    plural_label: str = Field(..., min_length=1, max_length=160)
     icon: str | None = None
     description: str | None = None
     enabled: bool = True
@@ -16,10 +16,10 @@ class ModulePayload(BaseModel):
 
 
 class FieldPayload(BaseModel):
-    module_name: str
-    field_api_name: str
-    field_label: str
-    field_type: str
+    module_name: str = Field(..., min_length=1, max_length=100)
+    field_api_name: str = Field(..., min_length=1, max_length=120)
+    field_label: str = Field(..., min_length=1, max_length=160)
+    field_type: str = Field(..., min_length=1, max_length=40)
     required: bool = False
     unique: bool = False
     default_value: str | None = None
@@ -109,7 +109,7 @@ class ButtonPayload(BaseModel):
 
 
 class ButtonExecutePayload(BaseModel):
-    record_id: int | None = None
+    record_id: int | None = Field(None, strict=True, gt=0)
     payload: dict[str, Any] | None = None
     request_key: str = Field(..., min_length=8, max_length=100)
 
@@ -147,6 +147,6 @@ class RollupPayload(BaseModel):
 
 
 class DynamicRecordPayload(BaseModel):
-    values: dict[str, Any]
-    owner_user_id: int | None = None
+    values: dict[str, Any] = Field(..., max_length=500)
+    owner_user_id: int | None = Field(None, strict=True, gt=0)
 

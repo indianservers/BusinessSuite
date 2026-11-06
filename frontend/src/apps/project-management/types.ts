@@ -42,6 +42,16 @@ export interface CreateClientInput {
 
 // ============= PROJECT TYPES =============
 export interface PMSProject {
+  owner_user_id?: number;
+  owner_name?: string | null;
+  team?: {id: number; name: string; role: string}[];
+  task_count?: number;
+  completed_task_count?: number;
+  blocked_task_count?: number;
+  overdue_task_count?: number;
+  milestone_count?: number;
+  completed_milestone_count?: number;
+  calculated_progress?: number | null;
   client_name?: string | null;
   can_upload_files?: boolean;
   can_edit_project?: boolean;
@@ -77,6 +87,7 @@ export interface PMSProject {
 }
 
 export interface CreateProjectInput {
+  owner_user_id?: number | null;
   custom_fields?: Record<string, {value:string|number|boolean|null;country_code?:string}>;
   workspace_id?: number;
   name: string;

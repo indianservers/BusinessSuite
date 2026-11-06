@@ -142,7 +142,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/risks", element: <RisksPage /> },
   
   // Projects
-  { path: "pms/projects", element: <ManagementHomePage initialView="projects" /> },
+  { path: "pms/projects", element: <ProjectsList /> },
   { path: "pms/projects/classic", element: <ProjectsList /> },
   { path: "pms/projects/new", element: <CreateProjectPage /> },
   { path: "pms/projects/:projectId/edit", element: <CreateProjectPage /> },

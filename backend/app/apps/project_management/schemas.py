@@ -118,6 +118,17 @@ class PMSProjectUpdate(BaseModel):
 
 
 class PMSProjectResponse(PMSProjectBase):
+    client_name: str | None = None
+    owner_name: str | None = None
+    team: list[dict[str, Any]] = Field(default_factory=list)
+    task_count: int = 0
+    completed_task_count: int = 0
+    blocked_task_count: int = 0
+    overdue_task_count: int = 0
+    milestone_count: int = 0
+    completed_milestone_count: int = 0
+    calculated_progress: float | None = None
+
     can_manage_tasks: bool = False
     can_upload_files: bool = False
     can_manage_members: bool = False

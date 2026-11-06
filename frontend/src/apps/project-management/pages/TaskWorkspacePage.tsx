@@ -1,3 +1,4 @@
+import InlineSubtaskComposer from "../components/InlineSubtaskComposer";
 import { RecordCustomFields } from "../components/CustomFields";
 import Record360Workspace from "@/shared/records/Record360Workspace";
 import { Button } from "@/components/ui/button";
@@ -128,10 +129,10 @@ const readDraft = (key: string) => {
     return "";
   }
 };
-export default function TaskWorkspacePage() {
+export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { embeddedTaskId?: number; onTaskChanged?: () => void } = {}) {
   const mobile=useMobile();
   const { taskId } = useParams();
-  const id = Number(taskId);
+  const id = embeddedTaskId ?? Number(taskId);
   const qc = useQueryClient();
   const location = useLocation();
   const [params, setParams] = useSearchParams();
@@ -142,7 +143,8 @@ export default function TaskWorkspacePage() {
     user?.access?.grants,
   ]);
   const connected = useRealtimeStore((s) => s.connected);
-  const tab = params.get("tab") || (mobile ? "conversation" : "updates");
+  const [panelTab, setPanelTab] = useState("overview");
+  const tab = embeddedTaskId ? panelTab : params.get("tab") || (mobile ? "conversation" : "updates");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -169,6 +171,8 @@ export default function TaskWorkspacePage() {
   const [editingComment, setEditingComment] = useState<PMSComment>();
   const [commentMentions, setCommentMentions] = useState<PMSMentionUser[]>([]);
   const [checkTitle, setCheckTitle] = useState("");
+  const [addingChild, setAddingChild] = useState(false);
+  const [attachmentDrag, setAttachmentDrag] = useState(false);
   const detail = useQuery({
     queryKey: ["task-workspace", id, contextKey],
     queryFn: () =>
@@ -242,7 +246,7 @@ export default function TaskWorkspacePage() {
   const project = useQuery({
     queryKey: ["task-workspace-project", task?.project_id, contextKey],
     queryFn: () => projectsAPI.get(task!.project_id),
-    enabled: !!task && timer,
+    enabled: !!task && (timer || tab === "time"),
   });
   const refresh = () => {
     void qc.invalidateQueries({queryKey:["mobile-action-badges"]});
@@ -305,6 +309,7 @@ export default function TaskWorkspacePage() {
       await work();
       setNotice(message);
       refresh();
+      onTaskChanged?.();
     } catch (e) {
       setError(workspaceError(e));
     } finally {
@@ -327,7 +332,8 @@ export default function TaskWorkspacePage() {
   }
   function chooseTab(next: string) {
     setPage(1);
-    setParams({ tab: next }, { replace: true, state: location.state });
+    if (embeddedTaskId) { setPanelTab(next); return; }
+    setParams(current => { const updated = new URLSearchParams(current); updated.set("tab", next); return updated; }, { replace: true, state: location.state });
   }
   async function postUpdate() {
     if (!data) return;
@@ -522,7 +528,7 @@ export default function TaskWorkspacePage() {
     </article>
   );
   return (
-    <main className="tw-page">
+    <main className={`tw-page ${embeddedTaskId ? "tw-embedded" : ""}`}>
       <div className="tw-topline">
         <Link to={backTo}>
           <ArrowLeft size={15} /> Back to tasks
@@ -646,7 +652,7 @@ export default function TaskWorkspacePage() {
         </div>
         <div>
           <small>Due date</small>
-          <strong>{task.due_date || "No due date"}</strong>
+          {embeddedTaskId ? <input type="date" aria-label="Task due date" key={`${id}:${task.due_date}`} defaultValue={task.due_date || ""} disabled={!data.can_manage || busy} onBlur={event => {if(event.currentTarget.value !== (task.due_date || "")) void run(() => tasksAPI.update(id,{due_date:event.currentTarget.value || null} as Parameters<typeof tasksAPI.update>[1]), "Due date saved");}}/> : <strong>{task.due_date || "No due date"}</strong>}
         </div>
         <div>
           <small>Time logged</small>
@@ -656,10 +662,11 @@ export default function TaskWorkspacePage() {
         </div>
         <div>
           <small>Status</small>
-          <strong>{task.status}</strong>
+          {embeddedTaskId ? <NativeSelect aria-label="Task status" disabled={!data.can_work || busy} value={task.status} onChange={event => void run(() => api.post(`${base}/tasks/${id}/actions`,{action:"status",status:event.target.value,version:data.version}), "Status saved")}>{["Backlog","To Do","In Progress","In Review","Blocked","Done","Cancelled"].map(status => <option key={status} value={status} disabled={status === "Done" && !data.can_review}>{status}</option>)}</NativeSelect> : <strong>{task.status}</strong>}
         </div>
+        {embeddedTaskId && <div><small>Priority</small><NativeSelect aria-label="Task priority" disabled={!data.can_manage || busy} value={task.priority} onChange={event => void run(() => tasksAPI.update(id,{priority:event.target.value as PMSTask["priority"]}),"Priority saved")}>{["Low","Medium","High","Urgent"].map(priority => <option key={priority}>{priority}</option>)}</NativeSelect></div>}
       </div>
-      <RecordCustomFields entity="task" id={id}/>
+      {!embeddedTaskId && <RecordCustomFields entity="task" id={id}/>}
       <div className="tw-actionbar">
         <div className="tw-progress">
           <span>Progress</span>
@@ -694,15 +701,15 @@ export default function TaskWorkspacePage() {
           ))}
         </section>
       )}
-      <Record360Workspace key={id} kind="task" id={id} source="project_management" actions={<Button variant="outline" asChild><Link to="/pms/tasks-follow-ups">Tasks & Follow-ups</Link></Button>}/>
+      {!embeddedTaskId && <Record360Workspace key={id} kind="task" id={id} source="project_management" actions={<Button variant="outline" asChild><Link to="/pms/tasks-follow-ups">Tasks & Follow-ups</Link></Button>}/>}
       <div className="tw-layout">
         <section className="tw-main">
-          <RecordSectionNav value={tab} onChange={chooseTab} label="Task workspace sections" groups={[
+          {embeddedTaskId ? <div className="tw-panel-tabs" role="group" aria-label="Task detail sections">{[["overview","Overview"],["checklist","Subtasks"],["discussion","Comments"],["files","Files"],["history","Activity"],["time","Time"],["updates","Updates"],["review","Reviews"]].map(([value,label]) => <button key={value} aria-pressed={tab === value} onClick={() => chooseTab(value)}>{label}</button>)}</div> : <RecordSectionNav value={tab} onChange={chooseTab} label="Task workspace sections" groups={[
             {label:"Overview",sections:tabs.filter(([key])=>["overview","checklist","review"].includes(key)).map(([value,label])=>({value,label}))},
             {label:"Discussion",sections:tabs.filter(([key])=>["conversation","discussion"].includes(key) && (mobile || key !== "conversation")).map(([value,label])=>({value,label: value === "discussion" && data.unread_comments > 0 ? `${label} (${data.unread_comments} unread)` : label}))},
             {label:"Updates",sections:tabs.filter(([key])=>["updates","followups"].includes(key)).map(([value,label])=>({value,label}))},
             {label:"Files & history",sections:tabs.filter(([key])=>["files","history"].includes(key)).map(([value,label])=>({value,label}))},
-          ]}/>
+          ]}/>}
 
           {tab === "conversation" && <section className="tw-box"><h2>Conversation & activity</h2><p className="tw-muted">Recent updates, comments and activity, newest first.</p>{(updates.isPending||comments.isPending||history.isPending)&&<p role="status">Loading conversation…</p>}{(updates.isError||comments.isError||history.isError)&&<p role="alert">Some activity is unavailable. <button onClick={refresh}>Retry</button></p>}
             <div className="mobile-contact-strip"><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","discussion");return n;})}>Write comment</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Attachments ({attachments.data?.length ?? 0})</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","updates");return n;})}>Post update</button></div>
@@ -932,6 +939,7 @@ export default function TaskWorkspacePage() {
                 Edit description, dates and task details
               </Link>
               <p>Created by {data.creator.name}</p>
+              {embeddedTaskId && <><RecordCustomFields entity="task" id={id}/><p className="tw-muted">{data.progress_mode === "checklist" ? "Progress follows checklist completion." : "Progress is reported through work updates."}</p><button disabled={!data.can_work || busy} onClick={() => void action("progress_mode")}>{data.progress_mode === "manual" ? "Use checklist progress" : "Use manual progress"}</button><button disabled={busy} onClick={() => void run(() => api.post(`${base}/tasks/${id}/watch`), "Watch preference updated")}>{data.is_watching ? "Unwatch task" : "Watch task"}</button></>}
               {task.parent_task_id && (
                 <Link to={`/pms/tasks/${task.parent_task_id}`}>
                   Open parent task
@@ -1198,7 +1206,8 @@ export default function TaskWorkspacePage() {
                   <span>{c.status}</span>
                 </Link>
               ))}
-              {data.can_manage && (
+              {embeddedTaskId && data.can_manage && (addingChild ? <InlineSubtaskComposer parent={task} onCreated={() => {setAddingChild(false);refresh();onTaskChanged?.();}} onCancel={() => setAddingChild(false)}/> : <button onClick={() => setAddingChild(true)}><Plus size={15}/>Create subtask</button>)}
+              {!embeddedTaskId && data.can_manage && (
                 <Link
                   className="tw-link-button"
                   to={`/pms/tasks/new?projectId=${task.project_id}&parentTaskId=${id}&workType=Sub-task`}
@@ -1218,8 +1227,8 @@ export default function TaskWorkspacePage() {
                 canManage={data.can_manage}
                 files={attachments.data || []}
                 uploading={busy}
-                dragActive={false}
-                setDragActive={() => {}}
+                dragActive={attachmentDrag}
+                setDragActive={setAttachmentDrag}
                 error={error || null}
                 uploadAttachments={(list) => {
                   if (data.can_manage) void upload(list);
@@ -1297,9 +1306,9 @@ export default function TaskWorkspacePage() {
               <TransitionApprovals taskId={id} onChanged={refresh} disabled={busy} />
             </section>
           )}
-          {timer && (
+          {(timer || (embeddedTaskId && tab === "time")) && (
             <section className="tw-box">
-              <button onClick={() => setTimer(false)}>Hide timer</button>
+              {timer && <button onClick={() => setTimer(false)}>Hide timer</button>}
               <RunningTimer
                 projects={project.data ? [project.data as PMSProject] : []}
                 fixedTask={task}
@@ -1339,7 +1348,7 @@ export default function TaskWorkspacePage() {
             </div>
           )}
         </section>
-        <aside className="tw-sidebar">
+        {!embeddedTaskId && <aside className="tw-sidebar">
           <section className="tw-box">
             <h2>Task Status & Actions</h2>
             <NativeSelect loading={detail.isFetching} error={detail.isError}
@@ -1453,7 +1462,7 @@ export default function TaskWorkspacePage() {
             <p>{task.priority}</p>
             <Link to={`/pms/tasks/${id}/edit`}>Edit schedule and priority</Link>
           </section>
-        </aside>
+        </aside>}
       </div>
       {assign && (
         <TaskAssignmentPanel

@@ -96,7 +96,7 @@ export const projectsAPI = {
     return response.data;
   },
 
-  update: async (projectId: number, data: Omit<Partial<CreateProjectInput>, "start_date" | "due_date"> & {start_date?: string | null; due_date?: string | null}) => {
+  update: async (projectId: number, data: Omit<Partial<CreateProjectInput>, "start_date" | "due_date"> & {start_date?: string | null; due_date?: string | null; is_archived?: boolean}) => {
     const response = await api.patch<PMSProject>(
       `${BASE_URL}/projects/${projectId}`,
       data

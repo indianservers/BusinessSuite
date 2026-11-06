@@ -36,9 +36,9 @@ export default function FieldControl({ field, value, onChange, disabled = false 
   useEffect(()=>{
     if(!lookup)return;
     const controller=new AbortController();
-    const timer=setTimeout(()=>{api.get<{items:Record<string,unknown>[]}>("/crm/owners",{params:{per_page:100,search:query},signal:controller.signal}).then(({data})=>{setPeople((data.items||[]).map(p=>({value:String(p.id),label:String(p.name||p.full_name||p.email||p.id)})));setLookupError("");}).catch(()=>{if(!controller.signal.aborted)setLookupError("People could not be loaded. Try searching again.");});},200);
+    const timer=setTimeout(()=>{api.get<{items:Record<string,unknown>[]}>(type === "user_lookup" ? "/customization/users" : "/crm/owners",{params:{per_page:100,search:query},signal:controller.signal}).then(({data})=>{setPeople((data.items||[]).map(p=>({value:String(p.id),label:String(p.name||p.full_name||p.email||p.id)})));setLookupError("");}).catch(()=>{if(!controller.signal.aborted)setLookupError("People could not be loaded. Try searching again.");});},200);
     return()=>{clearTimeout(timer);controller.abort();};
-  },[lookup,query]);
+  },[lookup,query,type]);
   const options = lookup ? people.map(p=>p.value) : fieldOptions(field.options ?? field.options_json);
   const optionLabel=(option:string)=>lookup ? people.find(p=>p.value===option)?.label || `User #${option}` : option;
   const required = Boolean(field.isRequired ?? field.is_required ?? field.required);

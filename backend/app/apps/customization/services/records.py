@@ -40,9 +40,9 @@ def definitions(db, name):
     formulas = {f.field_api_name: f.formula_expression for f in fields if f.field_type == "formula"}
     rollups = {f.field_api_name: f.rollup_config_json for f in fields if f.field_type == "rollup"}
     for row in db.query(CustomizationFormulaField).filter_by(module_name=name, active=True).all():
-        if row.field_api_name in formulas and formulas[row.field_api_name] != row.expression:
-            raise HTTPException(422, "Conflicting formula definitions")
-        formulas[row.field_api_name] = row.expression
+        # Field-library metadata is authoritative after an administrator edits
+        # a formula originally created through the legacy formulas endpoint.
+        formulas.setdefault(row.field_api_name, row.expression)
     for row in db.query(CustomizationRollupField).filter_by(module_name=name, active=True).all():
         rollups.setdefault(row.field_api_name, dict(related_module_name=row.related_module_name,
             aggregate_function=row.aggregate_function, aggregate_field=row.aggregate_field,
@@ -124,7 +124,8 @@ class Reader:
         count = 0
         for child in rows:
             # Count need not evaluate unrelated computed child fields.
-            values = self.values(child) if config.get('aggregate_function') != 'count' else dict(child.values_json or {})
+            raw_values = dict(child.values_json or {})
+            values = self.values(child) if config.get('aggregate_function') != 'count' or condition and condition.get('field') not in raw_values else raw_values
             if condition and not evaluate_condition(condition, values):
                 continue
             count += 1

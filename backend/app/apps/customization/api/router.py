@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 import hashlib
 import json
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -100,6 +100,16 @@ def module_info(current_user: User = Depends(RequirePermission("customization_vi
     return {"module": "customization", "title": "Customization Studio", "permissions": ["customization_view", "customization_manage"]}
 
 
+@customization_router.get('/users')
+def custom_user_options(search: str = Query('', max_length=100), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission('customization_view', 'customization_manage'))):
+    query = db.query(User).filter(User.is_active.is_(True))
+    if search:
+        escaped = search.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+        query = query.filter(User.email.ilike(f'%{escaped}%', escape='\\'))
+    rows = query.order_by(User.id).limit(50).all()
+    return {'items': [{'id': row.id, 'name': row.email} for row in rows]}
+
+
 @customization_router.get("/modules")
 def list_modules(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_view", "customization_manage"))):
     items = db.query(CustomizationModule).order_by(CustomizationModule.module_label).all()
@@ -133,6 +143,8 @@ def update_module(module_id: int, data: ModulePayload, db: Session = Depends(get
     item = db.query(CustomizationModule).filter(CustomizationModule.id == module_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Module not found")
+    if item.module_api_name != data.module_api_name:
+        raise HTTPException(409, 'Module identifier cannot change; existing records must remain accessible')
     before = _serialize(item)
     for key, value in data.model_dump().items():
         setattr(item, key, value)
@@ -388,7 +400,10 @@ def _crud_collection(model, payload_model, permission: str, entity_type: str):
 
     @customization_router.post(f"/{entity_type}", status_code=201)
     def create_item(data: dict[str, Any], db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(permission, "customization_manage"))):
-        payload = payload_model.model_validate(data).model_dump()
+        try:
+            payload = payload_model.model_validate(data).model_dump()
+        except ValidationError as exc:
+            raise HTTPException(422, [{'loc': error['loc'], 'msg': error['msg'], 'type': error['type']} for error in exc.errors()]) from None
         if entity_type == "validation-rules":
             validate_rule_condition(payload["condition_json"])
         if entity_type == "formulas":
@@ -401,6 +416,7 @@ def _crud_collection(model, payload_model, permission: str, entity_type: str):
                 {
                     "aggregate_function": payload["aggregate_function"],
                     "related_module_name": payload["related_module_name"],
+                    'aggregate_field': payload.get('aggregate_field'),
                 }
             )
         if entity_type == "buttons" and payload["action_type"] not in SAFE_ACTION_TYPES:
@@ -409,6 +425,16 @@ def _crud_collection(model, payload_model, permission: str, entity_type: str):
             payload["owner_user_id"] = current_user.id
         item = model(**payload, created_by=current_user.id)
         db.add(item)
+        if entity_type in {'formulas', 'rollups'}:
+            validate_api_name(payload['field_api_name'], 'Field API name')
+            key = dict(module_name=payload['module_name'], field_api_name=payload['field_api_name'])
+            if db.query(CustomizationField).filter_by(**key).first():
+                raise HTTPException(409, 'Field already exists; edit it in the field library')
+            config = {'formula_expression': payload['expression']} if entity_type == 'formulas' else {'rollup_config_json': {
+                'related_module_name': payload['related_module_name'], 'aggregate_function': payload['aggregate_function'],
+                'aggregate_field': payload.get('aggregate_field'), **(payload.get('filter_json') or {})}}
+            db.add(CustomizationField(**key, field_label=payload['field_api_name'].replace('_', ' ').title(),
+                field_type='formula' if entity_type == 'formulas' else 'rollup', editable=False, visible=True, created_by=current_user.id, **config))
         db.flush()
         _audit(db, current_user, entity_type, item.id, "created", after=payload)
         db.commit()

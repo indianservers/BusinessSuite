@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 from fastapi import HTTPException
 
 from app.apps.customization.models import CustomizationAuditLog
-from app.apps.customization.services.records import Reader, record
+from app.apps.customization.services.records import Reader, record, module
 from app.models.user import User
 from app.core.deps import RequirePermission
 from app.shared.runtime import mapped_payload
@@ -15,9 +15,12 @@ from app.shared.runtime import mapped_payload
 def execute(db, actor, button, data):
     if not data.record_id:
         raise HTTPException(422, 'Select a custom record before running this action')
+    module(db, button.module_name, lock=True)
     row = record(db, button.module_name, data.record_id, lock=True)
     fingerprint = hashlib.sha256(json.dumps({'record': row.id, 'input': data.payload}, sort_keys=True).encode()).hexdigest()
-    previous = db.query(CustomizationAuditLog).filter_by(entity_type='button', entity_id=button.id, actor_user_id=actor.id).order_by(CustomizationAuditLog.id.desc()).all()
+    previous = db.query(CustomizationAuditLog).filter_by(entity_type='button', entity_id=button.id, actor_user_id=actor.id).filter(
+        CustomizationAuditLog.after_json['request_key'].as_string() == data.request_key,
+    ).order_by(CustomizationAuditLog.id.desc()).limit(1).all()
     for log in previous:
         saved = log.after_json or {}
         if saved.get('request_key') == data.request_key:
@@ -26,6 +29,13 @@ def execute(db, actor, button, data):
             if saved.get('result'):
                 return saved['result']
             raise HTTPException(409, 'Action outcome needs reconciliation; do not retry with another key')
+    unresolved = db.query(CustomizationAuditLog).filter(
+        CustomizationAuditLog.entity_type == 'button', CustomizationAuditLog.entity_id == button.id,
+        CustomizationAuditLog.action.in_(['started', 'reconciliation_required']),
+        CustomizationAuditLog.after_json['record_id'].as_integer() == row.id,
+    ).first()
+    if unresolved:
+        raise HTTPException(409, 'An earlier action on this record needs reconciliation before another execution')
     config = mapped_payload(button.action_config_json or {}, {'id': row.id, 'values': Reader(db).values(row), 'input': data.payload or {}})
     result = {'status': 'executed', 'action_type': button.action_type, 'record_id': row.id}
     log = CustomizationAuditLog(entity_type='button', entity_id=button.id, action='started', actor_user_id=actor.id,
@@ -39,8 +49,9 @@ def execute(db, actor, button, data):
         connection = config.get('connection_id')
         if type(connection) is not int or not config.get('operation'):
             raise HTTPException(422, 'Webhook requires a governed connection and registered operation')
+        from app.shared.integrations import prepare_operation, invoke
+        prepare_operation(db, actor, actor.organization_id, 'customization', connection, config['operation'], config.get('payload', {}))
         db.commit()
-        from app.shared.integrations import invoke
         try:
             outcome = invoke(db, actor, actor.organization_id, 'customization', connection, config['operation'], config.get('payload', {}))
         except Exception:

@@ -206,6 +206,7 @@ export default function App() {
     { path: "admin/customization/kanban", element: <CustomizationStudioPage /> },
     { path: "admin/customization/validation-rules", element: <CustomizationStudioPage /> },
     { path: "admin/customization/buttons", element: <CustomizationStudioPage /> },
+    { path: 'admin/customization/related-lists', element: <CustomizationStudioPage /> },
     { path: "admin/customization/picklists", element: <CustomizationStudioPage /> },
     { path: "admin/customization/formulas", element: <CustomizationStudioPage /> },
     { path: "admin/customization/rollups", element: <CustomizationStudioPage /> },

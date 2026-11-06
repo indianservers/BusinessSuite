@@ -118,7 +118,8 @@ def send(url, secret, payload):
         connection.close()
 
 
-def invoke(db, actor, company, module, connection_id, operation, payload):
+def prepare_operation(db, actor, company, module, connection_id, operation, payload):
+    """Validate a governed operation without performing any external IO."""
     authorize(db, actor, company, module, "export")
     row = (
         db.query(IntegrationCredential)
@@ -133,6 +134,11 @@ def invoke(db, actor, company, module, connection_id, operation, payload):
     permitted = set(operation_config.get("fields", []))
     if not isinstance(payload, dict) or set(payload) - permitted:
         raise HTTPException(422, "Connector operation contains unsupported fields")
+    return row, operation_config
+
+
+def invoke(db, actor, company, module, connection_id, operation, payload):
+    row, operation_config = prepare_operation(db, actor, company, module, connection_id, operation, payload)
     log = IntegrationEvent(
         event_type=f"shared.{operation}",
         status="Queued",

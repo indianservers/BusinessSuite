@@ -15,7 +15,7 @@ ALL_CUSTOMIZATION_PERMISSIONS = [
 ]
 
 
-def customization_headers(client, db, email: str = "customization-admin@example.com", permissions: list[str] | None = None):
+def customization_headers(client, db, email: str = "customization-admin@example.com", permissions: list[str] | None = None, company_id: int = 1):
     role = Role(name=f"role-{email}", description="Customization test role", is_system=False)
     db.add(role)
     db.flush()
@@ -28,9 +28,9 @@ def customization_headers(client, db, email: str = "customization-admin@example.
         role.permissions.append(permission)
     user = User(email=email, hashed_password=get_password_hash("Password@123"), is_active=True, role_id=role.id)
     db.add(user)
-    attach_test_identity(db, user)
+    attach_test_identity(db, user, company_id=company_id)
     from test_identity_utils import attach_workflow_branch
-    branch = attach_workflow_branch(db, user)
+    branch = attach_workflow_branch(db, user, company_id=company_id)
     db.commit()
     response = client.post("/api/v1/auth/login", json={"email": email, "password": "Password@123"})
     assert response.status_code == 200, response.text

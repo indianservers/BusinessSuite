@@ -167,9 +167,11 @@
 /* Risks: keep the register readable beside the matrix and make filters consistent. */
 [data-project-view=risks] .pd-tool-content > div > div:first-child { justify-content: flex-end; }
 [data-project-view=risks] .pd-tool-content > div > div:first-child > div { display: none; }
-[data-project-view=risks] .pd-tool-content [class*="grid-cols-5"] > button { min-height: 48px; }
-[data-project-view=risks] .pd-tool-content [class*="grid-cols-5"] > button { aspect-ratio: auto; height: 48px; }
-[data-project-view=risks] .pd-tool-content [class*="grid-cols-5"] { gap: 6px; }
+[data-project-view=risks] .pd-risk-matrix .aspect-square { aspect-ratio: auto; height: 48px; min-height: 48px; }
+[data-project-view=risks] .pd-risk-matrix > .grid { gap: 6px; }
+[data-project-view=risks] .pd-risk-register .udg-adapted-cell { padding: 0 !important; min-width: 0; max-height: none; display: block; }
+[data-project-view=risks] .pd-risk-register .udg-adapted-cell > p { margin: 0; font-size: 12px; line-height: 17px; }
+[data-project-view=risks] .pd-risk-register .udg-adapted-cell > .pd-risk-description { font-size: 11px; }
 [data-project-view=risks] [role=gridcell] p { margin: 0; line-height: 1.4; }
 [data-project-view=risks] [role=gridcell] .line-clamp-2 { -webkit-line-clamp: 1; }
 [data-project-view=risks] [role=gridcell] p.font-semibold { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -52,6 +52,10 @@ def validate_rollup_config(config: dict[str, Any] | None) -> None:
         raise HTTPException(status_code=400, detail="Unsupported rollup aggregate function")
     if not config.get("related_module_name"):
         raise HTTPException(status_code=400, detail="Rollup related_module_name is required")
+    if config.get('aggregate_function') != 'count' and not config.get('aggregate_field'):
+        raise HTTPException(422, 'Numeric rollups require an aggregate_field')
+    if config.get('condition'):
+        validate_rule_condition(config['condition'])
 
 
 def validate_formula_expression(expression: str) -> None:
@@ -78,23 +82,40 @@ def validate_formula_expression(expression: str) -> None:
 
 def evaluate_formula(expression: str, record: dict[str, Any]) -> Any:
     validate_formula_expression(expression)
-    tree=ast.parse(expression,mode='eval')
-    names={node.id for node in ast.walk(tree) if isinstance(node,ast.Name)}-{'min','max','round','abs'}
-    variables={}
-    for key in names:
-        value=record.get(key)
-        if isinstance(value,(dict,list,tuple,set)) or isinstance(value,str) and len(value)>4096:
-            raise HTTPException(400,'Formula inputs must be bounded scalar values')
-        if isinstance(value,(int,float,Decimal)) or isinstance(value,str) and value[:1] in '0123456789+-' and value:
-            try:value=Decimal(int(value) if isinstance(value,bool) else str(value))
-            except InvalidOperation:pass
-        if isinstance(value,Decimal) and (not value.is_finite() or abs(value)>10**15):
-            raise HTTPException(400,'Formula input exceeds numeric limits')
-        variables[key]=value
-    if any(isinstance(node,ast.Mult) for node in ast.walk(tree)) and any(not isinstance(value,Decimal) for value in variables.values()):
-        raise HTTPException(400,'Formula multiplication requires numeric inputs')
+    def numeric(value):
+        if not isinstance(value, (int, float, Decimal, str)) or isinstance(value, str) and len(value) > 100:
+            raise ValueError('Numeric input required')
+        value = Decimal(str(int(value) if isinstance(value, bool) else value))
+        if not value.is_finite() or abs(value) > Decimal('1e15'):
+            raise ValueError('Numeric limit exceeded')
+        return value
+
+    def calculate(node):
+        if isinstance(node, ast.Constant):
+            return numeric(node.value)
+        if isinstance(node, ast.Name):
+            return numeric(record.get(node.id))
+        if isinstance(node, ast.UnaryOp):
+            value = calculate(node.operand)
+            return -value if isinstance(node.op, ast.USub) else value
+        if isinstance(node, ast.BinOp):
+            left, right = calculate(node.left), calculate(node.right)
+            import operator
+            operators = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv, ast.Mod: operator.mod}
+            return numeric(operators[type(node.op)](left, right))
+        if isinstance(node, ast.Call):
+            values = [calculate(arg) for arg in node.args]
+            if node.func.id == 'round':
+                if len(values) not in {1, 2}:
+                    raise ValueError('round requires one or two arguments')
+                places = values[1] if len(values) == 2 else Decimal(0)
+                if places != int(places) or not -15 <= places <= 15:
+                    raise ValueError('round precision must be an integer from -15 to 15')
+                return numeric(round(values[0], int(places)))
+            return numeric({'min': min, 'max': max, 'abs': abs}[node.func.id](*values))
+        raise ValueError('Unsupported formula syntax')
     try:
-        return eval(compile(ast.parse(expression, mode="eval"), "<customization_formula>", "eval"), {"__builtins__": {}, "min": min, "max": max, "round": round, "abs": abs}, variables)
+        return calculate(ast.parse(expression, mode='eval').body)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Formula evaluation failed: {exc}") from exc
 

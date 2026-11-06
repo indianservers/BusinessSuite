@@ -1,15 +1,14 @@
+import { api } from "@/services/api";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
-import { RecordCustomFields } from "../components/CustomFields";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import Sidebar from "@/components/layout/Sidebar";
-import TaskThemeSwitcher from "../components/TaskThemeSwitcher";
 import MoveBoard from "@/shared/pipeline/PipelineMoveBoard";
 import { arrangeTask } from "../components/SprintMoveBoard";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   Link,
   useNavigate,
@@ -50,6 +49,12 @@ import {
   ArrowUpRight,
   Save,
   Columns3,
+  PanelRightClose,
+  Maximize2,
+  Minimize2,
+  Download,
+  Settings2,
+  Pencil,
 } from "lucide-react";
 import GlobalSearch from "@/components/app/GlobalSearch";
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
@@ -64,14 +69,15 @@ import type {
   PMSSavedFilter,
   PMSTaskListQuery,
 } from "../types";
-import CreateTaskModal from "../components/CreateTaskModal";
+import ProjectQuickTask from "./ProjectQuickTask";
 import RecordActions from "../components/RecordActions";
-import { RichTextContent } from "@/components/rich-text/LazyRichText";
 import { usePMSRealtime } from "../realtime";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { workspaceError } from "./workspaceTypes";
 import "./TasksReferencePage.css";
 import TaskStudioPage from "./TaskStudioPage";
+import TaskWorkspacePage from "./TaskWorkspacePage";
+import TaskWorkspaceViews from "../components/TaskWorkspaceViews";
 const statuses = [
   "Backlog",
   "To Do",
@@ -165,9 +171,13 @@ export default function TasksReferencePage() {
   const [menu, setMenu] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [create, setCreate] = useState(false);
+  const [createProject, setCreateProject] = useState("");
   const [starterTitle, setStarterTitle] = useState("");
   const [template, setTemplate] = useState<"Task" | "Story" | "Bug">("Task");
   const [selected, setSelected] = useState<number[]>([]);
+  const restoredList = useRef("");
+  const [expandedPanel, setExpandedPanel] = useState(false);
+  const [editingTitle, setEditingTitle] = useState<number>();
   const [opened, setOpened] = useState<PMSTaskListItem>();
   const [dirty, setDirty] = useState(false);
   const [extra, setExtra] = useState(false);
@@ -188,10 +198,12 @@ export default function TasksReferencePage() {
   }, []);
   const [search, setSearch] = useState(params.get("search") || "");
   const page = Number(params.get("page") || 1),
-    pageSize = Number(params.get("pageSize") || 8),
+    pageSize = Number(params.get("pageSize") || 16),
     layout = params.get("layout") || "list";
+  const alternateView = ["board", "gantt", "timeline", "calendar", "workload", "dashboard"].includes(layout);
   const cardLayout = layout === "gallery" || (narrowScreen && layout === "list");
   const filterKeys = ["search", "taskIds", "workspaceId", "projectId", "projectIds", "assigneeId", "assigneeIds", "reporterId", "workView", "teamId", "batchId", "workType", "status", "priority", "dueFrom", "dueTo", "createdFrom", "createdTo", "updatedFrom", "updatedTo", "storyPointsMin", "storyPointsMax", "overdue", "openOnly", "sprintId", "epicId", "tag"];
+  const taskQuery = new URLSearchParams([...params].filter(([key]) => [...filterKeys, "page", "pageSize", "sortBy", "sortOrder"].includes(key))).toString();
   const activeFilterCount = filterKeys.filter((key) => {
     const value = params.get(key);
     return value && value !== "false";
@@ -199,8 +211,9 @@ export default function TasksReferencePage() {
   const change = (key: string, value: string) => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      value ? next.set(key, value) : next.delete(key);
+      if (value) next.set(key, value); else next.delete(key);
       if (key !== "page") next.delete("page");
+      if (filterKeys.includes(key)) next.delete("quick");
       return next;
     });
     setSelected([]);
@@ -222,7 +235,7 @@ export default function TasksReferencePage() {
     let active = true;
     setLoading(true);
     setError("");
-    const query = Object.fromEntries(params) as PMSTaskListQuery;
+    const query = Object.fromEntries(new URLSearchParams(taskQuery)) as PMSTaskListQuery;
     tasksAPI
       .listAll({
         ...query,
@@ -243,7 +256,7 @@ export default function TasksReferencePage() {
     return () => {
       active = false;
     };
-  }, [params.toString(), revision, studio]);
+  }, [taskQuery, revision, studio]);
   useEffect(() => {
     if (studio) return;
     savedViewsAPI
@@ -253,7 +266,7 @@ export default function TasksReferencePage() {
         setNotice("Saved views could not be loaded. Refresh to retry."),
       );
   }, []);
-  useRecordView<PMSTaskListResponse>("/project-management/tasks", { ...Object.fromEntries(params), page, pageSize, referenceDate: localDay(), overdue: params.get("overdue") === "true" }, snapshot => { setData(snapshot); setSelected(ids => ids.filter(id => snapshot.items.some(row => row.id === id))); }, () => { setData(undefined); setSelected([]); }, !studio);
+  useRecordView<PMSTaskListResponse>("/project-management/tasks", { ...Object.fromEntries(new URLSearchParams(taskQuery)), page, pageSize, referenceDate: localDay(), overdue: params.get("overdue") === "true" }, snapshot => { setData(snapshot); setSelected(ids => ids.filter(id => snapshot.items.some(row => row.id === id))); }, () => { setData(undefined); setSelected([]); }, !studio);
   const reload = () => setRevision((n) => n + 1);
   useRefreshableEffect(() => {
     reload();
@@ -285,8 +298,13 @@ export default function TasksReferencePage() {
       );
       return;
     }
+    setCreateProject(String(projectId));
     setCreate(true);
   };
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => { if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return; if(event.key.toLowerCase() === "n" && !create && !opened) {event.preventDefault();add();} };
+    window.addEventListener("keydown",shortcut); return () => window.removeEventListener("keydown",shortcut);
+  }, [projectId, create, opened]);
   const openFullTask = (task: PMSTaskListItem) => {
     const from = routeLocation.pathname + routeLocation.search;
     try { sessionStorage.setItem(`pms-task-list-scroll:${from}`, String(document.querySelector(".tr-content")?.scrollTop || document.querySelector("#suite-main")?.scrollTop || window.scrollY)); } catch { /* storage unavailable */ }
@@ -295,6 +313,8 @@ export default function TasksReferencePage() {
   useEffect(() => {
     if (!loading && !studio) requestAnimationFrame(() => {
       const from = routeLocation.pathname + routeLocation.search;
+      if (restoredList.current === from) return;
+      restoredList.current = from;
       let top = 0; try { top = Number(sessionStorage.getItem(`pms-task-list-scroll:${from}`)) || 0; } catch { /* storage unavailable */ }
       window.scrollTo(0, top);
       document.querySelector(".tr-content")?.scrollTo(0, top);
@@ -306,6 +326,32 @@ export default function TasksReferencePage() {
     setDirty(false);
     setOpened(task);
   };
+  async function inlineUpdate(task: PMSTaskListItem, patch: Parameters<typeof tasksAPI.update>[1]) {
+    if (busy) return;
+    const before = data;
+    setBusy(true); setError("");
+    setData(current => current ? { ...current, items: current.items.map(item => item.id === task.id ? { ...item, ...patch } as PMSTaskListItem : item) } : current);
+    try {
+      const updated = await tasksAPI.update(task.id, patch);
+      setData(current => current ? { ...current, items: current.items.map(item => item.id === task.id ? { ...item, ...updated } : item) } : current);
+      setNotice("Task saved.");
+    } catch (error) { setData(before); setError(workspaceError(error)); }
+    finally { setBusy(false); }
+  }
+  async function inlineProgress(task: PMSTaskListItem, progress: number) {
+    if (busy || !Number.isInteger(progress) || progress < 0 || progress > 100) return;
+    setBusy(true); setError("");
+    try {
+      const {data: workspace} = await api.get<{revision:number; progress_mode:string}>(`/project-management/task-workspace/tasks/${task.id}`, {recordCache:false});
+      if (workspace.progress_mode === "checklist") { setNotice("Progress follows the checklist. Update its items in task details."); open(task); return; }
+      await api.post(`/project-management/task-workspace/tasks/${task.id}/entries`, {kind:"update",body:`Progress updated to ${progress}%`,progress,revision:workspace.revision});
+      setData(current => current ? {...current,items:current.items.map(item => item.id === task.id ? {...item,progress} : item)} : current);
+      setNotice("Progress saved.");
+    } catch (error) { setError(workspaceError(error)); reload(); } finally { setBusy(false); }
+  }
+  const groupBy = params.get("groupBy") || "";
+  const groupLabel = (task: PMSTaskListItem) => String(task[groupBy as keyof PMSTaskListItem] || "Unassigned");
+  const visibleTasks = groupBy ? [...(data?.items || [])].sort((a, b) => groupLabel(a).localeCompare(groupLabel(b))) : data?.items || [];
   const summary = data?.summary;
   const metrics = [
     {
@@ -351,13 +397,13 @@ export default function TasksReferencePage() {
       filter: "overdue",
     },
   ];
-  async function bulk(field: "status" | "priority", value: string) {
+  async function bulk(field: "status" | "priority" | "assignee_user_id", value: string) {
     if (!value) return;
     setBusy(true);
     try {
-      await tasksAPI.bulkUpdate({ task_ids: selected, [field]: value });
+      const result = await tasksAPI.bulkUpdate({ task_ids: selected, [field]: field === "assignee_user_id" ? Number(value) : value });
+      setNotice(`${result.updated_count} tasks updated.`);
       setSelected([]);
-      setNotice("Tasks updated.");
       reload();
     } catch (e) {
       setError(workspaceError(e));
@@ -381,7 +427,8 @@ export default function TasksReferencePage() {
     );
   };
   return (
-    <div className={`pms-task-reference ${studio ? "has-task-studio" : ""}`}>
+    <div className={`pms-task-reference ${studio ? "has-task-studio" : ""} ${opened ? "has-task-panel" : ""} ${expandedPanel ? "panel-expanded" : ""}`} data-density={params.get("density") || "compact"}>
+      <style>{(params.get("hideColumns") || "").split(",").filter(value => /^[3-9]$/.test(value)).map(value => `.pms-task-reference .tr-table-wrap tr > :nth-child(${value}) { display: none; }`).join("\n")}</style>
       <a className="suite-skip" href="#suite-main">
         Skip to content
       </a>
@@ -404,7 +451,7 @@ export default function TasksReferencePage() {
           </button>
           <GlobalSearch />
           <div className="tr-header-actions">
-            {!studio && <TaskThemeSwitcher />}
+
             {studio && (
               <Link className="tr-primary tr-studio-new" to="/pms/tasks/new">
                 <Plus size={14} />
@@ -419,7 +466,7 @@ export default function TasksReferencePage() {
             <details className="tr-suite">
               <summary className="tr-button">
                 <LayoutGrid size={16} />
-                Business Suite 1.0.1 / PMS 1.0.1
+                PMS workspace
                 <ChevronDown size={14} />
               </summary>
               <div>
@@ -439,6 +486,7 @@ export default function TasksReferencePage() {
             <SuiteNotificationBell />
             <button
               className="tr-icon"
+              title="Refresh tasks"
               aria-label="Refresh tasks"
               onClick={reload}
             >
@@ -464,7 +512,7 @@ export default function TasksReferencePage() {
               </div>
               <div className="tr-title">
                 <div>
-                  <h1>Tasks</h1>
+                  <h1>Task workspace<span className="tr-heading-count">{data?.total?.toLocaleString() || "0"} tasks</span></h1>
                   <p>
                     Plan, track, and manage work across all your projects in
                     Indian Servers.
@@ -473,7 +521,6 @@ export default function TasksReferencePage() {
                 <button className="tr-primary tr-add" onClick={() => add()}>
                   <Plus />
                   Add Task
-                  <ChevronDown size={18} />
                 </button>
               </div>
               <section
@@ -486,7 +533,8 @@ export default function TasksReferencePage() {
                     key={m.label}
                     className={`tr-metric ${m.color}`}
                     onClick={() => {
-                      const next = new URLSearchParams();
+                      const next = new URLSearchParams(params);
+                      ["status", "dueFrom", "dueTo", "overdue", "openOnly", "workView", "reporterId", "page"].forEach(key => next.delete(key));
                       if (m.filter === "today") {
                         next.set("dueFrom", localDay());
                         next.set("dueTo", localDay());
@@ -528,14 +576,23 @@ export default function TasksReferencePage() {
                 </div>
               )}
               <section className="tr-work">
+                <div className="tr-quick-tabs" role="group" aria-label="Quick task filters">{[
+                  {id:"all",label:"All tasks"}, {id:"mine",label:"My tasks"}, {id:"created",label:"Created by me"}, {id:"today",label:"Today"}, {id:"upcoming",label:"Upcoming"}, {id:"overdue",label:"Overdue"}, {id:"blocked",label:"Blocked"}, {id:"completed",label:"Completed"},
+                ].map(tab => <button key={tab.id} aria-pressed={(params.get("quick") || "all") === tab.id} onClick={() => { const next = new URLSearchParams(params); ["workView", "reporterId", "dueFrom", "dueTo", "status", "overdue", "openOnly", "page"].forEach(key => next.delete(key)); if(tab.id === "mine") next.set("workView", "mine"); if(tab.id === "created") next.set("reporterId", String(user?.id || "")); if(tab.id === "today") {next.set("dueFrom", localDay()); next.set("dueTo", localDay());} if(tab.id === "upcoming") {const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1); next.set("dueFrom", `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`);next.set("openOnly", "true");} if(tab.id === "overdue")next.set("overdue", "true");if(tab.id === "blocked")next.set("status", "Blocked");if(tab.id === "completed")next.set("workView", "completed"); next.set("quick", tab.id); setParams(next); }}>{tab.label}</button>)}</div>
                 <div className="tr-viewbar">
                   <div className="tr-tabs" role="group" aria-label="Task view">
                     {[
                       { label: "List", icon: List, value: "list" },
-                      { label: "Table", icon: LayoutGrid, value: "table" },
+                      { label: "Board", icon: Box, value: "board" },
+                      { label: "Gantt", icon: Activity, value: "gantt" },
+                      { label: "Timeline", icon: Activity, value: "timeline" },
+                      { label: "Calendar", icon: CalendarDays, value: "calendar" },
+                      { label: "Workload", icon: Users, value: "workload" },
+                      { label: "Dashboard", icon: BarChart3, value: "dashboard" },
                     ].map((v) => (
                       <button
                         key={v.value}
+                        aria-pressed={layout === v.value}
                         className={layout === v.value ? "active" : ""}
                         onClick={() => change("layout", v.value)}
                       >
@@ -543,26 +600,18 @@ export default function TasksReferencePage() {
                         {v.label}
                       </button>
                     ))}
-                    <Link
-                      to={
-                        projects.length
-                          ? `/pms/projects/${Number(params.get("projectId")) || projects[0].id}/board`
-                          : "/pms/projects"
-                      }
-                    >
-                      <Box size={17} />
-                      Board
-                    </Link>
-                    <Link to="/pms/calendar">
-                      <CalendarDays size={17} />
-                      Calendar
-                    </Link>
-                    <Link to="/pms/gantt">
-                      <Activity size={17} />
-                      Timeline
-                    </Link>
                   </div>
                   <div className="tr-tools">
+                    <details className="tr-customize"><summary className="tr-button"><Settings2 size={15} />Customize</summary><div>
+                      <label>Row density<NativeSelect aria-label="Row density" value={params.get("density") || "compact"} onChange={e => change("density", e.target.value)}><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></NativeSelect></label>
+                      <fieldset className="tr-column-options"><legend>Visible columns</legend>{["Project","Priority","Assignee","Due date","Status","Progress","Labels"].map((label,index) => {const column=index+3;const hidden=(params.get("hideColumns") || "").split(",").includes(String(column));return <label key={column}><input type="checkbox" checked={!hidden} onChange={event => {const next=new Set((params.get("hideColumns") || "").split(",").filter(Boolean));if(event.target.checked)next.delete(String(column));else next.add(String(column));change("hideColumns",[...next].join(","));}}/>{label}</label>;})}</fieldset>
+                      <details><summary>Task templates</summary>{[["Bug report","Bug"],["Feature request","Story"],["Client onboarding","Task"]].map(([title,type]) => <button key={title} className="tr-button" onClick={() => add(type as "Task" | "Story" | "Bug",title)}>{title}</button>)}</details>
+                      <button className="tr-button" onClick={() => setSaveOpen(true)}><Save size={14} />Save current view</button>
+                      <button className="tr-button" onClick={() => { setImportProject(String(projectId || "")); setImportOpen(true); }}><Upload size={14} />Import tasks</button>
+                      <Link className="tr-button" to="/pms/automation"><Zap size={14} />Automations</Link>
+                      <Link className="tr-button" to="/pms/custom-fields"><Settings2 size={14} />Custom fields</Link>
+                      <button className="tr-button" onClick={() => { const rows = [["Task ID", "Title", "Project", "Assignee", "Priority", "Status", "Due date"], ...(data?.items || []).map(t => [t.task_key, t.title, t.project_name, t.assignee_name, t.priority, t.status, t.due_date])]; const csv = rows.map(row => row.map(cell => '"' + String(cell || "").replace(/"/g, '""').replace(/^[=+@-]/, "'$&") + '"').join(",")).join("\r\n"); const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8;"})); const link = document.createElement("a"); link.href = url; link.download = "tasks-current-page.csv"; link.click(); URL.revokeObjectURL(url); setNotice("Current page exported."); }}><Download size={14} />Export current page</button>
+                    </div></details>
                     <NativeSelect
                       aria-label="Saved views"
                       value=""
@@ -604,6 +653,7 @@ export default function TasksReferencePage() {
                     </NativeSelect>
                     <button
                       className={`tr-button ${layout === "gallery" ? "active" : ""}`}
+                      title="Switch between task cards and list"
                       aria-label="Cards"
                       aria-pressed={layout === "gallery"}
                       onClick={() =>
@@ -617,6 +667,7 @@ export default function TasksReferencePage() {
                     </button>
                     <button
                       className="tr-button"
+                      title="Reload task list"
                       aria-label="Reload task list"
                       onClick={reload}
                     >
@@ -625,6 +676,7 @@ export default function TasksReferencePage() {
                   </div>
                 </div>
                 <div className="tr-filters">
+                  <NativeSelect aria-label="Group tasks on this page" value={groupBy} onChange={e => change("groupBy", e.target.value)}><option value="">Group current page</option>{[["project_name", "Project"], ["milestone_id", "Milestone"], ["assignee_name", "Assignee"], ["status", "Status"], ["priority", "Priority"], ["sprint_name", "Sprint"]].map(([value, label]) => <option key={value} value={value}>Group by {label}</option>)}</NativeSelect>
                   <label className="tr-search">
                     <Search size={17} />
                     <input
@@ -740,6 +792,7 @@ export default function TasksReferencePage() {
                         const next = new URLSearchParams(previous);
                         filterKeys.forEach((key) => next.delete(key));
                         next.delete("page");
+                        next.delete("quick");
                         return next;
                       })}
                     >
@@ -751,6 +804,8 @@ export default function TasksReferencePage() {
                 {!!selected.length && (
                   <div className="tr-extra">
                     <strong>{selected.length} selected</strong>
+                    <NativeSelect aria-label="Bulk assignee" disabled={busy} value="" onChange={event => void bulk("assignee_user_id", event.target.value)}><option value="">Reassign to...</option>{data?.filters.assignees.map(person => <option value={person.id} key={person.id}>{person.name}</option>)}</NativeSelect>
+                    <button className="tr-button" onClick={() => setSelected([])}>Clear selection</button>
                     <NativeSelect
                       aria-label="Bulk status"
                       disabled={busy}
@@ -775,8 +830,8 @@ export default function TasksReferencePage() {
                     </NativeSelect>
                   </div>
                 )}
-                <details className="rounded-lg border bg-white p-3 mb-4"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>
-                <div
+                {!alternateView && <details className="tr-arrange"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>}
+                {alternateView ? <TaskWorkspaceViews view={layout} tasks={visibleTasks} summary={data?.summary} busy={busy} canEdit={task => editable.some(project => project.id === task.project_id)} onOpen={open} onUpdate={inlineUpdate} /> : <div
                   className={
                     cardLayout
                       ? "tr-gallery"
@@ -787,7 +842,7 @@ export default function TasksReferencePage() {
                   aria-busy={loading}
                 >
                   {!cardLayout ? (
-                    <GridTable gridId="apps/project-management/pages/TasksReferencePage:table-1">
+                    <GridTable variant="matrix" aria-label="Tasks" gridId="apps/project-management/pages/TasksReferencePage:table-1">
                       <thead>
                         <tr>
                           <th>
@@ -823,6 +878,8 @@ export default function TasksReferencePage() {
                             "Assignee",
                             "Due Date",
                             "Status",
+                            "Progress",
+                            "Labels",
                             "Actions",
                           ].map((h) => (
                             <th key={h}>
@@ -865,7 +922,9 @@ export default function TasksReferencePage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {data?.items.map((task) => (
+                        {visibleTasks.map((task, index) => (
+                          <Fragment key={task.id}>
+                          {groupBy && (index === 0 || groupLabel(visibleTasks[index - 1]) !== groupLabel(task)) && <tr className="tr-group-row"><th colSpan={10} scope="rowgroup">{groupLabel(task)}</th></tr>}
                           <RecordActions
                             key={task.id}
                             record={{ ...task, key: task.task_key }}
@@ -877,7 +936,7 @@ export default function TasksReferencePage() {
                             onChanged={reload}
                           >
                             {(more) => (
-                              <tr onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))openFullTask(task);}}>
+                              <tr onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))open(task);}}>
                                 <td>
                                   <input
                                     type="checkbox"
@@ -901,11 +960,13 @@ export default function TasksReferencePage() {
                                 </td>
                                 <td>
                                   <button
-                                    className="tr-task-title"
-                                    onClick={() => openFullTask(task)}
+                                    className={`tr-task-title ${editingTitle === task.id ? "tr-editing" : ""}`}
+                                    onClick={() => open(task)}
                                   >
                                     {task.title}
-                                  </button><button type="button" className="tr-quick-preview" aria-label={`Quick preview ${task.title}`} onClick={e=>{e.stopPropagation();open(task);}}>Quick preview</button>
+                                  </button>
+                                  <button className="tr-row-edit" title="Edit task title" aria-label={`Edit title for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} onClick={() => setEditingTitle(task.id)}><Pencil size={12}/></button>
+                                  {editingTitle === task.id && <input autoFocus className="tr-inline-title" aria-label={`Title for ${task.task_key}`} defaultValue={task.title} maxLength={220} disabled={busy} onBlur={e => { const title = e.target.value.trim(); setEditingTitle(undefined); if (title && title !== task.title) void inlineUpdate(task, { title }); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = task.title; e.currentTarget.blur(); } }} />}
                                   <small>#{task.task_key || task.id}</small>
                                 </td>
                                 <td>
@@ -925,10 +986,10 @@ export default function TasksReferencePage() {
                                   <small>{task.is_general ? "Workspace tasks" : task.project_key || "Project"}</small>
                                 </td>
                                 <td>
-                                  <PriorityBadge priority={task.priority} />
+                                  <NativeSelect className={`tr-inline-select tr-priority-${task.priority.toLowerCase()}`} aria-label={`Priority for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} value={task.priority} onChange={e => void inlineUpdate(task, { priority: e.target.value as PMSTaskListItem["priority"] })}>{["Urgent", "High", "Medium", "Low"].map(value => <option key={value}>{value}</option>)}</NativeSelect>
                                 </td>
                                 <td>
-                                  <TaskAssignees task={task} />
+                                  <NativeSelect aria-label={`Assignee for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} value={task.assignee_user_id || ""} onChange={e => void inlineUpdate(task, { assignee_user_id: Number(e.target.value) || undefined, assignee_user_ids: e.target.value ? [Number(e.target.value)] : [] })}><option value="">Unassigned</option>{data?.filters.assignees.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</NativeSelect>
                                 </td>
                                 <td
                                   className={
@@ -939,21 +1000,15 @@ export default function TasksReferencePage() {
                                       : ""
                                   }
                                 >
-                                  {task.due_date
-                                    ? new Date(
-                                        task.due_date + "T00:00:00",
-                                      ).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })
-                                    : "No due date"}
+                                  <input type="date" aria-label={`Due date for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} key={`${task.id}:${task.due_date || ""}`} defaultValue={task.due_date || ""} onBlur={e => {const due_date = e.currentTarget.value; if(due_date !== (task.due_date || ""))void inlineUpdate(task, { due_date: due_date || null } as Parameters<typeof tasksAPI.update>[1]);}} onKeyDown={e => {if(e.key === "Enter")e.currentTarget.blur();}} />
                                 </td>
-                                <td>{pill(task)}</td>
+                                <td><NativeSelect className={`tr-inline-select tr-status-${task.status.toLowerCase().replace(/ /g, "-")}`} aria-label={`Status for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} value={task.status} onChange={e => void inlineUpdate(task, { status: e.target.value as PMSTaskListItem["status"] })}>{Array.from(new Set([...statuses, task.status])).map(value => <option key={value}>{value}</option>)}</NativeSelect></td>
+                                <td><div className="tr-progress-cell"><progress max={100} value={(task as PMSTaskListItem & {progress?:number}).progress || 0}/><input type="number" min={0} max={100} step={1} aria-label={`Progress for ${task.title}`} key={`${task.id}:${(task as PMSTaskListItem & {progress?:number}).progress || 0}`} defaultValue={(task as PMSTaskListItem & {progress?:number}).progress || 0} disabled={busy || finished(task.status) || !editable.some(p => p.id === task.project_id)} onBlur={event => {const value = Number(event.currentTarget.value); if(event.currentTarget.value !== "" && event.currentTarget.validity.valid && value !== ((task as PMSTaskListItem & {progress?:number}).progress || 0)) void inlineProgress(task,value); else event.currentTarget.value = String((task as PMSTaskListItem & {progress?:number}).progress || 0);}} onKeyDown={event => {if(event.key === "Enter")event.currentTarget.blur();}}/><span>%</span></div></td>
+                                <td><div className="tr-task-labels">{task.tags?.map((tag,index) => <span key={typeof tag === "string" ? tag : tag.id || index}>{typeof tag === "string" ? tag : tag.name}</span>)}</div></td>
                                 <td>{more}</td>
                               </tr>
                             )}
-                          </RecordActions>
+                          </RecordActions></Fragment>
                         ))}
                       </tbody>
                     </GridTable>
@@ -968,7 +1023,7 @@ export default function TasksReferencePage() {
                         onChanged={reload}
                       >
                         {(more) => (
-                          <article className="tr-task-card" onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))openFullTask(task);}}>
+                          <article className="tr-task-card" onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))open(task);}}>
                             <div className="tr-card-top">
                               <input
                                 type="checkbox"
@@ -984,7 +1039,7 @@ export default function TasksReferencePage() {
                             </div>
                             <button
                               className="tr-task-title"
-                              onClick={() => openFullTask(task)}
+                              onClick={() => open(task)}
                             >
                               {task.title}
                             </button><button type="button" className="tr-quick-preview" aria-label={`Quick preview ${task.title}`} onClick={e=>{e.stopPropagation();open(task);}}>Quick preview</button>
@@ -1023,7 +1078,7 @@ export default function TasksReferencePage() {
                       </button>
                     </div>
                   )}
-                </div>
+                </div>}
                 <div className="tr-pagination">
                   <span>
                     {initialLoading
@@ -1037,7 +1092,7 @@ export default function TasksReferencePage() {
                       value={pageSize}
                       onChange={(e) => change("pageSize", e.target.value)}
                     >
-                      {[8, 16, 24, 48].map((n) => (
+                      {[8, 16, 24, 48, 100].map((n) => (
                         <option key={n}>{n}</option>
                       ))}
                     </NativeSelect>
@@ -1303,40 +1358,26 @@ export default function TasksReferencePage() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      <CreateTaskModal
-        isOpen={create}
-        onClose={() => setCreate(false)}
-        projectId={projectId || 0}
-        projects={editable}
-        initialWorkType={template}
-        initialTitle={starterTitle}
-        onTaskCreated={(_, another) => {
-          reload();
-          setNotice("Task created.");
-          if (!another) setCreate(false);
-        }}
-      />
-      <Dialog.Root
+      <Dialog.Root open={create} onOpenChange={value => {if(!busy)setCreate(value);}}><Dialog.Portal><Dialog.Overlay className="tr-dialog-overlay"/><Dialog.Content className="tr-create-dialog"><Dialog.Title>New task</Dialog.Title><Dialog.Description>Create a task here, then add detail as the work takes shape.</Dialog.Description><button className="tr-panel-close" aria-label="Close task creation" disabled={busy} onClick={() => setCreate(false)}><X size={18}/></button><label className="tr-create-project">Project<NativeSelect aria-label="New task project" disabled={busy} value={createProject} onChange={event => setCreateProject(event.target.value)}>{editable.map(project => <option value={project.id} key={project.id}>{project.name}</option>)}</NativeSelect></label>{createProject && <ProjectQuickTask key={`${createProject}:${template}`} compact initialTitle={starterTitle} initialWorkType={template} projectId={Number(createProject)} projectName={projects.find(project => project.id === Number(createProject))?.name || "Project"} initialStatus="To Do" statuses={statuses} onBusy={setBusy} onCreated={async () => {setCreate(false);reload();setNotice("Task created.");}} onFullForm={query => {setCreate(false);navigate(`/pms/tasks/new?${query}`);}}/>}</Dialog.Content></Dialog.Portal></Dialog.Root>
+      <Dialog.Root modal={false}
         open={!!opened}
         onOpenChange={(v) => {
           if (!v) open(undefined);
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className="tr-dialog-overlay" />
-          <Dialog.Content className="tr-detail-panel">
-            <Dialog.Title>{opened?.title}</Dialog.Title>
-            <Dialog.Description>
-              Quick summary. Open the full task to manage work and collaborate.
-            </Dialog.Description>
+          <Dialog.Content onInteractOutside={e => e.preventDefault()} className={`tr-detail-panel ${expandedPanel ? "expanded" : ""}`}>
+            <Dialog.Title className="tr-panel-heading">{opened?.task_key || "Task details"}</Dialog.Title>
+            <Dialog.Description className="sr-only">Task details, checklists, comments, files, activity and time.</Dialog.Description>
+            <button className="tr-panel-expand" title={expandedPanel ? "Compact panel" : "Expand panel"} aria-label={expandedPanel ? "Compact panel" : "Expand panel"} onClick={() => setExpandedPanel(value => !value)}>{expandedPanel ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}</button>
             <button
               className="tr-panel-close"
               aria-label="Close task details"
               onClick={() => open(undefined)}
             >
-              <X />
+              <PanelRightClose size={18} />
             </button>
-            <div className="tr-extra">
+            <div className="tr-extra tr-panel-navigation">
               <button
                 className="tr-button"
                 disabled={!opened || data?.items[0]?.id === opened.id}
@@ -1375,7 +1416,7 @@ export default function TasksReferencePage() {
                 Full details <ArrowUpRight size={14} />
               </Link>
             </div>
-            {opened && <section className="tr-preview-summary"><RecordCustomFields entity="task" id={opened.id}/><p>{opened.status} · {opened.priority} priority</p><p>{opened.project_name} · Due {opened.due_date || "not set"}</p><div><span>Assignees</span><TaskAssignees task={opened} /></div><RichTextContent value={opened.description || "No description yet."}/><Link className="tr-primary" to={`/pms/tasks/${opened.id}`} state={{from:routeLocation.pathname+routeLocation.search}}>Open Full Task <ArrowUpRight size={14}/></Link></section>}
+            {opened && <TaskWorkspacePage key={opened.id} embeddedTaskId={opened.id} onTaskChanged={reload} />}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

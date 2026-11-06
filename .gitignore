@@ -68,3 +68,6 @@ backend/.secrets/
 
 # Generated defaults verification builds
 /outputs/defaults-verification-*/
+
+# Generated local PMS review build
+/frontend/dist-pms-review/

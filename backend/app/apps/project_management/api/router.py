@@ -18,7 +18,7 @@ from fastapi.responses import Response, StreamingResponse
 from app.core.storage import persist_file, upload_exists, FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, asc, case, desc, func, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from cryptography.fernet import Fernet
 
 from app.core.config import settings
@@ -2173,8 +2173,44 @@ def list_projects(
     if status:
         query = query.filter(PMSProject.status == status)
     
-    projects = query.offset(skip).limit(limit).all()
+    projects = query.order_by(PMSProject.id).offset(skip).limit(limit).all()
+    ids = [p.id for p in projects]
+    closed = ("Done", "Completed", "Closed", "Resolved")
+    task_stats = {r.project_id: r for r in db.query(
+        PMSTask.project_id, func.count(PMSTask.id).label("total"),
+        func.sum(case((PMSTask.status.in_(closed), 1), else_=0)).label("done"),
+        func.sum(case((PMSTask.status == "Blocked", 1), else_=0)).label("blocked"),
+        func.sum(case((and_(PMSTask.due_date < date.today(), ~PMSTask.status.in_((*closed, "Cancelled"))), 1), else_=0)).label("overdue"),
+    ).filter(PMSTask.project_id.in_(ids), PMSTask.deleted_at.is_(None)).group_by(PMSTask.project_id)} if ids else {}
+    milestone_stats = {r.project_id: r for r in db.query(
+        PMSMilestone.project_id, func.count(PMSMilestone.id).label("total"),
+        func.sum(case((PMSMilestone.status == "Completed", 1), else_=0)).label("done"),
+    ).filter(PMSMilestone.project_id.in_(ids)).group_by(PMSMilestone.project_id)} if ids else {}
+    from app.common.models import CommonPerson
+    people_options = (joinedload(User.person).joinedload(CommonPerson.profile), joinedload(User.employee))
+    members = db.query(PMSProjectMember, User).join(User, User.id == PMSProjectMember.user_id).options(*people_options).filter(PMSProjectMember.project_id.in_(ids)).all() if ids else []
+    teams = {}
+    for member, person in members:
+        teams.setdefault(member.project_id, []).append({"id": person.id, "name": _user_display_name(person) or person.email, "role": member.role})
+    owners = {u.id: u for u in db.query(User).options(*people_options).filter(User.id.in_([p.owner_user_id or p.manager_user_id for p in projects]))} if ids else {}
+    clients = {c.id: c for c in db.query(PMSClient).filter(PMSClient.id.in_([p.client_id for p in projects]))} if ids else {}
     for project in projects:
+        stats = task_stats.get(project.id)
+        milestones = milestone_stats.get(project.id)
+        project.task_count = int(stats.total) if stats else 0
+        project.completed_task_count = int(stats.done or 0) if stats else 0
+        project.blocked_task_count = int(stats.blocked or 0) if stats else 0
+        project.overdue_task_count = int(stats.overdue or 0) if stats else 0
+        project.milestone_count = int(milestones.total) if milestones else 0
+        project.completed_milestone_count = int(milestones.done or 0) if milestones else 0
+        # Matches the existing management home task-count completion methodology.
+        project.calculated_progress = round(100 * project.completed_task_count / project.task_count, 1) if project.task_count else None
+        owner = owners.get(project.owner_user_id or project.manager_user_id)
+        project.owner_name = _user_display_name(owner) if owner else None
+        client = clients.get(project.client_id)
+        project.client_name = client.company_name or client.name if client else None
+        project.team = teams.get(project.id, [])
+
         project.can_manage_tasks = can_access_project(db, project, current_user, "manage_tasks")
         project.can_upload_files = can_access_project(db, project, current_user, "upload")
         project.can_edit_project = can_access_project(db, project, current_user, "edit_project")
@@ -2227,6 +2263,21 @@ def update_project(
     
     update_data = project_in.dict(exclude_unset=True)
     custom_values = update_data.pop("custom_fields", None)
+    if "name" in update_data and (not update_data["name"] or not update_data["name"].strip() or len(update_data["name"]) > 180):
+        raise HTTPException(422, "Project name must contain 1-180 characters")
+    if "status" in update_data and update_data["status"] not in {"Draft", "Planned", "Active", "On Hold", "Completed", "Cancelled", "Archived"}:
+        raise HTTPException(422, "Invalid project status")
+    if "priority" in update_data and update_data["priority"] not in {"Low", "Medium", "High", "Critical"}:
+        raise HTTPException(422, "Invalid project priority")
+    start = update_data.get("start_date", project.start_date)
+    due = update_data.get("due_date", project.due_date)
+    if start and due and start > due:
+        raise HTTPException(422, "Start date cannot be after due date")
+    for field in ("owner_user_id", "manager_user_id"):
+        if update_data.get(field) and not _project_user_query(db, project).filter(User.id == update_data[field], User.is_active.is_(True)).first():
+            raise HTTPException(422, "Project owner or manager needs active project access")
+    if update_data.get("client_id") and not db.query(PMSClient).filter(PMSClient.id == update_data["client_id"], PMSClient.organization_id == project.organization_id).first():
+        raise HTTPException(422, "Client must belong to the project organization")
     before = {field: getattr(project, field) for field in update_data}
     from ..custom_fields import apply_record_fields
     apply_record_fields(db, current_user, "project", project, custom_values)

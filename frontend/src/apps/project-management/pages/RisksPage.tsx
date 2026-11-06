@@ -294,7 +294,7 @@ export default function RisksPage() {
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Card>
           <CardHeader><CardTitle>Risk Matrix</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="pd-risk-matrix">
             <div className="grid grid-cols-[44px_repeat(5,minmax(0,1fr))] gap-2 text-center text-xs">
               <div />
               {[1, 2, 3, 4, 5].map((probability) => <div key={probability} className="font-medium text-muted-foreground">P{probability}</div>)}
@@ -318,7 +318,7 @@ export default function RisksPage() {
 
         <Card>
           <CardHeader><CardTitle>Register</CardTitle></CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="pd-risk-register p-0">
             {initialLoading ? <div className="m-4 h-72 rounded-lg skeleton" /> : null}
             {!loading ? (
               <div className="overflow-x-auto">
@@ -335,7 +335,7 @@ export default function RisksPage() {
                       <tr {...recordPreviewProps(risk)} key={risk.id} className="border-b align-top hover:bg-muted/40">
                         <td className="max-w-sm p-3">
                           <p className="font-semibold">{risk.title}</p>
-                          <div className="line-clamp-2 text-xs text-muted-foreground"><RichTextContent value={risk.description || risk.category || "No description"}/></div>
+                          <p className="pd-risk-description truncate text-xs text-muted-foreground">{richTextPlainText(risk.description || risk.category || "No description")}</p>
                         </td>
                         <td className="p-3">{projectsById.get(risk.project_id)?.name || `Project ${risk.project_id}`}</td>
                         <td className="p-3"><Badge className={statusColor(risk.status)}>{risk.status}</Badge></td>

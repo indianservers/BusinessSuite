@@ -1,5 +1,5 @@
-import ModuleRecords from "./ModuleRecords";
 import FieldManager from "./FieldManager";
+import RuntimeConfiguration from './RuntimeConfiguration';
 import LayoutArrangement from "./LayoutArrangement";
 import type React from "react";
 import { useMemo } from "react";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
-type SectionKey = "modules" | "fields" | "layouts" | "views" | "kanban" | "validation-rules" | "buttons" | "picklists" | "formulas" | "rollups" | "audit";
+type SectionKey = "modules" | "fields" | "layouts" | "views" | "kanban" | "validation-rules" | "buttons" | "related-lists" | "picklists" | "formulas" | "rollups" | "audit";
 
 const sections: Array<{ key: SectionKey; label: string; path: string; icon: typeof Database }> = [
   { key: "modules", label: "Modules", path: "/admin/customization/modules", icon: Database },
@@ -22,6 +22,7 @@ const sections: Array<{ key: SectionKey; label: string; path: string; icon: type
   { key: "kanban", label: "Kanban", path: "/admin/customization/kanban", icon: Kanban },
   { key: "validation-rules", label: "Validation", path: "/admin/customization/validation-rules", icon: ShieldCheck },
   { key: "buttons", label: "Buttons", path: "/admin/customization/buttons", icon: Pickaxe },
+  { key: 'related-lists', label: 'Relationships', path: '/admin/customization/related-lists', icon: GitBranch },
   { key: "picklists", label: "Picklists", path: "/admin/customization/picklists", icon: ListChecks },
   { key: "formulas", label: "Formulas", path: "/admin/customization/formulas", icon: FileText },
   { key: "rollups", label: "Rollups", path: "/admin/customization/rollups", icon: GitBranch },
@@ -55,11 +56,12 @@ export default function CustomizationStudioPage() {
         {active === "layouts" ? <Layouts /> : null}
         {active === "views" ? <GenericSection title="List View Builder" description="Saved filters, visible columns, sort order, shared/private and default view metadata." queryKey="customization-views" queryFn={customizationApi.views} action="Create View" mutation={() => customizationApi.createView({ module_name: "partner_projects", name: "Open Projects", filters_json: { status: "open" }, columns_json: ["project_name", "budget"], sort_json: { field: "project_name", direction: "asc" }, shared: true })} /> : null}
         {active === "kanban" ? <GenericSection title="Kanban Builder" description="Group by picklist/status/stage fields with backend transition validation metadata." queryKey="customization-kanban" queryFn={customizationApi.kanban} action="Create Kanban" mutation={() => customizationApi.createKanban({ module_name: "partner_projects", name: "Project Kanban", group_by_field: "status", card_fields_json: ["project_name", "budget"], shared: true })} /> : null}
-        {active === "validation-rules" ? <ValidationRules /> : null}
-        {active === "buttons" ? <CustomButtons /> : null}
+        {active === "validation-rules" ? <RuntimeConfiguration kind="validation-rules" /> : null}
+        {active === "buttons" ? <RuntimeConfiguration kind="buttons" /> : null}
+        {active === "related-lists" ? <RuntimeConfiguration kind="related-lists" /> : null}
         {active === "picklists" ? <GenericSection title="Global Picklists" description="Reusable global value sets for picklist and multi-select fields." queryKey="customization-picklists" queryFn={customizationApi.picklists} action="Create Picklist" mutation={() => customizationApi.createPicklist({ api_name: "project_statuses", label: "Project Statuses", values: [{ value: "open", label: "Open" }, { value: "closed", label: "Closed" }] })} /> : null}
-        {active === "formulas" ? <Formulas /> : null}
-        {active === "rollups" ? <GenericSection title="Rollup Fields" description="Configured aggregates across related custom records." queryKey="customization-rollups" queryFn={customizationApi.rollups} action="Create Rollup" mutation={() => customizationApi.createRollup({ module_name: "partner_projects", field_api_name: "total_revenue", related_module_name: "partner_invoices", aggregate_function: "sum", aggregate_field: "amount" })} /> : null}
+        {active === "formulas" ? <FieldManager /> : null}
+        {active === "rollups" ? <FieldManager /> : null}
         {active === "audit" ? <GenericSection title="Customization Audit" description="Metadata and dynamic record changes are captured for diagnostics." queryKey="customization-audit" queryFn={customizationApi.audit} /> : null}
       </div>
     </div>
@@ -76,9 +78,7 @@ function actionError(error: unknown) {
   return "Action failed. Please try again.";
 }
 
-function Modules() {
-  return <GenericSection title="Module Builder" description="Create admin-defined modules without altering hardcoded CRM, PMS, or SRM modules." queryKey="customization-modules" queryFn={customizationApi.modules} actions={item => item.enabled !== false ? <ModuleRecords module={String(item.module_api_name)} label={String(item.module_label)}/> : null} action="Create Module" mutation={() => customizationApi.createModule({ module_api_name: "partner_projects", module_label: "Partner Project", plural_label: "Partner Projects", icon: "database", description: "Partner delivery records", enabled: true })} />;
-}
+function Modules() { return <RuntimeConfiguration kind="modules" />; }
 
 function Fields() { return <FieldManager/>; }
 
@@ -91,43 +91,6 @@ function Layouts() {
     onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
   return <GenericSection title="Layout Builder" description="Sections, field order, required markers, hidden/read-only placeholders." queryKey="customization-layouts" queryFn={customizationApi.layouts} action="Create Layout" mutation={() => customizationApi.createLayout({ module_name: "partner_projects", name: "Default Detail", layout_type: "detail", is_default: true })} actions={(item) => <><Button size="sm" variant="outline" disabled={!item.id || addSection.isPending} onClick={() => addSection.mutate(Number(item.id))}>Add Section</Button><LayoutArrangement layoutId={Number(item.id)} /></>} />;
-}
-
-function CustomButtons() {
-  const { toast } = useToast();
-  const execute = useMutation({
-    mutationFn: (id: number) => customizationApi.executeButton(id, { record_id: 1, record: { status: "draft", owner_id: 1 } }),
-    onSuccess: () => toast({ title: "Button action executed" }),
-    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
-  });
-  return <GenericSection title="Custom Buttons" description="Safe configured actions only; no arbitrary script execution." queryKey="customization-buttons" queryFn={customizationApi.buttons} action="Create Button" mutation={() => customizationApi.createButton({ module_name: "partner_projects", label: "Submit Approval", action_type: "submit_approval", action_config_json: { rule: "project_review" } })} actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || execute.isPending} onClick={() => execute.mutate(Number(item.id))}>Execute</Button>} />;
-}
-
-function ValidationRules() {
-  const { toast } = useToast();
-  const test = useMutation({
-    mutationFn: (id: number) => customizationApi.testValidationRule(id, { record: { budget: 0 } }),
-    onSuccess: () => toast({ title: "Validation rule tested" }),
-    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
-  });
-  return <GenericSection title="Validation Rules" description="Backend-enforced safe JSON validation rules." queryKey="customization-validation" queryFn={customizationApi.validationRules} action="Create Rule" mutation={() => customizationApi.createValidationRule({ module_name: "partner_projects", name: "Budget must be positive", condition_json: { field: "budget", operator: "less_or_equal", value: 0 }, error_message: "Budget must be greater than zero", active: true })} actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || test.isPending} onClick={() => test.mutate(Number(item.id))}>Test Rule</Button>} />;
-}
-
-function Formulas() {
-  const { toast } = useToast();
-  const query = useQuery({ queryKey: ["customization-formulas"], queryFn: customizationApi.formulas });
-  const refresh = useRefresh("customization-formulas");
-  const create = useMutation({
-    mutationFn: () => customizationApi.createFormula({ module_name: "partner_projects", field_api_name: "margin", expression: "revenue - cost", return_type: "decimal" }),
-    onSuccess: () => { toast({ title: "Formula saved" }); refresh(); },
-    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
-  });
-  const testFormula = useMutation({
-    mutationFn: () => customizationApi.testFormula({ expression: "revenue - cost", record: { revenue: 1000, cost: 250 } }),
-    onSuccess: (data) => toast({ title: `Formula result ${data.result}` }),
-    onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
-  });
-  return <SectionFrame title="Formula Fields" description="AST-validated formula expressions with a safe tester." action="Create Formula" onAction={() => create.mutate()} query={query}><Button variant="outline" onClick={() => testFormula.mutate()}>Test Formula</Button></SectionFrame>;
 }
 
 function GenericSection({ title, description, queryKey, queryFn, action, mutation, actions }: { title: string; description: string; queryKey: string; queryFn: () => Promise<{ items: CustomizationRecord[]; total: number }>; action?: string; mutation?: () => Promise<unknown>; actions?: (item: CustomizationRecord) => React.ReactNode }) {
