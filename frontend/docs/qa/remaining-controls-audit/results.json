@@ -1,0 +1,32 @@
+{
+  "environment": "Disposable loopback QA workspaces with synthetic records. No live third-party sends, OAuth grants, repository credentials or financial transactions.",
+  "fixes": [
+    "Branch-safe ORM document saves with atomic version checks and revision history",
+    "Branch-safe expired form challenge cleanup permits internal submissions",
+    "Failed initial form publication no longer reports a draft as created",
+    "CRM report grids expose all returned rows and keep their view state separate",
+    "Rapid search edits compose with grid page/filter/group changes; explicit resets and restored views replace search",
+    "CRM automation sample counts and rules replaced by permission-aware working configuration destinations",
+    "Workflow execution uses explicit field values and optional record ID instead of a hidden sample record; execution failures and skipped conditions are reported",
+    "Only failed workflow logs can be retried",
+    "Paused automation edits are labelled Save changes and retain their paused state"
+  ],
+  "browser_evidence": "27 recorded final checks in browser-checks.json plus screenshots. Coverage includes document save/restore/reload, form publication/submission/review/export, report filtering/paging, hub destinations, workflow execution, and PMS status-triggered automation.",
+  "frontend_checks": {
+    "typescript": "passed",
+    "targeted_eslint": "passed",
+    "production_build": "passed",
+    "grid_pending_search_assertions": 12,
+    "workflow_execution_input_assertions": 11
+  },
+  "limits": [
+    "Public-provider OAuth, real external message delivery and real credentials were not exercised.",
+    "Every possible role/option combination and permanent deletion of user records were not tested.",
+    "Concurrent unrelated edits remain in the shared checkout and were preserved."
+  ],
+  "backend_checks": {
+    "passed": 43,
+    "scope": "Document saves/concurrency, full-middleware internal form intake, shared forms, PMS automation rules and schedules"
+  },
+  "browser_check_count": 27
+}

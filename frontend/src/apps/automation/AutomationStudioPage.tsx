@@ -1,3 +1,4 @@
+import { workflowRunInput } from "./workflowRunInput";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,12 @@ function parseJson(value: string, fallback: unknown) {
 }
 
 function actionError(error: unknown) {
+  const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail.flatMap(item => typeof item?.msg === "string" ? [item.msg] : []);
+    if (messages.length) return messages.join(". ");
+  }
   if (error instanceof Error) return error.message;
   return "Action failed. Please try again.";
 }
@@ -121,7 +128,7 @@ function TextAreaField({ label, value, onChange }: { label: string; value: strin
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <textarea className="min-h-28 w-full rounded-md border bg-background px-3 py-2 font-mono text-sm" value={value} onChange={(event) => onChange(event.target.value)} />
+      <textarea aria-label={label} className="min-h-28 w-full rounded-md border bg-background px-3 py-2 font-mono text-sm" value={value} onChange={(event) => onChange(event.target.value)} />
     </div>
   );
 }
@@ -130,6 +137,8 @@ function WorkflowSection() {
   const { toast } = useToast();
   const refresh = useRefresh(["automation-workflows", "automation-logs"]);
   const query = useQuery({ queryKey: ["automation-workflows"], queryFn: automationApi.workflows });
+  const [recordId, setRecordId] = useState("");
+  const [runContext, setRunContext] = useState("{}");
   const [name, setName] = useState("Quote discount approval");
   const [conditions, setConditions] = useState('[{"field":"discount_percent","operator":"greater_or_equal","value":15}]');
   const [actions, setActions] = useState('[{"type":"submit_approval","rule_id":1},{"type":"send_notification","title":"Approval needed","message":"Quote needs review"}]');
@@ -140,8 +149,12 @@ function WorkflowSection() {
   });
   const first = query.data?.items?.[0];
   const run = useMutation({
-    mutationFn: () => automationApi.testWorkflow(Number(first?.id), { record: { discount_percent: 20 }, record_id: 1001, depth: 0 }),
-    onSuccess: () => { toast({ title: "Workflow test logged" }); refresh(); },
+    mutationFn: (id: number) => automationApi.testWorkflow(id, workflowRunInput(recordId, runContext)),
+    onSuccess: (log) => {
+      const failed = log.status === "failed" || log.status === "error";
+      toast({ title: failed ? "Workflow execution failed" : log.status === "skipped" ? "Workflow conditions did not match" : "Workflow actions completed", description: failed ? String(log.error_message || "Review the execution log.") : "Execution recorded in Logs.", variant: failed ? "destructive" : "default" }); refresh();
+    },
+    onError: error => toast({ title: actionError(error), variant: "destructive" }),
   });
   const stateChange = useMutation({
     mutationFn: ({ id, active }: { id: number; active: boolean }) => active ? automationApi.activateWorkflow(id) : automationApi.deactivateWorkflow(id),
@@ -153,14 +166,15 @@ function WorkflowSection() {
       <Card>
         <CardHeader><CardTitle>Create Workflow</CardTitle><CardDescription>Conditions and actions are stored as JSON only.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <Field label="Name"><Input value={name} onChange={(event) => setName(event.target.value)} /></Field>
+          <Field label="Name"><Input aria-label="Workflow name" value={name} onChange={(event) => setName(event.target.value)} /></Field>
           <TextAreaField label="Conditions JSON" value={conditions} onChange={setConditions} />
           <TextAreaField label="Actions JSON" value={actions} onChange={setActions} />
           <Button onClick={() => create.mutate()} disabled={create.isPending}><CheckCircle2 className="h-4 w-4" />Save Workflow</Button>
         </CardContent>
       </Card>
       <div className="space-y-4">
-        <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Workflow Registry</h2><Button variant="outline" size="sm" disabled={!first || run.isPending} onClick={() => run.mutate()}><Play className="h-4 w-4" />Test First</Button></div>
+        <Card><CardHeader><CardTitle>Execution context</CardTitle><CardDescription>Run the saved actions with your supplied field values. Leave the record ID blank for an unlinked execution log.</CardDescription></CardHeader><CardContent className="space-y-3"><Field label="Record ID (optional)"><Input aria-label="Execution record ID" type="number" min="1" step="1" value={recordId} onChange={event => setRecordId(event.target.value)} /></Field><TextAreaField label="Execution field values JSON" value={runContext} onChange={setRunContext} /></CardContent></Card>
+        <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Workflow Registry</h2><Button variant="outline" size="sm" disabled={!first || run.isPending} onClick={() => run.mutate(Number(first?.id))}><Play className="h-4 w-4" />Run first workflow</Button></div>
         <QueryState isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
         <RecordList
           items={query.data?.items}
@@ -170,7 +184,7 @@ function WorkflowSection() {
             return (
               <>
                 <Button size="sm" variant="outline" disabled={!id || stateChange.isPending} onClick={() => stateChange.mutate({ id, active: !item.is_active })}>{item.is_active ? "Deactivate" : "Activate"}</Button>
-                <Button size="sm" variant="outline" disabled={!id || run.isPending} onClick={() => automationApi.testWorkflow(id, { record: { discount_percent: 20 }, record_id: 1001, depth: 0 }).then(() => { toast({ title: "Workflow test logged" }); refresh(); }).catch((error) => toast({ title: actionError(error), variant: "destructive" }))}>Test</Button>
+                <Button size="sm" variant="outline" disabled={!id || run.isPending} onClick={() => run.mutate(id)}>Run actions</Button>
               </>
             );
           }}
@@ -321,7 +335,7 @@ function LogSection() {
     onSuccess: () => { toast({ title: "Retry logged" }); refresh(); },
     onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
-  return <SimpleSection title="Execution Logs" description="All workflow tests, failures, retries, webhook tests, and guarded action outcomes." query={query} empty="No execution logs found." actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || retry.isPending} onClick={() => retry.mutate(Number(item.id))}>Retry</Button>} />;
+  return <SimpleSection title="Execution Logs" description="All workflow tests, failures, retries, webhook tests, and guarded action outcomes." query={query} empty="No execution logs found." actions={(item) => <Button size="sm" variant="outline" disabled={!item.id || retry.isPending || !["failed", "error"].includes(String(item.status))} onClick={() => retry.mutate(Number(item.id))}>Retry</Button>} />;
 }
 
 function SimpleSection({ title, description, button, onAction, query, empty, actions }: { title: string; description: string; button?: string; onAction?: () => void; query: ReturnType<typeof useQuery<{ items: AutomationRecord[]; total: number }>>; empty: string; actions?: (item: AutomationRecord) => React.ReactNode }) {

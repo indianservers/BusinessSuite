@@ -1,3 +1,4 @@
+import { mergePendingGridSearch } from "./pendingSearch";
 import { defaultText } from "@/lib/form-defaults";
 import { writeClipboard } from "@/lib/clipboard";
 import { SuiteDistribution, SuiteIllustration } from "@/components/visuals/SuiteVisuals";
@@ -683,9 +684,10 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       setHistorySize(history.current.length);
     }
   }
-  const changeQuery = (next: GridQuery) => {
-    setQuery(next);
-    setSearch(next.search);
+  const changeQuery = (next: GridQuery, replaceSearch = false) => {
+    const composed = mergePendingGridSearch(query, next, search, replaceSearch);
+    setQuery(composed);
+    setSearch(composed.search);
     setActionError("");
   };
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -1540,7 +1542,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
             updateLayout(view.layout);
             const restoredQuery = { ...view.query, path: [], page: 1 };
             if (props.onRestoreView) restoredViewQuery.current = JSON.stringify(restoredQuery);
-            changeQuery(restoredQuery);
+            changeQuery(restoredQuery, true);
             // Restoring context can remount the adapter before the persistence effect runs.
             try {
               localStorage.setItem(preferenceKey, JSON.stringify({ layout: sanitizeLayout(view.layout, columns), query: restoredQuery, views }));
@@ -1616,7 +1618,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                 filters: { logic: "and", rules: [] },
                 search: "",
                 page: 1,
-              });
+              }, true);
               props.onClearFilters?.();
             }}
           >

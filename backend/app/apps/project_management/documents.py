@@ -3,8 +3,8 @@ from app.core.rich_text import rich_text_type
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import update
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import StaleDataError
 from app.core.deps import get_current_user, get_db
 from app.models.user import User
 from .access import accessible_project_query, can_access_project, get_project_for_action, get_task_project_for_action
@@ -80,14 +80,23 @@ def get_document(document_id: int, db: Session = Depends(get_db), user: User = D
 def save_document(document_id: int, data: SaveInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     doc, project = authorize(db, document_id, user, True)
     validate(db, project.id, data, user)
-    changed = db.execute(update(PMSDocument).where(PMSDocument.id == document_id, PMSDocument.version == data.version).values(
-        title=data.title.strip(), content=data.content, task_id=data.task_id, version=data.version + 1,
-        updated_by=user.id, updated_at=datetime.now(timezone.utc)).execution_options(synchronize_session=False)).rowcount
-    if changed != 1:
+    conflict = "This document changed since you opened it. Your draft is kept; reload the latest version before saving."
+    if doc.version != data.version:
+        raise HTTPException(409, conflict)
+    # Unit-of-work writes validate branch ownership and linked records. Mapper
+    # versioning retains the atomic version predicate without an unsafe bulk update.
+    doc.title = data.title.strip()
+    doc.content = data.content
+    doc.task_id = data.task_id
+    doc.version = data.version + 1
+    doc.updated_by = user.id
+    doc.updated_at = datetime.now(timezone.utc)
+    db.add(PMSDocumentRevision(document_id=document_id, version=doc.version, title=doc.title, content=doc.content, task_id=doc.task_id, author_id=user.id))
+    try:
+        db.commit()
+    except StaleDataError:
         db.rollback()
-        raise HTTPException(409, "This document changed since you opened it. Your draft is kept; reload the latest version before saving.")
-    db.add(PMSDocumentRevision(document_id=document_id, version=data.version + 1, title=data.title.strip(), content=data.content, task_id=data.task_id, author_id=user.id))
-    db.commit()
+        raise HTTPException(409, conflict)
     db.refresh(doc)
     return result(db, doc, project, user)
 

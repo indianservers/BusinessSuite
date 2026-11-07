@@ -275,8 +275,8 @@ export default function FormsPage() {
   }
   async function publish() {
     if (!form) {
-      await save();
-      setNotice("Draft created. Review publishing settings, then publish.");
+      const created = await save();
+      if (created) setNotice("Draft created. Review publishing settings, then publish.");
       return;
     }
     await save(true);

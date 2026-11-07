@@ -1011,6 +1011,7 @@ class PMSDocument(Base):
     title = Column(String(180), nullable=False)
     content = Column(Text, nullable=False, default="")
     version = Column(Integer, nullable=False, default=1)
+    __mapper_args__ = {"version_id_col": version, "version_id_generator": False}
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

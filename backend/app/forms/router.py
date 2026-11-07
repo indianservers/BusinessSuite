@@ -618,9 +618,13 @@ def throttle(db, request, fid, kind, maximum):
     db.query(FormRateBucket).filter(FormRateBucket.window < window - 2).delete(
         synchronize_session=False
     )
-    db.query(FormChallenge).filter(
+    # Challenge rows belong to forms and inherit their branch ownership. Load
+    # visible expired rows and delete through the validated unit of work.
+    expired = db.query(FormChallenge).filter(
         FormChallenge.expires_at < datetime.now(timezone.utc) - timedelta(hours=1)
-    ).delete(synchronize_session=False)
+    ).limit(200).all()
+    for challenge in expired:
+        db.delete(challenge)
     db.commit()
 
 

@@ -1,3 +1,6 @@
+import {useId as useFieldId,cloneElement as cloneFieldElement,isValidElement as isFieldElement} from "react";
+import { canAccessRoute } from "@/lib/roles";
+import { GitBranch } from "lucide-react";
 import { calendarReturnSearch, integrationError, webhookValidation } from "./integrationFeedback";
 import CalendarSyncControls from "./templates/CalendarSyncControls";
 import IndustryPackOnboarding from "./templates/IndustryPackOnboarding";
@@ -544,7 +547,6 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
     { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
   ],
 };
-type AutomationCard = [title: string, value: string, detail: string, Icon: React.ElementType];
 type CRMApiState<T> = { data: T; loading: boolean; error: string | null };
 type InlineFieldType = "text" | "number" | "date" | "select" | "tags";
 type InlineEditConfig = { type: InlineFieldType; apiField: string; options?: string[] };
@@ -7039,16 +7041,17 @@ function CRMReports() {
 }
 
 function ReportTable({ title, rows, columns }: { title: string; rows: CRMApiRecord[]; columns: string[] }) {
+  const { pathname } = useLocation();
   return (
     <Card>
-      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      {title && <CardHeader><CardTitle>{title}</CardTitle></CardHeader>}
       <CardContent className="overflow-x-auto p-0">
-        <GridTable gridId="apps/crm/CRMWorkspacePage:table-9" className="crm-desktop-table">
+        <GridTable gridId={`crm-report:${pathname}:${title || "details"}:${columns.join("|")}`}  className="crm-desktop-table">
           <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
             <tr>{columns.map((column) => <th key={column} className="px-3 py-2">{labelFor(column)}</th>)}</tr>
           </thead>
           <tbody>
-            {rows.length ? rows.slice(0, 8).map((row, index) => (
+            {rows.length ? rows.map((row, index) => (
               <tr {...recordPreviewProps(row)} key={`${title}-${index}`} className="border-t">
                 {columns.map((column) => {
                   const value = row[column];
@@ -7157,49 +7160,27 @@ function LeadToCashPage() {
 }
 
 function SalesAutomationPage() {
-  const automationCards: AutomationCard[] = [
-    ["Reminders", "18 active", "Follow-up reminders from leads, deals, quotations, and tickets.", Bell],
-    ["SLA follow-ups", "4 at risk", "Escalate customer replies and support-linked sales tasks before breach.", Clock],
-    ["Stale deal alerts", "3 stale", "Detect opportunities without activity or next step updates.", AlertTriangle],
-    ["Auto-assignment", "Round robin", "Route website, campaign, and partner leads to available owners.", Users],
-    ["Email sequences", "6 live", "Drip campaigns for nurture, proposal follow-up, and renewal.", Mail],
-    ["WhatsApp sequences", "5 live", "Message templates for demo reminders and quote expiry nudges.", Phone],
-  ];
-  const rules = [
-    { rule: "Qualified lead follow-up", trigger: "Status = Qualified", action: "Create task + WhatsApp reminder", owner: "Sales Ops" },
-    { rule: "Stale negotiation", trigger: "No activity for 5 days", action: "Alert owner and manager", owner: "Sales Manager" },
-    { rule: "Quote expiry", trigger: "Expiry in 2 days", action: "Email sequence + task", owner: "Revenue Ops" },
-    { rule: "Critical customer ticket", trigger: "Priority = Critical", action: "Pause renewal ask and notify owner", owner: "Support Lead" },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Sales Automation" description="Reminders, SLA follow-ups, stale deal alerts, auto-assignment, email sequences, and WhatsApp sequences." action="Create rule" />
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {automationCards.map(([title, value, detail, Icon]) => (
-          <Card key={String(title)}>
-            <CardContent className="flex gap-3 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
-              <div><p className="font-semibold">{title}</p><p className="text-2xl font-semibold">{value}</p><p className="text-sm text-muted-foreground">{detail}</p></div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <Card>
-        <CardHeader><CardTitle>Automation Rules</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {rules.map((row) => (
-            <div key={row.rule} className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_13rem_15rem_9rem] md:items-center">
-              <p className="font-medium">{row.rule}</p>
-              <span className="text-sm text-muted-foreground">{row.trigger}</span>
-              <span className="text-sm">{row.action}</span>
-              <Badge variant="outline">{row.owner}</Badge>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-  );
+  const navigate = useNavigate();
+  const user = useAuthStore(state => state.user);
+  const available = (path: string) => canAccessRoute(path, user?.role, user?.is_superuser);
+  const destinations = [
+    { title: "Follow-up reminders", description: "Schedule customer commitments and manage reminder preferences.", path: "/crm/follow-ups", action: "Manage follow-ups", icon: Bell },
+    { title: "Lead assignment", description: "Review lead ownership, qualification and assignment controls.", path: "/crm/leads", action: "Open lead workbench", icon: Users },
+    { title: "Approval workflows", description: "Configure saved approval rules and review approval requests.", path: "/crm/approval-settings", action: "Configure approvals", icon: CheckCircle2 },
+    { title: "Event integrations", description: "Manage signed webhook subscriptions, delivery logs and explicit retries.", path: "/crm/webhooks", action: "Manage webhooks", icon: GitBranch },
+    { title: "Message responses", description: "Configure saved response rules in the communication workspace.", path: "/crm/auto-responses", action: "Manage response rules", icon: Mail },
+    { title: "Pipeline stages", description: "Maintain pipelines and the stages used by your sales team.", path: "/crm/pipeline-settings", action: "Configure pipelines", icon: Target },
+  ].filter(item => available(item.path));
+  return <div className="space-y-6">
+    <PageHeader title="Sales Automation" description="Configure reminders, approvals, assignment and integrations in their saved workspaces."
+      action={available("/admin/automation/workflows") ? "Open workflow studio" : undefined}
+      onAction={() => navigate("/admin/automation/workflows")} />
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{destinations.map(item => {
+      const Icon = item.icon;
+      return <Card key={item.path}><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Icon className="h-5 w-5 text-primary" />{item.title}</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">{item.description}</p><Button variant="outline" onClick={() => navigate(item.path)}>{item.action}</Button></CardContent></Card>;
+    })}</div>
+    {!destinations.length && <p className="rounded-md border p-4 text-sm text-muted-foreground">No automation configuration pages are available for your role.</p>}
+  </div>;
 }
 
 function ForecastingPage() {
@@ -8266,7 +8247,7 @@ function QuickFormInput({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
+  const id=useFieldId();const control=isFieldElement(children)?cloneFieldElement(children as React.ReactElement<{id?:string;"aria-label"?:string}>,{id,"aria-label":label}):children;return <div className="space-y-2"><Label htmlFor={id}>{label}</Label>{control}</div>;
 }
 
 function TimelineItem({ text }: { text: string }) {
@@ -8681,7 +8662,7 @@ function createPayloadForKind(kind: CRMPageKind, record: CRMRecord): CRMApiRecor
   if (kind === "products") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), name: record.name, product_code: record.productCode || record.sku, sku: record.sku || record.productCode, category: record.category, list_price: record.price || 0, unit_price: record.price || 0, cost_price: record.cost || 0, status: record.status || "Active", active: record.status !== "Inactive" };
   if (kind === "services") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
   if (kind === "priceBooks") return { name: record.name, currency: record.currency || defaultText("currency", "crm"), region: record.region, customer_segment: record.segment, status: record.status || "active", active: record.status !== "inactive" };
-  if (kind === "quotations" || kind === "quotes") return { currency: record.currency || defaultText("currency", "crm"), quote_number: record.quote || `QT-${Date.now()}`, quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), status: record.status || "Draft", grand_total: record.total };
+  if (kind === "quotations" || kind === "quotes") return { currency: record.currency || defaultText("currency", "crm"), quote_number: record.quote || `QT-${Date.now()}`, quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), status: record.status || "Draft", grand_total: Number(record.total || 0) };
   if (kind === "cpq") return { name: record.name || "CPQ Rule", rule_type: record.type || "recommendation", condition: { minAmount: Number(record.amount || 0) }, action: { message: "Review recommended configuration" }, active: true };
   if (kind === "guidedSelling") return { name: record.name || "Guided Selling Flow", questions: [], recommendations: [], active: true };
   if (kind === "campaigns") return { name: record.name, campaign_type: record.type || "Email", status: record.status || "Planned", start_date: record.startDate || new Date().toISOString().slice(0, 10), end_date: record.endDate || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), budget_amount: record.budget || 0, expected_revenue: record.expectedRevenue || 0, ownerId };
