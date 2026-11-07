@@ -1,0 +1,142 @@
+[
+  {
+    "control": "Required lead name",
+    "result": "passed",
+    "evidence": "Empty Create lead displayed Lead name is required; name validity.valueMissing=true."
+  },
+  {
+    "control": "Lead Source Other",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Manual Entry",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Website",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Referral",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Social Media",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Email",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Phone",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Cold Call",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Email Campaign",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Event",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source Partner",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Source WhatsApp",
+    "result": "passed",
+    "evidence": "Opened dropdown; visible search; pointer selected matching option; native controlled value matched."
+  },
+  {
+    "control": "Lead Stage New Lead",
+    "result": "passed",
+    "evidence": "Native controlled value verified; saving each value not implied."
+  },
+  {
+    "control": "Lead Stage Contacted",
+    "result": "passed",
+    "evidence": "Native controlled value verified; saving each value not implied."
+  },
+  {
+    "control": "Lead Stage Qualified",
+    "result": "passed",
+    "evidence": "Native controlled value verified; saving each value not implied."
+  },
+  {
+    "control": "Lead Stage Lost",
+    "result": "passed",
+    "evidence": "Native controlled value verified; saving each value not implied."
+  },
+  {
+    "control": "Priority Low",
+    "result": "passed",
+    "evidence": "Native controlled value verified; saving each value not implied."
+  },
+  {
+    "control": "Priority Medium",
+    "result": "passed",
+    "evidence": "Native controlled value verified; saving each value not implied."
+  },
+  {
+    "control": "Priority High",
+    "result": "passed",
+    "evidence": "Native controlled value verified; saving each value not implied."
+  },
+  {
+    "control": "Required-name validation clears on edit",
+    "result": "fixed-and-passed",
+    "evidence": "Before: entered valid name but required-name error remained on later steps. After: empty Create lead shows error; entering QA nested form boundary cleared alert immediately."
+  },
+  {
+    "control": "Contact/company inputs and US calling code",
+    "result": "passed",
+    "evidence": "UI-selected US+1; generated email qa.lead@example.com and national2025550100 persisted on lead5; Software QA industry and QA owner1 shown. All calling-code options not certified."
+  },
+  {
+    "control": "Assignment choices",
+    "result": "passed",
+    "evidence": "Assign to me and Admin selected; final saved ownerAdmin1."
+  },
+  {
+    "control": "Catalog filtering/search/multiselect/remove",
+    "result": "passed",
+    "evidence": "Products1, All items2, service code search1, absent search empty feedback. Both selected items removed/readded; final2selected."
+  },
+  {
+    "control": "Nested catalog submit isolation",
+    "result": "fixed-and-passed",
+    "evidence": "Before: Save item unexpectedly submitted lead and created lead5. After: Save item created QA product, retained parent draft and enabled Create lead; Save as Draft closed with active leads still5. Only explicit Create lead later created lead6."
+  },
+  {
+    "control": "Save as Draft and reload/reopen",
+    "result": "passed",
+    "evidence": "Reopened after hard reload retained QA nested form boundary and selected QA nested catalog boundary product."
+  },
+  {
+    "control": "Explicit lead create and saved links",
+    "result": "passed",
+    "evidence": "Create lead navigated to lead6, Contacted/ownerAdmin persisted; full record Related listed QA product20INR and service100INR; Details retained generated notes and Priority High note."
+  },
+  {
+    "control": "Open full record and detail tabs",
+    "result": "passed",
+    "evidence": "Open full record navigated /crm/leads/6; Overview, Details and Related rendered persisted data. Other full-record actions pending."
+  }
+]

@@ -9436,5 +9436,1301 @@
     "option": "Åland Islands (AX)",
     "result": "passed",
     "evidence": "Selected native control value only; does not assert saved validation or searchable-popup interaction."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "INR Indian Rupee",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₹INR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "AED United Arab Emirates Dirham",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤AED. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "AFN Afghan Afghani",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ؋AFN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ALL Albanian Lek",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤ALL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "AMD Armenian Dram",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ֏AMD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ANG Netherlands Antillean Guilder",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤ANG. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "AOA Angolan Kwanza",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: KzAOA. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ARS Argentine Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $ARS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "AUD Australian Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $AUD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "AWG Aruban Florin",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤AWG. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "AZN Azerbaijani Manat",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₼AZN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BAM Bosnia-Herzegovina Convertible Mark",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: KMBAM. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BBD Barbadian Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $BBD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BDT Bangladeshi Taka",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ৳BDT. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BGN Bulgarian Lev",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤BGN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BHD Bahraini Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤BHD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BIF Burundian Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤BIF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BMD Bermudan Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $BMD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BND Brunei Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $BND. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BOB Bolivian Boliviano",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: BsBOB. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BRL Brazilian Real",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: R$BRL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BSD Bahamian Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $BSD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BTN Bhutanese Ngultrum",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤BTN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BWP Botswanan Pula",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: PBWP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BYN Belarusian Ruble",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤BYN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "BZD Belize Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $BZD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CAD Canadian Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $CAD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CDF Congolese Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤CDF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CHF Swiss Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤CHF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CLP Chilean Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $CLP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CNY Chinese Yuan",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¥CNY. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "COP Colombian Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $COP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CRC Costa Rican Colón",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₡CRC. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CUC Cuban Convertible Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $CUC. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CUP Cuban Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $CUP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CVE Cape Verdean Escudo",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤CVE. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "CZK Czech Koruna",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: KčCZK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "DJF Djiboutian Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤DJF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "DKK Danish Krone",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: krDKK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "DOP Dominican Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $DOP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "DZD Algerian Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤DZD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "EGP Egyptian Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: E£EGP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ERN Eritrean Nakfa",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤ERN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ETB Ethiopian Birr",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤ETB. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "EUR Euro",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: €EUR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "FJD Fijian Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $FJD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "FKP Falkland Islands Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: £FKP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GBP British Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: £GBP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GEL Georgian Lari",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₾GEL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GHS Ghanaian Cedi",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: GH₵GHS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GIP Gibraltar Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: £GIP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GMD Gambian Dalasi",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤GMD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GNF Guinean Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: FGGNF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GTQ Guatemalan Quetzal",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: QGTQ. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "GYD Guyanaese Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $GYD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "HKD Hong Kong Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $HKD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "HNL Honduran Lempira",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: LHNL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "HRK Croatian Kuna",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: knHRK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "HTG Haitian Gourde",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤HTG. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "HUF Hungarian Forint",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: FtHUF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "IDR Indonesian Rupiah",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RpIDR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ILS Israeli New Shekel",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₪ILS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "IQD Iraqi Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤IQD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "IRR Iranian Rial",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤IRR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ISK Icelandic Króna",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: krISK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "JMD Jamaican Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $JMD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "JOD Jordanian Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤JOD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "JPY Japanese Yen",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¥JPY. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KES Kenyan Shilling",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤KES. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KGS Kyrgyz Som",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ⃀KGS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KHR Cambodian Riel",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ៛KHR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KMF Comorian Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: CFKMF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KPW North Korean Won",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₩KPW. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KRW South Korean Won",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₩KRW. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KWD Kuwaiti Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤KWD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KYD Cayman Islands Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $KYD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "KZT Kazakhstani Tenge",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₸KZT. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "LAK Laotian Kip",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₭LAK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "LBP Lebanese Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: L£LBP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "LKR Sri Lankan Rupee",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RsLKR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "LRD Liberian Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $LRD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "LSL Lesotho Loti",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤LSL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "LYD Libyan Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤LYD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MAD Moroccan Dirham",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MAD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MDL Moldovan Leu",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MDL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MGA Malagasy Ariary",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ArMGA. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MKD Macedonian Denar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MKD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MMK Myanmar Kyat",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: KMMK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MNT Mongolian Tugrik",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₮MNT. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MOP Macanese Pataca",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MOP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MRU Mauritanian Ouguiya",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MRU. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MUR Mauritian Rupee",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RsMUR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MVR Maldivian Rufiyaa",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MVR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MWK Malawian Kwacha",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MWK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MXN Mexican Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $MXN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MYR Malaysian Ringgit",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RMMYR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "MZN Mozambican Metical",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤MZN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "NAD Namibian Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $NAD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "NGN Nigerian Naira",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₦NGN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "NIO Nicaraguan Córdoba",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: C$NIO. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "NOK Norwegian Krone",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: krNOK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "NPR Nepalese Rupee",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RsNPR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "NZD New Zealand Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $NZD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "OMR Omani Rial",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤OMR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "PAB Panamanian Balboa",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤PAB. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "PEN Peruvian Sol",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤PEN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "PGK Papua New Guinean Kina",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤PGK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "PHP Philippine Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₱PHP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "PKR Pakistani Rupee",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RsPKR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "PLN Polish Zloty",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: złPLN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "PYG Paraguayan Guarani",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₲PYG. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "QAR Qatari Riyal",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤QAR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "RON Romanian Leu",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: leiRON. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "RSD Serbian Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤RSD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "RUB Russian Ruble",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₽RUB. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "RWF Rwandan Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RFRWF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SAR Saudi Riyal",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SAR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SBD Solomon Islands Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $SBD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SCR Seychellois Rupee",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SCR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SDG Sudanese Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SDG. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SEK Swedish Krona",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: krSEK. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SGD Singapore Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $SGD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SHP St. Helena Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: £SHP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SLE SLE",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SLE. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SLL Sierra Leonean Leone (1964—2022)",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SLL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SOS Somali Shilling",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SOS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SRD Surinamese Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $SRD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SSP South Sudanese Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: £SSP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "STN São Tomé & Príncipe Dobra",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: DbSTN. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SVC Salvadoran Colón",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SVC. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SYP Syrian Pound",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: £SYP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "SZL Swazi Lilangeni",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤SZL. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "THB Thai Baht",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ฿THB. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TJS Tajikistani Somoni",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤TJS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TMT Turkmenistani Manat",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤TMT. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TND Tunisian Dinar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤TND. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TOP Tongan Paʻanga",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: T$TOP. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TRY Turkish Lira",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₺TRY. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TTD Trinidad & Tobago Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $TTD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TWD New Taiwan Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $TWD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "TZS Tanzanian Shilling",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤TZS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "UAH Ukrainian Hryvnia",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₴UAH. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "UGX Ugandan Shilling",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤UGX. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "USD US Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $USD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "UYU Uruguayan Peso",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $UYU. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "UZS Uzbekistani Som",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤UZS. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "VES Venezuelan Bolívar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤VES. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "VND Vietnamese Dong",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ₫VND. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "VUV Vanuatu Vatu",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤VUV. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "WST Samoan Tala",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤WST. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "XAF Central African CFA Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: FCFAXAF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "XCD East Caribbean Dollar",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: $XCD. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "XCG XCG",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤XCG. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "XDR Special Drawing Rights",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤XDR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "XOF West African CFA Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: F CFAXOF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "XPF CFP Franc",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: CFPFXPF. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "XSU Sucre",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤XSU. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "YER Yemeni Rial",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤YER. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ZAR South African Rand",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: RZAR. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ZMW Zambian Kwacha",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ZKZMW. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ZWG ZWG",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤ZWG. This checks picker interaction; saved validation for every currency is not asserted."
+  },
+  {
+    "page": "crm/leads",
+    "form": "New product or service",
+    "control": "Currency",
+    "option": "ZWL Zimbabwean Dollar (2009–2024)",
+    "result": "passed",
+    "evidence": "Searched and clicked the picker option. Trigger text: ¤ZWL. This checks picker interaction; saved validation for every currency is not asserted."
   }
 ]

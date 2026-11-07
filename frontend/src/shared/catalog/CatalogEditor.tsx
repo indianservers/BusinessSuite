@@ -50,7 +50,7 @@ export default function CatalogEditor({ source, initial, defaultKind = "product"
   useEffect(() => { let active = true; api.get("/project-management/workspaces", { progress: false }).then(r => { if (active) setWorkspaces(r.data); }).catch(() => {}); return () => { active = false; }; }, []);
   const patch = <K extends keyof typeof draft>(key: K, value: typeof draft[K]) => setDraft(v => ({ ...v, [key]: value }));
   async function submit(event: React.FormEvent) {
-    event.preventDefault(); if (submitting.current || uploading) return;
+    event.preventDefault(); event.stopPropagation(); if (submitting.current || uploading) return;
     if (!initial && (!branchReady || !destination)) { setError("No writable destination branch is available. Check your branch access."); return; }
     submitting.current = true; setBusy(true); setError("");
     try { const response = await catalogApi.save(source, { ...draft, price: priceIncludesTax ? Math.round(draft.price / (1 + draft.tax / 100) * 100) / 100 : draft.price }, destination); catalogChanged(); saved(response.data); }

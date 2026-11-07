@@ -66,7 +66,7 @@ function analyse(children: ReactNode) {
 }
 
 /** Native form semantics, refs and payloads are retained; only long unsectioned forms gain navigation. */
-const CompactForm = forwardRef<HTMLFormElement, FormHTMLAttributes<HTMLFormElement> & { compactTabs?: boolean; renderAs?: "form" | "div" }>(({ children, className, compactTabs = true, renderAs = "form", onInvalidCapture, ...props }, ref) => {
+const CompactForm = forwardRef<HTMLFormElement, FormHTMLAttributes<HTMLFormElement> & { compactTabs?: boolean; renderAs?: "form" | "div" }>(({ children, className, compactTabs = true, renderAs = "form", onInvalidCapture, onSubmit, ...props }, ref) => {
   const plan = useMemo(() => analyse(children), [children]); const [active, setActive] = useState(0); const [validation, setValidation] = useState(""); const handlingInvalid = useRef(false); const id = useId(); const nativeForm = useRef<HTMLFormElement | null>(null);
   const enabled = compactTabs && plan.enabled, current = Math.min(active, Math.max(0, plan.groups.length - 1));
   useEffect(() => {
@@ -104,7 +104,7 @@ const CompactForm = forwardRef<HTMLFormElement, FormHTMLAttributes<HTMLFormEleme
   }
   const content = <>{enabled && <><nav className="suite-form-tabs suite-auto-form-tabs" aria-label="Form sections">{plan.groups.map((label, index) => <button key={`${id}-${label}`} type="button" aria-pressed={current === index} onClick={() => { setActive(index); setValidation(""); }}>{label}</button>)}</nav>{validation && <p role="alert" className="suite-form-validation">{validation}</p>}</>}{enabled ? render(children, "root").nodes : children}</>;
   if (renderAs === "div") return <div className={`${className || ""} suite-compact-form`} data-compact-form="true">{content}</div>;
-  return <form {...props} ref={element => { nativeForm.current = element; if (typeof ref === "function") ref(element); else if (ref) ref.current = element; }} className={`${className || ""} suite-compact-form`} data-compact-form="true" onInvalidCapture={invalid}>{content}</form>;
+  return <form {...props} ref={element => { nativeForm.current = element; if (typeof ref === "function") ref(element); else if (ref) ref.current = element; }} className={`${className || ""} suite-compact-form`} data-compact-form="true" onSubmit={event => { if (event.target === event.currentTarget) onSubmit?.(event); }} onInvalidCapture={invalid}>{content}</form>;
 });
 CompactForm.displayName = "CompactForm";
 export function CompactFields({children,className,enabled=true}:{children:ReactNode;className?:string;enabled?:boolean}) { return <CompactForm renderAs="div" compactTabs={enabled} className={className}>{children}</CompactForm>; }

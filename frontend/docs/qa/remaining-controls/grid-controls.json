@@ -792,5 +792,202 @@
     "control": "Auto-fit all columns",
     "result": "passed",
     "evidence": "10 header widths remain positive after auto-fit; exact content fit requires visual review."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Group by Task key: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Group by Title: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Group by Project: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Group by Status: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Group by Priority: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Group by Assignee: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Group by Due date: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task equals BS036-5 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task not_equals BS036-5 ",
+    "result": "superseded-by-complete-fixture-recheck",
+    "error": "Error: Error: Timed out after 3000ms waiting for selector [data-grid-id=\"pms-advanced-tasks\"] >> [role=\"grid\"][aria-busy=\"false\"][aria-rowcount=\"20\"]: Browser Use encountered an error interacting with this webpage: Error: Element is not attached\n    at <anonymous>:227:263\n    at <anonymous>:227:479\n    at <anonymous>:228:11\n    at <anonymous>:229:11\nlocator.waitFor(visible) timed out for selector [data-grid-id=\"pms-advanced-tasks\"] >> [role=\"grid\"][aria-busy=\"false\"][aria-rowcount=\"20\"]\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"[data-grid-id=\\\"pms-advanced-tasks\\\"] >> [role=\\\"grid\\\"][aria-busy=\\\"false\\\"][aria-rowcount=\\\"20\\\"]\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,\"truncated\":false}",
+    "recheck": "Initial fixture captured only virtualized visible rows. Collected all25 via End/Home; inequality returned exact24 identifiers."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task contains BS036 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task equals BS036-5 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task not_equals BS036-5 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\",\"BS035-5\",\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\",\"BS034-5\",\"BS034-4\",\"BS034-3\",\"BS034-2\",\"BS034-1\",\"BS033-5\",\"BS033-4\",\"BS033-3\",\"BS033-2\",\"BS033-1\",\"BS032-5\",\"BS032-4\",\"BS032-3\",\"BS032-2\",\"BS032-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task contains BS036 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task starts_with BS036 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task ends_with -5 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS035-5\",\"BS034-5\",\"BS033-5\",\"BS032-5\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task between BS035-1 BS035-5",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS035-5\",\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task gt BS036-3 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task gte BS036-3 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task lt BS036-3 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-2\",\"BS036-1\",\"BS035-5\",\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\",\"BS034-5\",\"BS034-4\",\"BS034-3\",\"BS034-2\",\"BS034-1\",\"BS033-5\",\"BS033-4\",\"BS033-3\",\"BS033-2\",\"BS033-1\",\"BS032-5\",\"BS032-4\",\"BS032-3\",\"BS032-2\",\"BS032-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task lte BS036-3 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-3\",\"BS036-2\",\"BS036-1\",\"BS035-5\",\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\",\"BS034-5\",\"BS034-4\",\"BS034-3\",\"BS034-2\",\"BS034-1\",\"BS033-5\",\"BS033-4\",\"BS033-3\",\"BS033-2\",\"BS033-1\",\"BS032-5\",\"BS032-4\",\"BS032-3\",\"BS032-2\",\"BS032-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task empty  ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match []."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter task not_empty  ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\",\"BS035-5\",\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\",\"BS034-5\",\"BS034-4\",\"BS034-3\",\"BS034-2\",\"BS034-1\",\"BS033-5\",\"BS033-4\",\"BS033-3\",\"BS033-2\",\"BS033-1\",\"BS032-5\",\"BS032-4\",\"BS032-3\",\"BS032-2\",\"BS032-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter title contains Launch ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS035-5\",\"BS034-5\",\"BS033-5\",\"BS032-5\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter project equals Finance & Accounting Integration - Phase 4 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter status equals Done ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\",\"BS034-3\",\"BS034-2\",\"BS034-1\",\"BS033-5\",\"BS033-4\",\"BS033-3\",\"BS033-2\",\"BS033-1\",\"BS032-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter priority equals Medium ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\",\"BS035-5\",\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\",\"BS034-5\",\"BS034-4\",\"BS034-3\",\"BS034-2\",\"BS034-1\",\"BS033-5\",\"BS033-4\",\"BS033-3\",\"BS033-2\",\"BS033-1\",\"BS032-5\",\"BS032-4\",\"BS032-3\",\"BS032-2\",\"BS032-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter assignee empty  ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\",\"BS035-5\",\"BS035-4\",\"BS035-3\",\"BS035-2\",\"BS035-1\",\"BS034-5\",\"BS034-4\",\"BS034-3\",\"BS034-2\",\"BS034-1\",\"BS033-5\",\"BS033-4\",\"BS033-3\",\"BS033-2\",\"BS033-1\",\"BS032-5\",\"BS032-4\",\"BS032-3\",\"BS032-2\",\"BS032-1\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Filter due_date equals 2026-12-08 ",
+    "result": "passed",
+    "evidence": "Filtered result count and rendered row identifiers match [\"BS036-5\",\"BS036-4\",\"BS036-3\",\"BS036-2\",\"BS036-1\"]."
   }
 ]

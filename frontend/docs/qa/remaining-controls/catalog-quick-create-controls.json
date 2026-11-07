@@ -1,0 +1,232 @@
+[
+  {
+    "control": "Inventory tracking Track stock",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Inventory tracking Do not track stock",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Price tax treatment Tax exclusive",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Price tax treatment Tax inclusive",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Status Active",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Status Archived",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Visibility Organization catalog",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Visibility Portfolio acceptance workspace",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Type Product",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Type Service",
+    "result": "passed",
+    "evidence": "Selected controlled value; only one final record saved separately."
+  },
+  {
+    "control": "Billing One-time",
+    "result": "passed",
+    "evidence": "Native selected value only; saved validation for every cadence not asserted."
+  },
+  {
+    "control": "Billing Every day",
+    "result": "passed",
+    "evidence": "Native selected value only; saved validation for every cadence not asserted."
+  },
+  {
+    "control": "Billing Every week",
+    "result": "passed",
+    "evidence": "Native selected value only; saved validation for every cadence not asserted."
+  },
+  {
+    "control": "Billing Every month",
+    "result": "passed",
+    "evidence": "Native selected value only; saved validation for every cadence not asserted."
+  },
+  {
+    "control": "Billing Every year",
+    "result": "passed",
+    "evidence": "Native selected value only; saved validation for every cadence not asserted."
+  },
+  {
+    "control": "Follow-up Reference date purchase",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Reference date delivery",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Reference date completion",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Priority Low",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Priority Normal",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Priority High",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Priority Urgent",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Purpose Feedback",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Purpose Renewal",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Purpose Maintenance",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Purpose Payment",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Purpose Upsell",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Purpose General",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Contact method Call",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Contact method WhatsApp",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Contact method Email",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Contact method Visit",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Cancelled / refunded sale cancel",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Cancelled / refunded sale retain",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Assigned team No team",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Assigned employee Me",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Assigned employee admin@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Assigned employee employee@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Assigned employee hr@suiteqa.example.com",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Schedule days",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Schedule date",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "Follow-up Schedule recurring",
+    "result": "passed",
+    "evidence": "Controlled native selection checked; automatic scheduling not certified."
+  },
+  {
+    "control": "More details image URLs and custom fields",
+    "result": "passed",
+    "evidence": "Added two custom fields and removed qa_remove; added image URL, loaded480x240, added/removed second image, removed first and readded; qa_audit=verified and one image retained. Image upload not tested."
+  },
+  {
+    "control": "Pricing option add/remove",
+    "result": "passed",
+    "evidence": "Added monthly QA plan amount80INR; added second option and removed it; one plan retained."
+  },
+  {
+    "control": "Negative base price validation",
+    "result": "passed",
+    "evidence": "-1 triggered child Basic details validation, rangeUnderflow true, with parent draft untouched; corrected20saved."
+  },
+  {
+    "control": "Catalog save and visible record persistence",
+    "result": "passed",
+    "evidence": "Created QA service100INR and product20INR through UI; both available after reload and present on saved lead Related. Alternative monthly plan, custom field and image persistence after reopening editor remain pending."
+  }
+]

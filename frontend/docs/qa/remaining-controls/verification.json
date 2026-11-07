@@ -32,7 +32,10 @@
     "shared_editor_typecheck": "passed",
     "shared_editor_changed_component_lint": "passed",
     "shared_editor_production_build": "passed",
-    "tooltip_production_build": "passed"
+    "tooltip_production_build": "passed",
+    "form_boundary_typecheck": "passed",
+    "form_boundary_changed_component_lint": "passed",
+    "form_boundary_production_build": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -41,7 +44,8 @@
     "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded.",
     "Browser viewport changed during the session from952x466to1920x889; individual page checks are not a fresh full responsive-layout audit.",
     "Disposable QA fixture reset after sync-protocol fix. Earlier evidence reflects the previous generated fixture; no production data touched.",
-    "Note folder color persistence remains unverified; file chooser upload is blocked by browser extension configuration."
+    "Note folder color persistence remains unverified; file chooser upload is blocked by browser extension configuration.",
+    "CRM Full Details currently exposes empty phone-validation metadata as [object Object] and some read-only values as inert buttons; newly identified and awaiting correction."
   ],
   "route_pass_status": "All192destination headings verified before workspace-panel actions;172panels passed and20notexposedinthecurrentlayout. Preliminary batches excluded.",
   "filter_option_checks": {
@@ -57,17 +61,19 @@
   "grid_control_checks": {
     "file": "grid-controls.json",
     "results": {
+      "passed": 121,
       "superseded-by-recheck": 13,
+      "superseded-by-manual-recheck": 1,
       "superseded-by-tooltip-fix": 3,
-      "passed": 94,
-      "superseded-by-manual-recheck": 1
+      "superseded-by-complete-fixture-recheck": 1
     },
-    "limitation": "Company/vendor/customer column controls exercised individually. Customer grouping options, all12namefilteroperators and all10filterablecolumns checked; saved view restored changed column visibility. Remaining grids and row actions are not certified. Advanced task grid columns, saved view visibility restore and display options also checked individually. Record equivalence and all row actions not certified."
+    "limitation": "Company/vendor/customer column controls exercised individually. Customer grouping options, all12namefilteroperators and all10filterablecolumns checked; saved view restored changed column visibility. Remaining grids and row actions are not certified. Advanced task grid columns, saved view visibility restore and display options also checked individually. Record equivalence and all row actions not certified.",
+    "advanced_tasks": "All7 grouping choices rendered/expanded/collapsed/removed; all12 task-key operators and other6 filterable columns matched expected identifiers across25loaded records, including virtualized rows. Filters cleared and Status grouping restored."
   },
   "form_option_checks": {
     "file": "form-options.json",
     "results": {
-      "passed": 1003,
+      "passed": 1165,
       "superseded-by-fix": 14,
       "fixed-and-passed": 161
     },
@@ -159,5 +165,20 @@
     "limitation": "Specific whole-document fixtures; not every rich-text instance on192pages certified."
   },
   "update_template_fix": "Daily work note and QA test report render expected prompts; Blank update now clears text and disables empty Post Update. Rechecked in browser.",
-  "tooltip_fix": "Visible global text tooltip overlapped task-column restore arrow and intercepted pointer events, dismissing manager. After pointer-events:none, hit test reached arrow while tooltip visible; pointer restore retained manager; full column controls passed."
+  "tooltip_fix": "Visible global text tooltip overlapped task-column restore arrow and intercepted pointer events, dismissing manager. After pointer-events:none, hit test reached arrow while tooltip visible; pointer restore retained manager; full column controls passed.",
+  "lead_create_checks": {
+    "file": "lead-create-controls.json",
+    "results": {
+      "passed": 26,
+      "fixed-and-passed": 2
+    },
+    "limitation": "Per-option selection and explicitly described saved flows only. Not every lead record, phone country or remaining detail action certified."
+  },
+  "catalog_quick_create_checks": {
+    "file": "catalog-quick-create-controls.json",
+    "results": {
+      "passed": 46
+    },
+    "limitation": "All162currency selections recorded in form-options.json. Image upload blocked; automatic follow-up generation and all saved pricing variants not certified."
+  }
 }

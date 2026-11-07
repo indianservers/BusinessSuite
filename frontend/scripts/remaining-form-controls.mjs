@@ -17,15 +17,15 @@ export async function resumeFormAudit(tab, root) {
       code: e.querySelector('.font-semibold')?.textContent.trim(),
       name: e.querySelector('.text-muted-foreground')?.textContent.trim(),
     })));
-    const pending = choices.filter(o => !checks.some(x => x.page === page && x.control === label && x.option === `${o.code} ${o.name}` && ['passed', 'fixed-and-passed'].includes(x.result)));
+    const pending = choices.filter(o => !checks.some(x => x.page === page && x.form === dialogName && x.control === label && x.option === `${o.code} ${o.name}` && ['passed', 'fixed-and-passed'].includes(x.result)));
     for (const choice of pending.slice(0, limit)) {
       if (!await list.count()) await trigger.click();
       await search.fill(choice.code);
       await list.getByRole('option', { name: new RegExp(`^${choice.code}\\s`) }).click();
       const value = await trigger.textContent({});
-      const result = value.includes(choice.code) ? 'fixed-and-passed' : 'needs-review';
+      const result = value.includes(choice.code) ? 'passed' : 'needs-review';
       checks.push({ page, form: dialogName, control: label, option: `${choice.code} ${choice.name}`, result,
-        evidence: `Searched and clicked the picker option. Trigger text: ${value}. This checks picker interaction, not a saved bank account.` });
+        evidence: `Searched and clicked the picker option. Trigger text: ${value}. This checks picker interaction; saved validation for every currency is not asserted.` });
       await save();
       if (result === 'needs-review') return { pending: pending.length, failed: choice.code, value };
     }

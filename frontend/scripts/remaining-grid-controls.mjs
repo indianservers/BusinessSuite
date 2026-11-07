@@ -181,9 +181,21 @@ export async function resumeGridAudit(tab, root) {
       await grid.locator(`[role="grid"][aria-busy="false"][aria-rowcount="${test.expected.length + 1}"]`).waitFor({ state: 'visible' });
       const errors = await grid.locator('[role="alert"]').allTextContents({});
       if (errors.length) throw new Error(errors.join('; '));
-      const names = await grid.locator('input[aria-label^="Select row "]').evaluateAll(es => es.map(e => e.getAttribute('aria-label').replace(/^Select row /, '')).sort());
+      const readNames = () => grid.locator('input[aria-label^="Select row "]').evaluateAll(es => es.map(e => e.getAttribute('aria-label').replace(/^Select row /, '')));
+      let names = await readNames();
+      if (names.length < test.expected.length) {
+        // Expected identifiers must follow the fixture's displayed row order.
+        // End/Home exercise the real scroll UI, allowing virtualized rows to render.
+        await grid.locator('[role="gridcell"][tabindex]').first().press('End');
+        await grid.locator(`input[aria-label=${JSON.stringify(`Select row ${test.expected.at(-1)}`)}]`).waitFor({ state: 'visible' });
+        names = [...names, ...await readNames()];
+        await grid.locator('[role="gridcell"][tabindex]').first().press('Home');
+        await grid.locator(`input[aria-label=${JSON.stringify(`Select row ${test.expected[0]}`)}]`).waitFor({ state: 'visible' });
+        names = [...names, ...await readNames()];
+      }
+      names = [...new Set(names)].sort();
       if (JSON.stringify(names) !== JSON.stringify([...test.expected].sort())) throw new Error(`Expected ${JSON.stringify(test.expected)}; observed ${JSON.stringify(names)}`);
-      return `Server-filtered result count and visible row names match ${JSON.stringify(test.expected)}.`;
+      return `Filtered result count and rendered row identifiers match ${JSON.stringify(test.expected)}.`;
     });
   }
   async function clearFilters(id) {
