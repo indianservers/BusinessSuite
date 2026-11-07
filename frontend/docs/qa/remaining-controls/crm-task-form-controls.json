@@ -38,5 +38,146 @@
   {
     "control": "Task other type Sub-task",
     "result": "passed-selected-state"
+  },
+  {
+    "control": "Task location General / workspace task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task location Lead task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task location Contact task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task location Company task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task location Deal task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Parent task Top-level task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Parent task QA Record 360 local date task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Parent search / title required / structured template",
+    "result": "passed",
+    "evidence": "Absent parent search leaves Top-level only plus disabled No data found; clear restores QA task. Empty title blocks create; structured template inserts Objective, Acceptance criteria and Delivery evidence."
+  },
+  {
+    "control": "Task execution mode Shared task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task execution mode Individual tasks",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assignment mode People Assign individuals",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assignment mode Teams Assign a team",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assignment mode Groups Assign a group",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assignee labels add/deduplicate/remove/self",
+    "result": "passed",
+    "evidence": "Added label twice, one chip only; removed it. Assign to me adds current user and disables repeated self assignment. Reviewer/owner detail labels entered; no directory grants or notifications."
+  },
+  {
+    "control": "Task form Priority / Low",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task form Priority / Medium",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task form Priority / High",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task form Priority / Urgent",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task form Task status / To Do",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task form Task status / In Progress",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task form Task status / Done",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task estimates/subtasks/draft",
+    "result": "passed",
+    "evidence": "Negative hours blocked by minimum. Set 8 hours; added two subtasks using Enter/button, removed first and added another. Quick Create subtasks reveals section. Create another toggled; left off. Acceptance/assignee/priority/schedule saved in browser draft."
+  },
+  {
+    "control": "Task attachment behavior",
+    "result": "unverified",
+    "evidence": "UI explicitly stores file names only, with no upload. Browser file chooser remains blocked by extension file-access check. This does not certify attachment upload, preview or download."
+  },
+  {
+    "control": "Required title validation clears on correction",
+    "result": "fixed-and-passed",
+    "evidence": "New form blank submit shows required-field section banner; filling title removes banner immediately, without changing tabs."
+  },
+  {
+    "control": "Task draft recovery after reload",
+    "result": "passed",
+    "evidence": "Restored generated draft after reload; title, structured description, assignee, High priority, Nov 9 start, Nov 11 due and estimate summary recovered."
+  },
+  {
+    "control": "Numeric and dependent date validation clear",
+    "result": "fixed-and-passed",
+    "evidence": "Negative estimate banner clears after correction. Due-before-start banner clears when start date is moved earlier, without editing invalid due field. Restored Nov 9 start, Nov 11 due and 8 hours."
+  },
+  {
+    "control": "Create another submission flow",
+    "result": "passed",
+    "evidence": "Created generated comprehensive task with checkbox on. Task saved to CRM, confirmation shown, form reset to blank for next task."
+  },
+  {
+    "control": "Task stored detail round trip",
+    "result": "passed",
+    "evidence": "Reopened created task; two subtasks, acceptance criteria, 8 hours, High priority, owner/reviewer detail labels and assigned self persisted. Unchanged edit saved."
+  },
+  {
+    "control": "Template protects existing description / related reference validation",
+    "result": "passed",
+    "evidence": "Use template on populated description shows guidance and retains content; Dismiss clears guidance. Lead location requires reference; correcting reference clears section banner. Reference remains an optional metadata label; no CRM association save tested here."
+  },
+  {
+    "control": "Both database task copy choices retain details",
+    "result": "fixed-and-passed",
+    "evidence": "Copied task 1 retains canonical assignee and Nov 9 calendar date. Copied task 3 retains High priority, assignee, Nov 9 start, Nov 11 due, acceptance, estimate and both subtasks. New title receives (copy)."
+  },
+  {
+    "control": "Clear form custom confirmation / saved draft",
+    "result": "passed",
+    "evidence": "Blank task opens app confirmation. Cancel retains copied title/details. Saved draft, confirmed Clear form and verified empty title. Restore draft recovers copied task. No native browser confirm required."
+  },
+  {
+    "control": "Copied task persistence and cleanup",
+    "result": "passed",
+    "evidence": "Created copied task, reopened stored copy and verified both subtasks. Saved unchanged edit, then deleted only the generated copy through custom dialog. Two source QA tasks remain."
   }
 ]

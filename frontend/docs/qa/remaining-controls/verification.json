@@ -51,7 +51,10 @@
     "quick_action_production_build": "passed",
     "crm_task_date_typecheck": "passed",
     "crm_task_date_lint": "passed",
-    "crm_task_date_production_build": "passed"
+    "crm_task_date_production_build": "passed",
+    "shared_form_validation_typecheck": "passed",
+    "shared_form_validation_lint": "passed",
+    "shared_form_validation_production_build": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -274,5 +277,18 @@
     "passed-selected-state": 4,
     "fixed-and-passed": 4
   },
-  "crm_task_fixture_state": "One open generated CRM task remains, original title and Nov 9 due date restored. Generated call follow-up task was completed and deleted in UI tests. One call and one scheduled meeting remain. Earlier counts describe their recorded fixture states."
+  "crm_task_fixture_state": "Two open generated CRM tasks remain: original task with Nov 9 deadline and comprehensive High-priority task with Nov 9 start, Nov 11 due and two subtask labels. Call-created follow-up and copied task were deleted after UI checks. One call and one scheduled meeting remain. Older counts reflect their recorded fixture states.",
+  "last_updated": "2026-11-08",
+  "audit_dates": [
+    "2026-11-07",
+    "2026-11-08"
+  ],
+  "crm_task_form_controls": "crm-task-form-controls.json",
+  "crm_task_form_control_results": {
+    "passed-selected-state": 29,
+    "passed": 9,
+    "unverified": 1,
+    "fixed-and-passed": 3
+  },
+  "crm_task_form_limitations": "Only recorded controls are certified. Assignment modes store detail labels. Attachments are filename-only UI; direct file selection remains blocked by extension. AI generation is disabled. This is not certification of every editor formatting control or all task records."
 }
