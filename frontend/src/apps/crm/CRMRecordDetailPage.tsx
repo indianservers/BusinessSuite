@@ -1,4 +1,5 @@
 import { leadSourceOptions } from "@/lib/form-defaults";
+import { crmLocalDateTime } from "./dateTime";
 import RecordTemplatePicker from '@/shared/template-design/RecordTemplatePicker';
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import FieldControl, { fieldShown } from "@/shared/custom-fields/FieldControl";
@@ -994,6 +995,7 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
   const saveLock=useRef(false);
   const [saving, setSaving] = useState(false);
   const targetEntity = actionEntity(action);
+  const dateTimeFields = new Set(["due_date", "reminder_at", "call_time", "start_time", "end_time"]);
   const submit = () => {
     if(saveLock.current)return;saveLock.current=true;
     setSaving(true);
@@ -1006,7 +1008,7 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
   };
   return (
     <div role="dialog" aria-modal="true" aria-label={quickActionTitle(action)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="w-full max-w-xl">
+      <Card className="max-h-[90dvh] w-full max-w-xl overflow-y-auto">
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>{quickActionTitle(action)}</CardTitle>
           <Button variant="ghost" size="sm" disabled={saving} onClick={onClose}><X className="h-4 w-4" /></Button>
@@ -1024,7 +1026,7 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
                     onMentionsChange={setMentions}
                   />
                 ) : (
-                  <Input value={valueText(value)} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />
+                  dateTimeFields.has(key) ? <Input aria-label={labelFor(key)} type="datetime-local" value={crmLocalDateTime(valueText(value))} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value ? new Date(event.target.value).toISOString() : "" }))} onInput={event => { const next = event.currentTarget.value; setDraft(current => ({ ...current, [key]: next ? new Date(next).toISOString() : "" })); }} /> : <Input aria-label={labelFor(key)} type={["issue_date", "expiry_date"].includes(key) ? "date" : "text"} value={valueText(value)} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />
                 )}
               </Field>
             ))}
@@ -1073,7 +1075,7 @@ function MentionTextarea({ value, onChange, mentions, onMentionsChange }: { valu
 
   return (
     <div className="relative md:col-span-2">
-      <RichTextField value={value} onChange={(event) => updateValue(event.target.value)} rows={5} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+      <RichTextField aria-label="Body" value={value} onChange={(event) => updateValue(event.target.value)} rows={5} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
       {open && options.length ? (
         <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-lg">
           {options.map((user) => (

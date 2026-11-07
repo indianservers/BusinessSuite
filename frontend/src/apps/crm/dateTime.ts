@@ -5,3 +5,10 @@ export function crmTimestamp(value: string | Date): Date {
   const utc = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(value);
   return new Date(utc ? `${value.replace(" ", "T")}Z` : value);
 }
+
+export function crmLocalDateTime(value: string): string {
+  if (!value) return "";
+  const date = crmTimestamp(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}

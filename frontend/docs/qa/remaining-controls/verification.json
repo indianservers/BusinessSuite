@@ -41,10 +41,14 @@
     "crm_detail_production_build": "passed",
     "catalog_layout_production_build": "passed",
     "catalog_layout_changed_component_lint": "passed",
-    "crm_timestamp_regression_scenarios": 8,
+    "crm_timestamp_regression_scenarios": 12,
     "crm_growth_typecheck": "passed",
     "crm_growth_lint": "passed",
-    "crm_growth_production_build": "passed"
+    "crm_growth_production_build": "passed",
+    "record_360_work_backend_tests": 38,
+    "quick_action_typecheck": "passed",
+    "quick_action_lint": "passed",
+    "quick_action_production_build": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -245,5 +249,15 @@
   "greetings_control_results": {
     "passed-selected-state": 16,
     "passed": 24
+  },
+  "record_360_controls": "record-360-controls.json",
+  "record_360_controls_results": {
+    "passed": 15,
+    "fixed-and-passed": 1
+  },
+  "record_template_controls": "record-template-controls.json",
+  "record_template_controls_results": {
+    "passed": 13,
+    "unverified": 1
   }
 }

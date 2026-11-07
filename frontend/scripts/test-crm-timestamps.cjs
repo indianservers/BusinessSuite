@@ -13,4 +13,12 @@ for (const value of ['2026-11-12T06:15:00', '2026-11-12 06:15:00', '2026-11-12T0
 assert.equal(crmTimestamp('2026-11-12T06:15:00.123456').toISOString(), '2026-11-12T06:15:00.123Z');
 assert.equal(crmTimestamp('2026-11-12T06:15:00').toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }), '11:45');
 assert.equal(Number.isNaN(crmTimestamp('invalid').getTime()), true);
-console.log('8 CRM timestamp regression scenarios passed');
+const { crmLocalDateTime } = mod.exports;
+const originalZone = process.env.TZ;
+process.env.TZ = 'Asia/Kolkata';
+assert.equal(crmLocalDateTime('2026-11-12T06:15:00'), '2026-11-12T11:45');
+assert.equal(crmLocalDateTime('2026-11-12T11:45:00+05:30'), '2026-11-12T11:45');
+assert.equal(crmLocalDateTime(''), '');
+assert.equal(crmLocalDateTime('invalid'), '');
+if (originalZone === undefined) delete process.env.TZ; else process.env.TZ = originalZone;
+console.log('12 CRM timestamp regression scenarios passed');

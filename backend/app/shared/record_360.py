@@ -212,6 +212,11 @@ def work_sources(db, user, kind=None, ident=None, customer=None, project=None):
         try:
             for entity, model, source, due in [('tasks', CRMTask, 'crm_task', CRMTask.due_date), ('activities', CRMActivity, 'crm_activity', func.coalesce(CRMActivity.due_date, CRMActivity.activity_date)), ('meetings', CRMMeeting, 'crm_meeting', CRMMeeting.start_time)]:
                 q = crm_query(db, user, entity)
+                if source == 'crm_activity':
+                    # Related records emit timeline copies. Keep those in history,
+                    # while the native task/meeting remains the actionable work.
+                    q = q.filter(~func.coalesce(CRMActivity.metadata_json['sourceEntity'].as_string(), '').in_(
+                        ['tasks', 'meetings', 'calls', 'notes', 'emails', 'quotations', 'deals']))
                 if kind:
                     q = q.filter(getattr(model, {'company': 'company_id', 'lead': 'lead_id', 'contact': 'contact_id', 'deal': 'deal_id'}[kind]) == ident)
                 sources.append((source, q, due, model.id))
