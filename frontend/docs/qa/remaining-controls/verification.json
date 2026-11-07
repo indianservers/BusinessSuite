@@ -21,7 +21,8 @@
     "contact_picker_response_scenarios": 11,
     "record_sync_backend_tests": 21,
     "sync_payload_scenarios": 8,
-    "backend_total_this_audit": 96
+    "backend_total_this_audit": 124,
+    "private_notes_backend_tests": 28
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -29,7 +30,8 @@
     "Workspace-panel checks are recorded per route and do not certify the other controls on that route.",
     "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded.",
     "Browser viewport changed during the session from952x466to1920x889; individual page checks are not a fresh full responsive-layout audit.",
-    "Disposable QA fixture reset after sync-protocol fix. Earlier evidence reflects the previous generated fixture; no production data touched."
+    "Disposable QA fixture reset after sync-protocol fix. Earlier evidence reflects the previous generated fixture; no production data touched.",
+    "Note folder color persistence remains unverified; file chooser upload is blocked by browser extension configuration."
   ],
   "route_pass_status": "All192destination headings verified before workspace-panel actions;172panels passed and20notexposedinthecurrentlayout. Preliminary batches excluded.",
   "filter_option_checks": {
@@ -59,5 +61,22 @@
       "fixed-and-passed": 161
     },
     "limitation": "Currency options checked via visible search and pointer selection. Native selections verify controlled value only; do not certify saved validation for each value."
-  }
+  },
+  "note_move_checks": {
+    "file": "note-controls.json",
+    "passed": 38,
+    "evidence": "Each destination moved the saved note, advanced its visible version, and Undo restored original project/folder/content with another version advance."
+  },
+  "project_file_choices": {
+    "file": "project-file-options.json",
+    "passed": 36,
+    "evidence": "Every project selection displayed its uniquely named prepared attachment fixture. Fixtures were prepared by API; upload UI is not certified."
+  },
+  "attachment_checks": {
+    "project_files": "PNG and text downloads matched generated fixtures; folder move and keyboard move back persisted.",
+    "private_note": "PNG rendered at 480x240; text preview matched content; removal, Undo removal and reload/restore passed.",
+    "upload_ui": "Blocked by Chrome extension file URL access; awaiting user setting change.",
+    "private_note_download": "Not yet checked in this phase."
+  },
+  "note_save_fix": "Saving and folder rename passed after branch-safe ORM update fix. Real typing, draft recovery, Save, reload and 85-character persisted content verified."
 }
