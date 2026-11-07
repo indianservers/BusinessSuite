@@ -20,7 +20,10 @@ const Indent = Extension.create({
   },
 });
 export function richTextExtensions(placeholder = "Start writing...", levels: (1 | 2 | 3 | 4 | 5 | 6)[] = [1, 2, 3, 4]) {
-  return [Placeholder.configure({ placeholder }), StarterKit.configure({ heading: { levels }, link: {
+  return [Placeholder.configure({ placeholder }), StarterKit.configure({ heading: { levels },
+    // These blocks already provide an editable final text block. An extra
+    // paragraph makes a whole-document selection mixed and breaks toggles.
+    trailingNode: { notAfter: ["bulletList", "orderedList", "taskList", "blockquote", "codeBlock"] }, link: {
     openOnClick: false, autolink: false, isAllowedUri: safeLink,
     HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
   } }), TableKit, TaskList, TaskItem.configure({ nested: true }),

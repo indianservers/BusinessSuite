@@ -1,0 +1,17 @@
+[
+  {
+    "control": "Bulleted list",
+    "result": "fixed-and-passed",
+    "evidence": "Applied list with pressed=true; second click returned exact single original paragraph without empty blocks."
+  },
+  {
+    "control": "Numbered list",
+    "result": "fixed-and-passed",
+    "evidence": "Applied list with pressed=true; second click returned exact single original paragraph without empty blocks."
+  },
+  {
+    "control": "Checklist",
+    "result": "fixed-and-passed",
+    "evidence": "Applied list with pressed=true; second click returned exact single original paragraph without empty blocks."
+  }
+]

@@ -1,0 +1,39 @@
+{
+  "tableResults": [
+    {
+      "control": "Add row",
+      "result": "passed",
+      "dimensions": {
+        "cells": 12,
+        "rows": 4
+      }
+    },
+    {
+      "control": "Remove row",
+      "result": "passed",
+      "dimensions": {
+        "cells": 9,
+        "rows": 3
+      }
+    },
+    {
+      "control": "Add column",
+      "result": "passed",
+      "dimensions": {
+        "cells": 12,
+        "rows": 3
+      }
+    },
+    {
+      "control": "Remove column",
+      "result": "passed",
+      "dimensions": {
+        "cells": 9,
+        "rows": 3
+      }
+    }
+  ],
+  "beforeHeaders": 0,
+  "afterHeaders": 3,
+  "tableRemoved": true
+}

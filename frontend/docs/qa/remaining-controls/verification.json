@@ -22,7 +22,10 @@
     "record_sync_backend_tests": 21,
     "sync_payload_scenarios": 8,
     "backend_total_this_audit": 124,
-    "private_notes_backend_tests": 28
+    "private_notes_backend_tests": 28,
+    "editor_production_build": "passed",
+    "editor_typecheck": "passed",
+    "editor_changed_component_lint": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -75,8 +78,40 @@
   "attachment_checks": {
     "project_files": "PNG and text downloads matched generated fixtures; folder move and keyboard move back persisted.",
     "private_note": "PNG rendered at 480x240; text preview matched content; removal, Undo removal and reload/restore passed.",
-    "upload_ui": "Blocked by Chrome extension file URL access; awaiting user setting change.",
-    "private_note_download": "Not yet checked in this phase."
+    "upload_ui": "Retried after user enabled file access; Chrome extension still rejected fileChooser.setFiles. Not certified.",
+    "private_note_download": "PNG (2565 bytes) and text (69 bytes) downloaded via note buttons; SHA256 matched original generated fixtures."
   },
-  "note_save_fix": "Saving and folder rename passed after branch-safe ORM update fix. Real typing, draft recovery, Save, reload and 85-character persisted content verified."
+  "note_save_fix": "Saving and folder rename passed after branch-safe ORM update fix. Real typing, draft recovery, Save, reload and 85-character persisted content verified.",
+  "note_template_checks": {
+    "file": "note-template-controls.json",
+    "passed": 6,
+    "limitation": "Each template created and autosaved expected content. Not every template editing operation certified."
+  },
+  "note_format_checks": {
+    "file": "note-formatting-controls.json",
+    "passed": 19,
+    "limitation": "Paragraph styles and font sizes checked resulting markup; bold/italic/underline/strike added and removed. Five block toggles separately verified after fixes."
+  },
+  "additional_note_checks": {
+    "history_restore": "Version 1 empty content restored as new version81; version80 original content restored as new version82.",
+    "favorites": "Favorited, reload retained Favorites1, removed and count returned0.",
+    "archive_undo": "Archive confirmation shown, Undo restored Archive note action and content at version86.",
+    "editor_width": "Standard\u2192wide\u2192narrow\u2192standard options verified.",
+    "trash": "Native confirm interrupted command; no delete recorded. Unverified.",
+    "copy_note_link": "Clipboard bridge reported removed; clipboard result unverified.",
+    "find_replace": "Next selected formatting; Replace all produced QA list verified; absent phrase showed No matches found; Close find removed panel.",
+    "links": "javascript URL rejected with validation message; HTTPS link markup applied then removed. No destination visited.",
+    "focus_mode": "Full-screen focus class appeared; Exit removed it.",
+    "alignment_indent": "All four text-align styles verified on document; increase indent set data-indent=1; decrease removed it."
+  },
+  "note_table_checks": {
+    "file": "note-table-controls.json",
+    "evidence": "3x3 insertion retained trailing paragraph; row and column addition/removal verified exact dimensions; header toggled 0\u21923 header cells; table removal verified.",
+    "merge_split": "Single cell: Merge and Split disabled. Shift-selected two header cells: Merge enabled, cells 9\u21928 and colspan2; Split enabled, cells8\u21929 and colspan removed."
+  },
+  "note_block_toggle_checks": {
+    "file": "note-block-toggle-controls.json",
+    "fixed_and_passed": 5,
+    "evidence": "All-document selection: each creates exactly one block and second click restores exact original paragraph."
+  }
 }
