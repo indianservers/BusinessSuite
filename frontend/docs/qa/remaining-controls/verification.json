@@ -25,7 +25,9 @@
     "private_notes_backend_tests": 28,
     "editor_production_build": "passed",
     "editor_typecheck": "passed",
-    "editor_changed_component_lint": "passed"
+    "editor_changed_component_lint": "passed",
+    "task_landmark_build": "passed",
+    "task_landmark_lint": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -113,5 +115,25 @@
     "file": "note-block-toggle-controls.json",
     "fixed_and_passed": 5,
     "evidence": "All-document selection: each creates exactly one block and second click restores exact original paragraph."
+  },
+  "note_list_checks": {
+    "file": "note-list-controls.json",
+    "passed": 9,
+    "unverified": 1,
+    "limitation": "Date inputs not certified. Shortcut help verified, not every shortcut execution."
+  },
+  "task_inline_checks": {
+    "file": "task-inline-controls.json",
+    "passed": 20,
+    "limitation": "Specific actions on synthetic taskBS036-5 only. Not certification of every task record, due date editor or assignments. Blocked validation checked without required execution details."
+  },
+  "task_workspace_checks": {
+    "file": "task-workspace-controls.json",
+    "results": {
+      "passed": 9,
+      "unverified": 2,
+      "fixed-and-passed": 1
+    },
+    "limitation": "Only explicitly recorded controls certified; native deletion and blob tab content unverified."
   }
 }

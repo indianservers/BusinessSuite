@@ -528,7 +528,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
     </article>
   );
   return (
-    <main className={`tw-page ${embeddedTaskId ? "tw-embedded" : ""}`}>
+    <section aria-label="Task workspace" className={`tw-page ${embeddedTaskId ? "tw-embedded" : ""}`}>
       <div className="tw-topline">
         <Link to={backTo}>
           <ArrowLeft size={15} /> Back to tasks
@@ -1471,6 +1471,6 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
           onSaved={refresh}
         />
       )}
-    </main>
+    </section>
   );
 }
