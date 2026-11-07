@@ -246,19 +246,30 @@ def signed_file_url(path: str) -> str:
     }, ExpiresIn=settings.S3_SIGNED_URL_SECONDS)
 
 
+def _download_redirect(path):
+    url = signed_file_url(str(path))
+    target = urlsplit(url)
+    public = urlsplit(settings.BACKEND_PUBLIC_URL)
+    # Keep first-party signed reads on the requesting origin. Absolute redirects
+    # break authenticated XHR downloads behind a proxy or a hostname alias.
+    # Provider-owned presigned URLs must retain their original origin/signature.
+    if target.netloc == public.netloc and target.path == "/api/v1/files/blob":
+        url = target.path + (f"?{target.query}" if target.query else "")
+    return RedirectResponse(url, status_code=307, headers={"Cache-Control": "private, no-store"})
+
+
 def FileResponse(path, *args, **kwargs):
     from app.core.audit_context import context
     if context.get() is not None: context.get()["file_response_path"] = str(path)
     from app.services.file_storage import locator, server_photo
     row = locator(str(path))
     if row and row.status == "cloud":
-        return RedirectResponse(signed_file_url(str(path)), status_code=307, headers={"Cache-Control":"private, no-store"})
+        return _download_redirect(path)
     if server_photo(str(path)) and Path(path).is_file():
         return LocalFileResponse(path, *args, **kwargs)
     if settings.STORAGE_BACKEND == "local":
         return LocalFileResponse(path, *args, **kwargs)
-    return RedirectResponse(signed_file_url(str(path)), status_code=307,
-                            headers={"Cache-Control": "private, no-store"})
+    return _download_redirect(path)
 
 
 def sign_upload_references(value):

@@ -709,6 +709,11 @@ def run_job(db, job):
         or digest(version.graph_json) != version.digest
     ):
         raise HTTPException(409, "Invalid published execution reference")
+    workflow = db.get(AutomationWorkflow, version.workflow_id)
+    if not workflow or not workflow.is_active:
+        job.status = 'cancelled'
+        job.last_error = 'Workflow has been disabled'
+        return
     service_identity(db, actor, job.organization_id, job.module_name)
     ai_origin = (source.payload_json or {}).get("ai_origin")
     if ai_origin:
@@ -1051,6 +1056,7 @@ def process_batch(db, limit=20):
 
 CAPTURE = {
     "CRMLead": ("crm", "lead"),
+    'CRMDeal': ('crm', 'deal'),
     "PMSTask": ("project_management", "task"),
     "PMSProject": ("project_management", "project"),
     "LeaveRequest": ("hrms", "leave"),
@@ -1079,7 +1085,9 @@ def capture_changes(db, context):
             event_type = "record.created"
         elif db.is_modified(item, include_collections=False):
             event_type = (
-                "status.changed"
+                'stage.changed'
+                if type(item).__name__ == 'CRMDeal' and inspect(item).attrs.stage_id.history.has_changes()
+                else "status.changed"
                 if hasattr(item, "status")
                 and inspect(item).attrs.status.history.has_changes()
                 else "record.updated"

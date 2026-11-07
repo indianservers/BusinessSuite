@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import { api } from "@/services/api";
@@ -44,6 +44,10 @@ export default function SetupReadiness({embedded = false, navigation = false, co
     return enabled && remaining > 0 ? <Link to="/setup-guide" title="Setup guide" onClick={onNavigate} className={`nav-link mx-2 mt-2 flex items-center gap-2 ${location.pathname === "/setup-guide" ? "nav-link-active" : "nav-link-inactive"} ${collapsed ? "justify-center" : ""}`}><ListChecks size={18}/>{!collapsed && <><span className="flex-1">Setup guide</span><span className="rounded-full bg-primary/15 px-2 text-xs">{remaining}</span></>}</Link> : null;
   }
   if (!enabled || (!embedded && (query.isPending || (query.data?.ready && !open && !pageItems.length)))) return null;
+  if (embedded && location.pathname === "/setup-guide" && query.data && !query.isFetching && !query.isError &&
+      [...query.data.items, ...(query.data.moduleItems || [])].every(item=>item.required === false || item.ready)) {
+    return <Navigate to="/dashboard" replace/>;
+  }
   if (embedded) return showGuide ? <SetupGuide data={query.data} module={scopedModule} loading={query.isPending} error={query.isError} refreshing={query.isFetching} refresh={()=>void query.refetch()}/> : null;
   const missing = query.data?.items.filter(i => i.required !== false && !i.ready) || [];
   const moduleMissing = query.data?.moduleItems?.filter(i => i.required !== false && !i.ready) || [];

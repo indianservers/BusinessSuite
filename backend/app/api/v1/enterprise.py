@@ -405,6 +405,8 @@ def disable_domain_pack(
     item = db.query(DomainPackRegistry).filter(DomainPackRegistry.id == pack_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Domain pack not found")
+    if (item.config_json or {}).get('kind') == 'industry_pack':
+        raise HTTPException(409, 'Use the industry-pack lifecycle API so workflows and intake are disabled together')
     item.status = "Disabled"
     item.disabled_at = datetime.now(timezone.utc)
     db.commit()

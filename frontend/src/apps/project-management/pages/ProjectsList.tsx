@@ -2,7 +2,7 @@ import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/Workspa
 import RecordLensViews from "@/shared/workspace/RecordLensViews";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import {
   AlertCircle,
@@ -174,6 +174,44 @@ const tabs = [
 ];
 
 export default function ProjectsList() {
+  const navigate = useNavigate();
+  const previewTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(previewTimer.current), []);
+  function openProject(id: number) {
+    clearTimeout(previewTimer.current);
+    setPreviewId(undefined);
+    navigate(`/pms/projects/${id}`);
+  }
+  function queuePreview(id: number) {
+    clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => setPreviewId(id), 350);
+  }
+  const surfaceInteraction = (id: number) => ({
+    onClick: (event: React.MouseEvent<HTMLElement>) => {
+      if ((event.target as HTMLElement).closest("a,button,input,select,textarea,[role=button],[contenteditable=true]")) return;
+      queuePreview(id);
+    },
+    onDoubleClick: (event: React.MouseEvent<HTMLElement>) => {
+      if ((event.target as HTMLElement).closest("a,button,input,select,textarea,[role=button],[contenteditable=true]")) return;
+      event.preventDefault();
+      openProject(id);
+    },
+  });
+  const projectName = (p: PMSProject) => (
+    <button type="button" className="portfolio-project-name"
+      aria-label={`Preview ${p.name}; double-click to open project`}
+      onClick={(event) => { if (event.detail === 0) setPreviewId(p.id); else queuePreview(p.id); }}
+      onDoubleClick={() => openProject(p.id)}
+      onKeyDown={(event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) { event.preventDefault(); openProject(p.id); } }}
+    >{p.name}</button>
+  );
+  const quickActions = (p: PMSProject) => (
+    <div className="portfolio-quick-actions" role="group" aria-label={`Quick actions for ${p.name}`}>
+      <Link to={`/pms/projects/${p.id}`}>Open</Link>
+      {p.can_manage_tasks && <Link to={`/pms/tasks/new?projectId=${p.id}`}>+ Add task</Link>}
+      <Link to={`/pms/projects/${p.id}/board`}>Task board</Link>
+    </div>
+  );
   const uid = useAuthStore((s) => s.user?.id);
   const companyId = useAuthStore((s) => s.user?.access?.companyId);
   const generation = useRef(0);
@@ -741,6 +779,7 @@ export default function ProjectsList() {
     <main
       className={`project-portfolio ${advanced ? "portfolio-filters-expanded" : ""}`}
     >
+      <p className="portfolio-interaction-hint">Click a project to preview · Double-click to open · Use Open on touch devices</p>
       <header className="portfolio-header">
         <div className="portfolio-heading">
           <span className="portfolio-logo">
@@ -1387,6 +1426,7 @@ export default function ProjectsList() {
                     <tr
                       key={p.id}
                       className={selected.includes(p.id) ? "is-selected" : ""}
+                      {...surfaceInteraction(p.id)}
                     >
                       <td>
                         <input
@@ -1452,9 +1492,7 @@ export default function ProjectsList() {
                               </form>
                             ) : (
                               <>
-                                <Link to={`/pms/projects/${p.id}`}>
-                                  {p.name}
-                                </Link>
+                                {projectName(p)}
                                 {p.can_edit_project && (
                                   <button
                                     className="portfolio-rename"
@@ -1614,6 +1652,7 @@ export default function ProjectsList() {
                       })}
                       <td>
                         <div className="portfolio-row-actions">
+                          {quickActions(p)}
                           {favorite(p)}
                           <button
                             title="Preview project"
@@ -1648,7 +1687,7 @@ export default function ProjectsList() {
               }
             >
               {rows.map((p) => (
-                <article key={p.id} data-testid={`project-card-${p.id}`}>
+                <article key={p.id} data-testid={`project-card-${p.id}`} {...surfaceInteraction(p.id)}>
                   <div className="flex items-center justify-between">
                     <div className="portfolio-card-identity">
                       {p.can_edit_project && (
@@ -1671,7 +1710,7 @@ export default function ProjectsList() {
                     {favorite(p)}
                   </div>
                   <h2>
-                    <Link to={`/pms/projects/${p.id}`}>{p.name}</Link>
+                    {projectName(p)}
                   </h2>
                   <p>{p.client_name || "No client linked"}</p>
                   <div className="flex justify-between">
@@ -1683,6 +1722,7 @@ export default function ProjectsList() {
                     </span>
                   </div>
                   {progressBar(p)}
+                  {quickActions(p)}
                   <footer>
                     <span>{p.owner_name || "Unassigned"}</span>
                     <span className={overdue(p) ? "is-overdue" : ""}>

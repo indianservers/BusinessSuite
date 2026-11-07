@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.apps.analytics.models import AnalyticsReport
 from app.apps.communication.models import CommunicationCampaign
-from app.apps.crm.models import CRMCompany, CRMContact, CRMDeal, CRMLead, CRMQuotation
+from app.apps.crm.models import CRMCompany, CRMContact, CRMDeal, CRMLead, CRMQuotation, CRMTask, CRMCustomField, CRMCustomFieldValue
 from app.apps.srm.models import (
     SRMBillingPlan,
     SRMContract,
@@ -34,6 +34,7 @@ from app.core.config import settings
 
 
 DATA_SOURCES: dict[str, tuple[Any, list[str], bool]] = {
+    'crm_tasks': (CRMTask, ['id', 'title', 'status', 'priority', 'due_date', 'deal_id'], False),
     "crm_leads": (CRMLead, ["id", "full_name", "email", "phone", "source", "status", "estimated_value"], False),
     "crm_accounts": (CRMCompany, ["id", "name", "industry", "email", "phone", "status", "annual_revenue"], False),
     "crm_contacts": (CRMContact, ["id", "full_name", "email", "phone", "lifecycle_stage", "status"], False),
@@ -72,7 +73,24 @@ def run_report(db: Session, report: AnalyticsReport, financial_allowed: bool, pa
     ensure_source_allowed(report.module_name,financial_allowed)
     page=max(page,1);page_size=min(max(page_size,1),max_page_size)
     fields=list(report.fields_json or default_fields(report.module_name))
-    filters={**(report.filters_json or {}),**(extra_filters or {})}
+    source = report.data_source_json or {}
+    if source.get('industry_pack'):
+        if user is not None:
+            from app.services.metrics.queries import company_id
+            if source.get('company_id') != company_id(user):
+                raise HTTPException(404, 'Analytics report not found')
+        from app.models.platform import DomainPackRegistry
+        pack = db.query(DomainPackRegistry).filter_by(company_id=source.get('company_id'), pack_key='industry:'+source['industry_pack'], status='Enabled').first()
+        if not pack:
+            raise HTTPException(409, 'This industry pack is disabled or unavailable')
+        locked = source.get('locked_filters', {})
+        if any(key in (extra_filters or {}) and extra_filters[key] != value for key, value in locked.items()):
+            raise HTTPException(422, 'Industry report scope cannot be overridden')
+    else:
+        locked = {}
+    filters={**(report.filters_json or {}),**(extra_filters or {}), **locked}
+    if report.grouping_json:
+        return grouped_report(db, report, filters, user, page, page_size)
     if report.module_name=="lead_to_cash":
         query=report_query(db,"crm_deals",filters,user)
         total=query.count();rows=cross_module_rows(db,user,(page-1)*page_size,page_size,query)
@@ -89,7 +107,7 @@ def report_query(db,module_name,filters,user=None):
         from app.services.metrics.registry import crm_query
         from app.services.metrics.queries import company_id
         if module_name.startswith("crm_"):
-            resource={"crm_leads":"leads","crm_accounts":"companies","crm_contacts":"contacts","crm_deals":"deals","crm_quotes":"quotations"}[module_name]
+            resource={"crm_leads":"leads","crm_accounts":"companies","crm_contacts":"contacts","crm_deals":"deals","crm_quotes":"quotations", 'crm_tasks': 'tasks'}[module_name]
             query=crm_query(db,user,resource)
         elif module_name in {"srm_invoices","srm_collections"}:
             from app.apps.srm.services.commercial import invoice_query
@@ -107,6 +125,10 @@ def report_query(db,module_name,filters,user=None):
     if hasattr(model,"deleted_at"):query=query.filter(model.deleted_at.is_(None))
     for field,value in filters.items():
         if value in (None,""):continue
+        if module_name == 'crm_tasks' and field == 'pack_pipeline_id':
+            deals = report_query(db, 'crm_deals', {'pipeline_id': value}, user).with_entities(CRMDeal.id)
+            query = query.filter(CRMTask.deal_id.in_(deals))
+            continue
         if field not in model.__table__.columns:raise HTTPException(422,"Unsupported report filter: "+field)
         query=query.filter(getattr(model,field)==value)
     return query
@@ -115,7 +137,57 @@ def report_query(db,module_name,filters,user=None):
 def source_rows(db:Session,module_name:str,fields:list[str],filters:dict[str,Any],offset:int,limit:int,user=None):
     model=DATA_SOURCES[module_name][0]
     rows=report_query(db,module_name,filters,user).order_by(model.id.desc()).offset(offset).limit(limit).all()
-    return [serialize_row(item,fields) for item in rows]
+    output = [serialize_row(item,fields) for item in rows]
+    custom = [field[7:] for field in fields if field.startswith('custom:')]
+    if custom:
+        if module_name != 'crm_deals':
+            raise HTTPException(422, 'Custom report columns currently require the CRM deal adapter')
+        definitions = db.query(CRMCustomField).filter(CRMCustomField.entity == 'deals', CRMCustomField.field_key.in_(custom),
+            CRMCustomField.is_visible.is_(True), CRMCustomField.is_active.is_(True), CRMCustomField.deleted_at.is_(None)).all()
+        field_map = {f.id: f.field_key for f in definitions}
+        if set(custom) - set(field_map.values()):
+            raise HTTPException(422, 'A report custom field is hidden, missing or unavailable')
+        values = db.query(CRMCustomFieldValue).filter(CRMCustomFieldValue.custom_field_id.in_(field_map),
+            CRMCustomFieldValue.record_id.in_([row.id for row in rows]), CRMCustomFieldValue.entity == 'deals', CRMCustomFieldValue.deleted_at.is_(None)).all()
+        from app.apps.crm.api.router import _custom_field_value
+        by_record = {row.id: output[index] for index, row in enumerate(rows)}
+        for value in values:
+            decoded = _custom_field_value(value)
+            by_record[value.record_id]['custom:'+field_map[value.custom_field_id]] = decoded.isoformat() if hasattr(decoded, 'isoformat') else float(decoded) if isinstance(decoded, Decimal) else decoded
+    return output
+
+
+def grouped_report(db, report, filters, user, page, page_size):
+    config = report.grouping_json
+    groups, aggregates = config.get('group_by'), config.get('aggregates')
+    if not isinstance(groups, list) or not 1 <= len(groups) <= 3 or not isinstance(aggregates, dict) or not 1 <= len(aggregates) <= 8:
+        raise HTTPException(422, 'Grouped reports require bounded group_by and aggregates')
+    model = DATA_SOURCES[report.module_name][0]
+    allowed = set(default_fields(report.module_name)) | {'stage_id', 'pipeline_id', 'owner_user_id'}
+    if any(key not in allowed or key not in model.__table__.c for key in groups):
+        raise HTTPException(422, 'Unsupported report grouping')
+    expressions = [getattr(model, key).label(key) for key in groups]
+    for alias, spec in aggregates.items():
+        if not isinstance(alias, str) or not alias.isidentifier() or alias in groups or not isinstance(spec, dict):
+            raise HTTPException(422, 'Invalid aggregate definition')
+        operation = spec.get('function')
+        if operation == 'count':
+            expression = func.count(model.id)
+        else:
+            key = spec.get('field')
+            if key not in allowed or key not in model.__table__.c or operation not in {'sum', 'avg', 'min', 'max'}:
+                raise HTTPException(422, 'Unsupported aggregate field or operation')
+            from sqlalchemy import Numeric, Integer
+            if not isinstance(model.__table__.c[key].type, (Numeric, Integer)):
+                raise HTTPException(422, 'Aggregation requires a numeric field')
+            expression = getattr(func, operation)(getattr(model, key))
+        expressions.append(expression.label(alias))
+    query = report_query(db, report.module_name, filters, user).with_entities(*expressions).group_by(*[getattr(model, key) for key in groups])
+    total = query.count()
+    items = query.order_by(*[getattr(model, key) for key in groups]).offset((page-1)*page_size).limit(page_size).all()
+    columns = [*groups, *aggregates]
+    rows = [{key: float(value) if isinstance(value, Decimal) else value.isoformat() if hasattr(value, 'isoformat') else value for key, value in zip(columns, item)} for item in items]
+    return {'items': rows, 'total': total, 'page': page, 'page_size': page_size, 'fields': columns, 'async_ready': total > MAX_SYNC_EXPORT_ROWS, 'definition': 'Scoped grouped source rows before pagination'}
 
 
 def count_rows(db:Session,module_name:str,filters:dict[str,Any],user=None):

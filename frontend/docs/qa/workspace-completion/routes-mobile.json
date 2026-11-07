@@ -1,0 +1,2685 @@
+[
+  {
+    "path": "crm/whatsapp-communication",
+    "url": "http://127.0.0.1:1569/crm/whatsapp-communication",
+    "alerts": [],
+    "headings": [
+      "WhatsApp Communication",
+      "Contacts",
+      "ContactsCustomers"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/import-data",
+    "url": "http://127.0.0.1:1569/crm/import-data",
+    "alerts": [],
+    "headings": [
+      "Import into CRM"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/payment-requests",
+    "url": "http://127.0.0.1:1569/crm/payment-requests",
+    "alerts": [],
+    "headings": [
+      "Payment requests"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/birthdays",
+    "url": "http://127.0.0.1:1569/crm/birthdays",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Contact birthdays"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/company-directory",
+    "url": "http://127.0.0.1:1569/settings/shared-companies",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/records",
+    "url": "http://127.0.0.1:1569/crm/records",
+    "alerts": [],
+    "headings": [
+      "Relationship Hub",
+      "Loading your contacts"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/record-metadata",
+    "url": "http://127.0.0.1:1569/crm/record-metadata",
+    "alerts": [],
+    "headings": [
+      "Custom fields",
+      "Leads fields"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/product-customers",
+    "url": "http://127.0.0.1:1569/crm/product-customers",
+    "alerts": [],
+    "headings": [
+      "Customers & Pipeline by Product / Service"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/customer-follow-ups",
+    "url": "http://127.0.0.1:1569/crm/customer-follow-ups",
+    "alerts": [],
+    "headings": [
+      "Lead & customer follow-ups"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/greetings",
+    "url": "http://127.0.0.1:1569/crm/greetings",
+    "alerts": [],
+    "headings": [
+      "Customer greetings",
+      "Write a greeting"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/follow-ups/directory",
+    "url": "http://127.0.0.1:1569/crm/follow-ups/directory",
+    "alerts": [],
+    "headings": [
+      "Customer follow-ups"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/follow-ups/calendar",
+    "url": "http://127.0.0.1:1569/crm/follow-ups/calendar",
+    "alerts": [],
+    "headings": [
+      "Customer follow-ups"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/products-services",
+    "url": "http://127.0.0.1:1569/crm/products-services",
+    "alerts": [],
+    "headings": [
+      "Products & services",
+      "Make room for your next offering"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/messages",
+    "url": "http://127.0.0.1:1569/crm/messages",
+    "alerts": [],
+    "headings": [
+      "Messages"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/gantt",
+    "url": "http://127.0.0.1:1569/crm/follow-ups?operation=%2Fcrm%2Fgantt",
+    "alerts": [],
+    "headings": [
+      "CRM Gantt"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm",
+    "url": "http://127.0.0.1:1569/crm",
+    "alerts": [],
+    "headings": [
+      "CRM Dashboard",
+      "Follow-ups needing attention",
+      "Risk-aware pipeline"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/sales-home",
+    "url": "http://127.0.0.1:1569/crm/sales-home",
+    "alerts": [],
+    "headings": [
+      "Who should I contact next?"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/follow-ups",
+    "url": "http://127.0.0.1:1569/crm/follow-ups",
+    "alerts": [],
+    "headings": [
+      "Customer follow-ups",
+      "Today & overdue"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/dashboard",
+    "url": "http://127.0.0.1:1569/crm/dashboard",
+    "alerts": [],
+    "headings": [
+      "CRM Dashboard",
+      "Follow-ups needing attention",
+      "Risk-aware pipeline"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/profile",
+    "url": "http://127.0.0.1:1569/crm/profile",
+    "alerts": [],
+    "headings": [
+      "Admin",
+      "Identity & contact",
+      "About & interests"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/potential-clients",
+    "url": "http://127.0.0.1:1569/crm/potential-clients",
+    "alerts": [],
+    "headings": [
+      "Potential Clients —"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/leads",
+    "url": "http://127.0.0.1:1569/crm/leads",
+    "alerts": [],
+    "headings": [
+      "Lead workbench —"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/leads/classic",
+    "url": "http://127.0.0.1:1569/crm/leads/classic",
+    "alerts": [],
+    "headings": [
+      "Leads"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/leads/workbench",
+    "url": "http://127.0.0.1:1569/crm/leads/workbench",
+    "alerts": [],
+    "headings": [
+      "Lead workbench —"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/contacts",
+    "url": "http://127.0.0.1:1569/crm/contacts",
+    "alerts": [],
+    "headings": [
+      "Contacts"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/accounts",
+    "url": "http://127.0.0.1:1569/crm/accounts",
+    "alerts": [],
+    "headings": [
+      "Customers"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/companies",
+    "url": "http://127.0.0.1:1569/crm/companies",
+    "alerts": [],
+    "headings": [
+      "Companies"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/customers",
+    "url": "http://127.0.0.1:1569/crm/customers",
+    "alerts": [],
+    "headings": [
+      "Customers"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/vendors",
+    "url": "http://127.0.0.1:1569/crm/vendors",
+    "alerts": [],
+    "headings": [
+      "Vendors"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/deals",
+    "url": "http://127.0.0.1:1569/crm/deals",
+    "alerts": [],
+    "headings": [
+      "Deals"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/pipeline",
+    "url": "http://127.0.0.1:1569/crm/deals?operation=%2Fcrm%2Fpipeline",
+    "alerts": [],
+    "headings": [
+      "Deals",
+      "Sales pipeline"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/templates",
+    "url": "http://127.0.0.1:1569/crm/deals?operation=%2Fcrm%2Ftemplates",
+    "alerts": [],
+    "headings": [
+      "Make every message yours.",
+      "Find the right words. Move work forward.",
+      "Start with a design"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/pipeline-templates",
+    "url": "http://127.0.0.1:1569/crm/pipeline-templates",
+    "alerts": [],
+    "headings": [
+      "Customized CRM templates",
+      "Business templates",
+      "Qualification"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/inventory-templates",
+    "url": "http://127.0.0.1:1569/crm/inventory-templates",
+    "alerts": [],
+    "headings": [
+      "Make every message yours.",
+      "Start with a design",
+      "Your templates 0"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/mail-merge-templates",
+    "url": "http://127.0.0.1:1569/crm/mail-merge-templates",
+    "alerts": [],
+    "headings": [
+      "Make every message yours.",
+      "Start with a design",
+      "Your templates 0"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/pipeline-settings",
+    "url": "http://127.0.0.1:1569/settings/crm-pipelines?operation=%2Fcrm%2Fpipeline-settings",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/pipelines",
+    "url": "http://127.0.0.1:1569/crm/pipelines",
+    "alerts": [],
+    "headings": [
+      "Pipeline Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/activities",
+    "url": "http://127.0.0.1:1569/crm/follow-ups?operation=%2Fcrm%2Factivities",
+    "alerts": [],
+    "headings": [
+      "Activities"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/meetings",
+    "url": "http://127.0.0.1:1569/crm/meetings",
+    "alerts": [],
+    "headings": [
+      "Meetings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/calls",
+    "url": "http://127.0.0.1:1569/crm/calls",
+    "alerts": [],
+    "headings": [
+      "Calls"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/tasks",
+    "url": "http://127.0.0.1:1569/crm/follow-ups?operation=%2Fcrm%2Ftasks",
+    "alerts": [],
+    "headings": [
+      "CRM tasks"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/calendar",
+    "url": "http://127.0.0.1:1569/crm/follow-ups?operation=%2Fcrm%2Fcalendar",
+    "alerts": [],
+    "headings": [
+      "CRM calendar",
+      "November 2026"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/calendar-integrations",
+    "url": "http://127.0.0.1:1569/crm/follow-ups?operation=%2Fcrm%2Fcalendar-integrations",
+    "alerts": [],
+    "headings": [
+      "Calendar Integrations"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/webhooks",
+    "url": "http://127.0.0.1:1569/settings/crm-webhooks?operation=%2Fcrm%2Fwebhooks",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/send-reminders",
+    "url": "http://127.0.0.1:1569/crm/send-reminders",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Send reminders"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/communication-hub",
+    "url": "http://127.0.0.1:1569/crm/communication-hub",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Start with the conversations that need you."
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/email-templates",
+    "url": "http://127.0.0.1:1569/crm/email-templates",
+    "alerts": [],
+    "headings": [
+      "Make every message yours.",
+      "Find the right words. Move work forward.",
+      "Start with a design"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/emails",
+    "url": "http://127.0.0.1:1569/crm/emails",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Compose email"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/webforms",
+    "url": "http://127.0.0.1:1569/crm/webforms",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Customer webforms"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/campaigns",
+    "url": "http://127.0.0.1:1569/crm/campaigns",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Campaign workspace"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/consents",
+    "url": "http://127.0.0.1:1569/crm/consents",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Consent & preferences"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/whatsapp",
+    "url": "http://127.0.0.1:1569/crm/whatsapp",
+    "alerts": [],
+    "headings": [
+      "WhatsApp Communication Hub",
+      "Team inbox"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/whatsapp/inbox",
+    "url": "http://127.0.0.1:1569/crm/whatsapp/inbox",
+    "alerts": [],
+    "headings": [],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/whatsapp/sent",
+    "url": "http://127.0.0.1:1569/crm/whatsapp/sent",
+    "alerts": [],
+    "headings": [
+      "WhatsApp Communication Hub",
+      "Team inbox"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/whatsapp/templates",
+    "url": "http://127.0.0.1:1569/crm/whatsapp/templates",
+    "alerts": [],
+    "headings": [
+      "WhatsApp Communication Hub",
+      "WhatsApp template library"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/whatsapp/profile",
+    "url": "http://127.0.0.1:1569/crm/whatsapp/profile",
+    "alerts": [],
+    "headings": [
+      "WhatsApp Communication Hub"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/whatsapp/settings",
+    "url": "http://127.0.0.1:1569/crm/whatsapp/settings",
+    "alerts": [],
+    "headings": [
+      "WhatsApp Communication Hub"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/auto-responses",
+    "url": "http://127.0.0.1:1569/crm/auto-responses",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Auto-response rules"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/delivery-logs",
+    "url": "http://127.0.0.1:1569/crm/delivery-logs",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Delivery workspace"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/communication-timeline",
+    "url": "http://127.0.0.1:1569/crm/communication-timeline",
+    "alerts": [],
+    "headings": [
+      "Communication Center",
+      "Customer communication timeline"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/products",
+    "url": "http://127.0.0.1:1569/crm/products-services?operation=%2Fcrm%2Fproducts",
+    "alerts": [],
+    "headings": [
+      "Products & services"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/services",
+    "url": "http://127.0.0.1:1569/crm/products-services?operation=%2Fcrm%2Fservices",
+    "alerts": [],
+    "headings": [
+      "Products & services"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/price-books",
+    "url": "http://127.0.0.1:1569/crm/products-services?operation=%2Fcrm%2Fprice-books",
+    "alerts": [],
+    "headings": [
+      "Price Books"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/quotes",
+    "url": "http://127.0.0.1:1569/crm/quotes",
+    "alerts": [],
+    "headings": [
+      "Quotes"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/quote-approvals",
+    "url": "http://127.0.0.1:1569/crm/quotes?operation=%2Fcrm%2Fquote-approvals",
+    "alerts": [],
+    "headings": [
+      "Quote Approvals"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/cpq",
+    "url": "http://127.0.0.1:1569/crm/quotes?operation=%2Fcrm%2Fcpq",
+    "alerts": [],
+    "headings": [
+      "CPQ Rules"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/guided-selling",
+    "url": "http://127.0.0.1:1569/crm/quotes?operation=%2Fcrm%2Fguided-selling",
+    "alerts": [],
+    "headings": [
+      "Guided Selling"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/quotations",
+    "url": "http://127.0.0.1:1569/crm/quotations",
+    "alerts": [],
+    "headings": [
+      "Quotations"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/approval-settings",
+    "url": "http://127.0.0.1:1569/settings/crm-approvals?operation=%2Fcrm%2Fapproval-settings",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/my-approvals",
+    "url": "http://127.0.0.1:1569/crm/my-approvals",
+    "alerts": [],
+    "headings": [
+      "My Approvals"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/duplicates",
+    "url": "http://127.0.0.1:1569/crm/duplicates",
+    "alerts": [],
+    "headings": [
+      "Duplicate Management"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/territories",
+    "url": "http://127.0.0.1:1569/settings/crm-territories",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/tickets",
+    "url": "http://127.0.0.1:1569/crm/tickets",
+    "alerts": [],
+    "headings": [
+      "Support Tickets"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/files",
+    "url": "http://127.0.0.1:1569/crm/files",
+    "alerts": [],
+    "headings": [
+      "CRM Files"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/reports",
+    "url": "http://127.0.0.1:1569/crm/reports",
+    "alerts": [],
+    "headings": [
+      "Reports and insights",
+      "Sales performance",
+      "Sales funnel"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 384
+  },
+  {
+    "path": "crm/automation",
+    "url": "http://127.0.0.1:1569/settings/crm-automation?operation=%2Fcrm%2Fautomation",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/lead-to-cash",
+    "url": "http://127.0.0.1:1569/crm/lead-to-cash",
+    "alerts": [],
+    "headings": [
+      "Lead-to-Cash"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/forecasting",
+    "url": "http://127.0.0.1:1569/crm/reports?operation=%2Fcrm%2Fforecasting",
+    "alerts": [],
+    "headings": [
+      "Forecasting"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/forecasts",
+    "url": "http://127.0.0.1:1569/crm/forecasts",
+    "alerts": [],
+    "headings": [
+      "Forecasting"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/targets",
+    "url": "http://127.0.0.1:1569/crm/reports?operation=%2Fcrm%2Ftargets",
+    "alerts": [],
+    "headings": [
+      "Sales Targets"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 384
+  },
+  {
+    "path": "crm/sales-performance",
+    "url": "http://127.0.0.1:1569/crm/reports?operation=%2Fcrm%2Fsales-performance",
+    "alerts": [],
+    "headings": [
+      "Sales Performance"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 384
+  },
+  {
+    "path": "crm/funnel",
+    "url": "http://127.0.0.1:1569/crm/reports?operation=%2Fcrm%2Ffunnel",
+    "alerts": [],
+    "headings": [
+      "Sales Funnel"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 384
+  },
+  {
+    "path": "crm/lost-analysis",
+    "url": "http://127.0.0.1:1569/crm/reports?operation=%2Fcrm%2Flost-analysis",
+    "alerts": [],
+    "headings": [
+      "Lost Analysis"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/customer-360",
+    "url": "http://127.0.0.1:1569/crm/customer-360",
+    "alerts": [],
+    "headings": [
+      "Customers"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/import-export",
+    "url": "http://127.0.0.1:1569/crm/settings?operation=%2Fcrm%2Fimport-export",
+    "alerts": [],
+    "headings": [
+      "Import & Export"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/settings",
+    "url": "http://127.0.0.1:1569/settings/crm",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/lead-scoring",
+    "url": "http://127.0.0.1:1569/settings/crm-scoring",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/feature-checklist",
+    "url": "http://127.0.0.1:1569/crm/settings?operation=%2Fcrm%2Ffeature-checklist",
+    "alerts": [],
+    "headings": [
+      "CRM Feature Checklist"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "crm/admin",
+    "url": "http://127.0.0.1:1569/crm/settings?operation=%2Fcrm%2Fadmin",
+    "alerts": [],
+    "headings": [
+      "CRM Admin"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/import-data",
+    "url": "http://127.0.0.1:1569/pms/import-data",
+    "alerts": [],
+    "headings": [
+      "Import into PMS"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/tasks-follow-ups",
+    "url": "http://127.0.0.1:1569/pms/tasks-follow-ups",
+    "alerts": [],
+    "headings": [
+      "Tasks & Follow-ups"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/follow-ups",
+    "url": "http://127.0.0.1:1569/pms/follow-ups",
+    "alerts": [],
+    "headings": [
+      "Customer follow-ups",
+      "Today & overdue"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/follow-ups/directory",
+    "url": "http://127.0.0.1:1569/pms/follow-ups/directory",
+    "alerts": [],
+    "headings": [
+      "Customer follow-ups"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/follow-ups/calendar",
+    "url": "http://127.0.0.1:1569/pms/follow-ups/calendar",
+    "alerts": [],
+    "headings": [
+      "Customer follow-ups"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/products-services",
+    "url": "http://127.0.0.1:1569/pms/products-services",
+    "alerts": [],
+    "headings": [
+      "Products & services"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/products",
+    "url": "http://127.0.0.1:1569/pms/products",
+    "alerts": [],
+    "headings": [
+      "Products & services"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/management",
+    "url": "http://127.0.0.1:1569/pms/management",
+    "alerts": [],
+    "headings": [
+      "PMS management home"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/workflow-schemes",
+    "url": "http://127.0.0.1:1569/pms/workflow-schemes",
+    "alerts": [],
+    "headings": [
+      "Project workflows"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/transition-approvals",
+    "url": "http://127.0.0.1:1569/pms/transition-approvals",
+    "alerts": [],
+    "headings": [
+      "Transition approval inbox"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/admin/configuration",
+    "url": "http://127.0.0.1:1569/pms/admin/configuration",
+    "alerts": [],
+    "headings": [
+      "Admin"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/my-work",
+    "url": "http://127.0.0.1:1569/pms/my-work",
+    "alerts": [],
+    "headings": [
+      "My Work"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/members",
+    "url": "http://127.0.0.1:1569/pms/members",
+    "alerts": [],
+    "headings": [
+      "Members & invitations"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/people",
+    "url": "http://127.0.0.1:1569/pms/people",
+    "alerts": [],
+    "headings": [
+      "People directory"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/directory",
+    "url": "http://127.0.0.1:1569/pms/directory",
+    "alerts": [],
+    "headings": [
+      "People directory"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/people-work",
+    "url": "http://127.0.0.1:1569/pms/people-work",
+    "alerts": [],
+    "headings": [
+      "People & work management",
+      "All people 0",
+      "Bulk operations"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/my-notices",
+    "url": "http://127.0.0.1:1569/pms/my-notices",
+    "alerts": [],
+    "headings": [
+      "Notices & warnings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/batches",
+    "url": "http://127.0.0.1:1569/pms/batches",
+    "alerts": [],
+    "headings": [
+      "People & Batches",
+      "Manage Batches",
+      "Quick Batch Actions"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/batch-tasks",
+    "url": "http://127.0.0.1:1569/pms/batch-tasks",
+    "alerts": [],
+    "headings": [
+      "Task Assignment Center",
+      "Task packs & deadline extensions",
+      "Create & Distribute PMS Task"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/my-assignments",
+    "url": "http://127.0.0.1:1569/pms/my-assignments",
+    "alerts": [],
+    "headings": [
+      "My PMS Assignments"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/assignment-controls",
+    "url": "http://127.0.0.1:1569/pms/assignment-controls",
+    "alerts": [],
+    "headings": [
+      "Individual Assignment Controls"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/reviews",
+    "url": "http://127.0.0.1:1569/pms/reviews",
+    "alerts": [],
+    "headings": [
+      "PMS Work Reviews"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/admin/workspaces",
+    "url": "http://127.0.0.1:1569/pms/admin/workspaces",
+    "alerts": [],
+    "headings": [
+      "Danger area: Workspace reset & restore",
+      "Reset all 0 active workspaces"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/recovery",
+    "url": "http://127.0.0.1:1569/pms/recovery",
+    "alerts": [],
+    "headings": [
+      "Backup & recovery",
+      "Full BusinessSuite backups · system admin"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/audit-logs",
+    "url": "http://127.0.0.1:1569/pms/audit-logs",
+    "alerts": [],
+    "headings": [
+      "Audit & diagnostic logs"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/analytics/team",
+    "url": "http://127.0.0.1:1569/pms/reports?operation=%2Fpms%2Fanalytics%2Fteam",
+    "alerts": [],
+    "headings": [
+      "Team analytics"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/analytics/projects",
+    "url": "http://127.0.0.1:1569/pms/reports?operation=%2Fpms%2Fanalytics%2Fprojects",
+    "alerts": [],
+    "headings": [
+      "Project analytics"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/operator",
+    "url": "http://127.0.0.1:1569/pms/operator",
+    "alerts": [],
+    "headings": [
+      "AI task operator",
+      "Local reasoning assistant",
+      "Select tasks · 0 / 25"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/assistant",
+    "url": "http://127.0.0.1:1569/pms/assistant",
+    "alerts": [],
+    "headings": [
+      "Your workspace",
+      "A little clarity.A lot of progress."
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/workspaces",
+    "url": "http://127.0.0.1:1569/pms/workspaces?workspace=1",
+    "alerts": [],
+    "headings": [],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms",
+    "url": "http://127.0.0.1:1569/pms?workspace=1",
+    "alerts": [],
+    "headings": [],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/overview",
+    "url": "http://127.0.0.1:1569/pms/overview",
+    "alerts": [],
+    "headings": [
+      "Project overview",
+      "Workflows",
+      "Project Intake"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/profile",
+    "url": "http://127.0.0.1:1569/pms/profile",
+    "alerts": [],
+    "headings": [
+      "Admin",
+      "Identity & contact",
+      "About & interests"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/command-center",
+    "url": "http://127.0.0.1:1569/pms/command-center",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/workspace-tools",
+    "url": "http://127.0.0.1:1569/pms/command-center",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/enterprise-engine",
+    "url": "http://127.0.0.1:1569/pms/enterprise-engine",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/product-launch",
+    "url": "http://127.0.0.1:1569/pms/product-launch",
+    "alerts": [],
+    "headings": [
+      "New Product Launch"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/portfolio",
+    "url": "http://127.0.0.1:1569/pms/portfolio",
+    "alerts": [],
+    "headings": [
+      "Portfolio"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/dependency-management",
+    "url": "http://127.0.0.1:1569/pms/gantt?operation=%2Fpms%2Fdependency-management",
+    "alerts": [],
+    "headings": [
+      "Dependency Management"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/resource-planning",
+    "url": "http://127.0.0.1:1569/pms/workload?operation=%2Fpms%2Fresource-planning",
+    "alerts": [],
+    "headings": [
+      "Resource Planning"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/agile-execution",
+    "url": "http://127.0.0.1:1569/pms/backlog?operation=%2Fpms%2Fagile-execution",
+    "alerts": [],
+    "headings": [
+      "Agile Execution"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/project-financials",
+    "url": "http://127.0.0.1:1569/pms/project-financials",
+    "alerts": [],
+    "headings": [
+      "Project Financials"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/risk-register",
+    "url": "http://127.0.0.1:1569/pms/risk-register",
+    "alerts": [],
+    "headings": [
+      "Risk Register"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/risks",
+    "url": "http://127.0.0.1:1569/pms/risks",
+    "alerts": [],
+    "headings": [
+      "Risk Register"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/projects",
+    "url": "http://127.0.0.1:1569/pms/projects",
+    "alerts": [],
+    "headings": [
+      "Projects"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/projects/classic",
+    "url": "http://127.0.0.1:1569/pms/projects/classic",
+    "alerts": [],
+    "headings": [
+      "Projects"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/projects/new",
+    "url": "http://127.0.0.1:1569/pms/projects/new",
+    "alerts": [],
+    "headings": [],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/tasks",
+    "url": "http://127.0.0.1:1569/pms/tasks",
+    "alerts": [],
+    "headings": [
+      "Task workspace0 tasks"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/tasks/advanced",
+    "url": "http://127.0.0.1:1569/pms/tasks/advanced",
+    "alerts": [],
+    "headings": [
+      "Tasks"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/tasks/new",
+    "url": "http://127.0.0.1:1569/pms/tasks/new",
+    "alerts": [],
+    "headings": [
+      "Create Task",
+      "1. Basic Info",
+      "Assignment Summary"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/work-hub",
+    "url": "http://127.0.0.1:1569/pms/work-hub",
+    "alerts": [],
+    "headings": [
+      "Work Hub / Impact"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/impact",
+    "url": "http://127.0.0.1:1569/pms/impact",
+    "alerts": [],
+    "headings": [
+      "Work Hub / Impact"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/ai-planner",
+    "url": "http://127.0.0.1:1569/pms/operator",
+    "alerts": [],
+    "headings": [
+      "AI task operator",
+      "Local reasoning assistant",
+      "Select tasks · 0 / 25"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/timeline-plus",
+    "url": "http://127.0.0.1:1569/pms/gantt?operation=%2Fpms%2Ftimeline-plus",
+    "alerts": [],
+    "headings": [
+      "Gantt"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/dependency-timeline",
+    "url": "http://127.0.0.1:1569/pms/gantt?operation=%2Fpms%2Ftimeline-plus",
+    "alerts": [],
+    "headings": [
+      "Gantt"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/automation-ai",
+    "url": "http://127.0.0.1:1569/pms/automation-ai",
+    "alerts": [],
+    "headings": [
+      "Task automation"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/software",
+    "url": "http://127.0.0.1:1569/pms/software",
+    "alerts": [],
+    "headings": [
+      "Software Delivery",
+      "Backlog",
+      "Selected"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/live",
+    "url": "http://127.0.0.1:1569/pms/live",
+    "alerts": [],
+    "headings": [
+      "Live Work Management"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/teams-live",
+    "url": "http://127.0.0.1:1569/pms/live",
+    "alerts": [],
+    "headings": [
+      "Live Work Management"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/backlog",
+    "url": "http://127.0.0.1:1569/pms/backlog",
+    "alerts": [],
+    "headings": [
+      "Backlog"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/issues",
+    "url": "http://127.0.0.1:1569/pms/software",
+    "alerts": [],
+    "headings": [
+      "Software Delivery",
+      "Backlog",
+      "Selected"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/roadmap",
+    "url": "http://127.0.0.1:1569/pms/roadmap",
+    "alerts": [],
+    "headings": [
+      "Roadmap"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/workload",
+    "url": "http://127.0.0.1:1569/pms/workload",
+    "alerts": [],
+    "headings": [
+      "Workload"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/capacity",
+    "url": "http://127.0.0.1:1569/pms/workload",
+    "alerts": [],
+    "headings": [
+      "Workload"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/releases",
+    "url": "http://127.0.0.1:1569/pms/software",
+    "alerts": [],
+    "headings": [
+      "Software Delivery",
+      "Backlog",
+      "Selected"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/automation",
+    "url": "http://127.0.0.1:1569/pms/automation",
+    "alerts": [],
+    "headings": [
+      "Task automation"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/goals",
+    "url": "http://127.0.0.1:1569/pms/command-center?operation=%2Fpms%2Fgoals",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/forms",
+    "url": "http://127.0.0.1:1569/pms/forms",
+    "alerts": [],
+    "headings": [
+      "Forms",
+      "Create your first form"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/messages",
+    "url": "http://127.0.0.1:1569/pms/messages",
+    "alerts": [],
+    "headings": [
+      "Messages"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/team-communication",
+    "url": "http://127.0.0.1:1569/pms/team-communication",
+    "alerts": [],
+    "headings": [
+      "Team communication",
+      "Conversations "
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/custom-fields",
+    "url": "http://127.0.0.1:1569/pms/custom-fields",
+    "alerts": [],
+    "headings": [
+      "Custom fields, built around your work.",
+      "Field library 0"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/teams",
+    "url": "http://127.0.0.1:1569/pms/teams",
+    "alerts": [],
+    "headings": [
+      "People directory"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/org-chart",
+    "url": "http://127.0.0.1:1569/pms/org-chart",
+    "alerts": [],
+    "headings": [
+      "Organization chart"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/trash",
+    "url": "http://127.0.0.1:1569/pms/recovery?operation=%2Fpms%2Ftrash",
+    "alerts": [],
+    "headings": [
+      "Trash"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/templates",
+    "url": "http://127.0.0.1:1569/pms/command-center?operation=%2Fpms%2Ftemplates",
+    "alerts": [],
+    "headings": [
+      "Blueprints"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/components",
+    "url": "http://127.0.0.1:1569/pms/command-center?operation=%2Fpms%2Fcomponents",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/workflows",
+    "url": "http://127.0.0.1:1569/pms/command-center?operation=%2Fpms%2Fworkflows",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/security",
+    "url": "http://127.0.0.1:1569/pms/command-center?operation=%2Fpms%2Fsecurity",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/dependencies",
+    "url": "http://127.0.0.1:1569/pms/roadmap",
+    "alerts": [],
+    "headings": [
+      "Roadmap"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/navigator",
+    "url": "http://127.0.0.1:1569/pms/tasks",
+    "alerts": [],
+    "headings": [
+      "Task workspace180 tasks"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/apps",
+    "url": "http://127.0.0.1:1569/pms/command-center?operation=%2Fpms%2Fapps",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/dashboards",
+    "url": "http://127.0.0.1:1569/pms/reports?operation=%2Fpms%2Fdashboards",
+    "alerts": [],
+    "headings": [
+      "Dashboards"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/docs",
+    "url": "http://127.0.0.1:1569/pms/docs",
+    "alerts": [],
+    "headings": [
+      "Docs"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/notes",
+    "url": "http://127.0.0.1:1569/pms/notes",
+    "alerts": [],
+    "headings": [
+      "All Notes"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/task-types",
+    "url": "http://127.0.0.1:1569/pms/task-types",
+    "alerts": [],
+    "headings": [
+      "Task Types",
+      "Recommended types"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/tags",
+    "url": "http://127.0.0.1:1569/pms/tags",
+    "alerts": [],
+    "headings": [
+      "Tag Manager"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/plans",
+    "url": "http://127.0.0.1:1569/pms/plans",
+    "alerts": [],
+    "headings": [
+      "Plans and capabilities",
+      "Core",
+      "Business"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/issue-navigator-pro",
+    "url": "http://127.0.0.1:1569/pms/tasks",
+    "alerts": [],
+    "headings": [
+      "Task workspace180 tasks"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/backlog-grooming",
+    "url": "http://127.0.0.1:1569/pms/backlog",
+    "alerts": [],
+    "headings": [
+      "Backlog"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/sprint-lifecycle",
+    "url": "http://127.0.0.1:1569/pms/backlog",
+    "alerts": [],
+    "headings": [
+      "Backlog"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/blueprints",
+    "url": "http://127.0.0.1:1569/pms/enterprise-engine",
+    "alerts": [],
+    "headings": [
+      "Workspace tools"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/resource-utilization",
+    "url": "http://127.0.0.1:1569/pms/workload",
+    "alerts": [],
+    "headings": [
+      "Workload"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/calendar",
+    "url": "http://127.0.0.1:1569/pms/calendar",
+    "alerts": [],
+    "headings": [
+      "November 2026"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/planner",
+    "url": "http://127.0.0.1:1569/pms/calendar",
+    "alerts": [],
+    "headings": [
+      "November 2026"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/gantt",
+    "url": "http://127.0.0.1:1569/pms/gantt",
+    "alerts": [],
+    "headings": [
+      "Gantt"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/sprints",
+    "url": "http://127.0.0.1:1569/pms/backlog?operation=%2Fpms%2Fsprints",
+    "alerts": [],
+    "headings": [
+      "Sprints"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/files",
+    "url": "http://127.0.0.1:1569/pms/files",
+    "alerts": [],
+    "headings": [
+      "Files"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/time-tracking",
+    "url": "http://127.0.0.1:1569/pms/time-tracking",
+    "alerts": [],
+    "headings": [
+      "Time tracking",
+      "Track time"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  }
+]

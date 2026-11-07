@@ -355,39 +355,8 @@ def publish(
     )
     if not row or row.draft_version != data.version:
         raise HTTPException(409, "Workflow is missing or draft version changed")
-    runtime.validate_graph(row.graph_json)
-    if (
-        len(row.graph_json["nodes"])
-        > effective(db, data.companyId, row.module_name)["values"]["workflow_max_nodes"]
-    ):
-        raise HTTPException(422, "Graph exceeds the effective module node limit")
-    execution_actor = service_identity(
-        db, db.get(User, row.run_as_user_id), data.companyId, row.module_name
-    )
-    authority(
-        actor,
-        service.resolved_grants(
-            db, service.policy_for(db, execution_actor, data.companyId)
-        ),
-    )
-    if (
-        db.query(WorkflowVersion)
-        .filter_by(workflow_id=row.id, version=row.draft_version)
-        .first()
-    ):
-        raise HTTPException(409, "This version is already published; save a new draft")
-    db.add(
-        WorkflowVersion(
-            organization_id=data.companyId,
-            workflow_id=row.id,
-            version=row.draft_version,
-            graph_json=row.graph_json,
-            digest=digest(row.graph_json),
-            published_by=actor.id,
-            run_as_user_id=row.run_as_user_id,
-        )
-    )
-    row.published_version, row.is_active = row.draft_version, True
+    from app.shared.workflow_publication import publish_definition
+    publish_definition(db, actor, data.companyId, row)
     audit(
         db,
         actor,

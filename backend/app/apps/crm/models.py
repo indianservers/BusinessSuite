@@ -1358,3 +1358,6 @@ class CRMApprovalRequestStep(Base):
 
 from app.apps.crm.financial_models import ContactFinancialProfile, ContactFinancialTransaction  # noqa: F401,E402
 from app.apps.crm.template_models import CRMVisualTemplate  # noqa: F401,E402
+
+# Calendar models share the CRM connection registry with Sales and PMS.
+from .calendar_sync_models import CalendarSyncState, CalendarEventLink  # noqa: E402,F401

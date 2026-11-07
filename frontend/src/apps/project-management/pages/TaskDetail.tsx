@@ -1601,8 +1601,11 @@ export function FilesTab({
 
   useRefreshableEffect(() => {
     let objectUrl: string | null = null;
+    let disposed = false;
     if (!previewFile) {
       setPreviewUrl(null);
+      setPreviewText("");
+      setPreviewLoading(false);
       return;
     }
     setPreviewLoading(true);
@@ -1610,13 +1613,16 @@ export function FilesTab({
     setFileError("");
     filesAPI.downloadBlob(previewFile.id)
       .then(async (blob) => {
-        if ((previewFile.mime_type || "").startsWith("text/")) setPreviewText((await blob.text()).slice(0, 100000));
+        const text = (previewFile.mime_type || "").startsWith("text/") ? (await blob.text()).slice(0, 100000) : "";
+        if (disposed) return;
+        setPreviewText(text);
         objectUrl = URL.createObjectURL(blob);
         setPreviewUrl(objectUrl);
       })
-      .catch(error => { setPreviewUrl(null); setFileError(error instanceof Error ? error.message : "Could not load attachment. Please retry."); })
-      .finally(() => setPreviewLoading(false));
+      .catch(error => { if (!disposed) { setPreviewUrl(null); setFileError(error instanceof Error ? error.message : "Could not load attachment. Please retry."); } })
+      .finally(() => { if (!disposed) setPreviewLoading(false); });
     return () => {
+      disposed = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [previewFile]);

@@ -231,5 +231,26 @@ def free_slots(day:date,minutes:int=Query(60,ge=15,le=240),timezone_name:str|Non
     return result
 
 @router.get('/planner/connections')
-def connections(user:User=Depends(get_current_user)):
-    return {'calendar':'BusinessSuite','providers':[{'id':key,'name':name,'state':'not_configured','requirements':requirements} for key,name,requirements in [('google','Google Calendar',['OAuth client ID and secret','Verified redirect URL','Calendar scopes']),('outlook','Outlook Calendar',['Microsoft Entra app registration','Client secret','Calendar consent']),('zoom','Zoom',['Zoom OAuth app','Client credentials','Meeting scopes'])]]}
+def connections(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.apps.crm.models import CRMCalendarIntegration
+    from app.apps.crm.calendar_sync import organization, status
+    from app.core.config import settings
+    rows=db.query(CRMCalendarIntegration).filter_by(user_id=user.id,organization_id=organization(user),is_active=True,deleted_at=None).all()
+    connected={r.provider for r in rows if r.access_token_encrypted}
+    providers=[]
+    for key,name in [('google','Google Calendar'),('outlook','Outlook Calendar')]:
+        configured=all(getattr(settings,f'CRM_{key.upper()}_CALENDAR_{part}') for part in ('CLIENT_ID','CLIENT_SECRET','REDIRECT_URI'))
+        providers.append({'id':key,'name':name,'state':'connected' if key in connected else ('ready' if configured else 'not_configured'),'sync':next((status(db,r) for r in rows if r.provider==key),None),'requirements':['OAuth client ID and secret','Registered local redirect URL','Calendar permission consent']})
+    return {'calendar':'BusinessSuite','providers':providers}
+
+
+@router.post('/planner/connections/{provider}/sync')
+def sync_calendar(provider:Literal['google','outlook'],db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.apps.crm.models import CRMCalendarIntegration
+    from app.apps.crm.calendar_sync import organization, sync_connection
+    connection=db.query(CRMCalendarIntegration).filter_by(user_id=user.id,organization_id=organization(user),provider=provider,is_active=True,deleted_at=None).order_by(CRMCalendarIntegration.id.desc()).first()
+    if not connection or not connection.access_token_encrypted:
+        raise HTTPException(409,'Connect this calendar account first.')
+    result=sync_connection(db,connection.id,force=True)
+    if result.get('error'): raise HTTPException(502,result['error'])
+    return result

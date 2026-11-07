@@ -317,7 +317,13 @@ export default function CalendarSettings({
                     {providers.map((p) => (
                       <article className="cal-account" key={p.id}>
                         <strong>{p.name}</strong>
-                        <span>Not configured</span>
+                        <span>{p.state === "connected" ? "Connected" : p.state === "ready" ? "Ready to connect" : "Setup required"}</span>
+                        <Link to="/crm/calendar-integrations">Connect / manage account</Link>
+                        {p.state === "connected" && <button disabled={busy} onClick={async () => {
+                          setBusy(true); setError("");
+                          try { const r = await api.post(`/project-management/planner/connections/${p.id}/sync`); setSetup(r.data.skipped ? "Sync already running" : `${r.data.imported} imported, ${r.data.exported} exported`); }
+                          catch (e) { setError(workspaceError(e)); } finally { setBusy(false); }
+                        }}>Sync calendars now</button>}
                         <button
                           onClick={() => setSetup(setup === p.id ? "" : p.id)}
                         >
@@ -333,7 +339,7 @@ export default function CalendarSettings({
                             <p>
                               Configure provider OAuth credentials and a
                               redirect URL on the server before connecting an
-                              account. No account is connected yet.
+                              account. Two-way sync shares your connected account with Sales and CRM. Manage automatic sync and the import destination from the account page.
                             </p>
                           </>
                         )}
@@ -352,6 +358,7 @@ export default function CalendarSettings({
                       BusinessSuite is the default and busy calendar. External
                       accounts and conferencing require provider setup.
                     </p>
+                    <p className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Automatic two-way sync runs while the local backend is running."}</p>
                     <button onClick={onExport}>Export calendar (.ics)</button>
                   </>
                 )}
@@ -701,7 +708,8 @@ export default function CalendarSettings({
                         Export the visible calendar as an ICS file for import
                         into Google Calendar, Outlook or Apple Calendar.
                       </p>
-                      <button onClick={onExport}>Export calendar (.ics)</button>
+                      <p className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Automatic two-way sync runs while the local backend is running."}</p>
+                    <button onClick={onExport}>Export calendar (.ics)</button>
                     </article>
                     <p className="cal-settings-note">
                       Continuous external sync requires a connected provider.

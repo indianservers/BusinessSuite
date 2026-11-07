@@ -20,6 +20,7 @@ async function setup(page: any) {
       calculated_progress: 25,
       overdue_task_count: 1,
       can_edit_project: true,
+      can_manage_tasks: true,
     },
     {
       id: 702,
@@ -107,7 +108,7 @@ test("portfolio filters, edits, previews, export and views", async ({
   await page.getByRole("textbox", { name: "Search projects" }).fill("Acme");
   await expect(page.locator(".portfolio-table tbody tr")).toHaveCount(1);
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page.getByRole("button", { name: "Export filtered projects as CSV", exact: true }).click();
   expect((await download).suggestedFilename()).toBe("projects.csv");
   await page.getByRole("navigation",{name:"Portfolio views"}).getByRole("button", { name: "Gallery", exact: true }).click();
   await expect(page.locator(".portfolio-cards article")).toHaveCount(1);
@@ -193,4 +194,37 @@ test("compound conditions and bulk changes respect editable selection", async ({
       exact: true,
     }),
   ).toHaveValue("Low");
+});
+
+
+test("project click previews, double-click opens, and quick actions respect permissions", async ({ page }) => {
+  await page.setViewportSize({ width: 1680, height: 1000 });
+  await setup(page);
+  const row = page.locator(".portfolio-table tbody tr").first();
+  const name = row.locator(".portfolio-project-name");
+  await name.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page).toHaveURL(/\/pms\/projects$/);
+  await page.keyboard.press("Escape");
+  await row.getByText("Acme", { exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(row.getByRole("link", { name: "+ Add task", exact: true })).toHaveAttribute("href", "/pms/tasks/new?projectId=701");
+  await expect(page.locator(".portfolio-table tbody tr").nth(1).getByRole("link", { name: "+ Add task", exact: true })).toHaveCount(0);
+  await name.dblclick();
+  await expect(page).toHaveURL(/\/pms\/projects\/701$/);
+  await expect(page.locator(".portfolio-preview")).toHaveCount(0);
+});
+
+test("gallery supports preview, double-click and explicit open", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await setup(page);
+  await page.getByRole("navigation", { name: "Portfolio views" }).getByRole("button", { name: "Gallery", exact: true }).click();
+  const card = page.locator(".portfolio-cards article").first();
+  await card.locator("h2 button").click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(card.getByRole("link", { name: "Open", exact: true })).toHaveAttribute("href", "/pms/projects/701");
+  await card.locator("h2 button").dblclick();
+  await expect(page).toHaveURL(/\/pms\/projects\/701$/);
 });

@@ -240,6 +240,9 @@ QUOTE_SRM_CONVERSION_LOG_PHASE3_COLUMNS = {
 
 def ensure_crm_schema(db: Session) -> None:
     """Keep dev databases compatible with CRM models when create_all is used."""
+    from .calendar_sync_models import CalendarSyncState, CalendarEventLink
+    CalendarSyncState.__table__.create(db.bind, checkfirst=True)
+    CalendarEventLink.__table__.create(db.bind, checkfirst=True)
     inspector = inspect(db.bind)
     tables = set(inspector.get_table_names())
     missing_core_tables = [

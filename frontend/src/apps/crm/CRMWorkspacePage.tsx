@@ -1,10 +1,13 @@
+import CalendarSyncControls from "./templates/CalendarSyncControls";
+import IndustryPackOnboarding from "./templates/IndustryPackOnboarding";
+import industryTemplates from "../../../../backend/app/apps/industry_packs/catalog.json";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { defaultText, defaultNumber, defaultId, defaultOwner, defaultDateAfter, formDefaults, leadSourceOptions } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import CustomFieldsManager from "./CustomFieldsManager";
-import FieldControl, { fieldShown, fieldOptions } from "@/shared/custom-fields/FieldControl";
+import FieldControl, { fieldShown, fieldOptions, fieldInPipeline } from "@/shared/custom-fields/FieldControl";
 import CompaniesPage from "@/shared/master-data/CompaniesPage";
 import Record360Workspace from "@/shared/records/Record360Workspace";
 import PipelineStageEditor from "@/shared/pipeline/PipelineStageEditor";
@@ -394,333 +397,7 @@ type CRMTemplateSampleDeal = {
   customFields?: Record<string, CRMApiValue>;
 };
 
-const crmBusinessTemplates: CRMBusinessTemplate[] = [
-  { key: "sales-pipeline", name: "Sales Pipeline", group: "Teams", category: "Core Sales", accent: "#2563eb", stages: [{ name: "Qualification", probability: 20, color: "#2563eb" }, { name: "Needs Analysis", probability: 35, color: "#0891b2" }, { name: "Proposal", probability: 55, color: "#7c3aed" }, { name: "Negotiation", probability: 75, color: "#d97706" }, { name: "Closed Won", probability: 100, color: "#059669", isWon: true }, { name: "Closed Lost", probability: 0, color: "#dc2626", isLost: true }], fields: ["Lead source", "Deal value", "Expected close", "Competitor", "Next step"], automations: ["Owner assignment", "No-response reminder", "Won handoff"], reports: ["Pipeline value", "Forecast", "Lost reasons"] },
-  { key: "customer-support", name: "Customer Support", group: "Teams", category: "Support", accent: "#0891b2", stages: [{ name: "New Request", probability: 10, color: "#0891b2" }, { name: "Triage", probability: 25, color: "#2563eb" }, { name: "In Progress", probability: 50, color: "#7c3aed" }, { name: "Customer Review", probability: 75, color: "#d97706" }, { name: "Resolved", probability: 100, color: "#059669", isWon: true }], fields: ["Issue type", "SLA", "Priority", "Product", "Resolution"], automations: ["SLA escalation", "Customer update", "Reopen alert"], reports: ["Open cases", "SLA breaches", "Resolution time"] },
-  { key: "customer-onboarding", name: "Customer Onboarding", group: "Teams", category: "Success", accent: "#0f766e", stages: [{ name: "Kickoff", probability: 15, color: "#0f766e" }, { name: "Setup", probability: 35, color: "#2563eb" }, { name: "Training", probability: 55, color: "#7c3aed" }, { name: "Go Live", probability: 85, color: "#d97706" }, { name: "Adopted", probability: 100, color: "#059669", isWon: true }], fields: ["Plan", "Stakeholders", "Launch date", "Training owner", "Adoption score"], automations: ["Kickoff task pack", "Training reminder", "CS handoff"], reports: ["Activation", "Time to value", "At-risk onboardings"] },
-  { key: "customer-testimonials", name: "Customer Testimonials", group: "Teams", category: "Marketing", accent: "#be185d", stages: [{ name: "Candidate", probability: 20, color: "#be185d" }, { name: "Outreach", probability: 35, color: "#7c3aed" }, { name: "Interview", probability: 60, color: "#2563eb" }, { name: "Approval", probability: 80, color: "#d97706" }, { name: "Published", probability: 100, color: "#059669", isWon: true }], fields: ["Customer story", "Use case", "Approver", "Asset type", "Publish date"], automations: ["Consent check", "Approval reminder", "Publish handoff"], reports: ["Story pipeline", "Assets by industry", "Approval aging"] },
-  { key: "project-tracker", name: "Project Tracker", group: "Teams", category: "Delivery", accent: "#7c3aed", stages: [{ name: "Intake", probability: 10, color: "#7c3aed" }, { name: "Scoped", probability: 30, color: "#2563eb" }, { name: "In Delivery", probability: 55, color: "#0891b2" }, { name: "UAT", probability: 80, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Project owner", "Budget", "Milestone", "Risk", "Delivery date"], automations: ["Milestone reminder", "Risk escalation", "PMS project handoff"], reports: ["Delivery value", "Milestone health", "Budget risk"] },
-  { key: "recruitment", name: "Recruitment", group: "Teams", category: "Hiring", accent: "#9333ea", stages: [{ name: "Sourced", probability: 10, color: "#9333ea" }, { name: "Screening", probability: 30, color: "#2563eb" }, { name: "Interview", probability: 55, color: "#0891b2" }, { name: "Offer", probability: 80, color: "#d97706" }, { name: "Hired", probability: 100, color: "#059669", isWon: true }, { name: "Rejected", probability: 0, color: "#dc2626", isLost: true }], fields: ["Role", "Candidate source", "Notice period", "CTC", "Hiring manager"], automations: ["Interview schedule", "Offer approval", "Candidate update"], reports: ["Hiring funnel", "Source quality", "Offer aging"] },
-  { key: "refund-processing", name: "Refund Processing", group: "Teams", category: "Finance Ops", accent: "#ca8a04", stages: [{ name: "Request", probability: 10, color: "#ca8a04" }, { name: "Validation", probability: 35, color: "#2563eb" }, { name: "Approval", probability: 60, color: "#d97706" }, { name: "Payment", probability: 85, color: "#0891b2" }, { name: "Closed", probability: 100, color: "#059669", isWon: true }], fields: ["Invoice", "Reason", "Amount", "Approval owner", "Refund mode"], automations: ["Eligibility check", "Approval route", "Payment reminder"], reports: ["Refund value", "Aging", "Approval SLA"] },
-  { key: "order-fulfillment", name: "Order Fulfillment", group: "Teams", category: "Operations", accent: "#ea580c", stages: [{ name: "Order Received", probability: 15, color: "#ea580c" }, { name: "Packed", probability: 35, color: "#2563eb" }, { name: "Dispatched", probability: 65, color: "#0891b2" }, { name: "Delivered", probability: 90, color: "#d97706" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Order ID", "Items", "Warehouse", "Courier", "Delivery SLA"], automations: ["Dispatch alert", "Delay escalation", "Delivery confirmation"], reports: ["Orders by status", "Delay reasons", "Fulfillment SLA"] },
-  { key: "website-launch", name: "Website Launch", group: "Teams", category: "Marketing Ops", accent: "#0284c7", stages: [{ name: "Brief", probability: 10, color: "#0284c7" }, { name: "Design", probability: 30, color: "#7c3aed" }, { name: "Build", probability: 55, color: "#2563eb" }, { name: "QA", probability: 80, color: "#d97706" }, { name: "Launched", probability: 100, color: "#059669", isWon: true }], fields: ["Domain", "Launch date", "Content owner", "SEO checklist", "QA owner"], automations: ["Content reminder", "QA checklist", "Launch approval"], reports: ["Launch readiness", "Blocked tasks", "Post-launch issues"] },
-  { key: "press-release", name: "Press Release", group: "Teams", category: "PR", accent: "#475569", stages: [{ name: "Idea", probability: 10, color: "#475569" }, { name: "Draft", probability: 35, color: "#2563eb" }, { name: "Review", probability: 60, color: "#7c3aed" }, { name: "Distribution", probability: 85, color: "#d97706" }, { name: "Published", probability: 100, color: "#059669", isWon: true }], fields: ["Announcement", "Spokesperson", "Media list", "Approval", "Publish date"], automations: ["Legal approval", "Media follow-up", "Coverage tracking"], reports: ["Release calendar", "Coverage", "Approval aging"] },
-  { key: "event-sponsorship", name: "Event Sponsorship", group: "Teams", category: "Events", accent: "#16a34a", stages: [{ name: "Target Event", probability: 15, color: "#16a34a" }, { name: "Proposal", probability: 35, color: "#2563eb" }, { name: "Negotiation", probability: 65, color: "#d97706" }, { name: "Booked", probability: 90, color: "#0891b2" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Event date", "Package", "Audience", "Sponsor fee", "Deliverables"], automations: ["Budget approval", "Asset deadline", "Post-event follow-up"], reports: ["Event ROI", "Sponsor pipeline", "Deliverable status"] },
-  { key: "content-planner", name: "Content Planner", group: "Teams", category: "Content", accent: "#db2777", stages: [{ name: "Backlog", probability: 10, color: "#db2777" }, { name: "Writing", probability: 35, color: "#2563eb" }, { name: "Design", probability: 55, color: "#7c3aed" }, { name: "Review", probability: 80, color: "#d97706" }, { name: "Published", probability: 100, color: "#059669", isWon: true }], fields: ["Topic", "Channel", "Writer", "Designer", "Publish date"], automations: ["Brief reminder", "Review approval", "Publish task"], reports: ["Content velocity", "Channel mix", "Review bottlenecks"] },
-  { key: "employee-onboarding", name: "Employee Onboarding", group: "Teams", category: "People Ops", accent: "#4f46e5", stages: [{ name: "Offer Accepted", probability: 20, color: "#4f46e5" }, { name: "Documents", probability: 40, color: "#2563eb" }, { name: "Assets", probability: 60, color: "#0891b2" }, { name: "Day One", probability: 85, color: "#d97706" }, { name: "Onboarded", probability: 100, color: "#059669", isWon: true }], fields: ["Joining date", "Department", "Manager", "Asset kit", "Document status"], automations: ["Document reminder", "Asset request", "Welcome workflow"], reports: ["Joining pipeline", "Document gaps", "Onboarding SLA"] },
-  { key: "real-estate", name: "Real Estate", group: "Industries", category: "Property Sales", accent: "#0f766e", stages: [{ name: "Inquiry", probability: 10, color: "#0f766e" }, { name: "Site Visit", probability: 30, color: "#2563eb" }, { name: "Shortlisted", probability: 55, color: "#7c3aed" }, { name: "Booking", probability: 80, color: "#d97706" }, { name: "Registration", probability: 100, color: "#059669", isWon: true }], fields: ["Project", "Unit type", "Budget", "Visit date", "Broker"], automations: ["Visit reminder", "Payment follow-up", "Booking approval"], reports: ["Inventory interest", "Broker performance", "Booking forecast"] },
-  { key: "facility-maintenance", name: "Facility Maintenance", group: "Industries", category: "Services", accent: "#64748b", stages: [{ name: "Service Request", probability: 10, color: "#64748b" }, { name: "Inspection", probability: 30, color: "#2563eb" }, { name: "Estimate", probability: 55, color: "#d97706" }, { name: "Work Order", probability: 80, color: "#0891b2" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Site", "Asset", "Issue type", "Technician", "SLA"], automations: ["Technician assignment", "SLA escalation", "Completion proof"], reports: ["Open work orders", "SLA breaches", "Asset issues"] },
-  { key: "interior-design", name: "Interior Design", group: "Industries", category: "Design Studio", accent: "#be123c", stages: [{ name: "Consultation", probability: 15, color: "#be123c" }, { name: "Concept", probability: 35, color: "#7c3aed" }, { name: "Estimate", probability: 55, color: "#2563eb" }, { name: "Contract", probability: 80, color: "#d97706" }, { name: "Handover", probability: 100, color: "#059669", isWon: true }], fields: ["Property type", "Room count", "Budget", "Moodboard", "Handover date"], automations: ["Design review", "Estimate approval", "Material reminder"], reports: ["Design pipeline", "Budget mix", "Handover forecast"] },
-  { key: "software-consulting", name: "Software Consulting", group: "Industries", category: "IT Services", accent: "#2563eb", stages: [{ name: "Discovery", probability: 15, color: "#2563eb" }, { name: "Solution Fit", probability: 35, color: "#0891b2" }, { name: "Proposal", probability: 60, color: "#7c3aed" }, { name: "MSA/SOW", probability: 85, color: "#d97706" }, { name: "Won", probability: 100, color: "#059669", isWon: true }, { name: "Lost", probability: 0, color: "#dc2626", isLost: true }], fields: ["Stack", "Scope", "Cloud", "SOW owner", "Delivery model"], automations: ["Solution review", "SOW approval", "SRM/PMS handoff"], reports: ["Services forecast", "Tech demand", "SOW aging"] },
-  { key: "freelancers", name: "Freelancers", group: "Industries", category: "Solo Business", accent: "#7c3aed", stages: [{ name: "Lead", probability: 10, color: "#7c3aed" }, { name: "Brief", probability: 30, color: "#2563eb" }, { name: "Quote Sent", probability: 55, color: "#d97706" }, { name: "In Work", probability: 80, color: "#0891b2" }, { name: "Paid", probability: 100, color: "#059669", isWon: true }], fields: ["Service", "Rate", "Deadline", "Advance", "Payment status"], automations: ["Quote follow-up", "Deadline reminder", "Payment chase"], reports: ["Cash forecast", "Workload", "Client repeat rate"] },
-  { key: "brand-collaborations", name: "Brand Collaborations", group: "Industries", category: "Creator/Brand", accent: "#db2777", stages: [{ name: "Lead", probability: 10, color: "#db2777" }, { name: "Media Kit", probability: 30, color: "#7c3aed" }, { name: "Negotiation", probability: 60, color: "#d97706" }, { name: "Content Live", probability: 85, color: "#2563eb" }, { name: "Paid", probability: 100, color: "#059669", isWon: true }], fields: ["Brand", "Campaign", "Deliverables", "Usage rights", "Payout"], automations: ["Contract reminder", "Content approval", "Invoice follow-up"], reports: ["Brand revenue", "Deliverable status", "Payment aging"] },
-  { key: "legal", name: "Legal", group: "Industries", category: "Legal Practice", accent: "#334155", stages: [{ name: "Consultation", probability: 15, color: "#334155" }, { name: "Conflict Check", probability: 30, color: "#2563eb" }, { name: "Engagement Letter", probability: 55, color: "#d97706" }, { name: "Matter Opened", probability: 85, color: "#0891b2" }, { name: "Closed", probability: 100, color: "#059669", isWon: true }], fields: ["Matter type", "Jurisdiction", "Conflict status", "Retainer", "Court date"], automations: ["Conflict check", "Retainer reminder", "Matter task pack"], reports: ["Matter pipeline", "Retainer aging", "Practice mix"] },
-  { key: "insurance", name: "Insurance", group: "Industries", category: "Policy Sales", accent: "#0369a1", stages: [{ name: "Prospect", probability: 10, color: "#0369a1" }, { name: "Needs Analysis", probability: 30, color: "#2563eb" }, { name: "Quote", probability: 55, color: "#d97706" }, { name: "Underwriting", probability: 80, color: "#7c3aed" }, { name: "Policy Issued", probability: 100, color: "#059669", isWon: true }], fields: ["Policy type", "Premium", "Sum assured", "Nominee", "Renewal date"], automations: ["Document reminder", "Underwriting follow-up", "Renewal alert"], reports: ["Premium forecast", "Policy mix", "Renewals"] },
-  { key: "startup-fundraising", name: "Startup Fundraising", group: "Industries", category: "Investor Pipeline", accent: "#9333ea", stages: [{ name: "Target Investor", probability: 10, color: "#9333ea" }, { name: "Intro", probability: 25, color: "#2563eb" }, { name: "Partner Meeting", probability: 50, color: "#7c3aed" }, { name: "Term Sheet", probability: 80, color: "#d97706" }, { name: "Committed", probability: 100, color: "#059669", isWon: true }], fields: ["Fund", "Partner", "Ticket size", "Round", "Data room"], automations: ["Intro follow-up", "Data room reminder", "Commitment update"], reports: ["Capital pipeline", "Investor stage", "Round forecast"] },
-  { key: "bank-loan-processing", name: "Bank Loan Processing", group: "Industries", category: "Lending", accent: "#075985", stages: [{ name: "Application", probability: 10, color: "#075985" }, { name: "Documents", probability: 30, color: "#2563eb" }, { name: "Credit Review", probability: 55, color: "#d97706" }, { name: "Sanction", probability: 80, color: "#7c3aed" }, { name: "Disbursed", probability: 100, color: "#059669", isWon: true }], fields: ["Loan type", "Amount", "CIBIL", "Collateral", "Disbursement date"], automations: ["Document checklist", "Credit escalation", "Disbursement reminder"], reports: ["Loan funnel", "Sanction value", "Document gaps"] },
-  { key: "school-admission", name: "School Admission", group: "Industries", category: "Education", accent: "#16a34a", stages: [{ name: "Inquiry", probability: 10, color: "#16a34a" }, { name: "Counselling", probability: 30, color: "#2563eb" }, { name: "Application", probability: 55, color: "#d97706" }, { name: "Fee Payment", probability: 85, color: "#7c3aed" }, { name: "Enrolled", probability: 100, color: "#059669", isWon: true }], fields: ["Grade", "Parent", "Campus", "Scholarship", "Fee status"], automations: ["Counselling reminder", "Document reminder", "Fee follow-up"], reports: ["Admissions funnel", "Campus demand", "Fee pending"] },
-  { key: "education-training", name: "Education/Training", group: "Industries", category: "Training Sales", accent: "#4f46e5", stages: [{ name: "Inquiry", probability: 10, color: "#4f46e5" }, { name: "Counselling", probability: 30, color: "#2563eb" }, { name: "Demo Class", probability: 55, color: "#0891b2" }, { name: "Enrollment", probability: 85, color: "#d97706" }, { name: "Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Course", "Batch", "Trainer", "Fee", "Learning goal"], automations: ["Demo reminder", "Fee reminder", "Batch onboarding"], reports: ["Course pipeline", "Batch fill", "Fee collection"] },
-  { key: "used-car-sales", name: "Used Car Sales", group: "Industries", category: "Automotive", accent: "#ea580c", stages: [{ name: "Lead", probability: 10, color: "#ea580c" }, { name: "Vehicle Match", probability: 30, color: "#2563eb" }, { name: "Test Drive", probability: 55, color: "#0891b2" }, { name: "Finance", probability: 80, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Model", "Budget", "Test drive", "Exchange", "Finance status"], automations: ["Test drive reminder", "Finance follow-up", "Delivery checklist"], reports: ["Vehicle demand", "Finance conversion", "Delivery forecast"] },
-  { key: "automobile-sales", name: "Automobile Sales", group: "Industries", category: "Automotive", accent: "#0284c7", stages: [{ name: "Walk-in/Lead", probability: 10, color: "#0284c7" }, { name: "Model Demo", probability: 30, color: "#2563eb" }, { name: "Test Drive", probability: 55, color: "#0891b2" }, { name: "Booking", probability: 80, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Model", "Variant", "Color", "Exchange", "Delivery date"], automations: ["Test drive reminder", "Booking approval", "Delivery task pack"], reports: ["Model demand", "Booking value", "Delivery SLA"] },
-  { key: "automobile-service", name: "Automobile Service", group: "Industries", category: "Automotive Service", accent: "#64748b", stages: [{ name: "Service Booking", probability: 10, color: "#64748b" }, { name: "Vehicle In", probability: 30, color: "#2563eb" }, { name: "Estimate", probability: 55, color: "#d97706" }, { name: "Repair", probability: 80, color: "#0891b2" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Vehicle", "Odometer", "Job card", "Parts", "Advisor"], automations: ["Service reminder", "Estimate approval", "Delivery notification"], reports: ["Service load", "Parts pending", "Advisor performance"] },
-  { key: "car-accessories", name: "Car Accessories", group: "Industries", category: "Retail", accent: "#0f766e", stages: [{ name: "Inquiry", probability: 10, color: "#0f766e" }, { name: "Fitment Advice", probability: 30, color: "#2563eb" }, { name: "Quote", probability: 55, color: "#d97706" }, { name: "Installation", probability: 85, color: "#0891b2" }, { name: "Sold", probability: 100, color: "#059669", isWon: true }], fields: ["Vehicle", "Accessory", "Fitment slot", "Warranty", "Invoice"], automations: ["Stock check", "Fitment reminder", "Warranty follow-up"], reports: ["Accessory demand", "Install slots", "Revenue mix"] },
-  { key: "nonprofits-donations", name: "Nonprofits Donations", group: "Industries", category: "Nonprofit", accent: "#16a34a", stages: [{ name: "Prospect", probability: 10, color: "#16a34a" }, { name: "Appeal Sent", probability: 30, color: "#2563eb" }, { name: "Pledge", probability: 60, color: "#d97706" }, { name: "Donation Received", probability: 100, color: "#059669", isWon: true }, { name: "Not Now", probability: 0, color: "#dc2626", isLost: true }], fields: ["Cause", "Donation amount", "Frequency", "Receipt", "Donor type"], automations: ["Pledge reminder", "Receipt email", "Renewal appeal"], reports: ["Donation pipeline", "Donor retention", "Campaign ROI"] },
-  { key: "patient-referral", name: "Patient Referral Management", group: "Industries", category: "Healthcare", accent: "#dc2626", stages: [{ name: "Referral", probability: 10, color: "#dc2626" }, { name: "Eligibility", probability: 30, color: "#2563eb" }, { name: "Appointment", probability: 60, color: "#0891b2" }, { name: "Consulted", probability: 85, color: "#d97706" }, { name: "Care Started", probability: 100, color: "#059669", isWon: true }], fields: ["Referrer", "Department", "Insurance", "Appointment", "Consent"], automations: ["Appointment reminder", "Consent check", "Referrer update"], reports: ["Referral conversion", "Department demand", "No-show rate"] },
-  { key: "patient-management", name: "Patient Management", group: "Industries", category: "Healthcare", accent: "#be123c", stages: [{ name: "Inquiry", probability: 10, color: "#be123c" }, { name: "Registration", probability: 30, color: "#2563eb" }, { name: "Consultation", probability: 60, color: "#0891b2" }, { name: "Treatment Plan", probability: 85, color: "#d97706" }, { name: "Follow-up", probability: 100, color: "#059669", isWon: true }], fields: ["Patient ID", "Doctor", "Department", "Treatment", "Follow-up date"], automations: ["Registration checklist", "Follow-up reminder", "Care plan update"], reports: ["Patient funnel", "Doctor load", "Follow-up compliance"] },
-  { key: "dry-cleaning", name: "Dry Cleaning", group: "Industries", category: "Local Services", accent: "#0e7490", stages: [{ name: "Pickup Request", probability: 10, color: "#0e7490" }, { name: "Received", probability: 30, color: "#2563eb" }, { name: "Cleaning", probability: 55, color: "#7c3aed" }, { name: "Ready", probability: 85, color: "#d97706" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Garments", "Pickup slot", "Service type", "Delivery slot", "Payment"], automations: ["Pickup reminder", "Ready notification", "Payment follow-up"], reports: ["Order volume", "Pickup SLA", "Revenue by service"] },
-  { key: "jewellery", name: "Jewellery", group: "Industries", category: "Luxury Retail", accent: "#b45309", stages: [{ name: "Walk-in/Inquiry", probability: 10, color: "#b45309" }, { name: "Design Selection", probability: 35, color: "#7c3aed" }, { name: "Estimate", probability: 60, color: "#d97706" }, { name: "Advance Paid", probability: 85, color: "#2563eb" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Occasion", "Metal", "Stone", "Budget", "Delivery date"], automations: ["Design follow-up", "Advance reminder", "Delivery appointment"], reports: ["Occasion demand", "Custom orders", "Advance aging"] },
-  { key: "photography", name: "Photography", group: "Industries", category: "Creative Services", accent: "#7c3aed", stages: [{ name: "Inquiry", probability: 10, color: "#7c3aed" }, { name: "Package Sent", probability: 35, color: "#2563eb" }, { name: "Date Hold", probability: 60, color: "#d97706" }, { name: "Booked", probability: 85, color: "#0891b2" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }], fields: ["Event date", "Package", "Venue", "Advance", "Album status"], automations: ["Date hold expiry", "Advance reminder", "Delivery timeline"], reports: ["Booking calendar", "Package revenue", "Delivery backlog"] },
-  { key: "telecommunications", name: "Telecommunications", group: "Industries", category: "Telecom", accent: "#2563eb", stages: [{ name: "Lead", probability: 10, color: "#2563eb" }, { name: "Feasibility", probability: 30, color: "#0891b2" }, { name: "Plan Proposal", probability: 55, color: "#7c3aed" }, { name: "Provisioning", probability: 85, color: "#d97706" }, { name: "Activated", probability: 100, color: "#059669", isWon: true }], fields: ["Plan", "Location", "Bandwidth", "Feasibility", "Activation date"], automations: ["Feasibility task", "Provisioning reminder", "Activation notice"], reports: ["Activation pipeline", "Plan demand", "Provisioning SLA"] },
-  { key: "ca-firm", name: "CA Firm", group: "Industries", category: "Professional Services", accent: "#0f766e", description: "Manage compliance leads, retainers, filing work, and recurring client service pipelines for chartered accountancy firms.", fieldEntity: "Client", sampleRecord: "GST return retainer", stages: [{ name: "Client Inquiry", probability: 10, color: "#0f766e" }, { name: "Document Review", probability: 30, color: "#2563eb" }, { name: "Proposal/Retainer", probability: 55, color: "#d97706" }, { name: "Engagement Signed", probability: 85, color: "#7c3aed" }, { name: "Service Active", probability: 100, color: "#059669", isWon: true }], fields: ["Service type", "PAN/GSTIN", "Due date", "Retainer value", "Document status"], automations: ["Document checklist", "Filing due reminder", "Retainer renewal"], reports: ["Compliance pipeline", "Retainer forecast", "Filing aging"] },
-  { key: "audit-firm", name: "Audit Firm", group: "Industries", category: "Assurance", accent: "#475569", description: "Track audit prospects from scoping through engagement letters, fieldwork readiness, and final sign-off.", fieldEntity: "Audit", sampleRecord: "FY audit engagement", stages: [{ name: "Audit Lead", probability: 10, color: "#475569" }, { name: "Scope Assessment", probability: 30, color: "#2563eb" }, { name: "Fee Proposal", probability: 55, color: "#d97706" }, { name: "Engagement Letter", probability: 80, color: "#7c3aed" }, { name: "Audit Scheduled", probability: 100, color: "#059669", isWon: true }], fields: ["Audit type", "Entity size", "Period", "Partner", "Risk rating"], automations: ["Independence check", "Proposal approval", "PBC list reminder"], reports: ["Audit pipeline", "Partner workload", "Risk mix"] },
-  { key: "tax-practice", name: "Tax Practice", group: "Industries", category: "Tax Advisory", accent: "#b45309", description: "Handle tax advisory, notices, assessment cases, appeals, and recurring filing opportunities.", fieldEntity: "Tax case", sampleRecord: "Income tax notice response", stages: [{ name: "Tax Query", probability: 10, color: "#b45309" }, { name: "Case Review", probability: 30, color: "#2563eb" }, { name: "Fee Quote", probability: 55, color: "#d97706" }, { name: "Authority Filing", probability: 80, color: "#7c3aed" }, { name: "Closed/Filed", probability: 100, color: "#059669", isWon: true }], fields: ["Tax type", "Assessment year", "Notice date", "Filing deadline", "Fee"], automations: ["Deadline alert", "Document reminder", "Client approval"], reports: ["Tax case value", "Deadline risk", "Case outcome"] },
-  { key: "it-company", name: "IT Company", group: "Industries", category: "IT Products & Services", accent: "#2563eb", description: "Run product demos, implementation proposals, support renewals, and CRM-to-SRM/PMS delivery handoffs.", fieldEntity: "Opportunity", sampleRecord: "ERP implementation", stages: [{ name: "Discovery", probability: 15, color: "#2563eb" }, { name: "Demo/POC", probability: 35, color: "#0891b2" }, { name: "Commercial Proposal", probability: 60, color: "#7c3aed" }, { name: "Security/Legal", probability: 80, color: "#d97706" }, { name: "Won - Delivery Handoff", probability: 100, color: "#059669", isWon: true }, { name: "Lost", probability: 0, color: "#dc2626", isLost: true }], fields: ["Solution", "Users", "Implementation scope", "ARR/Project value", "Delivery owner"], automations: ["Demo follow-up", "Security checklist", "SRM/PMS handoff"], reports: ["ARR forecast", "Implementation backlog", "Win rate by solution"] },
-  { key: "manufacturing", name: "Manufacturing", group: "Industries", category: "B2B Manufacturing", accent: "#64748b", description: "Track enquiries, samples, quotations, purchase orders, production readiness, and dispatch commitments.", fieldEntity: "Order", sampleRecord: "Custom component order", stages: [{ name: "RFQ Received", probability: 10, color: "#64748b" }, { name: "Sample/Spec Review", probability: 30, color: "#2563eb" }, { name: "Quote Sent", probability: 55, color: "#d97706" }, { name: "PO Received", probability: 85, color: "#7c3aed" }, { name: "Production Ready", probability: 100, color: "#059669", isWon: true }], fields: ["SKU/spec", "Quantity", "Target price", "Delivery date", "Plant"], automations: ["Sample reminder", "Quote follow-up", "Production handoff"], reports: ["RFQ value", "PO conversion", "Capacity forecast"] },
-  { key: "logistics", name: "Logistics", group: "Industries", category: "Transport & Freight", accent: "#ea580c", description: "Manage freight enquiries, route pricing, shipment booking, tracking, POD, and billing follow-up.", fieldEntity: "Shipment", sampleRecord: "Mumbai to Delhi FTL", stages: [{ name: "Shipment Inquiry", probability: 10, color: "#ea580c" }, { name: "Route Priced", probability: 35, color: "#2563eb" }, { name: "Booking Confirmed", probability: 65, color: "#d97706" }, { name: "In Transit", probability: 85, color: "#0891b2" }, { name: "Delivered/POD", probability: 100, color: "#059669", isWon: true }], fields: ["Origin", "Destination", "Load type", "Vehicle", "POD status"], automations: ["Rate approval", "Tracking update", "POD reminder"], reports: ["Freight pipeline", "Route margin", "Delivery SLA"] },
-  { key: "restaurant-catering", name: "Restaurant & Catering", group: "Industries", category: "Hospitality", accent: "#be123c", description: "Convert event enquiries into menus, tastings, bookings, advance payments, and final delivery.", fieldEntity: "Event", sampleRecord: "Corporate lunch booking", stages: [{ name: "Event Inquiry", probability: 10, color: "#be123c" }, { name: "Menu Shared", probability: 30, color: "#d97706" }, { name: "Tasting/Review", probability: 55, color: "#7c3aed" }, { name: "Advance Paid", probability: 85, color: "#2563eb" }, { name: "Event Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Event date", "Guest count", "Menu", "Venue", "Advance"], automations: ["Tasting reminder", "Advance follow-up", "Kitchen prep task"], reports: ["Event pipeline", "Menu demand", "Advance pending"] },
-  { key: "travel-agency", name: "Travel Agency", group: "Industries", category: "Travel", accent: "#0284c7", description: "Track travel enquiries, itineraries, quotes, booking payments, visa steps, and departure readiness.", fieldEntity: "Trip", sampleRecord: "Dubai family package", stages: [{ name: "Travel Inquiry", probability: 10, color: "#0284c7" }, { name: "Itinerary Planned", probability: 35, color: "#2563eb" }, { name: "Quote Approved", probability: 60, color: "#d97706" }, { name: "Booked", probability: 85, color: "#7c3aed" }, { name: "Travel Completed", probability: 100, color: "#059669", isWon: true }], fields: ["Destination", "Travel dates", "Passengers", "Visa status", "Payment"], automations: ["Quote follow-up", "Visa checklist", "Departure reminder"], reports: ["Package pipeline", "Destination demand", "Payment aging"] },
-];
-
-const advancedIndustryTemplates: CRMBusinessTemplate[] = [
-  {
-    key: "solar-epc",
-    name: "Solar EPC",
-    group: "Industries",
-    category: "Renewable Energy",
-    accent: "#f59e0b",
-    description: "Manage rooftop and commercial solar enquiries from site survey through subsidy documents, PPA approval, installation, and commissioning.",
-    fieldEntity: "Project",
-    sampleRecord: "Warehouse rooftop solar",
-    stages: [{ name: "Energy Inquiry", probability: 10, color: "#f59e0b" }, { name: "Site Survey", probability: 30, color: "#2563eb" }, { name: "Proposal & ROI", probability: 55, color: "#7c3aed" }, { name: "PPA/Approval", probability: 80, color: "#d97706" }, { name: "Commissioned", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Site capacity", "Roof area", "DISCOM", "Subsidy status", "Commissioning date"],
-    customFields: [
-      { entityType: "deals", fieldName: "Site Capacity (kW)", fieldKey: "site_capacity_kw", fieldType: "number", isRequired: true, isFilterable: true },
-      { entityType: "deals", fieldName: "DISCOM", fieldKey: "discom", fieldType: "dropdown", options: ["BESCOM", "MSEDCL", "TANGEDCO", "Torrent", "Other"], isFilterable: true },
-      { entityType: "deals", fieldName: "Subsidy Status", fieldKey: "subsidy_status", fieldType: "dropdown", options: ["Not applicable", "Documents pending", "Submitted", "Approved"], isFilterable: true },
-    ],
-    sampleDeals: [
-      { name: "250 kW rooftop EPC", company: "Sunrise Warehousing", amount: 18500000, stageIndex: 1, closeDate: "2026-07-18", source: "Energy audit", nextStep: "Complete shadow analysis and single-line diagram", customFields: { site_capacity_kw: 250, discom: "BESCOM", subsidy_status: "Submitted" } },
-      { name: "Housing society solar retrofit", company: "Lakeview Residency", amount: 4200000, stageIndex: 2, closeDate: "2026-08-05", source: "Referral", nextStep: "Share ROI model and net-metering checklist", customFields: { site_capacity_kw: 60, discom: "MSEDCL", subsidy_status: "Documents pending" } },
-    ],
-    automations: ["Survey assignment", "ROI proposal reminder", "Subsidy document chase"],
-    reports: ["Capacity pipeline", "DISCOM approval aging", "Commissioning forecast"],
-  },
-  {
-    key: "construction-contracting",
-    name: "Construction Contracting",
-    group: "Industries",
-    category: "Construction",
-    accent: "#92400e",
-    description: "Track civil contracting opportunities from BOQ receipt to site visit, tender quote, LOI, mobilization advance, and project handoff.",
-    fieldEntity: "Tender",
-    sampleRecord: "Commercial fit-out tender",
-    stages: [{ name: "BOQ Received", probability: 10, color: "#92400e" }, { name: "Site Visit", probability: 30, color: "#2563eb" }, { name: "Tender Submitted", probability: 55, color: "#7c3aed" }, { name: "LOI/Negotiation", probability: 80, color: "#d97706" }, { name: "Mobilized", probability: 100, color: "#059669", isWon: true }, { name: "Not Awarded", probability: 0, color: "#dc2626", isLost: true }],
-    fields: ["BOQ value", "Site location", "Tender due date", "EMD amount", "Mobilization advance"],
-    customFields: [
-      { entityType: "deals", fieldName: "BOQ Value", fieldKey: "boq_value", fieldType: "currency", isRequired: true, isFilterable: true },
-      { entityType: "deals", fieldName: "Tender Due Date", fieldKey: "tender_due_date", fieldType: "date", isFilterable: true },
-      { entityType: "deals", fieldName: "EMD Amount", fieldKey: "emd_amount", fieldType: "currency" },
-    ],
-    sampleDeals: [
-      { name: "Mall interior civil package", company: "Orion Developers", amount: 32000000, stageIndex: 2, closeDate: "2026-07-02", source: "Tender portal", nextStep: "Submit final BOQ clarifications", customFields: { boq_value: 32000000, tender_due_date: "2026-06-28", emd_amount: 500000 } },
-      { name: "Factory expansion work", company: "Prakash Foods", amount: 58000000, stageIndex: 1, closeDate: "2026-08-16", source: "Architect referral", nextStep: "Complete site measurements", customFields: { boq_value: 58000000, tender_due_date: "2026-07-20", emd_amount: 750000 } },
-    ],
-    automations: ["Tender due reminder", "Site visit checklist", "PMS mobilization handoff"],
-    reports: ["Tender value", "Award ratio", "EMD exposure"],
-  },
-  {
-    key: "diagnostic-lab",
-    name: "Diagnostic Lab",
-    group: "Industries",
-    category: "Healthcare Diagnostics",
-    accent: "#0e7490",
-    description: "Manage doctor referrals, corporate health checks, home sample collections, report delivery, and repeat package sales.",
-    fieldEntity: "Test booking",
-    sampleRecord: "Corporate health camp",
-    stages: [{ name: "Referral/Inquiry", probability: 10, color: "#0e7490" }, { name: "Package Suggested", probability: 30, color: "#2563eb" }, { name: "Sample Scheduled", probability: 55, color: "#7c3aed" }, { name: "Payment/Collection", probability: 80, color: "#d97706" }, { name: "Report Delivered", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Test package", "Sample type", "Collection slot", "Referring doctor", "Report SLA"],
-    customFields: [
-      { entityType: "deals", fieldName: "Test Package", fieldKey: "test_package", fieldType: "dropdown", options: ["Full body", "Diabetes", "Cardiac", "Pre-employment", "Custom panel"], isFilterable: true },
-      { entityType: "deals", fieldName: "Collection Slot", fieldKey: "collection_slot", fieldType: "datetime", isRequired: true },
-      { entityType: "deals", fieldName: "Report SLA", fieldKey: "report_sla", fieldType: "dropdown", options: ["Same day", "24 hours", "48 hours"], isFilterable: true },
-    ],
-    sampleDeals: [
-      { name: "Pre-employment test batch", company: "TalentBridge HR", amount: 145000, stageIndex: 2, closeDate: "2026-06-22", source: "Corporate referral", nextStep: "Confirm sample collection team roster", customFields: { test_package: "Pre-employment", collection_slot: "2026-06-19T09:30", report_sla: "24 hours" } },
-      { name: "Cardiac panel home collection", company: "Mehta Family", amount: 18500, stageIndex: 1, closeDate: "2026-06-14", source: "Doctor referral", nextStep: "Share fasting instructions", customFields: { test_package: "Cardiac", collection_slot: "2026-06-13T07:00", report_sla: "Same day" } },
-    ],
-    automations: ["Collection reminder", "Doctor report notification", "SLA escalation"],
-    reports: ["Package conversion", "Collection SLA", "Referral revenue"],
-  },
-  {
-    key: "hotel-banquet",
-    name: "Hotel Banquet Sales",
-    group: "Industries",
-    category: "Hospitality",
-    accent: "#be123c",
-    description: "Convert banquet enquiries into property visits, menu negotiations, room blocks, advance payments, and event execution.",
-    fieldEntity: "Event",
-    sampleRecord: "Wedding reception booking",
-    stages: [{ name: "Event Inquiry", probability: 10, color: "#be123c" }, { name: "Property Visit", probability: 30, color: "#2563eb" }, { name: "Menu & Package", probability: 55, color: "#7c3aed" }, { name: "Advance Paid", probability: 85, color: "#d97706" }, { name: "Event Closed", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Event date", "Guest count", "Hall", "Room block", "Advance amount"],
-    customFields: [
-      { entityType: "deals", fieldName: "Event Date", fieldKey: "event_date", fieldType: "date", isRequired: true, isFilterable: true },
-      { entityType: "deals", fieldName: "Guest Count", fieldKey: "guest_count", fieldType: "number", isRequired: true },
-      { entityType: "deals", fieldName: "Banquet Hall", fieldKey: "banquet_hall", fieldType: "dropdown", options: ["Grand Ballroom", "Terrace", "Boardroom", "Lawn"], isFilterable: true },
-    ],
-    sampleDeals: [
-      { name: "Wedding reception 450 pax", company: "Rao Family", amount: 2750000, stageIndex: 2, closeDate: "2026-07-28", source: "Walk-in", nextStep: "Send revised menu and room block quote", customFields: { event_date: "2026-11-22", guest_count: 450, banquet_hall: "Grand Ballroom" } },
-      { name: "Annual sales meet", company: "Vertex Pharma", amount: 940000, stageIndex: 1, closeDate: "2026-07-12", source: "Corporate account", nextStep: "Schedule AV requirement review", customFields: { event_date: "2026-08-09", guest_count: 160, banquet_hall: "Boardroom" } },
-    ],
-    automations: ["Visit reminder", "Advance payment follow-up", "Event ops handoff"],
-    reports: ["Banquet revenue", "Hall utilization", "Advance aging"],
-  },
-  {
-    key: "wholesale-distribution",
-    name: "Wholesale Distribution",
-    group: "Industries",
-    category: "Distribution",
-    accent: "#0f766e",
-    description: "Handle dealer onboarding, price negotiation, credit terms, stock allocation, dispatch, and repeat order cycles.",
-    fieldEntity: "Dealer order",
-    sampleRecord: "Distributor first order",
-    stages: [{ name: "Dealer Inquiry", probability: 10, color: "#0f766e" }, { name: "KYC/Credit Check", probability: 30, color: "#2563eb" }, { name: "Price Negotiation", probability: 55, color: "#d97706" }, { name: "PO Received", probability: 85, color: "#7c3aed" }, { name: "Dispatched", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Dealer grade", "Credit limit", "SKU mix", "Margin", "Dispatch warehouse"],
-    customFields: [
-      { entityType: "deals", fieldName: "Dealer Grade", fieldKey: "dealer_grade", fieldType: "dropdown", options: ["A", "B", "C", "New"], isFilterable: true },
-      { entityType: "deals", fieldName: "Credit Limit", fieldKey: "credit_limit", fieldType: "currency", isFilterable: true },
-      { entityType: "deals", fieldName: "Dispatch Warehouse", fieldKey: "dispatch_warehouse", fieldType: "dropdown", options: ["Bengaluru", "Mumbai", "Delhi NCR", "Chennai"], isFilterable: true },
-    ],
-    sampleDeals: [
-      { name: "North dealer onboarding order", company: "Shree Traders", amount: 1250000, stageIndex: 1, closeDate: "2026-06-30", source: "Distributor meet", nextStep: "Complete GST and credit review", customFields: { dealer_grade: "New", credit_limit: 800000, dispatch_warehouse: "Delhi NCR" } },
-      { name: "Q2 repeat bulk order", company: "Urban Retail Mart", amount: 2860000, stageIndex: 3, closeDate: "2026-07-04", source: "Account manager", nextStep: "Confirm stock allocation", customFields: { dealer_grade: "A", credit_limit: 3500000, dispatch_warehouse: "Mumbai" } },
-    ],
-    automations: ["KYC reminder", "Credit approval route", "Dispatch notification"],
-    reports: ["Dealer pipeline", "Credit exposure", "Warehouse dispatch forecast"],
-  },
-  {
-    key: "agriculture-equipment",
-    name: "Agriculture Equipment",
-    group: "Industries",
-    category: "Agri Sales",
-    accent: "#16a34a",
-    description: "Manage farm equipment enquiries, demo visits, subsidy paperwork, finance, booking, and delivery readiness.",
-    fieldEntity: "Equipment deal",
-    sampleRecord: "Tractor implement sale",
-    stages: [{ name: "Farmer Inquiry", probability: 10, color: "#16a34a" }, { name: "Demo Visit", probability: 30, color: "#2563eb" }, { name: "Finance/Subsidy", probability: 55, color: "#d97706" }, { name: "Booking", probability: 85, color: "#7c3aed" }, { name: "Delivered", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Equipment model", "Land size", "Subsidy scheme", "Finance partner", "Delivery village"],
-    customFields: [
-      { entityType: "deals", fieldName: "Equipment Model", fieldKey: "equipment_model", fieldType: "dropdown", options: ["Tractor", "Rotavator", "Harvester", "Sprayer", "Pump set"], isFilterable: true },
-      { entityType: "deals", fieldName: "Land Size Acres", fieldKey: "land_size_acres", fieldType: "number" },
-      { entityType: "deals", fieldName: "Subsidy Scheme", fieldKey: "subsidy_scheme", fieldType: "text" },
-    ],
-    sampleDeals: [
-      { name: "Rotavator and tractor package", company: "Patil Farms", amount: 1750000, stageIndex: 2, closeDate: "2026-07-15", source: "Field demo", nextStep: "Submit subsidy documents", customFields: { equipment_model: "Tractor", land_size_acres: 18, subsidy_scheme: "State farm mechanization" } },
-      { name: "Drip pump upgrade", company: "Green Acres Co-op", amount: 420000, stageIndex: 1, closeDate: "2026-06-26", source: "Dealer referral", nextStep: "Schedule village demo", customFields: { equipment_model: "Pump set", land_size_acres: 42, subsidy_scheme: "Micro irrigation support" } },
-    ],
-    automations: ["Demo schedule", "Finance document reminder", "Delivery checklist"],
-    reports: ["Model demand", "Subsidy pending", "Dealer conversion"],
-  },
-  {
-    key: "government-tenders",
-    name: "Government Tenders",
-    group: "Industries",
-    category: "Public Sector Sales",
-    accent: "#475569",
-    description: "Track e-procurement opportunities with EMD, eligibility, bid submission, technical evaluation, financial bid, and award status.",
-    fieldEntity: "Tender",
-    sampleRecord: "Municipal software tender",
-    stages: [{ name: "Tender Identified", probability: 10, color: "#475569" }, { name: "Eligibility Check", probability: 25, color: "#2563eb" }, { name: "Bid Submitted", probability: 50, color: "#7c3aed" }, { name: "Financial Opened", probability: 75, color: "#d97706" }, { name: "Awarded", probability: 100, color: "#059669", isWon: true }, { name: "Lost/Disqualified", probability: 0, color: "#dc2626", isLost: true }],
-    fields: ["Tender ID", "Department", "EMD", "Bid due date", "L1 status"],
-    customFields: [
-      { entityType: "deals", fieldName: "Tender ID", fieldKey: "tender_id", fieldType: "text", isRequired: true, isUnique: true, isFilterable: true },
-      { entityType: "deals", fieldName: "Bid Due Date", fieldKey: "bid_due_date", fieldType: "date", isRequired: true, isFilterable: true },
-      { entityType: "deals", fieldName: "EMD Value", fieldKey: "emd_value", fieldType: "currency" },
-    ],
-    sampleDeals: [
-      { name: "Municipal CRM tender", company: "City Corporation", amount: 9200000, stageIndex: 2, closeDate: "2026-07-09", source: "GeM portal", nextStep: "Upload financial bid attachments", customFields: { tender_id: "GEM/2026/B/CRM-1187", bid_due_date: "2026-07-03", emd_value: 250000 } },
-      { name: "State training platform RFP", company: "Skill Mission Office", amount: 14800000, stageIndex: 1, closeDate: "2026-08-01", source: "E-procurement", nextStep: "Confirm turnover eligibility documents", customFields: { tender_id: "RFP-SM-2026-44", bid_due_date: "2026-07-18", emd_value: 500000 } },
-    ],
-    automations: ["Bid due reminder", "EMD approval", "Eligibility checklist"],
-    reports: ["Tender value", "Bid aging", "Award ratio"],
-  },
-  {
-    key: "gym-fitness",
-    name: "Gym & Fitness Studio",
-    group: "Industries",
-    category: "Fitness",
-    accent: "#dc2626",
-    description: "Convert walk-ins and digital enquiries into trials, membership plans, personal training packages, and renewal follow-ups.",
-    fieldEntity: "Membership",
-    sampleRecord: "Annual membership enquiry",
-    stages: [{ name: "Inquiry", probability: 10, color: "#dc2626" }, { name: "Trial Booked", probability: 30, color: "#2563eb" }, { name: "Plan Suggested", probability: 55, color: "#7c3aed" }, { name: "Payment Pending", probability: 80, color: "#d97706" }, { name: "Member Active", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Fitness goal", "Plan", "Trial date", "Trainer", "Renewal date"],
-    customFields: [
-      { entityType: "deals", fieldName: "Fitness Goal", fieldKey: "fitness_goal", fieldType: "dropdown", options: ["Weight loss", "Strength", "Rehab", "General fitness", "Athletic training"], isFilterable: true },
-      { entityType: "deals", fieldName: "Trial Date", fieldKey: "trial_date", fieldType: "date", isFilterable: true },
-      { entityType: "deals", fieldName: "Plan Type", fieldKey: "plan_type", fieldType: "dropdown", options: ["Monthly", "Quarterly", "Annual", "PT package"], isFilterable: true },
-    ],
-    sampleDeals: [
-      { name: "Annual fitness membership", company: "Aditi Sharma", amount: 42000, stageIndex: 2, closeDate: "2026-06-20", source: "Instagram ad", nextStep: "Share annual plan and PT bundle", customFields: { fitness_goal: "Strength", trial_date: "2026-06-12", plan_type: "Annual" } },
-      { name: "Personal training package", company: "Vikram Menon", amount: 36000, stageIndex: 1, closeDate: "2026-06-18", source: "Walk-in", nextStep: "Book trainer consultation", customFields: { fitness_goal: "Weight loss", trial_date: "2026-06-11", plan_type: "PT package" } },
-    ],
-    automations: ["Trial reminder", "Payment follow-up", "Renewal alert"],
-    reports: ["Membership pipeline", "Trainer conversion", "Renewal forecast"],
-  },
-  {
-    key: "salon-spa",
-    name: "Salon & Spa",
-    group: "Industries",
-    category: "Beauty & Wellness",
-    accent: "#db2777",
-    description: "Track bridal packages, recurring memberships, appointment deposits, stylist allocation, and package completion.",
-    fieldEntity: "Booking",
-    sampleRecord: "Bridal package booking",
-    stages: [{ name: "Inquiry", probability: 10, color: "#db2777" }, { name: "Consultation", probability: 30, color: "#7c3aed" }, { name: "Package Shared", probability: 55, color: "#2563eb" }, { name: "Deposit Paid", probability: 85, color: "#d97706" }, { name: "Service Completed", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Service package", "Appointment date", "Stylist", "Deposit", "Occasion"],
-    customFields: [
-      { entityType: "deals", fieldName: "Service Package", fieldKey: "service_package", fieldType: "dropdown", options: ["Bridal", "Hair color", "Spa day", "Membership", "Grooming"], isFilterable: true },
-      { entityType: "deals", fieldName: "Appointment Date", fieldKey: "appointment_date", fieldType: "datetime", isRequired: true },
-      { entityType: "deals", fieldName: "Stylist", fieldKey: "stylist", fieldType: "text" },
-    ],
-    sampleDeals: [
-      { name: "Bridal makeup package", company: "Nisha Kapoor", amount: 85000, stageIndex: 3, closeDate: "2026-06-25", source: "Referral", nextStep: "Confirm trial makeup date", customFields: { service_package: "Bridal", appointment_date: "2026-07-10T11:00", stylist: "Rhea" } },
-      { name: "Quarterly spa membership", company: "Corporate Wellness Club", amount: 240000, stageIndex: 2, closeDate: "2026-07-08", source: "Corporate lead", nextStep: "Share membership terms", customFields: { service_package: "Membership", appointment_date: "2026-07-01T16:00", stylist: "Team allocation" } },
-    ],
-    automations: ["Consultation reminder", "Deposit follow-up", "Stylist task"],
-    reports: ["Package pipeline", "Deposit aging", "Stylist utilization"],
-  },
-  {
-    key: "export-import",
-    name: "Export / Import Trading",
-    group: "Industries",
-    category: "International Trade",
-    accent: "#0369a1",
-    description: "Manage export enquiries, proforma invoices, compliance documents, LC/payment terms, shipment booking, and collection follow-up.",
-    fieldEntity: "Trade order",
-    sampleRecord: "UAE export order",
-    stages: [{ name: "Buyer Inquiry", probability: 10, color: "#0369a1" }, { name: "PI Shared", probability: 35, color: "#2563eb" }, { name: "Docs/LC Review", probability: 60, color: "#7c3aed" }, { name: "Shipment Booked", probability: 85, color: "#d97706" }, { name: "Documents Released", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Country", "Incoterm", "Port", "HS code", "Payment terms"],
-    customFields: [
-      { entityType: "deals", fieldName: "Destination Country", fieldKey: "destination_country", fieldType: "text", isFilterable: true },
-      { entityType: "deals", fieldName: "Incoterm", fieldKey: "incoterm", fieldType: "dropdown", options: ["EXW", "FOB", "CIF", "DAP", "DDP"], isFilterable: true },
-      { entityType: "deals", fieldName: "Payment Terms", fieldKey: "payment_terms", fieldType: "dropdown", options: ["Advance", "LC", "CAD", "Open credit"], isFilterable: true },
-    ],
-    sampleDeals: [
-      { name: "Spices export to Dubai", company: "Al Noor Trading", amount: 3850000, stageIndex: 2, closeDate: "2026-07-19", source: "Trade fair", nextStep: "Review LC draft and certificate requirements", customFields: { destination_country: "UAE", incoterm: "CIF", payment_terms: "LC" } },
-      { name: "Textile shipment to Kenya", company: "Nairobi Retail Group", amount: 2100000, stageIndex: 1, closeDate: "2026-07-05", source: "Buyer portal", nextStep: "Send proforma invoice", customFields: { destination_country: "Kenya", incoterm: "FOB", payment_terms: "Advance" } },
-    ],
-    automations: ["PI follow-up", "Document checklist", "Shipment reminder"],
-    reports: ["Country pipeline", "Payment terms risk", "Shipment forecast"],
-  },
-  {
-    key: "subscription-saas",
-    name: "Subscription SaaS",
-    group: "Industries",
-    category: "SaaS Sales",
-    accent: "#4f46e5",
-    description: "Run SaaS trials, product-qualified leads, security reviews, annual subscriptions, renewals, and expansion opportunities.",
-    fieldEntity: "Subscription",
-    sampleRecord: "Annual SaaS subscription",
-    stages: [{ name: "PQL/Lead", probability: 10, color: "#4f46e5" }, { name: "Trial Active", probability: 30, color: "#2563eb" }, { name: "Security Review", probability: 55, color: "#7c3aed" }, { name: "Commercials", probability: 80, color: "#d97706" }, { name: "Subscribed", probability: 100, color: "#059669", isWon: true }, { name: "Churned/Lost", probability: 0, color: "#dc2626", isLost: true }],
-    fields: ["Plan", "Seats", "ARR", "Trial end", "Security owner"],
-    customFields: [
-      { entityType: "deals", fieldName: "Seat Count", fieldKey: "seat_count", fieldType: "number", isRequired: true, isFilterable: true },
-      { entityType: "deals", fieldName: "ARR", fieldKey: "arr", fieldType: "currency", isFilterable: true },
-      { entityType: "deals", fieldName: "Trial End Date", fieldKey: "trial_end_date", fieldType: "date", isFilterable: true },
-    ],
-    sampleDeals: [
-      { name: "Enterprise annual plan", company: "CloudLedger", amount: 1800000, stageIndex: 2, closeDate: "2026-07-11", source: "Product signup", nextStep: "Complete security questionnaire", customFields: { seat_count: 120, arr: 1800000, trial_end_date: "2026-06-29" } },
-      { name: "Mid-market team rollout", company: "Horizon Design Co", amount: 540000, stageIndex: 1, closeDate: "2026-06-27", source: "Webinar", nextStep: "Review trial usage with champion", customFields: { seat_count: 35, arr: 540000, trial_end_date: "2026-06-20" } },
-    ],
-    automations: ["Trial usage alert", "Security review task", "Renewal reminder"],
-    reports: ["ARR forecast", "Trial conversion", "Expansion pipeline"],
-  },
-  {
-    key: "home-services",
-    name: "Home Services",
-    group: "Industries",
-    category: "Field Services",
-    accent: "#0891b2",
-    description: "Manage plumbing, electrical, appliance, and home repair jobs from inquiry to inspection, estimate, job completion, and payment.",
-    fieldEntity: "Job",
-    sampleRecord: "Apartment plumbing repair",
-    stages: [{ name: "Service Inquiry", probability: 10, color: "#0891b2" }, { name: "Technician Assigned", probability: 30, color: "#2563eb" }, { name: "Estimate Shared", probability: 55, color: "#d97706" }, { name: "Job Scheduled", probability: 85, color: "#7c3aed" }, { name: "Paid & Closed", probability: 100, color: "#059669", isWon: true }],
-    fields: ["Service type", "Address", "Technician", "Visit slot", "Warranty"],
-    customFields: [
-      { entityType: "deals", fieldName: "Service Type", fieldKey: "service_type", fieldType: "dropdown", options: ["Plumbing", "Electrical", "Appliance", "Painting", "Cleaning"], isFilterable: true },
-      { entityType: "deals", fieldName: "Visit Slot", fieldKey: "visit_slot", fieldType: "datetime", isRequired: true },
-      { entityType: "deals", fieldName: "Technician", fieldKey: "technician", fieldType: "text" },
-    ],
-    sampleDeals: [
-      { name: "Kitchen plumbing repair", company: "Prestige Lakeside A-1204", amount: 8500, stageIndex: 1, closeDate: "2026-06-12", source: "Phone call", nextStep: "Assign technician and confirm slot", customFields: { service_type: "Plumbing", visit_slot: "2026-06-11T15:00", technician: "Mahesh" } },
-      { name: "AC service annual package", company: "Kapoor Residence", amount: 28000, stageIndex: 2, closeDate: "2026-06-18", source: "Renewal", nextStep: "Share estimate and service schedule", customFields: { service_type: "Appliance", visit_slot: "2026-06-15T10:30", technician: "Ravi" } },
-    ],
-    automations: ["Technician assignment", "Visit reminder", "Payment collection"],
-    reports: ["Service pipeline", "Technician workload", "Payment aging"],
-  },
-];
-
-const allCrmBusinessTemplates = [...crmBusinessTemplates, ...advancedIndustryTemplates];
+const allCrmBusinessTemplates = industryTemplates as CRMBusinessTemplate[];
 
 type QuickFormField = {
   key: string;
@@ -1947,7 +1624,8 @@ function PipelinePage() {
   const [activeTemplateKey, setActiveTemplateKey] = useState("sales-pipeline");
   const [templateSearch, setTemplateSearch] = useState("");
   const [templateGroup, setTemplateGroup] = useState<"All" | "Teams" | "Industries">("All");
-  const [applyingTemplate, setApplyingTemplate] = useState(false);
+  const [applyingTemplate] = useState(false);
+  const [installPack, setInstallPack] = useState(false);
   const [templateMessage, setTemplateMessage] = useState<string | null>(null);
   const activePipelineId = selectedPipelineId || Number(pipelineState.data.find((pipeline) => pipeline.is_default)?.id || pipelineState.data[0]?.id || 0);
   const pipelineStages = useMemo(() => stageState.data.filter((stage) => Number(stage.pipeline_id || stage.pipelineId || 0) === activePipelineId), [stageState.data, activePipelineId]);
@@ -1985,66 +1663,7 @@ function PipelinePage() {
     setDeals(initialDeals);
   }, [initialDeals]);
 
-  const applyTemplate = async () => {
-    setApplyingTemplate(true);
-    setTemplateMessage(null);
-    try {
-      const pipelineResponse = await crmApi.create<CRMApiRecord>("pipelines", {
-        name: selectedTemplate.name,
-        description: `${selectedTemplate.category} CRM template`,
-      });
-      const pipeline = normalizeApiRecord("pipelines", pipelineResponse.data) as CRMRecord;
-      const pipelineId = Number(pipeline.id);
-      const createdStages: CRMRecord[] = [];
-      for (const [index, stage] of selectedTemplate.stages.entries()) {
-        const stageResponse = await crmApi.createPipelineStage<CRMApiRecord>(pipelineId, {
-          name: stage.name,
-          probability: stage.probability,
-          color: stage.color,
-          position: index + 1,
-          is_won: Boolean(stage.isWon),
-          is_lost: Boolean(stage.isLost),
-        });
-        createdStages.push(normalizeApiRecord("pipeline-stages", stageResponse.data) as CRMRecord);
-      }
-      let fieldCount = 0;
-      for (const field of selectedTemplate.customFields || []) {
-        try {
-          await crmApi.create<CRMApiRecord>("custom-fields", { ...field, displayOrder: fieldCount + 1 });
-          fieldCount += 1;
-        } catch (fieldError: any) {
-          if (fieldError?.response?.status !== 409) throw fieldError;
-        }
-      }
-      let dealCount = 0;
-      for (const deal of templateSampleDeals(selectedTemplate)) {
-        const stage = createdStages[Math.min(Math.max(deal.stageIndex || 0, 0), createdStages.length - 1)] || createdStages[0];
-        if (!stage) continue;
-        const isWon = Boolean(stage.isWon ?? stage.is_won);
-        const isLost = Boolean(stage.isLost ?? stage.is_lost);
-        await crmApi.create<CRMApiRecord>("deals", {
-          name: deal.name,
-          pipeline_id: pipelineId,
-          stage_id: Number(stage.id),
-          amount: deal.amount,
-          probability: Number(stage.probability || 0),
-          status: isWon ? "Won" : isLost ? "Lost" : "Open",
-          expected_close_date: deal.closeDate,
-          description: deal.nextStep,
-          lead_source: deal.source,
-          source: deal.source,
-          customFields: deal.customFields || {},
-        });
-        dealCount += 1;
-      }
-      setSelectedPipelineId(pipelineId);
-      setTemplateMessage(`${selectedTemplate.name} pipeline created with ${createdStages.length} stages, ${fieldCount} custom fields, and ${dealCount} sample deals. Refresh to load persisted board data if it does not appear immediately.`);
-    } catch (error: any) {
-      setTemplateMessage(error?.response?.data?.detail || "Template could not be applied.");
-    } finally {
-      setApplyingTemplate(false);
-    }
-  };
+  const applyTemplate = () => setInstallPack(true);
 
   const onDragStart = (event: DragStartEvent) => setActiveId(event.active.id as number);
   const transitionDealToStage = (dealId:number,targetStageRecord:CRMRecord)=>{if(activePipelineId&&targetStageRecord.id)setStageReview({id:dealId,stage:Number(targetStageRecord.id)});};
@@ -2060,7 +1679,7 @@ function PipelinePage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70">{stageReview&&<CRMStageDialog id={stageReview.id} targetStage={stageReview.stage} close={()=>setStageReview(undefined)} saved={()=>{void crmApi.list("deals",{per_page:100,pipeline_id:activePipelineId}).then(r=>setDeals(r.data.items.map(i=>recordToDeal(i,pipelineStages))));setTransitionMessage("Deal stage saved");}}/>}
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50/70"><IndustryPackOnboarding key={selectedTemplate.key} packKey={selectedTemplate.key} open={installPack} close={() => setInstallPack(false)} onInstalled={pack => { const pipeline = pack.assets.find(a => a.kind === 'pipeline'); if (pipeline) setSelectedPipelineId(pipeline.id); setTemplateMessage(`${selectedTemplate.name} installed with published workflows and runnable reports. Sample data is optional.`); }} />{stageReview&&<CRMStageDialog id={stageReview.id} targetStage={stageReview.stage} close={()=>setStageReview(undefined)} saved={()=>{void crmApi.list("deals",{per_page:100,pipeline_id:activePipelineId}).then(r=>setDeals(r.data.items.map(i=>recordToDeal(i,pipelineStages))));setTransitionMessage("Deal stage saved");}}/>}
       <div className="border-b bg-white px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -2206,7 +1825,7 @@ function TemplateDetailPanel({ template, applying, onApply }: { template: CRMBus
         </div>
       </div>
       <div className="mt-4 text-sm leading-6 text-slate-600"><RichTextContent legacyFormat="plain" value={template.description || defaultTemplateDescription(template)}/></div>
-      <Button className="mt-4 w-full" onClick={onApply} disabled={applying}>{applying ? "Creating pipeline..." : "Use this template"}</Button>
+      <Button className="mt-4 w-full" onClick={onApply} disabled={applying}>{applying ? "Opening setup..." : "Set up this industry pack"}</Button>
       <div className="mt-5 space-y-4">
         <TemplateList title="Stages" items={template.stages.map((stage) => `${stage.name} (${stage.probability}%)`)} />
         <TemplateList title="Fields" items={template.fields} />
@@ -2263,7 +1882,7 @@ function TemplatePreviewBoard({ template, applying, onApply }: { template: CRMBu
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">{template.name}</h2>
           <div className="mt-3 text-sm leading-6 text-slate-600"><RichTextContent legacyFormat="plain" value={template.description || defaultTemplateDescription(template)}/></div>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <Button onClick={onApply} disabled={applying}>{applying ? "Creating pipeline..." : "Use this template"}</Button>
+            <Button onClick={onApply} disabled={applying}>{applying ? "Opening setup..." : "Set up this industry pack"}</Button>
             <Button variant="outline" type="button"><FileCheck2 className="h-4 w-4" />View {fieldEntity} fields</Button>
           </div>
         </div>
@@ -5743,7 +5362,7 @@ function DealFormModal({ placement="create", initialValues, draftScope, canManua
   useEffect(() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: restored?.baseVersion || deal?.version}));}, [draftKey, draft, customValues, lines]);
   useEffect(() => {let active = true;const timer = setTimeout(() => {if (String(draft.name || "").trim().length < 2) {setDuplicate([]);return;}void crmApi.list("deal-workspace/duplicates", {name: String(draft.name), company_id: draft.companyId ? Number(draft.companyId) : undefined, exclude_id: deal?.id}).then(response => {if (active) setDuplicate(response.data.items || []);}).catch(() => {});}, 400);return () => {active = false;clearTimeout(timer);};}, [draft.name, draft.companyId, deal?.id]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const visibleCustomFields = useMemo(() => customFields.filter((field) => fieldShown(field, mode === "create" ? placement : "edit")), [customFields, mode, placement]);
+  const visibleCustomFields = useMemo(() => customFields.filter((field) => fieldShown(field, mode === "create" ? placement : "edit") && fieldInPipeline(field, draft.pipelineId)), [customFields, mode, placement, draft.pipelineId]);
 
   const pipelineStages = useMemo(() => stages.filter((stage) => !draft.pipelineId || String(stage.pipelineId || stage.pipeline_id || "") === String(draft.pipelineId)), [stages, draft.pipelineId]);
   const visibleContacts = useMemo(() => [...contacts, ...addedContacts].filter((contact) => !draft.companyId || !(contact.companyId || contact.company_id) || String(contact.companyId || contact.company_id) === String(draft.companyId)), [contacts, addedContacts, draft.companyId]);
@@ -5767,8 +5386,10 @@ function DealFormModal({ placement="create", initialValues, draftScope, canManua
     if (Object.keys(validation).length) {setAdvancedTab(0);setQuickSection("details");setTimeout(()=>document.querySelector<HTMLElement>('[data-custom-field-error], [aria-invalid="true"]')?.focus(),0);return;}
     if (lines.some(line => !line.productId || !Number.isFinite(Number(line.unitPrice)) || Number(line.unitPrice) < 0 || !Number.isInteger(Number(line.quantity)) || Number(line.quantity) < 1 || !Number.isFinite(Number(line.discount)) || Number(line.discount) < 0 || Number(line.discount) > 100)) {setFieldErrors({...validation, catalog: "Choose a product/service for each line, a nonnegative price, a whole quantity of at least 1, and a discount from 0 to 100."});return;}
     setAdvancedTab(0);
-    const fullPayload = buildDealPayload(draft, effectiveAmount, customValues);
-    const dirtyPayload = buildDealDirtyPayload(draft, initial, effectiveAmount, customValues, initialCustomValues);
+    const allowedCustomKeys = new Set(visibleCustomFields.flatMap(field => [String(field.id), String(field.fieldKey || field.field_key || field.id)]));
+    const scopedCustomValues = Object.fromEntries(Object.entries(customValues).filter(([key]) => allowedCustomKeys.has(key)));
+    const fullPayload = buildDealPayload(draft, effectiveAmount, scopedCustomValues);
+    const dirtyPayload = buildDealDirtyPayload(draft, initial, effectiveAmount, scopedCustomValues, initialCustomValues);
     const catalogItems = lines.map(line => {const [kind, id] = line.productId.split(":");return {kind, item_id: Number(id), unit_price: Number(line.unitPrice), quantity: Number(line.quantity), discount: Number(line.discount), ...(line.pricingId ? {pricing_id: line.pricingId} : {})};});
     if (mode === "create" || JSON.stringify(lines) !== JSON.stringify(initialLines)) {fullPayload.catalog_items = catalogItems;dirtyPayload.catalog_items = catalogItems;}
     if (mode === "edit") dirtyPayload.expected_version = restored?.baseVersion || deal?.version;
@@ -6620,13 +6241,7 @@ function CPQPage() {
 }
 
 function GuidedSellingPage() {
-  const { data, loading, error } = useCrmRecords<CRMRecord>("guided-selling-flows", emptyRecords);
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Guided Selling" description={descriptionFor("guidedSelling")} action="Create flow" />
-      <SmartCRMTable rows={data} title="Guided selling flows" kind="guidedSelling" onSelect={() => undefined} loading={loading} error={error} />
-    </div>
-  );
+  return <CRMListPage kind="guidedSelling" />;
 }
 
 function ApprovalSettingsPage() {
@@ -6859,33 +6474,36 @@ function CalendarIntegrationsPage() {
     if (callbackHandled.current || !(query.has("code") || query.has("error"))) return;
     callbackHandled.current = true;
     const state = query.get("state");
-    const expected = sessionStorage.getItem("google-calendar-state");
-    sessionStorage.removeItem("google-calendar-state");
+    const provider = sessionStorage.getItem("calendar-provider") === "outlook" ? "outlook" : "google";
+    const expected = sessionStorage.getItem(`${provider}-calendar-state`);
+    sessionStorage.removeItem(`${provider}-calendar-state`);
+    sessionStorage.removeItem("calendar-provider");
     window.history.replaceState(null, "", window.location.pathname);
     if (!state || state !== expected) {
       setError("Calendar authorization could not be verified. Start again.");
       return;
     }
     if (query.has("error")) {
-      setError("Google Calendar access was not granted. You can connect again.");
+      setError("Calendar access was not granted. You can connect again.");
       return;
     }
     setConnecting(true);
-    crmApi.completeGoogleCalendar({ code: query.get("code") || "", state })
-      .then(() => { load(); setMessage("Google Calendar connected. CRM meetings can now sync to your primary calendar."); })
-      .catch((err) => setError(err?.response?.data?.detail || "Google Calendar could not be connected."))
+    (provider === "outlook" ? crmApi.completeOutlookCalendar : crmApi.completeGoogleCalendar)({ code: query.get("code") || "", state })
+      .then(() => { load(); setMessage("Calendar connected. Automatic two-way sync is enabled."); })
+      .catch((err) => setError(err?.response?.data?.detail || "Calendar could not be connected."))
       .finally(() => setConnecting(false));
   }, []);
   const connect = (provider: "google" | "outlook" | "mock") => {
     setMessage(null);
     setError(null);
-    if (provider === "google") {
+    if (provider === "google" || provider === "outlook") {
       setConnecting(true);
-      crmApi.authorizeGoogleCalendar().then(({ data }) => {
-        sessionStorage.setItem("google-calendar-state", data.state);
+      (provider === "outlook" ? crmApi.authorizeOutlookCalendar : crmApi.authorizeGoogleCalendar)().then(({ data }) => {
+        sessionStorage.setItem(`${provider}-calendar-state`, data.state);
+        sessionStorage.setItem("calendar-provider", provider);
         window.location.assign(data.url);
       }).catch((err) => {
-        setError(err?.response?.data?.detail || "Google Calendar authorization could not start.");
+        setError(err?.response?.data?.detail || "Calendar authorization could not start.");
         setConnecting(false);
       });
       return;
@@ -6903,22 +6521,22 @@ function CalendarIntegrationsPage() {
   };
   return (
     <div className="space-y-6">
-      <PageHeader title="Calendar Integrations" description="Connect Google Calendar to export CRM meetings. Google credentials stay on the server." action="Connect Mock" onAction={() => connect("mock")} />
+      <PageHeader title="Calendar Integrations" description="Connect Google and Outlook Calendar for automatic two-way sync across Sales, CRM and PMS." action="Connect Mock" onAction={() => connect("mock")} />
       {message ? <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
       {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader><CardTitle>Google Calendar</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">Authorize Google to sync CRM meetings to your primary calendar. Changes made in Google are not imported yet.</p>
+            <p className="text-sm text-muted-foreground">Sync meeting changes and deletions in both directions with your primary Google Calendar.</p>
             <Button className="w-full" disabled={connecting} onClick={() => connect("google")}><CalendarDays className="h-4 w-4" />{connecting ? "Connecting…" : "Connect Google Calendar"}</Button>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Outlook Calendar</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">Microsoft Calendar integration is planned.</p>
-            <Button className="w-full" disabled><CalendarDays className="h-4 w-4" />Coming soon</Button>
+            <p className="text-sm text-muted-foreground">Sync meeting changes and deletions in both directions with Outlook Calendar.</p>
+            <Button className="w-full" disabled={connecting} onClick={() => connect("outlook")}><CalendarDays className="h-4 w-4" />Connect Outlook Calendar</Button>
           </CardContent>
         </Card>
         <Card>
@@ -6934,11 +6552,14 @@ function CalendarIntegrationsPage() {
         <CardContent className="space-y-3">
           {loading ? <p className="text-sm text-muted-foreground">Loading integrations...</p> : null}
           {items.map((item) => (
-            <div key={String(item.id)} className="grid gap-3 rounded-md border p-4 md:grid-cols-[1fr_8rem_12rem_auto] md:items-center">
+            <div key={String(item.id)} className="space-y-3 rounded-md border p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
               <div><p className="font-medium">{labelFor(String(item.provider || "calendar"))}</p><p className="text-sm text-muted-foreground">User {String(item.userId || item.user_id || "-")} / scopes {(Array.isArray(item.scopes) ? item.scopes.join(", ") : "calendar.events")}</p></div>
               <Badge className={statusColor(item.isActive === false ? "Inactive" : "Active")}>{item.isActive === false ? "Inactive" : "Active"}</Badge>
               <span className="text-sm text-muted-foreground">Expires {formatDate(String(item.expiresAt || "")) || "not set"}</span>
               <Button variant="outline" size="sm" onClick={() => disconnect(Number(item.id))}>Disconnect</Button>
+              </div>
+              {item.provider !== "mock" && <CalendarSyncControls connectionId={Number(item.id)} />}
             </div>
           ))}
           {!loading && !items.length ? <p className="text-sm text-muted-foreground">No calendar integrations connected yet.</p> : null}
@@ -7410,6 +7031,7 @@ function ReportTable({ title, rows, columns }: { title: string; rows: CRMApiReco
 }
 
 function LeadToCashPage() {
+  const navigate = useNavigate();
   const leadState = useCrmRecords<CRMRecord>("leads", emptyRecords);
   const companyState = useCrmRecords<CRMRecord>("companies", emptyRecords);
   const dealState = useCrmRecords<CRMRecord>("deals", emptyRecords);
@@ -7424,7 +7046,7 @@ function LeadToCashPage() {
     ["Company", "Linked", `${crmCompanies.length} accounts`, "/crm/companies"],
     ["Deal", "Open", `${crmDeals.filter((deal) => !["Won", "Lost"].includes(deal.stage)).length} active deals`, "/crm/deals"],
     ["Quotation", "Sent", `${crmQuotations.filter((quote) => quote.status === "Sent").length} sent quotes`, "/crm/quotations"],
-    ["Order/Invoice", "Handoff", "Ready for finance handoff", "/crm/lead-to-cash"],
+    ["Order/Invoice", "Handoff", "Review orders and finance handoff", "/srm/sales-orders"],
   ];
   const handoffRows = [
     ...crmQuotations.filter((quote) => ["Accepted", "Approved", "Sent"].includes(String(quote.status))).slice(0, 3).map((quote) => ({
@@ -7445,7 +7067,7 @@ function LeadToCashPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Lead-to-Cash" description="Convert leads into contacts, companies, deals, quotations, and order/invoice handoff without leaving CRM." action="Convert lead" />
+      <PageHeader title="Lead-to-Cash" description="Convert leads into contacts, companies, deals, quotations, and order/invoice handoff without leaving CRM." action="Review leads for conversion" onAction={() => navigate("/crm/leads")} />
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         {flow.map(([label, status, detail, path], index) => (
           <Card key={label}>
@@ -7470,7 +7092,7 @@ function LeadToCashPage() {
                 <div><p className="font-medium">{lead.name}</p><p className="text-sm text-muted-foreground">{lead.company} / {lead.source}</p></div>
                 <Badge className={statusColor(lead.rating)}>{lead.rating}</Badge>
                 <span className="text-sm font-medium">{formatCurrency(lead.value)}</span>
-                <Button size="sm">Convert</Button>
+                <Button size="sm" onClick={() => navigate(`/crm/leads?lead=${lead.id}`)}>{lead.status === "Converted" ? "View lead" : "Review conversion"}</Button>
               </div>
             ))}
             {!crmLeads.length ? <p className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">No leads available for conversion.</p> : null}
@@ -7605,9 +7227,16 @@ function ForecastingPage() {
 }
 
 function SalesTargetsPage() {
+  const currentUser = useAuthStore((state) => state.user);
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
   const [targets, setTargets] = useState<CRMApiRecord[]>([]);
   const [performance, setPerformance] = useState<CRMApiRecord[]>([]);
-  const [draft, setDraft] = useState<CRMApiRecord>({ periodType: "monthly", periodStart: "2026-06-01", periodEnd: "2026-06-30", targetOwnerType: "user", targetOwnerId: 100, targetAmount: 1000000, currency: defaultText("currency", "crm") });
+  const [draft, setDraft] = useState<CRMApiRecord>(() => {
+    const now = new Date();
+    const localDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return { periodType: "monthly", periodStart: localDate(new Date(now.getFullYear(), now.getMonth(), 1)), periodEnd: localDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)), targetOwnerType: "user", targetOwnerId: currentUser?.id || "", targetAmount: "", currency: defaultText("currency", "crm") };
+  });
   const [error, setError] = useState<string | null>(null);
   const load = () => {
     Promise.all([crmApi.targets(), crmApi.targetPerformance()])
@@ -7618,7 +7247,15 @@ function SalesTargetsPage() {
       .catch((err) => setError(err?.response?.data?.detail || "Targets could not be loaded."));
   };
   useEffect(load, []);
-  const create = () => crmApi.createTarget(draft).then(load).catch((err) => setError(err?.response?.data?.detail || "Target could not be created."));
+  const create = async () => {
+    if (savingRef.current) return;
+    if (!draft.periodStart || !draft.periodEnd || String(draft.periodEnd) < String(draft.periodStart)) { setError("Choose a valid start and end date."); return; }
+    if (!Number.isFinite(Number(draft.targetOwnerId)) || Number(draft.targetOwnerId) <= 0 || !Number.isFinite(Number(draft.targetAmount)) || Number(draft.targetAmount) <= 0) { setError("Enter an owner ID and a target amount greater than zero."); return; }
+    savingRef.current = true; setSaving(true); setError(null);
+    try { await crmApi.createTarget(draft); load(); setDraft(current => ({ ...current, targetAmount: "" })); }
+    catch { setError("Target could not be created. Check the owner and period, then try again."); }
+    finally { savingRef.current = false; setSaving(false); }
+  };
   const patchDraft = (key: string, value: CRMApiRecord[string]) => setDraft((current) => ({ ...current, [key]: value }));
   return (
     <div className="space-y-6">
@@ -7632,7 +7269,7 @@ function SalesTargetsPage() {
           <Field label="Owner type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.targetOwnerType)} onChange={(event) => patchDraft("targetOwnerType", event.target.value)}>{["user", "team", "territory", "company"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
           <Field label="Owner ID"><Input type="number" value={Number(draft.targetOwnerId || 0)} onChange={(event) => patchDraft("targetOwnerId", Number(event.target.value))} /></Field>
           <Field label="Target"><Input type="number" value={Number(draft.targetAmount || 0)} onChange={(event) => patchDraft("targetAmount", Number(event.target.value))} /></Field>
-          <Button onClick={create}>Save</Button>
+          <Button disabled={saving} onClick={create}>{saving ? "Saving…" : "Save target"}</Button>
         </CardContent>
       </Card>
       <div className="grid gap-4 xl:grid-cols-2">
@@ -7677,7 +7314,7 @@ function FunnelAnalyticsPage() {
   }, []);
   return (
     <div className="space-y-6">
-      <PageHeader title="Sales Funnel" description="Lead-to-cash funnel from lead qualification through SRM sales orders, invoice generation, and receipt collection." action="Export funnel" />
+      <PageHeader title="Sales Funnel" description="Lead-to-cash funnel from lead qualification through SRM sales orders, invoice generation, and receipt collection." action={rows.length && !error ? "Export funnel" : undefined} onAction={() => exportRows("crm-sales-funnel.csv", rows)} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <Card>
         <CardHeader><CardTitle>Lead-to-Cash Conversion</CardTitle></CardHeader>
@@ -7699,6 +7336,7 @@ function FunnelAnalyticsPage() {
 }
 
 function LostAnalysisPage() {
+  const navigate = useNavigate();
   const [report, setReport] = useState<CRMApiRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   useRefreshableEffect(() => {
@@ -7707,12 +7345,12 @@ function LostAnalysisPage() {
   const summary = (report?.summary as CRMApiRecord) || {};
   return (
     <div className="space-y-6">
-      <PageHeader title="Lost Analysis" description="Lost reasons, competitors, lost amount, owner trends, and AI pattern-detection readiness." action="Review lost deals" />
+      <PageHeader title="Lost Analysis" description="Recorded loss reasons, competitors, lost amount and owner trends." action="Open deals" onAction={() => navigate("/crm/deals")} />
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <div className="grid gap-3 md:grid-cols-3">
         <Metric icon={AlertTriangle} label="Lost deals" value={String(summary.lostDeals || 0)} tone="red" />
         <Metric icon={IndianRupee} label="Lost amount" value={formatCurrency(Number(summary.lostAmount || 0))} tone="red" />
-        <Metric icon={Sparkles} label="AI pattern detection" value="Placeholder" tone="violet" />
+        <Metric icon={Target} label="Recorded loss reasons" value={String(((report?.lostReasonBreakdown as CRMApiRecord[]) || []).length)} tone="violet" />
       </div>
       <div className="grid gap-4 xl:grid-cols-3">
         <ReportTable title="Lost Reasons" rows={(report?.lostReasonBreakdown as CRMApiRecord[]) || []} columns={["reason", "count", "amount"]} />
@@ -8094,7 +7732,7 @@ function PageHeader({ title, description, action, onAction }: { title: string; d
         <h1 className="page-title">{title}</h1>
         <p className="page-description">{description}</p>
       </div>
-      {action ? <Button onClick={onAction}><Plus className="h-4 w-4" />{action}</Button> : null}
+      {action && onAction ? <Button onClick={onAction}><Plus className="h-4 w-4" />{action}</Button> : null}
     </div>
   );
 }

@@ -21,6 +21,7 @@ class AppModule:
 
 
 COMMON_ROUTER_MODULES = (
+    'app.apps.industry_packs.api',
     "app.shared.pipeline_workspace",
     "app.shared.import_api",
     "app.shared.accounting_sync.api",

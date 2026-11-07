@@ -102,6 +102,10 @@ async def lifespan(app: FastAPI):
     if is_app_enabled("crm") or is_app_enabled("srm"):
         from app.shared.follow_ups import start_worker
         follow_up_worker = start_worker()
+    calendar_worker = None
+    if settings.CALENDAR_SYNC_WORKER_ENABLED and (is_app_enabled("crm") or is_app_enabled("project_management")):
+        from app.apps.crm.calendar_sync import start_worker as start_calendar_worker
+        calendar_worker = start_calendar_worker()
     backup_worker = None
     email_worker = None
     if settings.EMAIL_WORKER_ENABLED:
@@ -125,6 +129,8 @@ async def lifespan(app: FastAPI):
             await platform_worker
         except asyncio.CancelledError:
             pass
+        if calendar_worker:
+            calendar_worker[0].set()
         if follow_up_worker:
             follow_up_worker[0].set()
         if email_worker:

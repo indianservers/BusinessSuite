@@ -76,6 +76,9 @@ def _require_report(db: Session, report_id: int, user: User) -> AnalyticsReport:
     report = db.query(AnalyticsReport).filter(AnalyticsReport.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Analytics report not found")
+    source = report.data_source_json or {}
+    if source.get('industry_pack') and source.get('company_id') != user.organization_id:
+        raise HTTPException(404, 'Analytics report not found')
     ensure_source_allowed(report.module_name, _financial_allowed(user))
     return report
 
@@ -87,7 +90,8 @@ def module_info(current_user: User = Depends(RequirePermission("analytics_view",
 
 @router.get("/reports")
 def list_reports(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_view", "analytics_manage", "analytics_report_builder"))):
-    return _list(db.query(AnalyticsReport).order_by(AnalyticsReport.created_at.desc()).all())
+    rows = db.query(AnalyticsReport).order_by(AnalyticsReport.created_at.desc()).all()
+    return _list([row for row in rows if not (row.data_source_json or {}).get('industry_pack') or row.data_source_json.get('company_id') == current_user.organization_id])
 
 
 @router.post("/reports", status_code=201)

@@ -32,6 +32,8 @@ from app.ai_operator.workbench import router as workbench_router
 router.include_router(workbench_router)
 from app.ai_operator.suite import router as suite_router
 router.include_router(suite_router)
+from app.ai_operator.deadline_radar import router as workspace_router
+router.include_router(workspace_router)
 
 
 def public_provider(row):

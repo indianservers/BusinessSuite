@@ -1,0 +1,15 @@
+{
+  "origin": "http://127.0.0.1:5200",
+  "database": "disposable local QA database",
+  "checks": [
+    "Real sign-in, dedicated setup page, shared-first groups and sidebar entry",
+    "Added HR, CRM and finance starter values from real Settings UI",
+    "Leave types, zero-amount salary components, departments, designations and shift visible in Settings",
+    "Custom lead source saved, survives reload and is included in effective form choices",
+    "Currency default is INR and custom lead sources appear in Defaults configuration",
+    "All mandatory setup complete: guide and sidebar hidden, including with recommendations incomplete",
+    "Guide reappears when a mandatory prerequisite is missing and hides after live recheck",
+    "Project prerequisite reappears after archive; mobile layout has no overflow or browser exceptions"
+  ],
+  "passed": true
+}

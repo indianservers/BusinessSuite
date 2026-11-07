@@ -63,6 +63,7 @@ def register_action(name, tool):
 
 for module, entity, path, permission in [
     ("crm", "lead", "/crm/leads/{id}", "crm_view"),
+    ('crm', 'deal', '/crm/deals/{id}', 'crm_view'),
     ("crm", "quote", "/crm/quotes/{id}", "crm_view"),
     ("project_management", "project", "/project-management/projects/{id}", "pms_view"),
     ("project_management", "task", "/project-management/tasks/{id}", "pms_view"),

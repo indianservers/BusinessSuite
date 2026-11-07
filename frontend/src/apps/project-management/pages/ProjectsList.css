@@ -1272,3 +1272,13 @@
 .project-portfolio .portfolio-table tr.is-selected td {
   background: var(--portfolio-row);
 }
+
+.portfolio-project-name { color: hsl(var(--foreground)); font-weight: 600; text-align: left; cursor: pointer; border-radius: 4px; }
+.portfolio-project-name:hover { color: hsl(var(--primary)); text-decoration: underline; }
+.portfolio-project-name:focus-visible, .portfolio-quick-actions a:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
+.portfolio-interaction-hint { color: hsl(var(--muted-foreground)); font-size: 12px; margin-bottom: 10px; }
+.portfolio-quick-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.portfolio-quick-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 36px; padding: 5px 8px; border: 1px solid hsl(var(--border)); border-radius: 6px; font-size: 12px; white-space: nowrap; }
+.portfolio-quick-actions a:hover { background: hsl(var(--muted)); color: hsl(var(--primary)); }
+.portfolio-row-actions { flex-wrap: wrap; min-width: 220px; }
+.portfolio-cards article, .portfolio-mobile-cards article { cursor: pointer; }

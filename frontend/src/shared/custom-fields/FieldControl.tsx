@@ -23,6 +23,11 @@ export function fieldShown(field: FieldDefinition, placement: Placement) {
   return !Array.isArray(places) || places.includes(placement);
 }
 
+export function fieldInPipeline(field: FieldDefinition, pipelineId: unknown) {
+  const scope = fieldSettings(field).pipeline_id;
+  return scope == null || Number(scope) === Number(pipelineId);
+}
+
 /** One typed control for create, edit, preview and detail surfaces. No coercion of saved values on mount. */
 export default function FieldControl({ field, value, onChange, disabled = false }: { field: FieldDefinition; value: unknown; onChange: (value: unknown) => void; disabled?: boolean }) {
   const id = useId();

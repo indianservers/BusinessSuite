@@ -34,7 +34,7 @@ def authorize(user_id, organization_id):
     return {"state": state, "url": "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
         "client_id": settings.CRM_GOOGLE_CALENDAR_CLIENT_ID,
         "redirect_uri": settings.CRM_GOOGLE_CALENDAR_REDIRECT_URI,
-        "response_type": "code", "scope": SCOPE, "access_type": "offline", "prompt": "consent",
+        "response_type": "code", "scope": SCOPE + " openid email", "access_type": "offline", "prompt": "consent",
         "state": state, "code_challenge": challenge, "code_challenge_method": "S256",
     })}
 

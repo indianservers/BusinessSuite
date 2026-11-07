@@ -15,6 +15,7 @@ export default function SetupGuide({data,module,loading,error,refreshing,refresh
   if (loading || error || !data || !missing.length) return null;
 
   return <section className="setup-guide" aria-label="Workspace setup guide">
+    {(!module || module === 'crm') && <div className="mb-4 rounded-lg border p-4"><strong>Set up your industry</strong><p className="text-sm">Install CRM stages, fields, published follow-up workflows and reports for your business.</p><Link className="text-sm underline" to="/crm/pipeline-templates">Choose an industry pack</Link></div>}
     <header className="setup-guide-header"><div><p className="setup-guide-eyebrow">YOUR SETUP GUIDE</p><h2>{module ? `${(labels[module] || module).split(" · ")[0]} setup` : "Let's get your workspace ready"}</h2><p>Start with shared essentials, then complete the setup for each module.</p>{items.some(i=>i.id === "administrator" && i.canRepair) && <Link className="text-sm font-medium underline" to="/settings/starter-values">Add starter setup values <ArrowRight size={14} className="inline"/></Link>}</div><button disabled={refreshing} onClick={refresh}><RefreshCw size={15}/>{refreshing ? "Checking…" : "Check again"}</button></header>
     {loading ? <p role="status">Checking current configuration…</p> : error ? <p role="alert">Setup status is unavailable. Check again to retry.</p> : <>
       <div className="setup-guide-progress"><progress aria-label="Setup tasks completed" value={completed} max={items.length || 1}/><span>{completed} of {items.length} complete</span></div>

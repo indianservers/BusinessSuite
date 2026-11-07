@@ -95,7 +95,7 @@ from app.apps.crm.models import (
 )
 from app.core.config import settings
 from app.core.input_validation import national_phone,calling_code,full_phone,email_address
-from app.core.deps import RequirePermission, get_db
+from app.core.deps import RequirePermission, get_db, get_current_user
 from app.models.company import Branch, Company
 from app.models.employee import Employee
 from app.models.audit import AuditLog
@@ -925,7 +925,7 @@ def _calendar_provider(provider: str) -> CRMCalendarProvider:
         return MockCRMCalendarProvider()
     if provider == "google":
         return GoogleCRMCalendarProvider()
-    return PlaceholderCRMCalendarProvider(provider)
+    return OutlookCRMCalendarProvider()
 
 
 class GoogleCRMCalendarProvider(CRMCalendarProvider):
@@ -936,6 +936,14 @@ class GoogleCRMCalendarProvider(CRMCalendarProvider):
         return sync_meeting(integration, meeting)
 
 
+class OutlookCRMCalendarProvider(CRMCalendarProvider):
+    name = "outlook"
+
+    def sync_meeting(self, *, integration, meeting):
+        from app.apps.crm.outlook_calendar import sync_meeting
+        return sync_meeting(integration, meeting)
+
+
 def _serialize_calendar_integration(row: CRMCalendarIntegration) -> dict[str, Any]:
     item = _serialize(row)
     item.pop("access_token_encrypted", None)
@@ -943,7 +951,7 @@ def _serialize_calendar_integration(row: CRMCalendarIntegration) -> dict[str, An
     item.pop("accessTokenEncrypted", None)
     item.pop("refreshTokenEncrypted", None)
     item["connected"] = bool(row.is_active and row.access_token_encrypted)
-    item["scopes"] = ["calendar.events"]
+    item["scopes"] = ["Calendars.ReadWrite" if row.provider == "outlook" else "calendar.events"]
     return item
 
 
@@ -968,6 +976,14 @@ def _sync_meeting_to_calendar(db: Session, organization_id: int, meeting: CRMMee
         meeting.sync_status = "not_configured"
         meeting.external_provider = _normalize_calendar_provider(provider) if provider else None
         meeting.updated_by_user_id = current_user.id
+        return meeting
+    if integration.provider in {"google", "outlook"}:
+        if meeting.owner_user_id != current_user.id:
+            raise HTTPException(403, "Only your own meetings can sync to your personal calendar.")
+        # The shared engine owns all real-provider writes, mappings and conflict detection.
+        from app.apps.crm.calendar_sync import state_for
+        state_for(db, integration).next_run_at = None
+        meeting.sync_status = "queued"
         return meeting
     adapter = _calendar_provider(integration.provider)
     meeting.external_provider = integration.provider
@@ -3006,6 +3022,10 @@ def _save_custom_field_values(db: Session, entity: str, record_id: int, organiza
     if not values:
         return
     fields = _custom_field_definitions(db, entity, organization_id)
+    pipeline_id = None
+    if entity == 'deals':
+        deal = db.query(CRMDeal).filter_by(id=record_id, organization_id=organization_id).first()
+        pipeline_id = deal.pipeline_id if deal else None
     by_key: dict[str, CRMCustomField] = {}
     for field in fields:
         by_key[str(field.id)] = field
@@ -3017,6 +3037,9 @@ def _save_custom_field_values(db: Session, entity: str, record_id: int, organiza
         field = by_key.get(str(key))
         if not field:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Unknown custom field: {key}")
+        scope = ((field.options_json or {}).get('ui', {}) if isinstance(field.options_json, dict) else {}).get('pipeline_id')
+        if entity == 'deals' and scope is not None and scope != pipeline_id:
+            raise HTTPException(422, 'Industry custom fields must belong to the selected pipeline')
         storage = _custom_field_storage(field, value)
         row = (
             _base_query(db, _get_resource("custom-field-values"), organization_id)
@@ -5888,10 +5911,14 @@ def merge_duplicates(
     return {"winner": _serialize(winner), "mergedIds": loser_ids, "relatedCounts": related_counts}
 
 
+from app.apps.crm.calendar_sync_api import router as calendar_sync_router
+router.include_router(calendar_sync_router)
+
+
 @router.get("/calendar-integrations")
 def list_calendar_integrations(
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
+    current_user: User = Depends(get_current_user),
 ):
     organization_id = _organization_id(db, current_user)
     rows = (
@@ -5900,13 +5927,14 @@ def list_calendar_integrations(
         .order_by(asc(CRMCalendarIntegration.provider))
         .all()
     )
-    return {"items": [_serialize_calendar_integration(row) for row in rows], "total": len(rows)}
+    from app.apps.crm.calendar_sync import status as calendar_sync_status
+    return {"items": [{**_serialize_calendar_integration(row), "sync": calendar_sync_status(db, row)} for row in rows], "total": len(rows)}
 
 
 @router.post("/calendar-integrations/google/authorize")
 def authorize_google_calendar(
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(get_current_user),
 ):
     from app.apps.crm.google_calendar import authorize
     return authorize(current_user.id, _organization_id(db, current_user))
@@ -5916,7 +5944,7 @@ def authorize_google_calendar(
 def complete_google_calendar(
     payload: GoogleCalendarCallbackPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(get_current_user),
 ):
     from app.apps.crm.google_calendar import exchange, store_tokens
     organization_id = _organization_id(db, current_user)
@@ -5928,6 +5956,43 @@ def complete_google_calendar(
         row = CRMCalendarIntegration(organization_id=organization_id, user_id=current_user.id,
                                      provider="google", created_by_user_id=current_user.id)
         db.add(row)
+    from app.apps.crm.calendar_sync import bind_account
+    bind_account(db, row, tokens)
+    store_tokens(row, tokens)
+    row.is_active = True
+    row.updated_by_user_id = current_user.id
+    db.commit()
+    db.refresh(row)
+    return _serialize_calendar_integration(row)
+
+
+@router.post("/calendar-integrations/outlook/authorize")
+def authorize_outlook_calendar(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.apps.crm.outlook_calendar import authorize
+    return authorize(current_user.id, _organization_id(db, current_user))
+
+
+@router.post("/calendar-integrations/outlook/callback")
+def complete_outlook_calendar(
+    payload: GoogleCalendarCallbackPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.apps.crm.outlook_calendar import exchange, store_tokens
+    organization_id = _organization_id(db, current_user)
+    tokens = exchange(payload.code, payload.state, current_user.id, organization_id)
+    if not tokens.get("refresh_token"):
+        raise HTTPException(400, "Outlook did not grant offline access. Reconnect and allow calendar access.")
+    row = _active_calendar_integration(db, organization_id, current_user.id, "outlook")
+    if row is None:
+        row = CRMCalendarIntegration(organization_id=organization_id, user_id=current_user.id,
+                                     provider="outlook", created_by_user_id=current_user.id)
+        db.add(row)
+    from app.apps.crm.calendar_sync import bind_account
+    bind_account(db, row, tokens)
     store_tokens(row, tokens)
     row.is_active = True
     row.updated_by_user_id = current_user.id
@@ -5940,12 +6005,12 @@ def complete_google_calendar(
 def connect_calendar_integration(
     payload: CRMCalendarIntegrationConnectPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(get_current_user),
 ):
     organization_id = _organization_id(db, current_user)
     provider = _normalize_calendar_provider(payload.provider)
     if provider != "mock":
-        raise HTTPException(422, "Use Google OAuth to connect Google Calendar. Other providers are not available yet; mock is for development only.")
+        raise HTTPException(422, "Use the provider OAuth authorization flow to connect Google or Outlook Calendar.")
     access_token = payload.accessToken
     refresh_token = payload.refreshToken
     if payload.mock or provider == "mock":
@@ -5970,7 +6035,7 @@ def connect_calendar_integration(
 def delete_calendar_integration(
     integration_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+    current_user: User = Depends(get_current_user),
 ):
     organization_id = _organization_id(db, current_user)
     row = (
@@ -9347,3 +9412,5 @@ def delete_record(
     )
     db.commit()
     return {"message": "CRM record deleted"}
+
+# Register personal sync routes before the generic resource catch-all.

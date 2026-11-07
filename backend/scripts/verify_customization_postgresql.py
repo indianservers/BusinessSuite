@@ -37,7 +37,8 @@ def main():
     pg('pg_ctl.exe', '-D', data, '-l', cluster / 'server.log', '-o', f'-h 127.0.0.1 -p {port} -c max_locks_per_transaction=256', '-w', 'start')
     url = URL.create('postgresql+psycopg', username='customization_test', host='127.0.0.1', port=port, database=name)
     admin_url = url.set(drivername='postgresql', database='postgres')
-    output = ROOT.parent / 'outputs' / 'customization-phase-1'
+    tests = sys.argv[1:] or ['tests/test_customization_runtime.py']
+    output = ROOT.parent / 'outputs' / ('industry-packs-phase-2' if any('industry_packs' in name for name in tests) else 'customization-phase-1')
     output.mkdir(parents=True, exist_ok=True)
     try:
         with psycopg.connect(admin_url.render_as_string(hide_password=False), autocommit=True) as admin:
@@ -47,7 +48,7 @@ def main():
             environment.update(TEST_DATABASE_URL=test_url, PLATFORM_DATABASE_URL=test_url,
                 TENANT_DATABASES_ENABLED='false', FAST_TEST_PASSWORD_HASHES='1')
             print('Running customization tests in an isolated local PostgreSQL database.', flush=True)
-            return subprocess.call([sys.executable, '-m', 'pytest', 'tests/test_customization_runtime.py',
+            return subprocess.call([sys.executable, '-m', 'pytest', *tests,
                 '-q', '--disable-warnings', '--tb=short', f'--junitxml={output / "postgresql.xml"}'], cwd=ROOT, env=environment)
     finally:
         pg('pg_ctl.exe', '-D', data, '-m', 'fast', '-w', 'stop')

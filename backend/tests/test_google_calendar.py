@@ -18,7 +18,7 @@ def credentials(monkeypatch):
 
 def test_authorization_uses_offline_access_and_pkce(credentials):
     query = parse_qs(urlparse(google.authorize(1, 2)["url"]).query)
-    assert query["scope"] == [google.SCOPE]
+    assert google.SCOPE in query["scope"][0].split()
     assert query["access_type"] == ["offline"]
     assert query["code_challenge_method"] == ["S256"]
     assert "verifier" not in query["state"][0]
@@ -89,6 +89,7 @@ def test_api_blocks_fake_google_connections(client, superuser_headers):
 
 def test_callback_stores_encrypted_credentials_and_disconnect_clears_them(client, db, superuser_headers, monkeypatch):
     from app.apps.crm.models import CRMCalendarIntegration
+    monkeypatch.setattr("app.apps.crm.calendar_sync.account_identity", lambda *args: "verified-account")
     monkeypatch.setattr(google, "exchange", lambda *args: {
         "access_token": "sensitive-access", "refresh_token": "sensitive-refresh", "expires_in": 3600,
     })

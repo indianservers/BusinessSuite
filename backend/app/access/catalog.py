@@ -9,6 +9,7 @@ MODULES = {}
 MODULE_PERMISSIONS = defaultdict(set)
 MODULE_PERMISSIONS["ai"].update({"ai_assistant", "settings_view", "settings_manage"})
 ALIASES = {
+    'industry_packs': 'crm',
     "pms": "project_management",
     "ai_agents": "ai",
     "ai_copilot": "ai",

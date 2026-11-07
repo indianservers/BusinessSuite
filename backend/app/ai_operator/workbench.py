@@ -92,7 +92,7 @@ class Policy(Strict):
 
 class ArtifactInput(Strict):
     project_id: int = Field(gt=0)
-    kind: Literal['memory','playbook','policy','teaching','evaluation','rule']
+    kind: Literal['memory','playbook','policy','teaching','evaluation','rule','deadline_radar']
     title: str = Field(min_length=1,max_length=180)
     payload: dict
     revision: int | None = Field(default=None,ge=1)
@@ -103,6 +103,9 @@ def validate_artifact(db, user, data):
     body=data.payload
     if len(json.dumps(body))>30000:
         raise HTTPException(422,'Assistant item exceeds 30 KB')
+    if data.kind=='deadline_radar':
+        from app.ai_operator.deadline_radar import RadarConfig
+        return RadarConfig.model_validate(body).model_dump()
     if data.kind=='memory':
         if set(body)-{'text','category'} or not isinstance(body.get('text'),str) or not 1<=len(body['text'])<=2000:
             raise HTTPException(422,'Memory needs text, up to 2000 characters')

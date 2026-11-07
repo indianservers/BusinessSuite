@@ -2,7 +2,7 @@ import { useAuthStore } from "@/store/authStore";
 import { api } from "@/services/api";
 import { useEffect, useRef, useState } from "react";
 import { crmApi, type CRMApiRecord } from "@/apps/crm/api";
-import FieldControl, { fieldSettings, fieldShown, type Placement } from "./FieldControl";
+import FieldControl, { fieldSettings, fieldShown, fieldInPipeline, type Placement } from "./FieldControl";
 
 export function useCrmFieldForm(entity: string, placement: Placement, recordId?: number, companySource?: string, refreshKey?: number|string) {
   const companyId=useAuthStore(s=>s.user?.access?.companyId);
@@ -15,7 +15,8 @@ export function useCrmFieldForm(entity: string, placement: Placement, recordId?:
     const request = entity === "employees" ? api.get<{items: CRMApiRecord[]}>("/employees/custom-fields/definitions", {params: {employee_id: recordId},recordCache:false}).then(r => [{data: {items: r.data.items}}, {data: {customFields: r.data.items}}] as const) : companySource ? api.get<{items: CRMApiRecord[]; customFields: CRMApiRecord[]}>("/master-data/companies/custom-fields", { params: { source: companySource, entity, record_id: recordId },recordCache:false }).then(r => [{data: {items: r.data.items}}, {data: {customFields: r.data.customFields}}] as const) : Promise.all([api.get<{items:CRMApiRecord[]}>("/crm/custom-fields",{params:{entityType:entity,per_page:100,sort_by:"position",sort_order:"asc"},recordCache:false}), recordId ? api.get<CRMApiRecord>(`/crm/${entity}/${recordId}`,{recordCache:false}) : Promise.resolve(null)]);
     request.then(([definitions, record]) => {
       if (!active) return;
-      setFields(definitions.data.items.filter(field => fieldShown(field, placement)));
+      const recordData = record?.data as CRMApiRecord | undefined;
+      setFields(definitions.data.items.filter(field => fieldShown(field, placement) && (entity !== "deals" || !recordId || fieldInPipeline(field, recordData?.pipeline_id || recordData?.pipelineId))));
       const existing = record?.data.customFields;
       if (Array.isArray(existing)) { const loaded=Object.fromEntries((existing as CRMApiRecord[]).map(f => [String(f.fieldKey || f.field_key || f.id), f.value]));initialValues.current=loaded;setValues(loaded); }
     }).catch(() => { if (active) setError("Custom fields could not be loaded. Reopen the form to try again."); }).finally(() => { if (active) setLoading(false); });

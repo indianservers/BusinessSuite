@@ -49,9 +49,11 @@ Artifacts: `outputs/customization-phase-1/regression.xml`, `postgresql.xml`, `re
 - Existing customization permissions remain the operational access model. Per-custom-module business-role grants and portable pack identifiers need design before broad staff self-service rollout. Existing database uniqueness rules for custom identifiers are retained.
 - Connector delivery ambiguity is durably blocked for reconciliation. A reconciliation UI/provider-status workflow is not added here; provider credentials and live delivery certification remain separate.
 - Metadata configuration for saved views, Kanban, layouts and global picklists is retained. This phase does not implement every advertised view/board execution behaviour.
-- Existing CRM industry templates still do not install their advertised automations and reports. They are addressed in Phase 2, not relabelled as complete here.
+- At Phase 1 completion, CRM industry templates still lacked executable automations and reports. The implemented Phase 2 installer below now replaces that metadata-only behaviour with published follow-up workflows and runnable reports.
 
 ## Phase 2 — Reusable industry packs and onboarding
+
+Implemented foundation: see [Industry packs and onboarding](industry-packs-phase-2.md) for actual installed workflows/reports, lifecycle behaviour, access requirements and test scope. The pack library is at `/crm/pipeline-templates`; document templates retain `/crm/templates`.
 
 Versioned, repeatable installation of module choices, names, fields, relationships, statuses, operational role grants, forms, automations and reports. Separate business setup from optional demo data. Validate native-module field adapters, import/export/report access, upgrades and uninstall/disable behaviour. Reuse CRM templates, Power Apps, existing automation and report services.
 
