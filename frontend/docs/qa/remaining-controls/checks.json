@@ -3508,5 +3508,17 @@
     "control": "Open execution logs",
     "result": "passed",
     "evidence": "Automation Studio logs section opened."
+  },
+  {
+    "page": "pms/management",
+    "control": "Rapid owner/status filter composition",
+    "result": "fixed-and-passed",
+    "evidence": "Owner1 then Backlog produced URL ?status=Backlog and cleared owner. Updated build retained owner1+Backlog;owner2+ToDo+workspace1 retained all3 URL parameters and settled controls."
+  },
+  {
+    "page": "pms/management",
+    "control": "Task/project view status compatibility",
+    "result": "fixed-and-passed",
+    "evidence": "Projects view retained URLstatus=ToDo;status select showedAllstatuses andprojectslistwasempty. Updated build removesToDo when opening Projects;Active+AtRisk removedwhenreturningAlltasks;owner1preservedthroughbothswitches."
   }
 ]
