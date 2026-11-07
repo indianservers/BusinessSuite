@@ -77,7 +77,8 @@ class RecordSyncTests(unittest.TestCase):
             first = self.first()
             self.scope = scope
             second = self.again(first)
-            self.assertEqual(second.status_code, 304)
+            self.assertEqual(second.status_code, 200)
+            self.assertEqual(second.headers['x-suite-sync-mode'], 'full')
             self.assertEqual(second.headers['x-suite-sync-scope'], scope)
 
     def test_revoked_route_never_returns_304(self):
@@ -94,15 +95,32 @@ class RecordSyncTests(unittest.TestCase):
         self.assertEqual(self.again(first).headers['x-suite-sync-mode'], 'full')
         self.assertEqual(self.again(first, **{'X-Suite-Sync-Cursor': 'forged'}).headers['x-suite-sync-mode'], 'full')
 
-    def test_unchanged_etag_survives_worker_restart(self):
+    def test_worker_restart_returns_full_when_cursor_baseline_was_evicted(self):
         first = self.first()
         for i in range(6): self.first()
-        self.assertEqual(self.again(first).status_code, 304)
+        reset = self.again(first)
+        self.assertEqual(reset.status_code, 200)
+        self.assertEqual(reset.json()['items'], self.rows)
 
     def test_cursor_cannot_cross_filter_or_sort(self):
         first = self.first()
         second = self.client.get('/api/v1/crm/leads?search=other', headers={'X-Suite-Sync': '1', 'X-Suite-Sync-Cursor': first.headers['x-suite-sync-cursor'], 'If-None-Match': first.headers['etag']})
-        self.assertEqual(second.status_code, 304)  # Authorization and the current full representation still match.
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.headers['x-suite-sync-mode'], 'full')
+
+    def test_browser_validator_without_cursor_cannot_reuse_a_cached_delta(self):
+        first = self.first()
+        self.rows[0]['name'] = 'Updated contact'
+        delta = self.again(first)
+        self.assertEqual(delta.headers['x-suite-sync-mode'], 'delta')
+        # A reload has lost the JS baseline, but HTTP cache still has this ETag
+        # and a delta wire body. A 304 here would revive that incomplete body.
+        reset = self.client.get('/api/v1/crm/leads', headers={
+            'X-Suite-Sync': '1', 'If-None-Match': delta.headers['etag'],
+        })
+        self.assertEqual(reset.status_code, 200)
+        self.assertEqual(reset.headers['x-suite-sync-mode'], 'full')
+        self.assertEqual(reset.json()['items'], self.rows)
 
     def test_endpoint_no_store_respected(self):
         self.no_store = True

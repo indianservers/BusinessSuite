@@ -5,10 +5,10 @@
   "initial_route_inventory": "../workspace-completion/routes-desktop.json",
   "initial_routes": 192,
   "initial_controls": 14765,
-  "interaction_checks_recorded": 590,
+  "interaction_checks_recorded": 594,
   "check_results": {
-    "passed": 581,
-    "fixed-and-passed": 9
+    "passed": 583,
+    "fixed-and-passed": 11
   },
   "route_workspace_panels": "workspace-panels.json",
   "validation": {
@@ -17,14 +17,19 @@
     "typescript": "passed",
     "changed_component_lint": "passed",
     "production_build": "passed",
-    "management_backend_tests": 7
+    "management_backend_tests": 7,
+    "contact_picker_response_scenarios": 11,
+    "record_sync_backend_tests": 21,
+    "sync_payload_scenarios": 8,
+    "backend_total_this_audit": 96
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
     "Individual checks are recorded in checks.json. A check verifies only its described action and observed outcome.",
     "Workspace-panel checks are recorded per route and do not certify the other controls on that route.",
     "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded.",
-    "Browser viewport changed during the session from952x466to1920x889; individual page checks are not a fresh full responsive-layout audit."
+    "Browser viewport changed during the session from952x466to1920x889; individual page checks are not a fresh full responsive-layout audit.",
+    "Disposable QA fixture reset after sync-protocol fix. Earlier evidence reflects the previous generated fixture; no production data touched."
   ],
   "route_pass_status": "All192destination headings verified before workspace-panel actions;172panels passed and20notexposedinthecurrentlayout. Preliminary batches excluded.",
   "filter_option_checks": {
@@ -40,9 +45,18 @@
   "grid_control_checks": {
     "file": "grid-controls.json",
     "results": {
-      "passed": 15,
+      "passed": 47,
       "superseded-by-recheck": 12
     },
-    "limitation": "Company directory column options and saved-view controls only; other grids remain pending."
+    "limitation": "Company, vendor and customer columns exercised individually. Vendor/customer display and saved-view controls checked. Other grids and additional row actions remain pending."
+  },
+  "form_option_checks": {
+    "file": "form-options.json",
+    "results": {
+      "passed": 1003,
+      "superseded-by-fix": 14,
+      "fixed-and-passed": 161
+    },
+    "limitation": "Currency options checked via visible search and pointer selection. Native selections verify controlled value only; do not certify saved validation for each value."
   }
 }

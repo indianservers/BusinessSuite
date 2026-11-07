@@ -3538,5 +3538,29 @@
     "control": "Loaded-row pagination scope label",
     "result": "fixed-and-passed",
     "evidence": "Loaded dataset table now exposes Loaded rows per page. All five options10/25/50/100/200 selected and restored in browser. Server-backed company directory retains Rows per page."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Create, reopen, trash and restore synthetic customer",
+    "result": "passed",
+    "evidence": "Created QA Browser customer lifecycle with Industry Local QA, Other registration QA-LOCAL-001 and address QA local address. Reopened editor and confirmed name/registration/address persisted. Selected only this record, moved to Trash, observed archived row, restored it, returned to Active records and confirmed Edit enabled."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Currency and searchable type pickers above nested editor",
+    "result": "fixed-and-passed",
+    "evidence": "Before: USD option hit-test returned underlying crm-financial-grid, dialog z211 versus picker z180; click kept AED while keyboard Enter selected. After z1000: option receives pointer, USD click shows $USD. Business type pointer selection Private Limited Company saved and reopened as private_limited. All162currency choices covered in form-options.json."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Customer creation auxiliary controls",
+    "result": "passed",
+    "evidence": "Visited all4tabs; added tax registration and selectedall5types; added2phone/2emailrows and selectedall26typechoices, removedonlyaddedrows. Toggled WhatsAppavailable and embedded-contact checkbox on/off; addedaddress and verified its savedvalue. Added/removedbank andUPIrows;242bankcountries and9paymentterms selected/restored. No financial transaction or communication was sent."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Contact picker after mutation and hard reload",
+    "result": "fixed-and-passed",
+    "evidence": "Reproduced render failure .items.map on sync delta. Diagnostic metadata showed modeunchanged with delta keys schema/key/order/upserts/removed/meta. Fixed client handling of browser-merged200unchanged and server baseline requirement for304. After disposable QA restart: picker8contacts,9aftercustomercreation,9aftereachof2hardreloads;state ready and noalert. Empty list and response-error recovery UI also checked."
   }
 ]

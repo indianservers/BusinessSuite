@@ -47,7 +47,7 @@
     "control": "Column UPI IDs: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Error: Timed out after 2998ms waiting for CDP command Input.dispatchMouseEvent.\nwaiting on click for selector .udg-column-manager >> .udg-column-option >> internal:has=\"internal:role=checkbox[name=\\\"UPI IDs\\\"s]\" >> internal:role=button[name=\"Move UPI IDs left\"s]",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -55,7 +55,7 @@
     "control": "Column Classification: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Timed out after 3000ms evaluating selector .udg-column-manager >> .udg-column-option >> internal:has=\"internal:role=checkbox[name=\\\"Classification\\\"s]\" >> input[type=\"checkbox\"]: CDP operation exceeded its deadline before command dispatch",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -63,7 +63,7 @@
     "control": "Column Business type: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Timed out after 3000ms evaluating selector .udg-column-manager >> .udg-column-option >> internal:has=\"internal:role=checkbox[name=\\\"Business type\\\"s]\" >> input[type=\"checkbox\"]: CDP operation exceeded its deadline before command dispatch",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -71,7 +71,7 @@
     "control": "Column UPI IDs: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Timed out after 3000ms evaluating selector .udg-column-manager >> .udg-column-option >> internal:has=\"internal:role=checkbox[name=\\\"UPI IDs\\\"s]\" >> input[type=\"checkbox\"]: Timed out after 269ms waiting for CDP command Page.getFrameTree.",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -79,7 +79,7 @@
     "control": "Column Classification: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Timed out after 3000ms evaluating selector .udg-column-manager >> .udg-column-option >> internal:has=\"internal:role=checkbox[name=\\\"Classification\\\"s]\" >> input[type=\"checkbox\"]: CDP operation exceeded its deadline before command dispatch",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -101,7 +101,7 @@
     "control": "Column Business type: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Timed out after 3000ms evaluating selector .udg-column-manager >> .udg-column-option:has(select[aria-label=\"Pin Business type\"]) >> select: Timed out after 1001ms waiting for CDP command Page.getFrameTree.",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -123,7 +123,7 @@
     "control": "Column Industry: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Column order did not restore",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -131,7 +131,7 @@
     "control": "Column Status: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Column order did not restore",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -139,7 +139,7 @@
     "control": "Column Industry: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Timed out after 3000ms evaluating selector .udg-column-manager >> .udg-column-option:has(select[aria-label=\"Pin Industry\"]) >> input[type=\"checkbox\"]: Browser Use encountered an error interacting with this webpage: Error: No element matched selector\n    at <anonymous>:226:33\n    at <anonymous>:228:13\n    at <anonymous>:229:11",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -154,7 +154,7 @@
     "control": "Column Industry: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Column order did not restore",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -162,7 +162,7 @@
     "control": "Column Status: visibility, all pin positions, ordering",
     "result": "superseded-by-recheck",
     "error": "Error: Timed out after 3000ms evaluating selector .udg-column-manager >> .udg-column-option:has(select[aria-label=\"Pin Status\"]) >> input[type=\"checkbox\"]: Playwright selector deadline exceeded",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -191,7 +191,7 @@
     "control": "Auto-fit all columns",
     "result": "superseded-by-recheck",
     "error": "Error: Invalid header width after auto-fit",
-    "resolution": "See later completed browser check. Earlier attempt retained for traceability."
+    "resolution": "See later completed browser recheck; earlier attempt retained."
   },
   {
     "page": "crm/companies",
@@ -199,5 +199,229 @@
     "control": "Auto-fit all columns",
     "result": "passed",
     "evidence": "15 header widths remain positive after auto-fit; exact content fit requires visual review."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Vendor: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Business roles: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Primary email: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Primary phone: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Company GST number: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Bank accounts: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column UPI IDs: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Classification: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Business type: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Country: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Industry: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Status: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Column Tags: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Auto-fit all columns",
+    "result": "passed",
+    "evidence": "15 header widths remain positive after auto-fit; exact content fit requires visual review."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Saved views: create, load, remove, close",
+    "result": "passed",
+    "evidence": "Created a uniquely named QA view, invoked load, removed only that view, and closed the popover. View content equivalence is not asserted."
+  },
+  {
+    "page": "crm/vendors",
+    "grid": "company-directory-crm-Vendor",
+    "control": "Display: density, row-height endpoints, views, reset and undo",
+    "result": "passed",
+    "evidence": "Both densities selected; height32/88 verified and undone; 3 view modes selected/restored; reset and undo invoked. Rendered record equivalence and intermediate slider values are not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Customer: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Business roles: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Primary email: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Primary phone: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Company GST number: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Bank accounts: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column UPI IDs: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Classification: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Business type: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Country: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Industry: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Status: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Column Tags: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Auto-fit all columns",
+    "result": "passed",
+    "evidence": "15 header widths remain positive after auto-fit; exact content fit requires visual review."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Saved views: create, load, remove, close",
+    "result": "passed",
+    "evidence": "Created a uniquely named QA view, invoked load, removed only that view, and closed the popover. View content equivalence is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Display: density, row-height endpoints, views, reset and undo",
+    "result": "passed",
+    "evidence": "Both densities selected; height32/88 verified and undone; 3 view modes selected/restored; reset and undo invoked. Rendered record equivalence and intermediate slider values are not asserted."
   }
 ]

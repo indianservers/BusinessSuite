@@ -79,5 +79,46 @@ export async function resumeGridAudit(tab, root) {
       return 'Created a uniquely named QA view, invoked load, removed only that view, and closed the popover. View content equivalence is not asserted.';
     });
   }
-  return { checks, grids, columns, savedViews };
+  async function display(page, id) {
+    const grid = tab.playwright.locator(`[data-grid-id=${JSON.stringify(id)}]`);
+    await record(page, id, 'Display: density, row-height endpoints, views, reset and undo', async () => {
+      await grid.getByRole('button', { name: 'Grid display options', exact: true }).click();
+      const popover = tab.playwright.locator('.udg-popover').filter({ hasText: 'Display & layout' });
+      const density = popover.locator('select[aria-label="Grid density"]');
+      const originalDensity = await density.evaluate(e => e.value);
+      for (const value of ['comfortable', 'compact']) {
+        await density.selectOption(value);
+        if (await density.evaluate(e => e.value) !== value) throw new Error(`Density ${value} did not select`);
+      }
+      await popover.getByRole('button', { name: 'Undo layout change', exact: true }).click();
+      await popover.getByRole('button', { name: 'Undo layout change', exact: true }).click();
+      if (await density.evaluate(e => e.value) !== originalDensity) throw new Error('Density undo did not restore');
+      const height = popover.locator('input[aria-label="Row height"]');
+      const originalHeight = await height.evaluate(e => e.value);
+      await height.press('Home');
+      if (await height.evaluate(e => e.value) !== '32') throw new Error('Row height minimum failed');
+      await height.press('End');
+      if (await height.evaluate(e => e.value) !== '88') throw new Error('Row height maximum failed');
+      await popover.getByRole('button', { name: 'Undo layout change', exact: true }).click();
+      await popover.getByRole('button', { name: 'Undo layout change', exact: true }).click();
+      if (await height.evaluate(e => e.value) !== originalHeight) throw new Error('Row height undo did not restore');
+      const view = popover.locator('select[aria-label="Grid view"]');
+      let viewCount = 0;
+      if (await view.count()) {
+        const original = await view.evaluate(e => e.value);
+        const values = await view.evaluate(e => Array.from(e.options).map(x => x.value));
+        for (const value of values) {
+          await view.selectOption(value);
+          if (await view.evaluate(e => e.value) !== value) throw new Error(`View ${value} did not select`);
+        }
+        await view.selectOption(original); viewCount = values.length;
+      }
+      await popover.getByRole('button', { name: 'Reset columns', exact: true }).click();
+      await popover.getByRole('button', { name: 'Undo layout change', exact: true }).click();
+      await density.press('Escape');
+      await popover.waitFor({ state: 'detached' });
+      return `Both densities selected; height32/88 verified and undone; ${viewCount} view modes selected/restored; reset and undo invoked. Rendered record equivalence and intermediate slider values are not asserted.`;
+    });
+  }
+  return { checks, grids, columns, savedViews, display };
 }

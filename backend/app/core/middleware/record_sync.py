@@ -121,7 +121,10 @@ class RecordSyncMiddleware(BaseHTTPMiddleware):
         cursor = self.store.put(Snapshot(scope, etag, hashes, key, time.monotonic() + TTL))
         headers.update({'ETag': etag, 'X-Suite-Sync-Cursor': cursor, 'X-Suite-Sync-Scope': actor_scope, 'X-Suite-Sync-Mode': 'full', 'X-Suite-Cache': 'persist' if PERSIST.fullmatch(request.url.path) else 'memory', 'Cache-Control': 'private, max-age=0, must-revalidate', 'Vary': 'Authorization, X-Suite-Organization, X-Suite-Branch, X-Suite-Sync, X-Suite-Sync-Cursor'})
         request.state.record_sync_cacheable = True
-        if request.headers.get('if-none-match') == etag:
+        # An HTTP cache may add If-None-Match after the JS baseline was lost.
+        # Its cached body can be a delta, so 304 is safe only with a live,
+        # matching protocol cursor. Otherwise return the full representation.
+        if previous and previous.key == key and request.headers.get('if-none-match') == etag:
             headers['X-Suite-Sync-Mode'] = 'unchanged'
             return Response(status_code=304, headers=headers, background=response.background)
         if previous and previous.key == key:
