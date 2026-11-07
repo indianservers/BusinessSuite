@@ -1,0 +1,198 @@
+[
+  {
+    "area": "Tasks",
+    "control": "Table view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Gallery view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Board view",
+    "passed": true,
+    "headings": [
+      "Work",
+      "Plan",
+      "Collaborate",
+      "Explore"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Gantt view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Timeline view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Calendar view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks",
+      "November 2026"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Workload view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks",
+      "Assignment distribution"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Dashboard view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks",
+      "Status distribution Current result page",
+      "Needs attention Current result page"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Activity view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks",
+      "Recently updated"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Team view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks",
+      "Unassigned"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Mind map view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Whiteboard view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Channel view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "List view",
+    "passed": true,
+    "headings": [
+      "Task workspace180 tasks"
+    ]
+  },
+  {
+    "area": "Tasks",
+    "control": "Group by Project",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Group by Milestone",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Group by Assignee",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Group by Status",
+    "passed": false
+  },
+  {
+    "area": "Tasks",
+    "control": "Group by Priority",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Group by Sprint",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Group current page",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "My tasks quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Created by me quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Today quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Upcoming quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Overdue quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Blocked quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Completed quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "All tasks quick filter",
+    "passed": true
+  }
+]
