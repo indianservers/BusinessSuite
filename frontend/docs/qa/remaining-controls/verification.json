@@ -5,10 +5,10 @@
   "initial_route_inventory": "../workspace-completion/routes-desktop.json",
   "initial_routes": 192,
   "initial_controls": 14765,
-  "interaction_checks_recorded": 585,
+  "interaction_checks_recorded": 590,
   "check_results": {
-    "fixed-and-passed": 4,
-    "passed": 581
+    "passed": 581,
+    "fixed-and-passed": 9
   },
   "route_workspace_panels": "workspace-panels.json",
   "validation": {
@@ -16,12 +16,33 @@
     "shared_identity_company_boundary_backend_tests": 37,
     "typescript": "passed",
     "changed_component_lint": "passed",
-    "production_build": "passed"
+    "production_build": "passed",
+    "management_backend_tests": 7
   },
   "coverage_limits": [
-    "This is a continuing audit, not certification that every button on all192pages has been exercised.",
+    "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
     "Individual checks are recorded in checks.json. A check verifies only its described action and observed outcome.",
     "Workspace-panel checks are recorded per route and do not certify the other controls on that route.",
-    "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded."
-  ]
+    "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded.",
+    "Browser viewport changed during the session from952x466to1920x889; individual page checks are not a fresh full responsive-layout audit."
+  ],
+  "route_pass_status": "All192destination headings verified before workspace-panel actions;172panels passed and20notexposedinthecurrentlayout. Preliminary batches excluded.",
+  "filter_option_checks": {
+    "file": "filter-options.json",
+    "results": {
+      "passed": 944,
+      "superseded-by-scoped-recheck": 17,
+      "disabled-in-current-state": 2,
+      "loading-placeholder-only": 1
+    },
+    "limitation": "Selected control values only; does not assert backend filtering, exhaustive popover UX, or all combinations."
+  },
+  "grid_control_checks": {
+    "file": "grid-controls.json",
+    "results": {
+      "passed": 15,
+      "superseded-by-recheck": 12
+    },
+    "limitation": "Company directory column options and saved-view controls only; other grids remain pending."
+  }
 }

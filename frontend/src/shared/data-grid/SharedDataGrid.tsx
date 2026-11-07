@@ -2137,9 +2137,9 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       </div>
       <footer className="udg-pagination">
         <label>
-          Rows per page
+          {props.dataScope === "loaded" ? "Loaded rows per page" : "Rows per page"}
           <NativeSelect
-            aria-label="Rows per page"
+            aria-label={props.dataScope === "loaded" ? "Loaded rows per page" : "Rows per page"}
             value={query.pageSize}
             onChange={(e) =>
               changeQuery({

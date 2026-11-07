@@ -3,225 +3,1369 @@
     "page": "crm/whatsapp-communication",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "WhatsApp Communication"
   },
   {
     "page": "crm/import-data",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Import into CRM"
   },
   {
     "page": "crm/payment-requests",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Payment requests"
   },
   {
     "page": "crm/birthdays",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nwaiting on click for selector a[href=\"/crm/birthdays\"] >> visible=true >> nth=0\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"click\",\"locator\":\"a[href=\\\"/crm/birthdays\\\"] >> visible=true >> nth=0\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,"
   },
   {
     "page": "crm/company-directory",
-    "control": "Team workspace",
-    "result": "not-present-in-inventory"
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Shared companies"
   },
   {
     "page": "crm/records",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Relationship Hub"
   },
   {
     "page": "crm/record-metadata",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Custom fields"
   },
   {
     "page": "crm/product-customers",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customers & Pipeline by Product / Service"
   },
   {
     "page": "crm/customer-follow-ups",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Lead & customer follow-ups"
   },
   {
     "page": "crm/greetings",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customer greetings"
   },
   {
     "page": "crm/follow-ups/directory",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customer follow-ups"
   },
   {
     "page": "crm/follow-ups/calendar",
     "control": "Team workspace open/load/close",
-    "result": "needs-review",
-    "evidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector internal:role=dialog[name=\"Team workspace\"s] >> internal:role=combobox[name=\"Workspace\"s]\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"internal:role=dialog[name=\\\"Team works"
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customer follow-ups"
   },
   {
     "page": "crm/products-services",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Products & services"
   },
   {
     "page": "crm/messages",
-    "control": "Team workspace",
-    "result": "not-present-in-inventory"
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "evidence": "Page heading verified; this layout does not expose a Team workspace button.",
+    "headingVerified": "Messages",
+    "rechecked": true,
+    "previousEvidence": "Error: Timed out after 3000ms waiting for CDP command Page.getFrameTree."
   },
   {
     "page": "crm/gantt",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM Gantt",
+    "rechecked": true,
+    "previousEvidence": "Error: CDP operation exceeded its deadline before command dispatch"
   },
   {
     "page": "crm",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM Dashboard",
+    "rechecked": true,
+    "previousEvidence": "Error: CDP operation exceeded its deadline before command dispatch"
   },
   {
     "page": "crm/sales-home",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Who should I contact next?"
   },
   {
     "page": "crm/follow-ups",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customer follow-ups"
   },
   {
     "page": "crm/dashboard",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM Dashboard"
   },
   {
     "page": "crm/profile",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Admin"
   },
   {
     "page": "crm/potential-clients",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Potential Clients 0",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1,h2,h3 >> internal:has-text=/^\\s*P\\s*o\\s*t\\s*e\\s*n\\s*t\\s*i\\s*a\\s*l\\s*C\\s*l\\s*i\\s*e\\s*n\\s*t\\s*s\\s*—\\s*$/i >> nth=0\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"h1,h2,h3 >> "
   },
   {
     "page": "crm/leads",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Lead workbench —"
   },
   {
     "page": "crm/leads/classic",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Leads"
   },
   {
     "page": "crm/leads/workbench",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Lead workbench 4",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1,h2,h3 >> internal:has-text=/^\\s*L\\s*e\\s*a\\s*d\\s*w\\s*o\\s*r\\s*k\\s*b\\s*e\\s*n\\s*c\\s*h\\s*—\\s*$/i >> nth=0\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"h1,h2,h3 >> internal:has"
   },
   {
     "page": "crm/contacts",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Contacts"
   },
   {
     "page": "crm/accounts",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customers"
   },
   {
     "page": "crm/companies",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Companies"
   },
   {
     "page": "crm/customers",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customers"
   },
   {
     "page": "crm/vendors",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Vendors"
   },
   {
     "page": "crm/deals",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Deals"
   },
   {
     "page": "crm/pipeline",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Deals"
   },
   {
     "page": "crm/templates",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Make every message yours."
   },
   {
     "page": "crm/pipeline-templates",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customized CRM templates"
   },
   {
     "page": "crm/inventory-templates",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Make every message yours."
   },
   {
     "page": "crm/mail-merge-templates",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Make every message yours."
   },
   {
     "page": "crm/pipeline-settings",
-    "control": "Team workspace",
-    "result": "not-present-in-inventory"
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "CRM pipelines"
   },
   {
     "page": "crm/pipelines",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Pipeline Settings"
   },
   {
     "page": "crm/activities",
     "control": "Team workspace open/load/close",
     "result": "passed",
-    "evidence": "Workspace selector loaded;panel closed."
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Activities"
+  },
+  {
+    "page": "crm/meetings",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Meetings"
+  },
+  {
+    "page": "crm/calls",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Calls"
+  },
+  {
+    "page": "crm/tasks",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM tasks"
+  },
+  {
+    "page": "crm/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM calendar"
+  },
+  {
+    "page": "crm/calendar-integrations",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Calendar Integrations"
+  },
+  {
+    "page": "crm/webhooks",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "CRM webhooks"
+  },
+  {
+    "page": "crm/send-reminders",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/communication-hub",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/email-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Make every message yours."
+  },
+  {
+    "page": "crm/emails",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/webforms",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/campaigns",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/consents",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/whatsapp",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "WhatsApp Communication Hub"
+  },
+  {
+    "page": "crm/whatsapp/inbox",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "WhatsApp Communication Hub"
+  },
+  {
+    "page": "crm/whatsapp/sent",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "WhatsApp Communication Hub"
+  },
+  {
+    "page": "crm/whatsapp/templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "WhatsApp Communication Hub"
+  },
+  {
+    "page": "crm/whatsapp/profile",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "WhatsApp Communication Hub"
+  },
+  {
+    "page": "crm/whatsapp/settings",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "WhatsApp Communication Hub"
+  },
+  {
+    "page": "crm/auto-responses",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/delivery-logs",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/communication-timeline",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Communication Center"
+  },
+  {
+    "page": "crm/products",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Products & services",
+    "rechecked": true,
+    "previousEvidence": "Error: Timed out after 3000ms waiting for CDP command Page.getFrameTree."
+  },
+  {
+    "page": "crm/services",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Products & services"
+  },
+  {
+    "page": "crm/price-books",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Price Books"
+  },
+  {
+    "page": "crm/quotes",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Quotes"
+  },
+  {
+    "page": "crm/quote-approvals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Quote Approvals"
+  },
+  {
+    "page": "crm/cpq",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CPQ Rules"
+  },
+  {
+    "page": "crm/guided-selling",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Guided Selling"
+  },
+  {
+    "page": "crm/quotations",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "rechecked": true
+  },
+  {
+    "page": "crm/approval-settings",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "CRM approval rules"
+  },
+  {
+    "page": "crm/my-approvals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "My Approvals"
+  },
+  {
+    "page": "crm/duplicates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Duplicate Management"
+  },
+  {
+    "page": "crm/territories",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Sales territories"
+  },
+  {
+    "page": "crm/tickets",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Support Tickets"
+  },
+  {
+    "page": "crm/files",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM Files"
+  },
+  {
+    "page": "crm/reports",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Reports and insights"
+  },
+  {
+    "page": "crm/automation",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "CRM automation"
+  },
+  {
+    "page": "crm/lead-to-cash",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Lead-to-Cash"
+  },
+  {
+    "page": "crm/forecasting",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Forecasting"
+  },
+  {
+    "page": "crm/forecasts",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Forecasting"
+  },
+  {
+    "page": "crm/targets",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Sales Targets"
+  },
+  {
+    "page": "crm/sales-performance",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Sales Performance"
+  },
+  {
+    "page": "crm/funnel",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Sales Funnel"
+  },
+  {
+    "page": "crm/lost-analysis",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Lost Analysis"
+  },
+  {
+    "page": "crm/customer-360",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customers"
+  },
+  {
+    "page": "crm/import-export",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Import & Export"
+  },
+  {
+    "page": "crm/settings",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "evidence": "Page heading verified; this layout does not expose a Team workspace button.",
+    "headingVerified": "CRM configuration",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1,h2,h3 >> internal:has-text=/^\\s*C\\s*R\\s*M\\s*c\\s*o\\s*n\\s*f\\s*i\\s*g\\s*u\\s*r\\s*a\\s*t\\s*i\\s*o\\s*n\\s*$/i >> nth=0\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"h1,h2,h3 >> inte"
+  },
+  {
+    "page": "crm/lead-scoring",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Lead scoring"
+  },
+  {
+    "page": "crm/feature-checklist",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM Feature Checklist"
+  },
+  {
+    "page": "crm/admin",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "CRM Admin"
+  },
+  {
+    "page": "pms/import-data",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Import into PMS"
+  },
+  {
+    "page": "pms/tasks-follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Tasks & Follow-ups"
+  },
+  {
+    "page": "pms/follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customer follow-ups"
+  },
+  {
+    "page": "pms/follow-ups/directory",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customer follow-ups"
+  },
+  {
+    "page": "pms/follow-ups/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Customer follow-ups"
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Products & services"
+  },
+  {
+    "page": "pms/products",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Products & services"
+  },
+  {
+    "page": "pms/management",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "PMS management home"
+  },
+  {
+    "page": "pms/workflow-schemes",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Project workflows"
+  },
+  {
+    "page": "pms/transition-approvals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Transition approval inbox"
+  },
+  {
+    "page": "pms/admin/configuration",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Admin"
+  },
+  {
+    "page": "pms/my-work",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "My Work"
+  },
+  {
+    "page": "pms/members",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Members & invitations"
+  },
+  {
+    "page": "pms/people",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "People directory"
+  },
+  {
+    "page": "pms/directory",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "People directory"
+  },
+  {
+    "page": "pms/people-work",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "People & work management"
+  },
+  {
+    "page": "pms/my-notices",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Notices & warnings"
+  },
+  {
+    "page": "pms/batches",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "People & Batches"
+  },
+  {
+    "page": "pms/batch-tasks",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Task Assignment Center"
+  },
+  {
+    "page": "pms/my-assignments",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "My PMS Assignments"
+  },
+  {
+    "page": "pms/assignment-controls",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Individual Assignment Controls"
+  },
+  {
+    "page": "pms/reviews",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "PMS Work Reviews"
+  },
+  {
+    "page": "pms/admin/workspaces",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Danger area: Workspace reset & restore"
+  },
+  {
+    "page": "pms/recovery",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Backup & recovery"
+  },
+  {
+    "page": "pms/audit-logs",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Audit & diagnostic logs"
+  },
+  {
+    "page": "pms/analytics/team",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Team analytics"
+  },
+  {
+    "page": "pms/analytics/projects",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Project analytics"
+  },
+  {
+    "page": "pms/operator",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "AI task operator"
+  },
+  {
+    "page": "pms/assistant",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Your workspace"
+  },
+  {
+    "page": "pms/workspaces",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "evidence": "Page heading verified; this layout does not expose a Team workspace button.",
+    "headingVerified": "Portfolio acceptance workspace\nActive",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1,h2,h3 >> internal:has-text=/^\\s*T\\s*o\\s*p\\s*5\\s*$/i >> nth=0\nLocator diagnostics: {\"kind\":\"action_failed\",\"action\":\"waitFor\",\"locator\":\"h1,h2,h3 >> internal:has-text=/^\\\\s*T\\\\s*o\\\\s*p\\\\s*5\\\\s*$/i >"
+  },
+  {
+    "page": "pms",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "evidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1,h2,h3 >> internal:has-text=/^\\s*T\\s*o\\s*p\\s*5\\s*$/i >> nth=0\nLocator diagnostics: {\"kind\":\"action_failed\",\"action\":\"waitFor\",\"locator\":\"h1,h2,h3 >> internal:has-text=/^\\\\s*T\\\\s*o\\\\s*p\\\\s*5\\\\s*$/i >",
+    "headingVerified": "Portfolio acceptance workspace\nActive",
+    "rechecked": true
+  },
+  {
+    "page": "pms/overview",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Project overview",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:P\\s*r\\s*o\\s*j\\s*e\\s*c\\s*t\\s*o\\s*v\\s*e\\s*r\\s*v\\s*i\\s*e\\s*w|W\\s*o\\s*r\\s*k\\s*f\\s*l\\s*o\\s*w\\s*s|P\\s*r\\s*o\\s*j\\s*e\\s*c\\s*t\\s*I\\s*n\\s*t\\s*a\\s*k\\s*e|R\\s*e\\s*c\\s*e\\s*n\\s*t\\s*I\\"
+  },
+  {
+    "page": "pms/profile",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Admin",
+    "rechecked": true,
+    "previousEvidence": "Error: Timed out after 10000ms waiting for CDP command Page.navigate."
+  },
+  {
+    "page": "pms/command-center",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/workspace-tools",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/enterprise-engine",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/product-launch",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Product launch",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:N\\s*e\\s*w\\s*P\\s*r\\s*o\\s*d\\s*u\\s*c\\s*t\\s*L\\s*a\\s*u\\s*n\\s*c\\s*h)\\s*$/i >> visible=true >> nth=0\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"h1"
+  },
+  {
+    "page": "pms/portfolio",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Portfolio"
+  },
+  {
+    "page": "pms/dependency-management",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Gantt",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:D\\s*e\\s*p\\s*e\\s*n\\s*d\\s*e\\s*n\\s*c\\s*y\\s*M\\s*a\\s*n\\s*a\\s*g\\s*e\\s*m\\s*e\\s*n\\s*t|D\\s*e\\s*p\\s*e\\s*n\\s*d\\s*e\\s*n\\s*c\\s*y\\s*M\\s*a\\s*p|I\\s*m\\s*p\\s*a\\s*c\\s*t\\s*A\\s*n\\s*a\\s*l\\s*"
+  },
+  {
+    "page": "pms/resource-planning",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workload",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:R\\s*e\\s*s\\s*o\\s*u\\s*r\\s*c\\s*e\\s*P\\s*l\\s*a\\s*n\\s*n\\s*i\\s*n\\s*g|W\\s*o\\s*r\\s*k\\s*l\\s*o\\s*a\\s*d\\s*&\\s*C\\s*a\\s*p\\s*a\\s*c\\s*i\\s*t\\s*y)\\s*$/i >> visible=true >> nth=0\nLocator "
+  },
+  {
+    "page": "pms/agile-execution",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Backlog",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:A\\s*g\\s*i\\s*l\\s*e\\s*E\\s*x\\s*e\\s*c\\s*u\\s*t\\s*i\\s*o\\s*n|B\\s*a\\s*c\\s*k\\s*l\\s*o\\s*g\\s*G\\s*r\\s*o\\s*o\\s*m\\s*i\\s*n\\s*g\\s*&\\s*S\\s*p\\s*r\\s*i\\s*n\\s*t\\s*P\\s*l\\s*a\\s*n\\s*n\\s*i\\s*n\\"
+  },
+  {
+    "page": "pms/project-financials",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Project financials"
+  },
+  {
+    "page": "pms/risk-register",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Risk Register"
+  },
+  {
+    "page": "pms/risks",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Risk Register"
+  },
+  {
+    "page": "pms/projects",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Projects"
+  },
+  {
+    "page": "pms/projects/classic",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Projects"
+  },
+  {
+    "page": "pms/projects/new",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Create project",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Timed out after 3000ms waiting for selector h1 >> internal:has-text=/^\\s*(?:C\\s*r\\s*e\\s*a\\s*t\\s*e\\s*p\\s*r\\s*o\\s*j\\s*e\\s*c\\s*t|C\\s*u\\s*s\\s*t\\s*o\\s*m\\s*f\\s*i\\s*e\\s*l\\s*d\\s*s)\\s*$/i >> visible=true >> nth=0: Timed out after 1ms waiting for CDP command Runtime.evaluate.\nlocator.waitFor(vis"
+  },
+  {
+    "page": "pms/tasks",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Task workspace\n180 tasks"
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Tasks"
+  },
+  {
+    "page": "pms/tasks/new",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Create Task"
+  },
+  {
+    "page": "pms/work-hub",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Work Hub / Impact"
+  },
+  {
+    "page": "pms/impact",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Work Hub / Impact"
+  },
+  {
+    "page": "pms/ai-planner",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "AI task operator"
+  },
+  {
+    "page": "pms/timeline-plus",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Gantt"
+  },
+  {
+    "page": "pms/dependency-timeline",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Gantt"
+  },
+  {
+    "page": "pms/automation-ai",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Task automation"
+  },
+  {
+    "page": "pms/software",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Software delivery"
+  },
+  {
+    "page": "pms/live",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Live Work Management"
+  },
+  {
+    "page": "pms/teams-live",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Live Work Management"
+  },
+  {
+    "page": "pms/backlog",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Backlog"
+  },
+  {
+    "page": "pms/issues",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Software delivery"
+  },
+  {
+    "page": "pms/roadmap",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Roadmap"
+  },
+  {
+    "page": "pms/workload",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workload"
+  },
+  {
+    "page": "pms/capacity",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workload"
+  },
+  {
+    "page": "pms/releases",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Software delivery"
+  },
+  {
+    "page": "pms/automation",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Task automation"
+  },
+  {
+    "page": "pms/goals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/forms",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Forms"
+  },
+  {
+    "page": "pms/messages",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Messages"
+  },
+  {
+    "page": "pms/team-communication",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Team communication"
+  },
+  {
+    "page": "pms/custom-fields",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Custom fields, built around your work.",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:C\\s*u\\s*s\\s*t\\s*o\\s*m\\s*f\\s*i\\s*e\\s*l\\s*d\\s*s\\s*,\\s*b\\s*u\\s*i\\s*l\\s*t\\s*a\\s*r\\s*o\\s*u\\s*n\\s*d\\s*y\\s*o\\s*u\\s*r\\s*w\\s*o\\s*r\\s*k\\s*\\.|F\\s*i\\s*e\\s*l\\s*d\\s*l\\s*i\\s*b\\s*r\\s*a"
+  },
+  {
+    "page": "pms/teams",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "People directory"
+  },
+  {
+    "page": "pms/org-chart",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Organization chart"
+  },
+  {
+    "page": "pms/trash",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Trash"
+  },
+  {
+    "page": "pms/templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Blueprints"
+  },
+  {
+    "page": "pms/components",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/workflows",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/security",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/dependencies",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Roadmap"
+  },
+  {
+    "page": "pms/navigator",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Task workspace\n180 tasks"
+  },
+  {
+    "page": "pms/apps",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/dashboards",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Dashboards"
+  },
+  {
+    "page": "pms/docs",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Docs"
+  },
+  {
+    "page": "pms/notes",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "My Notes",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Timed out after 3000ms waiting for selector internal:role=dialog[name=\"Team workspace\"s] >> internal:role=combobox[name=\"Workspace\"s]: CDP operation exceeded its deadline before command dispatch\nlocator.waitFor(visible) timed out for selector internal:role=dialog[name=\"Team workspace\"s"
+  },
+  {
+    "page": "pms/task-types",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Task Types"
+  },
+  {
+    "page": "pms/tags",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Tag Manager"
+  },
+  {
+    "page": "pms/plans",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Plans and capabilities"
+  },
+  {
+    "page": "pms/issue-navigator-pro",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Task workspace\n180 tasks"
+  },
+  {
+    "page": "pms/backlog-grooming",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Backlog"
+  },
+  {
+    "page": "pms/sprint-lifecycle",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Backlog"
+  },
+  {
+    "page": "pms/blueprints",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workspace tools"
+  },
+  {
+    "page": "pms/resource-utilization",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Workload"
+  },
+  {
+    "page": "pms/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "November 2026",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:P\\s*l\\s*a\\s*n\\s*n\\s*e\\s*r|P\\s*r\\s*i\\s*o\\s*r\\s*i\\s*t\\s*i\\s*e\\s*s|P\\s*e\\s*o\\s*p\\s*l\\s*e|A\\s*s\\s*s\\s*i\\s*g\\s*n\\s*e\\s*d\\s*t\\s*o\\s*m\\s*e|T\\s*o\\s*d\\s*a\\s*y\\s*&\\s*o\\s*v\\s*e\\s*"
+  },
+  {
+    "page": "pms/planner",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "November 2026",
+    "rechecked": true,
+    "previousEvidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector h1 >> internal:has-text=/^\\s*(?:P\\s*l\\s*a\\s*n\\s*n\\s*e\\s*r|P\\s*r\\s*i\\s*o\\s*r\\s*i\\s*t\\s*i\\s*e\\s*s|P\\s*e\\s*o\\s*p\\s*l\\s*e|A\\s*s\\s*s\\s*i\\s*g\\s*n\\s*e\\s*d\\s*t\\s*o\\s*m\\s*e|T\\s*o\\s*d\\s*a\\s*y\\s*&\\s*o\\s*v\\s*e\\s*"
+  },
+  {
+    "page": "pms/gantt",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Gantt"
+  },
+  {
+    "page": "pms/sprints",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Sprints"
+  },
+  {
+    "page": "pms/files",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Files"
+  },
+  {
+    "page": "pms/time-tracking",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Time tracking"
+  },
+  {
+    "page": "pms/timesheets",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Weekly timesheets"
+  },
+  {
+    "page": "pms/reports",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "PMS reports"
+  },
+  {
+    "page": "pms/client-portal",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "Client portal"
+  },
+  {
+    "page": "pms/settings",
+    "control": "Team workspace availability",
+    "result": "not-exposed-current-layout",
+    "headingVerified": "Settings"
+  },
+  {
+    "page": "pms/admin",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded; panel closed.",
+    "headingVerified": "PMS management home"
   }
 ]

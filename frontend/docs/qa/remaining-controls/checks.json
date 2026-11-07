@@ -657,7 +657,7 @@
     "page": "crm/settings",
     "control": "Phone country CW",
     "result": "passed",
-    "evidence": "QA Phone country calling code: Curaçao +599"
+    "evidence": "QA Phone country calling code: Cura\u00e7ao +599"
   },
   {
     "page": "crm/settings",
@@ -675,7 +675,7 @@
     "page": "crm/settings",
     "control": "Phone country CI",
     "result": "passed",
-    "evidence": "QA Phone country calling code: Côte d'Ivoire +225"
+    "evidence": "QA Phone country calling code: C\u00f4te d'Ivoire +225"
   },
   {
     "page": "crm/settings",
@@ -1407,13 +1407,13 @@
     "page": "crm/settings",
     "control": "Phone country RE",
     "result": "passed",
-    "evidence": "QA Phone country calling code: Réunion +262"
+    "evidence": "QA Phone country calling code: R\u00e9union +262"
   },
   {
     "page": "crm/settings",
     "control": "Phone country BL",
     "result": "passed",
-    "evidence": "QA Phone country calling code: Saint Barthélemy +590"
+    "evidence": "QA Phone country calling code: Saint Barth\u00e9lemy +590"
   },
   {
     "page": "crm/settings",
@@ -1677,7 +1677,7 @@
     "page": "crm/settings",
     "control": "Phone country TR",
     "result": "passed",
-    "evidence": "QA Phone country calling code: Türkiye +90"
+    "evidence": "QA Phone country calling code: T\u00fcrkiye +90"
   },
   {
     "page": "crm/settings",
@@ -1785,7 +1785,7 @@
     "page": "crm/settings",
     "control": "Phone country AX",
     "result": "passed",
-    "evidence": "QA Phone country calling code: Åland Islands +358"
+    "evidence": "QA Phone country calling code: \u00c5land Islands +358"
   },
   {
     "page": "crm/settings",
@@ -2157,7 +2157,7 @@
     "page": "pms/recovery",
     "control": "Team workspace Workspace option 1",
     "result": "passed",
-    "evidence": "Selected Portfolio acceptance workspace · Admin reflected in select value;no creation or message submitted."
+    "evidence": "Selected Portfolio acceptance workspace \u00b7 Admin reflected in select value;no creation or message submitted."
   },
   {
     "page": "pms/recovery",
@@ -3520,5 +3520,23 @@
     "control": "Task/project view status compatibility",
     "result": "fixed-and-passed",
     "evidence": "Projects view retained URLstatus=ToDo;status select showedAllstatuses andprojectslistwasempty. Updated build removesToDo when opening Projects;Active+AtRisk removedwhenreturningAlltasks;owner1preservedthroughbothswitches."
+  },
+  {
+    "page": "crm/sales-home",
+    "control": "Rapid salesperson/importance/age composition",
+    "result": "fixed-and-passed",
+    "evidence": "Owner1 thenHot then7days produced URLwithage7only;earlierfilterchoiceswerelost. Updated build retainedowner1+importanceHot+age7;Clearfiltersremovedall3andpreservedqa_build."
+  },
+  {
+    "page": "crm/companies",
+    "control": "Column manager viewport containment",
+    "result": "fixed-and-passed",
+    "evidence": "Before: bottom1020.5px in889px viewport, available421px. After CSS available-height constraint: bottom889px, height421px, scrollHeight551px/clientHeight419px. Industry, Status and Tags visibility/pin/order actions then passed."
+  },
+  {
+    "page": "crm/leads",
+    "control": "Loaded-row pagination scope label",
+    "result": "fixed-and-passed",
+    "evidence": "Loaded dataset table now exposes Loaded rows per page. All five options10/25/50/100/200 selected and restored in browser. Server-backed company directory retains Rows per page."
   }
 ]

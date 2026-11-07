@@ -696,6 +696,8 @@
 }
 .udg-popover {
   width: 310px;
+  max-height: min(70dvh, var(--radix-popover-content-available-height, 70dvh));
+  overscroll-behavior: contain;
 }
 .udg-popover > header {
   display: flex;
