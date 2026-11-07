@@ -1,0 +1,42 @@
+[
+  {
+    "control": "Task work type Task",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task work type Bug",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task work type Feature",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task work type Improvement",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task work type Research",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task work type Documentation",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task other type Follow-up",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task other type Call",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task other type Meeting",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Task other type Sub-task",
+    "result": "passed-selected-state"
+  }
+]

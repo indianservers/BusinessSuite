@@ -12,3 +12,14 @@ export function crmLocalDateTime(value: string): string {
   if (!Number.isFinite(date.getTime())) return "";
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
+
+export function crmTaskDate(value?: string): string {
+  return !value ? "" : /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : crmLocalDateTime(value).slice(0, 10);
+}
+
+export function crmTaskDueValue(date: string, current?: string): string | null {
+  if (!date) return null;
+  if (current && crmTaskDate(current) === date) return current;
+  const time = current?.includes("T") ? crmLocalDateTime(current).slice(11) : "";
+  return time ? new Date(`${date}T${time}`).toISOString() : `${date}T12:00:00Z`;
+}
