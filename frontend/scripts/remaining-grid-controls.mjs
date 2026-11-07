@@ -29,7 +29,7 @@ export async function resumeGridAudit(tab, root) {
       if (checks.some(x => x.page === page && x.grid === id && x.control === `Column ${name}: visibility, all pin positions, ordering` && x.result === 'passed')) continue;
       if (completed++ >= limit) return { pending: true };
       const option = popover.locator(`.udg-column-option:has(select[aria-label=${JSON.stringify(`Pin ${name}`)}])`);
-      await record(page, id, `Column ${name}: visibility, all pin positions, ordering`, async () => {
+      const recorded = await record(page, id, `Column ${name}: visibility, all pin positions, ordering`, async () => {
         const input = option.locator('input[type="checkbox"]');
         const original = await input.evaluate(e => e.checked);
         const select = option.locator('select');
@@ -46,12 +46,15 @@ export async function resumeGridAudit(tab, root) {
         const index = before.findIndex(x => x.trim() === name);
         const direction = index < before.length - 1 ? 'right' : 'left';
         await option.getByRole('button', { name: `Move ${name} ${direction}`, exact: true }).click();
+        await popover.locator('.udg-column-option').nth(index + (direction === 'right' ? 1 : -1)).getByText(name, { exact: true }).waitFor({ state: 'visible' });
         const after = await popover.locator('.udg-column-option label').allTextContents({});
         if (after.findIndex(x => x.trim() === name) !== index + (direction === 'right' ? 1 : -1)) throw new Error('Column order did not move');
         await option.getByRole('button', { name: `Move ${name} ${direction === 'right' ? 'left' : 'right'}`, exact: true }).click();
+        await popover.locator('.udg-column-option').nth(index).getByText(name, { exact: true }).waitFor({ state: 'visible' });
         if (JSON.stringify(await popover.locator('.udg-column-option label').allTextContents({})) !== JSON.stringify(before)) throw new Error('Column order did not restore');
         return 'Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order.';
       });
+      if (recorded.result !== 'passed') return recorded;
     }
     await record(page, id, 'Auto-fit all columns', async () => {
       await popover.getByRole('button', { name: 'Auto-fit all columns', exact: true }).click();

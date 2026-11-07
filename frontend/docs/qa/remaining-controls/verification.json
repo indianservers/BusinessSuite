@@ -31,7 +31,8 @@
     "shared_block_selection_regression_scenarios": 6,
     "shared_editor_typecheck": "passed",
     "shared_editor_changed_component_lint": "passed",
-    "shared_editor_production_build": "passed"
+    "shared_editor_production_build": "passed",
+    "tooltip_production_build": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -56,11 +57,12 @@
   "grid_control_checks": {
     "file": "grid-controls.json",
     "results": {
-      "passed": 83,
       "superseded-by-recheck": 13,
+      "superseded-by-tooltip-fix": 3,
+      "passed": 94,
       "superseded-by-manual-recheck": 1
     },
-    "limitation": "Company/vendor/customer column controls exercised individually. Customer grouping options, all12namefilteroperators and all10filterablecolumns checked; saved view restored changed column visibility. Remaining grids and row actions are not certified."
+    "limitation": "Company/vendor/customer column controls exercised individually. Customer grouping options, all12namefilteroperators and all10filterablecolumns checked; saved view restored changed column visibility. Remaining grids and row actions are not certified. Advanced task grid columns, saved view visibility restore and display options also checked individually. Record equivalence and all row actions not certified."
   },
   "form_option_checks": {
     "file": "form-options.json",
@@ -156,5 +158,6 @@
     "passed_after_fixes": 10,
     "limitation": "Specific whole-document fixtures; not every rich-text instance on192pages certified."
   },
-  "update_template_fix": "Daily work note and QA test report render expected prompts; Blank update now clears text and disables empty Post Update. Rechecked in browser."
+  "update_template_fix": "Daily work note and QA test report render expected prompts; Blank update now clears text and disables empty Post Update. Rechecked in browser.",
+  "tooltip_fix": "Visible global text tooltip overlapped task-column restore arrow and intercepted pointer events, dismissing manager. After pointer-events:none, hit test reached arrow while tooltip visible; pointer restore retained manager; full column controls passed."
 }

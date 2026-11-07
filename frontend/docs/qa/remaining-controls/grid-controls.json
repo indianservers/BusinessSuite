@@ -691,5 +691,106 @@
     "control": "Filter name between A M",
     "result": "passed",
     "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Task key: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Title: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Project: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Status: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Priority: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Assignee: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Due date: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Actions: visibility, all pin positions, ordering",
+    "result": "superseded-by-tooltip-fix",
+    "error": "Error: Column order did not restore",
+    "recheck": "Pointer tooltip overlay reproduced, fixed to pointer-events:none, and complete Actions-column/auto-fit flow passed."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Auto-fit all columns",
+    "result": "superseded-by-tooltip-fix",
+    "error": "Error: Error: Playwright selector deadline exceeded\nwaiting on click for selector .udg-column-manager >> internal:role=button[name=\"Auto-fit all columns\"s]\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"click\",\"locator\":\".udg-column-manager >> internal:role=button[name=\\\"Auto-fit all columns\\\"s]\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,\"truncated\":false}",
+    "recheck": "Pointer tooltip overlay reproduced, fixed to pointer-events:none, and complete Actions-column/auto-fit flow passed."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Actions: visibility, all pin positions, ordering",
+    "result": "superseded-by-tooltip-fix",
+    "error": "Error: Error: Timed out after 3000ms waiting for selector .udg-column-manager >> .udg-column-option >> nth=7 >> internal:text=\"Actions\"s: Browser Use encountered an error interacting with this webpage: Error: Element is not attached\n    at <anonymous>:227:263\n    at <anonymous>:227:479\n    at <anonymous>:228:11\n    at <anonymous>:229:11\nlocator.waitFor(visible) timed out for selector .udg-column-manager >> .udg-column-option >> nth=7 >> internal:text=\"Actions\"s\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\".udg-column-manager >> .udg-column-option >> nth=7 >> internal:text=\\\"Actions\\\"s\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,\"truncated\":false}",
+    "recheck": "Pointer tooltip overlay reproduced, fixed to pointer-events:none, and complete Actions-column/auto-fit flow passed."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Saved views: restore changed column visibility, remove, close",
+    "result": "passed",
+    "evidence": "Saved a uniquely named QA view; changed first column visibility; loaded the view; verified original visibility restored; removed only that view; closed both popovers. Other saved-view fields are not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Display: density, row-height endpoints, views, reset and undo",
+    "result": "passed",
+    "evidence": "Both densities selected; height32/88 verified and undone; 0 view modes selected/restored; reset and undo invoked. Rendered record equivalence and intermediate slider values are not asserted."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Column Actions: visibility, all pin positions, ordering",
+    "result": "passed",
+    "evidence": "Visibility toggled/restored; Left, Right and Unpinned selected; adjacent ordering moved/restored. Assertions cover control state and manager order."
+  },
+  {
+    "page": "pms/tasks/advanced",
+    "grid": "pms-advanced-tasks",
+    "control": "Auto-fit all columns",
+    "result": "passed",
+    "evidence": "10 header widths remain positive after auto-fit; exact content fit requires visual review."
   }
 ]
