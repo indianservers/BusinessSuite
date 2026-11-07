@@ -35,7 +35,10 @@
     "tooltip_production_build": "passed",
     "form_boundary_typecheck": "passed",
     "form_boundary_changed_component_lint": "passed",
-    "form_boundary_production_build": "passed"
+    "form_boundary_production_build": "passed",
+    "crm_detail_typecheck": "passed",
+    "crm_detail_changed_component_lint": "passed",
+    "crm_detail_production_build": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -44,8 +47,7 @@
     "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded.",
     "Browser viewport changed during the session from952x466to1920x889; individual page checks are not a fresh full responsive-layout audit.",
     "Disposable QA fixture reset after sync-protocol fix. Earlier evidence reflects the previous generated fixture; no production data touched.",
-    "Note folder color persistence remains unverified; file chooser upload is blocked by browser extension configuration.",
-    "CRM Full Details currently exposes empty phone-validation metadata as [object Object] and some read-only values as inert buttons; newly identified and awaiting correction."
+    "Note folder color persistence remains unverified; file chooser upload is blocked by browser extension configuration."
   ],
   "route_pass_status": "All192destination headings verified before workspace-panel actions;172panels passed and20notexposedinthecurrentlayout. Preliminary batches excluded.",
   "filter_option_checks": {
@@ -177,8 +179,17 @@
   "catalog_quick_create_checks": {
     "file": "catalog-quick-create-controls.json",
     "results": {
-      "passed": 46
+      "passed": 47
     },
-    "limitation": "All162currency selections recorded in form-options.json. Image upload blocked; automatic follow-up generation and all saved pricing variants not certified."
+    "limitation": "All162currency selections recorded separately. Saved base/monthly plan/image/custom-field persistence verified on QA service. Image upload, automatic follow-up generation and all saved pricing combinations not certified."
+  },
+  "crm_inline_checks": {
+    "file": "crm-inline-controls.json",
+    "results": {
+      "fixed-and-passed": 3,
+      "passed": 15,
+      "unverified": 1
+    },
+    "limitation": "Specific synthetic lead6 only. Invalid-phone draft retention remains unverified; other CRM record kinds and all structured value shapes not certified."
   }
 }

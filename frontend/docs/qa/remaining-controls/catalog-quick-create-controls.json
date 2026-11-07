@@ -228,5 +228,10 @@
     "control": "Catalog save and visible record persistence",
     "result": "passed",
     "evidence": "Created QA service100INR and product20INR through UI; both available after reload and present on saved lead Related. Alternative monthly plan, custom field and image persistence after reopening editor remain pending."
+  },
+  {
+    "control": "Saved service extras after editor reopen",
+    "result": "passed",
+    "evidence": "Reopened QA service via CRM catalog Edit. Type service, base100INR, monthly plan QA monthly plan amount80INR billingmonth, followuprequired false, customfieldqa_audit verified, image natural480x240 all retained. Cancel closed editor without changes."
   }
 ]
