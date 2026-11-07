@@ -1,3 +1,4 @@
+import { crmTimestamp } from "./dateTime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { History, RefreshCw, Clock3, CheckCircle2, UserRound } from "lucide-react";
@@ -15,7 +16,7 @@ type State = { id: number; title: string; status: string; owner_id?: number; due
 type Item = { id: number; entity: string; record_id: number; record_name: string; title: string; status: string; occurred_at?: string; due_at?: string; completed_at?: string; pending_since?: string; pending_seconds?: number; overdue_since?: string; actor?: Person; completed_by?: Person; assignee?: Person; last_updated_by?: Person; notes?: string; metadata: { before?: State; after?: State; next_follow_up?: State; changes?: {before: State; after: State}[]; owner_id?: number; nextFollowUp?: string; outcome?: string } };
 type Result = { items: Item[]; total: number; page: number; pages: number; employees: Person[]; people?: Person[]; as_of: string };
 type RecordScope = { entity: string; id: number; name: string };
-const stamp = (value?: string) => value ? new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "Not recorded";
+const stamp = (value?: string) => value ? crmTimestamp(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "Not recorded";
 const personName = (person?: Person) => person?.name || "Not recorded";
 function elapsed(seconds = 0) { const minutes = Math.floor(seconds / 60), hours = Math.floor(minutes / 60), days = Math.floor(hours / 24); return days ? `${days}d ${hours % 24}h` : hours ? `${hours}h ${minutes % 60}m` : minutes ? `${minutes}m` : "Just created"; }
 

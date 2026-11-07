@@ -1,3 +1,4 @@
+import { crmTimestamp } from "./dateTime";
 import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import PhoneActions from "@/components/PhoneActions";
 import FollowUpHistory, { FollowUpHistoryButton } from "./FollowUpHistory";
@@ -52,13 +53,13 @@ const labels: Record<string, string> = { all: "All records", leads: "Leads", con
 
 const failure = (error: unknown) => { const detail = (error as { response?: { data?: { detail?: unknown } } }).response?.data?.detail; return typeof detail === "string" ? detail : "Unable to complete this request. Please try again."; };
 
-const date = (value?: string) => value ? new Date(value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "No follow-up scheduled";
+const date = (value?: string) => value ? crmTimestamp(value).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "No follow-up scheduled";
 
-const localInput = (value: string | Date) => { const d = new Date(value); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+const localInput = (value: string | Date) => { const d = crmTimestamp(value); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 
 const initials = (name: string) => name.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase();
 
-function Due({ value }: { value?: string }) { return <span className={`fu-due ${!value ? "missing" : new Date(value) < new Date() ? "overdue" : "planned"}`}><CalendarDays size={13} />{date(value)}</span>; }
+function Due({ value }: { value?: string }) { return <span className={`fu-due ${!value ? "missing" : crmTimestamp(value) < new Date() ? "overdue" : "planned"}`}><CalendarDays size={13} />{date(value)}</span>; }
 
 
 
@@ -174,7 +175,7 @@ export default function FollowUpWorkspace() {
 
   const saved = () => { setEditing(undefined); setNotice("Follow-up saved. Relationship data refreshed."); refresh(); };
 
-  return <main className="crm-followup">
+  return <section aria-label="CRM follow-ups workspace" className="crm-followup">
 
     <header className="fu-header"><div className="fu-heading"><span className="fu-heading-icon"><CalendarClock size={23} /></span><div><h1>Lead & customer follow-ups</h1><p>Manage conversations, next steps and relationship activities.</p></div></div><CompactActions className="fu-header-actions" primaryId="new-follow-up"><FollowUpHistoryButton entity={entity}/><Button asChild variant="outline" size="sm"><Link to="/crm/product-customers"><Package size={15} />By product / service</Link></Button><Button asChild variant="outline" size="sm"><Link to="/crm/greetings"><Gift size={15} />Greetings</Link></Button><Button id="new-follow-up" size="sm" onClick={() => setEditing("new")}><Plus size={16} />New follow-up</Button><Button size="icon" variant="outline" aria-label="Refresh follow-ups" onClick={refresh}><RefreshCw size={16} /></Button></CompactActions></header>
 
@@ -200,7 +201,7 @@ export default function FollowUpWorkspace() {
 
     {bulk && <BulkEditor changed={refresh} action={bulk} records={selected} owners={owners.data || []} close={() => setBulk(undefined)} saved={message => { setNotice(message); setBulk(undefined); setSelected([]); refresh(); }} />}
 
-  </main>;
+  </section>;
 
 }
 
@@ -235,7 +236,7 @@ export function FollowUpEditor({ initial, owners, close, saved, initialChannel='
 
     {!record ? <><Input autoFocus aria-label="Find a relationship" placeholder="Search name, email, company or phone…" value={search} onChange={e => setSearch(e.target.value)} />{choices.isPending && <p role="status">Loading relationships…</p>}{choices.error && <p role="alert">{failure(choices.error)}</p>}<div className="fu-choices">{choices.data?.filter(row => row.can_edit).map(row => <button key={row.key} onClick={() => { setRecord(row); setTitle(`Follow up with ${row.name}`); setOwner(String(row.owner_id || "")); }}><strong>{row.name}</strong><small>{labels[row.entity]} · {row.email || row.company || "No email recorded"}</small></button>)}{choices.data && !choices.data.some(row => row.can_edit) && <p>No editable relationships match your search.</p>}</div></> : <>
 
-    <div className="fu-form-grid"><label>Action<NativeSelect value={action} onChange={e => { setAction(e.target.value); setActivity(""); setVersion(undefined); setDue(""); setReminder(""); }}><option value="schedule">Schedule / reschedule</option><option value="complete" disabled={!pending.data?.length}>Log outcome & complete</option></NativeSelect></label><label>Existing follow-up<NativeSelect aria-label="Existing follow-up" disabled={pending.isPending || !!pending.error} value={activity} onChange={e => { setActivity(e.target.value); setVersion(undefined); const row = pending.data?.find(item => item.id === Number(e.target.value)); if (row) { setVersion(row.version); setTitle(row.title); setChannel(row.channel); setOwner(String(row.owner_id || "")); setPriority(row.priority || "Medium"); setNotes(row.notes || ""); setNext(row.metadata?.next_action || ""); setReminder(row.metadata?.reminder_at && new Date(row.metadata.reminder_at) > new Date() ? localInput(row.metadata.reminder_at) : ""); setOffering({ kind: row.metadata?.offering_kind || "", id: String(row.metadata?.offering_id || ""), name: "" }); if (action === "schedule") setDue(localInput(row.due_at)); } }}><option value="">{pending.isPending ? "Loading…" : action === "complete" ? "Choose a pending follow-up" : "Create new follow-up"}</option>{pending.data?.map(row => <option key={row.id} value={row.id}>{row.title} · {date(row.due_at)}</option>)}</NativeSelect></label></div>
+    <div className="fu-form-grid"><label>Action<NativeSelect value={action} onChange={e => { setAction(e.target.value); setActivity(""); setVersion(undefined); setDue(""); setReminder(""); }}><option value="schedule">Schedule / reschedule</option><option value="complete" disabled={!pending.data?.length}>Log outcome & complete</option></NativeSelect></label><label>Existing follow-up<NativeSelect aria-label="Existing follow-up" disabled={pending.isPending || !!pending.error} value={activity} onChange={e => { setActivity(e.target.value); setVersion(undefined); const row = pending.data?.find(item => item.id === Number(e.target.value)); if (row) { setVersion(row.version); setTitle(row.title); setChannel(row.channel); setOwner(String(row.owner_id || "")); setPriority(row.priority || "Medium"); setNotes(row.notes || ""); setNext(row.metadata?.next_action || ""); setReminder(row.metadata?.reminder_at && crmTimestamp(row.metadata.reminder_at) > new Date() ? localInput(row.metadata.reminder_at) : ""); setOffering({ kind: row.metadata?.offering_kind || "", id: String(row.metadata?.offering_id || ""), name: "" }); if (action === "schedule") setDue(localInput(row.due_at)); } }}><option value="">{pending.isPending ? "Loading…" : action === "complete" ? "Choose a pending follow-up" : "Create new follow-up"}</option>{pending.data?.map(row => <option key={row.id} value={row.id}>{row.title} · {date(row.due_at)}</option>)}</NativeSelect></label></div>
 
     {pending.error && <p role="alert" className="text-destructive">{failure(pending.error)}</p>}
 

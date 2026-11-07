@@ -40,7 +40,11 @@
     "crm_detail_changed_component_lint": "passed",
     "crm_detail_production_build": "passed",
     "catalog_layout_production_build": "passed",
-    "catalog_layout_changed_component_lint": "passed"
+    "catalog_layout_changed_component_lint": "passed",
+    "crm_timestamp_regression_scenarios": 8,
+    "crm_growth_typecheck": "passed",
+    "crm_growth_lint": "passed",
+    "crm_growth_production_build": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -223,5 +227,22 @@
     "passed": 25,
     "passed-ui-feedback": 1,
     "unverified": 1
+  },
+  "relationship_detail_controls": "relationship-detail-controls.json",
+  "relationship_detail_controls_results": {
+    "passed": 4,
+    "fixed-and-passed": 2,
+    "passed-selected-state": 2
+  },
+  "followup_workspace_controls": "followup-workspace-controls.json",
+  "followup_workspace_controls_results": {
+    "passed-selected-state": 10,
+    "passed": 6,
+    "fixed-and-passed": 2
+  },
+  "greetings_controls": "greetings-controls.json",
+  "greetings_control_results": {
+    "passed-selected-state": 16,
+    "passed": 2
   }
 }

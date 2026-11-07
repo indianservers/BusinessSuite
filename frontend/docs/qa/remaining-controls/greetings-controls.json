@@ -1,0 +1,76 @@
+[
+  {
+    "control": "Greeting occasion / Thank you",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting occasion / Birthday",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting occasion / Anniversary",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting occasion / Festival",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting occasion / Product / service update",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting occasion / Stay in touch",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting occasion / Custom greeting",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting channel / Email",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting channel / WhatsApp",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Greeting channel / SMS",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / All permitted records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / My records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / My team",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Recipient occasion / All matching recipients",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Recipient occasion / Birthdays today",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Recipient occasion / Customer anniversaries today",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Save greeting draft/reload/preview",
+    "result": "passed",
+    "evidence": "Subject, body and one selected QA contact survived reload. Preview interpolated name, company and sender; one eligible, zero excluded. Open email draft href contains matching personalized content. No email opened or sent."
+  },
+  {
+    "control": "Remove recipient",
+    "result": "passed",
+    "evidence": "Selected chip removed and preview disabled with zero recipients."
+  }
+]

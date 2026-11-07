@@ -1,0 +1,82 @@
+[
+  {
+    "control": "Relationship type / All records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Leads",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Contacts",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Customers / companies",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Relationship type / Deals",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / All permitted records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / My records",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Record scope / My team",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assigned owner / All owners",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Assigned owner / Admin",
+    "result": "passed-selected-state"
+  },
+  {
+    "control": "Overdue status filter",
+    "result": "passed",
+    "evidence": "Expected 0 matching records shown."
+  },
+  {
+    "control": "Today status filter",
+    "result": "passed",
+    "evidence": "Expected 1 matching record shown."
+  },
+  {
+    "control": "Upcoming status filter",
+    "result": "passed",
+    "evidence": "Expected 3 matching records shown."
+  },
+  {
+    "control": "No next step filter",
+    "result": "passed",
+    "evidence": "Expected 28 matching records shown."
+  },
+  {
+    "control": "All active relationships filter",
+    "result": "passed",
+    "evidence": "Expected 32 matching records shown."
+  },
+  {
+    "control": "Follow-up history tabs and search",
+    "result": "passed",
+    "evidence": "Pending empty state, Completed with QA follow-up 4, Employee activity with 3 events; Admin filter selected, absent search gives empty results, clear and refresh restore 3 events."
+  },
+  {
+    "control": "UTC timestamp display",
+    "result": "fixed-and-passed",
+    "evidence": "Naive backend UTC values now interpreted as UTC. Completed history shows due Nov 12 11:45 AM and completion Nov 7 10:11 PM local time, matching browser scheduling."
+  },
+  {
+    "control": "Follow-up and greetings main landmarks",
+    "result": "fixed-and-passed",
+    "evidence": "Each page has one main landmark; inner workspaces are named sections."
+  }
+]
