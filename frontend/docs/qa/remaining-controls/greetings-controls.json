@@ -72,5 +72,104 @@
     "control": "Remove recipient",
     "result": "passed",
     "evidence": "Selected chip removed and preview disabled with zero recipients."
+  },
+  {
+    "control": "Recipient type all",
+    "result": "passed",
+    "evidence": "Full recipient filter total 34 verified; greetings includes closed deals, unlike active-only follow-up workspace."
+  },
+  {
+    "control": "Recipient type leads",
+    "result": "passed",
+    "evidence": "Full recipient filter total 6 verified; greetings includes closed deals, unlike active-only follow-up workspace."
+  },
+  {
+    "control": "Recipient type contacts",
+    "result": "passed",
+    "evidence": "Full recipient filter total 11 verified; greetings includes closed deals, unlike active-only follow-up workspace."
+  },
+  {
+    "control": "Recipient type companies",
+    "result": "passed",
+    "evidence": "Full recipient filter total 5 verified; greetings includes closed deals, unlike active-only follow-up workspace."
+  },
+  {
+    "control": "Recipient type deals",
+    "result": "passed",
+    "evidence": "Full recipient filter total 12 verified; greetings includes closed deals, unlike active-only follow-up workspace."
+  },
+  {
+    "control": "WhatsApp personalized preview",
+    "result": "passed",
+    "evidence": "One eligible QA contact; draft href contains normalized phone and personalized message. Link not opened."
+  },
+  {
+    "control": "SMS personalized preview",
+    "result": "passed",
+    "evidence": "SMS draft href contains normalized QA phone and personalized body; not opened."
+  },
+  {
+    "control": "Recipient checkbox Select Avery Quinn",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select Jordan Lee",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select Morgan Reed",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select Taylor Blake",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select Acme Enterprises",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select Zenith Solutions",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select Vertex Tech",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select Nova Retail",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select QA Sync regression customer",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select QA exhaustive lead controls",
+    "result": "passed"
+  },
+  {
+    "control": "Recipient checkbox Select QA nested form boundary",
+    "result": "passed"
+  },
+  {
+    "control": "Select page and clear selection",
+    "result": "passed",
+    "evidence": "Header selected all 11 contact recipients; Clear selection restored zero."
+  },
+  {
+    "control": "Missing email excluded",
+    "result": "passed",
+    "evidence": "Avery Quinn has no email; preview shows 0 eligible, 1 excluded and no email draft link."
+  },
+  {
+    "control": "Recipient pagination",
+    "result": "passed",
+    "evidence": "All 34 records paginate as 25 loaded + 9 loaded; second page select-all picks 9; Previous restores 25."
+  },
+  {
+    "control": "Blank message validation",
+    "result": "passed",
+    "evidence": "Whitespace-only message disables preview for selected QA recipient; restored original body."
   }
 ]

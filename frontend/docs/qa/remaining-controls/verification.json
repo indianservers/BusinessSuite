@@ -201,10 +201,11 @@
   "catalog_page_checks": {
     "file": "catalog-page-controls.json",
     "results": {
-      "passed": 70,
+      "passed": 86,
       "unverified": 1,
       "fixed-and-passed": 2,
-      "superseded-by-settled-count-recheck": 1
+      "superseded-by-settled-count-recheck": 1,
+      "superseded-by-selector-recheck": 6
     },
     "routes": [
       "crm/products",
@@ -212,7 +213,7 @@
       "pms/products",
       "pms/products-services"
     ],
-    "evidence": "On each route: four sorts with exact asc/reverse/restored order and12type/search/category/status result checks. Distinct generated values used. Record-action checks limited to explicitly recorded CRM cases so far."
+    "evidence": "Each of four routes: four sorts and 12 filter results; three active record previews, title/edit/cancel actions, individual/page selection and all three bulk reuse modes checked. Single-branch fixture prevented actual sharing. Export 22 columns and XLSX/CSV/JSON downloads separately verified."
   },
   "catalog_fixture_state": "Three active generated offerings with distinct names/codes/categories/prices; one archived service copy. Earlier option/form checks predate sorting fixture.",
   "catalog_page_control_results": {
@@ -236,13 +237,13 @@
   },
   "followup_workspace_controls": "followup-workspace-controls.json",
   "followup_workspace_controls_results": {
-    "passed-selected-state": 10,
-    "passed": 6,
+    "passed-selected-state": 31,
+    "passed": 15,
     "fixed-and-passed": 2
   },
   "greetings_controls": "greetings-controls.json",
   "greetings_control_results": {
     "passed-selected-state": 16,
-    "passed": 2
+    "passed": 24
   }
 }
