@@ -138,7 +138,7 @@
   {
     "area": "Tasks",
     "control": "Group by Status",
-    "passed": false
+    "passed": true
   },
   {
     "area": "Tasks",
@@ -193,6 +193,421 @@
   {
     "area": "Tasks",
     "control": "All tasks quick filter",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Comfortable density",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Spacious density",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Compact density",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Project column visibility",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Priority column visibility",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Assignee column visibility",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Due date column visibility",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Status column visibility",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Progress column visibility",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Labels column visibility",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Gallery view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Board view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Gantt view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Timeline view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Calendar view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Workload view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Activity view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Dashboard view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Team view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Mind map view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "Whiteboard view",
+    "passed": true
+  },
+  {
+    "area": "Projects",
+    "control": "List view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Board view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Gallery view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "List view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Gantt view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Timeline view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Calendar view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Activity view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Forecast view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Team view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Mind map view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Whiteboard view",
+    "passed": true
+  },
+  {
+    "area": "Deals",
+    "control": "Table view",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Equals",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Does not equal",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Contains",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Starts with",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Ends with",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Between",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Greater than",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator At least",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Less than",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator At most",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Is empty",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Filter operator Is not empty",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Column visibility",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Column pinning",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Column reorder",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Auto-fit columns",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Saved view create",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Saved view restore",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Grid density",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Row height",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Reset columns",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Undo layout",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Advanced filter results",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Nested AND/OR groups",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "CSV export",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Excel export",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "PDF export",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Clipboard export",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Rapid project reset plus status update returns 88 completed tasks",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Priority empty state returns zero tasks",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Sort and page-size updates compose",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Task pagination next and previous",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Task creation and search",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Inline title priority status progress persisted after reload",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Deadline persisted from task details",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Checklist creation and completion",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Subtask creation",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Rich text comment submission",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Discussion resolution refresh",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Reaction count refresh",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Text preview latest selection wins",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Image preview decodes",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "PDF blob preview",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Timer start, stop and save",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Inline deadline Enter save persists after reload",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Bulk priority update",
+    "passed": true
+  },
+  {
+    "area": "Tasks",
+    "control": "Bulk status update",
+    "passed": true
+  },
+  {
+    "area": "Shared grid",
+    "control": "Clipboard export completes and re-enables Export",
+    "passed": true
+  },
+  {
+    "area": "Task workflow",
+    "control": "Embedded pane resolution and reaction refresh",
     "passed": true
   }
 ]

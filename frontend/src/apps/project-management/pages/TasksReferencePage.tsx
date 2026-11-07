@@ -157,7 +157,21 @@ export default function TasksReferencePage() {
   const routeLocation = useLocation();
   const studio = routeLocation.pathname === "/pms/tasks/new" || !!route.taskId;
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params, setRouterParams] = useSearchParams();
+  const pendingParams = useRef(params);
+  const observedSearch = useRef(routeLocation.search);
+  if (observedSearch.current !== routeLocation.search) {
+    observedSearch.current = routeLocation.search;
+    pendingParams.current = params;
+  }
+  // Router search-param callbacks do not queue like React state updates.
+  // Compose rapid filter changes against the latest requested query, while
+  // still accepting back/forward navigation and links as the source of truth.
+  const setParams = (update: URLSearchParams | ((previous: URLSearchParams) => URLSearchParams)) => {
+    const next = typeof update === "function" ? update(new URLSearchParams(pendingParams.current)) : update;
+    pendingParams.current = new URLSearchParams(next);
+    setRouterParams(pendingParams.current);
+  };
   const [importOpen, setImportOpen] = useState(false);
   const [importBatch, setImportBatch] = useState(() =>
     crypto.randomUUID().slice(0, 12),
@@ -557,7 +571,7 @@ export default function TasksReferencePage() {
                     key={m.label}
                     className={`tr-metric ${m.color}`}
                     onClick={() => {
-                      const next = new URLSearchParams(params);
+                      const next = new URLSearchParams(pendingParams.current);
                       ["status", "dueFrom", "dueTo", "overdue", "openOnly", "workView", "reporterId", "page"].forEach(key => next.delete(key));
                       if (m.filter === "today") {
                         next.set("dueFrom", localDay());
@@ -602,7 +616,7 @@ export default function TasksReferencePage() {
               <section className="tr-work">
                 <div className="tr-quick-tabs" role="group" aria-label="Quick task filters">{[
                   {id:"all",label:"All tasks"}, {id:"mine",label:"My tasks"}, {id:"created",label:"Created by me"}, {id:"today",label:"Today"}, {id:"upcoming",label:"Upcoming"}, {id:"overdue",label:"Overdue"}, {id:"blocked",label:"Blocked"}, {id:"completed",label:"Completed"},
-                ].map(tab => <button key={tab.id} aria-pressed={(params.get("quick") || "all") === tab.id} onClick={() => { const next = new URLSearchParams(params); ["workView", "reporterId", "dueFrom", "dueTo", "status", "overdue", "openOnly", "page"].forEach(key => next.delete(key)); if(tab.id === "mine") next.set("workView", "mine"); if(tab.id === "created") next.set("reporterId", String(user?.id || "")); if(tab.id === "today") {next.set("dueFrom", localDay()); next.set("dueTo", localDay());} if(tab.id === "upcoming") {const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1); next.set("dueFrom", `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`);next.set("openOnly", "true");} if(tab.id === "overdue")next.set("overdue", "true");if(tab.id === "blocked")next.set("status", "Blocked");if(tab.id === "completed")next.set("workView", "completed"); next.set("quick", tab.id); setParams(next); }}>{tab.label}</button>)}</div>
+                ].map(tab => <button key={tab.id} aria-pressed={(params.get("quick") || "all") === tab.id} onClick={() => { const next = new URLSearchParams(pendingParams.current); ["workView", "reporterId", "dueFrom", "dueTo", "status", "overdue", "openOnly", "page"].forEach(key => next.delete(key)); if(tab.id === "mine") next.set("workView", "mine"); if(tab.id === "created") next.set("reporterId", String(user?.id || "")); if(tab.id === "today") {next.set("dueFrom", localDay()); next.set("dueTo", localDay());} if(tab.id === "upcoming") {const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1); next.set("dueFrom", `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`);next.set("openOnly", "true");} if(tab.id === "overdue")next.set("overdue", "true");if(tab.id === "blocked")next.set("status", "Blocked");if(tab.id === "completed")next.set("workView", "completed"); next.set("quick", tab.id); setParams(next); }}>{tab.label}</button>)}</div>
                 <div className="tr-viewbar">
                   <WorkspaceViewBar scope={`pms-tasks:${selectedProjectId || "all"}`} label="Task views" active={layout} views={taskViews} onChange={id => change("layout", id)} primary={["list","board","gantt","timeline","calendar","workload","dashboard","channel"]}/>
                   <div className="tr-tools">

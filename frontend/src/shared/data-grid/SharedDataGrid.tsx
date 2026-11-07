@@ -1,4 +1,5 @@
 import { defaultText } from "@/lib/form-defaults";
+import { writeClipboard } from "@/lib/clipboard";
 import { SuiteDistribution, SuiteIllustration } from "@/components/visuals/SuiteVisuals";
 import { useMobile } from "@/components/mobile/useMobile";
 import PhoneActions, { isPhoneField } from "@/components/PhoneActions";
@@ -1250,7 +1251,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
             .join("\t"),
         )
         .join("\n");
-      await navigator.clipboard.writeText(copied);
+      await writeClipboard(copied);
       setNotice("Selected cells copied.");
     } catch {
       setActionError(
@@ -1278,7 +1279,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         query,
       });
       if (format === "clipboard") {
-        await navigator.clipboard.writeText(
+        await writeClipboard(
           typeof response === "string" ? response : await response.text(),
         );
         setNotice("Export copied to clipboard.");
@@ -2083,7 +2084,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                       .map((r) => (
                         <article
                           key={getRowId(r)}
-                          {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}
+                          {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();if(props.onOpenPopup)props.onOpenPopup(r);else recordPreviewProps(r).onDoubleClickCapture(event);}}}
                         >
                           {props.renderCard?.(r) ||
                             columns
@@ -2100,7 +2101,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                   </section>
                 ))
               : visibleRecords.map((r) => (
-                  <article key={getRowId(r)} {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();props.onOpenPopup ? props.onOpenPopup(r):recordPreviewProps(r).onDoubleClickCapture(event);}}}>
+                  <article key={getRowId(r)} {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();if(props.onOpenPopup)props.onOpenPopup(r);else recordPreviewProps(r).onDoubleClickCapture(event);}}}>
                     {props.renderCard?.(r) ||
                       columns
                         .filter((c) => layout.visibility[c.id] !== false)
