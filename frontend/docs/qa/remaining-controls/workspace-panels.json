@@ -1,0 +1,227 @@
+[
+  {
+    "page": "crm/whatsapp-communication",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/import-data",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/payment-requests",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/birthdays",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/company-directory",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/records",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/record-metadata",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/product-customers",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/customer-follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/greetings",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/follow-ups/directory",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/follow-ups/calendar",
+    "control": "Team workspace open/load/close",
+    "result": "needs-review",
+    "evidence": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector internal:role=dialog[name=\"Team workspace\"s] >> internal:role=combobox[name=\"Workspace\"s]\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"internal:role=dialog[name=\\\"Team works"
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/messages",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/gantt",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/sales-home",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/follow-ups",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/dashboard",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/profile",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/potential-clients",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/leads",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/leads/classic",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/leads/workbench",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/contacts",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/accounts",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/companies",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/vendors",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/deals",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/pipeline",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/pipeline-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/inventory-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/mail-merge-templates",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/pipeline-settings",
+    "control": "Team workspace",
+    "result": "not-present-in-inventory"
+  },
+  {
+    "page": "crm/pipelines",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  },
+  {
+    "page": "crm/activities",
+    "control": "Team workspace open/load/close",
+    "result": "passed",
+    "evidence": "Workspace selector loaded;panel closed."
+  }
+]

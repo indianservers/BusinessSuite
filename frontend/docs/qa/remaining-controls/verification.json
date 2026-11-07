@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-07",
+  "complete": false,
+  "environment": "Isolated loopback QA at 127.0.0.1:1569; generated records explicitly approved as disposable",
+  "initial_route_inventory": "../workspace-completion/routes-desktop.json",
+  "initial_routes": 192,
+  "initial_controls": 14765,
+  "interaction_checks_recorded": 585,
+  "check_results": {
+    "fixed-and-passed": 4,
+    "passed": 581
+  },
+  "route_workspace_panels": "workspace-panels.json",
+  "validation": {
+    "custom_fields_reset_recovery_backend_tests": 31,
+    "shared_identity_company_boundary_backend_tests": 37,
+    "typescript": "passed",
+    "changed_component_lint": "passed",
+    "production_build": "passed"
+  },
+  "coverage_limits": [
+    "This is a continuing audit, not certification that every button on all192pages has been exercised.",
+    "Individual checks are recorded in checks.json. A check verifies only its described action and observed outcome.",
+    "Workspace-panel checks are recorded per route and do not certify the other controls on that route.",
+    "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded."
+  ]
+}

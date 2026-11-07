@@ -123,6 +123,7 @@ import { toast } from "@/hooks/use-toast";
 import { exportRows } from "@/lib/export";
 import { formatCurrency, formatDate, statusColor } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
+import { canAccessRoute } from "@/lib/roles";
 import { crmApi, type CRMApiRecord, type CRMApiValue, type CRMApprovalRequest, type CRMApprovalWorkflow, type CRMCalendarEvent, type CRMDuplicateGroup, type CRMListParams, type CRMWinLossReport } from "./api";
 
 type CRMLead = {
@@ -544,7 +545,6 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
     { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
   ],
 };
-type AutomationCard = [title: string, value: string, detail: string, Icon: React.ElementType];
 type CRMApiState<T> = { data: T; loading: boolean; error: string | null };
 type InlineFieldType = "text" | "number" | "date" | "select" | "tags";
 type InlineEditConfig = { type: InlineFieldType; apiField: string; options?: string[] };
@@ -7157,47 +7157,32 @@ function LeadToCashPage() {
 }
 
 function SalesAutomationPage() {
-  const automationCards: AutomationCard[] = [
-    ["Reminders", "18 active", "Follow-up reminders from leads, deals, quotations, and tickets.", Bell],
-    ["SLA follow-ups", "4 at risk", "Escalate customer replies and support-linked sales tasks before breach.", Clock],
-    ["Stale deal alerts", "3 stale", "Detect opportunities without activity or next step updates.", AlertTriangle],
-    ["Auto-assignment", "Round robin", "Route website, campaign, and partner leads to available owners.", Users],
-    ["Email sequences", "6 live", "Drip campaigns for nurture, proposal follow-up, and renewal.", Mail],
-    ["WhatsApp sequences", "5 live", "Message templates for demo reminders and quote expiry nudges.", Phone],
+  const navigate = useNavigate();
+  const user = useAuthStore(state => state.user);
+  const canConfigure = canAccessRoute("/admin/automation/workflows", user?.role, user?.is_superuser);
+  const tools: [string, string, string, React.ElementType][] = [
+    ["Workflows", "workflows", "Create guarded triggers and actions, test rules, and manage activation.", Sparkles],
+    ["Blueprints", "blueprints", "Define stages, required fields, and transition checks.", GitMerge],
+    ["Approvals", "approvals", "Review approval requests and configure approval rules.", FileCheck2],
+    ["Assignment rules", "assignment-rules", "Configure and test how records are routed to owners.", Users],
+    ["Cadences", "cadences", "Manage follow-up sequences, enrollment, and pause or resume controls.", CalendarDays],
+    ["Webhooks", "webhooks", "Manage signed event destinations and test deliveries.", Activity],
+    ["Execution logs", "logs", "Inspect automation outcomes and retry eligible failed executions.", ListFilter],
   ];
-  const rules = [
-    { rule: "Qualified lead follow-up", trigger: "Status = Qualified", action: "Create task + WhatsApp reminder", owner: "Sales Ops" },
-    { rule: "Stale negotiation", trigger: "No activity for 5 days", action: "Alert owner and manager", owner: "Sales Manager" },
-    { rule: "Quote expiry", trigger: "Expiry in 2 days", action: "Email sequence + task", owner: "Revenue Ops" },
-    { rule: "Critical customer ticket", trigger: "Priority = Critical", action: "Pause renewal ask and notify owner", owner: "Support Lead" },
-  ];
-
   return (
     <div className="space-y-6">
-      <PageHeader title="Sales Automation" description="Reminders, SLA follow-ups, stale deal alerts, auto-assignment, email sequences, and WhatsApp sequences." action="Create rule" />
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {automationCards.map(([title, value, detail, Icon]) => (
-          <Card key={String(title)}>
-            <CardContent className="flex gap-3 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
-              <div><p className="font-semibold">{title}</p><p className="text-2xl font-semibold">{value}</p><p className="text-sm text-muted-foreground">{detail}</p></div>
+      <PageHeader title="Sales Automation" description="Manage saved automation rules and inspect their execution in Automation Studio." action="Create rule" onAction={canConfigure ? () => navigate("/admin/automation/workflows") : undefined} />
+      {!canConfigure && <p className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">An automation administrator can configure these tools. Contact your workspace administrator for access.</p>}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {tools.map(([title, section, detail, Icon]) => (
+          <Card key={section} className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col gap-4 p-5">
+              <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div><div><h2 className="font-semibold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{detail}</p></div></div>
+              <Button className="mt-auto self-start" variant="outline" disabled={!canConfigure} onClick={() => navigate(`/admin/automation/${section}`)}>Open {title.toLowerCase()}</Button>
             </CardContent>
           </Card>
         ))}
       </div>
-      <Card>
-        <CardHeader><CardTitle>Automation Rules</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {rules.map((row) => (
-            <div key={row.rule} className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_13rem_15rem_9rem] md:items-center">
-              <p className="font-medium">{row.rule}</p>
-              <span className="text-sm text-muted-foreground">{row.trigger}</span>
-              <span className="text-sm">{row.action}</span>
-              <Badge variant="outline">{row.owner}</Badge>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
     </div>
   );
 }

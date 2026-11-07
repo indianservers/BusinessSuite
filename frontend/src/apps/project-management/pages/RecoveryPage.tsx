@@ -59,6 +59,7 @@ export default function RecoveryPage() {
   const [policy, setPolicy] = useState<Policy>(defaults);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [full, setFull] = useState<any>(null);
@@ -118,8 +119,9 @@ export default function RecoveryPage() {
     if (user?.is_superuser)
       void loadFull().catch((e: any) => setError(workspaceError(e)));
   }, [user?.is_superuser]);
-  const action = async (work: () => Promise<void>, message: string) => {
+  const action = async (work: () => Promise<void>, message: string, progress: string) => {
     setBusy(true);
+    setPendingAction(progress);
     setError("");
     setNotice("");
     try {
@@ -129,6 +131,7 @@ export default function RecoveryPage() {
       setError(workspaceError(e));
     } finally {
       setBusy(false);
+      setPendingAction("");
     }
   };
   const download = async (url: string, filename: string) => {
@@ -141,7 +144,7 @@ export default function RecoveryPage() {
     setTimeout(() => URL.revokeObjectURL(href), 1000);
   };
   const policyForm = (value: Policy, update: (p: Policy) => void) => (
-    <div className="flex flex-wrap items-end gap-4">
+    <fieldset disabled={busy} className="flex flex-wrap items-end gap-4">
       <label className="flex items-center gap-2 py-2">
         <input
           type="checkbox"
@@ -176,10 +179,10 @@ export default function RecoveryPage() {
           className="w-28"
         />
       </label>
-    </div>
+    </fieldset>
   );
   return (
-    <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
       <header>
         <Link
           to={`/pms?workspace=${selected}`}
@@ -255,7 +258,7 @@ export default function RecoveryPage() {
                   void action(async () => {
                     await api.post(`${base}/actions/${direction}`);
                     await load();
-                  }, `Task ${direction} completed.`)
+                  }, `Task ${direction} completed.`, direction === "undo" ? "Undoing task change…" : "Redoing task change…")
                 }
               >
                 {direction === "undo" ? "Undo" : "Redo"}
@@ -310,7 +313,7 @@ export default function RecoveryPage() {
                   await api.post(`${base}/savepoints`, { name });
                   setName("");
                   await load();
-                }, "Savepoint created.")
+                }, "Savepoint created.", "Creating savepoint…")
               }
             >
               Create savepoint
@@ -323,7 +326,7 @@ export default function RecoveryPage() {
             onClick={() =>
               void action(async () => {
                 await api.put(`${base}/policy`, policy);
-              }, "Automatic workspace policy saved. The backup worker must be running.")
+              }, "Automatic workspace policy saved. The backup worker must be running.", "Saving workspace schedule…")
             }
           >
             Save workspace schedule
@@ -367,6 +370,7 @@ export default function RecoveryPage() {
                             `workspace-${selected}-savepoint-${point.id}.json`,
                           ),
                         "Savepoint downloaded.",
+                        "Downloading savepoint…",
                       )
                     }
                   >
@@ -384,7 +388,7 @@ export default function RecoveryPage() {
                         );
                         setRestore({ point, preview: data });
                         setConfirmation("");
-                      }, "Restore preview ready.")
+                      }, "Restore preview ready.", "Preparing restore preview…")
                     }
                   >
                     Preview restore
@@ -442,7 +446,7 @@ export default function RecoveryPage() {
                       setConfirmation("");
                       if (!data.safety_savepoint_id)
                         throw new Error("Missing safety savepoint");
-                    }, "Task content restored. A safety savepoint was saved.")
+                    }, "Task content restored. A safety savepoint was saved.", "Restoring task content…")
                   }
                 >
                   Restore task content
@@ -484,10 +488,10 @@ export default function RecoveryPage() {
                   timeout: 0,
                 });
                 await loadFull();
-              }, "Full-system archive created and verified.")
+              }, "Full-system archive created and verified.", "Creating full-system backup…")
             }
           >
-            {busy ? "Working…" : "Back up entire system now"}
+            {pendingAction === "Creating full-system backup…" ? pendingAction : "Back up entire system now"}
           </Button>
           {full && (
             <>
@@ -502,7 +506,7 @@ export default function RecoveryPage() {
                       fullPolicy,
                     );
                     await loadFull();
-                  }, "Full-system backup policy saved.")
+                  }, "Full-system backup policy saved.", "Saving full-system schedule…")
                 }
               >
                 Save full-system schedule
@@ -542,6 +546,7 @@ export default function RecoveryPage() {
                               `businesssuite-${archive.id}.zip`,
                             ),
                           "Full backup downloaded.",
+                          "Downloading full-system archive…",
                         )
                       }
                     >
@@ -560,9 +565,9 @@ export default function RecoveryPage() {
       )}
       {busy && (
         <p role="status" className="text-sm text-muted-foreground">
-          Working… Please keep this page open.
+          {pendingAction} Please keep this page open.
         </p>
       )}
-    </main>
+    </div>
   );
 }
