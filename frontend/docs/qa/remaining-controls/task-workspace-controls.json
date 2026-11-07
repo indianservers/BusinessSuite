@@ -58,5 +58,10 @@
     "control": "Task workspace landmarks",
     "result": "fixed-and-passed",
     "evidence": "Before: nested main landmarks. After: one main plus named Task workspace region; task, attachments and time summary loaded."
+  },
+  {
+    "control": "Blocker report/edit/resolve/reopen persistence",
+    "result": "passed",
+    "evidence": "Posted QA Technical/High blocker assignedAdmin with assistance; resolved\u00e2\u2020\u2019reopened\u00e2\u2020\u2019resolved; Cancel edit canceled; Save update changed body to QA blocker edited; reload retained resolved state/body/category/severity/owner."
   }
 ]

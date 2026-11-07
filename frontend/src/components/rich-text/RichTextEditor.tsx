@@ -1,3 +1,4 @@
+import { blockTextSelection } from "./blockSelection";
 import { NativeSelect } from "@/components/ui/native-select";
 import BlockDragHandle from "./BlockDragHandle";
 import "./block-drag.css";
@@ -91,6 +92,11 @@ export default function RichTextEditor({ value, onChange, onBlur, onSelection, r
   }, [fullscreen]);
   if (!editor) return <div role="status">Loading editor...</div>;
   const locked = readOnly || disabled;
+  const blockChain = () => {
+    const selection = blockTextSelection(editor.state);
+    const chain = editor.chain().focus();
+    return selection ? chain.setTextSelection(selection) : chain;
+  };
   const tool = (name: string, Icon: typeof Bold, action: () => void, active?: boolean, unavailable = false) =>
     <button key={name} type="button" aria-label={name} title={name} aria-pressed={active} disabled={locked || unavailable}
       onMouseDown={event => event.preventDefault()} onClick={action}><Icon size={16}/></button>;
@@ -126,9 +132,9 @@ export default function RichTextEditor({ value, onChange, onBlur, onSelection, r
           {tool("Remove highlight", Eraser, () => { editor.chain().focus().unsetHighlight().run(); })}
           {([['left',AlignLeft],['center',AlignCenter],['right',AlignRight],['justify',AlignJustify]] as const).map(([alignment,Icon]) => tool(`Align ${alignment}`, Icon, () => { editor.chain().focus().setTextAlign(alignment).run(); }, editor.isActive({ textAlign: alignment }), !editor.can().setTextAlign(alignment)))}
           {tool("Increase indent", IndentIncrease, () => indent(1))}{tool("Decrease indent", IndentDecrease, () => indent(-1))}
-          {tool("Block quote", Quote, () => { editor.chain().focus().toggleBlockquote().run(); }, editor.isActive("blockquote"))}
+          {tool("Block quote", Quote, () => { blockChain().toggleBlockquote().run(); }, editor.isActive("blockquote"))}
           {tool("Checklist", CheckSquare, () => { editor.chain().focus().toggleTaskList().run(); }, editor.isActive("taskList"))}
-          {tool("Code block", Code2, () => { editor.chain().focus().toggleCodeBlock().run(); }, editor.isActive("codeBlock"))}
+          {tool("Code block", Code2, () => { blockChain().toggleCodeBlock().run(); }, editor.isActive("codeBlock"))}
           {tool("Horizontal divider", Minus, () => { editor.chain().focus().setHorizontalRule().run(); })}
           {tool("Insert table", Table2, () => { editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); }, undefined, !editor.can().insertTable({rows:3,cols:3,withHeaderRow:true}))}
           {tool("Clear formatting", Eraser, () => { editor.chain().focus().unsetAllMarks().clearNodes().resetAttributes("paragraph",["indent","textAlign"]).run(); })}

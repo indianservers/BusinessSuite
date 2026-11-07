@@ -739,12 +739,13 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                         aria-label="Update template"
                         defaultValue=""
                         onChange={(e) => {
-                          if (e.target.value)
-                            setBody(
-                              e.target.value === "qa"
-                                ? "Tested:\nExpected:\nActual:\nEvidence:\nNext steps:"
-                                : "Accomplished:\nPending:\nIssues:\nNext steps:",
-                            );
+                          setBody(
+                            e.target.value === "qa"
+                              ? "Tested:\nExpected:\nActual:\nEvidence:\nNext steps:"
+                              : e.target.value === "daily"
+                                ? "Accomplished:\nPending:\nIssues:\nNext steps:"
+                                : "",
+                          );
                         }}
                       >
                         <option value="">Blank update</option>

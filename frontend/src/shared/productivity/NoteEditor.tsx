@@ -3,7 +3,8 @@ import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useRef, useState } from "react";
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type NodeViewProps } from "@tiptap/react";
 import { Node, Extension, type Editor, type JSONContent } from "@tiptap/core";
-import { AllSelection, Plugin, Selection } from "@tiptap/pm/state";
+import { Plugin } from "@tiptap/pm/state";
+import { blockTextSelection } from "@/components/rich-text/blockSelection";
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Calendar, CheckSquare, Code2, Eraser, Highlighter, ImagePlus, IndentDecrease, IndentIncrease, Italic, Link2, List, ListOrdered, Maximize2, Minimize2, Minus, MoreHorizontal, Paintbrush, Paperclip, Quote, Redo2, Replace, Strikethrough, Table2, Underline, Undo2, X, GripVertical, Info, FileText, Folder } from "lucide-react";
 import { richTextExtensions } from "@/components/rich-text/extensions";
 import { contentToHtml, RICH_TEXT_PREFIX, sanitizeRichHtml, fontSizes } from "@/components/rich-text/content";
@@ -70,9 +71,9 @@ export default function NoteEditor({ AttachmentView, value, onChange, onSelectio
   // Wrap/lift commands need text-block endpoints, rather than the document
   // boundary positions produced by Select All.
   const blockChain=()=>{
-    const {selection,doc}=editor.state;
+    const selection=blockTextSelection(editor.state);
     const chain=editor.chain().focus();
-    return selection instanceof AllSelection?chain.setTextSelection({from:Selection.atStart(doc).from,to:Selection.atEnd(doc).to}):chain;
+    return selection?chain.setTextSelection(selection):chain;
   };
   const table=()=>editor.chain().focus().insertTable({rows:3,cols:3,withHeaderRow:true}).run();
   const callout=()=>editor.chain().focus().insertContent('<blockquote><p><strong>Note</strong></p><p>Write your callout here.</p></blockquote>').run();

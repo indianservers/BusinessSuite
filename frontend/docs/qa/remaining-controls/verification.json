@@ -27,7 +27,11 @@
     "editor_typecheck": "passed",
     "editor_changed_component_lint": "passed",
     "task_landmark_build": "passed",
-    "task_landmark_lint": "passed"
+    "task_landmark_lint": "passed",
+    "shared_block_selection_regression_scenarios": 6,
+    "shared_editor_typecheck": "passed",
+    "shared_editor_changed_component_lint": "passed",
+    "shared_editor_production_build": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -130,10 +134,27 @@
   "task_workspace_checks": {
     "file": "task-workspace-controls.json",
     "results": {
-      "passed": 9,
       "unverified": 2,
+      "passed": 10,
       "fixed-and-passed": 1
     },
     "limitation": "Only explicitly recorded controls certified; native deletion and blob tab content unverified."
-  }
+  },
+  "task_blocker_options": {
+    "file": "task-blocker-options.json",
+    "passed": 9,
+    "limitation": "Each native option selected; one Technical/High record saved with responsibleAdmin and assistance. All combinations not tested."
+  },
+  "task_comment_formatting": {
+    "file": "task-comment-formatting.json",
+    "passed": 18,
+    "evidence": "All5font families,5paragraphstyles,8font sizes applied document markup."
+  },
+  "shared_block_toggles": {
+    "task_comment": "task-comment-block-toggles.json",
+    "notes_recheck": "note-shared-selection-recheck.json",
+    "passed_after_fixes": 10,
+    "limitation": "Specific whole-document fixtures; not every rich-text instance on192pages certified."
+  },
+  "update_template_fix": "Daily work note and QA test report render expected prompts; Blank update now clears text and disables empty Post Update. Rechecked in browser."
 }
