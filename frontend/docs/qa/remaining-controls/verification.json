@@ -38,7 +38,9 @@
     "form_boundary_production_build": "passed",
     "crm_detail_typecheck": "passed",
     "crm_detail_changed_component_lint": "passed",
-    "crm_detail_production_build": "passed"
+    "crm_detail_production_build": "passed",
+    "catalog_layout_production_build": "passed",
+    "catalog_layout_changed_component_lint": "passed"
   },
   "coverage_limits": [
     "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
@@ -191,5 +193,22 @@
       "unverified": 1
     },
     "limitation": "Specific synthetic lead6 only. Invalid-phone draft retention remains unverified; other CRM record kinds and all structured value shapes not certified."
-  }
+  },
+  "catalog_page_checks": {
+    "file": "catalog-page-controls.json",
+    "results": {
+      "passed": 70,
+      "unverified": 1,
+      "fixed-and-passed": 2,
+      "superseded-by-settled-count-recheck": 1
+    },
+    "routes": [
+      "crm/products",
+      "crm/products-services",
+      "pms/products",
+      "pms/products-services"
+    ],
+    "evidence": "On each route: four sorts with exact asc/reverse/restored order and12type/search/category/status result checks. Distinct generated values used. Record-action checks limited to explicitly recorded CRM cases so far."
+  },
+  "catalog_fixture_state": "Three active generated offerings with distinct names/codes/categories/prices; one archived service copy. Earlier option/form checks predate sorting fixture."
 }

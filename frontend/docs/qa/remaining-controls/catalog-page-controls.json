@@ -1,0 +1,447 @@
+[
+  {
+    "page": "crm/products",
+    "control": "Catalog preview/open/edit/close",
+    "result": "passed",
+    "evidence": "Preview showed service100INR, monthly80INR, qa_audit verified, image480x240; Close preview worked; Edit item opened editor and closed preview; Cancel returned catalog."
+  },
+  {
+    "page": "crm/products",
+    "control": "Image upload after reconnect",
+    "result": "unverified",
+    "evidence": "File chooser opened; fresh-session setFiles still rejected by extension file-URL permission check. No upload certified."
+  },
+  {
+    "page": "crm/products",
+    "control": "Branch reuse Share the same offering",
+    "result": "passed",
+    "evidence": "Selected action; no other writable branches available; submit correctly disabled. No sharing/copy/move performed."
+  },
+  {
+    "page": "crm/products",
+    "control": "Branch reuse Create an independent copy",
+    "result": "passed",
+    "evidence": "Selected action; no other writable branches available; submit correctly disabled. No sharing/copy/move performed."
+  },
+  {
+    "page": "crm/products",
+    "control": "Branch reuse Move to another branch",
+    "result": "passed",
+    "evidence": "Selected action; no other writable branches available; submit correctly disabled. No sharing/copy/move performed."
+  },
+  {
+    "page": "crm/products",
+    "control": "Duplicate catalog service",
+    "result": "passed",
+    "evidence": "Duplicate created QA lead service controls (copy) with new code; preview retained base100INR, monthly80INR, qa_audit verified and480x240image."
+  },
+  {
+    "page": "crm/products",
+    "control": "Catalog Archive overflow action",
+    "result": "fixed-and-passed",
+    "evidence": "Before: transformed overflow-hidden card clipped fixed menu; pointer hit grid instead of Archive. After: card transformnone/overflowvisible while menu open; pointer hitArchive; Cancel keptcopyActive; Confirm archivedcopy; Archivedfilter showed1record; editor restoredActive; rearchivedcopy for fixture."
+  },
+  {
+    "page": "crm/products",
+    "control": "Standalone New item",
+    "result": "passed",
+    "evidence": "New item form saved AA QA catalog sort fixture, codeZZ-QA-SORT, categoryZZQA, price50INR; active catalog now3, archived1."
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort name: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort price: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"AA QA catalog sort fixture\",\"QA lead service controls\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort category: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"QA lead service controls\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products",
+    "control": "Sort code: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA lead service controls\",\"QA nested catalog boundary\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products",
+    "control": "Type filter Products",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Type filter Services",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Type filter All items",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Search catalog ZZ-QA-SORT",
+    "result": "superseded-by-settled-count-recheck",
+    "error": "Error: Expected [\"AA QA catalog sort fixture\"]; observed [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]",
+    "recheck": "Initial assertion ran before extra old cards detached. Updated helper waits exact result count; all four route filter checks passed."
+  },
+  {
+    "page": "crm/products",
+    "control": "Search catalog ZZ-QA-SORT",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Search catalog no-such-QA-offering",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "crm/products",
+    "control": "Search catalog (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Category filter ZZ QA",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Category filter no-such-QA-category",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "crm/products",
+    "control": "Category filter (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Status filter Archived",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls (copy)\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Status filter all",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA lead service controls (copy)\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products",
+    "control": "Status filter Active",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Sort name: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Sort price: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"AA QA catalog sort fixture\",\"QA lead service controls\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Sort category: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"QA lead service controls\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Sort code: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA lead service controls\",\"QA nested catalog boundary\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Type filter Products",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Type filter Services",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Type filter All items",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Search catalog ZZ-QA-SORT",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Search catalog no-such-QA-offering",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Search catalog (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Category filter ZZ QA",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Category filter no-such-QA-category",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Category filter (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Status filter Archived",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls (copy)\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Status filter all",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA lead service controls (copy)\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Status filter Active",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort name: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort price: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"AA QA catalog sort fixture\",\"QA lead service controls\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort category: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"QA lead service controls\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products",
+    "control": "Sort code: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA lead service controls\",\"QA nested catalog boundary\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products",
+    "control": "Type filter Products",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Type filter Services",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Type filter All items",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Search catalog ZZ-QA-SORT",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Search catalog no-such-QA-offering",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "pms/products",
+    "control": "Search catalog (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Category filter ZZ QA",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Category filter no-such-QA-category",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "pms/products",
+    "control": "Category filter (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Status filter Archived",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls (copy)\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Status filter all",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA lead service controls (copy)\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products",
+    "control": "Status filter Active",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort name: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort price: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"AA QA catalog sort fixture\",\"QA lead service controls\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort category: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA nested catalog boundary\",\"QA lead service controls\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Sort code: ascending, descending, restore",
+    "result": "passed",
+    "evidence": "Distinct fixture values; ascending [\"QA lead service controls\",\"QA nested catalog boundary\",\"AA QA catalog sort fixture\"], exact reverse verified, then original ascending/name restored."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Type filter Products",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Type filter Services",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Type filter All items",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Search catalog ZZ-QA-SORT",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Search catalog no-such-QA-offering",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Search catalog (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Category filter ZZ QA",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Category filter no-such-QA-category",
+    "result": "passed",
+    "evidence": "Exact displayed names []."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Category filter (clear)",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Status filter Archived",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"QA lead service controls (copy)\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Status filter all",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA lead service controls (copy)\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Status filter Active",
+    "result": "passed",
+    "evidence": "Exact displayed names [\"AA QA catalog sort fixture\",\"QA lead service controls\",\"QA nested catalog boundary\"]."
+  },
+  {
+    "page": "catalog aliases",
+    "control": "Catalog landmarks",
+    "result": "fixed-and-passed",
+    "evidence": "CRM products, CRM products-services, PMS products, PMS products-services each exposed one main landmark and Catalog workspace region after root section correction."
+  }
+]
