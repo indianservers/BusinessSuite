@@ -217,11 +217,8 @@
     "Final mobile view catalogue fits viewport: bottom 832.5px within 844px height"
   ],
   "limitations": [
-    "Full 192-route interactive audit incomplete; rapid reloads encounter local API request limits and browser connection timeouts. routes.json records attempted sweep, including unverified pages.",
-    "No claim that every control on every page was tested.",
-    "Existing task attachment browser preview/download network error remains unresolved from prior pass.",
-    "Personal whiteboards store card positions locally; they are not collaborative drawing editors.",
-    "Additional record views reflect the owning page result set and retain pagination scope."
+    "Historical first-pass record. The 192-route browser audit and attachment fixes are recorded in ../workspace-completion/verification.json."
   ],
-  "production_build": "workspace-review-e, passed"
+  "production_build": "workspace-review-e, passed",
+  "superseded_by": "../workspace-completion/verification.json"
 }

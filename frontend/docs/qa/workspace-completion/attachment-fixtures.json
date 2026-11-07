@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "qa-preview-one.txt",
+    "mime": "text/plain",
+    "bytes": 36
+  },
+  {
+    "id": 2,
+    "name": "qa-preview-two.txt",
+    "mime": "text/plain",
+    "bytes": 45
+  },
+  {
+    "id": 3,
+    "name": "qa-preview.png",
+    "mime": "image/png",
+    "bytes": 68
+  },
+  {
+    "id": 4,
+    "name": "qa-preview.pdf",
+    "mime": "application/pdf",
+    "bytes": 1451
+  }
+]

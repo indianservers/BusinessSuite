@@ -250,7 +250,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
   });
   const refresh = () => {
     void qc.invalidateQueries({queryKey:["mobile-action-badges"]});
-    void qc.invalidateQueries({
+    return qc.invalidateQueries({
       predicate: (q) =>
         String(q.queryKey[0]).startsWith("task-workspace") &&
         q.queryKey[1] === id,
@@ -308,7 +308,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
     try {
       await work();
       setNotice(message);
-      refresh();
+      await refresh();
       onTaskChanged?.();
     } catch (e) {
       setError(workspaceError(e));
