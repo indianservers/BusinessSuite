@@ -7238,6 +7238,7 @@ function SalesTargetsPage() {
     return { periodType: "monthly", periodStart: localDate(new Date(now.getFullYear(), now.getMonth(), 1)), periodEnd: localDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)), targetOwnerType: "user", targetOwnerId: currentUser?.id || "", targetAmount: "", currency: defaultText("currency", "crm") };
   });
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
   const load = () => {
     Promise.all([crmApi.targets(), crmApi.targetPerformance()])
       .then(([targetRows, performanceRows]) => {
@@ -7249,10 +7250,11 @@ function SalesTargetsPage() {
   useEffect(load, []);
   const create = async () => {
     if (savingRef.current) return;
+    setNotice("");
     if (!draft.periodStart || !draft.periodEnd || String(draft.periodEnd) < String(draft.periodStart)) { setError("Choose a valid start and end date."); return; }
     if (!Number.isFinite(Number(draft.targetOwnerId)) || Number(draft.targetOwnerId) <= 0 || !Number.isFinite(Number(draft.targetAmount)) || Number(draft.targetAmount) <= 0) { setError("Enter an owner ID and a target amount greater than zero."); return; }
     savingRef.current = true; setSaving(true); setError(null);
-    try { await crmApi.createTarget(draft); load(); setDraft(current => ({ ...current, targetAmount: "" })); }
+    try { await crmApi.createTarget(draft); setNotice("Sales target created."); load(); setDraft(current => ({ ...current, targetAmount: "" })); }
     catch { setError("Target could not be created. Check the owner and period, then try again."); }
     finally { savingRef.current = false; setSaving(false); }
   };
@@ -7260,15 +7262,16 @@ function SalesTargetsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Sales Targets" description="Create monthly, quarterly, or yearly quotas and compare achieved, invoiced, and collected amounts." action="Create target" onAction={create} />
-      {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
+      {notice ? <p role="status" className="text-sm text-emerald-700">{notice}</p> : null}
+      {error ? <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-3 xl:grid-cols-[8rem_9rem_9rem_10rem_8rem_10rem_6rem] xl:items-end">
-          <Field label="Period"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.periodType)} onChange={(event) => patchDraft("periodType", event.target.value)}>{["monthly", "quarterly", "yearly"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
-          <Field label="Start"><Input type="date" value={String(draft.periodStart || "")} onChange={(event) => patchDraft("periodStart", event.target.value)} /></Field>
-          <Field label="End"><Input type="date" value={String(draft.periodEnd || "")} onChange={(event) => patchDraft("periodEnd", event.target.value)} /></Field>
-          <Field label="Owner type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.targetOwnerType)} onChange={(event) => patchDraft("targetOwnerType", event.target.value)}>{["user", "team", "territory", "company"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
-          <Field label="Owner ID"><Input type="number" value={Number(draft.targetOwnerId || 0)} onChange={(event) => patchDraft("targetOwnerId", Number(event.target.value))} /></Field>
-          <Field label="Target"><Input type="number" value={Number(draft.targetAmount || 0)} onChange={(event) => patchDraft("targetAmount", Number(event.target.value))} /></Field>
+          <Field label="Period"><NativeSelect aria-label="Target period" className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.periodType)} onChange={(event) => patchDraft("periodType", event.target.value)}>{["monthly", "quarterly", "yearly"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
+          <Field label="Start"><Input aria-label="Target period start" type="date" value={String(draft.periodStart || "")} onChange={(event) => patchDraft("periodStart", event.target.value)} /></Field>
+          <Field label="End"><Input aria-label="Target period end" type="date" value={String(draft.periodEnd || "")} onChange={(event) => patchDraft("periodEnd", event.target.value)} /></Field>
+          <Field label="Owner type"><NativeSelect aria-label="Target owner type" className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.targetOwnerType)} onChange={(event) => patchDraft("targetOwnerType", event.target.value)}>{["user", "team", "territory", "company"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
+          <Field label="Owner ID"><Input aria-label="Target owner ID" min="1" type="number" value={String(draft.targetOwnerId ?? "")} onChange={(event) => patchDraft("targetOwnerId", Number(event.target.value))} /></Field>
+          <Field label="Target"><Input aria-label="Target amount" min="0.01" step="0.01" type="number" value={String(draft.targetAmount ?? "")} onChange={(event) => patchDraft("targetAmount", Number(event.target.value))} /></Field>
           <Button disabled={saving} onClick={create}>{saving ? "Saving…" : "Save target"}</Button>
         </CardContent>
       </Card>

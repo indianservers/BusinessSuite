@@ -230,7 +230,7 @@ export const tasksAPI = {
     return response.data;
   },
 
-  listAll: async (query: PMSTaskListQuery = {}) => {
+  listAll: async (query: PMSTaskListQuery = {}, fresh = false) => {
     const params = new URLSearchParams();
     Object.entries(query).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
@@ -238,7 +238,7 @@ export const tasksAPI = {
       }
     });
     const suffix = params.toString() ? `?${params.toString()}` : "";
-    const response = await api.get<PMSTaskListResponse>(`${BASE_URL}/tasks${suffix}`);
+    const response = await api.get<PMSTaskListResponse>(`${BASE_URL}/tasks${suffix}`, fresh ? { recordCache: false } : undefined);
     return response.data;
   },
 

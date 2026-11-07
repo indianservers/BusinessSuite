@@ -46,7 +46,7 @@ export default function WorkMovementPage({title}:{title:string}) {
   function change(key:string,value:string) {setParams(previous=>{const next=new URLSearchParams(previous);if(value)next.set(key,value);else next.delete(key);return next;});}
   async function loadProjects(offset=0) {
     setProjectsLoading(true);setProjectsError("");
-    try {const rows=await projectsAPI.list(offset,100);setProjects(current=>offset?[...current,...rows.filter(row=>!current.some(existing=>existing.id===row.id))]:rows);setMoreProjects(rows.length===100);}
+    try {const rows=await projectsAPI.list(offset,100,undefined,true);if(!Array.isArray(rows))throw new Error("Projects could not be loaded. Refresh and try again.");setProjects(current=>offset?[...current,...rows.filter(row=>!current.some(existing=>existing.id===row.id))]:rows);setMoreProjects(rows.length===100);}
     catch(e){setProjectsError(workspaceError(e));}
     finally{setProjectsLoading(false);}
   }
@@ -56,13 +56,13 @@ export default function WorkMovementPage({title}:{title:string}) {
     if(!id || !selectedProject)return;
     const request=++requestRef.current;
     setLoading(true);if(clearError)setError("");
-    try {const result=await tasksAPI.listAll({projectId:id,pageSize:200,sortBy:"position",sortOrder:"asc"});if(id===projectRef.current && request===requestRef.current){setTasks(result.items);setTotal(result.total);}}
+    try {const result=await tasksAPI.listAll({projectId:id,pageSize:200,sortBy:"position",sortOrder:"asc"},true);if(!Array.isArray(result.items))throw new Error("Tasks could not be loaded. Refresh and try again.");if(id===projectRef.current && request===requestRef.current){setTasks(result.items);setTotal(result.total);}}
     catch(e){if(id===projectRef.current && request===requestRef.current)setError(workspaceError(e));}
     finally{if(id===projectRef.current && request===requestRef.current)setLoading(false);}
   }
   useEffect(()=>{setTasks([]);setTotal(0);setNotice("");setError("");if(selectedProject)void load();else setLoading(false);},[project,!!selectedProject]);
   usePMSRealtime({projectId:project || undefined,onEvent:()=>void load(),showToast:false});
-  useRecordView<{items:PMSTaskListItem[];total:number}>("/project-management/tasks",{projectId:project,pageSize:200,sortBy:"position",sortOrder:"asc"},snapshot=>{setTasks(snapshot.items);setTotal(snapshot.total);},()=>setTasks([]),!!selectedProject);
+  useRecordView<{items:PMSTaskListItem[];total:number}>("/project-management/tasks",{projectId:project,pageSize:200,sortBy:"position",sortOrder:"asc"},snapshot=>{if(Array.isArray(snapshot?.items)){setTasks(snapshot.items);setTotal(snapshot.total);}},()=>setTasks([]),!!selectedProject);
   async function move(id:string,status:string,beforeId?:string) {
     if(!canManage || busy || loading)return;
     if(status==="Blocked"){navigate(`/pms/tasks/${id}`);return;}
