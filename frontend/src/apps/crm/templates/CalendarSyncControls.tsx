@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { integrationError } from "../integrationFeedback";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +18,8 @@ type Conflict = {
 };
 
 export default function CalendarSyncControls({ connectionId }: { connectionId: number }) {
+  const loadVersion = useRef(0);
+  const busyRef = useRef(false);
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [busy, setBusy] = useState(false);
@@ -24,28 +27,29 @@ export default function CalendarSyncControls({ connectionId }: { connectionId: n
   const [message, setMessage] = useState("");
   const base = `/crm/calendar-integrations/${connectionId}`;
   const load = async () => {
+    const request = ++loadVersion.current;
     const response = await api.get<SyncStatus>(`${base}/sync`);
-    setStatus(response.data);
-    if (response.data.conflicts) {
-      const rows = await api.get<{ items: Conflict[] }>(`${base}/conflicts`);
-      setConflicts(rows.data.items);
-    } else setConflicts([]);
+    const rows = response.data.conflicts ? await api.get<{ items: Conflict[] }>(`${base}/conflicts`) : null;
+    if (request !== loadVersion.current) return;
+    setStatus(response.data); setConflicts(rows?.data.items || []); setError("");
   };
   useEffect(() => {
+    setStatus(null); setConflicts([]); setError(""); setMessage("");
     let active = true;
-    const refresh = () => { if (active) void load().catch(() => { if (active) setError("Sync status could not be loaded."); }); };
+    const refresh = () => { if (active && !busyRef.current) void load().catch(err => { if (active) setError(integrationError(err, "Sync status could not be loaded. Retry to check the connection.")); }); };
     refresh();
     const timer = window.setInterval(refresh, 15000);
-    return () => { active = false; window.clearInterval(timer); };
+    return () => { active = false; loadVersion.current++; window.clearInterval(timer); };
   }, [connectionId]);
   const run = async (operation: () => Promise<unknown>) => {
-    setBusy(true); setError(""); setMessage("");
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true); setError(""); setMessage("");
     try { await operation(); await load(); }
-    catch (e: any) { setError(e?.response?.data?.detail || "Calendar sync could not finish. Please retry."); }
-    finally { setBusy(false); }
+    catch (err) { setError(integrationError(err, "Calendar sync could not finish. Check the latest status before retrying.")); }
+    finally { busyRef.current = false; setBusy(false); }
   };
   const preferences = (enabled: boolean, target: "crm" | "pms") => run(() => api.put(`${base}/sync`, { enabled, import_target: target }));
-  if (!status) return <p className="text-sm text-muted-foreground">{error || "Loading sync status…"}</p>;
+  if (!status) return <div className="space-y-2 text-sm"><p role={error ? "alert" : "status"}>{error || "Loading sync status…"}</p>{error && <Button size="sm" variant="outline" disabled={busy} onClick={() => void run(async () => undefined)}>Retry sync status</Button>}</div>;
   return <div className="space-y-3 rounded-md border p-3 text-sm">
     <p>Two-way sync · {status.workerEnabled ? `checks every ${status.intervalSeconds} seconds while the local backend runs` : "background worker disabled"}</p>
     <div className="flex flex-wrap items-center gap-3">
@@ -74,7 +78,7 @@ export default function CalendarSyncControls({ connectionId }: { connectionId: n
         {conflict.local.description && <p className="whitespace-pre-wrap">{conflict.local.description}</p>}
         <p>Calendar: {removed ? "Deleted" : `${remote?.summary || remote?.subject} · ${remote?.start?.dateTime || remote?.start?.date} – ${remote?.end?.dateTime || remote?.end?.date}`}</p>
         {(remote?.description || remote?.body?.content) && <p className="whitespace-pre-wrap">{remote.description || remote.body?.content}</p>}
-        <div className="flex gap-2">{(["local", "remote"] as const).map(keep => <Button key={keep} disabled={busy} size="sm" variant="outline"
+        <div className="flex flex-wrap gap-2">{(["local", "remote"] as const).map(keep => <Button key={keep} disabled={busy} size="sm" variant="outline"
           onClick={() => void run(async () => { await api.post(`${base}/conflicts/${conflict.id}`, { keep }); await api.post(`${base}/sync`); })}>
           Keep {keep === "local" ? "local" : "calendar"} version</Button>)}</div>
       </div>;

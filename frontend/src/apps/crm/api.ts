@@ -213,6 +213,7 @@ export const crmApi = {
   updateWebhook: (id: number, data: CRMApiRecord) => api.patch<CRMApiRecord>(`/crm/webhooks/${id}`, data),
   deleteWebhook: (id: number) => api.delete(`/crm/webhooks/${id}`),
   testWebhook: (id: number) => api.post<CRMApiRecord>(`/crm/webhooks/${id}/test`, {}),
+  retryWebhookDeliveries: (id: number) => api.post<{ retried: number }>(`/crm/webhooks/${id}/retry`, {}),
   webhookDeliveries: (id: number) => api.get<{ items: CRMApiRecord[]; total: number }>(`/crm/webhooks/${id}/deliveries`),
   createEmailTemplate: (data: CRMApiRecord) => api.post("/crm/email-templates", data),
   sendEmail: <T = CRMApiRecord>(data: CRMApiRecord) => api.post<T>("/crm/emails/send", data),

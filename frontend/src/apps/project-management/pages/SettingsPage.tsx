@@ -1,8 +1,9 @@
+import { workspaceError } from "./workspaceTypes";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { Link } from "react-router-dom";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Github, Gitlab, Settings, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,10 @@ const settings = [
 ];
 
 export default function SettingsPage() {
+  const mutationBusy = useRef(false);
+  const loadVersion = useRef(0);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [integrations, setIntegrations] = useState<PMSDevIntegration[]>([]);
   const [provider, setProvider] = useState<"github" | "gitlab">("github");
@@ -44,22 +49,25 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
-    Promise.all([
-      projectsAPI.list().catch(() => []),
-      devIntegrationsAPI.list().catch(() => []),
-    ]).then(([projectItems, integrationItems]) => {
-      setProjects(projectItems);
-      setIntegrations(integrationItems);
-      if (!projectId && projectItems[0]) setProjectId(String(projectItems[0].id));
-    });
+  const load = async () => {
+    const request = ++loadVersion.current;
+    setLoading(true); setError(null);
+    try {
+      const [projectItems, integrationItems] = await Promise.all([projectsAPI.list(0, 100, undefined, true), devIntegrationsAPI.list()]);
+      if (!Array.isArray(projectItems) || !Array.isArray(integrationItems)) throw new Error("Repository settings could not be loaded. Refresh and try again.");
+      if (request !== loadVersion.current) return;
+      setProjects(projectItems); setIntegrations(integrationItems);
+      setProjectId(current => current || (projectItems[0] ? String(projectItems[0].id) : ""));
+    } catch (err) { if (request === loadVersion.current) setError(workspaceError(err)); }
+    finally { if (request === loadVersion.current) setLoading(false); }
   };
-
-  useEffect(load, []);
+  useEffect(() => { void load(); return () => { loadVersion.current++; }; }, []);
 
   const submitIntegration = async (event: FormEvent) => {
     event.preventDefault();
-    if (!projectId || !repoOwner.trim() || !repoName.trim()) return;
+    if (mutationBusy.current) return;
+    if (!projectId || !repoOwner.trim() || !repoName.trim()) { setError("Choose a project and enter the repository owner and name."); return; }
+    mutationBusy.current = true; setNotice("");
     setSaving(true);
     setError(null);
     try {
@@ -77,16 +85,20 @@ export default function SettingsPage() {
       setRepoName("");
       setAccessToken("");
       setWebhookSecret("");
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || "Unable to save development integration.");
+      setNotice("Repository linked. Include task keys in commits and pull requests to connect development activity.");
+    } catch (err) {
+      setError(workspaceError(err));
     } finally {
-      setSaving(false);
+      mutationBusy.current = false; setSaving(false);
     }
   };
 
   const deleteIntegration = async (integrationId: number) => {
-    await devIntegrationsAPI.delete(integrationId);
-    setIntegrations((current) => current.filter((item) => item.id !== integrationId));
+    if (mutationBusy.current) return;
+    mutationBusy.current = true; setSaving(true); setError(null); setNotice("");
+    try { await devIntegrationsAPI.delete(integrationId); setIntegrations(current => current.filter(item => item.id !== integrationId)); setNotice("Repository integration removed."); }
+    catch (err) { setError(workspaceError(err)); }
+    finally { mutationBusy.current = false; setSaving(false); }
   };
 
   return (
@@ -105,43 +117,45 @@ export default function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Github className="h-5 w-5" />Development integrations</CardTitle></CardHeader>
+        <CardHeader className="flex-row flex-wrap items-center justify-between gap-2"><CardTitle className="flex items-center gap-2"><Github className="h-5 w-5" />Development integrations</CardTitle><Button type="button" variant="outline" disabled={loading || saving} onClick={() => void load()}>Refresh repositories</Button></CardHeader>
         <CardContent className="space-y-5">
           <CompactForm className="grid gap-3 lg:grid-cols-6" onSubmit={submitIntegration}>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Provider</span>
-              <NativeSelect className="input" value={provider} onChange={(event) => setProvider(event.target.value as "github" | "gitlab")}>
+              <NativeSelect aria-label="Repository provider" disabled={saving} className="input" value={provider} onChange={(event) => setProvider(event.target.value as "github" | "gitlab")}>
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
               </NativeSelect>
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Project</span>
-              <NativeSelect className="input" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
+              <NativeSelect aria-label="Repository project" disabled={loading || saving} className="input" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
                 {projects.map((project) => <option key={project.id} value={project.id}>{project.project_key} - {project.name}</option>)}
               </NativeSelect>
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Owner / group</span>
-              <Input value={repoOwner} onChange={(event) => setRepoOwner(event.target.value)} placeholder="acme or group/subgroup" />
+              <Input aria-label="Repository owner or group" disabled={saving} value={repoOwner} onChange={(event) => setRepoOwner(event.target.value)} placeholder="acme or group/subgroup" />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Repository</span>
-              <Input value={repoName} onChange={(event) => setRepoName(event.target.value)} placeholder="web-app" />
+              <Input aria-label="Repository name" disabled={saving} value={repoName} onChange={(event) => setRepoName(event.target.value)} placeholder="web-app" />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Access token</span>
-              <Input type="password" value={accessToken} onChange={(event) => setAccessToken(event.target.value)} placeholder="Optional" />
+              <Input aria-label="Repository access token" autoComplete="new-password" disabled={saving} type="password" value={accessToken} onChange={(event) => setAccessToken(event.target.value)} placeholder="Optional" />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Webhook secret</span>
-              <Input type="password" value={webhookSecret} onChange={(event) => setWebhookSecret(event.target.value)} placeholder="Required for webhooks" />
+              <Input aria-label="Repository webhook secret" autoComplete="new-password" disabled={saving} type="password" value={webhookSecret} onChange={(event) => setWebhookSecret(event.target.value)} placeholder="Required for webhooks" />
             </label>
             <div className="lg:col-span-6">
-              <Button disabled={saving || !projectId}>{saving ? "Saving..." : "Link repository"}</Button>
+              <Button disabled={saving || loading || !projectId}>{saving ? "Saving..." : "Link repository"}</Button>
             </div>
           </CompactForm>
-          {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+          {loading && <p role="status">Loading repository settings…</p>}
+          {notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
+          {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
 
           <div className="space-y-3">
             {integrations.map((item) => (
@@ -158,12 +172,12 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
-                <Button type="button" variant="outline" size="icon" onClick={() => deleteIntegration(item.id)}>
+                <Button type="button" variant="outline" size="icon" aria-label={`Remove ${item.provider} integration ${item.repo_owner}/${item.repo_name}`} disabled={saving} onClick={() => void deleteIntegration(item.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             ))}
-            {!integrations.length ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No repositories linked yet.</p> : null}
+            {!loading && !error && !integrations.length ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No repositories linked yet.</p> : null}
           </div>
         </CardContent>
       </Card>

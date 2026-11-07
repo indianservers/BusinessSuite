@@ -1,3 +1,4 @@
+import { calendarReturnSearch, integrationError, webhookValidation } from "./integrationFeedback";
 import CalendarSyncControls from "./templates/CalendarSyncControls";
 import IndustryPackOnboarding from "./templates/IndustryPackOnboarding";
 import industryTemplates from "../../../../backend/app/apps/industry_packs/catalog.json";
@@ -6458,6 +6459,7 @@ export function DuplicateManagementPage() {
 
 function CalendarIntegrationsPage() {
   const callbackHandled = useRef(false);
+  const connectionBusy = useRef(false);
   const [connecting, setConnecting] = useState(false);
   const [items, setItems] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -6466,7 +6468,7 @@ function CalendarIntegrationsPage() {
   const load = () => {
     setLoading(true);
     setError(null);
-    crmApi.calendarIntegrations().then((response) => setItems(response.data.items || [])).catch((err) => setError(err?.response?.data?.detail || "Calendar integrations could not be loaded.")).finally(() => setLoading(false));
+    crmApi.calendarIntegrations().then((response) => setItems(response.data.items || [])).catch((err) => setError(integrationError(err, "Calendar integrations could not be loaded."))).finally(() => setLoading(false));
   };
   useEffect(load, []);
   useRefreshableEffect(() => {
@@ -6478,7 +6480,7 @@ function CalendarIntegrationsPage() {
     const expected = sessionStorage.getItem(`${provider}-calendar-state`);
     sessionStorage.removeItem(`${provider}-calendar-state`);
     sessionStorage.removeItem("calendar-provider");
-    window.history.replaceState(null, "", window.location.pathname);
+    window.history.replaceState(window.history.state, "", window.location.pathname + calendarReturnSearch(window.location.search));
     if (!state || state !== expected) {
       setError("Calendar authorization could not be verified. Start again.");
       return;
@@ -6490,10 +6492,13 @@ function CalendarIntegrationsPage() {
     setConnecting(true);
     (provider === "outlook" ? crmApi.completeOutlookCalendar : crmApi.completeGoogleCalendar)({ code: query.get("code") || "", state })
       .then(() => { load(); setMessage("Calendar connected. Automatic two-way sync is enabled."); })
-      .catch((err) => setError(err?.response?.data?.detail || "Calendar could not be connected."))
+      .catch((err) => setError(integrationError(err, "Calendar could not be connected.")))
       .finally(() => setConnecting(false));
   }, []);
   const connect = (provider: "google" | "outlook" | "mock") => {
+    if (connectionBusy.current) return;
+    connectionBusy.current = true;
+    setConnecting(true);
     setMessage(null);
     setError(null);
     if (provider === "google" || provider === "outlook") {
@@ -6503,8 +6508,8 @@ function CalendarIntegrationsPage() {
         sessionStorage.setItem("calendar-provider", provider);
         window.location.assign(data.url);
       }).catch((err) => {
-        setError(err?.response?.data?.detail || "Calendar authorization could not start.");
-        setConnecting(false);
+        setError(integrationError(err, "Calendar authorization could not start."));
+        connectionBusy.current = false; setConnecting(false);
       });
       return;
     }
@@ -6514,16 +6519,20 @@ function CalendarIntegrationsPage() {
         setMessage("Development calendar connected for testing.");
         load();
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Calendar could not be connected."));
+      .catch((err) => setError(integrationError(err, "Calendar could not be connected."))).finally(() => { connectionBusy.current = false; setConnecting(false); });
   };
-  const disconnect = (id: number) => {
-    crmApi.disconnectCalendarIntegration(id).then(() => { setMessage("Calendar integration disconnected."); load(); }).catch((err) => setError(err?.response?.data?.detail || "Calendar could not be disconnected."));
+  const disconnect = async (id: number) => {
+    if (connectionBusy.current) return;
+    connectionBusy.current = true; setConnecting(true); setError(null); setMessage(null);
+    try { await crmApi.disconnectCalendarIntegration(id); setMessage("Calendar integration disconnected."); load(); }
+    catch (err) { setError(integrationError(err, "Calendar could not be disconnected.")); }
+    finally { connectionBusy.current = false; setConnecting(false); }
   };
   return (
     <div className="space-y-6">
-      <PageHeader title="Calendar Integrations" description="Connect Google and Outlook Calendar for automatic two-way sync across Sales, CRM and PMS." action="Connect Mock" onAction={() => connect("mock")} />
-      {message ? <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
-      {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+      <PageHeader title="Calendar Integrations" description="Connect Google and Outlook Calendar for automatic two-way sync across Sales, CRM and PMS." action="Connect Mock" actionDisabled={connecting} onAction={() => connect("mock")} />
+      {message ? <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
+      {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader><CardTitle>Google Calendar</CardTitle></CardHeader>
@@ -6543,12 +6552,12 @@ function CalendarIntegrationsPage() {
           <CardHeader><CardTitle>Development Provider</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">Creates local external event IDs for testing sync flows without third-party credentials.</p>
-            <Button className="w-full" variant="outline" onClick={() => connect("mock")}><CalendarDays className="h-4 w-4" />Connect Mock</Button>
+            <Button className="w-full" variant="outline" disabled={connecting} onClick={() => connect("mock")}><CalendarDays className="h-4 w-4" />Connect Mock</Button>
           </CardContent>
         </Card>
       </div>
       <Card>
-        <CardHeader><CardTitle>Connected Calendars</CardTitle></CardHeader>
+        <CardHeader className="flex-row items-center justify-between"><CardTitle>Connected Calendars</CardTitle><Button size="sm" variant="outline" disabled={loading || connecting} onClick={load}>Refresh calendars</Button></CardHeader>
         <CardContent className="space-y-3">
           {loading ? <p className="text-sm text-muted-foreground">Loading integrations...</p> : null}
           {items.map((item) => (
@@ -6557,7 +6566,7 @@ function CalendarIntegrationsPage() {
               <div><p className="font-medium">{labelFor(String(item.provider || "calendar"))}</p><p className="text-sm text-muted-foreground">User {String(item.userId || item.user_id || "-")} / scopes {(Array.isArray(item.scopes) ? item.scopes.join(", ") : "calendar.events")}</p></div>
               <Badge className={statusColor(item.isActive === false ? "Inactive" : "Active")}>{item.isActive === false ? "Inactive" : "Active"}</Badge>
               <span className="text-sm text-muted-foreground">Expires {formatDate(String(item.expiresAt || "")) || "not set"}</span>
-              <Button variant="outline" size="sm" onClick={() => disconnect(Number(item.id))}>Disconnect</Button>
+              <Button variant="outline" size="sm" disabled={connecting} onClick={() => void disconnect(Number(item.id))}>Disconnect</Button>
               </div>
               {item.provider !== "mock" && <CalendarSyncControls connectionId={Number(item.id)} />}
             </div>
@@ -6570,6 +6579,11 @@ function CalendarIntegrationsPage() {
 }
 
 function WebhookSettingsPage() {
+  const busyRef = useRef(false);
+  const deliveriesRequest = useRef(0);
+  const [busy, setBusy] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState("");
   const [webhooks, setWebhooks] = useState<CRMApiRecord[]>([]);
   const [events, setEvents] = useState<string[]>([]);
   const [selected, setSelected] = useState<CRMApiRecord | null>(null);
@@ -6581,56 +6595,75 @@ function WebhookSettingsPage() {
   const load = () => {
     setLoading(true);
     setError(null);
-    crmApi.webhooks().then((response) => { setWebhooks(response.data.items || []); setEvents(response.data.events || []); }).catch((err) => setError(err?.response?.data?.detail || "Webhooks could not be loaded.")).finally(() => setLoading(false));
+    crmApi.webhooks().then((response) => { setWebhooks(response.data.items || []); setEvents(response.data.events || []); }).catch((err) => setError(integrationError(err, "Webhooks could not be loaded."))).finally(() => setLoading(false));
   };
   useEffect(load, []);
+  const loadDeliveries = async (id: number) => {
+    const request = ++deliveriesRequest.current;
+    setLogsLoading(true); setLogsError(""); setDeliveries([]);
+    try { const response = await crmApi.webhookDeliveries(id); if (request === deliveriesRequest.current) setDeliveries(response.data.items || []); }
+    catch (err) { if (request === deliveriesRequest.current) setLogsError(integrationError(err, "Delivery logs could not be loaded. Retry to check their status.")); }
+    finally { if (request === deliveriesRequest.current) setLogsLoading(false); }
+  };
   useRefreshableEffect(() => {
-    if (!selected?.id) {
-      setDeliveries([]);
-      return;
-    }
-    crmApi.webhookDeliveries(Number(selected.id)).then((response) => setDeliveries(response.data.items || [])).catch(() => setDeliveries([]));
+    if (selected?.id) void loadDeliveries(Number(selected.id));
+    else { deliveriesRequest.current++; setDeliveries([]); setLogsError(""); setLogsLoading(false); }
+    return () => { deliveriesRequest.current++; };
   }, [selected?.id]);
+  const run = async (operation: () => Promise<unknown>, success: string) => {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true); setError(null); setMessage(null);
+    try { const result = await operation(); setMessage(typeof result === "string" ? result : success); }
+    catch (err) { setError(integrationError(err, "Webhook action failed. Check its current state before retrying.")); }
+    finally { busyRef.current = false; setBusy(false); }
+  };
   const toggleEvent = (event: string) => {
     setDraft((current) => ({ ...current, events: current.events.includes(event) ? current.events.filter((item) => item !== event) : [...current.events, event].sort() }));
   };
   const resetDraft = () => setDraft({ name: "", url: "", secret: "", events: ["lead.created"], isActive: true });
   const create = () => {
-    if (!draft.name.trim() || !draft.url.trim()) return;
-    setError(null);
-    crmApi.createWebhook(draft).then((response) => { setMessage("Webhook created. Secret is masked after creation."); setSelected(response.data); resetDraft(); load(); }).catch((err) => setError(err?.response?.data?.detail || "Webhook could not be created."));
+    const validation = webhookValidation(draft);
+    if (validation) { setMessage(null); setError(validation); return; }
+    void run(async () => {
+      const response = await crmApi.createWebhook({ ...draft, name: draft.name.trim(), url: draft.url.trim() });
+      setSelected(response.data); resetDraft(); load();
+    }, "Webhook created. Secret is masked after creation.");
   };
-  const toggleActive = (webhook: CRMApiRecord) => {
-    crmApi.updateWebhook(Number(webhook.id), { isActive: !(webhook.isActive ?? webhook.is_active) }).then(load).catch((err) => setError(err?.response?.data?.detail || "Webhook could not be updated."));
-  };
-  const test = (webhook: CRMApiRecord) => {
-    setError(null);
-    crmApi.testWebhook(Number(webhook.id)).then((response) => { setMessage(`Test delivery ${String(response.data.status || "queued")}.`); setSelected(webhook); crmApi.webhookDeliveries(Number(webhook.id)).then((res) => setDeliveries(res.data.items || [])); }).catch((err) => setError(err?.response?.data?.detail || "Webhook test failed."));
-  };
+  const toggleActive = (webhook: CRMApiRecord) => void run(async () => {
+    await crmApi.updateWebhook(Number(webhook.id), { isActive: !(webhook.isActive ?? webhook.is_active) }); load();
+  }, "Webhook status updated.");
+  const test = (webhook: CRMApiRecord) => void run(async () => {
+    const response = await crmApi.testWebhook(Number(webhook.id)); setSelected(webhook);
+    await loadDeliveries(Number(webhook.id));
+    if (response.data.status === "failed") throw { response: { data: { detail: "Test delivery failed. Review the response code and retry time in the delivery log." } } };
+  }, "Test delivery recorded. Review the delivery log for its status.");
+  const remove = (webhook: CRMApiRecord) => void run(async () => {
+    await crmApi.deleteWebhook(Number(webhook.id)); if (selected?.id === webhook.id) setSelected(null); load();
+  }, "Webhook deleted.");
   return (
     <div className="space-y-6">
-      <PageHeader title="Webhook Settings" description="Send signed CRM automation events to Zapier, n8n, and integration endpoints." action="Create webhook" onAction={create} />
-      {message ? <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
-      {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+      <PageHeader title="Webhook Settings" description="Send signed CRM automation events to Zapier, n8n, and integration endpoints." action="Create webhook" actionDisabled={busy} onAction={create} />
+      {message ? <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
+      {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 xl:grid-cols-[26rem_1fr]">
         <Card>
           <CardHeader><CardTitle>Create Webhook</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <Field label="Name"><Input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
-            <Field label="Endpoint URL"><Input value={draft.url} onChange={(event) => setDraft((current) => ({ ...current, url: event.target.value }))} placeholder="https://hooks.example.com/crm" /></Field>
+            <Field label="Name"><Input aria-label="Webhook name" disabled={busy} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
+            <Field label="Endpoint URL"><Input aria-label="Webhook endpoint URL" disabled={busy} type="url" value={draft.url} onChange={(event) => setDraft((current) => ({ ...current, url: event.target.value }))} placeholder="https://hooks.example.com/crm" /></Field>
             <Field label="Secret">
-              <Input value={draft.secret} onChange={(event) => setDraft((current) => ({ ...current, secret: event.target.value }))} placeholder="Leave blank to generate" />
+              <Input aria-label="Webhook secret" disabled={busy} type="password" autoComplete="new-password" value={draft.secret} onChange={(event) => setDraft((current) => ({ ...current, secret: event.target.value }))} placeholder="Leave blank to generate" />
             </Field>
-            <label className="flex items-center gap-2 rounded-md border bg-muted/25 p-3 text-sm"><input type="checkbox" checked={draft.isActive} onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.checked }))} />Active</label>
+            <label className="flex items-center gap-2 rounded-md border bg-muted/25 p-3 text-sm"><input disabled={busy} type="checkbox" checked={draft.isActive} onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.checked }))} />Active</label>
             <div className="space-y-2">
               <Label>Events</Label>
               <div className="grid max-h-72 gap-2 overflow-y-auto rounded-md border p-3">
                 {events.map((event) => (
-                  <label key={event} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.events.includes(event)} onChange={() => toggleEvent(event)} />{event}</label>
+                  <label key={event} className="flex items-center gap-2 text-sm"><input disabled={busy} type="checkbox" checked={draft.events.includes(event)} onChange={() => toggleEvent(event)} />{event}</label>
                 ))}
               </div>
             </div>
-            <div className="flex gap-2"><Button className="flex-1" onClick={create}><Plus className="h-4 w-4" />Create</Button><Button variant="outline" onClick={resetDraft}>Reset</Button></div>
+            <div className="flex gap-2"><Button disabled={busy} className="flex-1" onClick={create}><Plus className="h-4 w-4" />Create</Button><Button disabled={busy} variant="outline" onClick={() => { resetDraft(); setError(null); setMessage(null); }}>Reset</Button></div>
           </CardContent>
         </Card>
         <div className="space-y-4">
@@ -6649,9 +6682,9 @@ function WebhookSettingsPage() {
                   <span className="text-sm text-muted-foreground">Secret {String(webhook.secret || "masked")}</span>
                   <CompactActions className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => setSelected(webhook)}>Logs</Button>
-                    <Button variant="outline" size="sm" onClick={() => test(webhook)}>Test</Button>
-                    <Button variant="outline" size="sm" onClick={() => toggleActive(webhook)}>{(webhook.isActive ?? webhook.is_active) ? "Disable" : "Enable"}</Button>
-                    <Button variant="outline" size="sm" onClick={() => crmApi.deleteWebhook(Number(webhook.id)).then(load)}>Delete</Button>
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => test(webhook)}>Test</Button>
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => toggleActive(webhook)}>{(webhook.isActive ?? webhook.is_active) ? "Disable" : "Enable"}</Button>
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => remove(webhook)}>Delete</Button>
                   </CompactActions>
                 </div>
               ))}
@@ -6662,7 +6695,11 @@ function WebhookSettingsPage() {
             <CardHeader><CardTitle>Delivery Log{selected ? ` / ${String(selected.name || selected.id)}` : ""}</CardTitle></CardHeader>
             <CardContent className="overflow-x-auto">
               {!selected ? <p className="text-sm text-muted-foreground">Select a webhook to view deliveries.</p> : null}
-              {selected ? <ReportTable title="" rows={deliveries} columns={["eventType", "status", "responseCode", "attemptCount", "nextRetryAt", "createdAt"]} /> : null}
+              {selected && <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" disabled={logsLoading || busy} onClick={() => void loadDeliveries(Number(selected.id))}>Refresh delivery log</Button><Button variant="outline" size="sm" disabled={logsLoading || busy} onClick={() => void run(async () => { const result = await crmApi.retryWebhookDeliveries(Number(selected.id)); await loadDeliveries(Number(selected.id)); return `${result.data.retried} due deliveries retried.`; }, "Due delivery retries completed.")}>Retry due deliveries</Button></div>}
+              <p className="text-xs text-muted-foreground">Viewing and refreshing logs does not send requests. Retry sends only failed deliveries whose retry time has arrived for active webhooks.</p>
+              {logsLoading && <p role="status">Loading delivery logs…</p>}
+              {logsError && <p role="alert" className="text-destructive">{logsError}</p>}
+              {selected && !logsLoading && !logsError ? <ReportTable title="" rows={deliveries} columns={["eventType", "status", "responseCode", "attemptCount", "nextRetryAt", "createdAt"]} /> : null}
             </CardContent>
           </Card>
         </div>
@@ -7728,14 +7765,14 @@ function InlineEditor({ config, value, autoFocus, onChange, onCommit, onCancel }
   return <Input className="h-9" type={config.type === "number" ? "number" : config.type === "date" ? "date" : "text"} {...common} />;
 }
 
-function PageHeader({ title, description, action, onAction }: { title: string; description: string; action?: string; onAction?: () => void }) {
+function PageHeader({ title, description, action, onAction, actionDisabled }: { title: string; description: string; action?: string; onAction?: () => void; actionDisabled?: boolean }) {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
         <h1 className="page-title">{title}</h1>
         <p className="page-description">{description}</p>
       </div>
-      {action && onAction ? <Button onClick={onAction}><Plus className="h-4 w-4" />{action}</Button> : null}
+      {action && onAction ? <Button disabled={actionDisabled} onClick={onAction}><Plus className="h-4 w-4" />{action}</Button> : null}
     </div>
   );
 }

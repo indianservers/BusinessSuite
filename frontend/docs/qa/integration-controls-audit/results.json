@@ -1,0 +1,30 @@
+{
+  "environment": "Disposable loopback QA workspace. Synthetic identities, repositories and webhook receiver. Real calendar sync engine with a deterministic simulated transport; no external customer delivery or account grants.",
+  "fixed": [
+    "Webhook list and delivery-log GET requests no longer retry deliveries",
+    "Explicit manage-permission retry endpoint and button preserve due-time and duplicate protections",
+    "Visible webhook validation, busy states, failed delivery feedback and retry results",
+    "Refreshable delivery logs with visible loading and failure states",
+    "Calendar connection operations serialize mutations and expose accessible feedback",
+    "Calendar sync status has retry recovery and ignores stale requests",
+    "OAuth callback cleanup preserves the selected operation tab and router history",
+    "PMS calendar account panel shows actual sync preferences and refreshes account status",
+    "PMS repository mapping errors no longer masquerade as empty lists; save/remove have feedback and busy states",
+    "Unsupported calendar push endpoint returns 501 rather than falsely acknowledging processing"
+  ],
+  "checks": {
+    "backend_calendar_transport_pms_and_regression_suite": "50 passed; revised read-only list regression re-run: 2 passed",
+    "frontend_validation_and_callback_cases": "12 passed",
+    "typescript": "passed",
+    "targeted_eslint": "passed",
+    "production_build": "passed",
+    "browser": "See browser-checks.json and screenshots",
+    "calendar_export": "Verified downloaded VCALENDAR 2.0 with VEVENT records"
+  },
+  "limits": [
+    "Live Google/Outlook OAuth grants, real repository credentials and live external delivery were not used.",
+    "Provider behavior was exercised in backend tests and local simulations, not against third-party production accounts.",
+    "Permanent deletion of user records, permission changes and financial transactions were not performed.",
+    "This pass focused on remaining integration controls; it does not certify every option combination across all roles."
+  ]
+}

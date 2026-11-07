@@ -42,9 +42,11 @@ export default function CalendarSettings({
   const [error, setError] = useState("");
   const [drag, setDrag] = useState<number | null>(null);
   const [providers, setProviders] = useState<
-    { id: string; name: string; state: string; requirements: string[] }[]
+    { id: string; name: string; state: string; requirements: string[]; sync?: { enabled: boolean; importTarget: string; lastError?: string | null; workerEnabled: boolean } | null }[]
   >([]);
   const [setup, setSetup] = useState("");
+  const [accountsRevision, setAccountsRevision] = useState(0);
+  const [accountsLoading, setAccountsLoading] = useState(false);
   useEffect(() => {
     if (open) {
       setDraft(value);
@@ -54,18 +56,19 @@ export default function CalendarSettings({
   useEffect(() => {
     if (!open || tab !== "Accounts") return;
     let active = true;
+    setAccountsLoading(true); setError("");
     void api
       .get("/project-management/planner/connections")
       .then((r) => {
-        if (active) setProviders(r.data.providers);
+        if (active) setProviders(Array.isArray(r.data.providers) ? r.data.providers : []);
       })
       .catch((e) => {
         if (active) setError(workspaceError(e));
-      });
+      }).finally(() => { if (active) setAccountsLoading(false); });
     return () => {
       active = false;
     };
-  }, [open, tab]);
+  }, [open, tab, accountsRevision]);
   const patch = (p: Partial<CalendarPrefs>) =>
     setDraft((d) => ({ ...d, ...p }));
   const toggle = (key: keyof CalendarPrefs, label: string, detail: string) => (
@@ -306,6 +309,8 @@ export default function CalendarSettings({
                 )}
                 {tab === "Accounts" && (
                   <>
+                    <button disabled={accountsLoading || busy} onClick={() => setAccountsRevision(current => current + 1)}>Refresh calendar accounts</button>
+                    {accountsLoading && <p role="status">Loading calendar accounts…</p>}
                     <article className="cal-account">
                       <strong>BusinessSuite calendar</strong>
                       <span className="cal-connected">Available</span>
@@ -318,10 +323,12 @@ export default function CalendarSettings({
                       <article className="cal-account" key={p.id}>
                         <strong>{p.name}</strong>
                         <span>{p.state === "connected" ? "Connected" : p.state === "ready" ? "Ready to connect" : "Setup required"}</span>
+                        {p.sync && <p>{!p.sync.enabled ? "Automatic sync paused" : !p.sync.workerEnabled ? "Automatic sync enabled; background worker disabled" : "Automatic sync enabled"} · New external events go to {p.sync.importTarget === "pms" ? "PMS calendar" : "Sales / CRM meetings"}.</p>}
+                        {p.sync?.lastError && <p role="alert">{p.sync.lastError}</p>}
                         <Link to="/crm/calendar-integrations">Connect / manage account</Link>
                         {p.state === "connected" && <button disabled={busy} onClick={async () => {
                           setBusy(true); setError("");
-                          try { const r = await api.post(`/project-management/planner/connections/${p.id}/sync`); setSetup(r.data.skipped ? "Sync already running" : `${r.data.imported} imported, ${r.data.exported} exported`); }
+                          try { const r = await api.post(`/project-management/planner/connections/${p.id}/sync`); setSetup(r.data.skipped ? "Sync already running" : `${r.data.imported} imported, ${r.data.exported} exported`); setAccountsRevision(current => current + 1); }
                           catch (e) { setError(workspaceError(e)); } finally { setBusy(false); }
                         }}>Sync calendars now</button>}
                         <button
@@ -358,7 +365,7 @@ export default function CalendarSettings({
                       BusinessSuite is the default and busy calendar. External
                       accounts and conferencing require provider setup.
                     </p>
-                    <p className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Automatic two-way sync runs while the local backend is running."}</p>
+                    <p role="status" className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Manage automatic sync and import destinations from the connected account page."}</p>
                     <button onClick={onExport}>Export calendar (.ics)</button>
                   </>
                 )}
@@ -708,7 +715,7 @@ export default function CalendarSettings({
                         Export the visible calendar as an ICS file for import
                         into Google Calendar, Outlook or Apple Calendar.
                       </p>
-                      <p className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Automatic two-way sync runs while the local backend is running."}</p>
+                      <p role="status" className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Manage automatic sync and import destinations from the connected account page."}</p>
                     <button onClick={onExport}>Export calendar (.ics)</button>
                     </article>
                     <p className="cal-settings-note">

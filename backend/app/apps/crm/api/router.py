@@ -5399,8 +5399,6 @@ def list_webhooks(
     current_user: User = Depends(RequirePermission("crm_view", "crm_manage", "crm_admin")),
 ):
     organization_id = _organization_id(db, current_user)
-    _retry_due_webhook_deliveries(db, organization_id)
-    db.commit()
     rows = (
         _base_query(db, _get_resource("webhooks"), organization_id)
         .order_by(asc(CRMWebhook.name), desc(CRMWebhook.id))
@@ -5503,6 +5501,19 @@ def test_webhook(
     return _serialize(delivery)
 
 
+@router.post("/webhooks/{webhook_id}/retry")
+def retry_webhook_deliveries(
+    webhook_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(RequirePermission("crm_manage", "crm_admin")),
+):
+    organization_id = _organization_id(db, current_user)
+    _get_record(db, _get_resource("webhooks"), webhook_id, organization_id)
+    retried = _retry_due_webhook_deliveries(db, organization_id, webhook_id)
+    db.commit()
+    return {"retried": retried}
+
+
 @router.get("/webhooks/{webhook_id}/deliveries")
 def list_webhook_deliveries(
     webhook_id: int,
@@ -5511,8 +5522,6 @@ def list_webhook_deliveries(
 ):
     organization_id = _organization_id(db, current_user)
     _get_record(db, _get_resource("webhooks"), webhook_id, organization_id)
-    _retry_due_webhook_deliveries(db, organization_id, webhook_id)
-    db.commit()
     rows = (
         _base_query(db, _get_resource("webhook-deliveries"), organization_id)
         .filter(CRMWebhookDelivery.webhook_id == webhook_id)
@@ -6085,7 +6094,7 @@ def sync_meeting_calendar(
 
 @router.post("/calendar/webhook")
 def calendar_webhook_placeholder(request: Request):
-    return {"status": "accepted", "message": "Calendar webhook placeholder. TODO: verify provider signatures and enqueue two-way sync."}
+    raise HTTPException(501, "Calendar push notifications are not configured. Connected calendars use scheduled two-way sync.")
 
 
 @router.get("/calendar")
