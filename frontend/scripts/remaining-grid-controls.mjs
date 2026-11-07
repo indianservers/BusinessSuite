@@ -64,19 +64,31 @@ export async function resumeGridAudit(tab, root) {
   }
   async function savedViews(page, id) {
     const grid = tab.playwright.locator(`[data-grid-id=${JSON.stringify(id)}]`);
-    await record(page, id, 'Saved views: create, load, remove, close', async () => {
+    await record(page, id, 'Saved views: restore changed column visibility, remove, close', async () => {
       await grid.getByRole('button', { name: 'Saved views', exact: true }).click();
       const popover = tab.playwright.locator('.udg-popover').filter({ hasText: 'My saved views' });
       const name = `QA local ${Date.now()}`;
       await popover.getByRole('textbox', { name: 'Saved view name', exact: true }).fill(name);
       await popover.getByRole('button', { name: 'Save current view', exact: true }).click();
       await popover.getByRole('button', { name, exact: true }).waitFor({ state: 'visible' });
+      await popover.getByRole('button', { name: 'Close saved views', exact: true }).click();
+      await grid.getByRole('button', { name: 'Columns', exact: true }).click();
+      const manager = tab.playwright.locator('.udg-column-manager');
+      const checkbox = manager.getByRole('checkbox').first();
+      const original = await checkbox.evaluate(e => e.checked);
+      await checkbox.setChecked(!original);
+      await manager.getByRole('button', { name: 'Close column manager', exact: true }).click();
+      await grid.getByRole('button', { name: 'Saved views', exact: true }).click();
       await popover.getByRole('button', { name, exact: true }).click();
+      if (!await popover.count()) await grid.getByRole('button', { name: 'Saved views', exact: true }).click();
       await popover.getByRole('button', { name: `Delete view ${name}`, exact: true }).click();
       await popover.getByRole('button', { name, exact: true }).waitFor({ state: 'detached' });
       await popover.getByRole('button', { name: 'Close saved views', exact: true }).click();
       await popover.waitFor({ state: 'detached' });
-      return 'Created a uniquely named QA view, invoked load, removed only that view, and closed the popover. View content equivalence is not asserted.';
+      await grid.getByRole('button', { name: 'Columns', exact: true }).click();
+      if (await checkbox.evaluate(e => e.checked) !== original) throw new Error('Saved view did not restore column visibility');
+      await manager.getByRole('button', { name: 'Close column manager', exact: true }).click();
+      return 'Saved a uniquely named QA view; changed first column visibility; loaded the view; verified original visibility restored; removed only that view; closed both popovers. Other saved-view fields are not asserted.';
     });
   }
   async function display(page, id) {
@@ -120,5 +132,64 @@ export async function resumeGridAudit(tab, root) {
       return `Both densities selected; height32/88 verified and undone; ${viewCount} view modes selected/restored; reset and undo invoked. Rendered record equivalence and intermediate slider values are not asserted.`;
     });
   }
-  return { checks, grids, columns, savedViews, display };
+  async function grouping(page, id, limit = 3) {
+    const grid = tab.playwright.locator(`[data-grid-id=${JSON.stringify(id)}]`);
+    const select = grid.locator('select[aria-label="Add grouping column"]');
+    if (!await select.count()) return { exposed: false };
+    const choices = await select.evaluate(e => Array.from(e.options).filter(o => o.value && !o.disabled).map(o => ({ value: o.value, name: o.text })));
+    let completed = 0;
+    for (const choice of choices) {
+      const control = `Group by ${choice.name}: render, expand, collapse, remove`;
+      if (checks.some(x => x.page === page && x.grid === id && x.control === control && x.result === 'passed')) continue;
+      if (completed++ >= limit) return { pending: true };
+      await record(page, id, control, async () => {
+        const total = Number(await grid.getByRole('grid').getAttribute('aria-rowcount')) - 1;
+        await select.selectOption(choice.value);
+        const remove = grid.getByRole('button', { name: `Remove grouping ${choice.name}`, exact: true });
+        await remove.waitFor({ state: 'visible' });
+        await grid.locator('[aria-busy="true"]').first().waitFor({ state: 'detached' });
+        const errors = await grid.locator('[role="alert"]').allTextContents({});
+        if (errors.length) throw new Error(`Grouped grid error: ${errors.join('; ')}`);
+        if (total > 0) await grid.locator('.udg-group-row').first().waitFor({ state: 'visible' });
+        await grid.getByRole('button', { name: 'Expand loaded groups', exact: true }).click();
+        await grid.getByRole('button', { name: 'Expand loaded groups', exact: true }).waitFor({ state: 'visible' });
+        if (total > 0) await grid.locator('.udg-group-row button[aria-expanded="true"]').first().waitFor({ state: 'visible' });
+        await grid.getByRole('button', { name: 'Collapse all', exact: true }).click();
+        if (await grid.locator('.udg-group-row button[aria-expanded="true"]').count()) throw new Error('Expanded group remained after collapse all');
+        await remove.click();
+        await remove.waitFor({ state: 'detached' });
+        return `Grouping chip appeared; request completed without alert; ${total > 0 ? 'group rows rendered and expanded' : 'empty dataset retained'}; collapse cleared expanded groups; chip removed. Exact group membership is not asserted.`;
+      });
+    }
+    return { pending: false };
+  }
+  async function filterCase(page, id, test) {
+    const grid = tab.playwright.locator(`[data-grid-id=${JSON.stringify(id)}]`);
+    return record(page, id, `Filter ${test.field} ${test.operator} ${test.value ?? ''} ${test.upper ?? ''}`, async () => {
+      await grid.getByRole('button', { name: /^Filters/ }).click();
+      const dialog = tab.playwright.getByRole('dialog', { name: 'Advanced filters', exact: true });
+      await dialog.getByRole('button', { name: 'Clear conditions', exact: true }).click();
+      await dialog.getByRole('button', { name: 'Condition', exact: true }).click();
+      await dialog.locator('select[aria-label="Filter column 1"]').selectOption(test.field);
+      await dialog.locator('select[aria-label="Filter operator 1"]').selectOption(test.operator);
+      if (test.value !== undefined) await dialog.locator('input[aria-label="Filter value 1"]').fill(test.value);
+      if (test.upper !== undefined) await dialog.locator('input[aria-label="Filter upper value 1"]').fill(test.upper);
+      await dialog.getByRole('button', { name: 'Apply filters', exact: true }).click();
+      await grid.locator(`[role="grid"][aria-busy="false"][aria-rowcount="${test.expected.length + 1}"]`).waitFor({ state: 'visible' });
+      const errors = await grid.locator('[role="alert"]').allTextContents({});
+      if (errors.length) throw new Error(errors.join('; '));
+      const names = await grid.locator('input[aria-label^="Select row "]').evaluateAll(es => es.map(e => e.getAttribute('aria-label').replace(/^Select row /, '')).sort());
+      if (JSON.stringify(names) !== JSON.stringify([...test.expected].sort())) throw new Error(`Expected ${JSON.stringify(test.expected)}; observed ${JSON.stringify(names)}`);
+      return `Server-filtered result count and visible row names match ${JSON.stringify(test.expected)}.`;
+    });
+  }
+  async function clearFilters(id) {
+    const grid = tab.playwright.locator(`[data-grid-id=${JSON.stringify(id)}]`);
+    await grid.getByRole('button', { name: /^Filters/ }).click();
+    const dialog = tab.playwright.getByRole('dialog', { name: 'Advanced filters', exact: true });
+    await dialog.getByRole('button', { name: 'Clear conditions', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Apply filters', exact: true }).click();
+    await grid.locator('[aria-busy="true"]').first().waitFor({ state: 'detached' });
+  }
+  return { checks, grids, columns, savedViews, display, grouping, filterCase, clearFilters };
 }

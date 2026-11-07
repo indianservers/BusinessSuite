@@ -423,5 +423,273 @@
     "control": "Display: density, row-height endpoints, views, reset and undo",
     "result": "passed",
     "evidence": "Both densities selected; height32/88 verified and undone; 3 view modes selected/restored; reset and undo invoked. Rendered record equivalence and intermediate slider values are not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Customer: add, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared, grouped request completed without an alert, expand/collapse invoked, chip removed. Group membership correctness is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Business roles: add, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared, grouped request completed without an alert, expand/collapse invoked, chip removed. Group membership correctness is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Primary email: add, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared, grouped request completed without an alert, expand/collapse invoked, chip removed. Group membership correctness is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Customer: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Business roles: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Primary email: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Primary phone: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Classification: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Business type: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Country: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Industry: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Status: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Group by Tags: render, expand, collapse, remove",
+    "result": "passed",
+    "evidence": "Grouping chip appeared; request completed without alert; group rows rendered and expanded; collapse cleared expanded groups; chip removed. Exact group membership is not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Saved views: create, load, remove, close",
+    "result": "superseded-by-manual-recheck",
+    "error": "Error: Error: Playwright selector deadline exceeded\nwaiting on click for selector .udg-popover >> internal:has-text=\"My saved views\"i >> internal:role=button[name=\"QA local 1794051377214\"s]\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"click\",\"locator\":\".udg-popover >> internal:has-text=\\\"My saved views\\\"i >> internal:role=button[name=\\\"QA local 1794051377214\\\"s]\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,\"truncated\":false}",
+    "resolution": "Saved view still existed after search. Manually reopened it, loaded and observed search restored to empty, then removed only the QA view. Earlier popup lookup raced the search-result layout change. Separate column-visibility restore check also passed."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Saved views: restore changed column visibility, remove, close",
+    "result": "passed",
+    "evidence": "Saved a uniquely named QA view; changed first column visibility; loaded the view; verified original visibility restored; removed only that view; closed both popovers. Other saved-view fields are not asserted."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name contains Enterprises ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name equals Acme Enterprises ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name not_equals Acme Enterprises ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Zenith Solutions\",\"Vertex Tech\",\"Nova Retail\",\"QA Sync regression customer\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name starts_with Acme ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name between A M",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name ends_with Retail ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Nova Retail\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name gt M ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Nova Retail\",\"QA Sync regression customer\",\"Vertex Tech\",\"Zenith Solutions\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name gte Nova Retail ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Nova Retail\",\"QA Sync regression customer\",\"Vertex Tech\",\"Zenith Solutions\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name lt M ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name lte Acme Enterprises ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match []."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\",\"Nova Retail\",\"QA Sync regression customer\",\"Vertex Tech\",\"Zenith Solutions\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter account_type not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\",\"Nova Retail\",\"QA Sync regression customer\",\"Vertex Tech\",\"Zenith Solutions\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter email not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match []."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter phone not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match []."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter vendorClassification not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match []."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter businessType not_empty  ",
+    "result": "superseded-by-recheck",
+    "error": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(visible) timed out for selector [data-grid-id=\"company-directory-crm-Customer\"] >> [role=\"grid\"][aria-busy=\"false\"][aria-rowcount=\"1\"]\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\"[data-grid-id=\\\"company-directory-crm-Customer\\\"] >> [role=\\\"grid\\\"][aria-busy=\\\"false\\\"][aria-rowcount=\\\"1\\\"]\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,\"truncated\":false}",
+    "resolution": "Later browser recheck passed. For businessType, corrected expected fixture: Individual customer has a non-empty stored business type."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter country not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\",\"Nova Retail\",\"QA Sync regression customer\",\"Vertex Tech\",\"Zenith Solutions\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter businessType not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"QA Sync regression customer\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter industry not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match []."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter status not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\",\"Nova Retail\",\"QA Sync regression customer\",\"Vertex Tech\",\"Zenith Solutions\"]."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter tags_text not_empty  ",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match []."
+  },
+  {
+    "page": "crm/customers",
+    "grid": "company-directory-crm-Customer",
+    "control": "Filter name between A M",
+    "result": "passed",
+    "evidence": "Server-filtered result count and visible row names match [\"Acme Enterprises\"]."
   }
 ]

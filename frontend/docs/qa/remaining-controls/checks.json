@@ -3562,5 +3562,11 @@
     "control": "Contact picker after mutation and hard reload",
     "result": "fixed-and-passed",
     "evidence": "Reproduced render failure .items.map on sync delta. Diagnostic metadata showed modeunchanged with delta keys schema/key/order/upserts/removed/meta. Fixed client handling of browser-merged200unchanged and server baseline requirement for304. After disposable QA restart: picker8contacts,9aftercustomercreation,9aftereachof2hardreloads;state ready and noalert. Empty list and response-error recovery UI also checked."
+  },
+  {
+    "page": "crm/customers",
+    "control": "Text Between range filter upper bound",
+    "result": "fixed-and-passed",
+    "evidence": "Text column had lower input type text and upper input type number. Upper bound now follows the same column type. Both inputs accepted A/M; applied server filter returned exactly Acme Enterprises. All12nameoperators and all10filterablecolumns verified against explicit expected row sets in grid-controls.json."
   }
 ]

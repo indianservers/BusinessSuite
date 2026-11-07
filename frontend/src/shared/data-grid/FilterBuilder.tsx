@@ -179,7 +179,12 @@ export default function FilterBuilder<T>({
                           "datetime"
                           ? "datetime-local"
                           : "date"
-                        : "number"
+                        : ["number", "currency"].includes(
+                              available.find((c) => c.id === rule.field)
+                                ?.type || "",
+                            )
+                          ? "number"
+                          : "text"
                     }
                     value={String(rule.value2 ?? "")}
                     onChange={(e) =>

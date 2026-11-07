@@ -5,10 +5,10 @@
   "initial_route_inventory": "../workspace-completion/routes-desktop.json",
   "initial_routes": 192,
   "initial_controls": 14765,
-  "interaction_checks_recorded": 594,
+  "interaction_checks_recorded": 595,
   "check_results": {
     "passed": 583,
-    "fixed-and-passed": 11
+    "fixed-and-passed": 12
   },
   "route_workspace_panels": "workspace-panels.json",
   "validation": {
@@ -45,10 +45,11 @@
   "grid_control_checks": {
     "file": "grid-controls.json",
     "results": {
-      "passed": 47,
-      "superseded-by-recheck": 12
+      "passed": 83,
+      "superseded-by-recheck": 13,
+      "superseded-by-manual-recheck": 1
     },
-    "limitation": "Company, vendor and customer columns exercised individually. Vendor/customer display and saved-view controls checked. Other grids and additional row actions remain pending."
+    "limitation": "Company/vendor/customer column controls exercised individually. Customer grouping options, all12namefilteroperators and all10filterablecolumns checked; saved view restored changed column visibility. Remaining grids and row actions are not certified."
   },
   "form_option_checks": {
     "file": "form-options.json",
