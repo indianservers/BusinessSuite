@@ -1,0 +1,115 @@
+[
+  {
+    "control": "Export column branch availability",
+    "result": "passed"
+  },
+  {
+    "control": "Export column follow up",
+    "result": "passed"
+  },
+  {
+    "control": "Export column kind",
+    "result": "passed"
+  },
+  {
+    "control": "Export column name",
+    "result": "passed"
+  },
+  {
+    "control": "Export column code",
+    "result": "passed"
+  },
+  {
+    "control": "Export column category",
+    "result": "passed"
+  },
+  {
+    "control": "Export column description",
+    "result": "passed"
+  },
+  {
+    "control": "Export column price",
+    "result": "passed"
+  },
+  {
+    "control": "Export column currency",
+    "result": "passed"
+  },
+  {
+    "control": "Export column tax",
+    "result": "passed"
+  },
+  {
+    "control": "Export column unit",
+    "result": "passed"
+  },
+  {
+    "control": "Export column barcode",
+    "result": "passed"
+  },
+  {
+    "control": "Export column hsn code",
+    "result": "passed"
+  },
+  {
+    "control": "Export column cost",
+    "result": "passed"
+  },
+  {
+    "control": "Export column mrp",
+    "result": "passed"
+  },
+  {
+    "control": "Export column reorder level",
+    "result": "passed"
+  },
+  {
+    "control": "Export column track inventory",
+    "result": "passed"
+  },
+  {
+    "control": "Export column status",
+    "result": "passed"
+  },
+  {
+    "control": "Export column workspace id",
+    "result": "passed"
+  },
+  {
+    "control": "Export column images",
+    "result": "passed"
+  },
+  {
+    "control": "Export column custom fields",
+    "result": "passed"
+  },
+  {
+    "control": "Export column pricing options",
+    "result": "passed"
+  },
+  {
+    "control": "Clear/Select all export columns",
+    "result": "passed",
+    "evidence": "0 selected disables download; Select all restores 22 checked."
+  },
+  {
+    "control": "XLSX/CSV/JSON export",
+    "result": "passed",
+    "evidence": "Browser download controls used; downloaded files inspected: 4 expected QA records including archived copy, 22 columns."
+  },
+  {
+    "control": "Copy data",
+    "result": "passed-ui-feedback",
+    "evidence": "Copy format selected and Copy data clicked; Copied to clipboard shown. Clipboard contents not independently read."
+  },
+  {
+    "control": "Import template and dismiss controls",
+    "result": "passed",
+    "evidence": "Excel template downloaded; Cancel and Close import dismissed upload dialog."
+  },
+  {
+    "control": "Direct catalog image upload retry",
+    "result": "unverified",
+    "evidence": "After user enabled extension file access, chooser.setFiles still rejected by extension permission check."
+  }
+]

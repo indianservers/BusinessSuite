@@ -443,5 +443,143 @@
     "control": "Catalog landmarks",
     "result": "fixed-and-passed",
     "evidence": "CRM products, CRM products-services, PMS products, PMS products-services each exposed one main landmark and Catalog workspace region after root section correction."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Row preview/title/edit/cancel AA QA catalog sort fixture",
+    "result": "superseded-by-selector-recheck",
+    "error": "Error: Preview base price differs",
+    "recheck": "Passed after correcting selector scope, visible-text whitespace, and asynchronous loading waits; no product change required."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "superseded-by-selector-recheck",
+    "error": "Error: Error: Playwright selector deadline exceeded\nlocator.setChecked(true) failed for selector .sc-page >> internal:role=checkbox[name=\"Select AA QA catalog sort fixture\"s]\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"setChecked\",\"locator\":\".sc-page >> internal:role=checkbox[name=\\\"Select AA QA catalog sort fixture\\\"s]\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,\"truncated\":false}",
+    "recheck": "Passed after correcting selector scope, visible-text whitespace, and asynchronous loading waits; no product change required."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Row preview/title/edit/cancel AA QA catalog sort fixture",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Row preview/title/edit/cancel QA lead service controls",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Row preview/title/edit/cancel QA nested catalog boundary",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "superseded-by-selector-recheck",
+    "error": "Error: Use the single-branch QA fixture",
+    "recheck": "Passed after correcting selector scope, visible-text whitespace, and asynchronous loading waits; no product change required."
+  },
+  {
+    "page": "pms/products-services",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "passed",
+    "evidence": "Each of 3 row checkboxes toggled; page selection selected all; bulk count matched; all3 reuse modes blocked without writable destination; Cancel/clear/filter reset behaved correctly. No sharing performed."
+  },
+  {
+    "page": "crm/products",
+    "control": "Row preview/title/edit/cancel AA QA catalog sort fixture",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "crm/products",
+    "control": "Row preview/title/edit/cancel QA lead service controls",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "crm/products",
+    "control": "Row preview/title/edit/cancel QA nested catalog boundary",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "crm/products",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "superseded-by-selector-recheck",
+    "error": "Error: Use the single-branch QA fixture",
+    "recheck": "Passed after correcting selector scope, visible-text whitespace, and asynchronous loading waits; no product change required."
+  },
+  {
+    "page": "crm/products",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "passed",
+    "evidence": "Each of 3 row checkboxes toggled; page selection selected all; bulk count matched; all3 reuse modes blocked without writable destination; Cancel/clear/filter reset behaved correctly. No sharing performed."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Row preview/title/edit/cancel AA QA catalog sort fixture",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Row preview/title/edit/cancel QA lead service controls",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Row preview/title/edit/cancel QA nested catalog boundary",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "superseded-by-selector-recheck",
+    "error": "Error: Page selection incomplete",
+    "recheck": "Passed after correcting selector scope, visible-text whitespace, and asynchronous loading waits; no product change required."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "superseded-by-selector-recheck",
+    "error": "Error: Error: Playwright selector deadline exceeded\nlocator.waitFor(attached) timed out for selector .sc-page >> input[type=checkbox]:checked >> nth=6\nLocator diagnostics: {\"kind\":\"no_matches\",\"action\":\"waitFor\",\"locator\":\".sc-page >> input[type=checkbox]:checked >> nth=6\",\"matchCount\":0,\"matches\":[],\"visibleCount\":0,\"truncated\":false}",
+    "recheck": "Passed after correcting selector scope, visible-text whitespace, and asynchronous loading waits; no product change required."
+  },
+  {
+    "page": "crm/products-services",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "passed",
+    "evidence": "Each of 3 row checkboxes toggled; page selection selected all; bulk count matched; all3 reuse modes blocked without writable destination; Cancel/clear/filter reset behaved correctly. No sharing performed."
+  },
+  {
+    "page": "pms/products",
+    "control": "Row preview/title/edit/cancel AA QA catalog sort fixture",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "pms/products",
+    "control": "Row preview/title/edit/cancel QA lead service controls",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "pms/products",
+    "control": "Row preview/title/edit/cancel QA nested catalog boundary",
+    "result": "passed",
+    "evidence": "Cover preview and title preview opened correct record/base price; image loaded where present; preview Edit and row Edit opened correct immutable-kind editor; both Cancel actions returned catalog."
+  },
+  {
+    "page": "pms/products",
+    "control": "Individual/page selection, bulk reuse modes, filter reset",
+    "result": "passed",
+    "evidence": "Each of 3 row checkboxes toggled; page selection selected all; bulk count matched; all3 reuse modes blocked without writable destination; Cancel/clear/filter reset behaved correctly. No sharing performed."
   }
 ]

@@ -210,5 +210,18 @@
     ],
     "evidence": "On each route: four sorts with exact asc/reverse/restored order and12type/search/category/status result checks. Distinct generated values used. Record-action checks limited to explicitly recorded CRM cases so far."
   },
-  "catalog_fixture_state": "Three active generated offerings with distinct names/codes/categories/prices; one archived service copy. Earlier option/form checks predate sorting fixture."
+  "catalog_fixture_state": "Three active generated offerings with distinct names/codes/categories/prices; one archived service copy. Earlier option/form checks predate sorting fixture.",
+  "catalog_page_control_results": {
+    "passed": 86,
+    "unverified": 1,
+    "fixed-and-passed": 2,
+    "superseded-by-settled-count-recheck": 1,
+    "superseded-by-selector-recheck": 6
+  },
+  "catalog_export_controls": "catalog-export-controls.json",
+  "catalog_export_control_results": {
+    "passed": 25,
+    "passed-ui-feedback": 1,
+    "unverified": 1
+  }
 }
