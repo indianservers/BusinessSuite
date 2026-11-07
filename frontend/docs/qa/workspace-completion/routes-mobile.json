@@ -2681,5 +2681,75 @@
       "width": 390
     },
     "width": 390
+  },
+  {
+    "path": "pms/timesheets",
+    "url": "http://127.0.0.1:1569/pms/time-tracking?operation=%2Fpms%2Ftimesheets",
+    "alerts": [],
+    "headings": [
+      "Weekly timesheets"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/reports",
+    "url": "http://127.0.0.1:1569/pms/reports",
+    "alerts": [],
+    "headings": [
+      "PMS reports"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/client-portal",
+    "url": "http://127.0.0.1:1569/pms/client-portal",
+    "alerts": [],
+    "headings": [
+      "Client portal"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/settings",
+    "url": "http://127.0.0.1:1569/settings/pms",
+    "alerts": [],
+    "headings": [
+      "Settings"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
+  },
+  {
+    "path": "pms/admin",
+    "url": "http://127.0.0.1:1569/pms/admin",
+    "alerts": [],
+    "headings": [
+      "PMS management home"
+    ],
+    "overflow": false,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "width": 390
   }
 ]
