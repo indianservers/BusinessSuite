@@ -43,5 +43,6 @@ const save = () => fs.writeFileSync(path.join(output, 'branches.json'), JSON.str
       } catch (error) { report.failures.push({ module, error: error.message }); console.log('FAIL', module, error.message.split('\n').slice(0, 4).join(' ')); await page.screenshot({ path: path.join(output, module + '-branch-failure.png'), fullPage: false }); }
       await context.close(); save();
     }
+    assert.deepEqual(report.failures, [], 'All requested branch checks must pass');
   } finally { await browser.close(); save(); }
 })().catch(error => { console.error(error.message); save(); process.exitCode = 1; });

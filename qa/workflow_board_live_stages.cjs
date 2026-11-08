@@ -143,6 +143,7 @@ async function run() {
       save();
     }
     report.pageErrors = errors; assert.deepEqual(errors, []);
+    assert.deepEqual(report.failures, [], 'All requested live stage checks must pass');
   } finally { await browser.close(); save(); }
 }
 run().catch(error => { console.error(error.message); save(); process.exitCode = 1; });
