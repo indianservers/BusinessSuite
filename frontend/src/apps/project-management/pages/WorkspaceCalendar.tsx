@@ -485,10 +485,10 @@ export default function WorkspaceCalendar({
                 </p>
               )}
               {displayed.map((t) => (
-                <article key={t.id}>
+                <article data-priority-row data-priority={t.priority} key={t.id}>
                   <time>{t.due_date || t.start_date}</time>
                   {chip(t)}
-                  <span>
+                  <span data-priority-badge data-priority={t.priority}>
                     {t.status} · {t.priority}
                   </span>
                 </article>

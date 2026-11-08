@@ -1,18 +1,20 @@
+import { lazyRoute } from "@/lib/lazy-route";
+const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
 import React from "react";
-const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+const ImportWorkspace = lazyRoute(() => import("@/shared/data-transfer/ImportWorkspace"));
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
-const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
+const CommunicationWorkspace = lazyRoute(() => import("@/shared/communication/CommunicationWorkspace"));
+const ModuleGanttPage = lazyRoute(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 import type { FAMViewKind } from "./types";
 
-const FAMWorkspacePage = React.lazy(() => import("./FAMWorkspacePage"));
-const UAETaxPage = React.lazy(() => import("./UAETaxPage"));
-const TransactionLocksPage = React.lazy(() => import("./TransactionLocksPage"));
-const FinancialStatementsPage = React.lazy(() => import("./FinancialStatementsPage"));
-const RecurringPurchasesPage = React.lazy(() => import("./RecurringPurchasesPage"));
-const BankRulesPage = React.lazy(() => import("./BankRulesPage"));
-const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
+const FAMWorkspacePage = lazyRoute(() => import("./FAMWorkspacePage"));
+const UAETaxPage = lazyRoute(() => import("./UAETaxPage"));
+const TransactionLocksPage = lazyRoute(() => import("./TransactionLocksPage"));
+const FinancialStatementsPage = lazyRoute(() => import("./FinancialStatementsPage"));
+const RecurringPurchasesPage = lazyRoute(() => import("./RecurringPurchasesPage"));
+const BankRulesPage = lazyRoute(() => import("./BankRulesPage"));
+const ModuleProfilePage = lazyRoute(() => import("@/pages/ModuleProfilePage"));
 
 const route = (path: string, kind: FAMViewKind): FrontendRoute => ({
   path,
@@ -21,6 +23,7 @@ const route = (path: string, kind: FAMViewKind): FrontendRoute => ({
 
 
 export const famRoutes: FrontendRoute[] = [
+  { path: "fam/workspaces", element: <OperationalWorkspaceDirectory module="fam" /> },
   { path: "fam/bank-rules", element: <BankRulesPage /> },
   { path: "fam/recurring-purchases", element: <RecurringPurchasesPage /> },
   { path: "fam/financial-statements", element: <FinancialStatementsPage /> },

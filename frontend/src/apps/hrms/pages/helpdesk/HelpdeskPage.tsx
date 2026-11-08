@@ -1,3 +1,6 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -207,12 +210,12 @@ export default function HelpdeskPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {(slaBreaches || []).slice(0, 5).map((ticket) => (
-              <div key={ticket.id} className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div data-priority-row data-priority={ticket.priority} key={ticket.id} className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium">{ticket.subject}</p>
                   <p className="text-xs text-muted-foreground">{ticket.ticket_number} - due {ticket.resolution_due_at ? formatDateTime(ticket.resolution_due_at) : "-"}</p>
                 </div>
-                <Badge variant="destructive">{ticket.priority}</Badge>
+                <Badge data-priority-badge data-priority={ticket.priority} variant="destructive">{ticket.priority}</Badge>
               </div>
             ))}
             {!slaBreaches?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No breached tickets right now.</p>}
@@ -236,6 +239,7 @@ export default function HelpdeskPage() {
       </div>
 
       {showForm && (
+        <SmartCreateModal definition={{ entity: "ticket", title: "Create support ticket", presentation: "page", size: "standard" }} busy={createMutation.isPending} onClose={() => setShowForm(false)}>
         <Card>
           <CardHeader><CardTitle className="text-base">Raise a Ticket</CardTitle></CardHeader>
           <CardContent>
@@ -270,6 +274,7 @@ export default function HelpdeskPage() {
             </CompactForm>
           </CardContent>
         </Card>
+        </SmartCreateModal>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -289,12 +294,12 @@ export default function HelpdeskPage() {
               Array.from({ length: 5 }).map((_, i) => <Card key={i}><CardContent className="p-4"><div className="h-16 rounded bg-muted/40" /></CardContent></Card>)
             ) : !tickets?.length ? (
               <Card><CardContent className="p-8 text-center text-muted-foreground"><LifeBuoy className="mx-auto mb-2 h-8 w-8 opacity-30" /><p className="text-sm">No tickets found</p></CardContent></Card>
-            ) : tickets.map((ticket) => (
-              <Card key={ticket.id} className={`cursor-pointer transition-shadow hover:shadow-md ${selectedTicket?.id === ticket.id ? "ring-2 ring-primary" : ""}`} onClick={() => setSelectedTicket(selectedTicket?.id === ticket.id ? null : ticket)}>
+            ) : <GroupedRecords scope="apps/hrms/pages/helpdesk/HelpdeskPage:records-1" items={(tickets) || []} fields={standardRecordGroups((tickets) || [])} gridClassName="space-y-3" renderItem={(ticket) => (
+              <Card data-priority-row data-priority={ticket.priority} key={ticket.id} className={`cursor-pointer transition-shadow hover:shadow-md ${selectedTicket?.id === ticket.id ? "ring-2 ring-primary" : ""}`} onClick={() => setSelectedTicket(selectedTicket?.id === ticket.id ? null : ticket)}>
                 <CardContent className="space-y-2 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium leading-tight">{ticket.subject}</p>
-                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium ${priorityBadge[ticket.priority] || ""}`}>{ticket.priority}</span>
+                    <span data-priority-badge data-priority={ticket.priority} className={`shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium ${priorityBadge[ticket.priority] || ""}`}>{ticket.priority}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">{ticket.ticket_number}</span>
@@ -303,7 +308,7 @@ export default function HelpdeskPage() {
                   <p className="text-xs text-muted-foreground">{formatDateTime(ticket.created_at)}</p>
                 </CardContent>
               </Card>
-            ))}
+            )}/>}
           </div>
         </div>
 

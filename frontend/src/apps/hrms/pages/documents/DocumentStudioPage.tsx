@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import OrderedList from "@/components/interaction/OrderedList";
@@ -172,7 +173,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
   const [kind, setKind] = useState("employee");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [recipientId, setRecipientId] = useState("");
+  const [recipientId, setRecipientId] = useState(params.get("employee_id") || "");
   const [issueDate, setIssueDate] = useState(today);
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState("");
@@ -199,21 +200,21 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
     queryFn: async () => (await api.get(`${base}/letterheads`)).data,
   });
   const recipients = useQuery<{ id: number; name: string; detail: string }[]>({
-    queryKey: ["studio", "recipients", kind, debouncedSearch],
+    queryKey: ["studio", "recipients", kind, debouncedSearch, params.get("employee_id")],
     queryFn: async () =>
       (
         await api.get(`${base}/recipients`, {
-          params: { kind, q: debouncedSearch },
+          params: { kind, q: debouncedSearch, employee_id: !debouncedSearch && kind === "employee" ? params.get("employee_id") || undefined : undefined },
         })
       ).data,
     enabled: tab === "Generate" && !!meta.data,
   });
   const history = useQuery<{ total: number; items: Issued[] }>({
-    queryKey: ["studio", "issued", historySearch, historyPage],
+    queryKey: ["studio", "issued", historySearch, historyPage, params.get("employee_id")],
     queryFn: async () =>
       (
         await api.get(`${base}/issued`, {
-          params: { q: historySearch, skip: historyPage * 30 },
+          params: { q: historySearch, skip: historyPage * 30, employee_id: params.get("employee_id") || undefined },
         })
       ).data,
     enabled: tab === "Issued",
@@ -691,7 +692,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                 {!editTemplate ? (
                   <p>Select a template to edit, or create one.</p>
                 ) : (
-                  <CompactForm
+                  <SmartCreateSection title={editTemplate?.id ? "Edit template" : "Create template"} autoOpen onClose={() => setEditTemplate(null)} size="large"><CompactForm
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -995,7 +996,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                       <Save className="mr-2 h-4 w-4" />
                       Save template
                     </Button>
-                  </CompactForm>
+                  </CompactForm></SmartCreateSection>
                 )}
               </section>
             </div>
@@ -1029,7 +1030,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                     Select a letterhead to configure your official branding.
                   </p>
                 ) : (
-                  <CompactForm
+                  <SmartCreateSection title={editHead?.id ? "Edit letterhead" : "Create letterhead"} autoOpen onClose={() => setEditHead(null)} size="large"><CompactForm
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -1272,7 +1273,7 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                       <Save className="mr-2 h-4 w-4" />
                       Save letterhead
                     </Button>
-                  </CompactForm>
+                  </CompactForm></SmartCreateSection>
                 )}
               </section>
             </div>

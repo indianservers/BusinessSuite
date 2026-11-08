@@ -27,10 +27,10 @@ export default function AiAgentHandoffPage() {
         <CardHeader><CardTitle>Open Work</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {notes.map((note) => (
-            <div key={note.id} className="rounded-md border p-4">
+            <div data-priority-row data-priority={note.priority} key={note.id} className="rounded-md border p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div><p className="font-medium">{note.summary}</p><p className="text-xs text-muted-foreground">{note.module} / {note.related_entity_type || "general"} {note.related_entity_id || ""}</p></div>
-                <div className="flex gap-2"><Badge variant={note.priority === "urgent" || note.priority === "high" ? "warning" : "outline"}>{note.priority}</Badge><Badge>{note.status}</Badge></div>
+                <div className="flex gap-2"><Badge data-priority-badge data-priority={note.priority} variant={note.priority === "urgent" || note.priority === "high" ? "warning" : "outline"}>{note.priority}</Badge><Badge>{note.status}</Badge></div>
               </div>
               {note.reason ? <p className="mt-2 text-sm text-muted-foreground">{note.reason}</p> : null}
               {note.recommended_action ? <p className="mt-2 text-sm">{note.recommended_action}</p> : null}

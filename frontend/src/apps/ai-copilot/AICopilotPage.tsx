@@ -1,3 +1,4 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { useState, type ReactNode } from "react";
@@ -129,7 +130,7 @@ function ProviderSettings() {
   });
   const test = useMutation({ mutationFn: (id: number) => aiCopilotApi.testProviderSetting(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-provider-settings"] }) });
   return (
-    <Section title="AI Provider Settings" action={<Button onClick={() => create.mutate()}>Add Mock Provider</Button>}>
+    <Section title="AI Provider Settings" action={<SmartCreateAction title="Add Mock Provider"><Button onClick={() => create.mutate()}>Add Mock Provider</Button></SmartCreateAction>}>
       <div className="rounded border p-4 space-y-2"><h3 className="font-semibold">PMS operator API connections</h3><p className="text-sm text-muted-foreground">Configure encrypted credentials, connection tests, usage analytics and request logs for each provider.</p><div className="flex gap-4"><Link className="text-primary underline" to="/pms/settings/ai/openai">OpenAI / ChatGPT</Link><Link className="text-primary underline" to="/pms/settings/ai/gemini">Google Gemini</Link><Link className="text-primary underline" to="/pms/settings/ai/claude">Anthropic Claude</Link></div><p className="text-sm">Legacy copilot test providers below are separate from operator connections.</p></div>
       <GroupedRecords scope="apps/ai-copilot/AICopilotPage:cards-1" items={((query.data?.items || [])) || []} fields={standardRecordGroups(((query.data?.items || [])) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item) => <Card key={item.id}><CardContent className="flex items-start justify-between gap-3 p-4"><div><p className="font-medium">{item.provider_name} / {item.model_name}</p><p className="mt-1 text-sm text-muted-foreground">Data sharing {item.data_sharing_allowed ? "allowed" : "blocked"}</p></div><div className="flex flex-col items-end gap-2"><Badge variant={item.enabled ? "default" : "outline"}>{item.enabled ? "Enabled" : "Disabled"}</Badge><Button variant="outline" size="sm" onClick={() => test.mutate(Number(item.id))}>Test</Button></div></CardContent></Card>}/>
       {!query.isLoading && !(query.data?.items || []).length ? <p className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">No AI provider is configured.</p> : null}
@@ -145,7 +146,7 @@ function PromptTemplates() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-prompt-templates"] }),
   });
   return (
-    <Section title="AI Prompt Templates" action={<Button onClick={() => create.mutate()}>Create Summary Prompt</Button>}>
+    <Section title="AI Prompt Templates" action={<SmartCreateAction title="Create Summary Prompt"><Button onClick={() => create.mutate()}>Create Summary Prompt</Button></SmartCreateAction>}>
       <GroupedRecords scope="apps/ai-copilot/AICopilotPage:cards-2" items={((query.data?.items || [])) || []} fields={standardRecordGroups(((query.data?.items || [])) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item) => <Card key={item.id}><CardContent className="p-4"><p className="font-medium">{item.name}</p><p className="mt-1 text-sm text-muted-foreground">{item.module_name} / {item.use_case}</p><Badge className="mt-3" variant={item.active ? "default" : "outline"}>{item.active ? "Active" : "Inactive"}</Badge></CardContent></Card>}/>
     </Section>
   );
@@ -156,7 +157,7 @@ function ActionLog() {
   return (
     <Section title="AI Action Log">
       <div className="space-y-2">
-        {(query.data?.items || []).map((item) => <div key={item.id} className="rounded-md border bg-card px-4 py-3 text-sm"><div className="flex items-center justify-between gap-3"><span className="font-medium">{item.event_type}</span><Badge variant="outline">{item.status}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{item.module_name || "ai"} {item.record_type || ""} #{item.record_id || "-"} by user #{item.created_by || "-"}</p></div>)}
+        {<GroupedRecords scope="apps/ai-copilot/AICopilotPage:records-1" items={((query.data?.items || [])) || []} fields={standardRecordGroups(((query.data?.items || [])) || [])} gridClassName="space-y-3" renderItem={(item) => <div key={item.id} className="rounded-md border bg-card px-4 py-3 text-sm"><div className="flex items-center justify-between gap-3"><span className="font-medium">{item.event_type}</span><Badge variant="outline">{item.status}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{item.module_name || "ai"} {item.record_type || ""} #{item.record_id || "-"} by user #{item.created_by || "-"}</p></div>}/>}
       </div>
     </Section>
   );

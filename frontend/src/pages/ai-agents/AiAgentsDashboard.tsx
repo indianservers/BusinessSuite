@@ -1,3 +1,4 @@
+import {useAuthStore} from "@/store/authStore";
 import {useAiAdministration} from "@/hooks/use-ai-administration";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { useEffect, useMemo, useState } from "react";
@@ -14,6 +15,7 @@ const filters: Array<AiModule | "ALL"> = ["ALL", "CRM", "PMS", "HRMS", "CROSS"];
 
 export default function AiAgentsDashboard() {
   const canAdmin=useAiAdministration();
+  const canToggleCatalog=useAuthStore(state=>!!state.user?.is_superuser);
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [approvals, setApprovals] = useState<AiApproval[]>([]);
   const [logs, setLogs] = useState<AiAuditLog[]>([]);
@@ -106,7 +108,7 @@ export default function AiAgentsDashboard() {
             ))}
           </div>
 
-          <AgentList agents={agents} moduleFilter={filter} canConfigure={canAdmin} onToggleStatus={canAdmin?toggleAgentStatus:undefined} />
+          <AgentList agents={agents} moduleFilter={filter} canConfigure={canAdmin} onToggleStatus={canToggleCatalog?toggleAgentStatus:undefined} />
 
           <div className="grid gap-4 xl:grid-cols-2">
             <Card>

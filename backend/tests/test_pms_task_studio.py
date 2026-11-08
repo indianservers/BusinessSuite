@@ -115,3 +115,20 @@ def test_source_managed_members_cannot_be_removed(client,db,studio):
     retained=client.put(f"{BASE}/task-studio/tasks/{tid}",headers=headers,json={"task":{"title":"Preserve inactive program member"},"assignment":{"people":[member.id]},"version":current["version"]})
     assert retained.status_code==200,retained.text
     assert retained.json()["task"]["assignee_user_ids"]==[member.id]
+
+def test_task_manager_can_assign_self_without_workspace_membership(client, db, studio):
+    from app.apps.project_management.models import PMSProject
+    owner, member, _, headers, _, _, project, _, _ = studio
+    db.query(PMSWorkspaceMember).filter_by(workspace_id=project['workspace_id'], user_id=owner.id).delete()
+    db.get(PMSProject, project['id']).manager_user_id = member.id
+    db.commit()
+    response = client.get(BASE + '/task-studio/options', params={'project_id':project['id'], 'compact':True}, headers=headers)
+    assert response.status_code == 200, response.text
+    assert owner.id in [person['id'] for person in response.json()['people']]
+    picker = client.get(BASE + '/task-studio/people', params={'project_id':project['id'], 'selected':str(owner.id)}, headers=headers)
+    assert picker.status_code == 200, picker.text
+    assert owner.id in [person['id'] for person in picker.json()['selected']]
+    body = {'task':{'title':'Self owned work','task_key':'self-owned'}, 'assignment':{'people':[owner.id]}}
+    result = client.post(f"{BASE}/task-studio/projects/{project['id']}/tasks", json=body, headers=headers)
+    assert result.status_code == 201, result.text
+    assert owner.id in result.json()['task']['assignee_user_ids']

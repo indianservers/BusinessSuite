@@ -1,3 +1,4 @@
+import { accessQueryOptions } from "@/features/access/access-query";
 import PremiumLauncher from "@/components/suite/PremiumLauncher";
 import CompanySampleData from "@/shared/data-transfer/CompanySampleData";
 import { useEffect } from "react";
@@ -29,13 +30,8 @@ export default function ModuleDashboardPage() {
   const updatePreferences = useSuitePreferences((state) => state.update);
   const notifications = useNotificationSummary();
   const access = useQuery({
-    queryKey: ["dashboard-access", user?.id],
+    ...accessQueryOptions(),
     enabled: isHydrated && isAuthenticated && !!user,
-    queryFn: () =>
-      api
-        .get<NonNullable<AuthUser["access"]>>("/access/me")
-        .then((r) => r.data),
-    retry: 1,
   });
   const branding = useQuery({
     queryKey: ["login-branding"],

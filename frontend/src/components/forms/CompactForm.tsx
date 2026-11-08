@@ -23,7 +23,8 @@ function category(label: string) {
   if (/price|amount|currency|tax|discount|salary|revenue|bank|payment|cost|rate|quantity/i.test(label)) return "Pricing & finance";
   if (/product|service|item|catalog/i.test(label)) return "Products & services";
   if (/note|description|comment|attachment|image|file/i.test(label)) return "Notes & extras";
-  if (/date|time|owner|assig|priority|status|stage|team|schedule|due/i.test(label)) return "Planning & ownership";
+  if (/owner|assignee|assigned|member|reviewer|team/i.test(label)) return "Basic details";
+  if (/date|time|priority|status|stage|schedule|due/i.test(label)) return "Planning & ownership";
   return "Additional details";
 }
 function analyse(children: ReactNode) {
@@ -54,12 +55,15 @@ function analyse(children: ReactNode) {
   }
   walk(children, "root", "");
   const groups: string[] = [], assignments = new Map<string, number>();
-  // Keep related fields together; overflow categories share the fourth tab.
+  // Keep related fields together; overflow categories share the third tab.
+  const initialCategories = [...new Set([...units.values()].map(unit => unit.section))];
+  const basic = initialCategories.find(label=>/basic|essential|overview|general/i.test(label)) || initialCategories[0];
+  for(const unit of units.values())if(/^(?:\d+[. ]*)?(?:assignment|members|team members|ownership|people & access)$/i.test(unit.section))unit.section=basic;
   const categories = [...new Set([...units.values()].map(unit => unit.section))];
-  const groupLabels = categories.length > 4 ? [...categories.slice(0, 3), "More details"] : categories;
+  const groupLabels = categories.length > 3 ? [...categories.slice(0, 2), "More details"] : categories;
   groups.push(...groupLabels);
   for (const [key, unit] of units) {
-    assignments.set(key, Math.min(categories.indexOf(unit.section), 3));
+    assignments.set(key, Math.min(categories.indexOf(unit.section), 2));
   }
   for (const [id, key] of linkedInputs) { const label=linkedLabels.get(id),group=assignments.get(key); if(label && group !== undefined)assignments.set(label.path,group); }
   return { groups, assignments, enabled: !existingNavigation && (units.size >= 9 || sectionCount >= 2) && groups.length > 1 };

@@ -334,7 +334,7 @@ export default function WhatsAppTasksPage() {
             <p className="wa-empty">No tasks match this view.</p>
           )}
           {items.map((t) => (
-            <button
+            <button data-priority-row data-priority={t.priority}
               key={t.id}
               className={`wa-task ${id === t.id ? "active" : ""}`}
               onClick={() => choose(t.id)}
@@ -361,7 +361,7 @@ export default function WhatsAppTasksPage() {
                   · {t.assignee_name || "Unassigned"}
                 </p>
                 <div className="wa-task-meta">
-                  <span>
+                  <span data-priority-badge data-priority={t.priority}>
                     <Flag size={12} />
                     {t.priority}
                   </span>
@@ -652,7 +652,7 @@ function Conversation({
           </div>
           <div className="wa-heading-meta">
             <Badge value={task.status} />
-            <span className="wa-priority">
+            <span data-priority-badge data-priority={task.priority} className="wa-priority">
               <Flag size={13} />
               {task.priority} priority
             </span>
@@ -1097,7 +1097,7 @@ function Conversation({
                   </label>
                   <label>
                     Priority
-                    <span className="wa-priority">
+                    <span data-priority-badge data-priority={task.priority} className="wa-priority">
                       <Flag size={14} />
                       {task.priority}
                     </span>

@@ -1,3 +1,5 @@
+import "./shared/priority/priority.css";
+import { navigationViews } from "./lib/navigation-views";
 import "./pages/settings/settingsNavigationGuard";
 import "./components/forms/compact-forms.css";
 import RecordQuickPreview from "./components/RecordQuickPreview";
@@ -52,8 +54,8 @@ installRecordListRefresh(queryClient);
 // Statistics caches must not survive an identity, tenant or permission-context switch.
 const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,u?.primary_role??u?.role,u?.is_superuser,u?.access?.grants])};
 let activeStatisticsContext=statisticsContext();
-useAuthStore.subscribe(()=>{const next=statisticsContext();if(next!==activeStatisticsContext){activeStatisticsContext=next;void queryClient.cancelQueries();queryClient.clear()}});
-window.addEventListener("suite:organization-changed",()=>{void queryClient.cancelQueries();queryClient.clear()});
+useAuthStore.subscribe(()=>{const next=statisticsContext();if(next!==activeStatisticsContext){activeStatisticsContext=next;navigationViews.clear();void queryClient.cancelQueries();queryClient.clear()}});
+window.addEventListener("suite:organization-changed",()=>{navigationViews.clear();void queryClient.cancelQueries();queryClient.clear()});
 let statisticsRefresh:number|undefined;
 window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statisticsRefresh);statisticsRefresh=window.setTimeout(()=>{void queryClient.invalidateQueries({predicate:query=>/dashboard|headcount|statistics|stats|summary|metrics|count|overview|portfolio|analytics|notification|people-workspace|report|approval|hr-work/i.test(JSON.stringify(query.queryKey))})},180)});
 

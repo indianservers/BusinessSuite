@@ -1,3 +1,5 @@
+import "@/components/layout/shared-sidebar.css";
+import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ProductivityReference } from "./shared/ProductivityReference";
 import { productivityReferences } from "@/shared/productivity/references";
@@ -316,6 +318,7 @@ export default function PowerAppsPage() {
                       </article>
                     ))}
                   </section>
+                  <ModuleWorkflowBoard module="power_apps" environment={environment} />
                   <section>
                     <div className="pa-section-title">
                       <div>

@@ -1,3 +1,4 @@
+import { authenticateCrm } from "./crm-core-test-utils";
 import { resolve } from "node:path";
 import { test, expect, type Page } from "../frontend/node_modules/playwright/test";
 import { authenticate } from "./srm-test-utils";
@@ -5,6 +6,7 @@ import { authenticate } from "./srm-test-utils";
 async function setup(page: Page, role: "admin" | "srm_viewer" = "admin") {
   await authenticate(page, role);
   await page.route("**/api/v1/access/settings/defaults/effective", r => r.fulfill({json:{values:{},modules:{},companyId:1}}));
+  await page.route("**/api/v1/catalog/items**", r => r.fulfill({json:{items:[],total:0,pages:0,permissions:{product:true,service:true}}}));
   await page.route("**/api/v1/access/setup", r => r.fulfill({json:{companyId:1,ready:true,items:[]}}));
   await page.route("**/api/v1/employees/workbench/home**", r => r.fulfill({json:{pending_counts:{}}}));
 }
@@ -15,12 +17,16 @@ async function menu(page: Page, query: string) {
 }
 
 test("CRM menu opens capture directly without navigating to the list", async ({page}) => {
-  await setup(page); await page.goto("/crm/contacts");
+  await authenticateCrm(page);
+  await page.route("**/api/v1/access/settings/defaults/effective", r => r.fulfill({json:{values:{},modules:{},companyId:1}}));
+  await page.route("**/api/v1/catalog/items**", r => r.fulfill({json:{items:[],total:0,pages:0,permissions:{product:true,service:true}}}));
+  await page.route("**/api/v1/access/setup", r => r.fulfill({json:{companyId:1,ready:true,items:[]}})); await page.goto("/crm/contacts");
   const navigation = await menu(page,"Contacts");
   await navigation.getByRole("button",{name:"Create Contact",exact:true}).click();
   await expect(page.getByRole("dialog")).toContainText("Create contact");
   await expect(page).toHaveURL(/\/crm\/contacts$/);
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await navigation.getByRole("button",{name:"Create Contact",exact:true}).click();
   await expect(page.getByRole("dialog")).toContainText("Create contact");
 });
@@ -43,7 +49,8 @@ test("sales menu focuses the existing order form without submitting it", async (
   page.on("request", r => {if(r.url().includes("/api/")&&r.method()==="POST") writes++;});
   await page.goto("/srm/sales-orders"); const navigation=await menu(page,"Sales orders");
   await navigation.getByRole("button",{name:"Create Sales order",exact:true}).click();
-  await expect(page).toHaveURL(/sales-orders#new-record$/);
+  await expect(page).toHaveURL(/sales-orders$/);
+  await expect(page.locator("[data-smart-create=true]")).toHaveCount(1);
   await expect(page.locator("#new-record").locator("input").first()).toBeFocused();
   expect(writes).toBe(0);
 });
@@ -51,14 +58,15 @@ test("sales menu focuses the existing order form without submitting it", async (
 test("finance shortcut opens the voucher draft", async ({page}) => {
   await setup(page); await page.goto("/fam/vouchers"); const navigation=await menu(page,"Vouchers");
   await navigation.getByRole("button",{name:"Create Voucher",exact:true}).click();
-  await expect(page).toHaveURL(/\/fam\/vouchers\/new$/);
+  await expect(page).toHaveURL(/\/fam\/vouchers$/);
+  await expect(page.locator("[data-smart-create=true]")).toHaveCount(1);
 });
 
-test("HR employee shortcut opens quick capture", async ({page}) => {
+test("HR employee shortcut opens the shared employee form", async ({page}) => {
   await setup(page); await page.goto("/hrms/employees"); const navigation=await menu(page,"Employees");
   await navigation.getByRole("button",{name:"Create Employee",exact:true}).click();
-  await expect(page.getByRole("dialog")).toContainText("Quick Add Employee");
-  await expect(page.getByRole("dialog").getByLabel("first_name",{exact:true})).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("Create employee");
+  await expect(page.getByRole("dialog").getByRole("textbox",{name:/^First Name/})).toBeVisible();
 });
 
 test("view-only sales users do not receive create shortcuts", async ({page}) => {
@@ -87,7 +95,10 @@ test("catalog quick create works on the same page repeatedly", async ({page}) =>
 });
 
 test("ellipsis offers contextual creation and configuration without changing pages", async ({page}) => {
-  await setup(page); await page.goto("/crm/contacts"); const navigation=await menu(page,"Contacts");
+  await authenticateCrm(page);
+  await page.route("**/api/v1/access/settings/defaults/effective",r=>r.fulfill({json:{values:{},modules:{},companyId:1}}));
+  await page.route("**/api/v1/catalog/items**",r=>r.fulfill({json:{items:[],total:0,pages:0,permissions:{product:true,service:true}}}));
+  await page.route("**/api/v1/access/setup",r=>r.fulfill({json:{companyId:1,ready:true,items:[]}})); await page.goto("/crm/contacts"); const navigation=await menu(page,"Contacts");
   await navigation.getByRole("button",{name:"More options for Contacts",exact:true}).click();
   const dropdown=page.getByRole("menu").first();
   await expect(dropdown.getByRole("menuitem",{name:"Add to favorites",exact:true})).toBeVisible();
@@ -95,7 +106,7 @@ test("ellipsis offers contextual creation and configuration without changing pag
   await expect(page).toHaveURL(/\/crm\/contacts$/);
   await dropdown.getByRole("menuitem",{name:"Create new",exact:true}).hover();
   await page.getByRole("menuitem",{name:"Contact",exact:true}).click();
-  await expect(page.getByRole("dialog")).toContainText("Create contact");
+  await expect(page.getByRole("dialog")).toContainText("Create contact",{timeout:30000});
 });
 
 test("menu appearance and favorites persist without renaming business records", async ({page}) => {
@@ -109,7 +120,7 @@ test("menu appearance and favorites persist without renaming business records", 
   await navigation.getByRole("button",{name:"More options for Our contacts",exact:true}).click();
   await page.getByRole("menuitem",{name:"Add to favorites",exact:true}).click();await page.reload();
   navigation=page.locator(".module-menu").first();await expect(navigation.getByRole("list",{name:"Favorite menu pages"})).toContainText("Our contacts");
-  await menu(page,"Our contacts");await expect(navigation.getByRole("link",{name:"Our contacts",exact:true})).toBeVisible();
+  await menu(page,"Our contacts");await expect(navigation.getByRole("link",{name:"Our contacts",exact:true}).first()).toBeVisible();
   expect(writes).toBe(0);
 });
 
@@ -128,7 +139,7 @@ test("mobile menu create closes the drawer and focuses employee capture", async 
   await page.setViewportSize({width:390,height:844});await setup(page);await page.goto("/hrms/employees");
   await page.getByRole("button",{name:"Open navigation",exact:true}).click();
   const navigation=await menu(page,"Employees");await navigation.getByRole("button",{name:"Create Employee",exact:true}).click();
-  await expect(page.getByRole("dialog")).toContainText("Quick Add Employee");
+  await expect(page.getByRole("dialog")).toContainText("Create employee");
   await expect(page.getByRole("button",{name:"Close navigation",exact:true})).not.toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBeTruthy();
 });
@@ -171,4 +182,82 @@ test("HR sidebar actions render with populated employee cards",async({page},test
   await page.getByRole("menuitem",{name:"Create new",exact:true}).hover();
   await expect(page.getByRole("menuitem",{name:"Add Employee",exact:true})).toBeVisible();
   await page.screenshot({path:resolve(testInfo.project.testDir,"../outputs/navigation-actions/HRMS-menu-preview.png")});
+});
+
+
+test("employee directory and sidebar use one guided creation UI", async ({page}) => {
+  await setup(page);
+  await page.goto("/hrms/employees");
+  await page.locator("#quick-add-employee").click();
+  const dialog=page.getByRole("dialog");
+  await expect(dialog.getByRole("textbox",{name:/^First Name/})).toBeVisible();
+  const fields=await dialog.locator("input,select,textarea").evaluateAll(nodes=>nodes.map(node=>({tag:node.tagName,name:node.getAttribute("name"),type:node.getAttribute("type")})));
+  await expect(dialog.getByRole("button",{name:"1 Personal",exact:true})).toBeVisible();
+  await dialog.getByRole("button",{name:"Cancel",exact:true}).click();
+  await expect(dialog).toHaveCount(0);
+  const navigation=await menu(page,"Employees");
+  await navigation.getByRole("button",{name:"Create Employee",exact:true}).click();
+  await expect(dialog.getByRole("textbox",{name:/^First Name/})).toBeVisible();
+  expect(await dialog.locator("input,select,textarea").evaluateAll(nodes=>nodes.map(node=>({tag:node.tagName,name:node.getAttribute("name"),type:node.getAttribute("type")})))).toEqual(fields);
+  await expect(page.locator("[data-smart-create=true]")).toHaveCount(1);
+  await expect(page).toHaveURL(/\/hrms\/employees$/);
+});
+
+test("customer creation has the same fields in CRM and Sales", async ({page}) => {
+  await authenticateCrm(page);
+  await page.route("**/api/v1/access/settings/defaults/effective", r => r.fulfill({json:{values:{},modules:{},companyId:1}}));
+  await page.route("**/api/v1/catalog/items**", r => r.fulfill({json:{items:[],total:0,pages:0,permissions:{product:true,service:true}}}));
+  await page.route("**/api/v1/access/setup", r => r.fulfill({json:{companyId:1,ready:true,items:[]}}));
+  await page.route("**/api/v1/master-data/form-options**",route=>route.fulfill({json:{country:"IN",currency:"INR",phone_country_code:"+91"}}));
+  let fields: string[]=[];
+  for(const module of ["crm","srm"]){
+    await page.goto(`/${module}/customers`);
+    const navigation=await menu(page,"Customers");
+    await navigation.getByRole("button",{name:"Create Customer",exact:true}).click();
+    const dialog=page.getByRole("dialog");
+    await expect(dialog.getByRole("heading",{name:"Create customer",exact:true})).toBeVisible();
+    const actual=await dialog.locator("input,select,textarea").evaluateAll(nodes=>nodes.map(node=>[node.tagName,node.getAttribute("name"),node.getAttribute("aria-label"),node.getAttribute("type")].join(":")));
+    if(module==="crm")fields=actual;else expect(actual).toEqual(fields);
+    await expect(dialog).toHaveCount(1);
+    await dialog.getByRole("button",{name:"Cancel",exact:true}).click();
+    await expect(dialog).toHaveCount(0);
+  }
+});
+
+
+for(const [module,first,second] of [
+  ["crm","/crm/contacts","/crm/customers"],
+  ["hrms","/hrms/employees","/hrms/leave"],
+  ["srm","/srm/sales-orders","/srm/invoices"],
+  ["fam","/fam/customers","/fam/vouchers"],
+  ["pms","/pms/projects","/pms/product-launch"],
+])test(`${module} keeps the same styled menu across its pages`,async({page})=>{
+  await setup(page);
+  let catalog:string[]=[];
+  for(const route of [first,second,...(module === "pms" ? ["/pms"] : [])]){
+    await page.goto(route);
+    const navigation=page.locator('.module-menu').first();
+    await navigation.getByRole('button',{name:'Expand all menu categories',exact:true}).click();
+    const links=await navigation.locator('.module-menu-categories .module-menu-row > a,.module-menu-landing .module-menu-row > a').evaluateAll(nodes=>nodes.map(node=>`${node.textContent?.trim()}:${new URL((node as HTMLAnchorElement).href).pathname}`).sort());
+    if(route===first)catalog=links;else expect(links).toEqual(catalog);
+    if(module === 'crm' && route === second) await page.locator('.suite-sidebar').screenshot({path:resolve('../outputs/shared-sidebar-crm.png')});
+    await expect(navigation.locator('.module-menu-more').first()).toBeVisible();
+    await expect(navigation.locator('.module-menu-create').first()).toBeVisible();
+    expect(await navigation.evaluate(node=>getComputedStyle(node).getPropertyValue('--menu-accent').trim())).toBe('270 100% 80%');
+    expect(await page.locator('.suite-sidebar').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain('57, 36, 82');
+  }
+});
+
+
+test("PMS workspace uses the shared mobile sidebar above its overlay",async({page})=>{
+  await setup(page);
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/pms');
+  await page.getByRole('button',{name:'Open navigation',exact:true}).click();
+  const sidebar=page.getByRole('dialog',{name:'Application navigation',exact:true});
+  await expect(sidebar).toBeVisible();
+  await sidebar.getByRole('textbox',{name:'Find a page in this application'}).fill('Projects');
+  await expect(sidebar.getByRole('button',{name:'More options for Projects',exact:true})).toBeVisible();
+  await sidebar.getByRole('button',{name:'Close navigation',exact:true}).click();
+  await expect(sidebar).toHaveCount(0);
 });

@@ -14,9 +14,10 @@ export const useRecordViewHost = () => useContext(Context);
 export function withRecordViewHost<P extends object>(Page:ComponentType<P>) {
   return function UnifiedRecordPage(props:P) {
     const [host,setHost]=useState<HTMLDivElement|null>(null);
-    const [registration,setRegistration]=useState<Registration|null>(null);
-    const register=useCallback((value:Registration)=>setRegistration(current=>current||value),[]);
-    const unregister=useCallback((owner:string)=>setRegistration(current=>current?.owner===owner?null:current),[]);
+    const [registrations,setRegistrations]=useState<Registration[]>([]);
+    const registration=registrations[0]||null;
+    const register=useCallback((value:Registration)=>setRegistrations(current=>{const at=current.findIndex(item=>item.owner===value.owner);if(at<0)return [...current,value];if(current[at].table===value.table)return current;return current.map((item,index)=>index===at?value:item);}),[]);
+    const unregister=useCallback((owner:string)=>setRegistrations(current=>current.filter(item=>item.owner!==owner)),[]);
     const value=useMemo(()=>({host,setHost,registration,register,unregister}),[host,registration,register,unregister]);
     return <Context.Provider value={value}><Page {...props}/></Context.Provider>;
   };

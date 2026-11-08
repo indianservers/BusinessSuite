@@ -1,38 +1,41 @@
+import { lazyRoute } from "@/lib/lazy-route";
+const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
 import ModuleWorkspaceFrame from "@/shared/workspace/ModuleWorkspaceFrame";
 import React from "react";
-const WhatsAppCommunicationPage = React.lazy(() => import("@/apps/communication/WhatsAppCommunicationPage"));
-const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
-const FollowUpSummary = React.lazy(() => import("@/shared/follow-ups/FollowUpSummary"));
-const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
+const WhatsAppCommunicationPage = lazyRoute(() => import("@/apps/communication/WhatsAppCommunicationPage"));
+const ImportWorkspace = lazyRoute(() => import("@/shared/data-transfer/ImportWorkspace"));
+const FollowUpSummary = lazyRoute(() => import("@/shared/follow-ups/FollowUpSummary"));
+const FollowUpsPage = lazyRoute(() => import("@/shared/follow-ups/FollowUpsPage"));
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-const Deal360Page = React.lazy(() => import("./deals/Deal360Page"));
-const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
-const Record360Page = React.lazy(() => import("@/shared/records/Record360Page"));
-const PaymentRequestsPage = React.lazy(() => import("@/shared/payments/PaymentRequestsPage"));
-const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
+const Deal360Page = lazyRoute(() => import("./deals/Deal360Page"));
+const CommunicationWorkspace = lazyRoute(() => import("@/shared/communication/CommunicationWorkspace"));
+const Record360Page = lazyRoute(() => import("@/shared/records/Record360Page"));
+const PaymentRequestsPage = lazyRoute(() => import("@/shared/payments/PaymentRequestsPage"));
+const ModuleGanttPage = lazyRoute(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 
-const CRMStatisticsWorklist=React.lazy(()=>import("./CRMStatisticsWorklist"));
-const CRMSalesHome = React.lazy(() => import("./CRMSalesHome"));
-const CRMActivitiesWorkspace = React.lazy(() => import("./CRMActivitiesWorkspace"));
-const LegacyCRMTasksPage = React.lazy(() => import("./LegacyCRMTasksPage"));
-const EngagementWorkspace = React.lazy(() => import("./EngagementWorkspace"));
-const CRMReportDirectory = React.lazy(() => import("./CRMReportDirectory"));
-const CRMWorkspacePage = React.lazy(() => import("./CRMWorkspacePage"));
-const TemplateStudio = React.lazy(() => import("./templates/TemplateStudio"));
-const CRMRecordDetailPage = React.lazy(() => import("./CRMRecordDetailPage"));
-const LeadManagementPage = React.lazy(() => import("./leads/LeadManagementPage"));
-const CommunicationHubPage = React.lazy(() => import("@/apps/communication/CommunicationHubPage"));
-const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
+const CRMStatisticsWorklist=lazyRoute(()=>import("./CRMStatisticsWorklist"));
+const CRMSalesHome = lazyRoute(() => import("./CRMSalesHome"));
+const CRMActivitiesWorkspace = lazyRoute(() => import("./CRMActivitiesWorkspace"));
+const LegacyCRMTasksPage = lazyRoute(() => import("./LegacyCRMTasksPage"));
+const EngagementWorkspace = lazyRoute(() => import("./EngagementWorkspace"));
+const CRMReportDirectory = lazyRoute(() => import("./CRMReportDirectory"));
+const CRMWorkspacePage = lazyRoute(() => import("./CRMWorkspacePage"));
+const TemplateStudio = lazyRoute(() => import("./templates/TemplateStudio"));
+const CRMRecordDetailPage = lazyRoute(() => import("./CRMRecordDetailPage"));
+const LeadManagementPage = lazyRoute(() => import("./leads/LeadManagementPage"));
+const CommunicationHubPage = lazyRoute(() => import("@/apps/communication/CommunicationHubPage"));
+const ModuleProfilePage = lazyRoute(() => import("@/pages/ModuleProfilePage"));
 
-const ProductCustomersPage = React.lazy(() => import("./product-customers/ProductCustomersPage"));
-const GrowthWorkspace = React.lazy(() => import("./GrowthWorkspace"));
-const FollowUpWorkspace = React.lazy(() => import("./FollowUpWorkspace"));
-const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
-const CRMRecordsPage = React.lazy(() => import("./CRMRecordsPage"));
-const CRMMetadataPage = React.lazy(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
-const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
+const ProductCustomersPage = lazyRoute(() => import("./product-customers/ProductCustomersPage"));
+const GrowthWorkspace = lazyRoute(() => import("./GrowthWorkspace"));
+const FollowUpWorkspace = lazyRoute(() => import("./FollowUpWorkspace"));
+const SharedCatalogPage = lazyRoute(() => import("@/shared/catalog/CatalogPage"));
+const CRMRecordsPage = lazyRoute(() => import("./CRMRecordsPage"));
+const CRMMetadataPage = lazyRoute(() => import("./CRMWorkspacePage").then(module => ({ default: module.CustomFieldsSettingsPage })));
+const CompaniesPage = lazyRoute(()=>import("@/shared/master-data/CompaniesPage"));
 export const crmRoutes: FrontendRoute[] = [
+  { path: "crm/workspaces", element: <OperationalWorkspaceDirectory module="crm" /> },
   { path: "crm/whatsapp-communication", element: <WhatsAppCommunicationPage /> },
   {path:"crm/import-data",element:<ImportWorkspace module="crm"/>},
  {path:"crm/customers/:id/360",element:<React.Suspense fallback={<p>Loading customer…</p>}><Record360Page/></React.Suspense>},
@@ -51,10 +54,10 @@ export const crmRoutes: FrontendRoute[] = [
   {path:"crm/statistics/:kind",element:<CRMStatisticsWorklist/>},
  { path: "crm/messages", element: <CommunicationWorkspace module="CRM" /> },
   { path: "crm/gantt", element: <ModuleGanttPage key="crm" module="crm" /> },
-  { path: "crm", element: <><FollowUpSummary base="/crm/follow-ups"/><CRMWorkspacePage kind="dashboard" /></> },
+  { path: "crm", element: <CRMWorkspacePage kind="dashboard" /> },
   { path: "crm/sales-home", element: <CRMSalesHome /> },
   { path: "crm/follow-ups", element: <FollowUpsPage /> },
-  { path: "crm/dashboard", element: <><FollowUpSummary base="/crm/follow-ups"/><CRMWorkspacePage kind="dashboard" /></> },
+  { path: "crm/dashboard", element: <CRMWorkspacePage kind="dashboard" /> },
   { path: "crm/profile", element: <ModuleProfilePage /> },
   { path: "crm/potential-clients", element: <LeadManagementPage potential /> },
   { path: "crm/leads", element: <LeadManagementPage /> },

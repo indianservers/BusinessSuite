@@ -26,10 +26,10 @@ export default function PriorityPicker({ value, disabled, onChange }: {
       if (choice) { event.preventDefault(); void choose(choice.value); }
     }
   }}>
-    <summary aria-label="Task priority" className="cursor-pointer rounded-md border p-2">{value === "Medium" ? "Normal (Medium)" : value}</summary>
+    <summary data-priority-badge data-priority={value} aria-label="Task priority" className="cursor-pointer rounded-md border p-2">{value === "Medium" ? "Normal (Medium)" : value}</summary>
     <div className="absolute right-0 z-30 mt-1 w-64 max-w-[80vw] space-y-2 rounded-lg border bg-background p-3 shadow-lg">
       <input aria-label="Search priorities" placeholder="Search priorities" value={search} onChange={event => setSearch(event.target.value)} className="w-full rounded border bg-background p-2 text-sm" />
-      {choices.filter(choice => `${choice.value} ${choice.value === "Medium" ? "Normal" : ""}`.toLowerCase().includes(search.toLowerCase())).map(choice => <button key={choice.value} type="button" disabled={disabled} aria-pressed={value === choice.value} className="flex w-full items-center justify-between rounded p-2 text-left text-sm hover:bg-muted disabled:opacity-50" onClick={() => void choose(choice.value)}><span className={choice.color}>⚑ {choice.value === "Medium" ? "Normal (Medium)" : choice.value}</span><kbd className="text-xs text-muted-foreground">Alt+{choice.shortcut}</kbd></button>)}
+      {choices.filter(choice => `${choice.value} ${choice.value === "Medium" ? "Normal" : ""}`.toLowerCase().includes(search.toLowerCase())).map(choice => <button data-priority-badge data-priority={choice.value} key={choice.value} type="button" disabled={disabled} aria-pressed={value === choice.value} className="flex w-full items-center justify-between rounded p-2 text-left text-sm hover:bg-muted disabled:opacity-50" onClick={() => void choose(choice.value)}><span className={choice.color}>⚑ {choice.value === "Medium" ? "Normal (Medium)" : choice.value}</span><kbd className="text-xs text-muted-foreground">Alt+{choice.shortcut}</kbd></button>)}
       {!choices.some(choice => `${choice.value} ${choice.value === "Medium" ? "Normal" : ""}`.toLowerCase().includes(search.toLowerCase())) && <p className="text-sm text-muted-foreground">No matching priority.</p>}
     </div>
   </details>;

@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
@@ -454,7 +455,7 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      <Card>
+      <SmartCreateSection title={<>Request Profile Change</>} size="large"><Card>
         <CardHeader>
           <CardTitle className="text-base">Request Profile Change</CardTitle>
           <CardDescription>Employees submit sensitive changes; HR or the reporting manager approves with a diff view.</CardDescription>
@@ -504,7 +505,7 @@ export default function ProfilePage() {
             </Button>
           </CompactForm>
         </CardContent>
-      </Card>
+      </Card></SmartCreateSection>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <Card>
@@ -513,7 +514,7 @@ export default function ProfilePage() {
             <CardDescription>Aadhaar, PAN, offer letter, study certificates, and old company certificates</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <CompactForm onSubmit={submitDocument} className="grid gap-3 md:grid-cols-2">
+            <SmartCreateSection title="Create profile documents" size="standard"><CompactForm onSubmit={submitDocument} className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Document type</Label>
                 <NativeSelect
@@ -535,7 +536,7 @@ export default function ProfilePage() {
                 <FileUp className="mr-2 h-4 w-4" />
                 Upload document
               </Button>
-            </CompactForm>
+            </CompactForm></SmartCreateSection>
             <div className="space-y-2">
               {documents.map((doc: any) => (
                 <div key={doc.id} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">

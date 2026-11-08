@@ -1,7 +1,8 @@
+import { lazyRoute } from "@/lib/lazy-route";
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
-const AdminSecurityPage = React.lazy(() => import("./AdminSecurityPage"));
+const AdminSecurityPage = lazyRoute(() => import("./AdminSecurityPage"));
 
 export const adminSecurityRoutes: FrontendRoute[] = [
   { path: "admin/security", element: <AdminSecurityPage /> },

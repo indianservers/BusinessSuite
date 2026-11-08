@@ -1,3 +1,6 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -237,7 +240,7 @@ export default function WorkflowInboxPage() {
                 ) : data?.items.length ? data.items.map((item) => {
                   const Icon = sourceIcon[item.source] || Inbox;
                   return (
-                    <div key={item.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div data-priority-row data-priority={item.priority} key={item.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex min-w-0 gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
                         <div className="min-w-0">
@@ -261,7 +264,7 @@ export default function WorkflowInboxPage() {
         </>
       ) : (
         <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-          <Card>
+          <SmartCreateSection title={<>Create Workflow</>} size="large"><Card>
             <CardHeader>
               <CardTitle className="text-base">Create Workflow</CardTitle>
               <CardDescription>Use simple conditions like days_count &gt; 3 or amount &gt; 10000.</CardDescription>
@@ -357,7 +360,7 @@ export default function WorkflowInboxPage() {
                 Save Workflow
               </Button>
             </CardContent>
-          </Card>
+          </Card></SmartCreateSection>
 
           <Card>
             <CardHeader>
@@ -365,7 +368,7 @@ export default function WorkflowInboxPage() {
               <CardDescription>Live workflow rules grouped by module and trigger.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {(definitions || []).map((definition) => (
+              {<GroupedRecords scope="apps/hrms/pages/workflow/WorkflowInboxPage:records-1" items={((definitions || [])) || []} fields={standardRecordGroups(((definitions || [])) || [])} gridClassName="space-y-3" renderItem={(definition) => (
                 <div key={definition.id} className="rounded-lg border p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -385,7 +388,7 @@ export default function WorkflowInboxPage() {
                     {!definition.steps?.length && <p className="text-xs text-muted-foreground">No step details returned.</p>}
                   </div>
                 </div>
-              ))}
+              )}/>}
               {!definitions?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No workflow definitions configured yet.</p>}
             </CardContent>
           </Card>

@@ -1,8 +1,9 @@
+import { lazyRoute } from "@/lib/lazy-route";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
-const SaaSWorkspacePage = React.lazy(() => import("./SaaSWorkspacePage"));
+const SaaSWorkspacePage = lazyRoute(() => import("./SaaSWorkspacePage"));
 
 export const saasRoutes: FrontendRoute[] = [
   { path: "mobile", element: <SaaSWorkspacePage /> },
@@ -25,4 +26,4 @@ export const saasRoutes: FrontendRoute[] = [
   { path: "admin/usage", element: <SaaSWorkspacePage /> },
 ];
 
-export const PortalPage = React.lazy(() => import("./PortalPage"));
+export const PortalPage = lazyRoute(() => import("./PortalPage"));

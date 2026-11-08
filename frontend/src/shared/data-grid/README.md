@@ -62,3 +62,23 @@ Cross-module browser checks: `playwright/suite-record-views.spec.ts`, plus catal
 Wrap pages that already own a `WorkspaceViewBar` with `withRecordViewHost`. The first record collection moves its shared tabs into that strip; redundant legacy record tabs are hidden from the strip while workspace-specific views stay available. Legacy specialized layouts remain reachable through the view catalogue. Nested preview tables retain their own controls and do not register over the page's primary collection.
 
 Table and card adapters recognize page-owned open/preview controls and omit redundant generic preview buttons. Native tables with their own favorite and preview actions keep their original action column. Record counts remain in the footer; generic statistics render only when actual value aggregates are supplied.
+
+## Project-style column presentation
+
+All shared table headings have a domain-label fallback icon; explicit typed-grid icons take precedence. Column choosers show visible/total counts. Editable record tables retain their original cells and handlers while supporting header drag ordering, arrow-button ordering, pointer/keyboard resizing (Left/Right on the separator), and left pinning. Widths and pins share the existing scoped personal layout. Reset table layout clears these overrides. Static matrices keep their original structure.
+
+Only scalar, explicit 0–100% values in Progress/Completion columns receive the shared accessible progress renderer. Custom renderers, editors and unrelated percentages are preserved.
+
+Validation: `node frontend/scripts/test-column-presentation.cjs` and `node qa/collection_grid_refresh_browser.cjs` (existing Vite on 5174 and disposable QA backend on 1582). See `docs/qa/module-grid-rollout-2026-11-08.md` for coverage and remaining page-specific work.
+
+## Domain columns, summaries and schedules
+
+`collection-definitions.ts` defines stable default field IDs by entity, including empty datasets. `collection-columns.ts` maps only known display properties and page-supplied group fields; do not enumerate arbitrary record keys. Existing typed grids keep their authoritative columns.
+
+`CollectionOverview` renders loaded-record status counts and an optional read-only Gantt for valid start/end pairs. Local adapters expose `summaryRows(query)` to summarize their filtered loaded dataset before grouping/pagination. Remote grids retain backend matching totals and summarize only records actually loaded. New remote sources must not supply an unscoped summary adapter.
+
+Gantt dates use strict calendar validation, UTC day arithmetic and existing record forms for updates. Creation/update timestamps do not become planned dates. Existing specialized scheduling views retain their own dependency/edit workflows.
+
+Card collections can switch to the shared Table view; previews keep page-owned actions. Their Table summaries follow table filters and remain stable when groups collapse.
+
+Checks: `node frontend/scripts/test-collection-model.cjs`, `node frontend/scripts/test-collection-rollout.cjs`, and `node frontend/scripts/verify-module-grid-rollout.cjs`. The route runner supports SUITE_LIST_APP_URL, SUITE_LIST_API_URL, SUITE_LIST_WORKERS, SUITE_LIST_RESUME, SUITE_LIST_FULL_RELOAD and SUITE_LIST_DATA_TIMEOUT. See `docs/qa/module-grid-rollout-2026-11-08.md` for results and scope classifications.

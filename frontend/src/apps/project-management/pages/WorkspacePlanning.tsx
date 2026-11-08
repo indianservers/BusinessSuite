@@ -26,7 +26,7 @@ export default function WorkspacePlanning({ view, tasks, members, projects, onOp
       <div className="ws-workload-grid">{members.filter(m => m.role !== "Guest").map(m => {
         const work = filtered.filter(t => taskAssignees(t).includes(m.user_id) && taskBucket(t.status) !== "Done");
         const hours = work.reduce((sum, t) => sum + Number(t.estimated_hours || 0) / Math.max(taskAssignees(t).length, 1), 0);
-        return <article key={m.id}><h3>{personName(m.email)}</h3><p>{m.email}</p><strong>{work.length} open tasks · {Number(hours.toFixed(1))} estimated hours</strong><small>{work.filter(t => !t.estimated_hours).length} tasks need an estimate</small><div className="ws-planning-tasks">{work.map(t => <button key={t.id} onClick={() => onOpen(t.id)}>{t.title}<small>{taskAssignees(t).length > 1 ? "Shared task" : t.priority}{t.due_date ? ` · Due ${t.due_date}` : " · No due date"}</small></button>)}</div></article>;
+        return <article key={m.id}><h3>{personName(m.email)}</h3><p>{m.email}</p><strong>{work.length} open tasks · {Number(hours.toFixed(1))} estimated hours</strong><small>{work.filter(t => !t.estimated_hours).length} tasks need an estimate</small><div className="ws-planning-tasks">{work.map(t => <button data-priority-row data-priority={t.priority} key={t.id} onClick={() => onOpen(t.id)}>{t.title}<small>{taskAssignees(t).length > 1 ? "Shared task" : t.priority}{t.due_date ? ` · Due ${t.due_date}` : " · No due date"}</small></button>)}</div></article>;
       })}</div>
       <h3>Unassigned work</h3><div className="ws-planning-tasks">{filtered.filter(t => !taskAssignees(t).length && taskBucket(t.status) !== "Done").map(t => <button key={t.id} onClick={() => onOpen(t.id)}>{t.title}</button>)}</div>
     </>}

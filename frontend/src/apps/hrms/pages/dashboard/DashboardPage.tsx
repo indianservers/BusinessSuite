@@ -1,3 +1,4 @@
+import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
 import { SuiteMetric } from "@/components/visuals/SuiteVisuals";
 import {Button} from "@/components/ui/button";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
@@ -246,6 +247,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        <ModuleWorkflowBoard module="hrms" />
         <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
           <Card>
             <CardHeader>
@@ -313,6 +315,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        <ModuleWorkflowBoard module="hrms" />
         <div className="grid gap-5 lg:grid-cols-2">
           <Card>
             <CardHeader>
@@ -385,6 +388,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        <ModuleWorkflowBoard module="hrms" />
         <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
           <Card>
             <CardHeader>
@@ -487,6 +491,7 @@ export default function DashboardPage() {
         )}
       </div>
 
+        <ModuleWorkflowBoard module="hrms" />
 <SecondaryDetails title="Workforce and payroll charts">
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

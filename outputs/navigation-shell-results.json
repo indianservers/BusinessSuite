@@ -1,0 +1,11 @@
+{
+  "before": {
+    "headerVisibleDuringColdLoad": true,
+    "shellMounts": 1
+  },
+  "after": {
+    "headerVisibleDuringColdLoad": true,
+    "shellMounts": 1,
+    "prefetchedClickToContentMs": 72.2
+  }
+}

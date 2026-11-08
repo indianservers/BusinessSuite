@@ -1,7 +1,7 @@
 from __future__ import annotations
 from app.core.input_validation import contact_change_errors
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -31,7 +31,7 @@ class ProfileChangeRequestPayload(BaseModel):
     fieldChanges: dict[str, Any]
     reason: str | None = None
     documentPath: str | None = None
-    effectiveDate: str | None = None
+    effectiveDate: date | None = None
 
 
 class ProfileChangeReviewPayload(BaseModel):
@@ -50,7 +50,7 @@ def _load_employee(db: Session, employee_id: int, current_user: User) -> Employe
 
 
 def _can_manage(current_user: User) -> bool:
-    return current_user.is_superuser or _has_permission(current_user, "employee_update") or _role_key(current_user) in {"admin", "hr"}
+    return current_user.is_superuser or _has_permission(current_user, "employee_update")
 
 
 def _can_review_employee(employee: Employee, current_user: User) -> bool:
@@ -122,7 +122,7 @@ def get_profile_change_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    item = _query_accessible_requests(db, current_user).filter(EmployeeChangeRequest.id == request_id).first()
+    item = _query_accessible_requests(db, current_user).filter(EmployeeChangeRequest.id == request_id).with_for_update().first()
     if not item:
         raise HTTPException(status_code=404, detail="Profile change request not found")
     employee = db.query(Employee).filter(Employee.id == item.employee_id).first()
@@ -145,6 +145,7 @@ def create_profile_change_request(
         organization_id=_org_id(current_user),
         employee_id=employee.id,
         request_type=data.requestType,
+        effective_date=data.effectiveDate,
         field_name=data.fieldName or (next(iter(data.fieldChanges.keys())) if len(data.fieldChanges) == 1 else "multiple"),
         field_changes_json=data.fieldChanges,
         old_value_json=old_values,
@@ -161,12 +162,14 @@ def create_profile_change_request(
 
 
 def _review_request(request_id: int, action: str, data: ProfileChangeReviewPayload, db: Session, current_user: User):
-    item = _query_accessible_requests(db, current_user).filter(EmployeeChangeRequest.id == request_id).first()
+    item = _query_accessible_requests(db, current_user).filter(EmployeeChangeRequest.id == request_id).with_for_update().first()
     if not item:
         raise HTTPException(status_code=404, detail="Profile change request not found")
     employee = _load_employee(db, item.employee_id, current_user)
     if not _can_review_employee(employee, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to review this profile change")
+    if not current_user.is_superuser and item.requested_by==current_user.id:
+        raise HTTPException(403, "You cannot approve your own profile change request")
     if item.status != "Pending":
         raise HTTPException(status_code=400, detail="Profile change request already reviewed")
     changes = item.field_changes_json or {}
@@ -179,6 +182,26 @@ def _review_request(request_id: int, action: str, data: ProfileChangeReviewPaylo
     item.reviewed_at = datetime.now(timezone.utc)
     item.review_remarks = data.remarks
     if action == "approve" and data.applyChanges:
+        from app.services.employee_profile_reliability import lock_profile, touch
+        from app.core.hr_audit import record_employee_field_changes
+        if item.effective_date and item.effective_date > date.today():
+            raise HTTPException(422, "This request is not effective yet; review it on or after its effective date")
+        employee=lock_profile(db, employee.id)
+        originals=item.old_value_json or {}
+        for field, original in originals.items():
+            if field in changes and hasattr(employee,field) and str(getattr(employee,field,None))!=str(original):
+                raise HTTPException(409,"Employee details changed since submission. Review the latest profile and submit a new request.")
+        if "unified_profile" in changes and employee.user:
+            from app.common.services.profiles import serialize_profile
+            current=serialize_profile(db,employee.user,current_user)["values"]
+            for field,original in originals.get("unified_profile",{}).items():
+                if current.get(field)!=original:
+                    raise HTTPException(409,"Employee details changed since submission. Review the latest profile and submit a new request.")
+        record_employee_field_changes(db,employee,changes,current_user.id,"Approved profile change request")
+        if "unified_profile" in changes:
+            from app.core.hr_audit import record_field_audit
+            record_field_audit(db,module="employee",entity_type="employee",entity_id=employee.id,employee_id=employee.id,field_name="unified_profile",old_value=originals.get("unified_profile"),new_value=changes["unified_profile"],actor_user_id=current_user.id,reason="Approved profile change request")
+        touch(employee)
         _apply_profile_change(db, employee, changes)
     db.commit()
     db.refresh(item)

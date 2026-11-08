@@ -1,0 +1,48 @@
+{
+  "checks": [
+    {
+      "module": "crm",
+      "before": "141 of 141 loaded records · Urgent items first. Amounts grouped by currency. Stage changes use the reviewed deal workflow.",
+      "after": "2 of 2 loaded records · Urgent items first. Amounts grouped by currency. Stage changes use the reviewed deal workflow.",
+      "persistedBranch": 1,
+      "readOnlyStageControlsHidden": true
+    },
+    {
+      "module": "hrms",
+      "before": "74 of 74 loaded records · Urgent items first. Owners are job hiring managers; teams are hiring departments. Hiring and employee conversion remain separate.",
+      "after": "0 of 0 loaded records · Urgent items first. Owners are job hiring managers; teams are hiring departments. Hiring and employee conversion remain separate.",
+      "persistedBranch": 1,
+      "readOnlyStageControlsHidden": true
+    },
+    {
+      "module": "pms",
+      "before": "1000 of 1000 loaded records · Urgent items first. Open a task for its project-specific transitions, approvals and blockers. Showing a limited set; counts and totals cover loaded records. Open full workspace.",
+      "after": "0 of 0 loaded records · Urgent items first. Open a task for its project-specific transitions, approvals and blockers.",
+      "persistedBranch": 1,
+      "readOnlyStageControlsHidden": true
+    },
+    {
+      "module": "srm",
+      "before": "124 of 124 loaded records · Urgent items first. Document stages reflect recorded order status. Dates use expected end, falling back to creation date. Open an order for permitted approval and fulfilment actions.",
+      "after": "0 of 0 loaded records · Urgent items first. Document stages reflect recorded order status. Dates use expected end, falling back to creation date. Open an order for permitted approval and fulfilment actions.",
+      "persistedBranch": 1,
+      "readOnlyStageControlsHidden": true
+    },
+    {
+      "module": "fam",
+      "before": "5 of 5 loaded records · Urgent items first. Outstanding bill references in book currency. Ageing updates by calendar day; payments and allocations change balances.",
+      "after": "0 of 0 loaded records · Urgent items first. Outstanding bill references in book currency. Ageing updates by calendar day; payments and allocations change balances.",
+      "persistedBranch": 1,
+      "readOnlyStageControlsHidden": true
+    },
+    {
+      "module": "power_apps",
+      "before": "1 of 1 loaded records · Urgent items first. Development environment. Open a request for assigned decisions, evidence and approval rules.",
+      "after": "0 of 0 loaded records · Urgent items first. Development environment. Open a request for assigned decisions, evidence and approval rules.",
+      "persistedBranch": 1,
+      "readOnlyStageControlsHidden": true
+    }
+  ],
+  "failures": [],
+  "started": "2026-11-08T12:48:46.834Z"
+}

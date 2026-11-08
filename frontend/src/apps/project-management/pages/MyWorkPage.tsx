@@ -473,7 +473,7 @@ export default function MyWorkPage() {
     </div>
   );
   const card = (t: WorkTask) => (
-    <article className="mw-task-card" key={t.id}>
+    <article data-priority-row data-priority={t.priority} className="mw-task-card" key={t.id}>
       <div className="mw-card-top">
         <span>{t.task_key}</span>
         <Badge value={t.priority} />

@@ -3,6 +3,7 @@ import * as React from "react";
 import * as Primitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CreationSurfaceContext } from "@/shared/creation/CreationSurfaceContext";
 export const Dialog = Primitive.Root;
 export const DialogTitle = Primitive.Title;
 export const DialogDescription = Primitive.Description;
@@ -34,7 +35,7 @@ export const DialogContent = React.forwardRef<
         isEditorDialog(children) && !props.style?.height && "max-h-[min(85dvh,44rem)]",
       )}
     >
-      <CompactFields className="contents" enabled={isEditorDialog(children)}>{children}</CompactFields>
+      <CreationSurfaceContext.Provider value={true}><CompactFields className="contents" enabled={isEditorDialog(children)}>{children}</CompactFields></CreationSurfaceContext.Provider>
       <Primitive.Close
         aria-label="Close dialog"
         className="absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

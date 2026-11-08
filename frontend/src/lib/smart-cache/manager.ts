@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosHeaders, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
-import { resolveSyncPayload, canonicalView, containsSensitive, hash, policy, splitView, stable, CHECK_INTERVAL, MAX_AGE, MAX_BYTES, MAX_VIEWS, type Delta, type Entry } from './model';
+import { refreshInterval, resolveSyncPayload, canonicalView, containsSensitive, hash, policy, splitView, stable, CHECK_INTERVAL, MAX_AGE, MAX_BYTES, MAX_VIEWS, type Delta, type Entry } from './model';
 import * as disk from './storage';
 import { resourcePath } from '../record-changes';
 
@@ -125,11 +125,11 @@ export class RecordCacheManager {
       if (!this.status.diskBytes) void disk.storageUsage(scope).then(usage => { if (scope === this.activeScope) this.report({ diskBytes: usage.bytes }); }).catch(() => undefined);
       this.memory.set(key, entry); this.rememberConfig(key, config); this.env.used(key, entry.data); entry.accessed = Date.now();
       const force = config.recordCache === false || Boolean(config._finishPageRefresh);
-      const check = navigator.onLine && Date.now() >= this.retryAt && Date.now() - entry.checked >= CHECK_INTERVAL;
+      const check = navigator.onLine && Date.now() >= this.retryAt && Date.now() - entry.checked >= refreshInterval(entry.url);
       this.report({ hits: this.status.hits + 1, avoided: this.status.avoided + ((!force && !check || !navigator.onLine) ? 1 : 0) });
       if (force && navigator.onLine) return this.fetch(key, scope, config, entry, generation);
       if (check) void this.fetch(key, scope, config, entry, generation).catch(() => undefined);
-      return { data: entry.data, status: 200, statusText: 'OK', headers: new AxiosHeaders({ 'X-Suite-Local-Cache': 'hit' }), config };
+      return { data: entry.data, status: 200, statusText: 'OK', headers: new AxiosHeaders({ 'X-Suite-Local-Cache': Date.now()-entry.checked>=refreshInterval(entry.url)?'stale':'hit' }), config };
     }
     this.report({ misses: this.status.misses + 1 });
     return this.fetch(key, scope, config, undefined, generation);
@@ -142,7 +142,7 @@ export class RecordCacheManager {
       // Re-read inside a cross-tab lock: the preceding tab may have just synchronized.
       const shared = await disk.getCachedRecords(key).catch(() => undefined);
       if (generation !== this.generation || scope !== this.activeScope || !this.env.identity()) throw new axios.CanceledError('Cache context changed');
-      if (shared && shared.checked > (old?.checked || 0) && Date.now() - shared.checked < CHECK_INTERVAL && config.recordCache !== false && !config._finishPageRefresh) {
+      if (shared && shared.checked > (old?.checked || 0) && Date.now() - shared.checked < refreshInterval(shared.url) && config.recordCache !== false && !config._finishPageRefresh) {
         this.memory.set(key, shared); this.env.used(key, shared.data);
         if (old && stable(old.data) !== stable(shared.data)) this.env.changed({ key: old.key, url: old.url, old: old.data, data: shared.data, module: shared.module, entity: shared.entity });
         this.report({ avoided: this.status.avoided + 1 });
@@ -210,7 +210,7 @@ export class RecordCacheManager {
     if (!navigator.onLine) { this.report({ health: 'offline' }); return; }
     if (!force && Date.now() < this.retryAt) return;
     // Only views used in the last two minutes; never enumerate or preload a table.
-    const entries = [...this.memory.values()].filter(e => !this.optimistic.has(e.entity) && (!module || e.module === module) && (this.isActive(e) || Date.now() - e.accessed < 120000) && (force || Date.now() - e.checked >= CHECK_INTERVAL));
+    const entries = [...this.memory.values()].filter(e => !this.optimistic.has(e.entity) && (!module || e.module === module) && (this.isActive(e) || Date.now() - e.accessed < 120000) && (force || Date.now() - e.checked >= refreshInterval(e.url)));
     // Bound concurrency and let the per-view Web Lock deduplicate other tabs.
     for (let i = 0; i < entries.length; i += 4) await Promise.allSettled(entries.slice(i, i + 4).map(e => {
       const config = this.configs.get(e.key);
@@ -257,16 +257,18 @@ export class RecordCacheManager {
     const path = (url || "").replace(/\/[^/]+$/, '');
     const masterPath = (url || "").split("?")[0];
     const masterEntity = /^\/master-data\/(?:companies|company|company-directory)(?:\/|$)/.test(masterPath) ? "customer" : /^\/master-data\/contact(?:\/|$)/.test(masterPath) ? "contact" : undefined;
-    let affected = masterEntity ? {entity:masterEntity,module:"shared"} : policy(path) || policy(url || "");
+    let affected = /^\/leave\/(?:apply|requests)(?:\/|$)/.test(url) ? policy("/leave/requests") : masterEntity ? {entity:masterEntity,module:"shared"} : policy(path) || policy(url || "");
     let parent = path;
     while (!affected && parent.includes('/')) { parent = parent.replace(/\/[^/]+$/, ''); affected = policy(parent); }
     if (!affected) return;
     const related = new Set(affected?.entity === 'employee' ? ['employee', 'person', 'assignment', 'team'] : affected?.entity === 'customer' ? ['customer', 'contact', 'lead', 'deal'] : affected?.entity === 'product' || affected?.entity === 'service' || affected?.entity === 'catalog' ? ['product', 'service', 'catalog', 'deal'] : affected?.entity === 'contact' ? ['contact','customer','lead'] : affected ? [affected.entity] : []);
     const entries = [...this.memory.values()].filter(entry => related.has(entry.entity));
+    // Mark every related in-memory view before asynchronous persistence or refetch.
+    for (const entry of entries) entry.checked = Date.now() - refreshInterval(entry.url);
     // Persist the stale marker so another tab cannot mistake a pre-edit snapshot for a fresh result.
     for (const entry of entries) {
       if (generation !== this.generation) return;
-      entry.checked = Date.now() - CHECK_INTERVAL; await disk.saveCachedRecords(entry).catch(() => undefined);
+      await disk.saveCachedRecords(entry).catch(() => undefined);
       if (generation !== this.generation) { await disk.clearUserCache(entry.scope).catch(() => undefined); return; }
     }
     for (let i = 0; i < entries.length; i += 4) await Promise.allSettled(entries.slice(i, i + 4).filter(entry => !this.optimistic.has(entry.entity) && (this.isActive(entry) || Date.now() - entry.accessed < 120000)).map(entry => {

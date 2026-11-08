@@ -1,3 +1,5 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { workflowRunInput } from "./workflowRunInput";
@@ -166,10 +168,10 @@ function WorkflowSection() {
       <Card>
         <CardHeader><CardTitle>Create Workflow</CardTitle><CardDescription>Conditions and actions are stored as JSON only.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <Field label="Name"><Input aria-label="Workflow name" value={name} onChange={(event) => setName(event.target.value)} /></Field>
+          <SmartCreateSection title="Create Workflow" size="compact"><div className="space-y-4"><Field label="Name"><Input aria-label="Workflow name" value={name} onChange={(event) => setName(event.target.value)} /></Field>
           <TextAreaField label="Conditions JSON" value={conditions} onChange={setConditions} />
           <TextAreaField label="Actions JSON" value={actions} onChange={setActions} />
-          <Button onClick={() => create.mutate()} disabled={create.isPending}><CheckCircle2 className="h-4 w-4" />Save Workflow</Button>
+          <Button onClick={() => create.mutate()} disabled={create.isPending}><CheckCircle2 className="h-4 w-4" />Save Workflow</Button></div></SmartCreateSection>
         </CardContent>
       </Card>
       <div className="space-y-4">
@@ -344,7 +346,7 @@ function SimpleSection({ title, description, button, onAction, query, empty, act
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div><h2 className="text-lg font-semibold">{title}</h2><p className="text-sm text-muted-foreground">{description}</p></div>
-        {button ? <Button onClick={onAction}><CheckCircle2 className="h-4 w-4" />{button}</Button> : null}
+        {button ? <SmartCreateAction title={button} description={description}><Button onClick={onAction}><CheckCircle2 className="h-4 w-4" />{button}</Button></SmartCreateAction> : null}
       </div>
       <QueryState isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
       <RecordList items={items} empty={empty} actions={actions} />

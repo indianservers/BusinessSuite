@@ -13,7 +13,7 @@ def _login(client, email, password):
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
+def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db, monkeypatch):
     init_db(db)
     admin = _login(client, "admin@aihrms.com", "Admin@123456")
     employee = db.query(Employee).filter(Employee.employee_id == "DEMO-EMP-001").first()
@@ -151,7 +151,7 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
             "provider_code": "IDFY",
             "api_base_url": "https://bgv.example/api",
             "api_key_ref": "secret://bgv/idfy",
-            "webhook_secret_ref": "secret://bgv/webhook",
+            "webhook_secret_ref": "env:TEST_BGV_MODULE_WEBHOOK",
             "supports_api_submission": "Yes",
         },
         headers=admin,
@@ -168,9 +168,12 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
         headers=admin,
     )
     assert bgv.status_code == 201
+    from app.models.employee import EmployeeDocument
+    consent_doc = EmployeeDocument(employee_id=employee.id, document_type="Consent", file_url=f"/uploads/employee_docs/{employee.id}/consent.pdf")
+    db.add(consent_doc); db.commit()
     consent = client.put(
         f"/api/v1/background-verification/requests/{bgv.json()['id']}/consent",
-        json={"consent_status": "Captured", "consent_url": uploaded_reference('bgv/consent.pdf')},
+        json={"consent_status": "Captured", "employee_document_id": consent_doc.id},
         headers=admin,
     )
     assert consent.status_code == 200
@@ -184,14 +187,14 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
     check_id = bgv.json()["checks"][0]["id"]
     updated = client.put(
         f"/api/v1/background-verification/checks/{check_id}",
-        json={"status": "Completed", "result": "Clear", "verified_by": "Demo Vendor"},
+        json={"status": "Completed", "result": "Clear", "verified_by": "Demo Vendor", "remarks": "Identity source verified"},
         headers=admin,
     )
     assert updated.status_code == 200
     assert updated.json()["checks"][0]["result"] == "Clear"
-    callback = client.post(
-        f"/api/v1/background-verification/webhooks/{vendor.json()['id']}",
-        json={
+    import hashlib, hmac, json, time
+    monkeypatch.setenv("TEST_BGV_MODULE_WEBHOOK", "synthetic-module-secret")
+    callback_payload = {
             "vendor_reference": submitted.json()["vendor_reference"],
             "event_type": "verification.completed",
             "status": "Completed",
@@ -202,12 +205,20 @@ def test_whatsapp_ess_benefits_statutory_and_bgv_modules_work(client, db):
                 {"check_type": "Identity", "status": "Completed", "result": "Clear", "verified_by": "IDfy"},
                 {"check_type": "Address", "status": "Completed", "result": "Clear", "verified_by": "IDfy"},
             ],
-        },
+        }
+    body = json.dumps(callback_payload).encode()
+    stamp = str(int(time.time()))
+    callback = client.post(
+        f"/api/v1/background-verification/webhooks/{vendor.json()['id']}",
+        content=body, headers={"Content-Type":"application/json", "X-BGV-Timestamp":stamp,
+            "X-BGV-Signature":hmac.new(b"synthetic-module-secret",stamp.encode()+b"."+body,hashlib.sha256).hexdigest()},
     )
-    assert callback.status_code == 200
-    assert callback.json()["overall_result"] == "Clear"
-    assert callback.json()["report_url"].endswith("123.pdf")
-    assert any(item["check_type"] == "Address" for item in callback.json()["checks"])
+    assert callback.status_code == 200, callback.text
+    assert callback.json()["received"] is True
+    stored_case = client.get("/api/v1/background-verification/requests", headers=admin, params={"employee_id":employee.id}).json()[0]
+    assert stored_case["overall_result"] is None  # Vendor results still require HR review.
+    assert stored_case["report_url"].endswith("123.pdf")
+    assert any(item["check_type"] == "Address" for item in stored_case["checks"])
     events = client.get(
         f"/api/v1/background-verification/requests/{bgv.json()['id']}/events",
         headers=admin,

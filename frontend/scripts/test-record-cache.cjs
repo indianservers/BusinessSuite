@@ -144,6 +144,15 @@ window.h={api,client,manager,user,model,disk,changes,counts,age,shareRecordRefer
   server.rows[0].phone='cross-module-change';
   await page.evaluate(()=>h.manager.afterMutation('/employees/1001'));
   assert.deepEqual(await page.evaluate(async()=>[(await h.api.get('/employees/')).data.items[0].phone,(await h.api.get('/project-management/people-workspace/people')).data.items[0].phone]),['cross-module-change','cross-module-change']);
+  // Leave command URLs refresh every personal/approval alias, retaining unrelated views.
+  assert.deepEqual(await page.evaluate(()=>['/leave/requests','/leave/my','/leave/my-requests'].map(url=>h.model.policy(url).entity)),['leave','leave','leave']);
+  await page.evaluate(async()=>{await h.manager.clear();for(const url of ['/leave/requests','/leave/my','/leave/my-requests','/crm/leads'])await h.api.get(url);});
+  for(const command of ['/leave/apply','/leave/requests/42/approve','/leave/requests/42/cancel']){
+    const before=server.calls;server.rows[0].phone=command;
+    await page.evaluate(command=>h.manager.afterMutation(command),command);
+    assert.equal(server.calls,before+3,'each leave command refreshes exactly its three cached aliases');
+    assert.deepEqual(await page.evaluate(async()=>Promise.all(['/leave/requests','/leave/my','/leave/my-requests'].map(async url=>(await h.api.get(url)).data.items[0].phone))),[command,command,command]);
+  }
   // Product and service IDs may overlap; source-specific projections stay isolated.
   assert.equal(await page.evaluate(()=>h.model.splitView({items:[{id:1,kind:'product'},{id:1,kind:'service'}]}).rows.length),2);
   await page.evaluate(async()=>{await h.manager.clear();await h.api.get('/catalog/items',{params:{source:'crm'}});await h.api.get('/catalog/items',{params:{source:'srm'}});});

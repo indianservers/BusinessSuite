@@ -106,9 +106,9 @@ def send(url, secret, payload):
             4096
         )  # Bounded diagnostics; never persist external response bodies/secrets.
         if not 200 <= response.status < 300:
-            raise HTTPException(
-                502, f"Connector rejected request (HTTP {response.status})"
-            )
+            error = HTTPException(502, f"Connector rejected request (HTTP {response.status})")
+            error.connector_status = response.status
+            raise error
         return {
             "status": "accepted",
             "httpStatus": response.status,

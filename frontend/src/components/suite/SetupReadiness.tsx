@@ -17,14 +17,14 @@ export default function SetupReadiness({embedded = false, navigation = false, co
   const [open, setOpen] = useState(false);
   const company = sessionStorage.getItem("suite-organization") || user?.access?.companyId;
   const enabled = isAuthenticated && !/^\/(platform\/|login|f\/|forms\/communication\/|portal\/|invite-access|reset-password)/.test(location.pathname);
-  const query = useQuery({queryKey: ["company-setup", user?.id, company, location.pathname], enabled,
+  const query = useQuery({queryKey: ["company-setup", user?.id, company, sessionStorage.getItem("suite-branch")], enabled,
     queryFn: async () => {
       const {data} = await api.get<Readiness>("/access/setup", {progress:false, recordCache:false});
       if (!Array.isArray(data?.items) || typeof data.ready !== "boolean") throw new Error("Setup status unavailable");
       return data;
-    }, retry:false, staleTime:0, refetchOnWindowFocus:true, refetchInterval:60000});
+    }, retry:false, staleTime:30000, refetchOnWindowFocus:true, refetchInterval:embedded||navigation?false:60000});
   useEffect(() => {
-    if (navigation) return;
+    if (navigation || embedded) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => { clearTimeout(timer); timer = setTimeout(() => void query.refetch(), 250); };
     const required = () => {refresh(); setOpen(true);};

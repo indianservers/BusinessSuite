@@ -1,3 +1,6 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
 import RecordMaintenance from "@/components/RecordMaintenance";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
@@ -13,7 +16,8 @@ import PipelineBoard, { PipelineViewSwitch } from "@/shared/pipeline/PipelineBoa
 import { useAuthStore } from "@/store/authStore";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase, Plus, Users, Calendar, CheckCircle2,
@@ -84,6 +88,17 @@ export default function RecruitmentPage() {
   const [candidateError,setCandidateError]=useState(""),[candidateSaving,setCandidateSaving]=useState(false);
   const hiringConfig=useQuery<{name:string;stages:EditableStage[];version:number}>({queryKey:["hiring-pipeline",selectedJob],enabled:!!selectedJob,queryFn:async()=>(await api.get(`/pipeline-workspaces/hrms/jobs/${selectedJob}/configuration`)).data});
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [dashboardParams] = useSearchParams();
+  const dashboardCandidateId = Number(dashboardParams.get("candidate"));
+  useEffect(() => {
+    if (!dashboardCandidateId) return;
+    let active = true;
+    setActiveTab("candidates");
+    void recruitmentApi.getCandidate(dashboardCandidateId).then(({ data }) => {
+      if (active) setSelectedCandidate({ ...data, name: data.name || [data.first_name, data.last_name].filter(Boolean).join(" "), applied_date: data.applied_at || "" });
+    }).catch(() => { if (active) toast({ title: "Candidate could not be opened", description: "It may be unavailable in your current access scope.", variant: "destructive" }); });
+    return () => { active = false; };
+  }, [dashboardCandidateId]);
   const [converting,setConverting]=useState<Candidate|null>(null);
 
   const { data: jobs, isLoading: loadingJobs, refetch: refetchJobs } = useQuery({
@@ -203,7 +218,7 @@ export default function RecruitmentPage() {
 
       {/* Create Job Form */}
       {activeTab === "jobs" && showJobForm && (
-        <Card>
+        <SmartCreateSection title={<>New Job Posting</>} size="standard" autoOpen onClose={() => setShowJobForm(false)}><Card>
           <CardHeader><CardTitle className="text-base">New Job Posting</CardTitle></CardHeader>
           <CardContent>
             <CompactForm
@@ -250,7 +265,7 @@ export default function RecruitmentPage() {
               </div>
             </CompactForm>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
       )}
 
       {/* Jobs list */}
@@ -268,7 +283,7 @@ export default function RecruitmentPage() {
               </CardContent>
             </Card>
           ) : (
-            (jobs as Job[]).map((job) => (
+            <GroupedRecords scope="apps/hrms/pages/recruitment/RecruitmentPage:records-1" items={((jobs as Job[])) || []} fields={standardRecordGroups(((jobs as Job[])) || [])} gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" renderItem={(job) => (
               <Card key={job.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -296,7 +311,7 @@ export default function RecruitmentPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            )}/>
           )}
         </div>
       )}
@@ -314,7 +329,7 @@ export default function RecruitmentPage() {
             actions={canManage?[{id:"reject",label:"Reject",tone:"danger",onAction:record=>setPendingMove({id:Number(record.id),name:record.title,status:"Rejected"})},{id:"withdraw",label:"Withdraw",onAction:record=>setPendingMove({id:Number(record.id),name:record.title,status:"Withdrawn"})}]:[]}
           />}
           <PipelineDrawer wide open={configure} onClose={()=>setConfigure(false)} title="Job hiring pipeline">{hiringConfig.isError?<p role="alert">Could not load hiring configuration.</p>:hiringConfig.data?<PipelineStageEditor key={`${selectedJob}:${hiringConfig.data.version}`} name={hiringConfig.data.name} stages={hiringConfig.data.stages} hiring onSave={async draft=>{await api.put(`/pipeline-workspaces/hrms/jobs/${selectedJob}/configuration`,{...draft,expected_version:hiringConfig.data?.version});await hiringConfig.refetch();setConfigure(false);}}/>:<p>Loading hiring configuration…</p>}</PipelineDrawer>
-          <PipelineDrawer open={!!quickStage} onClose={()=>{if(!candidateSaving)setQuickStage(undefined);}} title={`Add candidate to ${quickStage||"stage"}`}><form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();setCandidateSaving(true);setCandidateError("");try{await api.post(`/pipeline-workspaces/hrms/jobs/${selectedJob}/candidates`,{...candidateDraft,stage:quickStage});await refetchCandidates();setCandidateDraft({first_name:"",last_name:"",email:"",phone:"",phone_country_code:"+91",source:""});setQuickStage(undefined);}catch(e){setCandidateError((e as {response?:{data?:{detail?:string}}}).response?.data?.detail||"Could not add candidate. Check the fields and stage requirements.");}finally{setCandidateSaving(false);}}}>{(["first_name","last_name","email","source"] as const).map(field=><label key={field}>{field.replace(/_/g," ")}<input required={field!=="source"} type={field==="email"?"email":"text"} value={candidateDraft[field]} onChange={e=>setCandidateDraft(d=>({...d,[field]:e.target.value}))}/></label>)}<PhoneInput value={candidateDraft.phone} countryCode={candidateDraft.phone_country_code} onChange={phone=>setCandidateDraft(d=>({...d,phone}))} onCountryCodeChange={phone_country_code=>setCandidateDraft(d=>({...d,phone_country_code}))}/>{candidateError&&<p role="alert">{candidateError}</p>}<button type="submit" className="pipeline-primary" disabled={candidateSaving}>Add candidate</button></form></PipelineDrawer>
+          <PipelineDrawer open={!!quickStage} onClose={()=>{if(!candidateSaving)setQuickStage(undefined);}} title={`Add candidate to ${quickStage||"stage"}`}><SmartCreateSection title="Add candidate" size="compact"><form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();setCandidateSaving(true);setCandidateError("");try{await api.post(`/pipeline-workspaces/hrms/jobs/${selectedJob}/candidates`,{...candidateDraft,stage:quickStage});await refetchCandidates();setCandidateDraft({first_name:"",last_name:"",email:"",phone:"",phone_country_code:"+91",source:""});setQuickStage(undefined);}catch(e){setCandidateError((e as {response?:{data?:{detail?:string}}}).response?.data?.detail||"Could not add candidate. Check the fields and stage requirements.");}finally{setCandidateSaving(false);}}}>{(["first_name","last_name","email","source"] as const).map(field=><label key={field}>{field.replace(/_/g," ")}<input required={field!=="source"} type={field==="email"?"email":"text"} value={candidateDraft[field]} onChange={e=>setCandidateDraft(d=>({...d,[field]:e.target.value}))}/></label>)}<PhoneInput value={candidateDraft.phone} countryCode={candidateDraft.phone_country_code} onChange={phone=>setCandidateDraft(d=>({...d,phone}))} onCountryCodeChange={phone_country_code=>setCandidateDraft(d=>({...d,phone_country_code}))}/>{candidateError&&<p role="alert">{candidateError}</p>}<button type="submit" className="pipeline-primary" disabled={candidateSaving}>Add candidate</button></form></SmartCreateSection></PipelineDrawer>
           <PipelineDrawer open={!!converting} onClose={()=>setConverting(null)} title="Create employee handoff">{converting&&<HiringCandidateDetails key={converting.id} candidate={converting} canManage={canManage} startConvert onSaved={()=>{void refetchCandidates();void qc.invalidateQueries({queryKey:["employees"]});}}/>}</PipelineDrawer>
           <Dialog open={!!pendingMove} onOpenChange={open=>{if(!open&&!updateStatusMutation.isPending)setPendingMove(undefined);}}><DialogContent><DialogTitle>Move candidate to {pendingMove?.status}</DialogTitle><p className="text-sm text-muted-foreground">Update {pendingMove?.name}'s hiring stage. This does not issue an offer or create an employee account.</p><div className="flex justify-end gap-2"><Button variant="outline" disabled={updateStatusMutation.isPending} onClick={()=>setPendingMove(undefined)}>Cancel</Button><Button disabled={updateStatusMutation.isPending} onClick={()=>{if(pendingMove)void updateStatusMutation.mutateAsync({id:pendingMove.id,status:pendingMove.status}).then(()=>setPendingMove(undefined)).catch(()=>undefined);}}>Confirm move</Button></div></DialogContent></Dialog>
           <Dialog open={!!selectedCandidate} onOpenChange={open=>{if(!open)setSelectedCandidate(null);}}><DialogContent><DialogTitle>{selectedCandidate?.name}</DialogTitle><dl className="grid grid-cols-2 gap-3 text-sm"><dt>Email</dt><dd>{selectedCandidate?.email}</dd><dt>Phone</dt><dd>{selectedCandidate?.phone||"—"}</dd><dt>Job</dt><dd>{selectedCandidate?.job?.title||"—"}</dd><dt>Status</dt><dd>{selectedCandidate?.status}</dd><dt>Source</dt><dd>{selectedCandidate?.source||"—"}</dd></dl>{canManage&&<Button onClick={()=>{setSelectedCandidate(null);setCandidateView("list");}}>Open candidate actions in list</Button>}</DialogContent></Dialog>

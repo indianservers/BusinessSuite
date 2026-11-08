@@ -89,7 +89,7 @@ export function RecordSummary({
     record.assignee_user_ids ??
     (record.assignee_user_id ? [record.assignee_user_id] : []);
   return (
-    <div className="pms-record-summary">
+    <div data-priority-row data-priority={record.priority} className="pms-record-summary">
       <p className="pms-record-eyebrow">
         {kind === "task" ? "Task" : "Project"} · {record.key || `#${record.id}`}
       </p>
@@ -99,7 +99,7 @@ export function RecordSummary({
       )}
       <div className="pms-record-pills">
         {record.status && <span>{record.status}</span>}
-        {record.priority && <span>{record.priority} priority</span>}
+        {record.priority && <span data-priority-badge data-priority={record.priority}>{record.priority} priority</span>}
       </div>
       <div className="pms-record-description"><RichTextContent value={record.description || "No description added yet."}/></div>
       <dl>

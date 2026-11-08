@@ -6,11 +6,11 @@ const categories: Record<string, readonly Category[]> = {
   project_management: [
     { name: "Overview", paths: ["/pms", "/pms/overview", "/pms/management", "/pms/command-center", "/pms/workspace-tools"] },
     { name: "Tasks & projects", paths: ["/pms/my-work", "/pms/tasks", "/pms/tasks-follow-ups", "/pms/follow-ups", "/pms/navigator", "/pms/issue-navigator-pro", "/pms/projects", "/pms/workspaces", "/pms/product-launch", "/pms/work-hub", "/pms/software", "/pms/issues", "/pms/releases"] },
-    { name: "Planning & workload", paths: ["/pms/backlog", "/pms/backlog-grooming", "/pms/sprints", "/pms/sprint-lifecycle", "/pms/agile-execution", "/pms/calendar", "/pms/planner", "/pms/gantt", "/pms/timeline-plus", "/pms/dependency-timeline", "/pms/dependency-management", "/pms/roadmap", "/pms/dependencies", "/pms/workload", "/pms/capacity", "/pms/resource-utilization", "/pms/resource-planning", "/pms/risk-register", "/pms/goals"] },
+    { name: "Planning & workload", paths: ["/pms/transition-approvals", "/pms/backlog", "/pms/backlog-grooming", "/pms/sprints", "/pms/sprint-lifecycle", "/pms/agile-execution", "/pms/calendar", "/pms/planner", "/pms/gantt", "/pms/timeline-plus", "/pms/dependency-timeline", "/pms/dependency-management", "/pms/roadmap", "/pms/dependencies", "/pms/workload", "/pms/capacity", "/pms/resource-utilization", "/pms/resource-planning", "/pms/risk-register", "/pms/goals"] },
     { name: "People & teams", paths: ["/pms/members", "/pms/people", "/pms/teams", "/pms/org-chart", "/pms/people-work"] },
     { name: "Collaboration", paths: ["/pms/live", "/pms/teams-live", "/pms/notes", "/pms/messages", "/pms/team-communication", "/pms/docs", "/pms/files", "/pms/my-notices", "/pms/client-portal", "/pms/time-tracking", "/pms/timesheets"] },
     { name: "Reports & finances", paths: ["/pms/reports", "/pms/analytics", "/pms/dashboards", "/pms/portfolio", "/pms/project-financials"] },
-    { name: "Settings & tools", paths: ["/pms/settings", "/pms/admin", "/pms/plans", "/pms/enterprise-engine", "/pms/blueprints", "/pms/forms", "/pms/templates", "/pms/components", "/pms/workflows", "/pms/apps", "/pms/security", "/pms/automation", "/pms/audit-logs", "/pms/custom-fields", "/pms/task-types", "/pms/tags", "/pms/recovery", "/pms/trash"] },
+    { name: "Settings & tools", paths: ["/pms/workflow-schemes", "/pms/settings", "/pms/admin", "/pms/plans", "/pms/enterprise-engine", "/pms/blueprints", "/pms/forms", "/pms/templates", "/pms/components", "/pms/workflows", "/pms/apps", "/pms/security", "/pms/automation", "/pms/audit-logs", "/pms/custom-fields", "/pms/task-types", "/pms/tags", "/pms/recovery", "/pms/trash"] },
     { name: "AI tools", paths: ["/pms/operator", "/pms/ai-planner", "/ai-agents"] },
   ],
   hrms: [

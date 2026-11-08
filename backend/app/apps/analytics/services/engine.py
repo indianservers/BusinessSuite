@@ -163,7 +163,7 @@ def grouped_report(db, report, filters, user, page, page_size):
     if not isinstance(groups, list) or not 1 <= len(groups) <= 3 or not isinstance(aggregates, dict) or not 1 <= len(aggregates) <= 8:
         raise HTTPException(422, 'Grouped reports require bounded group_by and aggregates')
     model = DATA_SOURCES[report.module_name][0]
-    allowed = set(default_fields(report.module_name)) | {'stage_id', 'pipeline_id', 'owner_user_id'}
+    allowed = set(default_fields(report.module_name)) | {'stage_id', 'pipeline_id', 'owner_user_id', 'currency'}
     if any(key not in allowed or key not in model.__table__.c for key in groups):
         raise HTTPException(422, 'Unsupported report grouping')
     expressions = [getattr(model, key).label(key) for key in groups]

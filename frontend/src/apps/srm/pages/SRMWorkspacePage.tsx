@@ -1,3 +1,7 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { columnValue } from "@/shared/data-grid/column-presentation";
+import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
+import { LoadingState } from "@/components/ui/state";
 import { useModuleAction } from "@/hooks/use-module-action";
 import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import RecordMaintenance from "@/components/RecordMaintenance";
@@ -23,6 +27,7 @@ import { RichTextField, RichTextContent, richTextPlainText } from "@/components/
 import ConnectedCollectionsPage from "./ConnectedCollectionsPage";
 import { InvoiceList, SharedCustomerSelect } from "@/apps/project-management/pages/ProjectBillingPage";
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useEffect, useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
@@ -281,7 +286,7 @@ function compactRecord(record: SRMRecord) {
 }
 
 function SectionState({ label, isLoading, isError, isEmpty, onRetry }: { label: string; isLoading?: boolean; isError?: boolean; isEmpty?: boolean; onRetry?: () => void }) {
-  if (isLoading) return <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Loading {label}...</div>;
+  if (isLoading) return <LoadingState label={`Loading ${label}`} variant="table"/>;
   if (isError) {
     return (
       <Card className="border-destructive/40">
@@ -374,6 +379,7 @@ function DashboardView() {
             <DashboardMetricCard icon={BarChart3} label="Outstanding" value={groupedMoney("outstanding_value")} detail={periodLabel} />
             <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={groupedMoney("overdue_value")} detail={periodLabel} tone={asList((data.currency_totals as SRMRecord|undefined)?.overdue_value).some(row=>numberValue(row.amount)>0) ? "danger" : "default"} />
           </div>
+<ModuleWorkflowBoard module="srm" />
 <p className="text-xs text-muted-foreground">{periodLabel}. KPI totals use invoice issue dates; paid and outstanding balances are current. {String(data.currency_policy||"Currency units unavailable")}</p>
 <section aria-labelledby="collection-priorities" className="space-y-3">
   <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="collection-priorities" className="text-base font-semibold">Collection priorities</h2><Button asChild variant="outline" size="sm"><Link to="/srm/collections">Open collections</Link></Button></div>
@@ -1717,7 +1723,7 @@ function POSReturnsView() {
     <div className="space-y-4">
       <PageHeader meta={viewMeta.posReturns} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
-        <Card>
+        <SmartCreateSection title={<>Create return</>} size="standard"><Card>
           <CardHeader><CardTitle className="text-base">Create return</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <label className="space-y-2 text-sm"><span className="font-medium">POS order number</span><Input value={draft.order_number} onChange={(event) => setDraft((current) => ({ ...current, order_number: event.target.value }))} placeholder="POS-00001" /></label>
@@ -1732,7 +1738,7 @@ function POSReturnsView() {
             <label className="space-y-2 text-sm"><span className="font-medium">Reason</span><Input value={draft.reason} onChange={(event) => setDraft((current) => ({ ...current, reason: event.target.value }))} /></label>
             <Button className="w-full" onClick={() => mutation.mutate()} disabled={!draft.order_number || mutation.isPending}>Create return</Button>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
         <Card>
           <CardHeader><CardTitle className="text-base">Return register</CardTitle></CardHeader>
           <CardContent>
@@ -1766,7 +1772,7 @@ function POSReturnsView() {
   );
 }
 
-function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
+export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
   const draftUser = useAuthStore(state => state.user);
   const draftKey = `srm-order-draft:${draftUser?.id}:${sessionStorage.getItem("suite-organization") || draftUser?.access?.companyId || 1}:${sessionStorage.getItem("suite-branch") || "default"}`;
   const createRef = useNewRecordFocus();
@@ -1928,7 +1934,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
   if (!["salesOrders", "contracts", "engagements", "billingPlans"].includes(kind)) return null;
 
   return (
-    <Card ref={createRef} id="new-record" className="scroll-mt-4">
+    <SmartCreateSection title={<>Create {viewMeta[kind].title.slice(0, -1)}</>} size="large"><Card ref={createRef} id="new-record" className="scroll-mt-4">
       <CardHeader>
         <CardTitle className="text-base">Create {viewMeta[kind].title.slice(0, -1)}</CardTitle>
       </CardHeader>
@@ -2011,7 +2017,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
           </div>
         </CompactForm>
       </CardContent>
-    </Card>
+    </Card></SmartCreateSection>
   );
 }
 
@@ -2036,6 +2042,10 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
   });
   useSrmRealtimeInvalidation(queryClient, Boolean(meta.endpoint));
   const records = asList(query.data);
+  const entityLabel = ({salesOrders:"Sales order",contracts:"Contract",engagements:"Engagement",billingPlans:"Billing plan"} as Record<string,string>)[kind] || meta.title;
+  const dateKeys = kind === "salesOrders" ? ["expected_start_date","expected_end_date"] : kind === "engagements" ? ["planned_start_date","planned_end_date"] : ["start_date","end_date"];
+  const hasSchedule = records.some(record => record[dateKeys[0]] || record[dateKeys[1]]);
+  const hasProgress = records.some(record => record.progress_percent != null || record.completion_percentage != null);
   const customerIds = [...new Set(records.map(record => Number(record.customer_id)).filter(id => Number.isInteger(id) && id > 0))].sort((a,b) => a-b);
   const customers = useQuery({
     queryKey: ["srm-list-customers", user?.access?.companyId, user?.id, customerIds.join(",")],
@@ -2082,7 +2092,8 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
       <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
       {kind === "billingPlans" && canCreate && <RecurringSchedule plans={records} onSaved={() => { void query.refetch(); }} />}
       <ActionMessage message={!canManage ? "Read-only revenue access: create and workflow actions are hidden for this role." : undefined} />
-      {canCreate && (!boardSupported || showCreate) ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
+      {canCreate && boardSupported && showCreate && <SmartCreateModal definition={{ entity: kind, title: `Create ${meta.title.replace(/s$/, "")}`, presentation: "page", size: "large" }} onClose={() => setShowCreate(false)}><CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /></SmartCreateModal>}
+      {canCreate && !boardSupported ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
       <SectionState label={meta.title} isError={query.isError} onRetry={() => query.refetch()} />
       {boardSupported && <div className="flex items-center gap-3"><WorkspaceViewBar scope={`srm-${kind}`} label="Sales views" active={recordView} views={[{id:"list",label:"Table",description:"Commercial records"},{id:"board",label:"Board",description:"Sales pipeline"}]} onChange={id=>setRecordView(id as "board"|"list")} primary={["list","board"]}/>{canCreate&&<button type="button" className="pipeline-primary" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</button>}</div>}
       {boardSupported && recordView === "board" && !query.isError && <SalesPipeline kind={kind} onCreate={canCreate?()=>setShowCreate(true):undefined} records={records} canManage={canManage} loading={query.isLoading} onAction={async(name,id)=>{await action.mutateAsync({name,id});await query.refetch();}}/>}
@@ -2093,17 +2104,19 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
               <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-6" className="w-full min-w-[780px] text-sm">
                 <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">Record</th>
+                    <th className="px-4 py-3">{entityLabel}</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Customer</th>
                     <th className="px-4 py-3">Amount</th>
                     <th className="px-4 py-3">Updated</th>
+                    {hasSchedule && <><th className="px-4 py-3">Start date</th><th className="px-4 py-3">End date</th></>}
+                    {hasProgress && <th className="px-4 py-3">Progress</th>}
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {query.isLoading ? (
-                    <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading {meta.title}...</td></tr>
+                    <tr><td colSpan={6+(hasSchedule?2:0)+(hasProgress?1:0)} className="px-4 py-8 text-center text-muted-foreground">Loading {meta.title}...</td></tr>
                   ) : records.length ? records.map((record, index) => {
                     const id = Number(record.id || 0);
                     const name = record.title || record.name || record.invoice_number || record.order_number || record.contract_number || record.engagement_number || `Record ${index + 1}`;
@@ -2113,13 +2126,15 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                     const isPosSale = metadata.source === "pos";
                     return (
                       <tr {...recordPreviewProps(record)} key={`${kind}-${id || index}`} className="border-b last:border-0">
-                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span>{formatValue(name)}</span></td>
+                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span><span className="srm-record-label" title={formatValue(name)}>{formatValue(name)}</span></span></td>
                         <td className="px-4 py-3">
                           <Badge variant={statusTone(record.status)}>{formatValue(record.status || "live")}</Badge>
                         </td>
                         <td className="px-4 py-3">{formatValue(record.customer_name || customers.data?.[String(record.customer_id)] || (record.customer_id ? `Customer #${record.customer_id}` : null))}</td>
                         <td className="px-4 py-3">{amount != null && Number.isFinite(Number(amount)) ? currencyMoney(amount,record.currency) : "—"}</td>
                         <td className="px-4 py-3">{formatDate(record.updated_at || record.created_at || record.snapshot_at)}</td>
+                        {hasSchedule && <><td className="px-4 py-3" data-grid-value={record[dateKeys[0]]}>{formatDate(record[dateKeys[0]])}</td><td className="px-4 py-3" data-grid-value={record[dateKeys[1]]}>{formatDate(record[dateKeys[1]])}</td></>}
+                        {hasProgress && <td className="px-4 py-3">{record.progress_percent != null || record.completion_percentage != null ? columnValue("Progress",`${record.progress_percent ?? record.completion_percentage}%`) : "—"}</td>}
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">{["salesOrders","contracts","engagements","billingPlans"].includes(kind)&&<RecordMaintenance record={record} name={String(name)} endpoint={`/srm/${({salesOrders:"sales-orders",contracts:"contracts",engagements:"engagements",billingPlans:"billing-plans"} as Record<string,string>)[kind]}/${id}`} method="patch" fields={[{key:["salesOrders","contracts"].includes(kind)?"title":"name",label:"Record name",required:true}]} queryKeys={["srm"]} canEdit={canManage} canDelete={canManage&&["draft","planned","created"].includes(status)}/>}
                             {canCreate && kind === "salesOrders" && id ? (

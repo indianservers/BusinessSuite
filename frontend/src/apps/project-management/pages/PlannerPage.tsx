@@ -725,7 +725,7 @@ export default function PlannerPage() {
         </div>
         {tasks.length ? (
           tasks.slice(0, 6).map((task) => (
-            <button
+            <button data-priority-row data-priority={task.priority}
               type="button"
               className="planner-side-task"
               key={task.id}

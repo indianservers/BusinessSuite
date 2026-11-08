@@ -15,6 +15,16 @@
 .native-column-options button { padding:5px; border:1px solid hsl(var(--border)); border-radius:4px; }
 .native-column-options button:disabled { opacity:.4; }
 .native-table-layout table { width:100%; }
+.native-table-layout > table { table-layout:fixed; min-width:max-content; }
+.native-column-heading { position:relative; display:flex; align-items:center; gap:5px; min-width:0; min-height:24px; padding-right:5px; }
+.native-column-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.native-column-drag { padding:0; display:grid; place-items:center; cursor:grab; opacity:.45; flex:none; }
+.native-column-drag:disabled { display:none; }
+.native-column-heading:hover .native-column-drag,.native-column-drag:focus-visible { opacity:1; }
+.native-column-resize { position:absolute; right:-9px; top:-8px; bottom:-8px; width:10px; cursor:col-resize; touch-action:none; }
+.native-column-resize:hover,.native-column-resize:focus-visible { border-right:2px solid hsl(var(--primary)); outline:none; }
+.native-column-drag:focus-visible { outline:2px solid hsl(var(--primary)); outline-offset:2px; }
+.udg-legacy-heading { display:flex; align-items:center; gap:5px; min-width:0; }
 .native-table-layout table .native-group-row > td { height:34px !important; padding:6px 12px !important; background:hsl(var(--card)) !important; border-bottom:1px solid hsl(var(--border)/.65); position:static !important; box-shadow:none !important; }
 .native-group-row button { display:flex; align-items:center; gap:7px; min-height:20px; width:100%; text-align:left; font-size:11px; }
 .native-group-row button > svg { color:hsl(var(--muted-foreground)); flex:none; }
@@ -26,3 +36,7 @@
 .native-table-comfortable > table > tbody > tr:not(.native-group-row):not(.native-group-create) > td { height:56px; padding-top:9px !important; padding-bottom:9px !important; }
 .native-table-spacious > table > tbody > tr:not(.native-group-row):not(.native-group-create) > td { height:70px; padding-top:16px !important; padding-bottom:16px !important; }
 @media(max-width:640px) { .native-table-toolbar { padding:7px 10px; } .native-layout-icon { width:36px; height:36px; } .native-group-row button { min-height:32px; } .native-column-options { position:fixed; left:12px; right:12px; top:25%; min-width:0; max-height:60vh; } }
+
+.native-table-layout > table > tbody > tr > td > :is(input,select,textarea) { max-width:100%; }
+
+.native-static-heading { display:inline-flex; align-items:center; gap:5px; min-width:0; }

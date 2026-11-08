@@ -23,7 +23,24 @@ export function MobileContactActions({ phone, email, onNote }: { phone?: string 
   return <nav className="mobile-contact-strip" aria-label="Contact actions">{clean && <a aria-label="Call contact" data-action-tooltip="Call this contact" href={`tel:${clean}`}><Phone className="text-teal-600" size={18}/>Call</a>}{digits && <a aria-label="Send WhatsApp message" data-action-tooltip="Send WhatsApp message" href={`https://wa.me/${digits}`} target="_blank" rel="noreferrer"><WhatsAppIcon className="h-[18px] w-[18px] text-[#25D366]"/>WhatsApp</a>}{email && <a aria-label="Compose email to this contact" data-action-tooltip="Compose email to this contact" href={`mailto:${email}`}><Mail className="text-blue-600" size={18}/>Email</a>}{onNote && <button type="button" onClick={onNote}><StickyNote size={18}/>Add note</button>}</nav>;
 }
 export function MobileDisclosure({ title, children }: { title: string; children: ReactNode }) {
-  const mobile = useMobile(); return mobile ? <details className="mobile-disclosure"><summary>{title}</summary><div>{children}</div></details> : <>{children}</>;
+  const mobile = useMobile();
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  // Native validation must be able to focus required controls inside disclosure.
+  const revealInvalid = () => {
+    if (detailsRef.current) detailsRef.current.open = true;
+  };
+  useEffect(() => {
+    const details = detailsRef.current;
+    if (!mobile || !details) return;
+    const revealServerErrors = () => {
+      if (details.querySelector('[aria-invalid="true"], [role="alert"]')) details.open = true;
+    };
+    revealServerErrors();
+    const observer = new MutationObserver(revealServerErrors);
+    observer.observe(details, {subtree:true, childList:true, attributes:true, attributeFilter:["aria-invalid", "role"]});
+    return () => observer.disconnect();
+  }, [mobile]);
+  return mobile ? <details ref={detailsRef} className="mobile-disclosure" onInvalidCapture={revealInvalid}><summary>{title}</summary><div>{children}</div></details> : <>{children}</>;
 }
 export function MobileSteps({ steps, current, onChange }: { steps: string[]; current: number; onChange: (index: number) => void }) {
   return <nav className="mobile-stepper" aria-label="Progress">{steps.map((label, index) => <button type="button" key={label} aria-current={index === current ? "step" : undefined} onClick={() => onChange(index)}><span>{index + 1}</span>{label}</button>)}</nav>;

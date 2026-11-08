@@ -114,6 +114,8 @@ from app.apps.crm.growth import router as growth_router
 router.include_router(growth_router)
 from app.apps.crm.deal_workspace import router as deal_workspace_router
 router.include_router(deal_workspace_router)
+from app.apps.crm.report_builder import router as report_builder_router
+router.include_router(report_builder_router)
 from app.apps.crm.template_studio import router as template_studio_router
 router.include_router(template_studio_router)
 

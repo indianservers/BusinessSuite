@@ -191,11 +191,12 @@ def asset_preview(identity: int, db: Session = Depends(get_db), user=Depends(iss
 
 
 @router.get("/recipients")
-def recipients(kind: str = Query(default="employee", pattern="^(employee|application)$"), q: str = Query(default="", max_length=150), limit: int = Query(default=30, ge=1, le=100), db: Session = Depends(get_db), user=Depends(issuer)):
+def recipients(employee_id: int | None = Query(None), kind: str = Query(default="employee", pattern="^(employee|application)$"), q: str = Query(default="", max_length=150), limit: int = Query(default=30, ge=1, le=100), db: Session = Depends(get_db), user=Depends(issuer)):
     check_applicant(user, kind)
     pattern = "%" + q.replace("%", "\\%").replace("_", "\\_") + "%"
     if kind == "employee":
         query = employee_query(db, tenant(user))
+        if employee_id: query = query.filter(Employee.id == employee_id)
         if q:
             query = query.filter(or_(Employee.first_name.ilike(pattern, escape="\\"), Employee.last_name.ilike(pattern, escape="\\"), Employee.employee_id.ilike(pattern, escape="\\")))
         return [{"id": e.id, "name": " ".join(filter(None, [e.first_name, e.middle_name, e.last_name])), "detail": e.employee_id} for e in query.order_by(Employee.first_name, Employee.id).limit(limit)]
@@ -252,8 +253,12 @@ def issue(data: GenerateInput, db: Session = Depends(get_db), user=Depends(issue
 
 
 @router.get("/issued")
-def issued(q: str = Query(default="", max_length=150), skip: int = Query(default=0, ge=0), limit: int = Query(default=30, ge=1, le=100), db: Session = Depends(get_db), user=Depends(issuer)):
+def issued(employee_id: int | None = Query(None), q: str = Query(default="", max_length=150), skip: int = Query(default=0, ge=0), limit: int = Query(default=30, ge=1, le=100), db: Session = Depends(get_db), user=Depends(issuer)):
     query = db.query(StudioDocument).filter(StudioDocument.organization_id == tenant(user))
+    if employee_id:
+        from app.services.metrics.queries import employee_records
+        if not employee_records(db,user).filter(Employee.id == employee_id).first(): raise HTTPException(404, "Employee not found")
+        query = query.filter(StudioDocument.recipient_type == "employee", StudioDocument.recipient_id == employee_id)
     if not can(user, "employee_create", "intern_management_manage"):
         query = query.filter(StudioDocument.recipient_type == "employee")
     if q:

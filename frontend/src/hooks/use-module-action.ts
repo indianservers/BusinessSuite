@@ -1,4 +1,5 @@
 import {useAuthStore,type AuthUser} from '@/store/authStore';
+import { useLocation } from 'react-router-dom';
 /** Action affordances follow the active page's module; endpoint permissions stay authoritative. */
 export function moduleForActionPath(path:string):string|undefined {
  if(path.startsWith('/admin/customization'))return 'customization';
@@ -12,4 +13,4 @@ export function moduleActionAllowed(user:AuthUser|null|undefined,path:string,act
  if(!user.access.managed)return true;
  const grant=user.access.grants[module];return !!grant?.enabled&&grant.actions.includes(action);
 }
-export function useModuleAction(action:string){const user=useAuthStore(s=>s.user);return moduleActionAllowed(user,typeof window==='undefined'?'':window.location.pathname,action);}
+export function useModuleAction(action:string){const user=useAuthStore(s=>s.user);const {pathname}=useLocation();return moduleActionAllowed(user,pathname,action);}

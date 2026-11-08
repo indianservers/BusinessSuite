@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -179,7 +180,7 @@ export default function LMSPage() {
             <CardDescription>Create a course that HR can assign by employee or role.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5">
+            <SmartCreateSection title="Publish Course" autoOpen onClose={() => setShowCourseForm(false)} size="standard"><div className="space-y-4"><div className="space-y-1.5">
               <Label>Code</Label>
               <Input value={courseForm.code} onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value })} placeholder="POSH-101" />
             </div>
@@ -224,7 +225,7 @@ export default function LMSPage() {
                 Publish
               </Button>
               <Button variant="outline" onClick={() => setShowCourseForm(false)}>Cancel</Button>
-            </div>
+            </div></div></SmartCreateSection>
           </CardContent>
         </Card>
       )}
@@ -236,7 +237,7 @@ export default function LMSPage() {
             <CardDescription>Role-based and compliance learning content.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {isLoading ? <div className="h-24 rounded-lg bg-muted/40" /> : courses?.length ? courses.map((course) => (
+            {isLoading ? <div className="h-24 rounded-lg bg-muted/40" /> : courses?.length ? <GroupedRecords scope="apps/hrms/pages/lms/LMSPage:records-1" items={(courses) || []} fields={standardRecordGroups((courses) || [])} gridClassName="space-y-3" renderItem={(course) => (
               <div key={course.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <p className="font-medium">{course.title}</p>
@@ -250,7 +251,7 @@ export default function LMSPage() {
                   {course.is_mandatory && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Mandatory</span>}
                 </div>
               </div>
-            )) : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No courses published yet.</p>}
+            )}/> : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No courses published yet.</p>}
           </CardContent>
         </Card>
 
@@ -260,7 +261,7 @@ export default function LMSPage() {
             <CardDescription>Recent assignments and certificate renewals.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(assignments || []).slice(0, 5).map((item) => (
+            {<GroupedRecords scope="apps/hrms/pages/lms/LMSPage:records-2" items={((assignments || []).slice(0, 5)) || []} fields={standardRecordGroups(((assignments || []).slice(0, 5)) || [])} gridClassName="space-y-3" renderItem={(item) => (
               <div key={item.id} className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">Employee #{item.employee_id}</p>
@@ -268,15 +269,15 @@ export default function LMSPage() {
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{courseTitleById.get(item.course_id) || `Course ${item.course_id}`}{item.due_date ? ` due ${item.due_date}` : ""}</p>
               </div>
-            ))}
-            {(certifications || []).slice(0, 4).map((cert) => (
+            )}/>}
+            {<GroupedRecords scope="apps/hrms/pages/lms/LMSPage:records-3" items={((certifications || []).slice(0, 4)) || []} fields={standardRecordGroups(((certifications || []).slice(0, 4)) || [])} gridClassName="space-y-3" renderItem={(cert) => (
               <div key={`cert-${cert.id}`} className="rounded-lg border p-3">
                 <p className="text-sm font-medium">{cert.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">Employee #{cert.employee_id}{cert.expires_on ? ` expires ${cert.expires_on}` : ""}</p>
                 {cert.renewal_required && <p className="mt-1 text-xs text-amber-700">Renewal {cert.renewal_status || "Due"}{cert.renewal_due_on ? ` by ${cert.renewal_due_on}` : ""}</p>}
               </div>
-            ))}
-            {(renewals || []).slice(0, 5).map((renewal) => (
+            )}/>}
+            {<GroupedRecords scope="apps/hrms/pages/lms/LMSPage:records-4" items={((renewals || []).slice(0, 5)) || []} fields={standardRecordGroups(((renewals || []).slice(0, 5)) || [])} gridClassName="space-y-3" renderItem={(renewal) => (
               <div key={`renewal-${renewal.id}`} className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">Certification #{renewal.certification_id}</p>
@@ -284,7 +285,7 @@ export default function LMSPage() {
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">Employee #{renewal.employee_id} due {renewal.due_on}</p>
               </div>
-            ))}
+            )}/>}
             {!assignments?.length && !certifications?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No learning activity yet.</p>}
           </CardContent>
         </Card>

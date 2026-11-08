@@ -211,3 +211,210 @@ def test_srm_handoff_children_inherit_their_company_parent(db,superuser_headers)
         with pytest.raises(HTTPException) as error:db.flush()
         assert error.value.status_code==403
     finally:cleanup();db.rollback()
+
+
+def test_pms_work_review_inherits_submission_scope_and_rejects_foreign_parent(db,superuser_headers):
+    from app.models.user import User
+    from app.apps.project_management.models import PMSProject,PMSTask,PMSWorkSubmission,PMSWorkReview
+    from app.access.scope import install_scope
+    actor=db.query(User).first();submissions=[]
+    for company in (1,2):
+        project=PMSProject(organization_id=company,name="Scoped review",project_key="REVIEW-SCOPE-"+str(company));db.add(project);db.flush()
+        task=PMSTask(project_id=project.id,title="Submission parent",task_key="REVIEW-1");db.add(task);db.flush()
+        item=PMSWorkSubmission(task_id=task.id,user_id=actor.id,version=1,notes="Synthetic evidence");db.add(item);db.flush();submissions.append(item.id)
+    cleanup=install_scope(db,actor,1,{"project_management":{"enabled":True,"scope":"organization","actions":["view","approve"],"permissions":[]}})
+    def review(parent):return PMSWorkReview(submission_id=parent,reviewer_user_id=actor.id,decision="Approved",score=90,maximum_score=100,feedback="Synthetic review")
+    try:
+        db.add(review(submissions[0]));db.flush()
+        assert [row.submission_id for row in db.query(PMSWorkReview).all()]==[submissions[0]]
+        db.add(review(submissions[1]))
+        with pytest.raises(HTTPException) as error:db.flush()
+        assert error.value.status_code==403
+    finally:cleanup();db.rollback()
+
+
+@pytest.mark.parametrize("status,locked",[("draft",False),("rejected",False),("submitted",True),("approved",True)])
+def test_time_log_list_exposes_timesheet_immutability(db,superuser_headers,status,locked):
+    from datetime import date
+    from app.models.user import User
+    from app.apps.project_management.models import PMSTimesheet
+    from app.apps.project_management.api.router import _mark_timesheet_locks
+    actor=db.query(User).first();sheet=PMSTimesheet(organization_id=1,user_id=actor.id,week_start_date=date(2026,11,2),status=status);db.add(sheet);db.flush()
+    linked=SimpleNamespace(timesheet_id=sheet.id);unlinked=SimpleNamespace(timesheet_id=None)
+    assert _mark_timesheet_locks(db,[linked,unlinked])==[linked,unlinked]
+    assert linked.timesheet_locked is locked
+    assert unlinked.timesheet_locked is False
+
+
+def test_picklist_values_follow_their_authorized_tenant_parent(db,superuser_headers):
+    from app.models.user import User
+    from app.common.models import CommonPerson
+    from app.apps.customization.models import CustomizationGlobalPicklist,CustomizationGlobalPicklistValue
+    from app.access.scope import install_scope
+    actor=db.query(User).first();other=User(email="foreign-picklist-scope@example.com",hashed_password="unused",is_active=True,person=CommonPerson(organization_id=2,display_name="Foreign fixture"));db.add(other);db.flush()
+    parents=[]
+    for suffix,owner in [("own",actor),("foreign",other)]:
+        parent=CustomizationGlobalPicklist(api_name="scope_"+suffix,label="Scoped picklist",created_by=owner.id);db.add(parent);db.flush();parents.append(parent.id)
+        db.add(CustomizationGlobalPicklistValue(picklist_id=parent.id,value="Open",label="Open"))
+    db.flush()
+    # Legacy configuration ownership is stamped by tenant context, not creator identity.
+    from app.models.security_boundary import SecurityResourceOwnership
+    db.query(SecurityResourceOwnership).filter_by(resource_table="customization_global_picklists",resource_id=parents[1]).update({"company_id":2})
+    db.flush()
+    cleanup=install_scope(db,actor,1,{"customization":{"enabled":True,"scope":"organization","actions":["view","create","edit","delete"],"permissions":[]}})
+    try:
+        assert [row.picklist_id for row in db.query(CustomizationGlobalPicklistValue).all()]==[parents[0]]
+        db.add(CustomizationGlobalPicklistValue(picklist_id=parents[0],value="Closed",label="Closed"));db.flush()
+        db.add(CustomizationGlobalPicklistValue(picklist_id=parents[1],value="Blocked",label="Blocked"))
+        with pytest.raises(HTTPException) as error:db.flush()
+        assert error.value.status_code==403
+    finally:cleanup();db.rollback()
+
+
+@pytest.mark.parametrize("scope",["organization","own"])
+def test_dashboard_widgets_inherit_real_owner_tenant_and_scope(db,superuser_headers,scope):
+    from app.models.user import User
+    from app.common.models import CommonPerson
+    from app.apps.analytics.models import AnalyticsDashboard,AnalyticsDashboardWidget
+    from app.access.scope import install_scope
+    actor=db.query(User).first()
+    other=User(email="foreign-dashboard-scope@example.com",hashed_password="unused",is_active=True,person=CommonPerson(organization_id=2,display_name="Foreign dashboard owner"));db.add(other);db.flush()
+    parents=[]
+    for owner in (actor,other):
+        dashboard=AnalyticsDashboard(name="Scoped dashboard",owner_id=owner.id);db.add(dashboard);db.flush();parents.append(dashboard.id)
+        db.add(AnalyticsDashboardWidget(dashboard_id=dashboard.id,widget_type="kpi",title="Scoped widget"))
+    db.flush()
+    cleanup=install_scope(db,actor,1,{"analytics":{"enabled":True,"scope":scope,"actions":["view","create","edit","delete"],"permissions":[]}})
+    try:
+        created=AnalyticsDashboard(name="Managed dashboard",owner_id=actor.id);db.add(created);db.flush()
+        from app.apps.analytics.models import AnalyticsReport
+        report=AnalyticsReport(name="Managed report",owner_id=actor.id,module_name="crm",data_source_json={"table":"crm_deals"});db.add(report);db.flush()
+        assert [row.id for row in db.query(AnalyticsDashboard).order_by(AnalyticsDashboard.id).all()]==[parents[0],created.id]
+        assert [row.dashboard_id for row in db.query(AnalyticsDashboardWidget).all()]==[parents[0]]
+        db.add(AnalyticsDashboardWidget(dashboard_id=parents[0],widget_type="kpi",title="Authorized widget"));db.flush()
+        db.add(AnalyticsDashboardWidget(dashboard_id=parents[1],widget_type="kpi",title="Foreign widget"))
+        with pytest.raises(HTTPException) as error:db.flush()
+        assert error.value.status_code==403
+    finally:cleanup();db.rollback()
+
+
+def test_calculated_payroll_components_inherit_record_run_and_employee_scope(db,superuser_headers):
+    from datetime import date
+    from app.models.user import User
+    from app.models.company import Branch
+    from app.models.employee import Employee
+    from app.models.payroll import PayrollRun,PayrollRecord,PayrollComponent
+    from app.access.scope import install_scope
+    actor=db.query(User).first();branch=db.query(Branch).filter_by(company_id=1).first()
+    employee=Employee(employee_id="COMPONENT-SCOPE",first_name="Scoped",last_name="Payroll",date_of_joining=date.today(),branch_id=branch.id,user_id=actor.id);db.add(employee);db.flush()
+    records=[]
+    for company in (1,2):
+        run=PayrollRun(month=11,year=2026,company_id=company);db.add(run);db.flush()
+        record=PayrollRecord(payroll_run_id=run.id,employee_id=employee.id);db.add(record);db.flush();records.append(record.id)
+        db.add(PayrollComponent(record_id=record.id,component_name="Basic",amount=100))
+    db.flush()
+    cleanup=install_scope(db,actor,1,{"hrms":{"enabled":True,"scope":"organization","actions":["view","create","edit"],"permissions":[]}})
+    try:
+        assert [row.record_id for row in db.query(PayrollComponent).all()]==[records[0]]
+        checks=[];original_query=db.query
+        def track_parent(*entities,**kwargs):
+            if len(entities)==1 and entities[0] is PayrollRecord.id:checks.append(True)
+            return original_query(*entities,**kwargs)
+        db.query=track_parent
+        try:
+            db.add_all([PayrollComponent(record_id=records[0],component_name="Allowance "+str(index),amount=10) for index in range(12)]);db.flush()
+            assert len(checks)==1
+        finally:db.query=original_query
+        db.add(PayrollComponent(record_id=records[1],component_name="Foreign",amount=10))
+        with pytest.raises(HTTPException) as error:db.flush()
+        assert error.value.status_code==403
+    finally:cleanup();db.rollback()
+
+
+def test_attendance_month_lock_actor_stamps_do_not_replace_tenant_ownership(db,superuser_headers):
+    from app.models.user import User
+    from app.models.attendance import AttendanceMonthLock
+    from app.models.security_boundary import SecurityResourceOwnership
+    from app.core.tenant_boundary import legacy_root
+    from app.access.scope import install_scope
+    actor=db.query(User).first();locks=[]
+    assert legacy_root(AttendanceMonthLock)
+    for company in (1,2):
+        lock=AttendanceMonthLock(month=11,year=2026,locked_by=actor.id);db.add(lock);db.flush();locks.append(lock.id)
+        db.query(SecurityResourceOwnership).filter_by(resource_table="attendance_month_locks",resource_id=lock.id).update({"company_id":company})
+    db.flush()
+    cleanup=install_scope(db,actor,1,{"hrms":{"enabled":True,"scope":"organization","actions":["view","edit"],"permissions":[]}})
+    try:
+        assert [row.id for row in db.query(AttendanceMonthLock).all()]==[locks[0]]
+        own=db.query(AttendanceMonthLock).first();own.status="Unlocked";own.unlocked_by=actor.id;db.flush()
+        assert db.query(AttendanceMonthLock).filter_by(id=locks[1]).first() is None
+    finally:cleanup();db.rollback()
+
+
+def test_chat_messages_inherit_conversation_workspace_tenant(db,superuser_headers):
+    from app.models.user import User
+    from app.apps.project_management.models import PMSWorkspace
+    from app.apps.project_management.chat_models import ChatConversation,ChatMessage
+    from app.access.scope import install_scope
+    actor=db.query(User).first();parents=[]
+    for company in (1,2):
+        workspace=PMSWorkspace(name="Scoped chat workspace",organization_id=company);db.add(workspace);db.flush()
+        conversation=ChatConversation(workspace_id=workspace.id,key="scoped-chat-"+str(company),kind="channel",owner_id=actor.id);db.add(conversation);db.flush();parents.append(conversation.id)
+        db.add(ChatMessage(conversation_id=conversation.id,author_id=actor.id,client_id="fixture",body="Private synthetic message"))
+    db.flush()
+    cleanup=install_scope(db,actor,1,{"project_management":{"enabled":True,"scope":"organization","actions":["view","create","edit","delete"],"permissions":[]}})
+    try:
+        assert [row.conversation_id for row in db.query(ChatMessage).all()]==[parents[0]]
+        db.add(ChatMessage(conversation_id=parents[0],author_id=actor.id,client_id="own",body="Authorized message"));db.flush()
+        db.add(ChatMessage(conversation_id=parents[1],author_id=actor.id,client_id="foreign",body="Denied message"))
+        with pytest.raises(HTTPException) as error:db.flush()
+        assert error.value.status_code==403
+    finally:cleanup();db.rollback()
+
+
+def test_hr_timesheet_entries_inherit_timesheet_project_and_employee_tenant(db,superuser_headers):
+    from datetime import date
+    from app.models.user import User
+    from app.models.employee import Employee
+    from app.models.company import Branch
+    from app.models.timesheet import Project,Timesheet,TimesheetEntry
+    from app.access.scope import install_scope
+    actor=db.query(User).first();branch=db.query(Branch).filter_by(company_id=1).first()
+    employee=Employee(employee_id="ENTRY-SCOPE",first_name="Scoped",last_name="Timesheet",date_of_joining=date.today(),branch_id=branch.id,user_id=actor.id);db.add(employee);db.flush();parents=[]
+    for company in (1,2):
+        project=Project(code="ENTRY-SCOPE-"+str(company),name="Scoped project",organization_id=company);db.add(project);db.flush()
+        sheet=Timesheet(employee_id=employee.id,project_id=project.id,period_start=date(2026,11,2),period_end=date(2026,11,8));db.add(sheet);db.flush();parents.append(sheet.id)
+        db.add(TimesheetEntry(timesheet_id=sheet.id,work_date=date(2026,11,8),hours=1))
+    db.flush()
+    cleanup=install_scope(db,actor,1,{"hrms":{"enabled":True,"scope":"organization","actions":["view","create","edit","approve"],"permissions":[]}})
+    try:
+        assert [row.timesheet_id for row in db.query(TimesheetEntry).all()]==[parents[0]]
+        db.add(TimesheetEntry(timesheet_id=parents[0],work_date=date(2026,11,8),hours=2));db.flush()
+        db.add(TimesheetEntry(timesheet_id=parents[1],work_date=date(2026,11,8),hours=2))
+        with pytest.raises(HTTPException) as error:db.flush()
+        assert error.value.status_code==403
+    finally:cleanup();db.rollback()
+
+
+@pytest.mark.parametrize("suffix,expected",[("presence","view"),("preferences","view"),("mute","view"),("read","view"),("draft","create"),("messages/7/saved","view"),("messages/7/reactions/thumbs-up","create"),("messages/7/pin","edit")])
+@pytest.mark.parametrize("namespace",["collaboration","project-management"])
+def test_chat_personal_state_and_authored_content_actions_are_distinct(namespace,suffix,expected):
+    assert action_for(request(f"/api/v1/{namespace}/workspaces/1/chat/conversations/2/{suffix}","PUT"))==expected
+
+
+@pytest.mark.parametrize("module",["project_management","crm","hrms","srm","fam"])
+@pytest.mark.parametrize("allowed",["create","edit","delete"])
+def test_shared_chat_requires_specific_managed_action_in_business_module(module,allowed):
+    from app.shared.communication.gateway import require_communication_action
+    actor=SimpleNamespace(is_superuser=False,_suite_grants={module:{"enabled":True,"actions":["view",allowed]}})
+    require_communication_action(actor,"view")
+    require_communication_action(actor,allowed)
+    for denied in {"create","edit","delete"}-{allowed}:
+        with pytest.raises(HTTPException) as error:require_communication_action(actor,denied)
+        assert error.value.status_code==403
+
+
+@pytest.mark.parametrize("grants",[{}, {"crm":{"enabled":False,"actions":["view","create"]}}, {"ai":{"enabled":True,"actions":["view","create"]}}])
+def test_shared_chat_does_not_accept_disabled_or_unrelated_grants(grants):
+    from app.shared.communication.gateway import require_communication_action
+    with pytest.raises(HTTPException):require_communication_action(SimpleNamespace(is_superuser=False,_suite_grants=grants),"create")

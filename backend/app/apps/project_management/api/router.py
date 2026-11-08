@@ -83,6 +83,12 @@ from ..management import router as management_router
 router.include_router(management_router)
 from ..workflow_schemes import router as workflow_schemes_router
 router.include_router(workflow_schemes_router)
+from ..scheduling import router as scheduling_router
+router.include_router(scheduling_router)
+from ..external_queue import router as external_queue_router
+router.include_router(external_queue_router)
+from app.services.domain_report_delivery import router_for as report_delivery_router
+router.include_router(report_delivery_router("pms"), prefix="/report-delivery")
 from ..transition_approvals import router as transition_approvals_router
 router.include_router(transition_approvals_router)
 from ..recovery import router as recovery_router
@@ -1749,7 +1755,7 @@ def _upsert_sprint_action_items(
     return created_items
 
 
-def _sync_task_planning_links(db: Session, project_id: int, task_data: dict) -> None:
+def _sync_task_planning_links(db: Session, project_id: int, task_data: dict, actor: User | None = None) -> None:
     """Validate normalized planning links and mirror labels for existing UI fields."""
     project = db.get(PMSProject, project_id)
     if task_data.get("assignee_user_ids") is not None:
@@ -1763,12 +1769,18 @@ def _sync_task_planning_links(db: Session, project_id: int, task_data: dict) -> 
     for user_id in task_data.get("assignee_user_ids", []):
         from ..access import module_identity_allowed
         assignee = _project_user_query(db, project).filter(User.id == user_id).first()
+        if not assignee and actor and user_id == actor.id:
+            from ..task_studio import can_self_assign
+            if can_self_assign(db, project, actor):
+                assignee = actor
         if not assignee or not module_identity_allowed(db, assignee, project.organization_id or 1):
             raise HTTPException(422, "Every assignee must be an active project collaborator")
     if project and project.workspace_id and task_data.get("assignee_user_id"):
         membership = db.query(PMSWorkspaceMember).filter_by(workspace_id=project.workspace_id, user_id=task_data["assignee_user_id"]).first()
         if not membership or membership.role == "Guest":
-            raise HTTPException(422, "Assignee must be an active workspace collaborator")
+            from ..task_studio import can_self_assign
+            if not (actor and task_data["assignee_user_id"] == actor.id and can_self_assign(db, project, actor)):
+                raise HTTPException(422, "Assignee must be an active workspace collaborator")
     if task_data.get("epic_id"):
         epic = db.query(PMSEpic).filter(
             PMSEpic.id == task_data["epic_id"],
@@ -2194,6 +2206,7 @@ def list_projects(
         teams.setdefault(member.project_id, []).append({"id": person.id, "name": _user_display_name(person) or person.email, "role": member.role})
     owners = {u.id: u for u in db.query(User).options(*people_options).filter(User.id.in_([p.owner_user_id or p.manager_user_id for p in projects]))} if ids else {}
     clients = {c.id: c for c in db.query(PMSClient).filter(PMSClient.id.in_([p.client_id for p in projects]))} if ids else {}
+    workspace_capabilities = {}
     for project in projects:
         stats = task_stats.get(project.id)
         milestones = milestone_stats.get(project.id)
@@ -2211,9 +2224,19 @@ def list_projects(
         project.client_name = client.company_name or client.name if client else None
         project.team = teams.get(project.id, [])
 
-        project.can_manage_tasks = can_access_project(db, project, current_user, "manage_tasks")
-        project.can_upload_files = can_access_project(db, project, current_user, "upload")
-        project.can_edit_project = can_access_project(db, project, current_user, "edit_project")
+        # Workspace projects share membership checks. Reuse read-only flags only
+        # within this response; legacy projects retain their individual checks.
+        key = (project.organization_id, project.workspace_id) if project.workspace_id else None
+        capabilities = workspace_capabilities.get(key) if key else None
+        if capabilities is None:
+            capabilities = {action: can_access_project(db, project, current_user, action)
+                            for action in ("manage_tasks", "upload", "log_time", "edit_project")}
+            if key:
+                workspace_capabilities[key] = capabilities
+        project.can_manage_tasks = capabilities["manage_tasks"]
+        project.can_upload_files = capabilities["upload"]
+        project.can_log_time = capabilities["log_time"]
+        project.can_edit_project = capabilities["edit_project"]
     return projects
 
 
@@ -2227,6 +2250,7 @@ def get_project(
     project = get_project_for_action(db, project_id, current_user)
     payload = _model_payload(project)
     payload["can_manage_tasks"] = can_access_project(db, project, current_user, "manage_tasks")
+    payload["can_log_time"] = can_access_project(db, project, current_user, "log_time")
     payload["can_edit_project"] = can_access_project(db, project, current_user, "edit_project")
     payload["can_manage_members"] = can_access_project(db, project, current_user, "manage_members")
     try:
@@ -2307,6 +2331,7 @@ def update_project(
     )
     project.can_manage_tasks = can_access_project(db, project, current_user, "manage_tasks")
     project.can_upload_files = can_access_project(db, project, current_user, "upload")
+    project.can_log_time = can_access_project(db, project, current_user, "log_time")
     project.can_edit_project = can_access_project(db, project, current_user, "edit_project")
     return project
 
@@ -3020,7 +3045,7 @@ def create_task_operation(
         task_data["epic_id"] = parent_task.epic_id
     if parent_task and task_data.get("work_type") in (None, "Task"):
         task_data["work_type"] = "Sub-task"
-    _sync_task_planning_links(db, project_id, task_data)
+    _sync_task_planning_links(db, project_id, task_data, current_user)
     if not task_data.get("column_id"):
         board = db.query(PMSBoard).filter(PMSBoard.project_id == project_id).first()
         if not board:
@@ -3162,6 +3187,49 @@ def list_tasks(
     tasks = query.order_by(PMSTask.rank.is_(None), PMSTask.rank, PMSTask.position, PMSTask.id).offset(skip).limit(limit).all()
     _attach_subtask_counts(db, tasks)
     return tasks
+
+
+@router.get("/dashboard-workflow")
+def dashboard_workflow(
+    workspaceId: int | None = Query(None, gt=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Bounded dashboard projection; do not repeatedly load full navigator analytics."""
+    from ..models import PMSTaskGroupTarget
+    accessible = accessible_project_query(db, current_user).with_entities(PMSProject.id)
+    query = db.query(
+        PMSTask.id, PMSTask.project_id, PMSTask.title, PMSTask.status,
+        PMSTask.priority, PMSTask.due_date, PMSTask.estimated_hours,
+        PMSTask.assignee_user_id, PMSProject.name.label("project_name"),
+    ).join(PMSProject, PMSProject.id == PMSTask.project_id).filter(
+        PMSTask.deleted_at.is_(None), PMSTask.project_id.in_(accessible),
+    )
+    if workspaceId:
+        query = query.filter(PMSProject.workspace_id == workspaceId)
+    total = query.order_by(None).count()
+    items = [dict(item._mapping) for item in query.order_by(
+        case((PMSTask.status.in_(CLOSED_STATUSES), 1), else_=0),
+        PMSTask.due_date.asc().nulls_last(), PMSTask.id,
+    ).limit(1000).all()]
+    ids = [item["id"] for item in items]
+    assignments = db.query(PMSTaskAssignee).filter(PMSTaskAssignee.task_id.in_(ids)).all() if ids else []
+    user_ids = {a.user_id for a in assignments} | {item["assignee_user_id"] for item in items if item["assignee_user_id"]}
+    users = {u.id: u for u in db.query(User).options(joinedload(User.person)).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    groups = db.query(PMSTaskGroupTarget).filter(PMSTaskGroupTarget.task_id.in_(ids)).all() if ids else []
+    assignments_by_task, groups_by_task = {}, {}
+    for assignment in assignments:
+        assignments_by_task.setdefault(assignment.task_id, []).append(assignment.user_id)
+    for group in groups:
+        groups_by_task.setdefault(group.task_id, []).append({"id": group.target_id, "kind": group.kind, "name": group.name})
+    for item in items:
+        owners = assignments_by_task.get(item["id"], [])
+        if not owners and item["assignee_user_id"]:
+            owners = [item["assignee_user_id"]]
+        item["assignees"] = [{"id": uid, "name": _user_display_name(users.get(uid)) or f"Person #{uid}"} for uid in owners]
+        item["assignee_name"] = _user_display_name(users.get(item["assignee_user_id"]))
+        item["group_targets"] = groups_by_task.get(item["id"], [])
+    return {"items": items, "total": total}
 
 
 @router.get("/tasks")
@@ -3643,7 +3711,7 @@ def bulk_update_tasks(
             db.refresh(task)
             if task.deleted_at or task.project_id != project_id:
                 raise HTTPException(409, "A selected task changed project or was deleted. Reload before updating")
-        _sync_task_planning_links(db, project_id, update_data)
+        _sync_task_planning_links(db, project_id, update_data, current_user)
         if update_data.get("sprint_id"):
             sprint = db.query(PMSSprint).filter(PMSSprint.id == update_data["sprint_id"], PMSSprint.project_id == project_id).first()
             if not sprint:
@@ -3983,7 +4051,7 @@ def update_task_operation(task_id, task_in, db, current_user, *, commit=True):
             raise HTTPException(status_code=400, detail="Parent task must be in the same project")
     if "status" in update_data and not update_data["status"]:
         raise HTTPException(status_code=422, detail="Task status cannot be empty")
-    _sync_task_planning_links(db, project.id, update_data)
+    _sync_task_planning_links(db, project.id, update_data, current_user)
     validate_recurrence(update_data.get("recurrence_rule", task.recurrence_rule), update_data.get("due_date", task.due_date), update_data.get("recurrence_until", task.recurrence_until), update_data.get("recurrence_interval", task.recurrence_interval))
     start = update_data.get("start_date", task.start_date)
     due = update_data.get("due_date", task.due_date)
@@ -4591,7 +4659,7 @@ def create_task_subtask(
     """Create a child sub-task under an existing task."""
     parent, project = get_task_project_for_action(db, task_id, current_user, "manage_tasks")
     assignment = {"assignee_user_ids": subtask_in.assignee_user_ids} if subtask_in.assignee_user_ids is not None else {"assignee_user_id": subtask_in.assignee_user_id}
-    _sync_task_planning_links(db, project.id, assignment)
+    _sync_task_planning_links(db, project.id, assignment, current_user)
     if not subtask_in.title.strip():
         raise HTTPException(status_code=400, detail="Subtask title is required")
     if subtask_in.story_points is not None and subtask_in.story_points < 0:
@@ -6622,6 +6690,14 @@ def delete_time_log(
     return {"message": "Time log deleted"}
 
 
+def _mark_timesheet_locks(db: Session, logs):
+    sheet_ids = {log.timesheet_id for log in logs if log.timesheet_id}
+    states = dict(db.query(PMSTimesheet.id, PMSTimesheet.status).filter(PMSTimesheet.id.in_(sheet_ids)).all()) if sheet_ids else {}
+    for log in logs:
+        log.timesheet_locked = bool(log.timesheet_id and states.get(log.timesheet_id) not in {"draft", "rejected"})
+    return logs
+
+
 @router.get("/time-logs", response_model=list[PMSTimeLogResponse])
 def list_time_logs(
     skip: int = Query(0),
@@ -6644,7 +6720,7 @@ def list_time_logs(
         query = query.filter(PMSTimeLog.user_id == user_id)
     
     timelogs = query.offset(skip).limit(limit).all()
-    return timelogs
+    return _mark_timesheet_locks(db, timelogs)
 
 
 # ============= SAVED FILTERS, ACTIVITY, REPORTS =============

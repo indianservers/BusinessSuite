@@ -1,3 +1,4 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import {useModuleAction} from "@/hooks/use-module-action";
 import {api} from "@/services/api";
 import { useCreateIntent } from "@/hooks/use-create-intent";
@@ -215,7 +216,7 @@ function SectionFrame({ title, description, action, onAction, query, children, a
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div><h2 className="text-lg font-semibold">{title}</h2><p className="text-sm text-muted-foreground">{description}</p></div>
-        <div className="flex flex-wrap gap-2">{children}{action ? <Button disabled={!canCreate} onClick={onAction}>{action}</Button> : null}</div>
+        <div className="flex flex-wrap gap-2">{children}{action ? action === "Create Schedule" ? <Button disabled={!canCreate} onClick={onAction}>{action}</Button> : <SmartCreateAction title={action} description={description}><Button disabled={!canCreate} onClick={onAction}>{action}</Button></SmartCreateAction> : null}</div>
       </div>
       {query.isLoading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading analytics data...</div> : null}
       {query.isError ? <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">Analytics data could not be loaded.</div> : null}

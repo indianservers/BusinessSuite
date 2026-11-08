@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -189,7 +190,7 @@ export default function FnFSettlementPage() {
 
       <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
         <div className="space-y-5">
-          <Card>
+          <SmartCreateSection title="Generate settlement" size="large"><Card>
             <CardHeader>
               <CardTitle className="text-base">Generate settlement</CardTitle>
               <CardDescription>Pull salary, leave, loans, reimbursements, and clearance context.</CardDescription>
@@ -231,7 +232,7 @@ export default function FnFSettlementPage() {
                 <Plus className="h-4 w-4" /> Generate settlement
               </Button>
             </CardContent>
-          </Card>
+          </Card></SmartCreateSection>
 
           <Card>
             <CardHeader>

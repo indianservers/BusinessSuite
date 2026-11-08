@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn, formatDate, statusColor } from "@/lib/utils";
-import { pmsUsersAPI, projectsAPI, risksAPI, tasksAPI } from "../services/api";
+import { pmsUsersAPI, listAllProjects, risksAPI, tasksAPI } from "../services/api";
 import type { CreateRiskInput, PMSMentionUser, PMSProject, PMSRisk, PMSTask } from "../types";
 
 type Filters = {
@@ -77,7 +77,7 @@ export default function RisksPage() {
 
   useEffect(() => {
     Promise.all([
-      projectsAPI.list(),
+      listAllProjects(),
       pmsUsersAPI.search({ q: "", limit: 25 }),
     ])
       .then(([projectItems, userItems]) => {
@@ -124,6 +124,7 @@ export default function RisksPage() {
   };
 
   const startEdit = (risk: PMSRisk) => {
+    if (saving) return;
     setEditing(risk);
     setShowForm(true);
     setForm({
@@ -183,7 +184,7 @@ export default function RisksPage() {
           <h1 className="page-title">Risk Register</h1>
           <p className="page-description">Track project-level probability, impact, mitigation plans, owners, and delivery health risk.</p>
         </div>
-        <Button disabled={!permits("create")} onClick={() => setShowForm(true)}><Plus className="h-4 w-4" />Add risk</Button>
+        <Button disabled={saving || !permits("create")} onClick={() => setShowForm(true)}><Plus className="h-4 w-4" />Add risk</Button>
       </div>
 
       <Card>
@@ -223,7 +224,7 @@ export default function RisksPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>{editing ? "Edit risk" : "Add risk"}</CardTitle>
-            <Button aria-label="Close risk form" variant="ghost" size="sm" onClick={resetForm}><X className="h-4 w-4" /></Button>
+            <Button aria-label="Close risk form" disabled={saving} variant="ghost" size="sm" onClick={resetForm}><X className="h-4 w-4" /></Button>
           </CardHeader>
           <CardContent>
             <CompactForm className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
@@ -287,7 +288,7 @@ export default function RisksPage() {
               </Field>
               <div className="flex gap-2 lg:col-span-2">
                 <Button type="submit" disabled={saving || !permits(editing?"edit":"create") || !form.title.trim() || !form.project_id}>{saving ? "Saving..." : editing ? "Update risk" : "Create risk"}</Button>
-                <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
+                <Button type="button" variant="outline" disabled={saving} onClick={resetForm}>Cancel</Button>
               </div>
             </CompactForm>
           </CardContent>
@@ -352,8 +353,8 @@ export default function RisksPage() {
                         </td>
                         <td className="p-3">
                           <div className="flex justify-end gap-1">
-                            <Button disabled={!permits("edit")} aria-label={`Edit ${risk.title}`} variant="ghost" size="sm" onClick={() => startEdit(risk)}><Edit2 className="h-4 w-4" /></Button>
-                            <Button disabled={!permits("delete")} aria-label={`Delete ${risk.title}`} variant="ghost" size="sm" onClick={() => remove(risk)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
+                            <Button disabled={saving || !permits("edit")} aria-label={`Edit ${risk.title}`} variant="ghost" size="sm" onClick={() => startEdit(risk)}><Edit2 className="h-4 w-4" /></Button>
+                            <Button disabled={saving || !permits("delete")} aria-label={`Delete ${risk.title}`} variant="ghost" size="sm" onClick={() => remove(risk)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
                           </div>
                         </td>
                       </tr>

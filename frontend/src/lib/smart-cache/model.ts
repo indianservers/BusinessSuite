@@ -19,6 +19,7 @@ export function policy(url: string) {
   if (!match) return undefined;
   const resource = match.slice(1).find(Boolean)!;
   const module = path.startsWith('/project-management/') ? 'pms' : path.startsWith('/crm/') ? 'crm' : path.startsWith('/srm/') ? 'sales' : (path.startsWith('/catalog/') || path.startsWith('/profiles/') || path.startsWith('/master-data/')) ? 'shared' : 'hrms';
+  if (path.startsWith("/leave/")) return { module, entity: "leave", path };
   // Aliases share invalidation; projections remain separate to preserve endpoint field permissions.
   const entity = ({ 'company-directory/query':'customer', 'contact-directory': 'contact', directory: 'person', 'people-workspace/people': 'person', 'people-workspace/groups': 'team', 'lead-management/leads': 'lead', 'deal-workspace/query': 'deal', 'deal-workspace/grid/query': 'deal', items: 'catalog', 'customer-360': 'customer', 'my-requests': 'leave', 'management/batches': 'batch', 'learning/assignments': 'assignment', companies: 'customer', accounts: 'customer', customers: 'customer', employees: 'employee', 'employees/directory': 'employee' } as Record<string, string>)[resource] || resource.replace(/s$/, '');
   return { module, entity, path };
@@ -80,4 +81,13 @@ export function canonicalView(url: string): string {
   const [path, query] = url.split('?');
   const params = new URLSearchParams(query); params.sort();
   return `${path.replace(/\/$/, '')}?${params}`;
+}
+
+/** Maximum revalidation interval by resource; writes still require server confirmation. */
+export function refreshInterval(url:string):number {
+ if(url.startsWith("/attendance/"))return 15000;
+ const entity=policy(url)?.entity;
+ if(entity&&["quote","quotation","sales-order","sale","leave","attendance"].includes(entity))return 15000;
+ if(entity&&["task","project","deal","lead"].includes(entity))return 30000;
+ return CHECK_INTERVAL;
 }

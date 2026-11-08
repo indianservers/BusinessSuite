@@ -91,7 +91,10 @@ def pms_automations(response: Response, authorization: str = Header(""), db=Depe
     if not is_app_enabled("project_management"):
         raise HTTPException(404, "PMS is unavailable")
     from app.apps.project_management.automation_schedules import dispatch_due
-    return dispatch_due(db)
+    result = dispatch_due(db)
+    from app.apps.project_management.external_queue import dispatch
+    result["external_deliveries"] = dispatch(db)
+    return result
 
 
 @router.get("/internal/jobs")

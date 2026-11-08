@@ -1,3 +1,6 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -87,7 +90,7 @@ function APIKeys() {
   const query = useQuery({ queryKey: ["api-keys"], queryFn: saasApi.apiKeys });
   const [created, setCreated] = useState<string | null>(null);
   const create = useMutation({ mutationFn: () => saasApi.createApiKey({ name: "Integration key", scopes: ["crm.read", "srm.read"] }), onSuccess: (data) => { setCreated(data.api_key); qc.invalidateQueries({ queryKey: ["api-keys"] }); } });
-  return <div className="space-y-4"><Button onClick={() => create.mutate()}>Create scoped API key</Button>{created ? <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">One-time key: {created}</div> : null}<RecordList title="API keys" items={query.data?.items || []} /></div>;
+  return <div className="space-y-4"><SmartCreateAction title="Create scoped API key"><Button onClick={() => create.mutate()}>Create scoped API key</Button></SmartCreateAction>{created ? <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">One-time key: {created}</div> : null}<RecordList title="API keys" items={query.data?.items || []} /></div>;
 }
 
 function Webhooks() {
@@ -95,7 +98,7 @@ function Webhooks() {
   const query = useQuery({ queryKey: ["webhooks"], queryFn: saasApi.webhooks });
   const create = useMutation({ mutationFn: () => saasApi.createWebhook({ name: "CRM event webhook", target_url: "https://example.com/business-suite/webhook", events: ["lead.created"], secret: "secret" }), onSuccess: () => qc.invalidateQueries({ queryKey: ["webhooks"] }) });
   const test = useMutation({ mutationFn: (id: number) => saasApi.testWebhook(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["webhooks"] }) });
-  return <div className="space-y-4"><Button onClick={() => create.mutate()}>Create HTTPS webhook</Button><RecordList title="Webhooks" items={query.data?.items || []} action={(item) => <Button size="sm" variant="outline" onClick={() => test.mutate(Number(item.id))}>Test</Button>} /></div>;
+  return <div className="space-y-4"><SmartCreateAction title="Create HTTPS webhook"><Button onClick={() => create.mutate()}>Create HTTPS webhook</Button></SmartCreateAction><RecordList title="Webhooks" items={query.data?.items || []} action={(item) => <Button size="sm" variant="outline" onClick={() => test.mutate(Number(item.id))}>Test</Button>} /></div>;
 }
 
 function Marketplace() {
@@ -103,7 +106,7 @@ function Marketplace() {
   const query = useQuery({ queryKey: ["marketplace-apps"], queryFn: saasApi.marketplaceApps });
   const create = useMutation({ mutationFn: () => saasApi.createMarketplaceApp({ name: "Internal CRM Extension", category: "internal", description: "Internal extension placeholder" }), onSuccess: () => qc.invalidateQueries({ queryKey: ["marketplace-apps"] }) });
   const install = useMutation({ mutationFn: (id: number) => saasApi.installMarketplaceApp(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["installed-apps"] }) });
-  return <div className="space-y-4"><div className="flex items-center gap-2"><Button onClick={() => create.mutate()}>Create internal app</Button><Badge variant="outline">Internal extensions only</Badge></div><RecordList title="Marketplace apps" items={query.data?.items || []} action={(item) => <Button size="sm" variant="outline" onClick={() => install.mutate(Number(item.id))}>Install</Button>} /></div>;
+  return <div className="space-y-4"><div className="flex items-center gap-2"><SmartCreateAction title="Create internal app"><Button onClick={() => create.mutate()}>Create internal app</Button></SmartCreateAction><Badge variant="outline">Internal extensions only</Badge></div><RecordList title="Marketplace apps" items={query.data?.items || []} action={(item) => <Button size="sm" variant="outline" onClick={() => install.mutate(Number(item.id))}>Install</Button>} /></div>;
 }
 
 function Sandbox() {
@@ -111,7 +114,7 @@ function Sandbox() {
   const query = useQuery({ queryKey: ["sandboxes"], queryFn: saasApi.sandboxes });
   const create = useMutation({ mutationFn: () => saasApi.createSandbox({ name: "UAT Sandbox", copy_sample_data: false }), onSuccess: () => qc.invalidateQueries({ queryKey: ["sandboxes"] }) });
   const refresh = useMutation({ mutationFn: (id: number) => saasApi.refreshSandbox(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["sandboxes"] }) });
-  return <div className="space-y-4"><Button onClick={() => create.mutate()}>Create sandbox request</Button><RecordList title="Sandboxes" items={query.data?.items || []} action={(item) => <Button size="sm" variant="outline" onClick={() => refresh.mutate(Number(item.id))}>Refresh</Button>} /></div>;
+  return <div className="space-y-4"><SmartCreateAction title="Create sandbox request"><Button onClick={() => create.mutate()}>Create sandbox request</Button></SmartCreateAction><RecordList title="Sandboxes" items={query.data?.items || []} action={(item) => <Button size="sm" variant="outline" onClick={() => refresh.mutate(Number(item.id))}>Refresh</Button>} /></div>;
 }
 
 function CompanySettings() {
@@ -145,5 +148,5 @@ function ListPanel({ title, queryKey, queryFn }: { title: string; queryKey: stri
 }
 
 function RecordList({ title, items, action }: { title: string; items: SaaSRecord[]; action?: (item: SaaSRecord) => ReactNode }) {
-  return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent>{items.length ? <div className="grid gap-3 md:grid-cols-2">{items.map((item, index) => <div key={item.id || index} className="rounded-md border p-3"><div className="flex items-center justify-between gap-2"><p className="font-medium">{item.name || item.company_name || item.metric_key || item.feature_key || item.key_prefix || `Record ${item.id || index + 1}`}</p>{item.status ? <Badge variant="outline">{item.status}</Badge> : null}</div><pre className="mt-2 max-h-36 overflow-auto rounded bg-muted p-2 text-xs">{JSON.stringify(item, null, 2)}</pre>{action ? <div className="mt-2">{action(item)}</div> : null}</div>)}</div> : <p className="text-sm text-muted-foreground">No records yet.</p>}</CardContent></Card>;
+  return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent>{items.length ? <div className="grid gap-3 md:grid-cols-2">{<GroupedRecords scope="apps/saas/SaaSWorkspacePage:records-1" items={(items) || []} fields={standardRecordGroups((items) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item, index) => <div key={item.id || index} className="rounded-md border p-3"><div className="flex items-center justify-between gap-2"><p className="font-medium">{item.name || item.company_name || item.metric_key || item.feature_key || item.key_prefix || `Record ${item.id || index + 1}`}</p>{item.status ? <Badge variant="outline">{item.status}</Badge> : null}</div><pre className="mt-2 max-h-36 overflow-auto rounded bg-muted p-2 text-xs">{JSON.stringify(item, null, 2)}</pre>{action ? <div className="mt-2">{action(item)}</div> : null}</div>}/>}</div> : <p className="text-sm text-muted-foreground">No records yet.</p>}</CardContent></Card>;
 }

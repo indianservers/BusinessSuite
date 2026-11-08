@@ -100,6 +100,9 @@ def _deliver_authorized(db, row, *, notification=None):
             recipient, subject, body = row.recipient, row.subject, row.body
             allowed = user_can_receive(db, row.recipient_user_id, recipient, row.organization_id)
             allowed = allowed and branch_recipient_allowed(db, row, row.recipient_user_id, row.organization_id)
+            if row.event_key.startswith("domain-report:"):
+                from app.services.domain_report_delivery import outbox_allowed
+                allowed = allowed and outbox_allowed(db, row)
             if row.event_key.startswith("workspace-invite:"):
                 from app.apps.project_management.models import PMSWorkspaceInvitation
                 invitation = db.query(PMSWorkspaceInvitation).filter_by(token_hash=row.event_key.split(":", 1)[1]).first()
@@ -249,6 +252,8 @@ def process_email(db, limit=25):
     deadline = time.monotonic() + 180
     from app.apps.communication.customer_service import process_customer_communications
     customer = process_customer_communications(db, limit)
+    from app.services.domain_report_delivery import dispatch as dispatch_reports
+    domain_reports = dispatch_reports(db)
     scheduled = prepare_scheduled_email(db, limit=5)
     engagement = prepare_engagement_email(db, limit=limit) if is_app_enabled("hrms") else 0
     reminders = enqueue_due_reminders(db, limit=limit)
@@ -256,6 +261,7 @@ def process_email(db, limit=25):
     result["reminders_queued"] = reminders
     result['customer_communications'] = customer
     result["scheduled"] = scheduled
+    result["report_delivery"] = domain_reports
     result["engagement_queued"] = engagement
     result["notifications"] = drain_notifications(db, limit, deadline=deadline)
     result["shared_notifications"] = drain_email(db, limit, deadline=deadline) if email.email_configured() else 0

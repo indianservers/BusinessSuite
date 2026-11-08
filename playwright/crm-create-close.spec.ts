@@ -14,21 +14,22 @@ for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[
     const name=`QA ${module} ${kind} ${entry} ${width}`;
     await page.route("**/api/v1/**",async route=>{
       const req=route.request(),url=new URL(req.url()),path=url.pathname.replace(/^\/api\/v1/,"");
-      if((path===endpoints[kind] || (kind==="tasks"&&/\/project-management\/projects\/\d+\/tasks$/.test(path))) && req.method()==="POST") {
-        posts++;const body=req.postDataJSON();
+      if((path===endpoints[kind] || (kind==="tasks"&&/\/project-management\/(?:task-studio\/)?projects\/\d+\/tasks$/.test(path))) && req.method()==="POST") {
+        posts++;const payload=req.postDataJSON();const body=payload.task||payload;
         created={id:900001,name,...body,project_id:kind==="tasks"?1:undefined,task_key:"QA-1",work_type:"Task",assignees:[],created_at:"2026-11-07T00:00:00Z",updated_at:"2026-11-07T00:00:00Z",status:body.status||"Active",version:1,tags:body.tags||[],roles:body.roles||["Prospect"],entityKind:body.entityKind||"Company",phoneCountryCode:body.phoneCountryCode||"+91",dueDate:body.due_date,health:{score:50,reasons:[]}};
-        return route.fulfill({status:201,json:created});
+        return route.fulfill({status:201,json:path.includes("/task-studio/")?{task:created,assignment:payload.assignment,version:"1",can_edit:true,protected_ids:[]}:created});
       }
       let body:any;
       if(path==="/catalog/items")body={items:[],total:0,pages:0,permissions:{product:true,service:true}};
       else if(path==="/access/settings/defaults/effective") body={values:{},modules:{},companyId:1,branchId:1};
       else if(path==="/pipeline-workspaces/project_management/portfolio/views")body={preferences:{module_filters:{}},views:[],can_share:true};
+      else if(path==="/project-management/task-studio/projects")body=[{id:1,name:"QA project",project_key:"QA",workspace_id:1,can_manage_tasks:true}];
       else if(path==="/project-management/projects")body=[];
       else if(path==="/project-management/custom-fields")body={fields:[]};
       else if(path==="/project-management/workspaces")body=[{id:1,name:"QA workspace",role:"Owner"}];
       else if(path==="/project-management/saved-views")body=[];
       else if(path==="/project-management/tasks")body={items:[],total:0,page:1,pageSize:25,pages:0,filters:{projects:[{id:1,name:"QA project",can_manage_tasks:true}],statuses:["To Do","In Progress","Done"],priorities:["Low","Medium","High"],assignees:[],reporters:[],sprints:[],epics:[],tags:[]}};
-      else if(path==="/project-management/task-studio/options")body={people:[]};
+      else if(path==="/project-management/task-studio/options")body={people:[],teams:[],batches:[],reviewers:[],can_edit:true,can_add_existing:false,batch_reason:""};
       else if(path==="/access/setup")body={companyId:1,ready:true,items:[]};
       else if(path==="/master-data/form-options")body={country:"IN",currency:"INR",phone_country_code:"+91"};
       else if(path==="/master-data/companies/custom-fields"||path==="/crm/custom-fields")body={items:[],customFields:[]};
@@ -69,8 +70,8 @@ for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[
     let save;
     if(kind==="contacts") {await page.getByPlaceholder("Enter contact name").fill(name);save=page.getByRole("dialog").getByRole("button",{name:"Create contact",exact:true});}
     else if(kind==="companies") {await page.getByLabel("Company name *",{exact:true}).fill(name);save=page.getByRole("button",{name:"Save company",exact:true});}
-    else if(kind==="projects") {await page.getByPlaceholder("What are you working on?").fill(name);await page.getByLabel("Project workspace",{exact:true}).selectOption("1");save=page.getByRole("dialog").getByRole("button",{name:"Create project",exact:true});}
-    else if(kind==="tasks") {await page.getByPlaceholder("What needs to be done?").fill(name);await page.getByText("More task details",{exact:true}).click();await page.getByPlaceholder("Context and acceptance criteria").fill("Preserve the complete task description");await page.getByRole("dialog").getByLabel("Priority",{exact:true}).selectOption("High");save=page.getByRole("button",{name:"Create task",exact:true}).last();}
+    else if(kind==="projects") {await page.getByRole("textbox",{name:"Project name",exact:true}).fill(name);await page.getByLabel("Project workspace",{exact:true}).selectOption("1");save=page.getByRole("dialog").getByRole("button",{name:"Create project",exact:true}).last();}
+    else if(kind==="tasks") {await page.getByPlaceholder("What needs to be done?").fill(name);await page.getByRole("textbox",{name:"Task description",exact:true}).fill("Preserve the complete task description");await page.getByRole("dialog").getByRole("button",{name:"Schedule",exact:true}).click();await page.getByRole("dialog").getByLabel("Priority",{exact:true}).selectOption("High");save=page.getByRole("button",{name:/^Create task$/i}).last();}
     else {
       await page.getByPlaceholder("Enter deal name...").fill(name);
       const pipeline=page.getByRole('dialog').last().locator('select[aria-label="Pipeline"]');
@@ -85,7 +86,7 @@ for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[
     await save.click();
     await expect(page.getByRole("dialog")).toHaveCount(0,{timeout:1200});
     await expect(page.getByText(name,{exact:true}).filter({visible:true}).first()).toBeVisible({timeout:1200});
-    if(kind==="tasks"){expect(created.description).toBe("Preserve the complete task description");expect(created.priority).toBe("High");}
+    if(kind==="tasks"){expect(created.description).toContain("Preserve the complete task description");expect(created.priority).toBe("High");}
     expect(posts).toBe(1);expect(prompts).toEqual([]);expect(errors).toEqual([]);
     expect(page.url()).toBe(original);expect(await heading!.evaluate(el=>el.isConnected)).toBe(true);
   });

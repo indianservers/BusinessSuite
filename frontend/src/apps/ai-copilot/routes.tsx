@@ -1,8 +1,9 @@
+import { lazyRoute } from "@/lib/lazy-route";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
-const AICopilotPage = React.lazy(() => import("./AICopilotPage"));
+const AICopilotPage = lazyRoute(() => import("./AICopilotPage"));
 
 export const aiCopilotRoutes: FrontendRoute[] = [
   { path: "ai/copilot", element: <AICopilotPage /> },

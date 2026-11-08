@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import SprintMoveBoard from "../components/SprintMoveBoard";
@@ -208,7 +209,7 @@ export default function SprintsPage() {
         <Metric icon={TrendingUp} label="Avg velocity" value={`${Math.round(velocity?.average_velocity_points || 0)} pts`} />
         <Metric icon={AlertTriangle} label="Over capacity" value={workload?.items.filter((item) => (item.load_percent || 0) > 100).length || 0} tone="text-red-600" />
       </div>
-      <Card>
+      <SmartCreateSection title={<>Create sprint</>} size="standard"><Card>
         <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
         <CardContent>
           <CompactForm onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_8rem_11rem_11rem_auto] md:items-end">
@@ -221,7 +222,7 @@ export default function SprintsPage() {
             <Button type="submit" disabled={creatingSprint}>{creatingSprint ? "Creating..." : "Create"}</Button>
           </CompactForm>
         </CardContent>
-      </Card>
+      </Card></SmartCreateSection>
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
         <Card>

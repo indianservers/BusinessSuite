@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -120,7 +122,7 @@ export default function BusinessOSAdminPage() {
       {view === "modules" ? (
         <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {modules.map((module) => (
+            {<GroupedRecords scope="apps/business-os/BusinessOSAdminPage:records-1" items={(modules) || []} fields={standardRecordGroups((modules) || [])} gridClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-3" renderItem={(module) => (
               <Card key={module.module_key}>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between gap-2 text-base">
@@ -135,7 +137,7 @@ export default function BusinessOSAdminPage() {
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+            )}/>}
           </div>
           <Card>
             <CardHeader><CardTitle className="text-base">Supported Combinations</CardTitle></CardHeader>
@@ -153,7 +155,7 @@ export default function BusinessOSAdminPage() {
 
       {view === "integrations" ? (
         <div className="grid gap-3">
-          {rules.map((rule) => (
+          {<GroupedRecords scope="apps/business-os/BusinessOSAdminPage:records-2" items={(rules) || []} fields={standardRecordGroups((rules) || [])} gridClassName="grid gap-3" renderItem={(rule) => (
             <Card key={rule.id}>
               <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -169,7 +171,7 @@ export default function BusinessOSAdminPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )}/>}
         </div>
       ) : null}
 
@@ -177,7 +179,7 @@ export default function BusinessOSAdminPage() {
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="h-4 w-4" />Lifecycle Evidence</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {events.length ? events.map((event) => (
+            {events.length ? <GroupedRecords scope="apps/business-os/BusinessOSAdminPage:records-3" items={(events) || []} fields={standardRecordGroups((events) || [])} gridClassName="space-y-3" renderItem={(event) => (
               <div key={event.id} className="flex gap-3 rounded-md border p-3 text-sm">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
                 <div>
@@ -185,7 +187,7 @@ export default function BusinessOSAdminPage() {
                   <div className="text-muted-foreground"><RichTextContent value={event.message || event.status}/></div>
                 </div>
               </div>
-            )) : <p className="text-sm text-muted-foreground">No lifecycle events selected. Module enable/disable actions will appear here.</p>}
+            )}/> : <p className="text-sm text-muted-foreground">No lifecycle events selected. Module enable/disable actions will appear here.</p>}
             <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground"><Link2 className="mr-2 inline h-4 w-4" />Entity lifecycle APIs are available for CRM, SRM inventory, PMS, and FAM links without showing fake records.</div>
           </CardContent>
         </Card>

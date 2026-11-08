@@ -86,7 +86,7 @@ export function ApprovalRequestCard({
   onOpen: () => void;
 }) {
   return (
-    <button className="ap-request-row" onClick={onOpen}>
+    <button data-priority-row data-priority={row.priority} className="ap-request-row" onClick={onOpen}>
       <span className="ap-avatar">
         {(row.requester_name || `User ${row.requester_user_id}`)
           .split(" ")
@@ -112,7 +112,7 @@ export function ApprovalRequestCard({
       >
         {row.status}
       </span>
-      <span className="ap-priority">{row.priority}</span>
+      <span data-priority-badge data-priority={row.priority} className="ap-priority">{row.priority}</span>
       <span className="ap-row-date">{formatDate(row.created_at)}</span>
       <ChevronRight size={16} />
     </button>
@@ -453,16 +453,19 @@ export function ApprovalDetailsDrawer({
   }, []);
   const dirtyFields = useRef(false);
   const pendingReads=useRef(new Set<string>());
+  const mutationPending=useRef(false), readGeneration=useRef(0);
+  const [mutating,setMutating]=useState(false);
   const currentRequest=useRef("");currentRequest.current=`${environment}:${id}`;
   const load = useCallback(() => {
     const key=`${environment}:${id}`;
-    if(pendingReads.current.has(key))return;
+    if(mutationPending.current||pendingReads.current.has(key))return;
+    const generation=readGeneration.current;
     pendingReads.current.add(key);
     api
       .get<Detail>(`/requests/${id}`, environment, {}, true)
       .then((r) => {
-        if(currentRequest.current!==key)return;
-        setRequest(r);
+        if(currentRequest.current!==key||generation!==readGeneration.current)return;
+        setRequest(previous=>previous?.id===r.id&&previous.state.revision>r.state.revision?previous:r);
         if (!dirtyFields.current)
           setFields(JSON.stringify(r.state.fields, null, 2));
       })
@@ -487,12 +490,20 @@ export function ApprovalDetailsDrawer({
     onChanged();
   };
   const post = async (action: string, data: unknown) => {
+    if(mutationPending.current)return;
+    mutationPending.current=true;readGeneration.current+=1;setMutating(true);setError("");
+    const key=`${environment}:${id}`;
     try {
-      await api.post(`/requests/${id}/${action}`, environment, data);
+      const updated=await api.post<Detail>(`/requests/${id}/${action}`, environment, data);
+      if(currentRequest.current!==key)return;
       if (action === "resubmit") dirtyFields.current = false;
-      changed();
+      setRequest(updated);
+      if(!dirtyFields.current)setFields(JSON.stringify(updated.state.fields,null,2));
+      onChanged();
     } catch (e) {
-      setError(errorMessage(e));
+      if(currentRequest.current===key)setError(errorMessage(e));
+    } finally {
+      mutationPending.current=false;setMutating(false);
     }
   };
   return (
@@ -517,7 +528,7 @@ export function ApprovalDetailsDrawer({
           </p>
         )}
         {r ? (
-          <>
+          <fieldset className="contents" disabled={mutating} aria-busy={mutating}>
             <small className="ap-eyebrow">
               REQUEST #{id} · POLICY VERSION #{r.state.version_id}
             </small>
@@ -732,7 +743,7 @@ export function ApprovalDetailsDrawer({
                   Cancel request
                 </button>
               )}
-          </>
+          </fieldset>
         ) : (
           <p>Loading approval details…</p>
         )}

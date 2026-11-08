@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { refreshNotifications } from "@/lib/notification-cache";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from "react";
@@ -100,8 +102,8 @@ export default function NotificationsPage() {
           {notifications.isLoading ? (
             <div className="h-28 rounded-lg border bg-muted/30" />
           ) : notifications.data?.items?.length ? (
-            notifications.data.items.map((item) => (
-              <div key={item.id} className={`rounded-lg border p-4 ${item.is_read ? "bg-card" : "bg-primary/5"}`}>
+            <GroupedRecords scope="apps/hrms/pages/notifications/NotificationsPage:records-1" items={(notifications.data.items) || []} fields={standardRecordGroups((notifications.data.items) || [])} gridClassName="space-y-3" renderItem={(item) => (
+              <div data-priority-row data-priority={item.priority} key={item.id} className={`rounded-lg border p-4 ${item.is_read ? "bg-card" : "bg-primary/5"}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -109,7 +111,7 @@ export default function NotificationsPage() {
                       <p className="font-medium">{item.title}</p>
                       {!item.is_read && <Badge>New</Badge>}
                       {item.module && <Badge variant="outline">{item.module}</Badge>}
-                      {item.priority !== "normal" && <Badge variant="warning">{item.priority}</Badge>}
+                      {item.priority !== "normal" && <Badge data-priority-badge data-priority={item.priority} variant="warning">{item.priority}</Badge>}
                     </div>
                     <div className="mt-2 text-sm text-muted-foreground"><RichTextContent legacyFormat="plain" value={item.message}/></div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -136,7 +138,7 @@ export default function NotificationsPage() {
                   </div>
                 </div>
               </div>
-            ))
+            )}/>
           ) : (
             <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">No notifications yet.</p>
           )}

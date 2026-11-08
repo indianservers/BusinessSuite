@@ -1,8 +1,9 @@
+import { MobileActionBar } from "@/components/mobile/MobileActionBar";
 import {useRecordAutosave} from "@/hooks/use-record-autosave";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { defaultOwner } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
-import CompactForm from "@/components/forms/CompactForm";
+import CompactForm, {revealFormField} from "@/components/forms/CompactForm";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -62,6 +63,7 @@ import type {
 } from "../types";
 import { workspaceError } from "./workspaceTypes";
 import "./TaskStudioPage.css";
+import "./task-studio-mobile.css";
 
 type StudioProject = Pick<
   PMSProject,
@@ -213,6 +215,7 @@ function PeoplePicker({
   reviewers?: boolean;
 }) {
   const [q, setQ] = useState("");
+  const [pickerOpen,setPickerOpen]=useState(!single);
   const [page, setPage] = useState(1);
   const [remote, setRemote] = useState<{
     items: Person[];
@@ -258,8 +261,8 @@ function PeoplePicker({
     ).values(),
   ];
   return (
-    <div className="ts-picker">
-      <details>
+    <div className={`ts-picker${single?"":" ts-picker-inline"}`}>
+      <details open={pickerOpen} onToggle={event=>setPickerOpen(event.currentTarget.open)}>
         <summary aria-label={label}>
           <Search size={15} />
           <span>
@@ -366,7 +369,7 @@ function PeoplePicker({
     </div>
   );
 }
-export default function TaskStudioPage({embedded=false,initialTitle="",initialDescription="",draftScope="",onCreated,onClose,onBusyChange}:{onBusyChange?:(busy:boolean)=>void;embedded?:boolean;initialTitle?:string;initialDescription?:string;draftScope?:string;onCreated?:(task:PMSTask)=>Promise<void>;onClose?:()=>void}={}) {
+export default function TaskStudioPage({embedded=false,initialTitle="",initialDescription="",draftScope="",onCreated,onClose,onBusyChange}:{onBusyChange?:(busy:boolean)=>void;embedded?:boolean;initialTitle?:string;initialDescription?:string;draftScope?:string;onCreated?:(task:PMSTask,keepOpen?:boolean)=>Promise<void>;onClose?:()=>void}={}) {
   const { taskId } = useParams();
   const id = embedded?0:Number(taskId) || 0;
   const navigate = useNavigate();
@@ -391,7 +394,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       ...Object.fromEntries(
         (["people", "teams", "batches"] as const).map((kind) => [
           kind,
-          (params.get(kind) ?? (kind === "people" && !params.has("teams") && !params.has("batches") ? String(defaultOwner("project_management") || "") : ""))
+          (params.get(kind) ?? "")
             .split(",")
             .map(Number)
             .filter((id) => Number.isInteger(id) && id > 0),
@@ -414,6 +417,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   }>();
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [options, setOptions] = useState<Options>();
+  const defaultAssignmentApplied=useRef(false);
   const [scopeMode, setScopeMode] = useState<"project" | "general">("project");
   const [workspaces, setWorkspaces] = useState<{ id: number; name: string }[]>(
     [],
@@ -517,6 +521,9 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const [copyTasks, setCopyTasks] = useState<PMSTask[]>([]);
+  const [copyLoading, setCopyLoading] = useState(false);
+  const [copyError, setCopyError] = useState("");
+  const [copyLoaded, setCopyLoaded] = useState(false);
   const [draftAvailable, setDraftAvailable] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [attachments, setAttachments] = useState<PMSFileAsset[]>([]);
@@ -647,7 +654,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     };
   }, [id, loadRevision]);
   useEffect(() => {
-    if (!draft.projectId) return;
+    if (!draft.projectId || loading) return;
     let active = true;
     setOptions(undefined);
     api
@@ -655,7 +662,14 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         params: { project_id: draft.projectId, compact: true },
       })
       .then((r) => {
-        if (active) setOptions(r.data);
+        if (active) {setOptions(r.data);
+          if(!id&&!defaultAssignmentApplied.current&&!params.has("people")&&!params.has("teams")&&!params.has("batches")){
+            defaultAssignmentApplied.current=true;
+            const preferred=Number(defaultOwner("project_management"));
+            const person=r.data.people.find(p=>p.id===preferred)||r.data.people.find(p=>p.id===user?.id);
+            if(person)setDraft(d=>d.assignment.people.length||d.assignment.teams.length||d.assignment.batches.length?d:{...d,assignment:{...d.assignment,people:[person.id]}});
+          }
+        }
       })
       .catch((e) => {
         if (active) setError(workspaceError(e));
@@ -663,7 +677,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     return () => {
       active = false;
     };
-  }, [draft.projectId, revision]);
+  }, [draft.projectId, revision, loading]);
   useEffect(() => {
     api
       .get("/project-management/task-types")
@@ -892,7 +906,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           );
         }
       }
-      if(!automatic&&embedded&&onCreated)await onCreated(record.task);
+      if(!automatic&&onCreated)await onCreated(record.task,!embedded&&createAnother);
       localStorage.removeItem(draftKey);
       setDraftAvailable(false);
       setFiles([]);
@@ -900,7 +914,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       setNotice(
         id ? "Task and assignments updated." : "Task created successfully.",
       );
-      if(embedded){allowNavigation.current=true;return true;}
+      if(embedded||(onCreated&&!createAnother)){allowNavigation.current=true;return true;}
       if (!id && createAnother) {
         const next = {
           ...initial(),
@@ -949,10 +963,19 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   }
   async function loadCopy() {
     setCopyOpen(true);
+    if (copyLoading) return;
+    setCopyLoading(true);
+    setCopyError("");
+    setCopyTasks([]);
+    setCopyLoaded(false);
     try {
-      setCopyTasks(await tasksAPI.list(draft.projectId));
+      const result = await tasksAPI.listAll({projectId: draft.projectId || undefined, pageSize: 100}, true);
+      setCopyTasks(result.items);
+      setCopyLoaded(true);
     } catch (e) {
-      setError(workspaceError(e));
+      setCopyError(workspaceError(e));
+    } finally {
+      setCopyLoading(false);
     }
   }
   function resetBlank() {
@@ -983,7 +1006,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       </main>
     );
   return (
-    <main className={`task-studio${embedded?" wa-embedded-task":""}`} id={embedded?undefined:"suite-main"} tabIndex={-1}>
+    <main className={`task-studio${embedded?" wa-embedded-task":""}`} id={embedded||onClose?undefined:"suite-main"} tabIndex={-1}>
       <div className="ts-breadcrumb">
         <Link to="/dashboard">All applications</Link>
         <ChevronRight />
@@ -998,13 +1021,14 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           className="tr-button ts-back"
           aria-label="Back to tasks"
           onClick={() => {
+            if (onClose) { onClose(); return; }
             if (
               !dirty ||
               window.confirm(
                 "Leave with unsaved changes? Save a draft to keep your work.",
               )
             )
-              embedded?onClose?.():navigate("/pms/tasks");
+              if (!embedded) navigate("/pms/tasks");
           }}
         >
           <ArrowLeft size={18} />
@@ -1348,11 +1372,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                   />
                 </div>
               </div>
-            </Section>
             <div ref={pickerRef}>
               <Section
                 icon={<Users />}
-                title="2. Assignment"
+                title="Members & assignment"
                 sub="Assign this task to a person, team, or interns batch."
               >
                 {!id && (
@@ -1701,9 +1724,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 )}
               </Section>
             </div>
+            </Section>
             <Section
               icon={<CalendarDays />}
-              title="3. Schedule"
+              title="2. Schedule"
               sub="Set timeline, priority, and status for this task."
             >
               <div className="ts-schedule">
@@ -1777,7 +1801,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
             </Section>
             <Section
               icon={<ListChecks />}
-              title="4. Details & attachments"
+              title="3. Details & attachments"
               sub="Keep required project fields and supporting evidence together."
             >
               <CustomFieldsForm
@@ -2065,12 +2089,14 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                   <button
                     type="button"
                     onClick={() => {
-                      pickerRef.current?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
                       setMode("people");
-                      pickerRef.current?.querySelector("summary")?.focus();
+                      const target=pickerRef.current;
+                      revealFormField(target);
+                      requestAnimationFrame(()=>{
+                        const picker=target?.querySelector("details");
+                        if(picker)picker.open=true;
+                        target?.querySelector<HTMLElement>('input[aria-label="Search Select assignees"]')?.focus();
+                      });
                     }}
                   >
                     <Plus size={13} />
@@ -2109,7 +2135,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               <div className="ts-summary-row" key={row.label}>
                 <row.icon size={15} />
                 <span>{row.label}</span>
-                <strong
+                <strong data-priority-badge={row.label === "Priority" || undefined} data-priority={row.label === "Priority" ? row.value : undefined}
                   className={row.label === "Priority" ? "ts-priority" : ""}
                 >
                   {row.value}
@@ -2213,6 +2239,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           </section>
         </aside>
       </CompactForm>
+      {!embedded && <MobileActionBar label="Task actions">
+        <button type="button" aria-label="Save task draft from mobile action bar" disabled={busy} onClick={saveDraft}><Save size={18}/>Save Draft</button>
+        <button type="button" data-primary aria-label={id ? "Save task from mobile action bar" : "Create task from mobile action bar"} disabled={busy || auto.saving || scopeBusy || !!job || !editable || !options?.can_edit} onClick={() => void save()}><Check size={18}/>{busy ? "Saving..." : id ? "Save Changes" : "Create Task"}</button>
+      </MobileActionBar>}
       <AddExistingPeopleDialog
         open={adding}
         onClose={() => setAdding(false)}
@@ -2274,6 +2304,9 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               Copy a title, work type, description, and priority. Members and
               dates stay under your control.
             </Dialog.Description>
+            {copyLoading && <p role="status">Loading existing tasks...</p>}
+            {copyError && <p role="alert">{copyError}</p>}
+            {copyLoaded && !copyTasks.length && <p role="status">No accessible tasks found{draft.projectId ? " in this project" : ""}.</p>}
             {copyTasks.map((t) => (
               <button
                 type="button"
@@ -2296,9 +2329,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               <button
                 type="button"
                 className="tr-button"
+                disabled={copyLoading}
                 onClick={() => void loadCopy()}
               >
-                Load existing tasks
+                {copyLoading ? "Loading..." : copyError ? "Retry loading tasks" : "Load existing tasks"}
               </button>
             )}
             <button

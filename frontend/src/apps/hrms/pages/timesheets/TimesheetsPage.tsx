@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import RecordMaintenance from "@/components/RecordMaintenance";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -47,12 +48,12 @@ type Timesheet = {
 
 const today = new Date();
 const weekStart = new Date(today);
-weekStart.setDate(today.getDate() - today.getDay() + 1);
+weekStart.setDate(today.getDate() - (today.getDay() + 6) % 7);
 const weekEnd = new Date(weekStart);
 weekEnd.setDate(weekStart.getDate() + 6);
 
 function isoDate(value: Date) {
-  return value.toISOString().slice(0, 10);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 }
 
 function statusTone(status: string) {
@@ -101,7 +102,7 @@ export default function TimesheetsPage() {
     [projects],
   );
   const selectedSheet = useMemo(
-    () => (sheets as Timesheet[]).find((sheet) => sheet.id === selectedSheetId) || (sheets as Timesheet[])[0],
+    () => selectedSheetId === null ? (sheets as Timesheet[])[0] : (sheets as Timesheet[]).find((sheet) => sheet.id === selectedSheetId),
     [sheets, selectedSheetId],
   );
 
@@ -227,7 +228,7 @@ export default function TimesheetsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <SmartCreateSection title="Create timesheet project" size="standard"><div className="space-y-4"><div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Code</Label>
                     <Input aria-label="Timesheet project code" value={projectForm.code} onChange={(e) => setProjectForm({ ...projectForm, code: e.target.value })} />
@@ -248,13 +249,13 @@ export default function TimesheetsPage() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Project
-                </Button><details><summary>Manage timesheet projects</summary>{projects.map(project=><div key={project.id} className="flex items-center justify-between gap-2 border-t py-2"><span>{project.name}</span><RecordMaintenance record={project as unknown as Record<string,unknown>} name={project.name} endpoint={`/timesheets/projects/${project.id}`} fields={[{key:"code",label:"Project code",required:true},{key:"name",label:"Project name",required:true}]} queryKeys={["timesheet-projects"]} canEdit={canManageProjects} canDelete={canManageProjects} mergeRecord/></div>)}</details>
+                </Button></div></SmartCreateSection><details><summary>Manage timesheet projects</summary>{projects.map(project=><div key={project.id} className="flex items-center justify-between gap-2 border-t py-2"><span>{project.name}</span><RecordMaintenance record={project as unknown as Record<string,unknown>} name={project.name} endpoint={`/timesheets/projects/${project.id}`} fields={[{key:"code",label:"Project code",required:true},{key:"name",label:"Project name",required:true}]} queryKeys={["timesheet-projects"]} canEdit={canManageProjects} canDelete={canManageProjects} mergeRecord/></div>)}</details>
               </CardContent>
             </Card>
           )}
 
           {canCreateSheet && (
-            <Card>
+            <SmartCreateSection title="Create timesheet" size="standard"><Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Clock3 className="h-4 w-4" />
@@ -294,7 +295,7 @@ export default function TimesheetsPage() {
                   Create Timesheet
                 </Button>
               </CardContent>
-            </Card>
+            </Card></SmartCreateSection>
           )}
         </div>
 
@@ -370,7 +371,7 @@ export default function TimesheetsPage() {
           </Card>
 
           {selectedSheet && selectedSheet.status === "Draft" && canCreateSheet && (
-            <Card>
+            <SmartCreateSection title={<>Add Work Entry</>} size="standard"><Card>
               <CardHeader>
                 <CardTitle className="text-base">Add Work Entry</CardTitle>
               </CardHeader>
@@ -396,7 +397,7 @@ export default function TimesheetsPage() {
                   Add
                 </Button>
               </CardContent>
-            </Card>
+            </Card></SmartCreateSection>
           )}
 
           {selectedSheet && (

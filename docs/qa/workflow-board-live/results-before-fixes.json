@@ -1,0 +1,670 @@
+{
+  "origin": "http://localhost:5125",
+  "started": "2026-11-08T11:44:46.019Z",
+  "pages": [
+    {
+      "module": "crm",
+      "route": "/crm",
+      "checks": [
+        "Dashboard board renders actual API records",
+        "Team filter matches real assignments",
+        "Owner filter matches real assignments",
+        "Date range is inclusive and excludes undated records",
+        "Column drill-down opens the filtered list",
+        "Card opens its actual record"
+      ],
+      "errors": [],
+      "network": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/portfolio/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipeline-stages",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipelines",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/leads",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/query",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/companies",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deals",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/portfolio/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/portfolio/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipeline-stages",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/pipelines",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/query",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/tasks",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/pipeline-stages",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/portfolio/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/calendar",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/dashboard",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/activities",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/query",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/forecast",
+          "status": 200
+        }
+      ],
+      "apiRecords": 140,
+      "mobileOverflow": false,
+      "recordHref": "/crm/deals/1",
+      "recordTitle": "Aster Retail · sales transformation"
+    },
+    {
+      "module": "hrms",
+      "route": "/hrms",
+      "checks": [
+        "Dashboard board renders actual API records",
+        "Team filter matches real assignments",
+        "Owner filter matches real assignments",
+        "Date range is inclusive and excludes undated records",
+        "Column drill-down opens the filtered list",
+        "Card opens its actual record"
+      ],
+      "errors": [],
+      "network": [
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/crm/deal-workspace/1/collaborators",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/employees/workbench/home",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/recruitment/jobs",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/recruitment/candidates",
+          "status": 200
+        }
+      ],
+      "apiRecords": 73,
+      "mobileOverflow": false,
+      "recordHref": "/hrms/recruitment?candidate=193",
+      "recordTitle": "Ananya Iyer"
+    },
+    {
+      "module": "pms",
+      "route": "/pms/overview",
+      "checks": [],
+      "errors": [],
+      "network": [
+        {
+          "path": "/api/v1/leave/requests",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/recruitment/candidates",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/recruitment/candidates/193",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/recruitment/jobs",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/pipeline-workspaces/hrms/job:all/views",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/pipeline-workspaces/hrms/ages",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/recruitment/candidates/193",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/pipeline-workspaces/hrms/job:all/views",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/realtime/config",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/realtime/config",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/projects",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/workspaces",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/intake",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/intake",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/project-management/tasks",
+          "status": 429
+        }
+      ],
+      "apiRecords": 1000,
+      "failure": "expect(locator).toBeVisible() failed\n\nLocator: locator('.workflow-board').first().locator('.workflow-board-lanes')\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 30000ms\n  - waiting for locator('.workflow-board').first().locator('.workflow-board-lanes')\n"
+    },
+    {
+      "module": "srm",
+      "route": "/srm",
+      "checks": [
+        "Dashboard board renders actual API records",
+        "Team filter matches real assignments",
+        "Owner filter matches real assignments",
+        "Date range is inclusive and excludes undated records",
+        "Column drill-down opens the filtered list",
+        "Card opens its actual record"
+      ],
+      "errors": [],
+      "network": [
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/dashboard",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/srm/sales-orders",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/follow-ups/statistics",
+          "status": 200
+        }
+      ],
+      "apiRecords": 123,
+      "mobileOverflow": false,
+      "recordHref": "/srm/sales-orders/124",
+      "recordTitle": "LS26-SO-0001"
+    },
+    {
+      "module": "fam",
+      "route": "/fam",
+      "checks": [
+        "Dashboard board renders actual API records",
+        "Team filter matches real assignments",
+        "Owner filter matches real assignments",
+        "Date range is inclusive and excludes undated records",
+        "Column drill-down opens the filtered list",
+        "Empty real dataset: no record link available yet"
+      ],
+      "errors": [],
+      "network": [
+        {
+          "path": "/api/v1/srm/sales-orders/124",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/enterprise/branding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/ai-operator/assistant/tools",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/fam/ar/outstanding",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/fam/dashboard",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/fam/dashboard",
+          "status": 200
+        }
+      ],
+      "apiRecords": 0,
+      "mobileOverflow": false
+    },
+    {
+      "module": "power_apps",
+      "route": "/power-apps",
+      "checks": [
+        "Dashboard board renders actual API records",
+        "Team filter matches real assignments",
+        "Owner filter matches real assignments",
+        "Date range is inclusive and excludes undated records",
+        "Column drill-down opens the filtered list",
+        "Empty real dataset: no record link available yet"
+      ],
+      "errors": [],
+      "network": [
+        {
+          "path": "/api/v1/notifications/summary",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/branches/context",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/settings/defaults/effective",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/access/setup",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/business-os/modules",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/power-apps/environments",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/power-apps/catalog",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/power-apps/activity",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/power-apps/overview",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/power-apps/approvals/requests",
+          "status": 200
+        }
+      ],
+      "apiRecords": 0,
+      "mobileOverflow": false
+    }
+  ],
+  "checks": [],
+  "issues": [
+    {
+      "module": "pms",
+      "error": "expect(locator).toBeVisible() failed\n\nLocator: locator('.workflow-board').first().locator('.workflow-board-lanes')\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"to.be.visible\" with timeout 30000ms\n  - waiting for locator('.workflow-board').first().locator('.workflow-board-lanes')\n"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { ImportWizard, DataExportButton } from "@/shared/data-transfer";
@@ -242,7 +243,7 @@ function DuplicateManagement() {
   });
   const scan = useMutation({ mutationFn: () => adminSecurityApi.scanDuplicates({ module_name: "leads" }), onSuccess: () => candidates.refetch() });
   const merge = useMutation({ mutationFn: () => adminSecurityApi.mergeDuplicates({ module_name: "leads", winner_record_id: 1, loser_record_ids: [2] }), onSuccess: () => toast({ title: "Merge log recorded" }) });
-  return <div className="space-y-4"><div className="flex flex-wrap gap-2"><Button onClick={() => create.mutate()}>Create duplicate rule</Button><Button variant="outline" onClick={() => scan.mutate()}>Scan duplicates</Button><Button variant="outline" onClick={() => merge.mutate()}>Record merge</Button></div><ListCard title="Duplicate rules" items={rules.data?.items || []} /><ListCard title="Duplicate candidates" items={candidates.data?.items || []} /></div>;
+  return <div className="space-y-4"><div className="flex flex-wrap gap-2"><SmartCreateAction title="Create duplicate rule"><Button onClick={() => create.mutate()}>Create duplicate rule</Button></SmartCreateAction><Button variant="outline" onClick={() => scan.mutate()}>Scan duplicates</Button><Button variant="outline" onClick={() => merge.mutate()}>Record merge</Button></div><ListCard title="Duplicate rules" items={rules.data?.items || []} /><ListCard title="Duplicate candidates" items={candidates.data?.items || []} /></div>;
 }
 
 function ExportControl() {
@@ -310,7 +311,7 @@ function ListSection({ title, description, query, action, onAction, children }: 
           <h2 className="text-lg font-semibold">{title}</h2>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <div className="flex flex-wrap gap-2">{children}{action ? <Button onClick={onAction}>{action}</Button> : null}</div>
+        <div className="flex flex-wrap gap-2">{children}{action ? <SmartCreateAction title={action} description={description}><Button onClick={onAction}>{action}</Button></SmartCreateAction> : null}</div>
       </div>
       {query.isError ? <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">Admin security data could not be loaded.</div> : null}
       <ListCard title={title} items={items} loading={query.isLoading} />

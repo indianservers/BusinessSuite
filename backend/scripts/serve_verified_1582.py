@@ -10,6 +10,13 @@ if not keyfile.exists():keyfile.write_text(json.dumps({'SECRET_KEY':secrets.toke
 os.environ.update(ENVIRONMENT='test',DEBUG='false',BACKEND_PUBLIC_URL='http://127.0.0.1:1582',FRONTEND_PUBLIC_URL='http://127.0.0.1:1582',DATABASE_URL='sqlite:///'+str(local/'crud121-1582.sqlite'),INSTALLED_APPS='hrms,crm,project_management,srm,fam,power_apps',STORAGE_BACKEND='local',UPLOAD_DIR=os.environ['PRESERVED_QA_UPLOADS'],SECRET_KEY_PREVIOUS='',REFRESH_SECRET_KEY_PREVIOUS='',OPENAI_API_KEY='',ANTHROPIC_API_KEY='',GEMINI_API_KEY='',MAIL_USERNAME='',MAIL_PASSWORD='',MAIL_SERVER='',FIREBASE_PROJECT_ID='',FIREBASE_WEB_CONFIG='{}',CRM_WHATSAPP_PROVIDER='mock',CRM_WHATSAPP_ACCESS_TOKEN='',CRM_WHATSAPP_PHONE_NUMBER_ID='',CRM_WHATSAPP_BUSINESS_ACCOUNT_ID='',CRM_WHATSAPP_APP_ID='',CRM_WHATSAPP_EMBEDDED_CONFIG_ID='',BUSINESSSUITE_BACKUP_SCHEDULER='false',SEED_DEMO_DATA='false',SECURITY_RATE_LIMIT_ENABLED='false',DB_POOL_SIZE='100',DB_MAX_OVERFLOW='100')
 os.environ.update(json.loads(keyfile.read_text(encoding='utf-8')))
 from app.main import app
+from app.main import global_exception_handler
+@app.exception_handler(Exception)
+async def acceptance_exception(request,exc):
+    # Local diagnostics contain stack locations only, never payloads or tokens.
+    import traceback
+    print('QA_ERROR',request.method,request.url.path,type(exc).__name__,[(Path(f.filename).name,f.lineno,f.name) for f in traceback.extract_tb(exc.__traceback__)],flush=True)
+    return await global_exception_handler(request,exc)
 from app.db.base import Base
 from app.db.session import engine,SessionLocal
 from app.access.catalog import MODULE_PERMISSIONS
@@ -141,10 +148,20 @@ from fastapi import Depends
 from app.core.deps import get_current_user,get_db
 from sqlalchemy.orm import Session
 @app.post('/api/v1/ai-agents/_acceptance/fixtures',include_in_schema=False)
-def acceptance_ai_fixture(project_id:int,db:Session=Depends(get_db),actor:User=Depends(get_current_user)):
+def acceptance_ai_fixture(project_id:int,owner_id:int|None=None,owner_session_id:int|None=None,db:Session=Depends(get_db),actor:User=Depends(get_current_user)):
     if not actor.is_superuser:raise HTTPException(403,'Acceptance fixture requires administrator')
     project=db.get(PMSProject,project_id)
     if not project or not project.name.startswith('UI reference'):raise HTTPException(422,'Use an acceptance project')
+    if owner_id is not None:
+        from app.access.service import companies_for
+        target=db.get(User,owner_id)
+        if not target or not target.is_active or project.organization_id not in companies_for(db,target):raise HTTPException(422,'Use an active acceptance owner in the project company')
+        from app.ai_agents.security import session_check
+        if owner_session_id is None:raise HTTPException(422,'Use the acceptance owner original session')
+        session_check(db,target,owner_session_id)
+        target.organization_id=project.organization_id
+        target._suite_session_id=owner_session_id
+        actor=target
     from app.ai_agents.models import AiAgent,AiConversation,AiMessage,AiMessageFeedback,AiActionApproval
     from app.ai_agents.security import seal,company
     agent=db.query(AiAgent).filter_by(code='pms_task_planning').first()
@@ -157,11 +174,27 @@ def acceptance_ai_fixture(project_id:int,db:Session=Depends(get_db),actor:User=D
     db.add(message);db.flush()
     db.add(AiMessageFeedback(message_id=message.id,conversation_id=conversation.id,user_id=actor.id,agent_id=agent.id,rating='thumbs_up',feedback_type='helpful',feedback_text='Synthetic acceptance feedback'))
     rows=[]
-    for title in ['UI reference approved task','UI reference rejected task']:
+    for title in [f'UI reference approved task {project_id}',f'UI reference rejected task {project_id}']:
         payload={'project_id':project_id,'title':title,'description':'Synthetic acceptance action; no external communication'}
         approval=AiActionApproval(organization_id=tenant,conversation_id=conversation.id,agent_id=agent.id,user_id=actor.id,module='PMS',action_type='CREATE_PMS_TASK',proposed_action_json=payload,status='pending',security_context=seal(db,actor,payload=payload))
         db.add(approval);db.flush();rows.append(approval.id)
-    db.commit();return {'approvals':rows,'conversation_id':conversation.id,'message_id':message.id,'project_id':project_id}
+    db.commit();return {'approvals':rows,'conversation_id':conversation.id,'message_id':message.id,'project_id':project_id,'approved_title':f'UI reference approved task {project_id}','rejected_title':f'UI reference rejected task {project_id}'}
+@app.post('/api/v1/collaboration/_acceptance/chat',include_in_schema=False)
+def acceptance_chat_fixture(owner_id:int,workspace_id:int=1,db:Session=Depends(get_db),actor:User=Depends(get_current_user)):
+    if not actor.is_superuser:raise HTTPException(403,'Acceptance fixture requires administrator')
+    from app.access.service import companies_for
+    from app.apps.project_management.chat_models import ChatConversation,ChatMember,ChatMessage
+    from app.shared.communication.models import FollowUp
+    from uuid import uuid4
+    target=db.get(User,owner_id);workspace=db.get(PMSWorkspace,workspace_id)
+    if not target or not target.email.startswith('conditional-') or not target.email.endswith('@suiteqa.example.com') or not workspace or workspace.organization_id not in companies_for(db,target):raise HTTPException(422,'Use a synthetic acceptance owner in the workspace company')
+    tag=uuid4().hex;name='UI self role '+tag[:10];body='UI own message '+tag
+    room=ChatConversation(workspace_id=workspace_id,key='acceptance-role-'+tag,kind='channel',name=name,visibility='private',owner_id=owner_id);db.add(room);db.flush()
+    db.add(ChatMember(conversation_id=room.id,user_id=owner_id))
+    message=ChatMessage(conversation_id=room.id,author_id=owner_id,client_id=tag,body=body);db.add(message);db.flush()
+    title='UI own follow-up '+tag[:10]
+    followup=FollowUp(workspace_id=workspace_id,conversation_id=room.id,message_id=message.id,created_by=owner_id,assignee_id=owner_id,client_id=tag,request_hash='0'*64,title=title);db.add(followup);db.commit()
+    return {'workspace_id':workspace_id,'conversation_id':room.id,'message_id':message.id,'body':body,'name':name,'followup_id':followup.id,'followup_title':title}
 @app.get('/{path:path}',include_in_schema=False)
 def spa(path:str):
     if path.startswith('api/'):raise HTTPException(404,'API route not found')

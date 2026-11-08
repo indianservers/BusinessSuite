@@ -5,9 +5,14 @@ from serve_verified_1582 import SessionLocal,User,Role,Permission,CommonPerson,A
 from app.models.employee import Employee
 from datetime import date
 from test_identity_utils import own_workflow_records
-profiles={'delegator':['view','approve','assign'],'creator':['view','create'],'editor':['view','edit'],'approver':['view','approve'],'configurer':['view','configure'],'deleter':['view','delete'],'assigner':['view','assign']}
+profiles={'operator':['view','create','edit','delete','approve','configure','assign','export','manage_users'],'user_manager':['view','configure','manage_users'],'user_manager_only':['view','manage_users'],'delegator':['view','approve','assign'],'creator':['view','create'],'editor':['view','edit'],'approver':['view','approve'],'configurer':['view','configure'],'deleter':['view','delete'],'assigner':['view','assign']}
 with SessionLocal() as db:
     admin=db.query(User).filter_by(email='admin@suiteqa.example.com').one()
+    # Native PMS permissions are declared in init_db rather than RequirePermission routes.
+    # The preserved QA copy may predate that seed; expose the real permission catalogue.
+    for permission_name in ('pms_view','pms_manage_projects','pms_manage_tasks','pms_time_manage','pms_client_portal','pms_admin'):
+        if not db.query(Permission).filter_by(name=permission_name).first():db.add(Permission(name=permission_name,module='project_management',description='Native PMS acceptance permission'))
+    db.flush()
     permissions=db.query(Permission).all();names=sorted({p.name for p in permissions})
     branch=db.query(Branch).filter_by(company_id=1).first()
     for name,actions in profiles.items():
@@ -27,6 +32,7 @@ with SessionLocal() as db:
             if not db.query(PMSWorkspaceMember).filter_by(workspace_id=workspace.id,user_id=actor.id).first():db.add(PMSWorkspaceMember(workspace_id=workspace.id,user_id=actor.id,role='Admin'))
         for project in db.query(PMSProject).filter_by(organization_id=1):
             if not db.query(PMSProjectMember).filter_by(project_id=project.id,user_id=actor.id).first():db.add(PMSProjectMember(project_id=project.id,user_id=actor.id,role='Project Manager'))
+        db.flush()  # Stamp newly added memberships too; this session disables autoflush.
         own_workflow_records(db,actor,*db.query(PMSWorkspaceMember).filter_by(user_id=actor.id).all(),*db.query(PMSProjectMember).filter_by(user_id=actor.id).all(),company_id=1)
     db.commit()
 print(json.dumps({'profiles':list(profiles),'organization':1}))

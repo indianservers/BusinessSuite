@@ -1,0 +1,227 @@
+[
+  {
+    "file": "apps/ai-copilot/AICopilotPage.tsx",
+    "items": "(query.data?.items || [])",
+    "scope": "apps/ai-copilot/AICopilotPage:records-1"
+  },
+  {
+    "file": "apps/business-os/BusinessOSAdminPage.tsx",
+    "items": "modules",
+    "scope": "apps/business-os/BusinessOSAdminPage:records-1"
+  },
+  {
+    "file": "apps/business-os/BusinessOSAdminPage.tsx",
+    "items": "rules",
+    "scope": "apps/business-os/BusinessOSAdminPage:records-2"
+  },
+  {
+    "file": "apps/business-os/BusinessOSAdminPage.tsx",
+    "items": "events",
+    "scope": "apps/business-os/BusinessOSAdminPage:records-3"
+  },
+  {
+    "file": "apps/business-os/BusinessOSWorkspacePage.tsx",
+    "items": "reports",
+    "scope": "apps/business-os/BusinessOSWorkspacePage:records-1"
+  },
+  {
+    "file": "apps/business-os/BusinessOSWorkspacePage.tsx",
+    "items": "roles",
+    "scope": "apps/business-os/BusinessOSWorkspacePage:records-2"
+  },
+  {
+    "file": "apps/communication/CustomerCommunications.tsx",
+    "items": "recipients.data?.items",
+    "scope": "apps/communication/CustomerCommunications:records-1"
+  },
+  {
+    "file": "apps/communication/CustomerCommunications.tsx",
+    "items": "bindings.data?.items",
+    "scope": "apps/communication/CustomerCommunications:records-2"
+  },
+  {
+    "file": "apps/communication/CustomerCommunications.tsx",
+    "items": "rules.data?.items.filter((r:Row)=>!whatsappOnly||r.channel==='whatsapp')",
+    "scope": "apps/communication/CustomerCommunications:records-3"
+  },
+  {
+    "file": "apps/communication/CustomerCommunications.tsx",
+    "items": "deliveries.data?.items.filter((d:Row)=>!whatsappOnly||d.channel==='whatsapp')",
+    "scope": "apps/communication/CustomerCommunications:records-4"
+  },
+  {
+    "file": "apps/communication/CustomerCommunications.tsx",
+    "items": "shipments.data?.items",
+    "scope": "apps/communication/CustomerCommunications:records-5"
+  },
+  {
+    "file": "apps/communication/whatsapp/SentMessages.tsx",
+    "items": "messages.data?.items",
+    "scope": "apps/communication/whatsapp/SentMessages:records-1"
+  },
+  {
+    "file": "apps/crm/CRMTasksWorkspace.tsx",
+    "items": "tasks",
+    "scope": "apps/crm/CRMTasksWorkspace:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/assets/MyAssetsPanel.tsx",
+    "items": "query.data",
+    "scope": "apps/hrms/pages/assets/MyAssetsPanel:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/benefits/BenefitsPage.tsx",
+    "items": "plans",
+    "scope": "apps/hrms/pages/benefits/BenefitsPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/benefits/BenefitsPage.tsx",
+    "items": "(claims || []).slice(0, 6)",
+    "scope": "apps/hrms/pages/benefits/BenefitsPage:records-2"
+  },
+  {
+    "file": "apps/hrms/pages/documents/DocumentsPage.tsx",
+    "items": "certificates.data",
+    "scope": "apps/hrms/pages/documents/DocumentsPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/exit/ExitPage.tsx",
+    "items": "records.data",
+    "scope": "apps/hrms/pages/exit/ExitPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/expenses/ExpensesPage.tsx",
+    "items": "statement.data.claims.filter(c => status === \"all\" || c.status === status)",
+    "scope": "apps/hrms/pages/expenses/ExpensesPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+    "items": "tickets",
+    "scope": "apps/hrms/pages/helpdesk/HelpdeskPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/lms/LMSPage.tsx",
+    "items": "courses",
+    "scope": "apps/hrms/pages/lms/LMSPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/lms/LMSPage.tsx",
+    "items": "(assignments || []).slice(0, 5)",
+    "scope": "apps/hrms/pages/lms/LMSPage:records-2"
+  },
+  {
+    "file": "apps/hrms/pages/lms/LMSPage.tsx",
+    "items": "(certifications || []).slice(0, 4)",
+    "scope": "apps/hrms/pages/lms/LMSPage:records-3"
+  },
+  {
+    "file": "apps/hrms/pages/lms/LMSPage.tsx",
+    "items": "(renewals || []).slice(0, 5)",
+    "scope": "apps/hrms/pages/lms/LMSPage:records-4"
+  },
+  {
+    "file": "apps/hrms/pages/notifications/NotificationsPage.tsx",
+    "items": "notifications.data.items",
+    "scope": "apps/hrms/pages/notifications/NotificationsPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/onboarding/OnboardingPage.tsx",
+    "items": "onboardings.data",
+    "scope": "apps/hrms/pages/onboarding/OnboardingPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/performance/PerformancePage.tsx",
+    "items": "(feedback360 || [])",
+    "scope": "apps/hrms/pages/performance/PerformancePage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/performance/PerformancePage.tsx",
+    "items": "(calibrationSessions || [])",
+    "scope": "apps/hrms/pages/performance/PerformancePage:records-2"
+  },
+  {
+    "file": "apps/hrms/pages/performance/PerformancePage.tsx",
+    "items": "(oneOnOnes || []).slice(0, 20)",
+    "scope": "apps/hrms/pages/performance/PerformancePage:records-3"
+  },
+  {
+    "file": "apps/hrms/pages/performance/PerformancePage.tsx",
+    "items": "(criticalRoles || [])",
+    "scope": "apps/hrms/pages/performance/PerformancePage:records-4"
+  },
+  {
+    "file": "apps/hrms/pages/recruitment/RecruitmentPage.tsx",
+    "items": "(jobs as Job[])",
+    "scope": "apps/hrms/pages/recruitment/RecruitmentPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/reports/ReportSchedules.tsx",
+    "items": "schedules.data",
+    "scope": "apps/hrms/pages/reports/ReportSchedules:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/reports/ReportsPage.tsx",
+    "items": "(schedules.data || [])",
+    "scope": "apps/hrms/pages/reports/ReportsPage:records-1"
+  },
+  {
+    "file": "apps/hrms/pages/workflow/WorkflowInboxPage.tsx",
+    "items": "(definitions || [])",
+    "scope": "apps/hrms/pages/workflow/WorkflowInboxPage:records-1"
+  },
+  {
+    "file": "apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "items": "rows",
+    "scope": "apps/power-apps/applications/approvals/ApprovalsPage:records-1"
+  },
+  {
+    "file": "apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "items": "policies",
+    "scope": "apps/power-apps/applications/approvals/ApprovalsPage:records-2"
+  },
+  {
+    "file": "apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "items": "data.recent",
+    "scope": "apps/power-apps/applications/approvals/ApprovalsPage:records-3"
+  },
+  {
+    "file": "apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "items": "visible",
+    "scope": "apps/power-apps/applications/integrations/IntegrationsPage:records-1"
+  },
+  {
+    "file": "apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "items": "connections",
+    "scope": "apps/power-apps/applications/integrations/IntegrationsPage:records-2"
+  },
+  {
+    "file": "apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "items": "logs",
+    "scope": "apps/power-apps/applications/integrations/IntegrationsPage:records-3"
+  },
+  {
+    "file": "apps/power-apps/applications/WorkspaceTools.tsx",
+    "items": "rows",
+    "scope": "apps/power-apps/applications/WorkspaceTools:records-1"
+  },
+  {
+    "file": "apps/saas/SaaSWorkspacePage.tsx",
+    "items": "items",
+    "scope": "apps/saas/SaaSWorkspacePage:records-1"
+  },
+  {
+    "file": "shared/ConnectorCatalog.tsx",
+    "items": "visible",
+    "scope": "shared/ConnectorCatalog:records-1"
+  },
+  {
+    "file": "shared/master-data/BirthdaysPage.tsx",
+    "items": "query.data?.items",
+    "scope": "shared/master-data/BirthdaysPage:records-1"
+  },
+  {
+    "file": "shared/payments/PaymentRequests.tsx",
+    "items": "requests.data?.items",
+    "scope": "shared/payments/PaymentRequests:records-1"
+  }
+]

@@ -1,4 +1,4 @@
-.suite-grouped-records { min-width:0; }
+.suite-grouped-records { min-width:0; grid-column:1/-1; width:100%; }
 .suite-card-group-tools { display:flex; gap:5px; align-items:center; padding:7px 0; margin-bottom:6px; font-size:11px; color:hsl(var(--muted-foreground)); }
 .suite-card-group-tools > label { display:flex; align-items:center; gap:5px; border:1px solid hsl(var(--primary)/.2); background:hsl(var(--primary)/.04); color:hsl(var(--primary)); border-radius:6px; padding:0 7px; }
 .suite-card-group-tools select { background:transparent; border:0; font:inherit; min-height:28px; padding:4px; max-width:150px; }

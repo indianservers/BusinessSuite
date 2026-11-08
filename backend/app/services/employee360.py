@@ -30,6 +30,22 @@ def build_employee360(db, employee, user):
     def action(key, title, section, owner):
         result["pending_actions"].append({"id": key, "title": title, "section": section, "owner": owner})
 
+    from app.models.employee import EmployeeCertification
+    from datetime import timedelta
+    due_certificates = db.query(EmployeeCertification).filter(EmployeeCertification.employee_id==employee.id,
+        EmployeeCertification.expiry_date.isnot(None), EmployeeCertification.expiry_date<=date.today()+timedelta(days=90)).all()
+    for certificate in due_certificates:
+        days_left=(certificate.expiry_date-date.today()).days
+        action(f"certification-{certificate.id}", f"{certificate.certification_name}: " + ("expired" if days_left<0 else f"expires in {days_left} days"), "certifications", "Employee / HR")
+
+    verification_allowed = allowed("employee_sensitive_view") and (allowed("recruitment_view") or allowed("recruitment_manage"))
+    result["verification"] = None
+    if verification_allowed:
+        from app.models.background_verification import BackgroundVerificationRequest
+        latest = db.query(BackgroundVerificationRequest).filter_by(employee_id=employee.id).filter(BackgroundVerificationRequest.status != "Cancelled").order_by(BackgroundVerificationRequest.id.desc()).first()
+        result["verification"] = {"status": latest.status if latest else "Not Assessed", "outcome": latest.overall_result if latest else None}
+        if not latest or not latest.reviewed_at:
+            action("verification-review", "Complete employee background verification records", "verification", "HR")
     if access["payroll"]:
         if not employee.account_number or not employee.ifsc_code:
             action("bank-incomplete", "Complete bank account and IFSC before salary payment", "bank", "HR / employee")

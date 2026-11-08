@@ -29,9 +29,19 @@ for (const role of ["admin", "hr", "hr_manager", "ceo", "manager", "employee", "
     const raw = roles.getAvailableRoleNav(role, false, pathname);
     const original = JSON.stringify(raw);
     const grouped = roles.getRoleNav(role, false, pathname);
-    assert.deepEqual(identity(grouped), identity(raw), `${role} on ${pathname}: changed available links`);
+    // The public catalog adds authorized import/connector destinations before
+    // categorization. Test grouping separately from those existing additions.
+    const categorized = categories.categorizeNavigation(raw, roles.getActiveModule(pathname));
+    assert.deepEqual(identity(categorized), identity(raw), `${role} on ${pathname}: categorization changed available links`);
+    const originalLinks = grouped.filter(item => raw.some(original => original.to === item.to));
+    assert.deepEqual(identity(originalLinks), identity(raw), `${role} on ${pathname}: lost an existing link`);
+    const root = pathname.split('/')[1];
+    for (const item of grouped.filter(item => !raw.some(original => original.to === item.to))) {
+      assert([`/${root}/import-data`, `/${root}/connectors`].includes(item.to), 'Unexpected supplemental link: ' + item.to);
+      assert(roles.canAccessRoute(item.to, role, false), 'Unauthorized supplemental link: ' + item.to);
+    }
     assert.equal(JSON.stringify(raw), original, "Mutated shared navigation definitions");
-    assert.deepEqual(grouped.filter(i => roles.canAccessRoute(i.to.split("?")[0], role, false)).map(i => i.to).sort(), raw.filter(i => roles.canAccessRoute(i.to.split("?")[0], role, false)).map(i => i.to).sort());
+    assert.deepEqual(originalLinks.filter(i => roles.canAccessRoute(i.to.split("?")[0], role, false)).map(i => i.to).sort(), raw.filter(i => roles.canAccessRoute(i.to.split("?")[0], role, false)).map(i => i.to).sort());
     count++;
   }
 }
@@ -44,14 +54,18 @@ for (const [pathname, to, group] of [
   ["/crm", "/crm/contacts", "Customers & leads"],
   ["/crm", "/crm/products", "Sales & pipeline"],
   ["/crm", "/crm/calendar-integrations", "Activities & planning"],
-  ["/crm", "/crm/campaigns", "Marketing & campaigns"],
+  ["/crm", "/crm/campaigns", "Communication"],
+  ["/pms", "/pms/workflow-schemes", "Settings & tools"],
+  ["/pms", "/pms/transition-approvals", "Planning & workload"],
   ["/srm", "/srm/pos/returns", "Point of sale"],
   ["/srm", "/srm/inventory/stock-transfers", "Inventory & warehouses"],
   ["/srm", "/srm/inventory/purchase-orders", "Purchasing & manufacturing"],
   ["/fam", "/fam/bank-reconciliation", "Banking & reconciliation"],
   ["/fam", "/fam/gst/settings", "GST & tax compliance"],
 ]) {
-  assert.equal(roles.getRoleNav("admin", true, pathname).find(i => i.to === to)?.group, group, to);
+  // Categorize legacy aliases too, even when a current role catalog exposes
+  // only their canonical destination (for example Products & Services).
+  assert.equal(categories.categorizeNavigation([{to}], roles.getActiveModule(pathname))[0]?.group, group, to);
   count++;
 }
 for (const module of ["hrms", "crm", "srm", "fam"]) {

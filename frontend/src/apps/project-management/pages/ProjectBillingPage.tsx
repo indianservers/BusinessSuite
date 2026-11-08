@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { FileText, Wallet, Globe2 } from "lucide-react";
 import { defaultText } from "@/lib/form-defaults";
 import SharedCompanySelect from "@/shared/master-data/CompanySelect";
@@ -5,7 +6,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useAuthStore } from "@/store/authStore";
 import { useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,8 @@ const errorText = (error: any) =>
   error?.response?.data?.detail || error?.message || "Please try again";
 
 export function SharedCustomerSelect({value,onChange}:{value:string;onChange:(value:string)=>void}) {
-  return <SharedCompanySelect value={value} onChange={onChange} source={window.location.pathname.startsWith("/srm")?"srm":"project_management"} label="Shared customer" placeholder="Select a shared customer"/>;
+  const { pathname } = useLocation();
+  return <SharedCompanySelect value={value} onChange={onChange} source={pathname.startsWith("/srm")?"srm":"project_management"} label="Shared customer" createRoles={["Customer"]} createRecordLabel="customer" placeholder="Select a shared customer"/>;
 }
 
 export function CommercialIdentityForm({
@@ -335,7 +337,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
         </div>
       </details>
       {data.can_create && (
-        <details className="pd-commercial-panel"><summary>Create invoice draft</summary><div><Card>
+        <details className="pd-commercial-panel"><summary>Create invoice draft</summary><div><SmartCreateSection title={<>Create invoice draft</>} size="standard"><Card>
           <CardHeader>
             <CardTitle>Create invoice draft</CardTitle>
           </CardHeader>
@@ -541,7 +543,7 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
               </fieldset>
             </CompactForm>
           </CardContent>
-        </Card></div></details>
+        </Card></SmartCreateSection></div></details>
       )}
       <Card>
         <CardHeader>

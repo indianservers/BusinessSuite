@@ -1,3 +1,4 @@
+import { LoadingState } from "@/components/ui/state";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
@@ -860,7 +861,7 @@ function ProjectsList() {
                 <Badge className={statusColor(preview.status)}>
                   {preview.status}
                 </Badge>
-                <Badge variant="outline">{preview.priority}</Badge>
+                <Badge data-priority-badge data-priority={preview.priority} variant="outline">{preview.priority}</Badge>
                 <Badge variant="outline">{health(preview)}</Badge>
                 <p className="text-xs text-muted-foreground">{preview.blocked_task_count ? `${preview.blocked_task_count} blocked tasks` : overdue(preview) ? "Project deadline has passed" : preview.overdue_task_count ? `${preview.overdue_task_count} overdue tasks` : ["At Risk","Critical","Blocked"].includes(preview.health) ? `Reported health: ${preview.health}` : "No delivery warnings"}</p>
               </div>
@@ -1527,9 +1528,7 @@ function ProjectsList() {
         )}
 
         {initialLoading ? (
-          <div className="p-12 text-center text-muted-foreground" role="status">
-            Loading your project portfolio…
-          </div>
+          <LoadingState label="Loading Projects" variant="cards"/>
         ) : projectLenses.includes(filters.view) ? <RecordLensViews scope="pms-projects" view={filters.view} records={filtered.map(project => ({id:String(project.id),title:project.name,subtitle:project.client_name || "Internal project",status:project.status,owner:project.owner_name || "Unassigned",progress:progress(project),start:project.start_date,due:project.due_date,updated:project.updated_at,tags:[health(project),project.priority]}))} statuses={statuses} canMove={record => canEditProject && !busy && !!filtered.find(project => String(project.id) === record.id)?.can_edit_project} onMove={(record,status) => {const project=filtered.find(project => String(project.id) === record.id);if(project?.can_edit_project && !busy)void update(project,{status:status as PMSProject["status"]});}} onOpen={record => setPreviewId(Number(record.id))}/> : filters.view === "analytics" ? (
           <div className="portfolio-analytics">
             <div>
@@ -1631,7 +1630,7 @@ function ProjectsList() {
                 </thead>
                 <tbody>
                   {rows.map((p) => (
-                    <tr
+                    <tr data-priority-row data-priority={p.priority}
                       key={p.id}
                       className={selected.includes(p.id) ? "is-selected" : ""}
                       {...surfaceInteraction(p.id)}

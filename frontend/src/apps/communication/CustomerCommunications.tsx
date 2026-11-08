@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import {ProductPicker} from '@/apps/crm/GrowthWorkspace';
 import type {OfferingFilter} from './whatsapp/InboxFilters';
 import {whatsappBase,type Template} from './whatsapp/types';
@@ -485,7 +487,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                     No customer recipients yet.
                   </p>
                 )}
-                {recipients.data?.items.map((r: Row) => (
+                {<GroupedRecords scope="apps/communication/CustomerCommunications:records-1" items={(recipients.data?.items) || []} fields={standardRecordGroups((recipients.data?.items) || [])} gridClassName="space-y-3" renderItem={(r: Row) => (
                   <div
                     key={r.id}
                     className="flex flex-wrap items-center justify-between gap-2 border-b pb-2"
@@ -518,7 +520,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                       </Button>
                     </div>
                   </div>
-                ))}
+                )}/>}
               </CardContent>
             </Card>
             {selected && (
@@ -537,7 +539,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   </p>
                   <RecordPicker label="Find a business record to link" value={boundRecord} onChange={setBoundRecord} types={['order','invoice','service','follow_up','contract','lead','meeting','quotation','shipment','contact']}/>
                   <Button disabled={!boundRecord||action.isPending} onClick={()=>boundRecord&&run(()=>save(`/recipients/${selected}/bindings`,{source_type:boundRecord.entity,source_id:boundRecord.id}))}>Link selected business record</Button>
-                  {bindings.data?.items.map((b: Row) => (
+                  {<GroupedRecords scope="apps/communication/CustomerCommunications:records-2" items={(bindings.data?.items) || []} fields={standardRecordGroups((bindings.data?.items) || [])} gridClassName="space-y-3" renderItem={(b: Row) => (
                     <div
                       key={b.id}
                       className="flex items-center justify-between text-sm"
@@ -555,7 +557,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                         Unlink
                       </Button>
                     </div>
-                  ))}
+                  )}/>}
                   <Button
                     variant="outline"
                     size="sm"
@@ -885,7 +887,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
           </Card>
           <div className="space-y-4">
             <section className="space-y-2 rounded border p-3"><h3>Campaign audience</h3><div className="grid gap-2 sm:grid-cols-2"><label>Lead / customer type<NativeSelect aria-label="Campaign contact type" value={campaignType} onChange={e=>setCampaignType(e.target.value)}><option value="">Any type</option>{['lead','customer','vendor','employee','other'].map(t=><option key={t}>{t}</option>)}</NativeSelect></label><label>CRM tag<input aria-label="Campaign CRM tag" className="w-full rounded border p-2" value={campaignTag} maxLength={100} onChange={e=>setCampaignTag(e.target.value)}/></label><div><ProductPicker kind="" id="" name="" change={(kind,id,name)=>{if(id&&campaignOfferings.length<50&&!campaignOfferings.some(v=>v.kind===kind&&v.id===id))setCampaignOfferings([...campaignOfferings,{kind,id,name}]);}}/>{campaignOfferings.map(p=><button type="button" key={p.kind+p.id} onClick={()=>setCampaignOfferings(campaignOfferings.filter(v=>v!==p))}>{p.name} ×</button>)}</div><small>Type, tag and product filters use authorized CRM contact/lead links; unlinked recipients are excluded. Products match any selection.</small></div><p className="text-sm">{audienceIds.length?`${audienceIds.length} selected recipients`:'All active recipients in this branch'}. Consent and exclusions are checked by preview and again before delivery.</p><input aria-label="Search campaign audience" className="w-full rounded border p-2" placeholder="Search name, phone, email or role" value={audienceSearch} onChange={e=>setAudienceSearch(e.target.value)}/><div className="max-h-48 overflow-auto">{recipients.data?.items.filter((r:Row)=>(r.name+' '+r.phone+' '+r.email+' '+r.role).toLowerCase().includes(audienceSearch.toLowerCase())).map((r:Row)=><label className="flex items-center gap-2" key={r.id}><input type="checkbox" checked={audienceIds.includes(r.id)} onChange={e=>setAudienceIds(e.target.checked?[...audienceIds,r.id]:audienceIds.filter(id=>id!==r.id))}/>{r.name} · {r.phone||r.email} · {r.role}</label>)}</div><button type="button" onClick={()=>setAudienceIds([])}>Use all active recipients</button></section>
-            {rules.data?.items.filter((r:Row)=>!whatsappOnly||r.channel==='whatsapp').map((r: Row) => (
+            {<GroupedRecords scope="apps/communication/CustomerCommunications:records-3" items={(rules.data?.items.filter((r:Row)=>!whatsappOnly||r.channel==='whatsapp')) || []} fields={standardRecordGroups((rules.data?.items.filter((r:Row)=>!whatsappOnly||r.channel==='whatsapp')) || [])} gridClassName="space-y-3" renderItem={(r: Row) => (
               <Card key={r.id}>
                 <CardContent className="space-y-2 p-4">
                   <div className="flex justify-between gap-2">
@@ -939,7 +941,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )}/>}
             {preview && (
               <Card>
                 <CardContent className="space-y-3 p-4">
@@ -1011,7 +1013,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
             uncertain outcomes before retrying.
           </p>
           {!deliveries.data?.items.length && <p>No messages queued yet.</p>}
-          {deliveries.data?.items.filter((d:Row)=>!whatsappOnly||d.channel==='whatsapp').map((d: Row) => (
+          {<GroupedRecords scope="apps/communication/CustomerCommunications:records-4" items={(deliveries.data?.items.filter((d:Row)=>!whatsappOnly||d.channel==='whatsapp')) || []} fields={standardRecordGroups((deliveries.data?.items.filter((d:Row)=>!whatsappOnly||d.channel==='whatsapp')) || [])} gridClassName="space-y-3" renderItem={(d: Row) => (
             <Card key={d.id}>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div>
@@ -1055,7 +1057,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )}/>}
         </div>
       )}
       {tab === "logistics" && (
@@ -1138,7 +1140,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
             </CardContent>
           </Card>
           <div className="space-y-3">
-            {shipments.data?.items.map((s: Row) => (
+            {<GroupedRecords scope="apps/communication/CustomerCommunications:records-5" items={(shipments.data?.items) || []} fields={standardRecordGroups((shipments.data?.items) || [])} gridClassName="space-y-3" renderItem={(s: Row) => (
               <Card key={s.id}>
                 <CardContent className="space-y-2 p-4">
                   <h3 className="font-semibold">{s.reference}</h3>
@@ -1167,7 +1169,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+            )}/>}
           </div>
         </div>
       )}

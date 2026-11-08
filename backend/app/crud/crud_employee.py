@@ -76,7 +76,7 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         items = order_employee_directory(query, filters.get("sort_by", "name"), filters.get("sort_order", "asc")).offset(skip).limit(limit).all()
         return items, total
 
-    def create_with_user(self, db: Session, *, obj_in: EmployeeCreate, created_by: int | None = None) -> Employee:
+    def create_with_user(self, db: Session, *, obj_in: EmployeeCreate, created_by: int | None = None, commit: bool = True) -> Employee:
         emp_id = obj_in.employee_id or self.generate_employee_id(db)
 
         user = None
@@ -100,7 +100,7 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
             db.flush()
 
         emp_data = obj_in.model_dump(
-            exclude={"create_user_account", "user_email", "user_password", "employee_id", "custom_fields"}
+            exclude={"create_user_account", "user_email", "user_password", "employee_id", "custom_fields", "allow_contact_duplicate"}
         )
         db_emp = Employee(**emp_data, employee_id=emp_id, user_id=user.id if user else None)
         db.add(db_emp)
@@ -114,7 +114,10 @@ class CRUDEmployee(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         if created_by:
             from app.services.employee_custom_fields import save as save_custom_fields
             save_custom_fields(db, db.get(User, created_by), db_emp, obj_in.custom_fields)
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
         db.refresh(db_emp)
         return db_emp
 

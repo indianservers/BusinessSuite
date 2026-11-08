@@ -1,3 +1,4 @@
+import {useCommunicationAction} from "./use-communication-action";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useCommunicationScope } from "./scope";
@@ -69,6 +70,7 @@ const instant = (value: string) =>
   new Date(/(Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`);
 function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: CommunicationWorkspaceProps) {
   useCommunicationEvents();
+  const canCreate=useCommunicationAction("create"),canEdit=useCommunicationAction("edit"),canDelete=useCommunicationAction("delete");
   const scope=useCommunicationScope();
   const { user } = useAuthStore(),
     qc = useQueryClient();
@@ -160,7 +162,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
       Record<string, { id: string; body: string; files: string }>
     >({}),
     controller = useRef<AbortController | null>(null);
-  useCommunicationDraft({ wid, rid, thread, context, enabled: !!canWrite, draft: drafts[context], setDraft: (value) => setDrafts(d => ({ ...d, [context]: value })) });
+  useCommunicationDraft({ wid, rid, thread, context, enabled: !!canWrite && canCreate, draft: drafts[context], setDraft: (value) => setDrafts(d => ({ ...d, [context]: value })) });
   const [pendingSend, setPendingSend] = useState<{
     context: string;
     client_id: string;
@@ -223,7 +225,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
   });
   const projectFiles = useInfiniteQuery({
     queryKey: ["chat-project-files", scope, wid],
-    enabled: !!wid && dialog === "details" && !!canWrite,
+    enabled: !!wid && dialog === "details" && !!canWrite && canCreate,
     initialPageParam: null as number | null,
     queryFn: async ({ pageParam, signal }) =>
       (
@@ -367,7 +369,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
         client_id: req.id,
         parent_id: thread || null,
         attachment_ids: ids,
-      });
+      },{progress:{title:"Sending Message",operationType:"save",mode:"micro"}});
       setDrafts((d) => (d[key]?.trim() === req.body ? { ...d, [key]: "" } : d));
       setUploads((d) => ({
         ...d,
@@ -378,7 +380,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
     setPendingSend(null);
   }
   async function upload(input: FileList | File[]) {
-    if (!canWrite || busy || progress !== null) return;
+    if (!canWrite || !canCreate || busy || progress !== null) return;
     const key = context;
     controller.current = new AbortController();
     setProgress(0);
@@ -392,6 +394,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
           form,
           {
             signal: controller.current.signal,
+            progress:{title:"Uploading Message Attachment",operationType:"upload",mode:"micro"},
             onUploadProgress: (e) => {
               if (current.current === key)
                 setProgress(
@@ -477,27 +480,10 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
             </button>
           )}
           {m.latest_reply && <small>{richTextPlainText(m.latest_reply)}</small>}
-          {canWrite && m.author_id === user?.id && !m.deleted_at && (
-            <>
-              <button
-                onClick={() => {
-                  setEditMsg(m);
-                  setBody(m.body);
-                  setDialog("edit");
-                }}
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  setEditMsg(m);
-                  setDialog("delete");
-                }}
-              >
-                Delete
-              </button>
-            </>
-          )}
+          {canWrite && m.author_id === user?.id && !m.deleted_at && <>
+            {canEdit && <button onClick={()=>{setEditMsg(m);setBody(m.body);setDialog("edit");}}>Edit</button>}
+            {canDelete && <button onClick={()=>{setEditMsg(m);setDialog("delete");}}>Delete</button>}
+          </>}
         </footer>
       </article>
     );
@@ -600,7 +586,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
               <input aria-label="Find conversations" placeholder="Search conversations…" value={conversationFilter} onChange={e => setConversationFilter(e.target.value)} />
               <div className="ce-inbox-filters" aria-label="Conversation filters">{[["all", "All"], ["unread", "Unread"], ["pinned", "Pinned"], ["drafts", "Drafts"], ["archived", "Archived"]].map(([key,label]) => <button key={key} aria-pressed={inboxFilter === key} onClick={() => setInboxFilter(key)}>{label}</button>)}</div>
               <button
-                disabled={!inbox.data?.can_send || (features.channels === false && features.directMessages === false && features.groupChats === false)}
+                disabled={!canCreate || !inbox.data?.can_send || (features.channels === false && features.directMessages === false && features.groupChats === false)}
                 onClick={() => {
                   setDialog("create");
                   setName("");
@@ -758,7 +744,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                         </button>
                       </>
                     ) : (
-                      <button
+                      <button disabled={!canCreate || busy}
                         onClick={() =>
                           void action(() =>
                             api.post(`${url}/conversations/${rid}/join`),
@@ -838,7 +824,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                         )}
                       </div>
                       {presence.users.some(p => p.typing && p.id !== user?.id) && <p className="ce-typing" role="status">A teammate is typing…</p>}
-                      {canWrite && activeTab === "chat" && (
+                      {canWrite && canCreate && activeTab === "chat" && (
                         <CompactForm
                           className="chat-composer"
                           onPaste={e => { const images = Array.from(e.clipboardData.files).filter(f => f.type.startsWith("image/")); if (features.files !== false && images.length) { e.preventDefault(); void upload(images); } }}
@@ -1060,7 +1046,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                       </label>
                     ))}
                 </fieldset>
-                <button disabled={busy}>Create conversation</button>
+                <button disabled={busy || !canCreate}>Create conversation</button>
               </CompactForm>
             )}
             {dialog === "details" && room && (
@@ -1068,6 +1054,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                 <p>{room.participants.map((p) => p.email).join(", ")}</p>
                 {manager && room.kind !== "dm" && (
                   <>
+                    <fieldset disabled={busy || !canEdit}>
                     <label>
                       Name
                       <input
@@ -1112,11 +1099,12 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                     >
                       {room.archived ? "Unarchive" : "Archive"}
                     </button>
+                    </fieldset>
                     {!room.archived && (
                       <label>
                         Add participant
                         <NativeSelect loading={people.isFetching} error={people.isError}
-                          aria-label="Add conversation participant"
+                          aria-label="Add conversation participant" disabled={busy || !canCreate}
                           value=""
                           onChange={(e) =>
                             e.target.value &&
@@ -1149,7 +1137,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                       .map((p) => (
                         <button
                           key={p.id}
-                          disabled={busy}
+                          disabled={busy || !canDelete}
                           onClick={() =>
                             void action(() =>
                               api.delete(
@@ -1165,7 +1153,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                 )}
                 {!["dm", "general"].includes(room.kind) &&
                   (room.owner_id !== user?.id || room.kind === "group") && (
-                    <button
+                    <button disabled={busy || !canDelete}
                       onClick={() =>
                         void action(async () => {
                           await api.delete(
@@ -1179,7 +1167,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                       Leave conversation (group ownership transfers)
                     </button>
                   )}
-                {canWrite && (
+                {canWrite && canCreate && (
                   <CompactForm
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -1251,7 +1239,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                   onChange={(e) => setBody(e.target.value)}
                 />
                 <button
-                  disabled={busy || !body.trim()}
+                  disabled={busy || !canEdit || !body.trim()}
                   onClick={() =>
                     void action(async () => {
                       await api.patch(
@@ -1273,7 +1261,7 @@ function WorkspaceCore({ module = "PMS", workspaceId, features = {} }: Communica
                   Its files become inaccessible.
                 </p>
                 <button
-                  disabled={busy}
+                  disabled={busy || !canDelete}
                   onClick={() =>
                     void action(async () => {
                       await api.delete(

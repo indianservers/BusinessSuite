@@ -1,3 +1,6 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
+import { LoadingState } from "@/components/ui/state";
 import RecordMaintenance from "@/components/RecordMaintenance";
 import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
 import { api } from "@/services/api";
@@ -227,7 +230,7 @@ function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetchin
 }
 
 function State({ label, isLoading, isError }: { label: string; isLoading?: boolean; isError?: boolean }) {
-  if (isLoading) return <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Loading {label}...</div>;
+  if (isLoading) return <LoadingState label={`Loading ${label}`} variant="table"/>;
   if (isError) return <div className="rounded-lg border border-destructive/40 p-6 text-sm text-destructive"><AlertTriangle className="mr-2 inline h-4 w-4" />Unable to load {label}.</div>;
   return null;
 }
@@ -257,6 +260,7 @@ function DashboardView() {
           <Card key={label}><SuiteMetric label={label} value={value} icon={label === "Cash and bank" ? Landmark : label === "Overdue AR" ? AlertTriangle : Receipt}/></Card>
         ))}
       </div>
+      <ModuleWorkflowBoard module="fam" />
       {!query.isLoading && !query.isError && !!data.baseCurrency && [data.totalIncome, data.totalExpenses].every(value => typeof value === "number" && Number.isFinite(value)) && <SuiteBarChart title="Income and expenses" unit={String(data.baseCurrency)} data={[{name:"Income",value:Number(data.totalIncome)},{name:"Expenses",value:Number(data.totalExpenses)}]}/>}
       <SecondaryDetails title="Financial summary and books status">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{kpis.filter(([label]) => !["Cash and bank", "Receivables", "Payables", "Overdue AR"].includes(label)).map(([label, value]) => <div key={label} className="border-b py-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p></div>)}</div>
@@ -321,7 +325,7 @@ function DataTable({ rows, columns, renderActions }: { rows: FAMRecord[]; column
   return (
     <div className="overflow-x-auto rounded-lg border">
       <GridTable gridId="apps/fam/FAMWorkspacePage:table-1" className="w-full min-w-[780px] text-sm">
-        <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}{renderActions&&<th className="px-3 py-2">Actions</th>}</tr></thead>
+        <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}{renderActions&&<th className="px-3 py-2">Actions</th>}{definitionName&&<th className="px-3 py-2">Ledger actions</th>}</tr></thead>
         <tbody>{rows.map((row) => <tr {...recordPreviewProps(row)} key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2">{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}{renderActions&&<td>{renderActions(row)}</td>}{definitionName&&<td className="flex gap-2 px-3 py-2"><RecordDefinitionActions record={row} nameField={definitionName} endpoint={`${pathname}/${row.id}`} queryKeys={["fam"]} permissions={["fam_admin","fam_chart_manage"]}/></td>}</tr>)}</tbody>
       </GridTable>
     </div>
@@ -356,10 +360,10 @@ function ListCreateView({ kind }: { kind: FAMViewKind }) {
    onError: showMutationError });
   return (
     <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
-      <Card><CardHeader><CardTitle className="text-base">Create {config.label}</CardTitle></CardHeader><CardContent className="space-y-3">
+      <SmartCreateSection title={<>Create {config.label}</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create {config.label}</CardTitle></CardHeader><CardContent className="space-y-3">
         {config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
         <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}><Plus className="h-4 w-4" />Create</Button>
-      </CardContent></Card>
+      </CardContent></Card></SmartCreateSection>
       <Card><CardHeader><CardTitle className="text-base">{config.label} list</CardTitle></CardHeader><CardContent><State label={config.label} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={config.columns} /></CardContent></Card>
     </div>
   );
@@ -527,10 +531,10 @@ function PartiesView({ partyType }: { partyType?: "customer" | "vendor" }) {
   const title = partyType === "customer" ? "customer" : partyType === "vendor" ? "vendor" : "party";
   return (
     <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
-      <Card ref={createRef} id="new-record"><CardHeader><CardTitle className="text-base">Create {title}</CardTitle></CardHeader><CardContent className="space-y-3">
+      <SmartCreateSection title={<>Create {title}</>} size="compact"><Card ref={createRef} id="new-record"><CardHeader><CardTitle className="text-base">Create {title}</CardTitle></CardHeader><CardContent className="space-y-3">
         {["party_type", "party_code", "legal_name", "gstin", "pan", "state_code", "payment_terms_days", "credit_limit"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
         <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}><Plus className="h-4 w-4" />Create with ledger</Button>
-      </CardContent></Card>
+      </CardContent></Card></SmartCreateSection>
       <Card><CardHeader><CardTitle className="text-base">{title} masters</CardTitle></CardHeader><CardContent><State label="parties" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={["party_code", "legal_name", "party_type", "ledger_id", "payment_terms_days", "credit_limit", "active"]} renderActions={row=><RecordMaintenance record={row} name={String(row.legal_name)} endpoint={`/fam/parties/${row.id}`} fields={[{key:"legal_name",label:"Legal name",required:true},{key:"credit_limit",label:"Credit limit",type:"number"}]} queryKeys={["fam"]} canEdit={canEdit} canDelete={canDelete} mergeRecord/>}/></CardContent></Card>
     </div>
   );
@@ -565,7 +569,7 @@ function BillReferencesView() {
   const query = useQuery({ queryKey: ["fam", "billReferences"], queryFn: famApi.billReferences });
   const [draft, setDraft] = useState<FAMRecord>({ party_id: 1, bill_number: "", bill_date: "2026-06-06", bill_type: "invoice", original_amount: 1000 });
   const mutation = useMutation({ mutationFn: () => famApi.createBillReference(draft), onSuccess: () => { toast({ title: "Bill reference saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create bill reference</CardTitle></CardHeader><CardContent className="space-y-3">{["party_id", "bill_number", "bill_date", "bill_type", "original_amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Create bill</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bill-wise tracking</CardTitle></CardHeader><CardContent><State label="bill references" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["bill_number", "party_id", "bill_date", "due_date", "bill_type", "original_amount", "outstanding_amount", "status"]} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title={<>Create bill reference</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create bill reference</CardTitle></CardHeader><CardContent className="space-y-3">{["party_id", "bill_number", "bill_date", "bill_type", "original_amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Create bill</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">Bill-wise tracking</CardTitle></CardHeader><CardContent><State label="bill references" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["bill_number", "party_id", "bill_date", "due_date", "bill_type", "original_amount", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
 function BillAllocationsView() {
@@ -636,7 +640,7 @@ function PostingRulesView() {
   const query = useQuery({ queryKey: ["fam", "postingRules"], queryFn: famApi.postingRules });
   const [draft, setDraft] = useState<FAMRecord>({ source_module: "srm", transaction_type: "sales_invoice", debit_ledger_rule_json: '{"type":"customer_ledger"}', credit_ledger_rule_json: '{"ledger_code":"SALES"}', tax_ledger_rule_json: '{"cgst":"OUTPUT-CGST","sgst":"OUTPUT-SGST"}', active: true });
   const mutation = useMutation({ mutationFn: () => famApi.createPostingRule({ ...draft, debit_ledger_rule_json: parseJson(draft.debit_ledger_rule_json), credit_ledger_rule_json: parseJson(draft.credit_ledger_rule_json), tax_ledger_rule_json: parseJson(draft.tax_ledger_rule_json) }), onSuccess: () => { toast({ title: "Posting rule saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="grid gap-4 lg:grid-cols-[26rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create posting rule</CardTitle></CardHeader><CardContent className="space-y-3">{["source_module", "transaction_type", "debit_ledger_rule_json", "credit_ledger_rule_json", "tax_ledger_rule_json"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save posting rule</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Posting rules</CardTitle></CardHeader><CardContent><State label="posting rules" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["source_module", "transaction_type", "active", "roundoff_ledger_id"]} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[26rem_1fr]"><SmartCreateSection title={<>Create posting rule</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create posting rule</CardTitle></CardHeader><CardContent className="space-y-3">{["source_module", "transaction_type", "debit_ledger_rule_json", "credit_ledger_rule_json", "tax_ledger_rule_json"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save posting rule</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">Posting rules</CardTitle></CardHeader><CardContent><State label="posting rules" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["source_module", "transaction_type", "active", "roundoff_ledger_id"]} /></CardContent></Card></div>;
 }
 
 function ListCreateInline({ fields, draft, setDraft, onCreate }: { fields: string[]; draft: FAMRecord; setDraft: (value: FAMRecord | ((current: FAMRecord) => FAMRecord)) => void; onCreate: () => void }) {
@@ -680,7 +684,7 @@ function BankAccountsView() {
   const bankLedgers = listItems(ledgerQuery.data).filter(ledger => ledger.ledger_type === "bank" && ledger.active !== false && !listItems(query.data).some(account=>account.ledger_id===ledger.id));
   const [draft, setDraft] = useState<FAMRecord>({ ledger_id: "", bank_name: "", branch_name: "", account_number_masked: "", ifsc: "", account_type: "current", opening_balance: 0, active: true });
   const mutation = useMutation({ mutationFn: () => famApi.createBankAccount(draft), onSuccess: () => { toast({ title: "Bank account saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create bank account</CardTitle></CardHeader><CardContent className="space-y-3"><Field label="Bank ledger"><NativeSelect aria-label="Bank ledger" value={String(draft.ledger_id || "")} onChange={event => setDraft(current => ({...current,ledger_id:Number(event.target.value)}))}><option value="">Choose bank ledger</option>{bankLedgers.map(ledger => <option key={String(ledger.id)} value={String(ledger.id)}>{String(ledger.ledger_name || ledger.id)}</option>)}</NativeSelect></Field>{ledgerQuery.isError ? <p role="alert">Bank ledgers could not be loaded.</p> : !ledgerQuery.isLoading && !bankLedgers.length ? <p className="text-sm text-muted-foreground">Create an active bank ledger before registering a bank account.</p> : null}{["bank_name", "branch_name", "account_number_masked", "ifsc", "account_type", "opening_balance"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending || !Number(draft.ledger_id) || !String(draft.bank_name || "").trim()} title={!canWrite ? "Write permission required" : undefined}>Save bank account</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank accounts</CardTitle></CardHeader><CardContent><State label="bank accounts" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data).filter(row=>row.active!==false)} columns={["bank_name", "branch_name", "ledger_id", "account_number_masked", "ifsc", "account_type", "opening_balance", "active"]} renderActions={row=><RecordMaintenance record={row} name={String(row.bank_name)} endpoint={`/fam/bank-accounts/${row.id}`} fields={[{key:"bank_name",label:"Bank name",required:true},{key:"branch_name",label:"Branch name"}]} queryKeys={["fam"]} canEdit={canEdit} canDelete={canDelete} mergeRecord/>}/></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title={<>Create bank account</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create bank account</CardTitle></CardHeader><CardContent className="space-y-3"><Field label="Bank ledger"><NativeSelect aria-label="Bank ledger" value={String(draft.ledger_id || "")} onChange={event => setDraft(current => ({...current,ledger_id:Number(event.target.value)}))}><option value="">Choose bank ledger</option>{bankLedgers.map(ledger => <option key={String(ledger.id)} value={String(ledger.id)}>{String(ledger.ledger_name || ledger.id)}</option>)}</NativeSelect></Field>{ledgerQuery.isError ? <p role="alert">Bank ledgers could not be loaded.</p> : !ledgerQuery.isLoading && !bankLedgers.length ? <p className="text-sm text-muted-foreground">Create an active bank ledger before registering a bank account.</p> : null}{["bank_name", "branch_name", "account_number_masked", "ifsc", "account_type", "opening_balance"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending || !Number(draft.ledger_id) || !String(draft.bank_name || "").trim()} title={!canWrite ? "Write permission required" : undefined}>Save bank account</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">Bank accounts</CardTitle></CardHeader><CardContent><State label="bank accounts" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data).filter(row=>row.active!==false)} columns={["bank_name", "branch_name", "ledger_id", "account_number_masked", "ifsc", "account_type", "opening_balance", "active"]} renderActions={row=><RecordMaintenance record={row} name={String(row.bank_name)} endpoint={`/fam/bank-accounts/${row.id}`} fields={[{key:"bank_name",label:"Bank name",required:true},{key:"branch_name",label:"Branch name"}]} queryKeys={["fam"]} canEdit={canEdit} canDelete={canDelete} mergeRecord/>}/></CardContent></Card></div>;
 }
 
 function PaymentModesView() {
@@ -688,7 +692,7 @@ function PaymentModesView() {
   const query = useQuery({ queryKey: ["fam", "paymentModes"], queryFn: famApi.paymentModes });
   const [draft, setDraft] = useState<FAMRecord>({ name: "UPI", type: "upi", default_ledger_id: 1, active: true });
   const mutation = useMutation({ mutationFn: () => famApi.createPaymentMode(draft), onSuccess: () => { toast({ title: "Payment mode saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create payment mode</CardTitle></CardHeader><CardContent className="space-y-3">{["name", "type", "default_ledger_id"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save payment mode</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Payment modes</CardTitle></CardHeader><CardContent><State label="payment modes" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["name", "type", "default_ledger_id", "active"]} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title={<>Create payment mode</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create payment mode</CardTitle></CardHeader><CardContent className="space-y-3">{["name", "type", "default_ledger_id"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save payment mode</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">Payment modes</CardTitle></CardHeader><CardContent><State label="payment modes" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["name", "type", "default_ledger_id", "active"]} /></CardContent></Card></div>;
 }
 
 function BankStatementsView() {
@@ -761,7 +765,7 @@ function GSTMasterView({ kind }: { kind: "registrations" | "rates" | "hsn" }) {
   const query = useQuery({ queryKey: ["fam", config.queryKey], queryFn: config.queryFn });
   const [draft, setDraft] = useState<FAMRecord>(config.draft);
   const mutation = useMutation({ mutationFn: () => config.mutationFn(draft), onSuccess: () => { toast({ title: "GST master saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create {kind}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title={<>Create {kind}</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create {kind}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} /></CardContent></Card></div>;
 }
 
 function GSTSettingsView() {
@@ -1041,7 +1045,7 @@ function TDSSectionsView() {
   const query = useQuery({ queryKey: ["fam", "tdsSections"], queryFn: famApi.tdsSections });
   const [draft, setDraft] = useState<FAMRecord>({ section_code: "194J", description: "Professional fees", default_rate: 10, threshold_amount: 30000, effective_from: "2026-04-01", active: true });
   const mutation = useMutation({ mutationFn: () => famApi.createTdsSection(draft), onSuccess: () => { toast({ title: "TDS section saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create TDS section</CardTitle></CardHeader><CardContent className="space-y-3">{["section_code", "description", "default_rate", "threshold_amount", "effective_from"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save section</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Sections</CardTitle></CardHeader><CardContent><State label="TDS sections" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section_code", "description", "default_rate", "threshold_amount", "effective_from", "active"]} /></CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title={<>Create TDS section</>} size="compact"><Card><CardHeader><CardTitle className="text-base">Create TDS section</CardTitle></CardHeader><CardContent className="space-y-3">{["section_code", "description", "default_rate", "threshold_amount", "effective_from"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save section</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">Sections</CardTitle></CardHeader><CardContent><State label="TDS sections" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section_code", "description", "default_rate", "threshold_amount", "effective_from", "active"]} /></CardContent></Card></div>;
 }
 
 function TDSTransactionsView() {
@@ -1461,7 +1465,7 @@ function InventoryOpeningStockView() {
   const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate", "movement_date"] : ["stock_item_id", "warehouse_id", "quantity", "rate", "opening_date"];
   return (
     <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
-      <Card>
+      <SmartCreateSection title={<>Create opening stock</>} size="compact"><Card>
         <CardHeader><CardTitle className="text-base">Create opening stock</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {fields.map((field) => (
@@ -1479,7 +1483,7 @@ function InventoryOpeningStockView() {
           ))}
           <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Save opening stock</Button>
         </CardContent>
-      </Card>
+      </Card></SmartCreateSection>
       <InventorySummaryView kind="summary" />
     </div>
   );
@@ -1569,7 +1573,7 @@ function InventoryBatchesView() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <SmartCreateSection title={<>Create batch / expiry lot</>} size="compact"><Card>
           <CardHeader><CardTitle className="text-base">Create batch / expiry lot</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2">
             {["product_id", "warehouse_id", "batch_number", "manufacture_date", "expiry_date", "quantity", "available_quantity", "unit_cost", "status", "notes"].map((field) => (
@@ -1587,8 +1591,8 @@ function InventoryBatchesView() {
             ))}
             <div className="md:col-span-2"><Button onClick={() => createBatch.mutate()} disabled={createBatch.isPending}>Save batch</Button></div>
           </CardContent>
-        </Card>
-        <Card>
+        </Card></SmartCreateSection>
+        <SmartCreateSection title={<>Register serial number</>} size="compact"><Card>
           <CardHeader><CardTitle className="text-base">Register serial number</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2">
             {["product_id", "warehouse_id", "batch_id", "serial_number", "status", "received_date", "reference_number"].map((field) => (
@@ -1606,7 +1610,7 @@ function InventoryBatchesView() {
             ))}
             <div className="md:col-span-2"><Button onClick={() => createSerial.mutate()} disabled={createSerial.isPending}>Save serial</Button></div>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -1686,7 +1690,7 @@ function InventoryPriceListsView() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-[28rem_1fr]">
-        <Card>
+        <SmartCreateSection title={<>Create price list</>} size="compact"><Card>
           <CardHeader><CardTitle className="text-base">Create price list</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2">
             {["price_list_code", "price_list_name", "channel", "customer_type", "currency", "effective_from", "effective_to", "priority", "product_id", "min_quantity", "price", "discount_percent", "discount_amount"].map((field) => (
@@ -1707,7 +1711,7 @@ function InventoryPriceListsView() {
               <Button variant="outline" onClick={() => lookup.mutate()} disabled={lookup.isPending}>Test lookup</Button>
             </div>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
         <Card>
           <CardHeader><CardTitle className="text-base">Price lookup</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -1790,7 +1794,7 @@ function InventoryManufacturingView() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
+        <SmartCreateSection title={<>Create BOM</>} size="compact"><Card>
           <CardHeader><CardTitle className="text-base">Create BOM</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {["bom_number", "bom_name", "finished_product_id", "output_quantity", "component_product_id", "warehouse_id", "quantity", "unit_cost", "notes"].map((field) => (
@@ -1800,8 +1804,8 @@ function InventoryManufacturingView() {
             ))}
             <Button onClick={() => createBom.mutate()} disabled={createBom.isPending}>Save BOM</Button>
           </CardContent>
-        </Card>
-        <Card>
+        </Card></SmartCreateSection>
+        <SmartCreateSection title={<>Create production order</>} size="compact"><Card>
           <CardHeader><CardTitle className="text-base">Create production order</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {["bom_id", "warehouse_id", "planned_quantity", "order_date", "notes"].map((field) => (
@@ -1811,7 +1815,7 @@ function InventoryManufacturingView() {
             ))}
             <Button onClick={() => createOrder.mutate()} disabled={createOrder.isPending}>Create order</Button>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
         <Card>
           <CardHeader><CardTitle className="text-base">Post production</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -1891,7 +1895,7 @@ function InventoryPurchaseOrdersView() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <SmartCreateSection title={<>Create purchase order</>} size="compact"><Card>
           <CardHeader><CardTitle className="text-base">Create purchase order</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2">
             {["vendor_id", "vendor_name", "product_id", "warehouse_id", "quantity", "unit_price", "tax_amount"].map((field) => (
@@ -1901,7 +1905,7 @@ function InventoryPurchaseOrdersView() {
             ))}
             <div className="md:col-span-2"><Button onClick={() => createPo.mutate()} disabled={createPo.isPending}>Create PO</Button></div>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
         <Card>
           <CardHeader><CardTitle className="text-base">Post GRN</CardTitle></CardHeader>
           <CardContent className="grid gap-3 md:grid-cols-2">

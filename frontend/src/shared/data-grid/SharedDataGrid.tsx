@@ -1,7 +1,10 @@
+import { normalizePriority, recordPriority } from "@/shared/priority/priority";
+import CollectionOverview from "./CollectionOverview";
 import {useRecordAutosave} from "@/hooks/use-record-autosave";
 import {moduleActionAllowed} from "@/hooks/use-module-action";
 import { mergePendingGridSearch } from "./pendingSearch";
 import RecordViewBar from "./RecordViewBar";
+import { columnIcon, columnValue } from "./column-presentation";
 import { useRecordPreferences } from "./record-preferences";
 import { localGridSource } from "./local-source";
 import { Star } from "lucide-react";
@@ -107,6 +110,7 @@ import {
   SavedViewsManager,
 } from "./GridControls";
 import "./data-grid.css";
+import "./grid-mobile.css";
 import GridRecordPane from "./GridRecordPane";
 import { Eye } from "lucide-react";
 import { useLocation } from "react-router-dom";
@@ -280,7 +284,7 @@ function Header<T>({
 }) {
   const drag = useSortable({ id: `column:${column.id}` });
   const sort = column.getIsSorted();
-  const Icon = definition.icon;
+  const Icon = definition.icon || columnIcon(definition.title);
   return (
     <div
       role="columnheader"
@@ -304,14 +308,14 @@ function Header<T>({
       >
         <GripVertical size={12} />
       </button>
-      {definition.header ? <div className="udg-legacy-heading">{definition.header}</div> : <button
+      {definition.header ? <div className="udg-legacy-heading"><Icon size={13} aria-hidden="true"/>{definition.header}</div> : <button
         type="button"
         className="udg-sort-button"
         disabled={definition.sortable === false}
         onClick={column.getToggleSortingHandler()}
         title="Click to sort; Shift-click for multiple columns"
       >
-        {Icon && <Icon size={13} />}
+        <Icon size={13} aria-hidden="true" />
         <span>{definition.title}</span>
         {sort ? (
           sort === "asc" ? (
@@ -479,7 +483,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const identity = props.columns.find(column=>/^(name|title|full_name)$/i.test(column.id)) || props.columns.find(column=>/^(name|title|project|employee|lead|deal|company|customer|record|item)( name)?$/i.test(column.title)) || props.columns.find(column=>!/select|action|favorite/i.test(column.title)) || props.columns[0];
   const titleFor = (row:T) => identity ? String(identity.exportValue?.(row) ?? identity.accessor?.(row) ?? (row as Record<string,unknown>)[identity.id] ?? "Record") : "Record";
   const track = (row:T) => {if(enabled)personal.use(props.getRowId(row));};
-  const favoriteColumn:GridColumn<T>={id:"__suite_favorite",title:"Favorite",width:47,minWidth:40,sortable:false,filterable:false,groupable:false,render:row=><button type="button" className="suite-record-star" data-record-personal aria-label={`${personal.favorites.includes(props.getRowId(row))?"Unfavorite":"Favorite"} ${titleFor(row)}`} title="Toggle favorite" aria-pressed={personal.favorites.includes(props.getRowId(row))} onClick={event=>{event.stopPropagation();personal.toggle(props.getRowId(row));}}><Star size={15} fill={personal.favorites.includes(props.getRowId(row))?"currentColor":"none"}/></button>};
+  const favoriteColumn:GridColumn<T>={id:"__suite_favorite",title:"Favorite",header:<span className="sr-only">Favorite</span>,width:47,minWidth:40,sortable:false,filterable:false,groupable:false,render:row=><button type="button" className="suite-record-star" data-record-personal aria-label={`${personal.favorites.includes(props.getRowId(row))?"Unfavorite":"Favorite"} ${titleFor(row)}`} title="Toggle favorite" aria-pressed={personal.favorites.includes(props.getRowId(row))} onClick={event=>{event.stopPropagation();personal.toggle(props.getRowId(row));}}><Star size={15} fill={personal.favorites.includes(props.getRowId(row))?"currentColor":"none"}/></button>};
   const enhancedColumns=enabled?[favoriteColumn,...props.columns]:props.columns;
   useEffect(() => setFocused(undefined), [props.dataSource.key, location.pathname, location.search]);
   const canPreview = props.detailsEnabled !== false && !props.onSelectRecord;
@@ -513,6 +517,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
 }
 
 function GridEngine<T>(props: SharedDataGridProps<T>) {
+  const collectionLocation = useLocation();
   const {
     columns,
     dataSource,
@@ -867,6 +872,10 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const modelRows = table.getRowModel().rows,
     recordNodes = modelRows.filter((row) => row.original.record),
     visibleRecords = recordNodes.map((row) => row.original.record!);
+  const summaryRecords = dataSource.summaryRows?.(query) ?? [...new Map([
+    ...(result?.rows || []),
+    ...Object.values(children).flatMap(branch => branch.flatMap(node => node.record ? [node.record] : [])),
+  ].map(row => [getRowId(row),row])).values()];
   const left = table.getLeftVisibleLeafColumns(),
     center = table.getCenterVisibleLeafColumns(),
     right = table.getRightVisibleLeafColumns(),
@@ -1134,9 +1143,13 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       setActionError(errorText(e));
     }
   }
+  function priorityFor(record:T) {
+    const column=columns.find(column=>/^priority$/i.test(column.title.trim()));
+    return recordPriority(record) || (column ? normalizePriority(textFor(record,column)) : undefined);
+  }
   function renderCollectionRecord(record:T) {
     const actions=rowActions.filter(action=>!action.visible||action.visible(record));
-    return <article key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))onOpen?.(record);}}>
+    return <article data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))onOpen?.(record);}}>
       {columns.find(column=>column.id==="__suite_favorite")?.render?.(record)}
       {props.renderCard?.(record)||<div className="udg-record-fields">{[...columns.filter(column=>column.id!=="__suite_favorite"&&layout.visibility[column.id]!==false&&!/^(select|actions?|quick actions)$/i.test(column.title)).slice(0,7),...columns.filter(column=>layout.visibility[column.id]!==false&&/^(actions?|quick actions)$/i.test(column.title))].map(column=><div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record,column)}</div>)}</div>}
       <div className="udg-card-actions">{actions.filter(action=>action.quick).slice(0,4).map(action=><button type="button" key={action.id} title={action.label} aria-label={action.label} disabled={action.disabled?.(record)} onClick={()=>void runAction(action,record)}>{action.icon&&<action.icon size={15}/>}</button>)}{actions.length>0&&<Dropdown.Root modal={false}><Dropdown.Trigger aria-label="Record quick actions" title="Record quick actions"><MoreHorizontal size={16}/></Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="udg-menu" align="end" collisionPadding={10}>{actions.map(action=><Dropdown.Item key={action.id} disabled={action.disabled?.(record)} onSelect={()=>void runAction(action,record)}>{action.icon&&<action.icon size={14}/>} {action.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}</div>
@@ -1297,14 +1310,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     }
   }
   function textFor(row: T, def: GridColumn<T>): string {
-    return (
-      def.exportValue?.(row) ||
-      String(
-        def.accessor
-          ? def.accessor(row)
-          : ((row as Record<string, unknown>)[def.id] ?? ""),
-      )
-    );
+    const value = def.accessor ? def.accessor(row) : (row as Record<string, unknown>)[def.id];
+    return String(def.exportValue?.(row) ?? value ?? "");
   }
   function rowLabel(row:T):string {
     const identity=columns.find(column=>/^(name|title|full_name|fullName|display_name|subject|item_name|project_name|employee_name|legal_name)$/i.test(column.id))
@@ -1317,7 +1324,10 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     if (isPhoneField(def.id)) {
       return <PhoneActions value={def.accessor ? def.accessor(row) : (row as Record<string, unknown>)[def.id]} record={row} field={def.id} />;
     }
-    return def.render ? def.render(row) : textFor(row, def);
+    if(def.render) return def.render(row);
+    const value=def.accessor?def.accessor(row):(row as Record<string,unknown>)[def.id];
+    if(typeof value==="number"&&Number.isFinite(value)&&value>=0&&value<=100&&/^(progress|completion)(?:\s*(?:percent|percentage|\(%\)|%))?$/i.test(def.title.trim()))return columnValue(def.title,`${value}%`);
+    return columnValue(def.title,textFor(row,def) || "—");
   }
   async function copyCells() {
     try {
@@ -1579,6 +1589,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         }
       }}
     >
+      {props.overview !== false && collectionLocation.pathname !== "/pms/projects" && result && <CollectionOverview rows={summaryRecords} fields={columns.filter(c=>!/^(__suite_|actions|select)/.test(c.id)).map(c=>({id:c.id,title:c.title,value:(row:T)=>c.accessor?c.accessor(row):(row as Record<string,unknown>)[c.id]}))} total={props.dataScope === "loaded" ? undefined : result.total} onOpen={onOpen}/>}
       {props.statistics && result
         ? props.statistics(result)
         : result && !!result.aggregates?.length && (
@@ -1984,6 +1995,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                         >
                           <div
                             {...props.rowProps?.(record)}
+                            data-priority-row={!!priorityFor(record)}
+                            data-priority={priorityFor(record)}
                             role="row"
                             aria-selected={selection.includes(node.id)}
                             aria-rowindex={
@@ -2146,7 +2159,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               <div className="udg-empty">
                 <SuiteIllustration />
                 <h3>No records match</h3>
-                <p>Try a different search or clear your filters.</p>
+                {props.emptyContent ? <div>{props.emptyContent}</div> : <p>Try a different search or clear your filters.</p>}
               </div>
             )}
           </div>
@@ -2226,4 +2239,3 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     </section>
   );
 }
-

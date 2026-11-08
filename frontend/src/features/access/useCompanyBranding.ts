@@ -1,15 +1,25 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 
-export function useCompanyBranding(path: string) {
+export function useCompanyBranding(_path: string) {
+  const client = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const company = Number(
+    sessionStorage.getItem("suite-organization") ||
+      user?.access?.companyId ||
+      1,
+  );
   const [revision, setRevision] = useState(0);
   useEffect(() => {
-    const refresh = () => setRevision(value => value + 1);
+    const refresh = () => {
+      void client.invalidateQueries({ queryKey: ["company-branding"] });
+      setRevision((value) => value + 1);
+    };
     window.addEventListener("suite-branding-updated", refresh);
     return () => window.removeEventListener("suite-branding-updated", refresh);
-  }, []);
+  }, [client]);
   const [name, setName] = useState("");
   const [logo, setLogo] = useState("");
   useEffect(() => {
@@ -17,15 +27,16 @@ export function useCompanyBranding(path: string) {
     let live = true;
     const root = document.documentElement;
     const original = new Map<string, string>();
-    const company = Number(
-      sessionStorage.getItem("suite-organization") ||
-        user.access?.companyId ||
-        1,
-    );
-    api
-      .get("/access/enterprise/branding", {
-        params: { companyId: company },
-        progress: false,
+    client
+      .fetchQuery({
+        queryKey: ["company-branding", user.id, company],
+        staleTime: 300000,
+        queryFn: ({ signal }) =>
+          api.get("/access/enterprise/branding", {
+            params: { companyId: company },
+            progress: false,
+            signal,
+          }),
       })
       .then((response) => {
         if (!live) return;
@@ -84,6 +95,6 @@ export function useCompanyBranding(path: string) {
         else root.style.removeProperty(key);
       }
     };
-  }, [user?.id, path, revision]);
+  }, [user?.id, company, revision, client]);
   return { name, logo };
 }

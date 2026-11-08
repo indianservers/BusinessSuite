@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { useModuleAction } from "@/hooks/use-module-action";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { useParams } from "react-router-dom";
@@ -9,7 +10,7 @@ import { Upload, FolderPlus, Download, Search, LayoutGrid, Folder, Files, HardDr
 import { api } from "@/services/api";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { Button } from "@/components/ui/button";
-import { filesAPI, projectsAPI } from "../services/api";
+import { filesAPI, projectsAPI, listAllProjects } from "../services/api";
 import type { PMSFileAsset, PMSProject } from "../types";
 
 type Folder = { id: number; name: string };
@@ -34,7 +35,7 @@ export default function FilesPage() {
   useEffect(() => {
     let active = true;
     setProjectId(routeProjectId || ""); setFolder(""); setFileQuery(""); setFolderFilter("all");
-    void projectsAPI.list().then(async items => {
+    void listAllProjects().then(async items => {
       const selected = routeProjectId && !items.some(project => String(project.id) === routeProjectId) ? await projectsAPI.get(Number(routeProjectId)) : null;
       if (!active) return;
       setProjects(selected ? [selected, ...items] : items);
@@ -141,7 +142,7 @@ export default function FilesPage() {
     <div className="pd-file-toolbar"><label className="pd-file-search"><Search size={17} /><input aria-label="Search project files" value={fileQuery} onChange={e => setFileQuery(e.target.value)} placeholder="Search files by name…" /></label><NativeSelect aria-label="Filter files by folder" value={folderFilter} onChange={e => setFolderFilter(e.target.value)}><option value="all">All folders</option><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect><NativeSelect aria-label="Upload folder" disabled={busy || !canCreate} value={target} onChange={e => setTarget(e.target.value)}><option value="">Upload to: Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>Upload to: {f.name}</option>)}</NativeSelect><div className="pd-file-views" aria-label="File layout"><button aria-pressed={fileView === "library"} onClick={() => setFileView("library")}><LayoutGrid size={15} />Library</button><button aria-pressed={fileView === "folders"} onClick={() => setFileView("folders")}><Folder size={15} />Folders</button></div></div>
     {fileView === "library" ? <GroupedRecords scope="pms-file-library" items={(visibleFiles) || []} fields={[{id:"visibility",label:"Visibility",value:file=>file.visibility},{id:"folder",label:"Folder",value:file=>folders.find(folder=>folder.id===file.folder_id)?.name || "Unfiled"}]} gridClassName="pd-file-grid" renderItem={file => <article className="pd-file-card" key={file.id}><div className="pd-file-preview"><SuiteFileIcon name={file.original_name} /></div><h3>{file.original_name}</h3><small>{Math.max(1, Math.ceil(file.size_bytes / 1024))} KB · {file.visibility} · v{file.version_number}</small><div className="pd-file-card-footer"><NativeSelect aria-label={`Move ${file.original_name} to folder`} disabled={busy || !canEdit || String(file.visibility) === "Work Evidence"} value={file.folder_id || "root"} onChange={e => void moveFile(file, e.target.value)}><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect>{fileActions(file)}</div></article>}/> : <MoveBoard label="Project file folders" reorder={false} disabled={busy || !canEdit} groups={[{ id: "root", label: "Unfiled" }, ...folders.map(f => ({ id: String(f.id), label: f.name }))]} items={visibleFiles.map(file => ({ id: file.id, label: file.original_name, group: file.folder_id ? String(file.folder_id) : "root", disabled: String(file.visibility) === "Work Evidence", content: <div className="flex justify-between text-xs"><span>{Math.ceil(file.size_bytes / 1024)} KB · {file.visibility}</span>{fileActions(file)}</div> }))} onMove={async ({ item, group }) => { const file = files.find(f => f.id === item.id); if (file) await moveFile(file, group); }} />}
     {!visibleFiles.length && <p className="pd-files-empty">{files.length ? "No files match your search. Try another name or folder." : "No files yet. Upload the first project document to get started."}</p>}
-    {canCreate && <form className="pd-folder-create" onSubmit={e => { e.preventDefault(); void createFolder(); }}><FolderPlus size={17} /><input aria-label="Folder name" placeholder="New folder name" value={folder} onChange={e => setFolder(e.target.value)} maxLength={120} /><Button variant="outline" disabled={!folder.trim() || busy}>Create folder</Button></form>}
+    {canCreate && <SmartCreateSection title="Create folder" size="compact"><form className="pd-folder-create" onSubmit={e => { e.preventDefault(); void createFolder(); }}><FolderPlus size={17} /><input aria-label="Folder name" placeholder="New folder name" value={folder} onChange={e => setFolder(e.target.value)} maxLength={120} /><Button variant="outline" disabled={!folder.trim() || busy}>Create folder</Button></form></SmartCreateSection>}
     <p className="text-xs text-muted-foreground">Showing up to 100 files available to you in this project.</p>
   </div>;
   return (
@@ -222,7 +223,7 @@ export default function FilesPage() {
           }}
         />
       </div>
-      <div className="flex gap-2">
+      <SmartCreateSection title="Create folder"><div className="flex gap-2">
         <input
           className="input max-w-xs"
           aria-label="Folder name"
@@ -252,7 +253,7 @@ export default function FilesPage() {
           <FolderPlus size={16} />
           Create folder
         </Button>
-      </div>
+      </div></SmartCreateSection>
       <MoveBoard
         label="Project file folders"
         reorder={false}

@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -425,7 +426,7 @@ export default function InternTaskProgramsPanel({
                     original instructions and rubric.
                   </p>
                 ) : (
-                  <CompactForm
+                  <SmartCreateSection title="Save task pack" size="large"><CompactForm
                     className="space-y-4"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -816,7 +817,7 @@ export default function InternTaskProgramsPanel({
                         Save task pack
                       </Button>
                     </div>
-                  </CompactForm>
+                  </CompactForm></SmartCreateSection>
                 )}
               </div>
             </div>

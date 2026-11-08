@@ -1,10 +1,10 @@
-"""Common API facade. Delegates to existing services without a PMS module grant.
-Every delegated endpoint still enforces current workspace/conversation membership.
+"""Common API facade with action grants from enabled business modules.
+Every delegated endpoint also enforces current workspace/conversation membership.
 """
 from pydantic import Field
 from inspect import signature
 from functools import wraps
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
 from app.models.user import User
@@ -13,7 +13,24 @@ from . import api
 from .models import ConversationContext
 from .contexts import resolve
 
-router = APIRouter(prefix="/collaboration", tags=["BusinessSuite Communication Engine"])
+COMMUNICATION_MODULES = ("project_management", "crm", "hrms", "srm", "fam")
+
+
+def require_communication_action(user, action):
+    """Shared communication authority supplements, never replaces, room ACLs."""
+    grants = getattr(user, "_suite_grants", None)
+    if user.is_superuser or grants is None:
+        return
+    if not any(grants.get(key, {}).get("enabled") and action in grants[key].get("actions", []) for key in COMMUNICATION_MODULES):
+        raise HTTPException(403, f"Communication action denied: {action}")
+
+
+def authorize_communication(request: Request, user: User = Depends(get_current_user)):
+    from app.access.catalog import action_for
+    require_communication_action(user, action_for(request))
+
+
+router = APIRouter(prefix="/collaboration", tags=["BusinessSuite Communication Engine"], dependencies=[Depends(authorize_communication)])
 
 
 def delegate(endpoint):

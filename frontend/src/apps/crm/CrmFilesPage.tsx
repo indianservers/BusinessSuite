@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
@@ -117,7 +118,7 @@ export default function CrmFilesPage() {
           }}
         />
       </div>
-      <div className="flex gap-2">
+      <SmartCreateSection title="Create folder"><div className="flex gap-2">
         <input
           className="input max-w-xs"
           aria-label="CRM folder name"
@@ -143,7 +144,7 @@ export default function CrmFilesPage() {
         >
           Create folder
         </button>
-      </div>
+      </div></SmartCreateSection>
       <MoveBoard
         label="CRM file folders"
         reorder={false}

@@ -340,7 +340,7 @@ def generate_fnf_settlement(
         if not exit_record:
             raise HTTPException(status_code=404, detail="Exit record not found for employee")
     else:
-        exit_record = db.query(ExitRecord).filter(ExitRecord.employee_id == employee.id).first()
+        exit_record = db.query(ExitRecord).filter(ExitRecord.employee_id == employee.id).order_by(ExitRecord.id.desc()).first()
 
     if not exit_record:
         exit_record = ExitRecord(

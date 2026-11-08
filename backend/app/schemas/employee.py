@@ -294,6 +294,7 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
+    allow_contact_duplicate: bool = False
     custom_fields: dict[str, object] = Field(default_factory=dict, max_length=100)
     last_name: str = ""
     @field_validator('first_name','last_name',mode='before')
@@ -328,6 +329,7 @@ class EmployeeCreate(EmployeeBase):
 
 
 class EmployeeUpdate(BaseModel):
+    allow_contact_duplicate: bool = False
     custom_fields: dict[str, object] | None = None
     @field_validator('first_name','last_name',mode='before')
     @classmethod
@@ -456,6 +458,8 @@ class EmployeeListSchema(BaseModel):
 
 
 class EmployeeSchema(EmployeeBase):
+    profile_version: Optional[str] = None
+    can_edit_profile: bool = False
     restricted_fields: list[str] = Field(default_factory=list)
     phone_validation_issues: dict[str,str] = {}
     id: int

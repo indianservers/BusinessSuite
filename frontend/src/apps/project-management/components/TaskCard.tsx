@@ -56,7 +56,7 @@ export default function TaskCard({ task, onOpen, canEdit=false, onChanged }: { t
   const tagNames = (task.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name).filter(Boolean);
 
   return (
-    <RecordActions record={{...task,key:task.task_key}} canEdit={canEdit} preview={!isDragging} onOpen={onOpen ? ()=>onOpen(task) : undefined} onChanged={onChanged}>{menu=><article tabIndex={0}
+    <RecordActions record={{...task,key:task.task_key}} canEdit={canEdit} preview={!isDragging} onOpen={onOpen ? ()=>onOpen(task) : undefined} onChanged={onChanged}>{menu=><article data-priority-row data-priority={task.priority} tabIndex={0}
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
@@ -87,7 +87,7 @@ export default function TaskCard({ task, onOpen, canEdit=false, onChanged }: { t
             </span>
             <span className="text-xs font-semibold text-slate-500">{task.task_key}</span>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{task.story_points ?? 0} pts</span>
-            <Badge variant="outline" className={cn("h-5 rounded px-1.5 text-[11px]", priorityClass[task.priority])}>
+            <Badge data-priority-badge data-priority={task.priority} variant="outline" className={cn("h-5 rounded px-1.5 text-[11px]", priorityClass[task.priority])}>
               <PriorityIcon className="mr-1 h-3 w-3" />
               {task.priority}
             </Badge>

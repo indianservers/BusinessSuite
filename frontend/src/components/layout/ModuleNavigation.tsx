@@ -29,13 +29,14 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   const location = useLocation(), id = useId();
   const user = useAuthStore(state => state.user);
   const moduleKey = (modulePath || location.pathname).split("/")[1] || "suite";
+  const catalogPath = ["crm", "hrms", "pms", "srm", "fam"].includes(moduleKey) ? `/${moduleKey}` : modulePath || location.pathname;
   const scope = suiteScope(user?.id, user?.access?.companyId);
   const preferences = useSuitePreferences(state => state.contexts[scope] || defaultSuitePreferences);
   const update = useSuitePreferences(state => state.update);
   const [query, setQuery] = useState("");
   const [submenus, setSubmenus] = useState<Record<string, boolean>>({});
   // Custom catalogs are already filtered by their server-side application permissions.
-  const available = customItems ? [...customItems] : getRoleNav(user?.role, user?.is_superuser, modulePath || location.pathname)
+  const available = customItems ? [...customItems] : getRoleNav(user?.role, user?.is_superuser, catalogPath)
     .filter(item => canAccessRoute(item.to.split("?")[0], user?.role, user?.is_superuser));
   if (moduleKey === "pms" && !available.some(item => item.to === "/pms/my-work") && canAccessRoute("/pms/my-work", user?.role, user?.is_superuser)) {
     available.push({ to: "/pms/my-work", label: "My work", icon: CheckCircle2, group: "Tasks & projects" });
@@ -103,13 +104,14 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
         <Link to={workspacePageHref(item.to, location.search, workspaceId)} onClick={onNavigate} title={label} aria-label={label} aria-current={selected ? "page" : undefined}>
           <MenuItemIcon path={item.to} fallback={item.icon}/>{!collapsed && <span>{label}</span>}
         </Link>
+        {!collapsed && <MenuQuickAdd actions={createActions} paths={menuPages(item).map(page=>page.to)} label={label} onNavigate={onNavigate}/>}
         {!collapsed && <MenuItemMore path={workspacePageHref(item.to, location.search, workspaceId)} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available} onNavigate={onNavigate}/>}
       </div></li>;
     })}</ul>}
     {!collapsed && !query.trim() && preferences.favorites.some(path=>available.some(item=>item.to.split(/[?#]/)[0]===path.split(/[?#]/)[0])) && <ul className="module-menu-favorites" aria-label="Favorite menu pages"><li><p>Favorites</p></li>{preferences.favorites.flatMap(path=>{
       const item=available.find(item=>item.to.split(/[?#]/)[0]===path.split(/[?#]/)[0]);
       if(!item)return []; const label=displayLabel(item);
-      return [<li key={path}><div className="module-menu-row"><Link to={path} onClick={onNavigate} title={label}><Star size={15}/><span>{label}</span></Link><MenuItemMore path={path} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available} onNavigate={onNavigate}/></div></li>];
+      return [<li key={path}><div className="module-menu-row"><Link to={path} onClick={onNavigate} title={label}><Star size={15}/><span>{label}</span></Link><MenuQuickAdd actions={createActions} paths={[path]} label={label} onNavigate={onNavigate}/><MenuItemMore path={path} label={label} originalLabel={menuLabel(item)} actions={createActions} available={available} onNavigate={onNavigate}/></div></li>];
     })}</ul>}
     <ul className="module-menu-categories">{groups.map((group, index) => {
       const children = groupedItems.filter(item => (item.group || "Workspace") === group);

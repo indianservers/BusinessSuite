@@ -57,6 +57,7 @@ export interface PMSProject {
   can_edit_project?: boolean;
   can_manage_members?: boolean;
   can_manage_tasks?: boolean;
+  can_log_time?: boolean;
   workspace_id?: number;
   id: number;
   organization_id?: number;
@@ -489,6 +490,7 @@ export interface CreateFileAssetInput {
 
 // ============= TIME LOG TYPES =============
 export interface PMSTimeLog {
+  timesheet_locked?: boolean;
   id: number;
   timesheet_id?: number;
   user_id: number;

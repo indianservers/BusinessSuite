@@ -1,3 +1,4 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import {recordSavedEvent,type RecordSaved} from "@/lib/record-changes";
 import {useModuleAction} from "@/hooks/use-module-action";
@@ -642,7 +643,7 @@ function LeadWorkbench() {
                 value={viewName}
                 onChange={(e) => setViewName(e.target.value)}
               />
-              <button disabled={!viewName.trim()} onClick={saveView}>Save personal view</button>{bootstrap?.canAssign&&<button disabled={!viewName.trim()} onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button>}
+              <button disabled={!viewName.trim()} onClick={saveView}>Save personal view</button>{bootstrap?.canAssign&&<SmartCreateAction title="Publish shared view"><button disabled={!viewName.trim()} onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button></SmartCreateAction>}
             </>
           )}
           {view === "table" && <details>
@@ -1251,7 +1252,7 @@ export function CaptureDialog({
               <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><NativeSelect value={values.source || defaultText("lead_source", "crm")} onChange={e => update("source", e.target.value)}>{[...new Set([...(values.source ? [values.source] : [defaultText("lead_source", "crm")]), ...leadSourceOptions()])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
               {mobile && <button type="button" className="mobile-filter-trigger" onClick={() => setExpandedMobileCapture(v => !v)} aria-expanded={expandedMobileCapture}>{expandedMobileCapture ? "Fewer details" : "More details"}</button>}
               {(!mobile || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
-              <label className="lead-create-field">Priority<span className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>
+              <label className="lead-create-field">Priority<span data-priority-badge data-priority={priority} className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>
               <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label></>}
             </div>}
             {step === 1 && <div className="lead-create-grid">{field("email", "Email", "e.g. john@company.com", "email")}<label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{field("job_title", "Job Title", "e.g. Sales Manager")}</div>}

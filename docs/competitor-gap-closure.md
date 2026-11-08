@@ -107,12 +107,34 @@ Validation and repeatability:
 
 The localhost preview remains at http://127.0.0.1:5198/pms/automation. `qa/serve_workflow_acceptance.py --reuse` preserves its isolated test database across code restarts. `qa/run_pms_localhost_scheduler.py` checks the sandbox every minute; production uses authenticated cron. Re-run browser acceptance with `node qa/check_pms_automation_localhost.cjs` and `node qa/check_pms_clock_localhost.cjs`. These helpers accept only the labeled loopback sandbox. No production deployment or live-company setup changes were made in this batch.
 
+## Batch 5: scheduling, automation diagnostics and CRM reports (8 November 2026)
+
+The Gantt page now exposes opt-in project-calendar scheduling: all four dependency types with working-day lag, critical-path/slack analysis, preview before atomic apply, and stale-plan rejection. Existing start dates remain lower bounds. Named baseline snapshots are retained for comparison and CSV/Excel variance exports. Existing manual editing is preserved. This is not resource leveling or HR leave-aware planning; complete application requires every task to have both dates. Completed/cancelled tasks are not moved automatically.
+
+PMS rules now support an absolute due-date action through the existing event/clock action path. Invalid date ranges and completed work are skipped with recorded reasons. Execution reporting adds outcome/rule/date filters, cursor pagination and before/after values. Unchanged no-op evaluations are not counted as executions. Existing daily/due-date receipts and pause/edit/duplicate behavior are reused.
+
+CRM reports now include private deal-report definitions using the existing analytics query engine. Users can choose detail columns, exact filters and grouping; monetary summaries always group by currency. Current CRM record visibility and export capabilities remain authoritative. Definitions have optimistic revisions, with retained drafts and copy-based conflict recovery. CSV/Excel exports include the complete matching result up to an explicit 5,000-row/group limit. Domain-owned private definitions are hidden from the generic analytics catalog and routes.
+
+See [scope, repeat commands and acceptance evidence](qa/crm-pms-functionality-2026-11-08.md). Local tests and disposable real-browser flows do not establish deployed or PostgreSQL concurrency acceptance for these new scheduling/reporting operations.
+
 ## Remaining order
 
 1. Finish production company setup with its official email and complete authenticated deployed acceptance. Local PostgreSQL concurrency and production-mode checks now pass. Custom statuses, task-creation rules and draft publication remain separate enhancements.
-2. Continue PMS automation depth: additional actions, broader durable execution/retry controls and usage accounting. Nested compound conditions and daily/due-date triggers are locally accepted in Batch 4.
-3. Scheduling and commercial depth: critical path, baselines, calendar-aware dependency propagation, expense billing and commercial acceptance.
+2. Continue PMS automation depth: broader connector/action coverage, usage accounting and reconciliation tooling. Batch 6 adds bounded PMS signed-webhook queues, retries, dead letters and cancellation; legacy CRM webhook transport is unchanged.
+3. Scheduling and commercial depth: cross-project resource reservations/optimization, expense billing and commercial acceptance. Batch 6 adds opt-in project-only effort/capacity leveling with the existing HR calendar/leave capacity service. Deployed and PostgreSQL scheduling acceptance remain separate.
 4. Knowledge capture and collaboration: clipping, OCR/attachment search, offline sync and live document editing.
 5. Enterprise identity, governance and external connected-search acceptance.
+6. Broader CRM reporting sources, shared definitions, range filters, attachments and historical snapshots. Batch 6 adds owner-only daily/weekly sign-in link delivery for private CRM deal reports and PMS baseline variance.
 
 Each item remains open until its complete supported flow is implemented and validated. Existing vendor connector code must be exercised before being labeled absent or complete.
+
+
+## Batch 6: project resource leveling, external action queues and report links (8 November 2026)
+
+Resource leveling is opt-in in Advanced scheduling. A deterministic project-only planner allocates remaining estimated effort against assignee working hours, dated weekly capacity, applicable holidays and approved leave. Multi-assignee effort is split equally. It retains dependency constraints and existing date lower bounds; completed/cancelled tasks cannot be moved. Preview includes daily hour allocations, and apply rejects changed estimates, assignments or availability. Bounds are 200 tasks, 50 assignees and 366 calendar days. Other projects are not reserved; this is not organization-wide optimal leveling. Resource-constrained plans do not present dependency-only slack or critical-path labels as resource-aware metrics.
+
+PMS automation adds a signed webhook action with workspace connections. Secrets use the shared encrypted credential helper; HTTPS uses shared public-address validation and pinned TLS transport. Task saves enqueue into existing durable automation jobs without network IO. Receivers must acknowledge delivery-ID deduplication. Confirmed 429/500/502/503/504 rejections retry with bounded backoff, up to five attempts; permanent rejection or exhausted retries goes to dead letter. A committed unconfirmed state precedes network IO, so timeouts/crashes are held for reconciliation. Owners/admins can inspect deliveries, retry confirmed failures, cancel pending failures and disable connections. Current author/company/branch/project/workspace rights and paused sources are checked before sending. Legacy CRM webhook transport remains unchanged.
+
+CRM private saved deal reports and PMS baseline variance reports can deliver daily/weekly authenticated links to the schedule owner's company email, with local time and IANA timezone. Preparation executes the existing scoped export, queues through the shared email outbox and advances the occurrence atomically. Duplicate occurrences use stable outbox keys. Paused/deleted/revoked sources are blocked or suppressed, including a final permission check before provider dispatch. The UI distinguishes queued from provider accepted. Links open current authorized data; there are no attachments, historical snapshots or arbitrary recipients. Existing cron and long-running email worker paths are reused; no migration or deployment was performed.
+
+Local validation and precise limitations are recorded in [Batch 6 QA](qa/crm-pms-resource-delivery-2026-11-08.md). PostgreSQL overlap/crash tests, real provider delivery and production rollout remain unverified for this batch.

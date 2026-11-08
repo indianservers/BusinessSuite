@@ -1,3 +1,4 @@
+import { normalizePriority } from "@/shared/priority/priority";
 import { Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState, type ReactNode, type SelectHTMLAttributes } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { useAuthStore } from "@/store/authStore";
@@ -36,6 +37,12 @@ function loadingChildren(children: ReactNode, text: string): ReactNode {
 export const NativeSelect = forwardRef<HTMLSelectElement, Props>(function NativeSelect({
   children, loading = false, error = false, loadingText = "Loading choices…", emptyText = "No data found", searchable, recentKey, ...props
 }, ref) {
+  const isPriority = /priority/i.test(`${props["aria-label"] || ""} ${props.name || ""}`) || (() => {
+    const options=Children.toArray(children).filter(isValidElement).filter(child=>child.type === "option");
+    return options.length >= 2 && options.every(child=>normalizePriority((child.props as {value?:unknown;children?:unknown}).value ?? (child.props as {children?:unknown}).children));
+  })();
+  const [priorityValue,setPriorityValue]=useState(()=>normalizePriority(props.value ?? props.defaultValue));
+  useEffect(()=>{if(isPriority)setPriorityValue(normalizePriority(node.current?.value));},[isPriority,props.value,props.defaultValue,children]);
   const initialLoading = loading && !hasChoices(children);
   const node = useRef<HTMLSelectElement | null>(null);
   const interactedOutside = useRef(false);
@@ -72,8 +79,8 @@ export const NativeSelect = forwardRef<HTMLSelectElement, Props>(function Native
     else setChoices(current => [...current]);
   };
   const empty = !hasChoices(children);
-  return <Popover.Root open={open && !props.disabled && !initialLoading && !error} onOpenChange={setOpen}><Popover.Anchor asChild><select {...props} ref={element => { node.current = element; if (typeof ref === "function") ref(element); else if (ref) ref.current = element; }} aria-busy={loading || undefined} data-choice-state={initialLoading ? "loading" : error ? "error" : empty ? "empty" : "ready"}
-    onChange={event => { remember(event.currentTarget.value); props.onChange?.(event); }}
+  return <Popover.Root open={open && !props.disabled && !initialLoading && !error} onOpenChange={setOpen}><Popover.Anchor asChild><select {...props} data-priority-badge={isPriority || undefined} data-priority={isPriority ? (props.value !== undefined ? normalizePriority(props.value) : priorityValue) : undefined} ref={element => { node.current = element; if (typeof ref === "function") ref(element); else if (ref) ref.current = element; }} aria-busy={loading || undefined} data-choice-state={initialLoading ? "loading" : error ? "error" : empty ? "empty" : "ready"}
+    onChange={event => { if(isPriority)setPriorityValue(normalizePriority(event.currentTarget.value)); remember(event.currentTarget.value); props.onChange?.(event); }}
     onPointerDown={event => { props.onPointerDown?.(event); if (!event.defaultPrevented && event.button === 0 && canSearch()) { event.preventDefault(); show(); } }}
     onKeyDown={event => { props.onKeyDown?.(event); if (!event.defaultPrevented && ["Enter", " "].includes(event.key) && canSearch()) { event.preventDefault(); show(); } }}>
     {initialLoading ? loadingChildren(children, loadingText) : children}

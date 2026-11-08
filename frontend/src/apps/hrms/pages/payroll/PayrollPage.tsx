@@ -1,3 +1,5 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { useModuleAction } from "@/hooks/use-module-action";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
@@ -2321,11 +2323,11 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">LOP Adjustment</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <EmployeeSearchSelect endpoint="/payroll/employee-options" value={lopEmployeeId} onChange={setLopEmployeeId} />
+                <SmartCreateSection title="Create lop adjustment" size="compact"><div className="space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={lopEmployeeId} onChange={setLopEmployeeId} />
                 <Input placeholder="Days" value={lopDays} onChange={(event) => setLopDays(event.target.value)} />
                 <Button onClick={() => lopMutation.mutate()} disabled={!selectedInputPeriod || !lopEmployeeId}>
                   Add LOP
-                </Button>
+                </Button></div></SmartCreateSection>
               </CardContent>
             </Card>
 
@@ -2334,11 +2336,11 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">Overtime Pay</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <EmployeeSearchSelect endpoint="/payroll/employee-options" value={otEmployeeId} onChange={setOtEmployeeId} />
+                <SmartCreateSection title="Create overtime pay" size="compact"><div className="space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={otEmployeeId} onChange={setOtEmployeeId} />
                 <Input placeholder="Hours" value={otHours} onChange={(event) => setOtHours(event.target.value)} />
                 <Button onClick={() => otMutation.mutate()} disabled={!selectedInputPeriod || !otEmployeeId}>
                   Add OT
-                </Button>
+                </Button></div></SmartCreateSection>
               </CardContent>
             </Card>
 
@@ -2347,11 +2349,11 @@ export default function PayrollPage() {
                 <CardTitle className="text-base">Leave Encashment</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <EmployeeSearchSelect endpoint="/payroll/employee-options" value={encashEmployeeId} onChange={setEncashEmployeeId} />
+                <SmartCreateSection title="Create leave encashment" size="compact"><div className="space-y-4"><EmployeeSearchSelect endpoint="/payroll/employee-options" value={encashEmployeeId} onChange={setEncashEmployeeId} />
                 <Input placeholder="Days" value={encashDays} onChange={(event) => setEncashDays(event.target.value)} />
                 <Button onClick={() => encashMutation.mutate()} disabled={!selectedInputPeriod || !encashEmployeeId}>
                   Add Encashment
-                </Button>
+                </Button></div></SmartCreateSection>
               </CardContent>
             </Card>
           </div>
@@ -2511,11 +2513,11 @@ export default function PayrollPage() {
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("cutoff")} disabled={payrollOperationMutation.isPending}>Cutoff Reminder</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("periods")} disabled={payrollOperationMutation.isPending}>Auto Periods</Button>
                 </CompactActions>
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                <SmartCreateSection title="Create Bonus"><div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                   <Input value={bankFileName} onChange={(event) => setBankFileName(event.target.value)} placeholder="Bank name" />
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bank-file")} disabled={!selectedRun || payrollOperationMutation.isPending}>Validate File</Button>
                   <Button variant="outline" onClick={() => payrollOperationMutation.mutate("bonus-create")} disabled={payrollOperationMutation.isPending}>Create Bonus</Button>
-                </div>
+                </div></SmartCreateSection>
                 <div className="flex flex-wrap gap-2">
                   {(bonusPolicies as { id: number; name: string }[] | undefined || []).slice(0, 3).map((policy) => <Badge key={policy.id} variant="outline">{policy.name}</Badge>)}
                   <Button size="sm" variant="outline" onClick={() => payrollOperationMutation.mutate("bonus")} disabled={!selectedRun || !(bonusPolicies as unknown[] | undefined)?.length || payrollOperationMutation.isPending}>Apply First Bonus</Button>
@@ -2543,12 +2545,12 @@ export default function PayrollPage() {
                       <div className="flex gap-2"><Badge variant="outline">{item.status}</Badge><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "approve", amount: Number(item.approved_amount || item.requested_amount) })}>Approve</Button><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "reject" })}>Reject</Button></div>
                     </div>
                   )}/>
-                <div className="grid gap-3 md:grid-cols-[0.7fr_1fr_1.5fr_auto]">
+                <SmartCreateSection title="Create Query"><div className="grid gap-3 md:grid-cols-[0.7fr_1fr_1.5fr_auto]">
                   <Input placeholder="Record ID" value={queryRecordId} onChange={(event) => setQueryRecordId(event.target.value)} />
                   <Input placeholder="Subject" value={querySubject} onChange={(event) => setQuerySubject(event.target.value)} />
                   <Input placeholder="Description" value={queryDescription} onChange={(event) => setQueryDescription(event.target.value)} />
                   <Button onClick={() => createPayslipQueryMutation.mutate()} disabled={!queryRecordId || createPayslipQueryMutation.isPending}>Create Query</Button>
-                </div>
+                </div></SmartCreateSection>
                 <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-2" items={((payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5)) || []} fields={standardRecordGroups(((payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5)) || [])} gridClassName="space-y-2" renderItem={(item) => (
                     <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
                       <span>{item.subject}</span>
@@ -2608,11 +2610,11 @@ export default function PayrollPage() {
                 <Button onClick={() => planningToolMutation.mutate("analytics")} disabled={planningToolMutation.isPending}>Load Analytics</Button>
               </div>
               <CompactActions className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => planningToolMutation.mutate("budget")} disabled={planningToolMutation.isPending}>Create Budget</Button>
+                <SmartCreateAction title="Create Budget"><Button variant="outline" onClick={() => planningToolMutation.mutate("budget")} disabled={planningToolMutation.isPending}>Create Budget</Button></SmartCreateAction>
                 <Button variant="outline" onClick={() => planningToolMutation.mutate("variance")} disabled={planningToolMutation.isPending}>Budget Variance</Button>
-                <Button variant="outline" onClick={() => planningToolMutation.mutate("rate")} disabled={planningToolMutation.isPending}>Create Rate</Button>
+                <SmartCreateAction title="Create Rate"><Button variant="outline" onClick={() => planningToolMutation.mutate("rate")} disabled={planningToolMutation.isPending}>Create Rate</Button></SmartCreateAction>
                 <Button variant="outline" onClick={() => planningToolMutation.mutate("convert")} disabled={planningToolMutation.isPending}>Convert</Button>
-                <Button variant="outline" onClick={() => planningToolMutation.mutate("report")} disabled={planningToolMutation.isPending}>Create Report</Button>
+                <SmartCreateAction title="Create Report"><Button variant="outline" onClick={() => planningToolMutation.mutate("report")} disabled={planningToolMutation.isPending}>Create Report</Button></SmartCreateAction>
               </CompactActions>
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-md border p-3 text-sm"><p className="text-muted-foreground">Analytics records</p><p className="font-semibold">{analyticsResult?.records ?? "-"}</p><p>{analyticsResult?.total_gross_cost ? formatCurrency(analyticsResult.total_gross_cost) : ""}</p></div>
@@ -2666,7 +2668,7 @@ export default function PayrollPage() {
                   <CardDescription>Required for statutory filings, Form 16, challans, and payroll grouping.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create legal entity" size="standard"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Legal name</Label><Input value={legalName} onChange={(event) => setLegalName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>State</Label><Input value={legalState} onChange={(event) => setLegalState(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>PAN</Label><Input value={legalPan} onChange={(event) => setLegalPan(event.target.value.toUpperCase())} /></div>
@@ -2674,7 +2676,7 @@ export default function PayrollPage() {
                   </div>
                   <Button onClick={() => legalEntityMutation.mutate()} disabled={legalEntityMutation.isPending || !legalName}>
                     Create legal entity
-                  </Button>
+                  </Button></div></SmartCreateSection>
                 </CardContent>
               </Card>
             )}
@@ -2685,13 +2687,13 @@ export default function PayrollPage() {
                   <CardDescription>Defines pay frequency, cutoffs, tax regime, and legal entity mapping.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create pay group" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Pay group name</Label><Input value={payGroupName} onChange={(event) => setPayGroupName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Code</Label><Input value={payGroupCode} onChange={(event) => setPayGroupCode(event.target.value.toUpperCase())} /></div>
                   </div>
                   <Button onClick={() => payGroupMutation.mutate()} disabled={payGroupMutation.isPending || !(legalEntities as LegalEntity[] | undefined)?.length}>
                     Create pay group
-                  </Button>
+                  </Button></div></SmartCreateSection>
                 </CardContent>
               </Card>
             )}
@@ -2702,7 +2704,7 @@ export default function PayrollPage() {
                   <CardDescription>Create earnings, deductions, reimbursements, and statutory payslip lines.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create salary components" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Name</Label><Input value={componentName} onChange={(event) => setComponentName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Code</Label><Input value={componentCode} onChange={(event) => setComponentCode(event.target.value.toUpperCase())} /></div>
                     <div className="space-y-1.5">
@@ -2715,7 +2717,7 @@ export default function PayrollPage() {
                   </div>
                   <Button onClick={() => componentMutation.mutate()} disabled={componentMutation.isPending}>
                     Create component
-                  </Button>
+                  </Button></div></SmartCreateSection>
                 </CardContent>
               </Card>
             )}
@@ -2726,13 +2728,13 @@ export default function PayrollPage() {
                   <CardDescription>Build a structure from active components. Formula and cap/floor rules remain in backend setup.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create salary structure" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>Structure name</Label><Input value={structureName} onChange={(event) => setStructureName(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Version</Label><Input value={structureVersion} onChange={(event) => setStructureVersion(event.target.value)} /></div>
                   </div>
                   <Button onClick={() => structureMutation.mutate()} disabled={structureMutation.isPending || !(salaryComponents as SalaryComponent[] | undefined)?.length}>
                     Create structure from active components
-                  </Button>
+                  </Button></div></SmartCreateSection>
                 </CardContent>
               </Card>
             )}
@@ -2757,13 +2759,13 @@ export default function PayrollPage() {
                   <CardDescription>Bind PF/ESI/PT/TDS registration details to the legal entity.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <SmartCreateSection title="Create statutory profiles" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5"><Label>State / TAN circle</Label><Input value={legalState} onChange={(event) => setLegalState(event.target.value)} /></div>
                     <div className="space-y-1.5"><Label>Effective from</Label><Input type="date" value={ruleEffectiveFrom} onChange={(event) => setRuleEffectiveFrom(event.target.value)} /></div>
                   </div>
                   <Button onClick={() => setupStatutoryProfileMutation.mutate()} disabled={setupStatutoryProfileMutation.isPending || !(legalEntities as LegalEntity[] | undefined)?.length}>
                     Create statutory profile
-                  </Button>
+                  </Button></div></SmartCreateSection>
                 </CardContent>
               </Card>
             )}
@@ -2796,7 +2798,7 @@ export default function PayrollPage() {
               <CardDescription>Set up monthly payroll groups before running payroll.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <SmartCreateSection title="Create pay groups and calendar" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Pay group name</Label>
                   <Input value={payGroupName} onChange={(event) => setPayGroupName(event.target.value)} />
@@ -2808,7 +2810,7 @@ export default function PayrollPage() {
               </div>
               <Button onClick={() => payGroupMutation.mutate()} disabled={payGroupMutation.isPending}>
                 Create pay group
-              </Button>
+              </Button></div></SmartCreateSection>
               <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-3" items={((payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined)) || []} fields={standardRecordGroups(((payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined)) || [])} gridClassName="space-y-2" renderItem={(item) => (
                   <div key={item.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
                     <span className="font-medium">{item.name}</span>
@@ -2824,7 +2826,7 @@ export default function PayrollPage() {
               <CardDescription>Create salary structure shells and assign components from backend setup.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <SmartCreateSection title="Create salary templates" size="compact"><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Template name</Label>
                   <Input value={templateName} onChange={(event) => setTemplateName(event.target.value)} />
@@ -2836,7 +2838,7 @@ export default function PayrollPage() {
               </div>
               <Button onClick={() => salaryTemplateMutation.mutate()} disabled={salaryTemplateMutation.isPending}>
                 Create template
-              </Button>
+              </Button></div></SmartCreateSection>
               <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-4" items={((salaryTemplates as { id: number; name: string; code: string; components?: unknown[] }[] | undefined || [])) || []} fields={standardRecordGroups(((salaryTemplates as { id: number; name: string; code: string; components?: unknown[] }[] | undefined || [])) || [])} gridClassName="space-y-2" renderItem={(item) => (
                   <div key={item.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
                     <span className="font-medium">{item.name}</span>
@@ -2878,10 +2880,10 @@ export default function PayrollPage() {
                   <CardTitle className="text-base">Statutory Engine</CardTitle>
                   <CardDescription>PF, ESI, PT, LWF, gratuity rules, challans, and return validation.</CardDescription>
                 </div>
-                <Button onClick={() => seedStatutoryMutation.mutate()} disabled={seedStatutoryMutation.isPending}>
+                <SmartCreateAction title="Create rules"><Button onClick={() => seedStatutoryMutation.mutate()} disabled={seedStatutoryMutation.isPending}>
                   <ShieldCheck className="h-4 w-4 mr-2" />
                   Create rules
-                </Button>
+                </Button></SmartCreateAction>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -3016,7 +3018,7 @@ export default function PayrollPage() {
               <CardDescription>Declare investments and submit proof links for payroll verification.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!activeTaxCycle ? (
+              <SmartCreateSection title="Create tax declarations" size="compact"><div className="space-y-4">{!activeTaxCycle ? (
                 <Button onClick={() => taxCycleMutation.mutate()} disabled={taxCycleMutation.isPending}>
                   Open current FY cycle
                 </Button>
@@ -3053,7 +3055,7 @@ export default function PayrollPage() {
                     <p className="font-semibold">{formatCurrency(taxProjection.projected_tds)}</p>
                   </div>
                 </div>
-              )}
+              )}</div></SmartCreateSection>
             </CardContent>
           </Card>
 
@@ -3062,7 +3064,7 @@ export default function PayrollPage() {
               <CardTitle className="text-base">Proof Workflow</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Input
+              <SmartCreateSection title="Create proof workflow" size="compact"><div className="space-y-4"><Input
                 value={taxProofUrl}
                 onChange={(event) => setTaxProofUrl(event.target.value)}
                 placeholder="/uploads/tax/80c-proof.pdf"
@@ -3077,7 +3079,7 @@ export default function PayrollPage() {
                     Submit proof
                   </Button>
                 </div>
-              ))}
+              ))}</div></SmartCreateSection>
             </CardContent>
           </Card>
         </div>

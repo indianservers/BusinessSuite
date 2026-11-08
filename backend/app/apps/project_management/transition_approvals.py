@@ -1,4 +1,5 @@
 """PMS transition adapter for the shared workflow definitions, tasks and decisions."""
+from typing import get_args
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
@@ -156,9 +157,12 @@ def list_approvals(task_id: int, db: Session = Depends(get_db), user: User = Dep
     task, project = get_task_project_for_action(db, task_id, user)
     scheme = current_scheme(db, task)
     rules = scheme.work_type_transitions.get(task.work_type, scheme.transitions) if scheme.enabled else []
+    transitions = ([{"target": r.target, "approval_required": bool(r.approval_user_ids)}
+                    for r in rules if r.source == task.status] if scheme.enabled else
+                   [{"target": target, "approval_required": False}
+                    for target in get_args(Status) if target != task.status])
     return {"can_request": can_access_project(db, project, user, "manage_tasks"),
-            "transitions": [{"target": r.target, "approval_required": bool(r.approval_user_ids)}
-                            for r in rules if r.source == task.status],
+            "transitions": transitions,
             "requests": [payload(db, i, user, task) for i in instances(db, task).order_by(WorkflowInstance.id.desc()).limit(30)]}
 
 

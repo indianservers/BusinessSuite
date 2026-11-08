@@ -62,6 +62,8 @@ ACTOR_FIELDS = frozenset(
         "deleted_by",
         "rejected_by",
         "cancelled_by",
+        "locked_by",
+        "unlocked_by",
         "sent_by_user_id",
         "reporter_user_id",
         "author_user_id",

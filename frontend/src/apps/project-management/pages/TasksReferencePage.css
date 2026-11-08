@@ -1783,3 +1783,4 @@ tr:hover .tr-row-edit, .tr-row-edit:focus-visible { opacity: 1; }
 .pms-task-reference .tr-tools { padding: 6px 10px; }
 .pms-task-reference .tr-channel-view { padding: 12px; min-height: 500px; }
 @media(max-width:767px){.pms-task-reference .tr-tools{padding-top:0}.pms-task-reference .tr-viewbar>.wv-bar{width:100%;flex-basis:100%}.pms-task-reference .tr-channel-view{padding:6px}}
+

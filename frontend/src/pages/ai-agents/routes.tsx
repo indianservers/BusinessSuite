@@ -1,18 +1,19 @@
+import { lazyRoute } from "@/lib/lazy-route";
 import React from "react";
 import type { FrontendRoute } from "@/appRegistry";
 
-const AiAgentsDashboard = React.lazy(() => import("./AiAgentsDashboard"));
-const AiAgentChatPage = React.lazy(() => import("./AiAgentChatPage"));
-const AiAgentConfigPage = React.lazy(() => import("./AiAgentConfigPage"));
-const AiApprovalsPage = React.lazy(() => import("./AiApprovalsPage"));
-const AiAuditLogsPage = React.lazy(() => import("./AiAuditLogsPage"));
-const AiAgentAnalyticsPage = React.lazy(() => import("./AiAgentAnalyticsPage"));
-const AiAgentUsagePage = React.lazy(() => import("./AiAgentUsagePage"));
-const AiAgentSecurityPage = React.lazy(() => import("./AiAgentSecurityPage"));
-const AiAgentPermissionsPage = React.lazy(() => import("./AiAgentPermissionsPage"));
-const AiAgentFeedbackPage = React.lazy(() => import("./AiAgentFeedbackPage"));
-const AiAgentHandoffPage = React.lazy(() => import("./AiAgentHandoffPage"));
-const SuiteOperatorPage = React.lazy(() => import("./SuiteOperatorPage"));
+const AiAgentsDashboard = lazyRoute(() => import("./AiAgentsDashboard"));
+const AiAgentChatPage = lazyRoute(() => import("./AiAgentChatPage"));
+const AiAgentConfigPage = lazyRoute(() => import("./AiAgentConfigPage"));
+const AiApprovalsPage = lazyRoute(() => import("./AiApprovalsPage"));
+const AiAuditLogsPage = lazyRoute(() => import("./AiAuditLogsPage"));
+const AiAgentAnalyticsPage = lazyRoute(() => import("./AiAgentAnalyticsPage"));
+const AiAgentUsagePage = lazyRoute(() => import("./AiAgentUsagePage"));
+const AiAgentSecurityPage = lazyRoute(() => import("./AiAgentSecurityPage"));
+const AiAgentPermissionsPage = lazyRoute(() => import("./AiAgentPermissionsPage"));
+const AiAgentFeedbackPage = lazyRoute(() => import("./AiAgentFeedbackPage"));
+const AiAgentHandoffPage = lazyRoute(() => import("./AiAgentHandoffPage"));
+const SuiteOperatorPage = lazyRoute(() => import("./SuiteOperatorPage"));
 
 export const aiAgentRoutes: FrontendRoute[] = [
   { path: "ai-agents/operator", element: <SuiteOperatorPage /> },

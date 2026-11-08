@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from "axios";
 import { api } from "@/services/api";
 
 export interface CRMApiRecord {
@@ -218,8 +219,8 @@ export const crmApi = {
   createEmailTemplate: (data: CRMApiRecord) => api.post("/crm/email-templates", data),
   sendEmail: <T = CRMApiRecord>(data: CRMApiRecord) => api.post<T>("/crm/emails/send", data),
   upsertCustomFieldValue: <T = CRMApiRecord>(data: CRMApiRecord) => api.post<T>("/crm/custom-field-values/upsert", data),
-  list: <T = CRMApiRecord>(entity: string, params?: CRMListParams) =>
-    api.get<CRMPaginatedResponse<T>>(`/crm/${entity}`, { params }),
+  list: <T = CRMApiRecord>(entity: string, params?: CRMListParams, config?: AxiosRequestConfig) =>
+    api.get<CRMPaginatedResponse<T>>(`/crm/${entity}`, { ...config, params }),
   get: <T = CRMApiRecord>(entity: string, id: number) => api.get<T>(`/crm/${entity}/${id}`),
   related: <T = CRMApiRecord>(entity: string, id: number) => api.get<T>(`/crm/${entity}/${id}/related`),
   restore: (entity: string, id: number) => api.post<CRMApiRecord>(`/crm/${entity}/${id}/restore`, {}),

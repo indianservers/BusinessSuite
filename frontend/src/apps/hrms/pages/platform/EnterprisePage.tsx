@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -145,10 +146,10 @@ function PrivacyOps() {
       <Card>
         <CardHeader><CardTitle className="text-base">Privacy Request</CardTitle><CardDescription>Exports use masked sensitive identifiers. Delete requests are blocked by active legal holds and retention.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <Field label="Employee ID"><Input value={draft.employee_id} onChange={(e) => setDraft({ ...draft, employee_id: e.target.value })} /></Field>
+          <SmartCreateSection title="Create privacy request" size="standard"><div className="space-y-4"><Field label="Employee ID"><Input value={draft.employee_id} onChange={(e) => setDraft({ ...draft, employee_id: e.target.value })} /></Field>
           <Field label="Request Type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.request_type} onChange={(e) => setDraft({ ...draft, request_type: e.target.value })}><option value="export">Export</option><option value="anonymize">Anonymize/Delete</option></NativeSelect></Field>
           <Field label="Requester Email"><Input value={draft.requested_by_email} onChange={(e) => setDraft({ ...draft, requested_by_email: e.target.value })} /></Field>
-          <Button onClick={() => create.mutate()} disabled={!draft.employee_id || create.isPending}>Create Request</Button>
+          <Button onClick={() => create.mutate()} disabled={!draft.employee_id || create.isPending}>Create Request</Button></div></SmartCreateSection>
           <div className="flex gap-2 border-t pt-4">
             <Button variant="outline" onClick={() => retention.mutate(true)}>Dry Run Retention</Button>
             <Button variant="outline" onClick={() => retention.mutate(false)}>Run Retention</Button>

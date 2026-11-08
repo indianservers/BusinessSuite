@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
@@ -62,7 +64,7 @@ function Workspace({ source, sourceId, scope }: Props & {scope: string}) {
     {notice && <p role="status">{notice}</p>}
     {requests.isPending && <p role="status">Loading saved requests…</p>}
     {requests.isError && <p role="alert">{errorText(requests.error)} <button onClick={() => void requests.refetch()}>Retry</button></p>}
-    {requests.data?.items.map(row => <article key={row.id} className="space-y-2 rounded-lg border p-4">
+    {<GroupedRecords scope="shared/payments/PaymentRequests:records-1" items={(requests.data?.items) || []} fields={standardRecordGroups((requests.data?.items) || [])} gridClassName="space-y-3" renderItem={row => <article key={row.id} className="space-y-2 rounded-lg border p-4">
       <div className="flex flex-wrap justify-between gap-2"><strong>{row.currency} {row.amount}</strong><span>{statusLabel(row.status)}</span></div>
       <p className="break-all text-xs text-muted-foreground">Reference: {row.request_id}</p>
       {row.instructions && <p className="whitespace-pre-wrap text-sm">{row.instructions}</p>}
@@ -78,7 +80,7 @@ function Workspace({ source, sourceId, scope }: Props & {scope: string}) {
         {!row.receipt_id && ctx.can_match_receipt && <Button variant="outline" disabled={working} title="Match a receipt already recorded in Collections using this request reference" onClick={() => action.mutate({id:row.id,operation:"reconcile-receipt"})}>Match recorded receipt</Button>}
         {source === "srm_invoice" && Number(row.amount_paid) > 0 && <Link className="underline" to={`/srm/invoices/${sourceId}`}>Open invoice to reconcile receipt</Link>}
       </div>
-    </article>)}
+    </article>}/>}
     {requests.data && !requests.data.items.length && <p className="text-sm text-muted-foreground">No payment requests for this record yet.</p>}
   </section>;
 }

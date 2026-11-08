@@ -1,3 +1,5 @@
+import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
+import EmployeeDocumentsPanel from "./EmployeeDocumentsPanel";
 import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
 import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import PhoneActions from "@/components/PhoneActions";
@@ -20,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
 import { employeeApi, payrollApi, companyApi, authApi } from "@/services/api";
 import { assetUrl, formatCurrency, formatDate, getInitials, statusColor } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
@@ -29,18 +31,22 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { loadManagerOptions } from "./employeeJobOptions";
 import { useAuthStore } from "@/store/authStore";
 import SharedProfilePage from "@/features/profiles/ProfilePage";
+import EmployeeReliabilityPanel from "./EmployeeReliabilityPanel";
 import Employee360Panel from "./Employee360Panel";
+import EmployeeVerificationPanel from "../compliance/EmployeeVerificationPanel";
 
 const TABS = [
   { id: "profile", label: "Complete Profile", icon: User },
   { id: "360", label: "Employee 360", icon: Activity },
   { id: "personal", label: "Personal", icon: User },
   { id: "job", label: "Job", icon: Briefcase },
+  { id: "history", label: "Profile checks & history", icon: Clock },
   { id: "education", label: "Education", icon: GraduationCap },
   { id: "experience", label: "Experience", icon: Briefcase },
   { id: "skills", label: "Skills", icon: Star },
   { id: "certifications", label: "Certifications", icon: GraduationCap },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "verification", label: "Verification & exit records", icon: FileText },
   { id: "payroll", label: "Payroll", icon: Banknote },
   { id: "account", label: "Account", icon: Link2 },
   { id: "family", label: "Family", icon: Users },
@@ -126,7 +132,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const [params, setRouteParams] = useSearchParams();
   const setParams = (values: Record<string, string>) => {
     if (employeeId != null) setPopupEditing(values.edit === "true");
-    else setRouteParams(values);
+    else setRouteParams({tab: activeTab, ...values});
   };
   const closeDetails = () => onClose ? onClose() : navigate(params.get("returnTo")?.startsWith("/hrms/") ? params.get("returnTo")! : "/hrms/employees");
   const qc = useQueryClient();
@@ -154,7 +160,11 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const [educationForm, setEducationForm] = useState<Record<string, any>>({});
   const [experienceForm, setExperienceForm] = useState<Record<string, any>>({});
   const [certificationForm, setCertificationForm] = useState<Record<string, any>>({});
-  const [editingRecord, setEditingRecord] = useState<{section: string; id: number} | null>(null);
+  const [saveConflict,setSaveConflict]=useState(false);
+  const [allowContactDuplicate,setAllowContactDuplicate]=useState(false);
+  const [editVersion, setEditVersion] = useState<string | undefined>();
+  const initializedEdit = useRef("");
+  const [editingRecord, setEditingRecord] = useState<{section: string; id: number; version?: string} | null>(null);
   const [skillForm, setSkillForm] = useState<Record<string, any>>({});
   const [salaryForm, setSalaryForm] = useState<Record<string, any>>({
     structure_id: "",
@@ -165,7 +175,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
   const [selectedUserId, setSelectedUserId] = useState("");
   const [accountForm, setAccountForm] = useState({ email: "", password: "" });
-  const editing = employeeId != null ? popupEditing : params.get("edit") === "true";
+  const requestedEditing = employeeId != null ? popupEditing : params.get("edit") === "true";
   usePageTitle("Employee Details");
 
   const { data: emp, isLoading, error: employeeError } = useQuery({
@@ -173,6 +183,9 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
     queryFn: () => employeeApi.get(Number(id)).then((r) => r.data),
     enabled: !!id,
   });
+
+  const canEditProfile = emp?.can_edit_profile ?? canChangeRole;
+  const editing = requestedEditing && canEditProfile;
 
   const userOptions = useQuery({
     queryKey: ["employee-user-options", id],
@@ -204,7 +217,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   };
 
   const updateMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => employeeApi.update(Number(id), {...payload,custom_fields:customFieldForm.validate()}),
+    mutationFn: (payload: Record<string, any>) => employeeApi.update(Number(id), {...payload,custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}, editVersion),
     onSuccess: () => {
       toast({ title: "Employee updated" });
       qc.invalidateQueries({ queryKey: ["employee", id] });
@@ -215,9 +228,10 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       setParams({});
     },
     onError: (err:unknown) => {
+      if(getApiErrorMessage(err).includes("profile changed"))setSaveConflict(true);
       const details=(err as {response?:{data?:{detail?:Array<{loc?:string[];msg?:string}>}}})?.response?.data?.detail;
       if(Array.isArray(details))setEditErrors(Object.fromEntries(details.map(item=>[String(item.loc?.at(-1)||'').replace(/_country_code$/,''),item.msg||'Invalid value'])));
-      toast({ title: "Could not update employee", variant: "destructive" });
+      toast({ title: "Could not update employee", description: getApiErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -235,7 +249,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   const educationMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "education" ? employeeApi.updateProfileRecord(Number(id), "education", editingRecord.id, payload) : employeeApi.addEducation(Number(id), payload),
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "education" ? employeeApi.updateProfileRecord(Number(id), "education", editingRecord.id, payload, editingRecord.version) : employeeApi.addEducation(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
       toast({ title: editingRecord?.section === "education" ? "Education updated" : "Education added" });
       setEditingRecord(null);
@@ -250,7 +264,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   const experienceMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "experience" ? employeeApi.updateProfileRecord(Number(id), "experience", editingRecord.id, payload) : employeeApi.addExperience(Number(id), payload),
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "experience" ? employeeApi.updateProfileRecord(Number(id), "experience", editingRecord.id, payload, editingRecord.version) : employeeApi.addExperience(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
       toast({ title: editingRecord?.section === "experience" ? "Experience updated" : "Experience added" });
       setEditingRecord(null);
@@ -265,7 +279,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   const skillMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "skills" ? employeeApi.updateProfileRecord(Number(id), "skills", editingRecord.id, payload) : employeeApi.addSkill(Number(id), payload),
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "skills" ? employeeApi.updateProfileRecord(Number(id), "skills", editingRecord.id, payload, editingRecord.version) : employeeApi.addSkill(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
       toast({ title: editingRecord?.section === "skills" ? "Skill updated" : "Skill added" });
       setEditingRecord(null);
@@ -281,8 +295,8 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
 
   const certificationMutation = useMutation({
     mutationFn: (payload: Record<string, any>) => editingRecord?.section === "certifications"
-      ? employeeApi.updateProfileRecord(Number(id), "certifications", editingRecord.id, payload)
-      : employeeApi.addCertification(Number(id), payload),
+      ? employeeApi.updateProfileRecord(Number(id), "certifications", editingRecord.id, payload, editingRecord.version)
+      : employeeApi.addCertification(Number(id), payload, emp?.profile_version),
     onSuccess: () => {
       toast({ title: editingRecord ? "Certification updated" : "Certification added" });
       setCertificationForm({}); setEditingRecord(null);
@@ -291,7 +305,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
     onError: (err: unknown) => toast({ title: "Could not save certification", description: getApiErrorMessage(err), variant: "destructive" }),
   });
   const deleteRecordMutation = useMutation({
-    mutationFn: ({section, recordId}: {section: string; recordId: number}) => employeeApi.deleteProfileRecord(Number(id), section, recordId),
+    mutationFn: ({section, recordId}: {section: string; recordId: number}) => employeeApi.deleteProfileRecord(Number(id), section, recordId, emp?.profile_version),
     onSuccess: () => {
       toast({ title: "Record deleted" });
       setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});
@@ -300,9 +314,9 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
     onError: (err: unknown) => toast({ title: "Could not delete record", description: getApiErrorMessage(err), variant: "destructive" }),
   });
   const recordActions = (section: string, record: Record<string, any>, setForm: (form: Record<string, any>) => void) => (
-    <div className="mt-3 flex gap-2">
+    !canEditProfile ? null : <div className="mt-3 flex gap-2">
       <Button type="button" variant="outline" size="sm" disabled={deleteRecordMutation.isPending} onClick={() => {
-        setForm({ ...record }); setEditingRecord({section, id: record.id}); setParams({edit: "true"});
+        setForm({ ...record }); setEditingRecord({section, id: record.id, version: emp?.profile_version}); setParams({edit: "true"});
         requestAnimationFrame(() => document.getElementById(`profile-${({education: "degree", experience: "company_name", skills: "skill_name", certifications: "certification_name"} as Record<string, string>)[section]}`)?.focus());
       }}>Edit record</Button>
       <Button type="button" variant="outline" size="sm" disabled={deleteRecordMutation.isPending} onClick={() => {
@@ -359,7 +373,10 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   useEffect(() => {
-    if (!emp || !editing) return;
+    if (!editing) { initializedEdit.current=""; return; }
+    if (!emp || initializedEdit.current === String(id)) return;
+    initializedEdit.current=String(id);
+    setEditVersion(emp.profile_version);
     setEditForm({
       first_name: emp.first_name || "",
       middle_name: emp.middle_name || "",
@@ -401,7 +418,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       family_information: emp.family_information || "",
       health_information: emp.health_information || "",
     });
-  }, [emp, editing]);
+  }, [!!emp, editing, id]);
 
   useEffect(() => {
     if (!emp) return;
@@ -630,7 +647,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 defaultAgentCode="hrms_letter_drafting"
                 defaultPrompt="Help me prepare HR action or summary for this employee."
               />
-              {activeTab !== "profile" && <Button variant="outline" size="sm" onClick={() => {
+              {canEditProfile && activeTab !== "profile" && activeTab !== "verification" && activeTab !== "history" && <Button variant="outline" size="sm" onClick={() => {
                 if (!editing && activeTab === "360") setActiveTab("personal");
                 setParams(editing ? {} : { edit: "true" });
               }}>
@@ -652,11 +669,12 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       <RecordSectionNav value={activeTab} onChange={setActiveTab} label="Employee information" groups={[
         {label:"Overview", sections:TABS.filter(t=>["360","profile"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
         {label:"Personal", sections:TABS.filter(t=>["personal","family","health","bank"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
-        {label:"Work", sections:TABS.filter(t=>["job","education","experience","skills","certifications","documents"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Work", sections:TABS.filter(t=>(t.id !== "history" || canEditProfile) && ["job","education","experience","skills","certifications","documents","verification","history"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
         {label:"Pay & access", sections:TABS.filter(t=>["payroll","account"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
       ]}/>
 
 
+      {saveConflict && <div role="alert" className="rounded border border-amber-400 p-4"><p>This profile changed while you were editing. Your draft has been retained and has not overwritten the newer values.</p><Button variant="outline" onClick={async()=>{await qc.refetchQueries({queryKey:["employee",id]});setSaveConflict(false);setParams({});}}>Discard draft and review latest profile</Button></div>}
       {editing && (
         <Card>
           <CardHeader><CardTitle>Edit {TABS.find((tab) => tab.id === activeTab)?.label || "Employee"}</CardTitle></CardHeader>
@@ -666,6 +684,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={(event) => {
                   event.preventDefault();
+                  if(updateMutation.isPending)return;
                   const allowedFields = EDIT_FIELDS[activeTab].map(([key]) => key).filter((key) => !emp.restricted_fields?.includes(key) && (key !== "role_id" || (canChangeRole && !!emp.user_id)));
                   const issues:Record<string,string>={};
                   for(const key of allowedFields){
@@ -683,7 +702,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                   updateMutation.mutate(payload);
                 }}
               >
-                <div className="sm:col-span-2"><CrmRecordFields state={customFieldForm}/></div>
+                <div className="sm:col-span-2"><CrmRecordFields state={customFieldForm}/>{activeTab==="personal"&&<EmployeeDuplicateWarning excludeId={Number(id)} values={{personal_email:editForm.personal_email,work_email:editForm.work_email,phone_number:editForm.phone_number,phone_number_country_code:editForm.phone_number_country_code}} acknowledged={allowContactDuplicate} onAcknowledge={setAllowContactDuplicate}/>}</div>
                 {EDIT_FIELDS[activeTab].filter(([key]) => key !== "role_id" || (canChangeRole && !!emp.user_id)).map(([key, label, type]) => (
                   <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
                     <Label htmlFor={`edit-${key}`}>{label}</Label>
@@ -808,6 +827,8 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       )}
 
       {/* Tab content */}
+      {activeTab === "history" && <EmployeeReliabilityPanel employeeId={Number(id)}/>}
+      {activeTab === "verification" && <EmployeeVerificationPanel key={id} employeeId={Number(id)}/>}
       {activeTab === "profile" && (emp.user_id ? <SharedProfilePage key={emp.user_id} employeeId={Number(id)} accountActions={loginAccountCard} /> : loginAccountCard)}
       {activeTab === "360" && <Employee360Panel key={id} employeeId={Number(id)} onOpenTab={setActiveTab} isOwnProfile={ownEmployeeId === Number(id)} />}
 
@@ -982,29 +1003,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         </CardContent></Card>
       )}
 
-      {activeTab === "documents" && (
-        <Card>
-          <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
-          <CardContent>
-            {emp.documents?.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No documents uploaded</p>
-            ) : (
-              <div className="space-y-3">
-                {emp.documents?.map((doc: { id: number; document_type: string; document_name?: string; document_number?: string; is_verified?: boolean }) => (
-                  <div key={doc.id} className="flex items-start justify-between gap-4 rounded-lg border p-4">
-                    <div>
-                      <p className="font-medium">{doc.document_name || doc.document_type}</p>
-                      <p className="text-sm text-muted-foreground">{doc.document_type}</p>
-                      {doc.document_number && <p className="text-xs text-muted-foreground">{doc.document_number}</p>}
-                    </div>
-                    <Badge variant={doc.is_verified ? "success" : "secondary"}>{doc.is_verified ? "Verified" : "Pending"}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {activeTab === "documents" && <EmployeeDocumentsPanel profileVersion={emp.profile_version} employeeId={Number(id)} documents={emp.documents||[]} canVerify={canEditProfile&&!emp.restricted_fields?.includes("documents")} canUpload={(canEditProfile||ownEmployeeId===Number(id))&&!emp.restricted_fields?.includes("documents")}/>}
 
       {activeTab === "account" && loginAccountCard}
 
@@ -1201,6 +1200,7 @@ function AddRecordForm({
       className="grid gap-4 sm:grid-cols-2"
       onSubmit={(event) => {
         event.preventDefault();
+        if(saving)return;
         const payload = { ...form };
         Object.keys(payload).forEach((key) => {
           if (payload[key] === "") payload[key] = null;

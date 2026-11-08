@@ -70,6 +70,16 @@ async function browserTests() {
     await page.getByRole("dialog").waitFor();
     await page.keyboard.press("Escape");
     assert.equal(await page.getByRole("dialog").count(), 0);
+    for (const width of [320,360,375,390,414,430,480]) {
+      await page.setViewportSize({width,height:900});
+      const search = shared.getByLabel("Search grid", {exact:true});
+      await search.waitFor();
+      assert(await search.evaluate(el => parseFloat(getComputedStyle(el).fontSize) >= 16), `Readable grid search at ${width}`);
+      const controls = await shared.locator('.udg-toolbar > .udg-control').all();
+      for (const control of controls) if (await control.isVisible()) assert(await control.evaluate(el => el.getBoundingClientRect().height >= 44), `Touch control at ${width}`);
+      assert(await shared.evaluate(el => el.getBoundingClientRect().right <= innerWidth+1), `Grid container fits ${width}`);
+    }
+    await page.screenshot({path:path.resolve(__dirname,"../../outputs/mobile-ux/shared-grid-480.png"),fullPage:true});
     assert.deepEqual(errors, []);
     console.log("PASS browser search, preview/Escape, grouping, real bulk mutation, existing selection/actions, editable matrix, mobile details dialog");
     if (process.env.GRID_SCREENSHOT) await page.screenshot({ path: process.env.GRID_SCREENSHOT, fullPage: true });

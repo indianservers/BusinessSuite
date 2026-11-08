@@ -1,0 +1,2516 @@
+[
+  {
+    "file": "frontend/src/apps/admin-security/AdminSecurityPage.tsx",
+    "line": 109,
+    "items": "Object.entries(query.data || {})",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/ai-copilot/AICopilotPage.tsx",
+    "line": 159,
+    "items": "(query.data?.items || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/analytics/AnalyticsOverview.tsx",
+    "line": 111,
+    "items": "Object.entries(item.details)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/analytics/AnalyticsOverview.tsx",
+    "line": 112,
+    "items": "[[\"invoiced\", \"Invoiced\"], [\"collected\", \"Collected\"], [\"outstanding\", \"Outstanding\"]]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSAdminPage.tsx",
+    "line": 123,
+    "items": "modules",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSAdminPage.tsx",
+    "line": 156,
+    "items": "rules",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSAdminPage.tsx",
+    "line": 180,
+    "items": "events",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSWorkspacePage.tsx",
+    "line": 96,
+    "items": "widgets",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSWorkspacePage.tsx",
+    "line": 113,
+    "items": "reports",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSWorkspacePage.tsx",
+    "line": 128,
+    "items": "sections",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSWorkspacePage.tsx",
+    "line": 159,
+    "items": "roles",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/CampaignWorkspace.tsx",
+    "line": 30,
+    "items": "eligible",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/CampaignWorkspace.tsx",
+    "line": 30,
+    "items": "excluded",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/CustomerMatchingReview.tsx",
+    "line": 20,
+    "items": "matches.data.candidates",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/EngagementInbox.tsx",
+    "line": 83,
+    "items": "visibleEvents",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/GuidedTools.tsx",
+    "line": 28,
+    "items": "fields",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/shared.tsx",
+    "line": 41,
+    "items": "[...snippets].sort((a,b)=>Number(b.favorite)-Number(a.favorite)).filter(s=>(s.name+' '+s.text).toLowerCase().includes(search.toLowerCase()))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/TimelineExplorer.tsx",
+    "line": 11,
+    "items": "items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/CommunicationSendReview.tsx",
+    "line": 67,
+    "items": "entries",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 278,
+    "items": "[\r\n              [\"Customers\", dashboard.data?.recipients ?? 0],\r\n              [\"Active automations\", dashboard.data?.active_automations ?? 0],\r\n              [\r\n                \"Queued messages\",\r\n                (dashboard.data?.statuses?.queued ?? 0) +\r\n                  (dashboard.data?.statuses?.waiting_provider ?? 0),\r\n              ],\r\n            ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 424,
+    "items": "[\"email\", \"whatsapp\"]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 488,
+    "items": "recipients.data?.items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 540,
+    "items": "bindings.data?.items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 657,
+    "items": "history.data?.email_replies",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 888,
+    "items": "rules.data?.items.filter((r:Row)=>!whatsappOnly||r.channel==='whatsapp')",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 1014,
+    "items": "deliveries.data?.items.filter((d:Row)=>!whatsappOnly||d.channel==='whatsapp')",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 1141,
+    "items": "shipments.data?.items",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/Analytics.tsx",
+    "line": 10,
+    "items": "rows",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/Analytics.tsx",
+    "line": 24,
+    "items": "[['conversations','Active conversations'],['newConversations','New conversations'],['unreadConversations','Unread conversations'],['pendingFollowUps','Pending CRM follow-ups'],['received','Received messages'],['outbound','Outgoing messages'],['sent','Sent'],['delivered','Delivered'],['read','Read'],['failed','Failed'],['pending','Pending / unconfirmed']]",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/Analytics.tsx",
+    "line": 25,
+    "items": "data.daily",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/Analytics.tsx",
+    "line": 26,
+    "items": "data.workload",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/BusinessContext.tsx",
+    "line": 32,
+    "items": "data.notes",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/BusinessContext.tsx",
+    "line": 33,
+    "items": "data.activity",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/BusinessContext.tsx",
+    "line": 34,
+    "items": "data.history",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/BusinessContext.tsx",
+    "line": 37,
+    "items": "data.followUps.slice(0,5)",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/BusinessContext.tsx",
+    "line": 38,
+    "items": "data[kind]",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/CampaignTemplatePicker.tsx",
+    "line": 23,
+    "items": "template.components",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/Composer.tsx",
+    "line": 122,
+    "items": "placeholders",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/SentMessages.tsx",
+    "line": 13,
+    "items": "messages.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/TemplatesPanel.tsx",
+    "line": 40,
+    "items": "preview.components",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/WhatsAppCommunicationWorkspace.tsx",
+    "line": 246,
+    "items": "rows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/communication/WhatsAppCommunicationWorkspace.tsx",
+    "line": 290,
+    "items": "displayedResults",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMHomePage.tsx",
+    "line": 161,
+    "items": "metrics",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMHomePage.tsx",
+    "line": 208,
+    "items": "quickCreateFields[quickType]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMHomePage.tsx",
+    "line": 239,
+    "items": "(moduleInfo?.modules || [\"leads\", \"contacts\", \"companies\", \"deals\", \"pipelines\", \"activities\"])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 657,
+    "items": "steps",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 683,
+    "items": "events",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 829,
+    "items": "entries",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 1300,
+    "items": "history.slice(0, 3)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordPanel.tsx",
+    "line": 14,
+    "items": "(data?.timeline || [])",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordPanel.tsx",
+    "line": 15,
+    "items": "(data.timeline||[])",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMReferenceDashboard.tsx",
+    "line": 535,
+    "items": "sources",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMSalesHome.tsx",
+    "line": 41,
+    "items": "records",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMTasksWorkspace.tsx",
+    "line": 164,
+    "items": "tasks",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 1175,
+    "items": "cards",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 1219,
+    "items": "hygieneRows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 1372,
+    "items": "companies",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 2135,
+    "items": "fields",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 2218,
+    "items": "rules",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 2452,
+    "items": "[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 5175,
+    "items": "relatedProducts",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6006,
+    "items": "readiness",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6035,
+    "items": "[\r\n          [\"Quote faster\", \"Reusable prices, tax-ready line items, and approval thresholds.\"],\r\n          [\"Control margins\", \"Capture list price and cost before proposals go out.\"],\r\n          [\"Handoff cleanly\", \"Products can flow into quotes, SRM orders, invoices, and revenue reports.\"],\r\n        ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6192,
+    "items": "workflows",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6296,
+    "items": "approvals",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6356,
+    "items": "groups",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6484,
+    "items": "items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6595,
+    "items": "webhooks",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 6764,
+    "items": "territories",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7031,
+    "items": "flow",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7049,
+    "items": "crmLeads.slice(0, 5)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7063,
+    "items": "handoffRows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7099,
+    "items": "tools",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7154,
+    "items": "[\"conservative\", \"expected\", \"aggressive\"]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7714,
+    "items": "Object.entries(record)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7814,
+    "items": "formFields",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 96,
+    "items": "Object.entries(summaryFields)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 99,
+    "items": "Object.entries({\"Deal type\": record.deal_type || \"New Business\", Industry: record.industry || \"Not recorded\", Source: record.source || record.lead_source || \"Not recorded\", \"Internal reference\": record.internal_reference || \"Not recorded\", Created: record.created_at, \"Expected revenue\": money(record.expected_revenue || Number(record.amount || 0) * Number(record.probability || 0) / 100), \"Risks\": record.planning?.qualification?.risks || \"No risks recorded\", \"Business need\": record.planning?.qualification?.business_need || \"Not qualified\"})",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 100,
+    "items": "timeline.filter(event => tab !== \"History\" || [\"stage_change\", \"owner_change\", \"field_change\", \"status_change\", \"system\", \"collaborator_change\"].includes(event.type))",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 102,
+    "items": "rows(\"contacts\")",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 103,
+    "items": "collaborators",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 104,
+    "items": "rows(\"quotations\")",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 105,
+    "items": "rows(\"tasks\")",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 106,
+    "items": "rows(\"notes\")",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/Deal360Page.tsx",
+    "line": 107,
+    "items": "Object.entries({Health: insights?.level, Score: `${insights?.score}/100`, \"Deal age\": `${insights?.age_days} days`, \"Stage age\": `${insights?.stage_age_days ?? \"Unknown\"} days`, \"Activity gap\": insights?.activity_gap_days === null ? \"No recorded activity\" : `${insights?.activity_gap_days} days`, \"Qualification completeness\": `${insights?.qualification_score}%`})",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/DealPlanningFields.tsx",
+    "line": 19,
+    "items": "((planning.milestones || []) as CRMApiRecord[])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/EnterpriseDealsPage.tsx",
+    "line": 658,
+    "items": "[\r\n          [\"Open deals\", counts.open],\r\n          [\"Closing this month\", counts.closing_month],\r\n          [\"Overdue follow-ups\", counts.overdue],\r\n        ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/EnterpriseDealsPage.tsx",
+    "line": 672,
+    "items": "[[\"Won this month\", counts.won_month], [\"Lost this month\", counts.lost_month], [\"Without activity\", counts.without_activity]]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/EnterpriseDealsPage.tsx",
+    "line": 673,
+    "items": "[\"pipeline\", \"weighted\"]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/EnterpriseDealsPage.tsx",
+    "line": 1187,
+    "items": "(summary?.analytics || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/EnterpriseDealsPage.tsx",
+    "line": 1191,
+    "items": "Object.entries({\r\n                      \"Won revenue\": dealMoney(row.won_revenue, row.currency),\r\n                      \"Lost opportunity value\": dealMoney(\r\n                        row.lost_value,\r\n                        row.currency,\r\n                      ),\r\n                      \"Average deal size\": dealMoney(\r\n                        row.average_deal_size,\r\n                        row.currency,\r\n                      ),\r\n                      \"Win rate\":\r\n                        row.win_rate == null\r\n                          ? \"No closed outcomes\"\r\n                          : `${row.win_rate}%`,\r\n                      \"Average sales cycle\":\r\n                        row.sales_cycle_days == null\r\n                          ? \"No recorded closing dates\"\r\n                          : `${row.sales_cycle_days} days`,\r\n                      \"Estimated velocity / day\":\r\n                        row.velocity_per_day == null\r\n                          ? \"Insufficient closed history\"\r\n                          : dealMoney(row.velocity_per_day, row.currency),\r\n                    })",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/EngagementWorkspace.tsx",
+    "line": 207,
+    "items": "rows",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/FinancialDataTab.tsx",
+    "line": 42,
+    "items": "data.bankAccounts",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/FinancialDataTab.tsx",
+    "line": 49,
+    "items": "data.upiIds",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/FinancialDataTab.tsx",
+    "line": 89,
+    "items": "query.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/FollowUpHistory.tsx",
+    "line": 45,
+    "items": "values",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/FollowUpHistory.tsx",
+    "line": 53,
+    "items": "item.metadata.changes",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/FollowUpWorkspace.tsx",
+    "line": 297,
+    "items": "files.data",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/FollowUpWorkspace.tsx",
+    "line": 297,
+    "items": "data.data?.related?.notes",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/FollowUpWorkspace.tsx",
+    "line": 297,
+    "items": "shownEvents",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/GrowthWorkspace.tsx",
+    "line": 87,
+    "items": "review.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 531,
+    "items": "Object.entries(result.byStage)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 546,
+    "items": "Object.entries(result.bySource)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 1753,
+    "items": "(details.interests || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 2023,
+    "items": "lead.activities",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 2069,
+    "items": "lead.scoreReasons",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 2112,
+    "items": "lead.timeline",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 2551,
+    "items": "settings.assignment.rules",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 2686,
+    "items": "sequence.steps",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadWorkflow.tsx",
+    "line": 740,
+    "items": "lead.timeline\r\n          ?.filter((e) => e.event_type === \"team_note\")",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/product-customers/RelationshipDetail.tsx",
+    "line": 28,
+    "items": "pending.data.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/product-customers/RelationshipDetail.tsx",
+    "line": 29,
+    "items": "timeline",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/SalesActions.tsx",
+    "line": 34,
+    "items": "Object.entries(preview.items as Record<string,{id:number;name:string}[]>)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/TemplateGallery.tsx",
+    "line": 28,
+    "items": "entries",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/TemplateStudio.tsx",
+    "line": 185,
+    "items": "filtered",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/TemplateStudio.tsx",
+    "line": 195,
+    "items": "draft.design.blocks",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/TemplateStudio.tsx",
+    "line": 220,
+    "items": "lines",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/UniversalContactsPage.tsx",
+    "line": 319,
+    "items": "filters",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/UniversalContactsPage.tsx",
+    "line": 327,
+    "items": "rows",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/crm/UniversalContactsPage.tsx",
+    "line": 345,
+    "items": "detail.data.leads",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/crm/UniversalContactsPage.tsx",
+    "line": 345,
+    "items": "detail.data.related.timeline.slice(0, 20)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/customization/ModuleRecords.tsx",
+    "line": 56,
+    "items": "records.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/customization/ModuleRecords.tsx",
+    "line": 57,
+    "items": "fields.data?.filter(f => fieldShown(controlField(f), 'detail'))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/BankRulesPage.tsx",
+    "line": 41,
+    "items": "rules.data",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/fam/BankRulesPage.tsx",
+    "line": 44,
+    "items": "preview.data",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 257,
+    "items": "kpis.filter(([label]) => [\"Cash and bank\", \"Receivables\", \"Payables\", \"Overdue AR\"].includes(label))",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 263,
+    "items": "kpis.filter(([label]) => ![\"Cash and bank\", \"Receivables\", \"Payables\", \"Overdue AR\"].includes(label))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 340,
+    "items": "(data.groups || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 555,
+    "items": "[\"Not due\", \"0-30\", \"31-60\", \"61-90\", \"91-180\", \">180\"]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 597,
+    "items": "kpis",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 623,
+    "items": "listItems(query.data).slice(0, 3)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 632,
+    "items": "[\"status\", \"posting_type\", \"source_record_type\", \"voucher_id\"]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 710,
+    "items": "[\"status\", \"bank_account_id\", \"statement_period_start\", \"statement_period_end\"]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 728,
+    "items": "summaryCards",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 749,
+    "items": "links",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 859,
+    "items": "[\"taxable_value\", \"cgst_amount\", \"sgst_amount\", \"igst_amount\", \"cess_amount\"]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 919,
+    "items": "checks",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 946,
+    "items": "links",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 1023,
+    "items": "lines",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 1062,
+    "items": "[\"subtotal\", \"gst_total\", \"tds_amount\", \"grand_total\"]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 1085,
+    "items": "[\"Not due\", \"0-30\", \"31-60\", \"61-90\", \"91-180\", \">180\"]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 1113,
+    "items": "kpis",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 1252,
+    "items": "items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 1400,
+    "items": "stats",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 1507,
+    "items": "matches",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 2069,
+    "items": "items",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/fam/FinancialStatementsPage.tsx",
+    "line": 30,
+    "items": "Object.entries(query.data.summary)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/fam/RecurringPurchasesPage.tsx",
+    "line": 42,
+    "items": "profiles.data",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/ai/AIAssistantPage.tsx",
+    "line": 53,
+    "items": "messages",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/analytics/AdvancedAnalyticsPage.tsx",
+    "line": 150,
+    "items": "[\r\n            [\"department_id\", \"Department ID\"],\r\n            [\"grade_band_id\", \"Grade/Band ID\"],\r\n            [\"location_id\", \"Location ID\"],\r\n            [\"employment_type\", \"Employment Type\"],\r\n            [\"tenure_band\", \"Tenure Band\"],\r\n          ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/analytics/AdvancedAnalyticsPage.tsx",
+    "line": 180,
+    "items": "summaryEntries",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/analytics/AdvancedAnalyticsPage.tsx",
+    "line": 213,
+    "items": "summaryEntries.slice(0, 4)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/analytics/AdvancedAnalyticsPage.tsx",
+    "line": 244,
+    "items": "(safetyIncidents.data || []).slice(0, 5)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/assets/MyAssetsPanel.tsx",
+    "line": 13,
+    "items": "query.data",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/attendance/AttendancePage.tsx",
+    "line": 342,
+    "items": "[\r\n            { label: \"Present\", value: summary.present ?? 0, color: \"text-green-600\" },\r\n            { label: \"Absent\", value: summary.absent ?? 0, color: \"text-red-500\" },\r\n            { label: \"Half-day\", value: summary.half_day ?? 0, color: \"text-orange-500\" },\r\n            { label: \"WFH\", value: summary.wfh ?? 0, color: \"text-blue-600\" },\r\n          ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/attendance/AttendancePage.tsx",
+    "line": 405,
+    "items": "[\r\n              [\"Present\", attendanceRegister?.present ?? 0],\r\n              [\"Not marked\", attendanceRegister?.not_marked ?? 0],\r\n              [\"Absent\", attendanceRegister?.absent ?? 0],\r\n              [\"Half Day\", attendanceRegister?.half_day ?? 0],\r\n              [\"Holiday\", attendanceRegister?.holiday ?? 0],\r\n              [\"Weekly Off\", attendanceRegister?.weekly_off ?? 0],\r\n              [\"WFH\", attendanceRegister?.wfh ?? 0],\r\n              [\"OT Hours\", attendanceRegister?.overtime_hours ?? 0],\r\n            ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/attendance/AttendancePage.tsx",
+    "line": 507,
+    "items": "DAY_LABELS",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/attendance/AttendancePage.tsx",
+    "line": 543,
+    "items": "Object.entries(statusDotColor)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/attendance/MyAttendancePage.tsx",
+    "line": 76,
+    "items": "[\r\n          [\"Present\", summary.data?.present_days],\r\n          [\"Absent\", summary.data?.absent_days],\r\n          [\"Half Day\", summary.data?.half_days],\r\n          [\"Overtime\", summary.data?.overtime_hours],\r\n        ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/attendance/ShiftRosterPage.tsx",
+    "line": 294,
+    "items": "(weeklyOffs.data || []).slice(0, 6)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/attendance/ShiftRosterPage.tsx",
+    "line": 379,
+    "items": "lastConflicts.slice(0, 8)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/benefits/BenefitsPage.tsx",
+    "line": 200,
+    "items": "plans",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/benefits/BenefitsPage.tsx",
+    "line": 221,
+    "items": "(claims || []).slice(0, 6)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/company/CompanyPage.tsx",
+    "line": 461,
+    "items": "items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/compliance/EmployeeVerificationPanel.tsx",
+    "line": 61,
+    "items": "data.documents",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/compliance/EmployeeVerificationPanel.tsx",
+    "line": 62,
+    "items": "data.certificates",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/DashboardPage.tsx",
+    "line": 256,
+    "items": "[\r\n                [\"Present\", todaySummary?.present ?? dashboard?.attendance?.present_today ?? 0, UserCheck],\r\n                [\"Leave Balance\", totalLeaveBalance, CalendarDays],\r\n                [\"Certificates\", certificates?.length ?? 0, FileText],\r\n              ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/DashboardPage.tsx",
+    "line": 275,
+    "items": "(recognitions || []).slice(0, 3)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/DashboardPage.tsx",
+    "line": 377,
+    "items": "ceoMetrics",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/DashboardPage.tsx",
+    "line": 688,
+    "items": "cards",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/DashboardPage.tsx",
+    "line": 734,
+    "items": "operatingRows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/RoleWorkspacePage.tsx",
+    "line": 242,
+    "items": "config.stats",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/RoleWorkspacePage.tsx",
+    "line": 255,
+    "items": "section.items",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/TeamWorkspace.tsx",
+    "line": 41,
+    "items": "decisions",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/dashboard/TeamWorkspace.tsx",
+    "line": 45,
+    "items": "open",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/documents/DocumentsPage.tsx",
+    "line": 399,
+    "items": "certificates.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/documents/DocumentStudioPage.tsx",
+    "line": 1077,
+    "items": "(\r\n                        [\r\n                          [\"logo_asset_id\", \"Logo\", \"logo\"],\r\n                          [\r\n                            \"background_asset_id\",\r\n                            \"Full-page artwork\",\r\n                            \"background\",\r\n                          ],\r\n                          [\"signature_asset_id\", \"Signature\", \"signature\"],\r\n                        ] as const\r\n                      )",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/documents/DocumentStudioPage.tsx",
+    "line": 1306,
+    "items": "history.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/AddEmployeePage.tsx",
+    "line": 293,
+    "items": "steps",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/Employee360Panel.tsx",
+    "line": 110,
+    "items": "[[\"Claimed\", total.claimed], [\"Finance approved\", total.approved], [\"Paid\", total.paid], [\"Awaiting payment\", total.awaitingPayment]]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 706,
+    "items": "EDIT_FIELDS[activeTab].filter(([key]) => key !== \"role_id\" || (canChangeRole && !!emp.user_id))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 840,
+    "items": "[\r\n                [\"Full Name\", `${emp.first_name} ${emp.middle_name || \"\"} ${emp.last_name}`.trim()],\r\n                [\"Gender\", emp.gender],\r\n                [\"Date of Birth\", formatDate(emp.date_of_birth)],\r\n                [\"Marital Status\", emp.marital_status],\r\n                [\"Blood Group\", emp.blood_group],\r\n                [\"Nationality\", emp.nationality],\r\n                [\"Category\", emp.category],\r\n                [\"Emergency Contact\", emp.emergency_contact_name],\r\n                [\"Emergency Phone\", emp.emergency_contact_number],\r\n                [\"Interests\", emp.interests],\r\n                [\"Research / Publications\", emp.research_work],\r\n              ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 897,
+    "items": "[\r\n                [\"Employee ID\", emp.employee_id],\r\n                [\"Employment Type\", emp.employment_type],\r\n                ...([ [\"branch_id\", \"Branch\"], [\"department_id\", \"Department\"], [\"designation_id\", \"Designation / Job Role\"], [\"reporting_manager_id\", \"Reporting Manager / Intern Supervisor\"] ].map(([key, label]) => [label, jobOptions?.[key]?.find((option) => option.id === emp[key])?.name || (emp[key] ? `#${emp[key]}` : \"Unassigned\")])),\r\n                [\"Status\", emp.status],\r\n                [\"Work Location\", emp.work_location],\r\n                [\"Date of Joining\", formatDate(emp.date_of_joining)],\r\n                [\"Date of Confirmation\", formatDate(emp.date_of_confirmation)],\r\n                [\"Probation Period\", emp.probation_period_months ? `${emp.probation_period_months} months` : \"—\"],\r\n              ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 925,
+    "items": "emp.educations",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 954,
+    "items": "emp.experiences",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 978,
+    "items": "emp.skills",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 995,
+    "items": "emp.certifications",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 1015,
+    "items": "[\r\n                [\"Bank Name\", emp.bank_name],\r\n                [\"Account Number\", emp.account_number ? `****${emp.account_number.slice(-4)}` : \"—\"],\r\n                [\"IFSC Code\", emp.ifsc_code],\r\n                [\"Account Type\", emp.account_type],\r\n                [\"PAN Number\", emp.pan_number ? `****${emp.pan_number.slice(-4)}` : \"—\"],\r\n                [\"UAN Number\", emp.uan_number],\r\n                [\"PF Number\", emp.pf_number],\r\n              ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 1131,
+    "items": "salaryHistory.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 1239,
+    "items": "fields",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDirectoryPage.tsx",
+    "line": 328,
+    "items": "Array.from({ length: 6 })",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeIncrements.tsx",
+    "line": 29,
+    "items": "revisions",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeReliabilityPanel.tsx",
+    "line": 19,
+    "items": "checks.data.certifications",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeReliabilityPanel.tsx",
+    "line": 21,
+    "items": "history.data",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/ProbationPage.tsx",
+    "line": 146,
+    "items": "[\r\n          [\"On probation\", dashboard.data?.onProbation ?? 0],\r\n          [\"Extended\", dashboard.data?.extended ?? 0],\r\n          [\"Due soon\", dashboard.data?.dueSoon ?? 0],\r\n          [\"Overdue\", dashboard.data?.overdue ?? 0],\r\n          [\"Pending reviews\", dashboard.data?.pendingReviews ?? 0],\r\n        ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/UserAccountsPage.tsx",
+    "line": 124,
+    "items": "options.data?.roles",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/UserAccountsPage.tsx",
+    "line": 152,
+    "items": "history.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/engagement/EngagementPage.tsx",
+    "line": 96,
+    "items": "announcements.data?.filter((item: any) => item.is_published).slice(0, 1)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/engagement/EngagementPage.tsx",
+    "line": 192,
+    "items": "recognitions.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/exit/ExitPage.tsx",
+    "line": 112,
+    "items": "records.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/expenses/ExpensesPage.tsx",
+    "line": 53,
+    "items": "[[\"Claimed\", total.claimed], [\"Approved\", total.approved], [\"Outstanding\", total.outstanding], [\"Paid\", total.paid], [\"Pending review\", total.pending_review], [\"Rejected\", total.rejected]]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/expenses/ExpensesPage.tsx",
+    "line": 55,
+    "items": "statement.data.claims.filter(c => status === \"all\" || c.status === status)",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+    "line": 209,
+    "items": "(slaBreaches || []).slice(0, 5)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+    "line": 227,
+    "items": "Object.entries(analytics?.by_status || {})",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+    "line": 288,
+    "items": "Array.from({ length: 5 })",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+    "line": 292,
+    "items": "tickets",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+    "line": 341,
+    "items": "(replies || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternApplicationsPage.tsx",
+    "line": 407,
+    "items": "pendingIntakeJobs",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternApplicationsPage.tsx",
+    "line": 497,
+    "items": "Object.entries(labels)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 842,
+    "items": "(d.distribution || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 872,
+    "items": "(d.activity || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 1472,
+    "items": "preview.sample",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 1885,
+    "items": "(batchAnalytics || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 2402,
+    "items": "[\r\n                [\"work\", \"Work Completed\"],\r\n                [\"learning\", \"Learning\"],\r\n                [\"blockers\", \"Blockers\"],\r\n                [\"tomorrow\", \"Plan for Tomorrow\"],\r\n              ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 216,
+    "items": "[\r\n                        [\"title\", \"Title\"],\r\n                        [\"category\", \"Category\"],\r\n                        [\"due_date\", \"Due Date\"],\r\n                        [\"points\", \"Points\"],\r\n                      ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 264,
+    "items": "[\r\n                      [\"description\", \"Description\"],\r\n                      [\"objectives\", \"Objectives\"],\r\n                      [\"instructions\", \"Instructions\"],\r\n                      [\"deliverables\", \"Deliverables\"],\r\n                    ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 293,
+    "items": "detail?.tasks",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 405,
+    "items": "[\r\n                            [\"feedback\", \"Feedback\"],\r\n                            [\"strengths\", \"Strengths\"],\r\n                            [\"improvements\", \"Improvements\"],\r\n                          ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 437,
+    "items": "detail?.reports\r\n                .filter((r: Row) => r.status === \"Submitted\")",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 447,
+    "items": "[\r\n                        [\"work\", \"Work\"],\r\n                        [\"learning\", \"Learning\"],\r\n                        [\"blockers\", \"Blockers\"],\r\n                        [\"tomorrow\", \"Tomorrow\"],\r\n                      ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 535,
+    "items": "course.lessons",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 605,
+    "items": "course.questions",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternsHubAdminPage.tsx",
+    "line": 783,
+    "items": "detail?.tickets",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternTaskProgramsPanel.tsx",
+    "line": 923,
+    "items": "roster.data.items.slice(0, 500)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/leave/LeavePage.tsx",
+    "line": 422,
+    "items": "Array.from({ length: 4 })",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/leave/LeavePage.tsx",
+    "line": 823,
+    "items": "day.holidays",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/leave/LeavePage.tsx",
+    "line": 828,
+    "items": "day.employees_on_leave.slice(0, 3)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/leave/LeavePage.tsx",
+    "line": 867,
+    "items": "pendingApprovals",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/lms/LMSPage.tsx",
+    "line": 239,
+    "items": "courses",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/lms/LMSPage.tsx",
+    "line": 263,
+    "items": "(assignments || []).slice(0, 5)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/lms/LMSPage.tsx",
+    "line": 272,
+    "items": "(certifications || []).slice(0, 4)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/lms/LMSPage.tsx",
+    "line": 279,
+    "items": "(renewals || []).slice(0, 5)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/logs/AdminLogsPage.tsx",
+    "line": 184,
+    "items": "analysis.data!.top_errors",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/logs/AdminLogsPage.tsx",
+    "line": 203,
+    "items": "(analysis.data?.slow_endpoints || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/notifications/NotificationsPage.tsx",
+    "line": 102,
+    "items": "notifications.data.items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/onboarding/OnboardingPage.tsx",
+    "line": 118,
+    "items": "onboardings.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/FnFSettlementPage.tsx",
+    "line": 385,
+    "items": "selected.timeline",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/GuidedPayroll.tsx",
+    "line": 55,
+    "items": "data.issues",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/GuidedPayroll.tsx",
+    "line": 57,
+    "items": "variance.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/GuidedPayroll.tsx",
+    "line": 61,
+    "items": "data.batches",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/GuidedPayroll.tsx",
+    "line": 62,
+    "items": "data.batches",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/GuidedPayroll.tsx",
+    "line": 62,
+    "items": "batch.lines",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/InvestmentDeclarationPage.tsx",
+    "line": 269,
+    "items": "categories.data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1283,
+    "items": "(selectedPayslipRecord.earnings || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1298,
+    "items": "(selectedPayslipRecord.deductions || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1314,
+    "items": "(selectedPayslipRecord.employer_contributions || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1411,
+    "items": "(payslip.earnings as { component_name: string; amount: number }[] || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1428,
+    "items": "(payslip.deductions as { component_name: string; amount: number }[] || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1445,
+    "items": "(payslip.employer_contributions as { component_name: string; amount: number }[])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1459,
+    "items": "(payslip.reimbursements as { component_name: string; amount: number }[])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1573,
+    "items": "Object.entries(readinessError.issues || {})\r\n                      .filter(([, issue]) => issue.count > 0)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1594,
+    "items": "[\r\n              [\"Selected run\", selectedRun ? `${MONTHS[selectedRun.month - 1]} ${selectedRun.year}` : \"Choose a run\"],\r\n              [\"Employees\", selectedRun?.total_employees ?? 0],\r\n              [\"Gross\", formatCurrency(selectedRun?.total_gross || 0)],\r\n              [\"Net\", formatCurrency(selectedRun?.total_net || 0)],\r\n            ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1639,
+    "items": "(preRunChecks as PayrollPreRunCheck[] | undefined || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1947,
+    "items": "(paymentBatches as { id: number; total_amount: number; status: string; generated_file_url?: string }[] | undefined || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2033,
+    "items": "(bankAdviceExports || []).slice(0, 4)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2062,
+    "items": "(accountingJournals as { id: number; total_debit: number; total_credit: number; status: string }[] | undefined || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2154,
+    "items": "[\r\n                  [\"Rows\", (runVariance as unknown[] | undefined)?.length || 0],\r\n                  [\"High/Critical\", (runVariance as PayrollVariance[] | undefined || []).filter((item) => [\"High\", \"Critical\"].includes(item.severity)).length],\r\n                  [\"Current gross\", formatCurrency(selectedRun?.total_gross || 0)],\r\n                  [\"Current net\", formatCurrency(selectedRun?.total_net || 0)],\r\n                ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2239,
+    "items": "[\r\n                  [\"Inputs\", (payrollInputs as unknown[] | undefined)?.length || 0],\r\n                  [\"LOP Adjustments\", (lopAdjustments as unknown[] | undefined)?.length || 0],\r\n                  [\"OT Lines\", (overtimeLines as unknown[] | undefined)?.length || 0],\r\n                  [\"Encashment\", (encashmentLines as unknown[] | undefined)?.length || 0],\r\n                ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2274,
+    "items": "[\r\n                  [\"Preview rows\", lwpFeed?.preview?.length || 0],\r\n                  [\"Synced entries\", lwpFeed?.entries?.length || 0],\r\n                  [\"Estimated deduction\", formatCurrency((lwpFeed?.preview || []).reduce((sum, row) => sum + Number(row.estimatedDeduction || 0), 0))],\r\n                ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2411,
+    "items": "[\"missing_salary\", \"missing_bank\", \"invalid_bank\", \"missing_pan\"]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2441,
+    "items": "(simulationResult.components || []).slice(0, 4)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2464,
+    "items": "[\r\n                      [\"Payable days\", prorationResult.payable_days],\r\n                      [\"Period days\", prorationResult.period_days],\r\n                      [\"Factor\", prorationResult.proration_factor],\r\n                      [\"CTC\", formatCurrency(prorationResult.prorated_monthly_ctc || 0)],\r\n                      [\"Basic\", formatCurrency(prorationResult.prorated_basic || 0)],\r\n                      [\"HRA\", formatCurrency(prorationResult.prorated_hra || 0)],\r\n                    ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2777,
+    "items": "[\r\n                  ...(legalEntities as LegalEntity[] | undefined || []).map((item) => ({ id: `le-${item.id}`, title: item.legal_name, detail: `${item.state || \"-\"} | PAN ${item.pan || \"-\"}`, type: \"Legal Entity\" })),\r\n                  ...(payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined || []).map((item) => ({ id: `pg-${item.id}`, title: item.name, detail: `${item.code} | ${item.pay_frequency}`, type: \"Pay Group\" })),\r\n                  ...(salaryComponents as SalaryComponent[] | undefined || []).slice(0, 6).map((item) => ({ id: `sc-${item.id}`, title: item.name, detail: `${item.code} | ${formatCurrency(item.amount || 0)}`, type: item.component_type })),\r\n                  ...(salaryStructures as SalaryStructure[] | undefined || []).map((item) => ({ id: `ss-${item.id}`, title: item.name, detail: `v${item.version} | ${item.components?.length || 0} components`, type: \"Structure\" })),\r\n                ].slice(0, 12)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2855,
+    "items": "[\r\n                [\"Periods\", (payrollPeriods as unknown[] | undefined)?.length || 0],\r\n                [\"Pay Groups\", (payGroups as unknown[] | undefined)?.length || 0],\r\n                [\"Templates\", (salaryTemplates as unknown[] | undefined)?.length || 0],\r\n                [\"Current Year\", runYear],\r\n              ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2889,
+    "items": "[\r\n                  [\"PF Rules\", (pfRules as unknown[] | undefined)?.length || 0],\r\n                  [\"ESI Rules\", (esiRules as unknown[] | undefined)?.length || 0],\r\n                  [\"PT Slabs\", (ptSlabs as unknown[] | undefined)?.length || 0],\r\n                  [\"LWF Slabs\", (lwfSlabs as unknown[] | undefined)?.length || 0],\r\n                  [\"Gratuity\", (gratuityRules as unknown[] | undefined)?.length || 0],\r\n                ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2941,
+    "items": "[\r\n                  ...(pfRules as { id: number; name: string; wage_ceiling?: number; employee_rate?: number }[] | undefined || []).map((item) => ({\r\n                    id: `pf-${item.id}`,\r\n                    title: item.name,\r\n                    detail: `PF ceiling ${formatCurrency(item.wage_ceiling || 0)} at ${item.employee_rate}%`,\r\n                    type: \"PF\",\r\n                  })),\r\n                  ...(esiRules as { id: number; name: string; wage_threshold?: number; employee_rate?: number }[] | undefined || []).map((item) => ({\r\n                    id: `esi-${item.id}`,\r\n                    title: item.name,\r\n                    detail: `ESI threshold ${formatCurrency(item.wage_threshold || 0)} at ${item.employee_rate}%`,\r\n                    type: \"ESI\",\r\n                  })),\r\n                  ...(ptSlabs as { id: number; state: string; salary_from?: number; employee_amount?: number }[] | undefined || []).map((item) => ({\r\n                    id: `pt-${item.id}`,\r\n                    title: `${item.state} PT`,\r\n                    detail: `From ${formatCurrency(item.salary_from || 0)} deduct ${formatCurrency(item.employee_amount || 0)}`,\r\n                    type: \"PT\",\r\n                  })),\r\n                  ...(lwfSlabs as { id: number; state: string; employee_amount?: number; employer_amount?: number }[] | undefined || []).map((item) => ({\r\n                    id: `lwf-${item.id}`,\r\n                    title: `${item.state} LWF`,\r\n                    detail: `Employee ${formatCurrency(item.employee_amount || 0)}, employer ${formatCurrency(item.employer_amount || 0)}`,\r\n                    type: \"LWF\",\r\n                  })),\r\n                  ...(gratuityRules as { id: number; name: string; days_per_year?: number; min_service_years?: number }[] | undefined || []).map((item) => ({\r\n                    id: `gratuity-${item.id}`,\r\n                    title: item.name,\r\n                    detail: `${item.days_per_year} days after ${item.min_service_years} years`,\r\n                    type: \"Gratuity\",\r\n                  })),\r\n                ].slice(0, 12)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2990,
+    "items": "(challans as { id: number; challan_type: string; amount: number; due_date: string; status: string }[])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 3070,
+    "items": "(taxDeclarations as { id: number; section: string; declared_amount: number; status: string; proofs?: unknown[] }[] | undefined)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 3088,
+    "items": "[\r\n            {\r\n              title: \"New Joiner Proration\",\r\n              detail: \"Employee joins mid-month. Payroll should calculate paid days from joining date, include fixed earnings, and exclude LOP outside employment.\",\r\n              checks: [\"Joining date within month\", \"Paid days prorated\", \"PF/ESI on eligible wages\"],\r\n            },\r\n            {\r\n              title: \"Loss of Pay and Leave\",\r\n              detail: \"Approved paid leave should not reduce salary; unpaid or excess leave should create LOP deduction before approval.\",\r\n              checks: [\"Leave balance consumed\", \"LOP days visible\", \"Gross to net reconciliation\"],\r\n            },\r\n            {\r\n              title: \"Bonus and Reimbursement\",\r\n              detail: \"One-time bonus should be taxable earning; approved reimbursements should be paid separately or marked non-taxable based on policy.\",\r\n              checks: [\"Bonus as earning\", \"Receipt-backed reimbursements\", \"Approval before payroll lock\"],\r\n            },\r\n            {\r\n              title: \"Payroll Anomaly\",\r\n              detail: \"AI anomaly detection should flag unusually high net pay, negative net pay, duplicate components, and large month-on-month variance.\",\r\n              checks: [\"Variance threshold\", \"Negative net block\", \"Audit trail retained\"],\r\n            },\r\n          ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/SalaryPayouts.tsx",
+    "line": 70,
+    "items": "status.data?.items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 245,
+    "items": "[\r\n          { label: \"Total Goals\", value: totalGoals, color: \"text-blue-600\" },\r\n          { label: \"Completed\", value: completedGoals, color: \"text-green-600\" },\r\n          { label: \"In Progress\", value: (goals as Goal[])?.filter((g) => g.status === \"In Progress\").length ?? 0, color: \"text-orange-600\" },\r\n          { label: \"Overdue\", value: (goals as Goal[])?.filter((g) => g.status === \"Overdue\").length ?? 0, color: \"text-red-600\" },\r\n        ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 343,
+    "items": "Array.from({ length: 4 })",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 487,
+    "items": "(feedback360 || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 512,
+    "items": "(calibrationSessions || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 522,
+    "items": "(session.participants || []).slice(0, 6)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 544,
+    "items": "(oneOnOnes || []).slice(0, 20)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 569,
+    "items": "(nineBox?.items || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 590,
+    "items": "(criticalRoles || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 600,
+    "items": "(role.successors || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 621,
+    "items": "(worksheetRows || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ESSPortalPage.tsx",
+    "line": 46,
+    "items": "(leaveBalance.data || []).slice(0, 4)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ESSPortalPage.tsx",
+    "line": 74,
+    "items": "(summary.data?.payslips || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ESSPortalPage.tsx",
+    "line": 90,
+    "items": "(summary.data?.documents || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/MyPayslipsPage.tsx",
+    "line": 212,
+    "items": "Object.entries(payslip.ytd)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/MyPayslipsPage.tsx",
+    "line": 240,
+    "items": "lines",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx",
+    "line": 489,
+    "items": "Object.entries(proposedChanges)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx",
+    "line": 540,
+    "items": "documents",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx",
+    "line": 565,
+    "items": "(myChangeRequests.data || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx",
+    "line": 677,
+    "items": "(pendingReviews.data || []).filter((request: any) => request.employee_id !== employeeId)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx",
+    "line": 690,
+    "items": "Object.entries(request.field_changes_json || {})",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/recruitment/RecruitmentPage.tsx",
+    "line": 172,
+    "items": "[\r\n          { label: \"Open Positions\", value: (jobs as Job[])?.filter((j) => j.status === \"Open\").length ?? 0, color: \"text-blue-600\" },\r\n          { label: \"Total Candidates\", value: (candidates as Candidate[])?.length ?? 0, color: \"text-purple-600\" },\r\n          { label: \"In Interview\", value: (candidates as Candidate[])?.filter((c) => c.status === \"Interview\").length ?? 0, color: \"text-orange-600\" },\r\n          { label: \"Hired This Month\", value: (candidates as Candidate[])?.filter((c) => c.status === \"Hired\").length ?? 0, color: \"text-green-600\" },\r\n        ]",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/recruitment/RecruitmentPage.tsx",
+    "line": 259,
+    "items": "Array.from({ length: 6 })",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/recruitment/RecruitmentPage.tsx",
+    "line": 270,
+    "items": "(jobs as Job[])",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/reports/ReportSchedules.tsx",
+    "line": 34,
+    "items": "schedules.data",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/reports/ReportsPage.tsx",
+    "line": 328,
+    "items": "(schedules.data || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/timesheets/TimesheetsPage.tsx",
+    "line": 251,
+    "items": "projects",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/workflow/ApprovalOsPage.tsx",
+    "line": 146,
+    "items": "moduleRows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/workflow/WorkflowDesignerPage.tsx",
+    "line": 286,
+    "items": "steps",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/workflow/WorkflowDesignerPage.tsx",
+    "line": 460,
+    "items": "Object.entries(fields)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/workflow/WorkflowInboxPage.tsx",
+    "line": 296,
+    "items": "steps",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/workflow/WorkflowInboxPage.tsx",
+    "line": 342,
+    "items": "[\r\n                    [\"Condition examples\", \"days_count > 3, amount > 10000, department = Finance\"],\r\n                    [\"Escalation policy\", \"Timeout escalates to user/role and marks request at risk.\"],\r\n                    [\"Delegation policy\", \"Backup role handles approvals during leave or out-of-office periods.\"],\r\n                  ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/workflow/WorkflowInboxPage.tsx",
+    "line": 368,
+    "items": "(definitions || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/workflow/WorkflowInboxPage.tsx",
+    "line": 378,
+    "items": "(definition.steps || [])",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/workbench/EmployeeActions.tsx",
+    "line": 62,
+    "items": "(checklist.data.exit?checklist.data.offboarding:checklist.data.joiner)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/workbench/EmployeeActions.tsx",
+    "line": 64,
+    "items": "[...data.timeline].sort((a,b)=>String(b.at).localeCompare(String(a.at)))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/hrms/workbench/HRDailyWork.tsx",
+    "line": 40,
+    "items": "attendance.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/workbench/HRDailyWork.tsx",
+    "line": 41,
+    "items": "approvals.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/hrms/workbench/HRTransfer.tsx",
+    "line": 16,
+    "items": "preview.items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/inventory/InventoryBridgePage.tsx",
+    "line": 133,
+    "items": "inventorySourceGroups",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalAnalytics.tsx",
+    "line": 22,
+    "items": "items.slice(0, 20)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalAnalytics.tsx",
+    "line": 148,
+    "items": "[\r\n              [\r\n                \"Average approval time\",\r\n                duration(result.counts.average_seconds),\r\n              ],\r\n              [\"Overdue requests\", String(result.counts.overdue ?? 0)],\r\n              [\"Rejection rate\", percent(result.rejection_rate)],\r\n              [\"SLA compliance\", percent(result.sla_compliance)],\r\n            ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalComponents.tsx",
+    "line": 280,
+    "items": "rows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalComponents.tsx",
+    "line": 542,
+    "items": "Object.entries(r.state.fields)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalComponents.tsx",
+    "line": 559,
+    "items": "r.assignments",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "line": 152,
+    "items": "rows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "line": 331,
+    "items": "[\r\n                  [\"awaiting_me\", \"Awaiting my approval\"],\r\n                  [\"submitted_by_me\", \"Submitted by me\"],\r\n                  [\"pending\", \"Pending requests\"],\r\n                  [\"overdue\", \"Overdue requests\"],\r\n                  [\"approved\", \"Approved\"],\r\n                  [\"rejected\", \"Rejected\"],\r\n                  [\"average_seconds\", \"Average approval time\"],\r\n                  [\"escalated\", \"Escalated requests\"],\r\n                ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "line": 397,
+    "items": "policies",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "line": 467,
+    "items": "data.recent",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/AutomationRuntimePage.tsx",
+    "line": 855,
+    "items": "triggers",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/AutomationRuntimePage.tsx",
+    "line": 1218,
+    "items": "report.events",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/AutomationBuilder.tsx",
+    "line": 2251,
+    "items": "graph.groups\r\n                      .filter((g) => selected.has(g.id))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/ConfigurationPanel.tsx",
+    "line": 411,
+    "items": "definition.inputs",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/ConfigurationPanel.tsx",
+    "line": 425,
+    "items": "Object.entries(definition.output_schema)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/ConnectionEditor.tsx",
+    "line": 42,
+    "items": "([\"source\", \"target\"] as const)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/IntelligencePanels.tsx",
+    "line": 508,
+    "items": "mapping.operations",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/LogicEditors.tsx",
+    "line": 62,
+    "items": "value.rules",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/LogicEditors.tsx",
+    "line": 260,
+    "items": "routes",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/NodeLibrary.tsx",
+    "line": 142,
+    "items": "rows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/StudioPanels.tsx",
+    "line": 338,
+    "items": "versions",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/TelegramAutomations.tsx",
+    "line": 61,
+    "items": "bots",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/TelegramAutomations.tsx",
+    "line": 64,
+    "items": "bot.messages",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/TelegramAutomations.tsx",
+    "line": 66,
+    "items": "simulation.steps",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "line": 322,
+    "items": "visible",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "line": 397,
+    "items": "connections",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "line": 465,
+    "items": "logs",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/WorkspaceTools.tsx",
+    "line": 24,
+    "items": "rows",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/WorkspaceTools.tsx",
+    "line": 24,
+    "items": "row.definition.entries",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/PowerAppsPage.tsx",
+    "line": 305,
+    "items": "metrics",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/saas/CommissionClaims.tsx",
+    "line": 12,
+    "items": "query.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/apps/saas/PortalPage.tsx",
+    "line": 133,
+    "items": "Object.entries(item).filter(([key,value])=>![\"id\",\"name\",\"status\"].includes(key)&&value!==null&&[\"string\",\"number\",\"boolean\"].includes(typeof value))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/saas/SaaSWorkspacePage.tsx",
+    "line": 148,
+    "items": "items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SharedInvoicePage.tsx",
+    "line": 129,
+    "items": "r.lines",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMCommercialDetailPage.tsx",
+    "line": 73,
+    "items": "[\"customer_id\", \"crm_deal_id\", \"sales_order_id\", \"engagement_id\", \"contract_value\", \"total_amount\", \"budget_amount\", \"pms_project_id\"]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+    "line": 924,
+    "items": "cart",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+    "line": 1018,
+    "items": "paymentRows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+    "line": 1052,
+    "items": "heldBills",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 381,
+    "items": "asList(data.collection_alerts).slice(0,5)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 496,
+    "items": "items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 709,
+    "items": "records.slice(0, 6)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 736,
+    "items": "entries",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 756,
+    "items": "records",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 1012,
+    "items": "lines",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 1374,
+    "items": "reportDefinitions",
+    "tag": "Card"
+  },
+  {
+    "file": "frontend/src/features/access/ControlCenter.tsx",
+    "line": 87,
+    "items": "Object.entries(values)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/DashboardStudio.tsx",
+    "line": 151,
+    "items": "data.groups",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/DashboardStudio.tsx",
+    "line": 325,
+    "items": "widgets",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/features/access/EnterprisePage.tsx",
+    "line": 763,
+    "items": "data.groups",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/SharedServicesPage.tsx",
+    "line": 1075,
+    "items": "data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/SharedServicesPage.tsx",
+    "line": 1171,
+    "items": "data",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/StatisticsAuditPage.tsx",
+    "line": 48,
+    "items": "latest.data_quality",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/features/access/StatisticsAuditPage.tsx",
+    "line": 50,
+    "items": "filteredDefinitions",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 698,
+    "items": "[\r\n          [\"Registered users\", \"registered\"],\r\n          [\"Login-enabled users\", \"loginEnabled\"],\r\n          [\"Pending invitations\", \"invited\"],\r\n          [\"Suspended users\", \"suspended\"],\r\n          [\"Active modules\", \"modules\"],\r\n          [\"Users with admin access\", \"admins\"],\r\n        ]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 1144,
+    "items": "catalog?.roles",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 1213,
+    "items": "templates",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 1336,
+    "items": "[\"byModule\", \"byRole\", \"byDepartment\"]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 1339,
+    "items": "Object.entries(data?.analytics?.[key] || {})",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 1593,
+    "items": "Object.keys(item.after)\r\n                  .filter(\r\n                    (key) =>\r\n                      JSON.stringify(item.before[key]) !==\r\n                      JSON.stringify(item.after[key]),\r\n                  )",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/forms/FormResponse.tsx",
+    "line": 88,
+    "items": "fields",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/forms/FormsPage.tsx",
+    "line": 1007,
+    "items": "Object.entries(activeReply.answers)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/profiles/UnifiedProfile.tsx",
+    "line": 242,
+    "items": "rows",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/features/profiles/UnifiedProfile.tsx",
+    "line": 815,
+    "items": "Object.entries(profile.employment)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/profiles/UnifiedProfile.tsx",
+    "line": 862,
+    "items": "Object.entries({\r\n                  Reference: profile.application.reference,\r\n                  \"Application email\": profile.application.email,\r\n                  \"Submitted name\": profile.application.full_name,\r\n                  ...(profile.application.values || {}),\r\n                  ...(profile.application.identity_last4\r\n                    ? {\r\n                        \"Identity reference\":\r\n                          \"•••• \" + profile.application.identity_last4,\r\n                      }\r\n                    : {}),\r\n                })",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/features/profiles/UnifiedProfile.tsx",
+    "line": 885,
+    "items": "profile.pendingRequests",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/features/profiles/UnifiedProfile.tsx",
+    "line": 892,
+    "items": "Object.entries(change.values)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/accounting/ConnectedAccounting.tsx",
+    "line": 31,
+    "items": "data.balances",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/accounting/ConnectedAccounting.tsx",
+    "line": 58,
+    "items": "data.current_outstanding",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogEditor.tsx",
+    "line": 79,
+    "items": "draft.pricing_options",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogEditor.tsx",
+    "line": 81,
+    "items": "draft.images",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogEditor.tsx",
+    "line": 83,
+    "items": "Object.entries(draft.custom_fields)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogLinesEditor.tsx",
+    "line": 45,
+    "items": "lines",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogPage.tsx",
+    "line": 113,
+    "items": "preview.pricing_options",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogPage.tsx",
+    "line": 113,
+    "items": "Object.entries(preview.custom_fields)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/communication/collaboration.tsx",
+    "line": 89,
+    "items": "data?.followups",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/shared/communication/CommunicationWorkspace.tsx",
+    "line": 802,
+    "items": "messages",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/communication/MeetingPanel.tsx",
+    "line": 15,
+    "items": "query.data?.meetings",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/ConnectorCatalog.tsx",
+    "line": 29,
+    "items": "visible",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/shared/ConnectorWorkflows.tsx",
+    "line": 61,
+    "items": "jobs.data?.filter(j=>!module||query.data?.modules.find(p=>p.id===j.provider)?.modules.includes(module))",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/shared/ConnectorWorkflows.tsx",
+    "line": 66,
+    "items": "Object.entries(preview.payload)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/AccountingSyncPanel.tsx",
+    "line": 44,
+    "items": "connections",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWizard.tsx",
+    "line": 452,
+    "items": "fields",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "line": 79,
+    "items": "connections.providers",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "line": 79,
+    "items": "connections.connections",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "line": 84,
+    "items": "spec.fields.filter(field=>`${field.label} ${field.key}`.toLowerCase().includes(search.toLowerCase()))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "line": 91,
+    "items": "[[\"create\",\"New records\"],[\"update\",\"Updates\"],[\"skip\",\"Duplicates skipped\"],[\"error\",\"Rows to fix\"]]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "line": 99,
+    "items": "Object.entries(batch.counts)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/follow-ups/FollowUpsPage.tsx",
+    "line": 432,
+    "items": "Object.entries({\r\n              Customer: detail.data.customer_name,\r\n              Due: new Date(detail.data.due_at).toLocaleString(),\r\n              \"Time zone\": detail.data.timezone,\r\n              Status: detail.data.status,\r\n              Priority: detail.data.priority,\r\n              \"Assigned to\": detail.data.assigned_to,\r\n            })",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/follow-ups/FollowUpsPage.tsx",
+    "line": 558,
+    "items": "detail.data.activities",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/shared/master-data/BirthdaysPage.tsx",
+    "line": 14,
+    "items": "query.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/shared/master-data/CommunicationEditor.tsx",
+    "line": 28,
+    "items": "rows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/master-data/CompaniesPage.tsx",
+    "line": 62,
+    "items": "[[\"total\",\"Total vendors\"],[\"active\",\"Active vendors\"],[\"goods\",\"Goods suppliers\"],[\"services\",\"Service providers\"],[\"followUps\",\"Pending follow-ups\"],[\"recent\",\"Recently added\"]]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/master-data/CompanyEditor.tsx",
+    "line": 130,
+    "items": "value",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/master-data/CompanySelect.tsx",
+    "line": 32,
+    "items": "query.data.items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/master-data/CompanySelect.tsx",
+    "line": 67,
+    "items": "rows",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/payments/PaymentRequests.tsx",
+    "line": 65,
+    "items": "requests.data?.items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NoteOutline.tsx",
+    "line": 11,
+    "items": "headings",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesExplorer.tsx",
+    "line": 26,
+    "items": "folders.filter(folder=>folder.parent_id===parent&&folder.project_id===project&&folder.task_id===task).filter(folder=>!search||folder.name.toLowerCase().includes(search.toLowerCase()))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesExplorer.tsx",
+    "line": 28,
+    "items": "all.filter(task=>parent?task.parent_task_id===parent:!task.parent_task_id||!all.some(item=>item.id===task.parent_task_id)).filter(task=>!search||task.title.toLowerCase().includes(search.toLowerCase()))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesExplorer.tsx",
+    "line": 31,
+    "items": "views",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesExplorer.tsx",
+    "line": 32,
+    "items": "projects.filter(p=>!search||p.name.toLowerCase().includes(search.toLowerCase())||(tasks[p.id]||[]).some(t=>t.title.toLowerCase().includes(search.toLowerCase())))",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesWorkspace.tsx",
+    "line": 77,
+    "items": "visible",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/productivity/TaskCreationForm.tsx",
+    "line": 121,
+    "items": "[{ icon: Users, label: \"Assignees\", value: draft.assignees.join(\", \") || \"No one assigned\" }, { icon: Folder, label: \"Workspace\", value: \"CRM\" }, { icon: Flag, label: \"Work item type\", value: draft.workType }, { icon: Search, label: \"Priority\", value: draft.priority }, { icon: CalendarDays, label: \"Start date\", value: draft.start || \"Not set\" }, { icon: CalendarDays, label: \"Due date\", value: draft.due || \"Not set\" }, { icon: Circle, label: \"Status\", value: draft.status }]",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/records/Record360Workspace.tsx",
+    "line": 32,
+    "items": "items",
+    "tag": "article"
+  },
+  {
+    "file": "frontend/src/shared/records/Record360Workspace.tsx",
+    "line": 58,
+    "items": "Object.entries(record.fields).filter(([,value])=>value!==null&&value!==\"\")",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/records/TaskRecordLinks.tsx",
+    "line": 21,
+    "items": "links.data?.items",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/workspace/CalendarLens.tsx",
+    "line": 17,
+    "items": "dates",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/workspace/ModuleWorkspaceFrame.tsx",
+    "line": 83,
+    "items": "entries",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/workspace/RecordLensViews.tsx",
+    "line": 24,
+    "items": "records.filter(record=>record.status===status)",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/workspace/ScheduleLens.tsx",
+    "line": 62,
+    "items": "groups",
+    "tag": "div"
+  },
+  {
+    "file": "frontend/src/shared/workspace/WorkspaceViewBar.tsx",
+    "line": 37,
+    "items": "items",
+    "tag": "div"
+  }
+]

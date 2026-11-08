@@ -76,7 +76,7 @@ import type {
   PMSSavedFilter,
   PMSTaskListQuery,
 } from "../types";
-import ProjectQuickTask from "./ProjectQuickTask";
+import CreateTaskModal from "../components/CreateTaskModal";
 import RecordActions from "../components/RecordActions";
 import { usePMSRealtime } from "../realtime";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -117,7 +117,7 @@ function PriorityBadge({ priority }: { priority: string }) {
   const high = priority === "High" || priority === "Urgent";
   const Icon = high ? Flame : priority === "Low" ? ThumbsUp : BarChart3;
   return (
-    <span
+    <span data-priority-badge data-priority={priority}
       className={`tr-pill ${high ? "red" : priority === "Low" ? "green" : "orange"}`}
     >
       <Icon size={11} />
@@ -898,6 +898,7 @@ function TasksReferencePage() {
                             <input
                               type="checkbox"
                               aria-label="Select editable tasks on this page"
+                              disabled={!canEditTask || busy}
                               checked={
                                 !!selected.length &&
                                 selected.length ===
@@ -985,13 +986,13 @@ function TasksReferencePage() {
                             onChanged={reload}
                           >
                             {(more) => (
-                              <tr onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))open(task);}}>
+                              <tr data-priority-row data-priority={task.priority?.trim().toLowerCase()} aria-selected={selected.includes(task.id)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))open(task);}}>
                                 <td>
                                   <input
                                     type="checkbox"
                                     aria-label={`Select ${task.title}`}
                                     disabled={
-                                      !editable.some(
+                                      !canEditTask || !editable.some(
                                         (p) => p.id === task.project_id,
                                       )
                                     }
@@ -1014,8 +1015,8 @@ function TasksReferencePage() {
                                   >
                                     {task.title}
                                   </button>
-                                  <button className="tr-row-edit" title="Edit task title" aria-label={`Edit title for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} onClick={() => setEditingTitle(task.id)}><Pencil size={12}/></button>
-                                  {editingTitle === task.id && <input data-autosave-blur autoFocus className="tr-inline-title" aria-label={`Title for ${task.task_key}`} defaultValue={task.title} maxLength={220} disabled={busy} onBlur={e => { const title = e.target.value.trim(); setEditingTitle(undefined); if (title && title !== task.title) void inlineUpdate(task, { title }); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = task.title; e.currentTarget.blur(); } }} />}
+                                  <button className="tr-row-edit" title="Edit task title" aria-label={`Edit title for ${task.title}`} disabled={busy || !canEditTask || !editable.some(p => p.id === task.project_id)} onClick={() => setEditingTitle(task.id)}><Pencil size={12}/></button>
+                                  {editingTitle === task.id && <input data-autosave-blur autoFocus className="tr-inline-title" aria-label={`Title for ${task.task_key}`} defaultValue={task.title} maxLength={220} disabled={busy || !canEditTask} onBlur={e => { const title = e.target.value.trim(); setEditingTitle(undefined); if (title && title !== task.title) void inlineUpdate(task, { title }); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = task.title; e.currentTarget.blur(); } }} />}
                                   <small>#{task.task_key || task.id}</small>
                                 </td>
                                 <td>
@@ -1035,10 +1036,10 @@ function TasksReferencePage() {
                                   <small>{task.is_general ? "Workspace tasks" : task.project_key || "Project"}</small>
                                 </td>
                                 <td>
-                                  <NativeSelect className={`tr-inline-select tr-priority-${task.priority.toLowerCase()}`} aria-label={`Priority for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} value={task.priority} onChange={e => void inlineUpdate(task, { priority: e.target.value as PMSTaskListItem["priority"] })}>{["Urgent", "High", "Medium", "Low"].map(value => <option key={value}>{value}</option>)}</NativeSelect>
+                                  <NativeSelect className={`tr-inline-select tr-priority-${task.priority.toLowerCase()}`} aria-label={`Priority for ${task.title}`} disabled={busy || !canEditTask || !editable.some(p => p.id === task.project_id)} value={task.priority} onChange={e => void inlineUpdate(task, { priority: e.target.value as PMSTaskListItem["priority"] })}>{["Urgent", "High", "Medium", "Low"].map(value => <option key={value}>{value}</option>)}</NativeSelect>
                                 </td>
                                 <td>
-                                  <NativeSelect aria-label={`Assignee for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} value={task.assignee_user_id || ""} onChange={e => void inlineUpdate(task, { assignee_user_id: Number(e.target.value) || undefined, assignee_user_ids: e.target.value ? [Number(e.target.value)] : [] })}><option value="">Unassigned</option>{data?.filters.assignees.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</NativeSelect>
+                                  <NativeSelect aria-label={`Assignee for ${task.title}`} disabled={busy || !canEditTask || !editable.some(p => p.id === task.project_id)} value={task.assignee_user_id || ""} onChange={e => void inlineUpdate(task, { assignee_user_id: Number(e.target.value) || undefined, assignee_user_ids: e.target.value ? [Number(e.target.value)] : [] })}><option value="">Unassigned</option>{data?.filters.assignees.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</NativeSelect>
                                 </td>
                                 <td
                                   className={
@@ -1049,9 +1050,9 @@ function TasksReferencePage() {
                                       : ""
                                   }
                                 >
-                                  <input data-autosave-blur type="date" aria-label={`Due date for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} key={`${task.id}:${task.due_date || ""}`} defaultValue={task.due_date || ""} onBlur={e => {const due_date = e.currentTarget.value; if(due_date !== (task.due_date || ""))void inlineUpdate(task, { due_date: due_date || null } as Parameters<typeof tasksAPI.update>[1]);}} onKeyDown={e => {if(e.key === "Enter")e.currentTarget.blur();}} />
+                                  <input data-autosave-blur type="date" aria-label={`Due date for ${task.title}`} disabled={busy || !canEditTask || !editable.some(p => p.id === task.project_id)} key={`${task.id}:${task.due_date || ""}`} defaultValue={task.due_date || ""} onBlur={e => {const due_date = e.currentTarget.value; if(due_date !== (task.due_date || ""))void inlineUpdate(task, { due_date: due_date || null } as Parameters<typeof tasksAPI.update>[1]);}} onKeyDown={e => {if(e.key === "Enter")e.currentTarget.blur();}} />
                                 </td>
-                                <td><NativeSelect className={`tr-inline-select tr-status-${task.status.toLowerCase().replace(/ /g, "-")}`} aria-label={`Status for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} value={task.status} onChange={e => void inlineUpdate(task, { status: e.target.value as PMSTaskListItem["status"] })}>{Array.from(new Set([...statuses, task.status])).map(value => <option key={value}>{value}</option>)}</NativeSelect></td>
+                                <td><NativeSelect className={`tr-inline-select tr-status-${task.status.toLowerCase().replace(/ /g, "-")}`} aria-label={`Status for ${task.title}`} disabled={busy || !canEditTask || !editable.some(p => p.id === task.project_id)} value={task.status} onChange={e => void inlineUpdate(task, { status: e.target.value as PMSTaskListItem["status"] })}>{Array.from(new Set([...statuses, task.status])).map(value => <option key={value}>{value}</option>)}</NativeSelect></td>
                                 <td><div className="tr-progress-cell"><progress max={100} value={(task as PMSTaskListItem & {progress?:number}).progress || 0}/><input data-autosave-blur type="number" min={0} max={100} step={1} aria-label={`Progress for ${task.title}`} key={`${task.id}:${(task as PMSTaskListItem & {progress?:number}).progress || 0}`} defaultValue={(task as PMSTaskListItem & {progress?:number}).progress || 0} disabled={busy || !canCreateTask || finished(task.status) || !editable.some(p => p.id === task.project_id)} onBlur={event => {const value = Number(event.currentTarget.value); if(event.currentTarget.value !== "" && event.currentTarget.validity.valid && value !== ((task as PMSTaskListItem & {progress?:number}).progress || 0)) void inlineProgress(task,value); else event.currentTarget.value = String((task as PMSTaskListItem & {progress?:number}).progress || 0);}} onKeyDown={event => {if(event.key === "Enter")event.currentTarget.blur();}}/><span>%</span></div></td>
                                 <td><div className="tr-task-labels">{task.tags?.map((tag,index) => <span key={typeof tag === "string" ? tag : tag.id || index}>{typeof tag === "string" ? tag : tag.name}</span>)}</div></td>
                                 <td>{more}</td>
@@ -1072,7 +1073,7 @@ function TasksReferencePage() {
                         onChanged={reload}
                       >
                         {(more) => (
-                          <article className="tr-task-card" onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))open(task);}}>
+                          <article data-priority-row data-priority={task.priority} className="tr-task-card" onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,[role=button]"))open(task);}}>
                             <div className="tr-card-top">
                               <input
                                 type="checkbox"
@@ -1408,7 +1409,7 @@ function TasksReferencePage() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      <Dialog.Root open={create} onOpenChange={value => {if(!busy)setCreate(value);}}><Dialog.Portal><Dialog.Overlay className="tr-dialog-overlay"/><Dialog.Content className="tr-create-dialog"><Dialog.Title>New task</Dialog.Title><Dialog.Description>Create a task here, then add detail as the work takes shape.</Dialog.Description><button className="tr-panel-close" aria-label="Close task creation" disabled={busy} onClick={() => setCreate(false)}><X size={18}/></button><label className="tr-create-project">Project<NativeSelect aria-label="New task project" disabled={busy} value={createProject} onChange={event => setCreateProject(event.target.value)}>{editable.map(project => <option value={project.id} key={project.id}>{project.name}</option>)}</NativeSelect></label>{createProject && <ProjectQuickTask key={`${createProject}:${template}`} compact initialTitle={starterTitle} initialWorkType={template} projectId={Number(createProject)} projectName={projects.find(project => project.id === Number(createProject))?.name || "Project"} initialStatus="To Do" statuses={statuses} onBusy={setBusy} onCreated={async () => {setCreate(false);reload();setNotice("Task created.");}} onFullForm={query => {setCreate(false);navigate(`/pms/tasks/new?${query}`);}}/>}</Dialog.Content></Dialog.Portal></Dialog.Root>
+      <CreateTaskModal isOpen={create} onClose={() => setCreate(false)} projectId={Number(createProject)} initialTitle={starterTitle} initialWorkType={template} onTaskCreated={() => { reload(); setNotice("Task created."); }} />
       <Dialog.Root modal={false}
         open={!!opened}
         onOpenChange={(v) => {

@@ -1,95 +1,97 @@
+import { lazyRoute } from "@/lib/lazy-route";
 import ModuleWorkspaceFrame from "@/shared/workspace/ModuleWorkspaceFrame";
 import { ProjectDetailFrame } from "./components/ProjectDetailHeader";
 import React from "react";
-const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
-const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
+const ImportWorkspace = lazyRoute(() => import("@/shared/data-transfer/ImportWorkspace"));
+const FollowUpsPage = lazyRoute(() => import("@/shared/follow-ups/FollowUpsPage"));
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-const DashboardsPage = React.lazy(() => import("./pages/DashboardsPage"));
+const DashboardsPage = lazyRoute(() => import("./pages/DashboardsPage"));
 import type { FrontendRoute } from "@/appRegistry";
-const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/WorkforceOperationsPage"));
-const MyNoticesPage = React.lazy(() => import("./pages/MyNoticesPage"));
+const WorkforceOperationsPage = lazyRoute(() => import("@/components/workforce/WorkforceOperationsPage"));
+const MyNoticesPage = lazyRoute(() => import("./pages/MyNoticesPage"));
 
-const ManagementHomePage = React.lazy(() => import("./pages/ManagementHomePage"));
-const WorkflowSchemesPage = React.lazy(() => import("./pages/WorkflowSchemesPage"));
-const TransitionApprovalInbox = React.lazy(() => import("./pages/TransitionApprovalInbox"));
-const MyWorkPage = React.lazy(() => import("./pages/MyWorkPage"));
-const MemberManagementPage = React.lazy(() => import("./pages/MemberManagementPage"));
-const PeopleDirectoryProfile = React.lazy(() => import("./pages/PeopleDirectoryProfile"));
-const PeopleDirectoryPage = React.lazy(() => import("./pages/PeopleManagementDirectory"));
-const WorkspacesPage = React.lazy(() => import("./pages/WorkspacesPage"));
-const AIOperatorPage = React.lazy(() => import("./pages/AIOperatorPage"));
-const AssistantStudio = React.lazy(() => import("./pages/AssistantStudio"));
-const OperatorProviderSettings = React.lazy(() => import("@/pages/ai-agents/OperatorProviderSettings"));
+const ManagementHomePage = lazyRoute(() => import("./pages/ManagementHomePage"));
+const WorkflowSchemesPage = lazyRoute(() => import("./pages/WorkflowSchemesPage"));
+const TransitionApprovalInbox = lazyRoute(() => import("./pages/TransitionApprovalInbox"));
+const MyWorkPage = lazyRoute(() => import("./pages/MyWorkPage"));
+const MemberManagementPage = lazyRoute(() => import("./pages/MemberManagementPage"));
+const PeopleDirectoryProfile = lazyRoute(() => import("./pages/PeopleDirectoryProfile"));
+const PeopleDirectoryPage = lazyRoute(() => import("./pages/PeopleManagementDirectory"));
+const WorkspaceDirectoryPage = lazyRoute(() => import("./pages/WorkspaceDirectoryPage"));
+const WorkspacesPage = lazyRoute(() => import("./pages/WorkspacesPage"));
+const AIOperatorPage = lazyRoute(() => import("./pages/AIOperatorPage"));
+const AssistantStudio = lazyRoute(() => import("./pages/AssistantStudio"));
+const OperatorProviderSettings = lazyRoute(() => import("@/pages/ai-agents/OperatorProviderSettings"));
 
-const DirectMessagesPage = React.lazy(() => import("./pages/DirectMessagesPage"));
-const CustomFieldManagerPage = React.lazy(() => import("./pages/CustomFieldManagerPage"));
-const DocsPage = React.lazy(() => import("./pages/DocsPage"));
-const NotesPage = React.lazy(() => import("./pages/NotesPage"));
-const TaskTypesPage = React.lazy(() => import("./pages/TaskTypesPage"));
-const TagManagerPage = React.lazy(() => import("./pages/TagManagerPage"));
-const PlansPage = React.lazy(() => import("./pages/PlansPage"));
-const AuditLogsPage = React.lazy(() => import("./pages/AuditLogsPage"));
-const AnalyticsPage = React.lazy(() => import("./pages/AnalyticsPage"));
-const OrgChartPage = React.lazy(() => import("./pages/OrgChartPage"));
-const TeamsPage = React.lazy(() => import("./pages/TeamsPage"));
-const WorkspaceAdminPage = React.lazy(() => import("./pages/WorkspaceAdminPage"));
-const RecoveryPage = React.lazy(() => import("./pages/RecoveryPage"));
-const TrashPage = React.lazy(() => import("./pages/TrashPage"));
+const DirectMessagesPage = lazyRoute(() => import("./pages/DirectMessagesPage"));
+const CustomFieldManagerPage = lazyRoute(() => import("./pages/CustomFieldManagerPage"));
+const DocsPage = lazyRoute(() => import("./pages/DocsPage"));
+const NotesPage = lazyRoute(() => import("./pages/NotesPage"));
+const TaskTypesPage = lazyRoute(() => import("./pages/TaskTypesPage"));
+const TagManagerPage = lazyRoute(() => import("./pages/TagManagerPage"));
+const PlansPage = lazyRoute(() => import("./pages/PlansPage"));
+const AuditLogsPage = lazyRoute(() => import("./pages/AuditLogsPage"));
+const AnalyticsPage = lazyRoute(() => import("./pages/AnalyticsPage"));
+const OrgChartPage = lazyRoute(() => import("./pages/OrgChartPage"));
+const TeamsPage = lazyRoute(() => import("./pages/TeamsPage"));
+const WorkspaceAdminPage = lazyRoute(() => import("./pages/WorkspaceAdminPage"));
+const RecoveryPage = lazyRoute(() => import("./pages/RecoveryPage"));
+const TrashPage = lazyRoute(() => import("./pages/TrashPage"));
 
 // Lazy load components
-const ProjectManagementHomePage = React.lazy(() => import("./ProjectManagementHomePage"));
-const ProjectBillingPage = React.lazy(() => import("./pages/ProjectBillingPage"));
-const ProjectDashboard = React.lazy(() => import("./pages/ProjectDashboard"));
-const ProjectCommunicationPage = React.lazy(() => import("./pages/ProjectCommunicationPage"));
-const TeamCommunicationPage = React.lazy(() => import("./pages/TeamCommunicationPage"));
-const KanbanBoard = React.lazy(() => import("./pages/KanbanBoard"));
-const ProjectsList = React.lazy(() => import("./pages/ProjectsList"));
-const CreateProjectPage = React.lazy(() => import("./pages/CreateProjectPage"));
-const Record360Page = React.lazy(() => import("@/shared/records/Record360Page"));
-const TasksFollowUpsPage = React.lazy(() => import("./pages/TasksFollowUpsPage"));
-const TaskExperiencePage = React.lazy(() => import("./pages/TaskExperiencePage"));
-const TasksReferencePage = React.lazy(() => import("./pages/TasksReferencePage"));
-const TaskListPage = React.lazy(() => import("./pages/TaskListPage"));
-const TaskWorkspacePage = React.lazy(() => import("./pages/TaskWorkspacePage"));
-const TaskDetail = React.lazy(() => import("./pages/TaskDetail"));
-const MilestonesPage = React.lazy(() => import("./pages/MilestonesPage"));
-const TimeTrackingPage = React.lazy(() => import("./pages/TimeTrackingPage"));
-const TimesheetsPage = React.lazy(() => import("./pages/TimesheetsPage"));
-const ReportsPage = React.lazy(() => import("./pages/ReportsPage"));
-const CalendarPage = React.lazy(() => import("./pages/CalendarPage"));
-const GanttPage = React.lazy(() => import("./pages/GanttPage"));
-const SprintsPage = React.lazy(() => import("./pages/SprintsPage"));
-const BacklogPage = React.lazy(() => import("./pages/BacklogPage"));
-const RoadmapPage = React.lazy(() => import("./pages/RoadmapPage"));
-const WorkloadPage = React.lazy(() => import("./pages/WorkloadPage"));
-const FilesPage = React.lazy(() => import("./pages/FilesPage"));
-const ClientsPage = React.lazy(() => import("./pages/ClientsPage"));
-const ClientPortalPage = React.lazy(() => import("./pages/ClientPortalPage"));
-const AdminPage = React.lazy(() => import("./pages/AdminPage"));
-const SettingsPage = React.lazy(() => import("./pages/SettingsPage"));
-const SoftwarePlanningPage = React.lazy(() => import("./pages/SoftwarePlanningPage"));
-const LiveWorkManagementPage = React.lazy(() => import("./pages/LiveWorkManagementPage"));
-const ImpactWorkHubPage = React.lazy(() => import("./pages/ImpactWorkHubPage"));
-const TimelineDependenciesPage = React.lazy(() => import("./pages/TimelineDependenciesPage"));
-const AutomationAIPage = React.lazy(() => import("./pages/AutomationAIPage"));
-const FormsPage = React.lazy(() => import("./pages/FormsPage"));
-const CommandCenterPage = React.lazy(() => import("./pages/CommandCenterPage"));
-const EnterpriseEnginePage = React.lazy(() => import("./pages/EnterpriseEnginePage"));
-const ProductLaunchPage = React.lazy(() => import("./pages/ProductLaunchPage"));
-const PMSOperationsPage = React.lazy(() => import("./pages/PMSOperationsPage"));
-const PortfolioPage = React.lazy(() => import("./pages/PortfolioPage"));
-const RisksPage = React.lazy(() => import("./pages/RisksPage"));
-const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
+const ProjectManagementHomePage = lazyRoute(() => import("./ProjectManagementHomePage"));
+const ProjectBillingPage = lazyRoute(() => import("./pages/ProjectBillingPage"));
+const ProjectDashboard = lazyRoute(() => import("./pages/ProjectDashboard"));
+const ProjectCommunicationPage = lazyRoute(() => import("./pages/ProjectCommunicationPage"));
+const TeamCommunicationPage = lazyRoute(() => import("./pages/TeamCommunicationPage"));
+const KanbanBoard = lazyRoute(() => import("./pages/KanbanBoard"));
+const ProjectsList = lazyRoute(() => import("./pages/ProjectsList"));
+const CreateProjectPage = lazyRoute(() => import("./pages/CreateProjectPage"));
+const Record360Page = lazyRoute(() => import("@/shared/records/Record360Page"));
+const TasksFollowUpsPage = lazyRoute(() => import("./pages/TasksFollowUpsPage"));
+const TaskExperiencePage = lazyRoute(() => import("./pages/TaskExperiencePage"));
+const TasksReferencePage = lazyRoute(() => import("./pages/TasksReferencePage"));
+const TaskListPage = lazyRoute(() => import("./pages/TaskListPage"));
+const TaskWorkspacePage = lazyRoute(() => import("./pages/TaskWorkspacePage"));
+const TaskDetail = lazyRoute(() => import("./pages/TaskDetail"));
+const MilestonesPage = lazyRoute(() => import("./pages/MilestonesPage"));
+const TimeTrackingPage = lazyRoute(() => import("./pages/TimeTrackingPage"));
+const TimesheetsPage = lazyRoute(() => import("./pages/TimesheetsPage"));
+const ReportsPage = lazyRoute(() => import("./pages/ReportsPage"));
+const CalendarPage = lazyRoute(() => import("./pages/CalendarPage"));
+const GanttPage = lazyRoute(() => import("./pages/GanttPage"));
+const SprintsPage = lazyRoute(() => import("./pages/SprintsPage"));
+const BacklogPage = lazyRoute(() => import("./pages/BacklogPage"));
+const RoadmapPage = lazyRoute(() => import("./pages/RoadmapPage"));
+const WorkloadPage = lazyRoute(() => import("./pages/WorkloadPage"));
+const FilesPage = lazyRoute(() => import("./pages/FilesPage"));
+const ClientsPage = lazyRoute(() => import("./pages/ClientsPage"));
+const ClientPortalPage = lazyRoute(() => import("./pages/ClientPortalPage"));
+const AdminPage = lazyRoute(() => import("./pages/AdminPage"));
+const SettingsPage = lazyRoute(() => import("./pages/SettingsPage"));
+const SoftwarePlanningPage = lazyRoute(() => import("./pages/SoftwarePlanningPage"));
+const LiveWorkManagementPage = lazyRoute(() => import("./pages/LiveWorkManagementPage"));
+const ImpactWorkHubPage = lazyRoute(() => import("./pages/ImpactWorkHubPage"));
+const TimelineDependenciesPage = lazyRoute(() => import("./pages/TimelineDependenciesPage"));
+const AutomationAIPage = lazyRoute(() => import("./pages/AutomationAIPage"));
+const FormsPage = lazyRoute(() => import("./pages/FormsPage"));
+const CommandCenterPage = lazyRoute(() => import("./pages/CommandCenterPage"));
+const EnterpriseEnginePage = lazyRoute(() => import("./pages/EnterpriseEnginePage"));
+const ProductLaunchPage = lazyRoute(() => import("./pages/ProductLaunchPage"));
+const PMSOperationsPage = lazyRoute(() => import("./pages/PMSOperationsPage"));
+const PortfolioPage = lazyRoute(() => import("./pages/PortfolioPage"));
+const RisksPage = lazyRoute(() => import("./pages/RisksPage"));
+const ModuleProfilePage = lazyRoute(() => import("@/pages/ModuleProfilePage"));
 
 /**
  * KaryaFlow Routes
  * Complete routing for Project Management module
  */
-const BatchWorkspacePage=React.lazy(()=>import("./pages/BatchWorkspacePage"));
-const MyAssignmentsPage=React.lazy(()=>import("./pages/MyAssignmentsPage"));
-const AssignmentControlsPage=React.lazy(()=>import("./pages/AssignmentControlsPage"));
-const WorkReviewsPage = React.lazy(() => import("./pages/WorkReviewsPage"));
-const SharedCatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
+const BatchWorkspacePage=lazyRoute(()=>import("./pages/BatchWorkspacePage"));
+const MyAssignmentsPage=lazyRoute(()=>import("./pages/MyAssignmentsPage"));
+const AssignmentControlsPage=lazyRoute(()=>import("./pages/AssignmentControlsPage"));
+const WorkReviewsPage = lazyRoute(() => import("./pages/WorkReviewsPage"));
+const SharedCatalogPage = lazyRoute(() => import("@/shared/catalog/CatalogPage"));
 export const projectManagementRoutes: FrontendRoute[] = [
   {path:"pms/import-data",element:<ImportWorkspace module="pms"/>},
  {path:"pms/tasks-follow-ups",element:<TasksFollowUpsPage/>},
@@ -126,7 +128,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/operator", element: <AIOperatorPage /> },
   { path: "pms/assistant", element: <AssistantStudio /> },
   { path: "pms/settings/ai/:provider", element: <OperatorProviderSettings /> },
-  { path: "pms/workspaces", element: <WorkspacesPage /> },
+  { path: "pms/workspaces", element: <WorkspaceDirectoryPage /> },
   // Home / Dashboard
   { path: "pms", element: <WorkspacesPage /> },
   { path: "pms/overview", element: <ProjectManagementHomePage /> },

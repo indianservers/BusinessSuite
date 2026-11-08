@@ -15,10 +15,15 @@ from app.db.base_class import Base
 def domain_parent_fields(model):
     """Workflow children inherit tenant scope only through real domain parent FKs."""
     parents = {
+        "app.apps.customization.models": ("picklist_id",),
+        "app.apps.analytics.models": ("dashboard_id", "report_id", "export_id"),
         "app.apps.fam.models": ("voucher_id", "financial_year_id"),
+        "app.apps.project_management.models": ("submission_id",),
+        "app.apps.project_management.chat_models": ("conversation_id", "message_id"),
         "app.apps.srm.models": ("sales_order_id", "engagement_id", "contract_id", "billing_plan_id"),
         "app.apps.srm.commercial_models": ("sales_order_id", "engagement_id", "contract_id", "billing_plan_id"),
-        "app.models.payroll": ("payroll_run_id", "batch_id", "period_id", "pay_group_id", "payroll_record_id", "branch_id"),
+        "app.models.payroll": ("payroll_run_id", "batch_id", "period_id", "pay_group_id", "payroll_record_id", "record_id", "branch_id"),
+        "app.models.timesheet": ("timesheet_id",),
         "app.models.recruitment": ("branch_id", "department_id", "job_id", "candidate_id", "interview_id", "offer_id"),
     }.get(model.__module__, ())
     if model.__module__ == "app.apps.project_management.models" and model.__tablename__ in {
@@ -282,6 +287,7 @@ def install_scope(db, user, company, grants):
             )
         ):
             for origin in (
+                *(("owner_id",) if model.__module__ == "app.apps.analytics.models" else ()),
                 "requester_user_id",
                 "initiated_by_user_id",
                 "owner_user_id",
@@ -296,7 +302,7 @@ def install_scope(db, user, company, grants):
         if scope != "organization":
             ids = scope_users.get(scope, own_users)
             fields = (
-                *(("owner_id",) if model.__tablename__ in {"pms_private_notes", "pms_note_folders"} else ()),
+                *(("owner_id",) if model.__tablename__ in {"pms_private_notes", "pms_note_folders"} or model.__module__ == "app.apps.analytics.models" else ()),
                 "owner_user_id",
                 "assignee_user_id",
                 "assigned_to_user_id",
@@ -469,6 +475,9 @@ def install_scope(db, user, company, grants):
             execution.statement = execution.statement.options(*(option for option in criteria if id(option) not in inherited))
 
     def validate(session, flush_context, instances):
+        # A flush can contain hundreds of children of the same authorized parent.
+        # Reuse its decision only within this flush; later flushes recheck scope.
+        parent_checks = {}
         for item in session.new | session.dirty | session.deleted:
             from app.apps.power_apps.approvals.scope import domain_write
             if domain_write(session,item,user,company):continue
@@ -549,6 +558,7 @@ def install_scope(db, user, company, grants):
                     "workspace_id",
                     "user_id",
                     "owner_user_id",
+                    *(("owner_id",) if type(item).__module__ == "app.apps.analytics.models" else ()),
                     *domain_parent_fields(type(item)),
                     *(("instance_id", "workflow_id", "step_definition_id") if pms_engine else ()),
                 )
@@ -585,7 +595,7 @@ def install_scope(db, user, company, grants):
                         for field in (
                             "requester_user_id",
                             "initiated_by_user_id",
-                            *(("owner_id",) if type(item).__tablename__ in {"pms_private_notes", "pms_note_folders"} else ()),
+                            *(("owner_id",) if type(item).__tablename__ in {"pms_private_notes", "pms_note_folders"} or type(item).__module__ == "app.apps.analytics.models" else ()),
                             "owner_user_id",
                             "user_id",
                             "created_by_user_id",
@@ -607,14 +617,18 @@ def install_scope(db, user, company, grants):
                     parent = all_models.get(fk.column.table.name)
                     allowed = predicate(parent) if parent is not None else None
                     if allowed is not None:
-                        with session.no_autoflush:
-                            if not session.query(parent.id).filter(parent.id == value, allowed).first():
-                                raise HTTPException(403, "Workflow parent is outside the assigned data scope")
+                        parent_key = (parent, value)
+                        if parent_key not in parent_checks:
+                            with session.no_autoflush:
+                                parent_checks[parent_key] = bool(session.query(parent.id).filter(parent.id == value, allowed).first())
+                        if not parent_checks[parent_key]:
+                            raise HTTPException(403, "Workflow parent is outside the assigned data scope")
             if grant.get("scope") != "organization":
                 ids = scope_users.get(grant.get("scope"), own_users)
                 fields = [
                     f
                     for f in (
+                        *(("owner_id",) if type(item).__module__ == "app.apps.analytics.models" else ()),
                         "owner_user_id",
                         "assignee_user_id",
                         "user_id",

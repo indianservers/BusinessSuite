@@ -8,7 +8,7 @@ class ExitRecord(Base):
     __tablename__ = "exit_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, unique=True)
+    employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
     exit_type = Column(String(30))  # Resignation, Termination, Retirement, Absconding
     resignation_date = Column(Date)
     last_working_date = Column(Date)
@@ -24,7 +24,7 @@ class ExitRecord(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    employee = relationship("Employee", back_populates="exit_record")
+    employee = relationship("Employee", back_populates="exit_records")
     checklist_items = relationship("ExitChecklistItem", back_populates="exit_record", cascade="all, delete-orphan")
     interviews = relationship("ExitInterview", back_populates="exit_record", cascade="all, delete-orphan")
 

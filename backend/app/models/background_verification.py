@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Date, Numeric, Text, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Date, Numeric, Text, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -6,9 +6,11 @@ from app.db.base_class import Base
 
 class BackgroundVerificationVendor(Base):
     __tablename__ = "background_verification_vendors"
+    __table_args__ = (UniqueConstraint("organization_id", "name", name="uq_bgv_vendor_company_name"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(150), nullable=False, unique=True)
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=False, default=1, server_default="1", index=True)
+    name = Column(String(150), nullable=False)
     contact_email = Column(String(150))
     provider_code = Column(String(80))
     api_base_url = Column(String(500))
@@ -42,12 +44,28 @@ class BackgroundVerificationRequest(Base):
     report_url = Column(String(500))
     consent_url = Column(String(500))
     remarks = Column(Text)
+    purpose = Column(String(80), default="Employment verification")
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True))
+    review_notes = Column(Text)
+    version = Column(Integer, nullable=False, default=1, server_default="1")
 
     vendor = relationship("BackgroundVerificationVendor")
     candidate = relationship("Candidate")
     employee = relationship("Employee")
+    owner = relationship("User", foreign_keys=[owner_user_id])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
     checks = relationship("BackgroundVerificationCheck", back_populates="request", cascade="all, delete-orphan", order_by="BackgroundVerificationCheck.id")
     events = relationship("BackgroundVerificationConnectorEvent", back_populates="request", cascade="all, delete-orphan")
+
+    @property
+    def owner_name(self):
+        return self.owner.email if self.owner else None
+
+    @property
+    def reviewer_name(self):
+        return self.reviewer.email if self.reviewer else None
 
 
 class BackgroundVerificationCheck(Base):
@@ -60,6 +78,7 @@ class BackgroundVerificationCheck(Base):
     result = Column(String(30))
     score = Column(Numeric(5, 2))
     document_url = Column(String(500))
+    employee_document_id = Column(Integer, ForeignKey("employee_documents.id", ondelete="RESTRICT"), nullable=True)
     verified_by = Column(String(150))
     verified_at = Column(DateTime(timezone=True))
     remarks = Column(Text)

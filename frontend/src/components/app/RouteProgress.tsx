@@ -1,18 +1,16 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { beginProgress } from "../../lib/async-progress";
-
+import { useLoadingContext } from "@/hooks/use-loading-context";
+import { progress } from "@/lib/async-progress";
+import { setProgressContext } from "@/lib/progress-context";
+/** Navigation progress follows mounted Suspense/data boundaries, never a timer. */
 export default function RouteProgress() {
-  const location = useLocation();
+  const context = useLoadingContext();
   useEffect(() => {
-    const finish = beginProgress("Opening page");
-    const timer = setTimeout(() => finish(), 400);
-    return () => { clearTimeout(timer); finish(); };
-  }, [location.key]);
+    setProgressContext({ title: context.resource, module: context.module });
+    progress.leaveRoute(context.pathname);
+  }, [context.resource, context.module, context.pathname]);
   return null;
 }
-
 export function PendingPageProgress() {
-  useEffect(() => beginProgress("Loading page"), []);
   return null;
 }

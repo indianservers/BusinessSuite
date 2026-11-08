@@ -1306,7 +1306,7 @@ export default function EnterprisePage() {
             </thead>
             <tbody>
               {data?.items?.map((t: any) => (
-                <tr {...recordPreviewProps(t)} key={t.id}>
+                <tr data-priority-row data-priority={t.priority} {...recordPreviewProps(t)} key={t.id}>
                   <td>
                     {t.subject}
                     <small>

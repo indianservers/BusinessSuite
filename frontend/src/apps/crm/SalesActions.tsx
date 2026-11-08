@@ -1,9 +1,11 @@
+import { useNavigate } from "react-router-dom";
+import { useSmartCreation } from "@/shared/creation/SmartCreationProvider";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import { CompanyQuickCreate } from "@/shared/master-data/CompanySelect";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useMobile } from "@/components/mobile/useMobile";
 import CompactForm from "@/components/forms/CompactForm";
-import {lazy,Suspense,useEffect,useState} from "react";
+import {lazy,Suspense,useEffect,useState,useRef} from "react";
 import {api} from "@/services/api";
 import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
@@ -34,7 +36,24 @@ export function CRMHandoverDialog({bootstrap,close,saved}:{bootstrap:Bootstrap;c
  return <Dialog open onOpenChange={v=>{if(!v&&!busy)close();}}><DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto"><DialogTitle>Salesperson handover</DialogTitle><p className="text-sm">Transfer open leads, deals, tasks and follow-ups together, within your permitted scope. Archived and closed records remain with their history.</p><fieldset disabled={busy} className="space-y-3"><label className="block text-sm">Departing salesperson<NativeSelect aria-label="Departing salesperson" className="block w-full rounded border p-2" value={from} onChange={e=>{setFrom(e.target.value);change();}}><option value="">Choose user</option>{bootstrap.owners.map(p=><option key={p.id} value={p.id}>{p.name} · {p.email}</option>)}</NativeSelect></label><p className="text-xs">If the departing login is already disabled, enter its user ID from the ownership history.</p><Input type="number" min="1" aria-label="Departing user ID" value={from} onChange={e=>{setFrom(e.target.value);change();}}/><label className="block text-sm">Replacement salesperson<NativeSelect aria-label="Replacement salesperson" className="block w-full rounded border p-2" value={to} onChange={e=>{setTo(e.target.value);change();}}><option value="">Choose eligible user</option>{bootstrap.owners.map(p=><option key={p.id} value={p.id}>{p.name} · {p.email}</option>)}</NativeSelect></label><label className="block text-sm">Reassignment reason<Input value={reason} minLength={3} onChange={e=>{setReason(e.target.value);change();}}/></label></fieldset>{error&&<p role="alert" className="text-destructive">{error}</p>}{notice&&<p role="status">{notice}</p>}<Button disabled={busy||!from||!to||from===to||reason.trim().length<3} onClick={()=>void act()}>Preview affected work & workload</Button>{preview&&<section className="space-y-3 rounded border p-3"><p className="text-sm">Organization #{preview.organization_id} · {preview.scope}</p>{Object.entries(preview.counts).map(([kind,count])=><p className="text-sm" key={kind}>{kind}: {String(count)} to transfer · replacement currently owns {preview.replacement_workload[kind]}</p>)}<details><summary>Review affected records</summary>{Object.entries(preview.items as Record<string,{id:number;name:string}[]>).map(([type,items])=><div key={type}><h3>{type}</h3>{items.map(i=><p className="text-xs" key={i.id}>#{i.id} · {i.name}</p>)}</div>)}</details><Button disabled={busy} onClick={()=>void act(true)}>Apply reviewed handover</Button></section>}</DialogContent></Dialog>;
 }
 
-export function CRMQuickCreate({type,close,saved}:{type:string;close:()=>void;saved:()=>void}){
+type CRMQuickCreateProps={type:string;close:()=>void;saved:()=>void;direct?:boolean};
+export function CRMQuickCreate(props:CRMQuickCreateProps){
+ return props.direct || props.type === "reminder" ? <CRMQuickCreateForm {...props}/> : <CRMCreationShortcut {...props}/>;
+}
+function CRMCreationShortcut({type,close,saved}:CRMQuickCreateProps){
+ const creation=useSmartCreation(),navigate=useNavigate(),attempted=useRef(false);
+ useEffect(()=>{
+  if(attempted.current)return;
+  attempted.current=true;
+  const resource=({company:"companies",customer:"customers",activity:"activities"} as Record<string,string>)[type]||`${type}s`;
+  const destination=type==="task"?"/pms/tasks/new":`/crm/${resource}?new=${resource}`;
+  const handled=creation?.open(destination,saved);
+  close();
+  if(!handled)navigate(destination);
+ },[creation,navigate,type,close,saved]);
+ return null;
+}
+function CRMQuickCreateForm({type,close,saved}:CRMQuickCreateProps){
  const customEntity=type==="contact"?"contacts":type==="company"?"companies":["task","reminder"].includes(type)?"tasks":"";
  const customFieldForm=useCrmFieldForm(customEntity,"quick_create");
  const user=useAuthStore(s=>s.user);const [dueAt,setDueAt]=useState("");const [name,setName]=useState("");const [email,setEmail]=useState("");const [phone,setPhone]=useState("");const [code,setCode]=useState("+91");const [bootstrap,setBootstrap]=useState<Bootstrap>();const [error,setError]=useState("");const [busy,setBusy]=useState(false);
@@ -43,8 +62,8 @@ export function CRMQuickCreate({type,close,saved}:{type:string;close:()=>void;sa
  if(type==="contact")return <Suspense fallback={<p role="status">Loading contact form�</p>}><ContactQuickCreate close={close} saved={saved}/></Suspense>;
  if(type==="company")return <CompanyQuickCreate recordLabel="company" onClose={close} onSaved={(_,keepOpen)=>{saved();if(!keepOpen)close();}}/>;
  if(type==="customer")return <CompanyQuickCreate roles={["Customer"]} recordLabel="customer" defaultEntityKind="Individual" onClose={close} onSaved={(_,keepOpen)=>{saved();if(!keepOpen)close();}}/>;
- if(type==="deal")return <Suspense fallback={<p role="status">Loading deal form…</p>}><QuickDealDialog placement="quick_create" close={close} saved={saved}/></Suspense>;
- if(type==="lead"&&bootstrap)return <CaptureDialog placement="quick_create" bootstrap={bootstrap} close={close} saved={()=>{saved();close();}}/>;
+ if(type==="deal")return <Suspense fallback={<p role="status">Loading deal form…</p>}><QuickDealDialog placement="create" close={close} saved={saved}/></Suspense>;
+ if(type==="lead"&&bootstrap)return <CaptureDialog placement="create" bootstrap={bootstrap} close={close} saved={()=>{saved();close();}}/>;
  async function create(){setBusy(true);setError("");try{if(type==="reminder"){if(!dueAt)throw new Error("Choose a reminder date and time");const due=new Date(dueAt).toISOString();await crmApi.create("tasks",{customFields:customFieldForm.validate(),title:name,due_date:due,reminder_at:due,status:"To Do",owner_user_id:user?.id});saved();close();return;}const resource=type==="company"?"companies":`${type}${type==="activity"?"ies":"s"}`;const entity=type==="activity"?"activities":resource;const payload=type==="contact"?{first_name:name.split(" ")[0],full_name:name,email:email||null,phone:phone||null,phone_country_code:code,owner_user_id:user?.id}:type==="task"?{title:name,owner_user_id:user?.id}:type==="activity"?{subject:name,title:name,activity_type:"task",owner_user_id:user?.id,status:"Pending"}:{name,owner_user_id:user?.id};await crmApi.create(entity,{...payload,...(customEntity?{customFields:customFieldForm.validate()}:{})});saved();close();}catch(e){setError(errorMessage(e));}finally{setBusy(false);}}
  return <Dialog open onOpenChange={v=>{if(!v&&!busy)close();}}><DialogContent><DialogTitle>Quick Create {type}</DialogTitle>{type==="lead"?<p>Loading lead capture…</p>:<CompactForm className="space-y-3" onSubmit={e=>{e.preventDefault();void create();}}><label className="block text-sm">{["task","activity","reminder"].includes(type)?"Title":"Name"}<Input required value={name} maxLength={180} onChange={e=>setName(e.target.value)}/></label>{type==="contact"&&<><label className="block text-sm">Email<Input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><PhoneInput value={phone} countryCode={code} onChange={setPhone} onCountryCodeChange={setCode}/></>}<>{type==="reminder"&&<label className="block text-sm">Remind me at<Input aria-label="Reminder date and time" type="datetime-local" required value={dueAt} onChange={e=>setDueAt(e.target.value)}/></label>}</>{customEntity&&<CrmRecordFields state={customFieldForm}/>}<p className="text-xs text-muted-foreground">Unsaved draft. Values remain here after an error.</p><Button disabled={busy||!name.trim()||(type==="reminder"&&!dueAt)}>{busy?"Saving…":type==="customer"?"Create customer":type==="reminder"?"Create reminder":"Create record"}</Button></CompactForm>}{error&&<p role="alert" className="text-destructive">{error}</p>}</DialogContent></Dialog>;
 }

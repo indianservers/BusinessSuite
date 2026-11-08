@@ -1,3 +1,4 @@
+import "./grid-mobile.css";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -256,7 +257,7 @@ export default function FilterBuilder<T>({
     >
       <Dialog.Portal>
         <Dialog.Overlay className="udg-overlay" />
-        <Dialog.Content className="udg-dialog">
+        <Dialog.Content className="udg-dialog udg-mobile-filter">
           <header>
             <Filter size={18} />
             <div>

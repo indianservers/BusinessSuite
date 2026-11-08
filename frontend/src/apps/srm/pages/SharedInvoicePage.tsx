@@ -45,7 +45,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
   });
   const pdf = useMutation({
     mutationFn: async () =>
-      (await api.get(`/srm/invoices/${id}/pdf`, { responseType: "blob" })).data,
+      (await api.get(`/srm/invoices/${id}/pdf`, { responseType: "blob", progress:{title:"Generating Invoice",operationType:"generate",mode:"micro"} })).data,
     onSuccess: (blob) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -155,7 +155,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              disabled={!allowExport||pdf.isPending}
+              disabled={!allowExport||pdf.isPending} loading={pdf.isPending} loadingLabel="Generating Invoice"
               onClick={() => pdf.mutate()}
             >
               Preview / download PDF

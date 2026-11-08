@@ -18,6 +18,7 @@ type Overview = {
   employee_id: number; as_of: string; currency: string;
   actions?: { propose_revision: boolean; approve_revision: boolean; actor_id: number; is_superuser: boolean };
   access: { payroll: boolean; assets: boolean; expenses: boolean; profile_changes: boolean };
+  verification?: {status: string; outcome: string | null} | null;
   salary: Salary | null; salary_history: Salary[];
   increments: { id: number; current_ctc: string; proposed_ctc: string; effective_from: string; reason: string | null; status: string; requested_by?: number | null }[];
   assets: { id: number; name: string; asset_tag: string; serial_number: string | null; assigned_date: string; condition: string | null; acknowledged: boolean }[];
@@ -40,6 +41,7 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
     onError: () => toast({ title: "Could not acknowledge asset. Please try again.", variant: "destructive" }),
   });
   const jump = (section: string) => {
+    if (section === "verification") { onOpenTab("verification"); return; }
     if (section === "profile" || section === "bank") { onOpenTab(section === "bank" ? "bank" : "personal"); return; }
     setSectionTab(section === "salary" || section === "increments" ? "pay" : section);
     requestAnimationFrame(() => {
@@ -81,7 +83,7 @@ export default function Employee360Panel({ employeeId, onOpenTab, isOwnProfile }
       {id:"birthday",label:"Birthday",content:<BirthdayEditor id={employeeId} kind="employee" source="hrms"/>},
       {id:"overview",label:"Overview",content:<>    <Card>
       <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ClipboardList className="h-5 w-5" />Pending actions <Badge variant="outline">{data.pending_actions.length}</Badge></CardTitle></CardHeader>
-      <CardContent>{data.pending_actions.length ? <ul className="divide-y">{data.pending_actions.map(action => <li key={action.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="text-sm font-medium">{action.title}</p><p className="text-xs text-muted-foreground">Waiting on: {action.owner}</p></div><Button size="sm" variant="outline" onClick={() => jump(action.section)}>View details</Button></li>)}</ul> : <p className="text-sm text-muted-foreground">No pending actions in the sections you can access.</p>}</CardContent>
+      <CardContent>{data.verification && <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3 text-sm"><span>Background verification: {data.verification.status}{data.verification.outcome && ` · ${data.verification.outcome}`}</span><Button size="sm" variant="outline" onClick={() => onOpenTab("verification")}>Verification & exit records</Button></div>}{data.pending_actions.length ? <ul className="divide-y">{data.pending_actions.map(action => <li key={action.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="text-sm font-medium">{action.title}</p><p className="text-xs text-muted-foreground">Waiting on: {action.owner}</p></div><Button size="sm" variant="outline" onClick={() => jump(action.section)}>View details</Button></li>)}</ul> : <p className="text-sm text-muted-foreground">No pending actions in the sections you can access.</p>}</CardContent>
     </Card>
     {activity.length > 0 && <Card><CardHeader><CardTitle className="text-base">Recorded employee activity</CardTitle></CardHeader><CardContent><p className="mb-3 text-xs text-muted-foreground">Salary dates are effective dates; expense dates are the dates incurred. Statuses reflect the current record.</p><details><summary className="cursor-pointer text-sm">View {activity.length} dated records</summary><ol className="mt-3 divide-y">{activity.map(row => <li key={row.key} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><div><p className="font-medium">{row.title}</p><p className="break-words text-muted-foreground">{row.detail}</p></div><time dateTime={row.date} className="text-xs text-muted-foreground">{formatDate(row.date)}</time></li>)}</ol></details></CardContent></Card>}</>},
       {id:"pay",label:"Pay",content:<>      <section {...sectionProps("salary")}><Card>

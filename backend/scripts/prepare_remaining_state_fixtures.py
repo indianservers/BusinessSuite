@@ -4,6 +4,7 @@ os.environ.setdefault('PRESERVED_QA_UPLOADS','C:/Users/SAISAT~1/AppData/Local/Te
 from serve_verified_1582 import SessionLocal,ROOT,User,CommonPerson,get_password_hash
 from app.models.employee import Employee
 from app.access.models import AccessMembership
+from app.branches.models import BranchGrant
 from app.apps.project_management.models import PMSTask,PMSTaskAssignee,PMSInternTaskPack,PMSInternPackRun,PMSInternAssignmentPlan,PMSNote
 from test_identity_utils import own_workflow_records
 b='http://127.0.0.1:1582';a=requests.post(b+'/api/v1/auth/login',json={'email':'admin@suiteqa.example.com','password':'SuiteQA@12345'},timeout=40).json();h={'Authorization':'Bearer '+a['access_token']};tag=str(time.time_ns())[-12:]
@@ -29,7 +30,7 @@ with SessionLocal() as db:
  own_workflow_records(db,pack,run,*plans,company_id=1);db.commit()
  emp=seed('/employees/',{'employee_id':'LINK'+tag,'first_name':'Wizard link '+tag,'last_name':'Acceptance','work_email':'wizard-link-'+tag+'@example.com','date_of_joining':'2026-11-01','status':'Active'})
  user=User(email='wizard-unlinked-'+tag+'@example.com',hashed_password=get_password_hash('WizardLink@12345'),is_active=True,is_superuser=False,person=CommonPerson(organization_id=1,primary_email='wizard-unlinked-'+tag+'@example.com',display_name='Synthetic unlinked wizard account'))
- db.add(user);db.flush();db.add(AccessMembership(user_id=user.id,company_id=1,active=True,is_admin=False));own_workflow_records(db,user,company_id=1);db.commit()
+ db.add(user);db.flush();db.add(AccessMembership(user_id=user.id,company_id=1,active=True,is_admin=False));db.add(BranchGrant(user_id=user.id,company_id=1,branch_id=1,can_write=False));own_workflow_records(db,user,company_id=1);db.commit()
  note=seed('/project-management/notes',{'title':'Attachment owner fixture '+tag,'content':'Private synthetic file'})
  r=requests.post(b+'/api/v1/project-management/notes/'+str(note['id'])+'/attachments',headers=h,files={'file':('role-attachment-'+tag+'.txt',b'Synthetic private note permission fixture','text/plain')},timeout=40);r.raise_for_status();attachment=r.json()
  record=db.get(PMSNote,note['id']);record.owner_id=deleter.id;db.commit()

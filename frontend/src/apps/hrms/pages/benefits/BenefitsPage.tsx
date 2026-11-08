@@ -1,3 +1,6 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -148,7 +151,7 @@ export default function BenefitsPage() {
       </div>
 
       {showPlanForm && (
-        <Card>
+        <SmartCreateSection title={<>Create Benefit Plan</>} size="standard" autoOpen onClose={() => setShowPlanForm(false)}><Card>
           <CardHeader>
             <CardTitle className="text-base">Create Benefit Plan</CardTitle>
             <CardDescription>Plan definitions become the source for enrollments and payroll deductions.</CardDescription>
@@ -187,7 +190,7 @@ export default function BenefitsPage() {
               <Button variant="outline" onClick={() => setShowPlanForm(false)}>Cancel</Button>
             </div>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
       )}
 
       <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
@@ -197,7 +200,7 @@ export default function BenefitsPage() {
             <CardDescription>Configured plans available for employee enrollment.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {plansLoading ? <div className="h-24 rounded-lg bg-muted/40" /> : plans?.length ? plans.map((plan) => (
+            {plansLoading ? <div className="h-24 rounded-lg bg-muted/40" /> : plans?.length ? <GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-1" items={(plans) || []} fields={standardRecordGroups((plans) || [])} gridClassName="space-y-3" renderItem={(plan) => (
               <div key={plan.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <p className="font-medium">{plan.name}</p>
@@ -208,7 +211,7 @@ export default function BenefitsPage() {
                   <p>Employee INR {money(plan.employee_contribution)}</p>
                 </div>
               </div>
-            )) : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No benefit plans configured.</p>}
+            )}/> : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No benefit plans configured.</p>}
           </CardContent>
         </Card>
 
@@ -218,7 +221,7 @@ export default function BenefitsPage() {
             <CardDescription>Latest claims waiting for payroll/HR review.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(claims || []).slice(0, 6).map((claim) => (
+            {<GroupedRecords scope="apps/hrms/pages/benefits/BenefitsPage:records-2" items={((claims || []).slice(0, 6)) || []} fields={standardRecordGroups(((claims || []).slice(0, 6)) || [])} gridClassName="space-y-3" renderItem={(claim) => (
               <div key={claim.id} className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium">{claim.claim_type}</p>
@@ -226,7 +229,7 @@ export default function BenefitsPage() {
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">Employee #{claim.employee_id} - INR {money(claim.claim_amount)}</p>
               </div>
-            ))}
+            )}/>}
             {!claims?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No benefit claims yet.</p>}
           </CardContent>
         </Card>

@@ -7,7 +7,7 @@ from typing import List, Optional
 import csv
 import json
 import time
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import Request, APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import asc, desc, func, or_
@@ -38,6 +38,7 @@ from app.core.config import settings
 
 from app.core.employee_directory import EmployeeDirectoryFilters, apply_employee_directory_filters, order_employee_directory
 from app.core.employee_scope import employee_tenant_scope, validate_employee_links
+from app.services.employee_profile_reliability import lock_profile, profile_version, audit_record, check_duplicates, duplicate_matches, history, touch
 router = APIRouter(prefix="/employees", tags=["Employees"], dependencies=[Depends(employee_tenant_scope)])
 from app.api.v1.employee_accounts import router as accounts_router
 router.include_router(accounts_router)
@@ -232,7 +233,7 @@ def _apply_directory_filters(
     if location_id:
         query = query.filter(Employee.location_id == location_id)
     if skills:
-        query = query.filter(Employee.skills_tags.ilike(f"%{skills.strip()}%"))
+        query = query.filter(or_(Employee.skills_tags.ilike(f"%{skills.strip()}%"), Employee.skills.any(EmployeeSkill.skill_name.ilike(f"%{skills.strip()}%"))))
     if work_location:
         query = query.filter(Employee.work_location == work_location)
     if employment_type:
@@ -591,11 +592,13 @@ def employee_directory_filters(
         .all()
     )
     skills: dict[str, int] = {}
-    for row in base.filter(Employee.skills_tags.isnot(None)).with_entities(Employee.skills_tags).limit(1000).all():
-        for skill in str(row[0] or "").replace(";", ",").split(","):
-            value = skill.strip()
-            if value:
-                skills[value] = skills.get(value, 0) + 1
+    employees_with_skills = base.with_entities(Employee.id, Employee.skills_tags).limit(1000).all()
+    names_by_employee = {row[0]: {value.strip() for value in (row[1] or "").replace(";", ",").split(",") if value.strip()} for row in employees_with_skills}
+    if names_by_employee:
+        for row in db.query(EmployeeSkill.employee_id, EmployeeSkill.skill_name).filter(EmployeeSkill.employee_id.in_(names_by_employee)).all():
+            names_by_employee[row[0]].add(row[1])
+    for names in names_by_employee.values():
+        for name in names: skills[name] = skills.get(name, 0) + 1
     return {
         "departments": [{"id": item[0], "count": item[1]} for item in departments],
         "designations": [{"id": item[0], "count": item[1]} for item in designations],
@@ -756,7 +759,7 @@ def employee_profile_card(
         desk_code=employee.desk_code,
         office_extension=_mask(employee.office_extension, can_contact),
         timezone=employee.timezone,
-        skills=[skill.strip() for skill in (employee.skills_tags or "").replace(";", ",").split(",") if skill.strip()],
+        skills=sorted({skill.strip() for skill in (employee.skills_tags or "").replace(";", ",").split(",") if skill.strip()} | {row.skill_name for row in employee.skills}),
         profile_photo_url=employee.profile_photo_url,
         contact_masked=not can_contact,
     )
@@ -881,6 +884,7 @@ def create_employee(
     changes = {key: values[default] for key, default in {"employment_type": "employment_type", "branch_id": "branch_id", "department_id": "department_id", "shift_id": "shift_id", "cost_center_id": "cost_center_id", "salary_currency": "payroll_currency"}.items() if key not in data.model_fields_set and values[default] is not None}
     data = EmployeeCreate.model_validate({**data.model_dump(), **changes})
     validate_employee_links(db, current_user, data.model_dump())
+    check_duplicates(db, data.model_dump(), allow_contact_duplicate=data.allow_contact_duplicate)
     if data.employee_id and crud_employee.get_by_employee_id(db, data.employee_id):
         raise HTTPException(status_code=400, detail="Employee ID already exists")
     if data.create_user_account and not current_user.is_superuser:
@@ -888,7 +892,12 @@ def create_employee(
     from app.services.employee_custom_fields import save as save_custom_fields
     from types import SimpleNamespace
     save_custom_fields(db,current_user,SimpleNamespace(id=None),data.custom_fields,validate_only=True)
-    return crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
+    from sqlalchemy.exc import IntegrityError
+    try:
+        return crud_employee.create_with_user(db, obj_in=data, created_by=current_user.id)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "Employee code or login account already exists. Review existing records before trying again.") from None
 
 
 @router.get("/stats")
@@ -1313,7 +1322,7 @@ def review_employee_change_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    item = db.query(EmployeeChangeRequest).filter(EmployeeChangeRequest.id == request_id).first()
+    item = db.query(EmployeeChangeRequest).filter(EmployeeChangeRequest.id == request_id).with_for_update().first()
     if not item:
         raise HTTPException(status_code=404, detail="Change request not found")
     employee = db.query(Employee).filter(
@@ -1326,6 +1335,8 @@ def review_employee_change_request(
     is_direct_manager = bool(current_user.employee and employee.reporting_manager_id == current_user.employee.id)
     if not (current_user.is_superuser or has_employee_update or is_direct_manager):
         raise HTTPException(status_code=403, detail="Not authorized to review this change request")
+    if not current_user.is_superuser and item.requested_by == current_user.id:
+        raise HTTPException(403, "You cannot approve your own profile change request")
     if item.status != "Pending":
         raise HTTPException(status_code=400, detail="Change request already reviewed")
     if data.status not in {"Approved", "Rejected"}:
@@ -1340,6 +1351,13 @@ def review_employee_change_request(
             current_user.is_superuser or _has_permission(current_user, "employee_update") or _has_permission(current_user, "payroll_run")
         ):
             raise HTTPException(status_code=403, detail="Sensitive profile changes require HR/payroll approval")
+        if item.effective_date and item.effective_date > date.today():
+            raise HTTPException(422, "Future-dated organizational changes must use the scheduled transfer workflow")
+        employee = lock_profile(db, employee.id)
+        originals = item.old_value_json or {}
+        for field, original in originals.items():
+            if field in changes and hasattr(employee, field) and str(getattr(employee, field, None)) != str(original):
+                raise HTTPException(409, "Employee details changed since this request was submitted. Review the latest profile and submit a new request.")
         org_fields = {
             "branch_id", "department_id", "designation_id", "business_unit_id", "cost_center_id",
             "location_id", "grade_band_id", "position_id", "reporting_manager_id", "status", "worker_type",
@@ -1347,6 +1365,8 @@ def review_employee_change_request(
         for field, value in changes.items():
             if field in org_fields and hasattr(employee, field):
                 setattr(employee, field, value)
+        record_employee_field_changes(db, employee, changes, current_user.id, "Approved profile change request")
+        touch(employee)
         _apply_profile_change(db, employee, changes)
     db.commit()
     db.refresh(item)
@@ -1464,6 +1484,33 @@ def employee_field_definitions(employee_id: int | None = None, db: Session = Dep
     return serialize(db, current_user, employee_id)
 
 
+@router.get("/{employee_id}/profile-checks")
+def employee_profile_checks(employee_id: int, days: int = Query(90, ge=1, le=90), db: Session = Depends(get_db), user: User = Depends(RequirePermission("employee_update"))):
+    from app.services.employee_profile_reliability import profile_checks
+    return profile_checks(db, _profile_employee(db, employee_id), user, days)
+
+
+@router.get("/{employee_id}/history")
+def employee_profile_history(employee_id: int, db: Session = Depends(get_db), user: User = Depends(RequirePermission("employee_update"))):
+    _profile_employee(db, employee_id)
+    return {"items": history(db, employee_id)}
+
+
+class EmployeeDuplicateCheck(BaseModel):
+    personal_email: str | None = Field(default=None, max_length=320)
+    work_email: str | None = Field(default=None, max_length=320)
+    phone_number: str | None = Field(default=None, max_length=30)
+    phone_number_country_code: str | None = Field(default=None, max_length=8)
+    employee_id: str | None = Field(default=None, max_length=60)
+    exclude_id: int | None = Field(default=None, gt=0)
+
+
+@router.post("/duplicate-check")
+def employee_duplicate_check(data: EmployeeDuplicateCheck, db: Session = Depends(get_db), user: User = Depends(RequirePermission("employee_create", "employee_update"))):
+    matches = duplicate_matches(db, data.model_dump(), data.exclude_id)
+    return {"items": [{"id": e.id, "employee_code": e.employee_id} for e in matches]}
+
+
 @router.get("/{employee_id}", response_model=EmployeeSchema)
 def get_employee(
     employee_id: int,
@@ -1495,11 +1542,13 @@ def update_employee(
     data: EmployeeUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_update")),
+    request: Request = None,
 ):
-    emp = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
-    if not emp:
-        raise HTTPException(status_code=404, detail="Employee not found")
+    emp = lock_profile(db, employee_id, request.headers.get("If-Match") if request else None)
     values = data.model_dump(exclude_unset=True)
+    allow_duplicate = values.pop("allow_contact_duplicate", False)
+    if {"personal_email", "work_email", "phone_number", "phone_number_country_code"}.intersection(values):
+        check_duplicates(db, {**{k: getattr(emp,k) for k in ("personal_email","work_email","phone_number","phone_number_country_code")}, **values}, employee_id, allow_duplicate)
     from app.services.employee_custom_fields import save as save_custom_fields
     custom_values=values.pop("custom_fields", {}) or {}
     save_custom_fields(db, current_user, emp, custom_values, validate_only=True)
@@ -1527,6 +1576,7 @@ def update_employee(
             action="PROFILE_EDIT", description="Changed " + ", ".join(changed_fields),
             new_values=json.dumps({"fields": changed_fields})))
     save_custom_fields(db, current_user, emp, custom_values)
+    touch(emp)
     updated = crud_employee.update(db, db_obj=emp, obj_in=values)
     return mask_employee_detail(updated, current_user)
 
@@ -1594,18 +1644,22 @@ def _profile_record(db, employee_id, record_id, model):
 
 
 @router.post("/{employee_id}/education", response_model=EmployeeEducationSchema, status_code=201)
-def add_education(employee_id: int, data: EmployeeEducationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
-    _profile_employee(db, employee_id)
+def add_education(employee_id: int, data: EmployeeEducationCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = EmployeeEducation(employee_id=employee_id, **data.model_dump())
     db.add(record)
+    db.flush()
+    audit_record(db, employee, record, data.model_dump(), current_user, "created")
     db.commit()
     db.refresh(record)
     return record
 
 
 @router.put("/{employee_id}/education/{record_id}", response_model=EmployeeEducationSchema)
-def update_education(employee_id: int, record_id: int, data: EmployeeEducationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def update_education(employee_id: int, record_id: int, data: EmployeeEducationCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeEducation)
+    audit_record(db, employee, record, data.model_dump(exclude_unset=True), current_user, "updated")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(record, key, value)
     db.commit()
@@ -1614,26 +1668,32 @@ def update_education(employee_id: int, record_id: int, data: EmployeeEducationCr
 
 
 @router.delete("/{employee_id}/education/{record_id}")
-def delete_education(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def delete_education(employee_id: int, record_id: int, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeEducation)
+    audit_record(db, employee, record, {}, current_user, "deleted")
     db.delete(record)
     db.commit()
     return {"message": "Deleted"}
 
 
 @router.post("/{employee_id}/experience", response_model=EmployeeExperienceSchema, status_code=201)
-def add_experience(employee_id: int, data: EmployeeExperienceCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
-    _profile_employee(db, employee_id)
+def add_experience(employee_id: int, data: EmployeeExperienceCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = EmployeeExperience(employee_id=employee_id, **data.model_dump())
     db.add(record)
+    db.flush()
+    audit_record(db, employee, record, data.model_dump(), current_user, "created")
     db.commit()
     db.refresh(record)
     return record
 
 
 @router.put("/{employee_id}/experience/{record_id}", response_model=EmployeeExperienceSchema)
-def update_experience(employee_id: int, record_id: int, data: EmployeeExperienceCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def update_experience(employee_id: int, record_id: int, data: EmployeeExperienceCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeExperience)
+    audit_record(db, employee, record, data.model_dump(exclude_unset=True), current_user, "updated")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(record, key, value)
     db.commit()
@@ -1642,26 +1702,32 @@ def update_experience(employee_id: int, record_id: int, data: EmployeeExperience
 
 
 @router.delete("/{employee_id}/experience/{record_id}")
-def delete_experience(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def delete_experience(employee_id: int, record_id: int, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeExperience)
+    audit_record(db, employee, record, {}, current_user, "deleted")
     db.delete(record)
     db.commit()
     return {"message": "Deleted"}
 
 
 @router.post("/{employee_id}/skills", response_model=EmployeeSkillSchema, status_code=201)
-def add_skills(employee_id: int, data: EmployeeSkillCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
-    _profile_employee(db, employee_id)
+def add_skills(employee_id: int, data: EmployeeSkillCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = EmployeeSkill(employee_id=employee_id, **data.model_dump())
     db.add(record)
+    db.flush()
+    audit_record(db, employee, record, data.model_dump(), current_user, "created")
     db.commit()
     db.refresh(record)
     return record
 
 
 @router.put("/{employee_id}/skills/{record_id}", response_model=EmployeeSkillSchema)
-def update_skills(employee_id: int, record_id: int, data: EmployeeSkillCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def update_skills(employee_id: int, record_id: int, data: EmployeeSkillCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeSkill)
+    audit_record(db, employee, record, data.model_dump(exclude_unset=True), current_user, "updated")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(record, key, value)
     db.commit()
@@ -1670,26 +1736,32 @@ def update_skills(employee_id: int, record_id: int, data: EmployeeSkillCreate, d
 
 
 @router.delete("/{employee_id}/skills/{record_id}")
-def delete_skills(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def delete_skills(employee_id: int, record_id: int, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeSkill)
+    audit_record(db, employee, record, {}, current_user, "deleted")
     db.delete(record)
     db.commit()
     return {"message": "Deleted"}
 
 
 @router.post("/{employee_id}/certifications", response_model=EmployeeCertificationSchema, status_code=201)
-def add_certifications(employee_id: int, data: EmployeeCertificationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
-    _profile_employee(db, employee_id)
+def add_certifications(employee_id: int, data: EmployeeCertificationCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = EmployeeCertification(employee_id=employee_id, **data.model_dump())
     db.add(record)
+    db.flush()
+    audit_record(db, employee, record, data.model_dump(), current_user, "created")
     db.commit()
     db.refresh(record)
     return record
 
 
 @router.put("/{employee_id}/certifications/{record_id}", response_model=EmployeeCertificationSchema)
-def update_certifications(employee_id: int, record_id: int, data: EmployeeCertificationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def update_certifications(employee_id: int, record_id: int, data: EmployeeCertificationCreate, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeCertification)
+    audit_record(db, employee, record, data.model_dump(exclude_unset=True), current_user, "updated")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(record, key, value)
     db.commit()
@@ -1698,8 +1770,10 @@ def update_certifications(employee_id: int, record_id: int, data: EmployeeCertif
 
 
 @router.delete("/{employee_id}/certifications/{record_id}")
-def delete_certifications(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+def delete_certifications(employee_id: int, record_id: int, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
     record = _profile_record(db, employee_id, record_id, EmployeeCertification)
+    audit_record(db, employee, record, {}, current_user, "deleted")
     db.delete(record)
     db.commit()
     return {"message": "Deleted"}
@@ -1710,6 +1784,7 @@ def delete_certifications(employee_id: int, record_id: int, db: Session = Depend
 @router.post("/{employee_id}/documents", response_model=EmployeeDocumentSchema, status_code=201)
 async def upload_document(
     employee_id: int,
+    request: Request,
     document_type: str = Form(...),
     document_name: Optional[str] = Form(None),
     document_number: Optional[str] = Form(None),
@@ -1722,6 +1797,11 @@ async def upload_document(
     is_self = bool(current_user.employee and current_user.employee.id == employee_id)
     if not (can_update or is_self):
         raise HTTPException(status_code=403, detail="Not authorized to upload documents for this employee")
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match"))
+    try:
+        parsed_expiry_date = _parse_date(expiry_date, 0, "expiry_date") if expiry_date else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="expiry_date must be YYYY-MM-DD")
     # Validate file type
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in settings.allowed_extensions_list:
@@ -1743,18 +1823,18 @@ async def upload_document(
     persist_file(file_path, db=db, module="hrms", filename=document_name or file.filename)
 
     file_url = f"/uploads/employee_docs/{employee_id}/{filename}"
-    try:
-        parsed_expiry_date = _parse_date(expiry_date, 0, "expiry_date") if expiry_date else None
-    except ValueError:
-        raise HTTPException(status_code=400, detail="expiry_date must be YYYY-MM-DD")
-
-    return crud_employee.add_document(db, employee_id, {
+    values = {
         "document_type": document_type,
         "document_name": document_name or file.filename,
         "document_number": document_number,
         "file_url": file_url,
         "expiry_date": parsed_expiry_date,
-    })
+    }
+    record = EmployeeDocument(employee_id=employee_id, **values)
+    db.add(record); db.flush()
+    audit_record(db, employee, record, values, current_user, "created")
+    db.commit(); db.refresh(record)
+    return record
 
 
 @router.put("/{employee_id}/documents/{document_id}/verify", response_model=EmployeeDocumentSchema)
@@ -1764,12 +1844,20 @@ def verify_employee_document(
     data: EmployeeDocumentVerificationUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_update")),
+    request: Request = None,
 ):
+    from app.core.masking import can_view_sensitive_employee
+    if not can_view_sensitive_employee(current_user, employee_id):
+        raise HTTPException(403, "Document verification requires sensitive employee access")
+    if data.verification_status == "Rejected" and not (data.verification_notes or "").strip():
+        raise HTTPException(422, "A rejection reason is required")
     if data.verification_status not in {"Pending", "Verified", "Rejected"}:
         raise HTTPException(status_code=400, detail="verification_status must be Pending, Verified, or Rejected")
+    employee = lock_profile(db, employee_id, request.headers.get("If-Match") if request else None)
     document = db.query(EmployeeDocument).filter_by(id=document_id, employee_id=employee_id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
+    audit_record(db, employee, document, data.model_dump(), current_user, "updated")
     document.verification_status = data.verification_status
     document.is_verified = data.verification_status == "Verified"
     document.verified_by = current_user.id

@@ -116,6 +116,8 @@ def mask_field_value(field_name: str, value: Any) -> str | None:
         return mask_phone(_stringify(value))
     if field_name in {"ctc", "basic", "hra", "salary"}:
         return mask_text(_stringify(value))
+    if field_name not in PLAINTEXT_ALLOWED_FIELDS and field_name not in {"first_name", "middle_name", "last_name", "degree", "institution", "board_university", "specialization", "pass_year", "percentage_cgpa", "company_name", "designation", "from_date", "to_date", "is_current", "skill_name", "proficiency", "years_experience", "certification_name", "issuing_body", "certification_type", "issue_date", "expiry_date", "is_renewable", "score_grade"}:
+        return "Changed (private)"
     return _stringify(value)
 
 
@@ -163,7 +165,10 @@ def record_field_audit(
 
 
 def record_employee_field_changes(db: Session, employee: Employee, incoming: dict[str, Any], actor_user_id: int | None, reason: str | None = None) -> None:
-    for field in AUDITED_EMPLOYEE_FIELDS:
+    # Audit the full saved profile; secrets and raw document links are never retained.
+    fields = set(incoming) & {column.name for column in Employee.__table__.columns}
+    fields -= {"id", "created_at", "updated_at", "deleted_at", "deleted_by"}
+    for field in fields:
         if field in incoming:
             record_field_audit(
                 db,

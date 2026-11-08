@@ -9,6 +9,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextContent } from "@/components/rich-text/LazyRichText";
 import { RecordMessageDraft } from "./RecordWorkspace";
 import "./record-360.css";
+import "./record-360-mobile.css";
 import TaskRecordLinks from "./TaskRecordLinks";
 import { useCursorPages } from "./useCursorPages";
 const RecordTemplatePicker = lazy(()=>import('@/shared/template-design/RecordTemplatePicker'));

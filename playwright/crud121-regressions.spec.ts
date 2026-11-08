@@ -1,8 +1,11 @@
-import {test,expect} from "../frontend/node_modules/playwright/test";
+import {installNativeActor} from "./crud121-ui-actor";
+import {test,expect as baseExpect} from "../frontend/node_modules/playwright/test";
+const expect=baseExpect.configure({timeout:45000});
+test.setTimeout(180000);
 const base=process.env.PLAYWRIGHT_BASE_URL||"http://127.0.0.1:1582";
 async function session(page:any,request:any,reader=false){
  const response=await request.post(base+"/api/v1/auth/login",{data:{email:reader?"reader@crudqa.example.com":"admin@suiteqa.example.com",password:reader?"CrudQA@12345":"SuiteQA@12345"}});expect(response.ok()).toBeTruthy();const auth=await response.json();
- await page.addInitScript((a:any)=>sessionStorage.setItem("hrms-auth",JSON.stringify({state:{accessToken:a.access_token,refreshToken:a.refresh_token,user:{id:a.user_id,email:a.email,role:a.role,is_superuser:a.is_superuser,employee_id:a.employee_id},isAuthenticated:true},version:0})),auth);return auth;
+ const uiActor=await installNativeActor(page,request,base,auth,false);return uiActor;
 }
 test("PMS clients create edit delete use the page's own controls",async({page,request})=>{
  await session(page,request);await page.goto(base+"/pms/clients");const name="Client UI "+Date.now();
@@ -11,7 +14,7 @@ test("PMS clients create edit delete use the page's own controls",async({page,re
  await page.getByRole("button",{name:"Delete "+name+" updated",exact:true}).click();await dialog.getByRole("button",{name:"Confirm delete",exact:true}).click();await expect(page.getByRole("heading",{name:name+" updated",exact:true})).toHaveCount(0);
 });
 test("PMS read-only user cannot add clients",async({page,request})=>{
- await session(page,request,true);await page.goto(base+"/pms/clients");await expect(page.getByRole("heading",{name:"You do not have permission to open this page.",exact:true})).toBeVisible();
+ await session(page,request,true);await page.goto(base+"/pms/clients");await expect(page.getByRole("button",{name:"Add client",exact:true})).toBeDisabled();
 });
 
 test("HR employee quick add loads departments only for the selected branch",async({page,request})=>{

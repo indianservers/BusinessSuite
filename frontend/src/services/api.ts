@@ -2,7 +2,8 @@ import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { useAuthStore } from "@/store/authStore";
 import { getApiBaseUrl } from "@/config/runtime";
-import { beginProgress } from "@/lib/async-progress";
+import { progress as operationProgress, operationId, type ProgressOperation } from "@/lib/async-progress";
+import { getProgressContext, operationTitle } from "@/lib/progress-context";
 import { trackPageRefreshRead } from "@/lib/page-refresh";
 import { selectedBranch } from "@/lib/branch-context";
 import { confirmedMutation, recordSavedEvent } from "@/lib/record-changes";
@@ -10,7 +11,9 @@ import { confirmedMutation, recordSavedEvent } from "@/lib/record-changes";
 declare module "axios" {
   interface AxiosRequestConfig {
     /** Disable foreground feedback for non-interactive mutations. */
-    progress?: false;
+    progress?: false | (Omit<ProgressOperation, "id"> & { id?: string });
+    /** POST-based previews read records but must not trigger save/refresh events. */
+    readOnlyPreview?: boolean;
     /** Server-reported limit for a permission-checked upload endpoint. */
     uploadLimitBytes?: number;
     _finishProgress?: (success?: boolean, error?: string) => void;
@@ -67,10 +70,22 @@ api.interceptors.request.use((config) => {
   if (token && !["/auth/login", "/auth/reset-password", "/auth/forgot-password", "/auth/branding", "/auth/login-branding"].includes(config.url || "")) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  if (config.progress !== false && !config._finishProgress && !(recordCachePolicy(config.url || "") && !config._recordSyncBypass && (config.method || "get") === "get")) {
-    config._finishProgress = beginProgress(
-      (config.method || "get").toLowerCase() === "get" ? "Loading page data" : "Processing your request"
-    );
+  if (config.progress !== false && !config._recordSyncBackground && !config._finishProgress && !(recordCachePolicy(config.url || "") && !config.progress && !config._recordSyncBypass && (config.method || "get") === "get")) {
+    const explicit = config.progress || undefined;
+    const read = config.readOnlyPreview || ["get", "head", "options"].includes((config.method || "get").toLowerCase());
+    const context = getProgressContext();
+    const operation = operationProgress.start({ id: explicit?.id || operationId("request"), title: operationTitle(read ? "fetch" : "save"), module: context.module, mode: "micro", ...explicit });
+    config._finishProgress = (success = true, error?: string) => { if (success) operation.complete(); else operation.fail(error); };
+    const wireTransfer = (kind: "onUploadProgress" | "onDownloadProgress") => {
+      const original = config[kind];
+      config[kind] = event => {
+        // Bytes measure transfer only. Server processing remains indeterminate.
+        operation.update({ progress: event.total && event.loaded < event.total ? event.loaded / event.total * 100 : undefined, description: event.total && event.loaded >= event.total ? "Transfer complete. Waiting for confirmation." : explicit?.description });
+        original?.(event);
+      };
+    };
+    if (explicit?.operationType === "upload") wireTransfer("onUploadProgress");
+    if (explicit?.operationType === "download" || explicit?.operationType === "export") wireTransfer("onDownloadProgress");
   }
   return config;
 });
@@ -82,9 +97,9 @@ api.interceptors.response.use(
       sessionStorage.setItem("suite-branch", String(response.data.selected));
     }
     const method=(response.config.method||"get").toLowerCase();
-    if(!["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
-    if (!["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));
-    if (response.config._recordMutationScope === mutationScope() && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent(recordSavedEvent, { detail: confirmedMutation(response.config.url||"",method,response.config.data,response.data) }));
+    if(response.config.readOnlyPreview !== true && !["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
+    if (response.config.readOnlyPreview !== true && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));
+    if (response.config.readOnlyPreview !== true && response.config._recordMutationScope === mutationScope() && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent(recordSavedEvent, { detail: confirmedMutation(response.config.url||"",method,response.config.data,response.data) }));
     return response;
   },
   async (error: AxiosError) => {
@@ -160,7 +175,7 @@ api.interceptors.response.use(response => {
 }, (error: AxiosError<{ detail?: unknown }>) => {
   error.config?._finishPageRefresh?.(false);
   const detail = error.response?.data?.detail;
-  error.config?._finishProgress?.(false, typeof detail === "string" ? detail :
+  error.config?._finishProgress?.(false, axios.isCancel(error) ? "Operation cancelled." : typeof detail === "string" ? detail :
     error.code === "ECONNABORTED" ? "Confirmation timed out. Check whether the record was saved before retrying." :
     "The request failed. Review your inputs or connection and try again.");
   return Promise.reject(error);
@@ -246,7 +261,7 @@ export const employeeApi = {
       headers: { "Content-Type": "multipart/form-data" },
     }),
   get: (id: number) => api.get(`/employees/${id}`),
-  update: (id: number, data: unknown) => api.put(`/employees/${id}`, data),
+  update: (id: number, data: unknown, version?: string) => api.put(`/employees/${id}`, data, {headers: version ? {"If-Match": version} : {}}),
   delete: (id: number) => api.delete(`/employees/${id}`),
   userOptions: (params?: Record<string, unknown>) =>
     api.get("/employees/user-options", { params }),
@@ -256,20 +271,20 @@ export const employeeApi = {
     api.post(`/employees/${id}/user-account`, data),
   stats: () => api.get("/employees/stats"),
   count: () => api.get("/employees/count"),
-  addEducation: (id: number, data: unknown) => api.post(`/employees/${id}/education`, data),
-  addExperience: (id: number, data: unknown) => api.post(`/employees/${id}/experience`, data),
-  addCertification: (id: number, data: unknown) => api.post(`/employees/${id}/certifications`, data),
-  updateProfileRecord: (id: number, section: string, recordId: number, data: unknown) => api.put(`/employees/${id}/${section}/${recordId}`, data),
-  deleteProfileRecord: (id: number, section: string, recordId: number) => api.delete(`/employees/${id}/${section}/${recordId}`),
-  addSkill: (id: number, data: unknown) => api.post(`/employees/${id}/skills`, data),
-  uploadDocument: (id: number, formData: FormData) =>
+  addEducation: (id: number, data: unknown, version?: string) => api.post(`/employees/${id}/education`, data, {headers: version ? {"If-Match": version} : {}}),
+  addExperience: (id: number, data: unknown, version?: string) => api.post(`/employees/${id}/experience`, data, {headers: version ? {"If-Match": version} : {}}),
+  addCertification: (id: number, data: unknown, version?: string) => api.post(`/employees/${id}/certifications`, data, {headers: version ? {"If-Match": version} : {}}),
+  updateProfileRecord: (id: number, section: string, recordId: number, data: unknown, version?: string) => api.put(`/employees/${id}/${section}/${recordId}`, data, {headers: version ? {"If-Match": version} : {}}),
+  deleteProfileRecord: (id: number, section: string, recordId: number, version?: string) => api.delete(`/employees/${id}/${section}/${recordId}`, {headers: version ? {"If-Match": version} : {}}),
+  addSkill: (id: number, data: unknown, version?: string) => api.post(`/employees/${id}/skills`, data, {headers: version ? {"If-Match": version} : {}}),
+  uploadDocument: (id: number, formData: FormData, version?: string) =>
     api.post(`/employees/${id}/documents`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: { "Content-Type": "multipart/form-data", ...(version ? {"If-Match":version} : {}) },
     }),
   expiringDocuments: (params?: Record<string, unknown>) =>
     api.get("/employees/documents/expiring", { params }),
-  verifyDocument: (employeeId: number, documentId: number, data: unknown) =>
-    api.put(`/employees/${employeeId}/documents/${documentId}/verify`, data),
+  verifyDocument: (employeeId: number, documentId: number, data: unknown, version?:string) =>
+    api.put(`/employees/${employeeId}/documents/${documentId}/verify`, data, {headers:version?{"If-Match":version}:{}}),
   uploadPhoto: (id: number, formData: FormData) =>
     api.post(`/employees/${id}/photo`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -824,6 +839,10 @@ export const recruitmentApi = {
 };
 
 export const backgroundVerificationApi = {
+  owners: (search: string) => api.get("/background-verification/owners", {params: {search}}),
+  register: (params?: Record<string, unknown>) => api.get("/background-verification/register", { params }),
+  employeeFile: (id: number) => api.get(`/background-verification/employees/${id}/file`),
+  addCheck: (id: number, data: unknown) => api.post(`/background-verification/requests/${id}/checks`, data),
   vendors: () => api.get("/background-verification/vendors"),
   createVendor: (data: unknown) => api.post("/background-verification/vendors", data),
   requests: (params?: Record<string, unknown>) =>
@@ -1139,7 +1158,8 @@ export const documentsApi = {
 };
 
 export const exitApi = {
-  records: () => api.get("/exit/records"),
+  records: (employeeId?: number) => api.get("/exit/records", {params: {employee_id: employeeId}}),
+  completeRecord: (id: number) => api.put(`/exit/records/${id}/complete`),
   createRecord: (data: unknown) => api.post("/exit/records", data),
   updateRecord: (id: number, data: unknown) => api.put(`/exit/records/${id}`, data),
   approveRecord: (id: number) => api.put(`/exit/records/${id}/approve`),

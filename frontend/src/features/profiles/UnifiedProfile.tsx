@@ -33,6 +33,7 @@ type Profile = {
   application?: Values;
   documents: Values[];
   pendingRequests: Values[];
+  certificationAlerts?: Array<{name:string;expires:string;expired:boolean}>;
 };
 type Spec = [string, string, string?];
 const sections: Record<string, Spec[]> = {
@@ -696,6 +697,7 @@ export function UnifiedProfile({
           {message}
         </div>
       )}
+      {!!profile.certificationAlerts?.length && <aside role="status" className="profile-card"><h2>Certification expiry alerts</h2>{profile.certificationAlerts.map((certificate,index)=><p key={index}>{certificate.name}: {certificate.expired?"Expired":"Expires within 90 days"} · {certificate.expires}</p>)}</aside>}
       {error && (
         <div className="up-error" role="alert">
           {error}

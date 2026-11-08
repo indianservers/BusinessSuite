@@ -244,7 +244,11 @@ class Employee(Base):
     assets = relationship("AssetAssignment", back_populates="employee")
     goals = relationship("PerformanceGoal", back_populates="employee")
     helpdesk_tickets = relationship("HelpdeskTicket", back_populates="employee")
-    exit_record = relationship("ExitRecord", back_populates="employee", uselist=False)
+    exit_records = relationship("ExitRecord", back_populates="employee", order_by="ExitRecord.id.desc()")
+
+    @property
+    def exit_record(self):
+        return self.exit_records[0] if self.exit_records else None
 
 
 class EmployeeEducation(Base):

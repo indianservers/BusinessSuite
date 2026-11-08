@@ -44,6 +44,7 @@ export function localGridSource<T>(key: string, rows: T[], columns: GridColumn<T
   return {
     key,
     localRows: rows,
+    summaryRows: filtered,
     load: async query => {
       const matching = sorted(query);
       const branch = matching.filter(row => query.path.every(part => text(value(row, part.field)) === text(part.value)));

@@ -1310,3 +1310,5 @@
   color: #7427ef;
   text-decoration: underline;
 }
+
+.ts-picker-inline .ts-picker-list{position:static;min-width:0;max-height:260px;box-shadow:none;margin-top:8px}

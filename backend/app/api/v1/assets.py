@@ -172,7 +172,7 @@ def assign_asset(data: AssetAssignmentCreate, db: Session = Depends(get_db), cur
         raise HTTPException(422, "Assignment date cannot be in the future")
     if employee.status != "Active":
         raise HTTPException(409, "Only active employees can receive assets")
-    exiting = db.query(ExitRecord).filter(ExitRecord.employee_id == employee.id, ExitRecord.status.notin_(["Cancelled"])).first()
+    exiting = db.query(ExitRecord).filter(ExitRecord.employee_id == employee.id, ExitRecord.status.notin_(["Cancelled"])).order_by(ExitRecord.id.desc()).first()
     if exiting and exiting.status == "Completed":
         raise HTTPException(409, "Assets cannot be assigned after the employee's exit is completed")
     if asset.status != "Available" or db.query(AssetAssignment.id).filter(AssetAssignment.asset_id == asset.id, AssetAssignment.is_active.is_(True)).first():

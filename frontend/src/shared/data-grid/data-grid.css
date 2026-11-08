@@ -1225,3 +1225,10 @@
 /* Keep row selection clickable where pinned action and selection columns meet. */
 .udg-select-cell{z-index:11}
 .udg-header>.udg-select-cell{z-index:37}
+
+/* Common column cells for native and typed collections. */
+.suite-column-icon { flex:none; color:hsl(var(--muted-foreground)); }
+.suite-column-progress { display:flex; gap:5px; align-items:center; width:100%; font-size:10px; font-variant-numeric:tabular-nums; }
+.suite-column-progress > [role="progressbar"] { height:4px; flex:1; min-width:32px; overflow:hidden; border-radius:4px; background:hsl(var(--primary)/.09); }
+.suite-column-progress > [role="progressbar"] > span { display:block; height:100%; border-radius:inherit; background:hsl(var(--primary)); }
+.udg-legacy-heading { gap:5px; }

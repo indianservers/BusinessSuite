@@ -1,3 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { accessQueryOptions } from "@/features/access/access-query";
+import RoutePrefetch from "@/components/app/RoutePrefetch";
+import { lazyRoute } from "@/lib/lazy-route";
+import { LoadingState } from "@/components/ui/state";
 import { ActionTooltipProvider } from "@/components/actions";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
@@ -5,9 +10,9 @@ import OperationsWorkspace from "@/components/layout/OperationsWorkspace";
 import { getOperationWorkspace } from "@/lib/navigation-workspaces";
 import { PendingPageProgress } from "./components/app/RouteProgress";
 import React, { Suspense, useEffect, useState } from "react";
-const StatisticsAuditPage=React.lazy(()=>import("@/features/access/StatisticsAuditPage"));
-const PersonManagementHost = React.lazy(() => import("@/apps/project-management/components/people/PersonManagementHost"));
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+const StatisticsAuditPage=lazyRoute(()=>import("@/features/access/StatisticsAuditPage"));
+const PersonManagementHost = lazyRoute(() => import("@/apps/project-management/components/people/PersonManagementHost"));
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuthStore } from "@/store/authStore";
@@ -28,40 +33,41 @@ import { PortalPage, saasRoutes } from "@/apps/saas/routes";
 import { applicationRoutes } from "@/apps/power-apps/registry";
 import SuiteNavigationTracker from "@/components/suite/SuiteNavigationTracker";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
+import { SmartCreationProvider } from "@/shared/creation/SmartCreationProvider";
 
-const AutomationRuntimePage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationRuntimePage"));
-const AutomationEditorPage = React.lazy(() => import("@/apps/power-apps/applications/automations/AutomationEditorPage"));
-const ApprovalsPage = React.lazy(() => import("@/apps/power-apps/applications/approvals/ApprovalsPage"));
-const SuiteWelcomePage = React.lazy(() => import("@/pages/SuiteWelcomePage"));
-const SuiteNotificationsPage = React.lazy(() => import("@/pages/SuiteNotificationsPage"));
-const SuiteAccountPage = React.lazy(() => import("@/pages/SuiteAccountPage"));
-const SuiteHelpPage = React.lazy(() => import("@/pages/SuiteHelpPage"));
-const PostLoginPage = React.lazy(() => import("@/pages/PostLoginPage"));
-const SettingsHubPage = React.lazy(() => import("@/pages/SettingsHubPage"));
-const CompanyAdminPage = React.lazy(() => import("@/pages/CompanyAdminPage"));
-const ModuleDashboardPage = React.lazy(() => import("@/pages/ModuleDashboardPage"));
-const IntegrationsPage = React.lazy(() => import("@/apps/power-apps/applications/integrations/IntegrationsPage"));
-const ConnectorCatalog = React.lazy(() => import("@/shared/ConnectorCatalog"));
-const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
-const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
-const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
-const PublicCustomerForm = React.lazy(() => import("@/apps/communication/center/PublicCustomerForm"));
-const SignupPage = React.lazy(() => import("@/pages/auth/SignupPage"));
-const LoginPage = React.lazy(() => import("@/pages/auth/LoginPage"));
-const WorkspaceInvitationPage = React.lazy(() => import("@/pages/auth/WorkspaceInvitationPage"));
-const AccessDeniedPage = React.lazy(() => import("@/pages/AccessDeniedPage"));
-const AutomationStudioPage = React.lazy(() => import("@/apps/automation/AutomationStudioPage"));
-const CustomizationStudioPage = React.lazy(() => import("@/apps/customization/CustomizationStudioPage"));
-const AnalyticsPage = React.lazy(() => import("@/apps/analytics/AnalyticsPage"));
-const BusinessOSAdminPage = React.lazy(() => import("@/apps/business-os/BusinessOSAdminPage"));
-const BusinessOSWorkspacePage = React.lazy(() => import("@/apps/business-os/BusinessOSWorkspacePage"));
-const AiSecurityPage = React.lazy(() => import("@/features/access/AiSecurityPage"));
-const EnterprisePage = React.lazy(() => import("@/features/access/EnterprisePage"));
-const SharedServicesPage = React.lazy(() => import("@/features/access/SharedServicesPage"));
-const ControlCenter = React.lazy(() => import("@/features/access/ControlCenter"));
-const UserAccess360 = React.lazy(() => import("@/features/access/ControlCenter").then(m => ({ default: m.UserAccess360 })));
-const UsersAccessPage = React.lazy(() => import("@/features/access/UsersAccessPage"));
-const AccessInvitationPage = React.lazy(() => import("@/features/access/UsersAccessPage").then(m => ({ default: m.AccessInvitationPage })));
+const AutomationRuntimePage = lazyRoute(() => import("@/apps/power-apps/applications/automations/AutomationRuntimePage"));
+const AutomationEditorPage = lazyRoute(() => import("@/apps/power-apps/applications/automations/AutomationEditorPage"));
+const ApprovalsPage = lazyRoute(() => import("@/apps/power-apps/applications/approvals/ApprovalsPage"));
+const SuiteWelcomePage = lazyRoute(() => import("@/pages/SuiteWelcomePage"));
+const SuiteNotificationsPage = lazyRoute(() => import("@/pages/SuiteNotificationsPage"));
+const SuiteAccountPage = lazyRoute(() => import("@/pages/SuiteAccountPage"));
+const SuiteHelpPage = lazyRoute(() => import("@/pages/SuiteHelpPage"));
+const PostLoginPage = lazyRoute(() => import("@/pages/PostLoginPage"));
+const SettingsHubPage = lazyRoute(() => import("@/pages/SettingsHubPage"));
+const CompanyAdminPage = lazyRoute(() => import("@/pages/CompanyAdminPage"));
+const ModuleDashboardPage = lazyRoute(() => import("@/pages/ModuleDashboardPage"));
+const IntegrationsPage = lazyRoute(() => import("@/apps/power-apps/applications/integrations/IntegrationsPage"));
+const ConnectorCatalog = lazyRoute(() => import("@/shared/ConnectorCatalog"));
+const PowerAppsPage = lazyRoute(() => import("@/apps/power-apps/PowerAppsPage"));
+const SharedFormsPage = lazyRoute(() => import("@/features/forms/FormsPage"));
+const PublicFormPage = lazyRoute(() => import("@/features/forms/PublicFormPage"));
+const PublicCustomerForm = lazyRoute(() => import("@/apps/communication/center/PublicCustomerForm"));
+const SignupPage = lazyRoute(() => import("@/pages/auth/SignupPage"));
+const LoginPage = lazyRoute(() => import("@/pages/auth/LoginPage"));
+const WorkspaceInvitationPage = lazyRoute(() => import("@/pages/auth/WorkspaceInvitationPage"));
+const AccessDeniedPage = lazyRoute(() => import("@/pages/AccessDeniedPage"));
+const AutomationStudioPage = lazyRoute(() => import("@/apps/automation/AutomationStudioPage"));
+const CustomizationStudioPage = lazyRoute(() => import("@/apps/customization/CustomizationStudioPage"));
+const AnalyticsPage = lazyRoute(() => import("@/apps/analytics/AnalyticsPage"));
+const BusinessOSAdminPage = lazyRoute(() => import("@/apps/business-os/BusinessOSAdminPage"));
+const BusinessOSWorkspacePage = lazyRoute(() => import("@/apps/business-os/BusinessOSWorkspacePage"));
+const AiSecurityPage = lazyRoute(() => import("@/features/access/AiSecurityPage"));
+const EnterprisePage = lazyRoute(() => import("@/features/access/EnterprisePage"));
+const SharedServicesPage = lazyRoute(() => import("@/features/access/SharedServicesPage"));
+const ControlCenter = lazyRoute(() => import("@/features/access/ControlCenter"));
+const UserAccess360 = lazyRoute(() => import("@/features/access/ControlCenter").then(m => ({ default: m.UserAccess360 })));
+const UsersAccessPage = lazyRoute(() => import("@/features/access/UsersAccessPage"));
+const AccessInvitationPage = lazyRoute(() => import("@/features/access/UsersAccessPage").then(m => ({ default: m.AccessInvitationPage })));
 
 const appRoutes: Record<string, FrontendRoute[]> = {
   hrms: hrmsRoutes,
@@ -76,21 +82,7 @@ function getEnabledRoutes() {
 }
 
 function LoadingFallback() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 dark:bg-background">
-      <PendingPageProgress />
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Sparkles className="h-7 w-7" />
-        </div>
-        <div>
-          <p className="text-lg font-semibold">{BUSINESS_SUITE_DISPLAY_NAME}</p>
-          <p className="text-sm text-muted-foreground">Loading your workspace...</p>
-        </div>
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    </div>
-  );
+  return <div className="p-4 sm:p-6"><LoadingState /></div>;
 }
 
 function LegacyModuleLogin() {
@@ -100,7 +92,7 @@ function LegacyModuleLogin() {
   return <Navigate to={`/login${query ? `?${query}` : ""}${location.hash}`} replace />;
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, sessionOnly=false }: { children: React.ReactNode;sessionOnly?:boolean }) {
   const location = useLocation();
   const { isAuthenticated, isHydrated, user } = useAuthStore();
   const roleAllowed = canAccessRoute(location.pathname, user?.role, user?.is_superuser);
@@ -108,18 +100,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const accessKey = `${user?.id}:${location.pathname}`;
   const [workspaceAccess, setWorkspaceAccess] = useState<{ key: string; allowed: boolean } | null>(null);
   useEffect(() => {
-    if (!isHydrated || !isAuthenticated || !user || roleAllowed || !membershipPath) return;
+    if (sessionOnly || !isHydrated || !isAuthenticated || !user || roleAllowed || !membershipPath) return;
     let active = true;
     api.get("/project-management/workspaces").then(({ data }) => {
       if (active) setWorkspaceAccess({ key: accessKey, allowed: data.length > 0 });
     }).catch(() => { if (active) setWorkspaceAccess({ key: accessKey, allowed: false }); });
     return () => { active = false; };
-  }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey]);
+  }, [isHydrated, isAuthenticated, user?.id, roleAllowed, membershipPath, accessKey, sessionOnly]);
   if (!isHydrated) return <LoadingFallback />;
   if (!isAuthenticated) {
     return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search + location.hash)}`} replace />;
   }
   if (!user) return <LoadingFallback />;
+  if (sessionOnly) return <>{children}</>;
   if (!roleAllowed) {
     if (!membershipPath) return <AccessDeniedPage />;
     if (workspaceAccess?.key !== accessKey) return <LoadingFallback />;
@@ -129,6 +122,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const queryClient=useQueryClient();
   const location = useLocation();
   const currentUser = useAuthStore(s => s.user);
   const { isAuthenticated, isHydrated } = useAuthStore();
@@ -153,13 +147,15 @@ export default function App() {
   }, [isHydrated, isAuthenticated]);
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return;
-    const load = () => api.get("/access/me").then(({data}) => {
-      if (typeof data.managed !== "boolean") return;
-      const state = useAuthStore.getState();
-      if (state.user) state.setUser({ ...state.user, access: data });
-    }).catch(() => undefined);
+    const load = () => {
+      const options=accessQueryOptions();
+      return queryClient.fetchQuery(options).then(data=>{
+        if(typeof data.managed!=="boolean"||JSON.stringify(options.queryKey)!==JSON.stringify(accessQueryOptions().queryKey))return;
+        const state=useAuthStore.getState();if(state.user)state.setUser({...state.user,access:data});
+      }).catch(()=>undefined);
+    };
     load();
-    const timer = window.setInterval(load, 45000);
+    const timer = window.setInterval(()=>{if(document.visibilityState!=="hidden")void load();}, 45000);
     window.addEventListener("focus", load);
     return () => { window.clearInterval(timer); window.removeEventListener("focus", load); };
   }, [isHydrated, isAuthenticated]);
@@ -243,7 +239,8 @@ export default function App() {
   void moduleVersion;
 
   return (
-    <>
+    <SmartCreationProvider routes={routes}>
+      <RoutePrefetch routes={routes} />
       <SetupReadiness />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
@@ -280,15 +277,16 @@ export default function App() {
           <Route
             path="/*"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute sessionOnly>
                 <AppLayout />
               </ProtectedRoute>
             }
           >
-            <Route path="setup-guide" element={<></>} />
+            <Route path="setup-guide" element={<ProtectedRoute><></></ProtectedRoute>} />
             {routes.map((route) => (
-              <Route key={route.path} path={route.path} element={getOperationWorkspace(`/${route.path}`) ? <OperationsWorkspace key={route.path} route={route} routes={routes} /> : route.element} caseSensitive={route.caseSensitive} />
+              <Route key={route.path} path={route.path} element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}>{getOperationWorkspace(`/${route.path}`) ? <OperationsWorkspace key={route.path} route={route} routes={routes} /> : route.element}</Suspense></ProtectedRoute>} caseSensitive={route.caseSensitive} />
             ))}
+            <Route path="*" element={<div role="alert" className="rounded-xl border p-6"><h1 className="text-lg font-semibold">Page not found</h1><p>This page is unavailable. Choose a page from the menu or <Link className="underline" to="/dashboard">open all applications</Link>.</p></div>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -298,6 +296,6 @@ export default function App() {
       <Toaster />
       <ActionTooltipProvider />
       {isAuthenticated && <Suspense fallback={null}><PersonManagementHost /></Suspense>}
-    </>
+    </SmartCreationProvider>
   );
 }

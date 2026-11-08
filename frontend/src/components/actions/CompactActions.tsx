@@ -3,8 +3,16 @@ import { Ellipsis } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-function flatten(children: ReactNode): ReactElement[] {
-  return Children.toArray(children).flatMap(child => !isValidElement(child) ? [] : child.type === Fragment ? flatten((child.props as {children?: ReactNode}).children) : [child]);
+function flatten(children: ReactNode, parentKey = "actions"): ReactElement[] {
+  return Children.toArray(children).flatMap((child, index) => {
+    if (!isValidElement(child)) return [];
+    // Fragment children restart React's automatic keys. Keep their ancestry so
+    // promoting another primary action cannot leave duplicate/stale DOM buttons.
+    const key = `${parentKey}/${child.key ?? index}`;
+    return child.type === Fragment
+      ? flatten((child.props as {children?: ReactNode}).children, key)
+      : [cloneElement(child, {key})];
+  });
 }
 
 /** Keeps original handlers, role/status conditions, forms and review dialogs intact. */

@@ -1,3 +1,4 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useState } from 'react';
 import { api } from '@/services/api';
@@ -56,7 +57,7 @@ export function OperatorWorkspaceTools({ projectId, workspaceId, command, provid
         </div>}
       </section>
       <section className="space-y-3"><h2 className="font-semibold">Delivery goal monitors</h2><p className="text-sm">Checks overdue, blocked and unassigned tasks hourly. Findings are updated when they change. These checks do not call an LLM or modify tasks.</p>
-        <div className="flex gap-3"><Button variant="outline" disabled={busy || !projectId} onClick={() => void action(async () => { await api.post('/ai-operator/monitors', { project_id: projectId, name: 'Delivery health', interval_minutes: 60 }); await loadMonitors(); })}>Create delivery monitor</Button>
+        <div className="flex gap-3"><SmartCreateAction title="Create delivery monitor"><Button variant="outline" disabled={busy || !projectId} onClick={() => void action(async () => { await api.post('/ai-operator/monitors', { project_id: projectId, name: 'Delivery health', interval_minutes: 60 }); await loadMonitors(); })}>Create delivery monitor</Button></SmartCreateAction>
           <Button variant="outline" disabled={busy || !projectId} onClick={() => void action(loadMonitors)}>Refresh monitors</Button></div>
         {monitors.map(m => <div className="rounded border p-3" key={m.id}><strong>{m.name}</strong> · {m.enabled ? 'active' : 'paused'} · {m.checked_at ? new Date(m.checked_at).toLocaleString() : 'waiting for worker'}
           {m.error_code && <p>{m.error_code}</p>}{m.findings?.map(f => <p key={f.task_id}>{f.task_key}: {f.title} · {f.reasons.join(', ')}</p>)}

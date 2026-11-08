@@ -13,7 +13,7 @@ assert.equal(merged.length, 4);
 assert.deepEqual(merged.flatMap(i => i.pages || [i]).map(i => i.to).sort(), paths.sort());
 assert.equal(JSON.stringify(links), before);
 assert.equal(activeWorkspace(merged, '/pms/tasks/123').label, 'Tasks');
-assert.equal(activeWorkspace(merged, '/crm/emails').label, 'Communication & Campaigns');
+assert.equal(activeWorkspace(merged, '/crm/emails').label, 'Communication');
 assert.equal(activeWorkspace(merged, '/crm/emails-unknown'), undefined);
 const restricted = consolidateNavigation(links.filter(i => i.to === '/hrms/my-payslips'));
 assert.equal(restricted[0].to, '/hrms/my-payslips');
@@ -35,6 +35,10 @@ const {menuItems, menuLabel, menuMatches, menuPages} = menuMod.exports;
 const grouped = [{to:'/crm/emails',label:'Emails',group:'Communication'}, {to:'/crm/campaigns',label:'Campaigns',group:'Marketing'}];
 assert.equal(menuItems(grouped).length, 2, 'Cross-category consolidation must retain distinct categories');
 assert.equal(menuLabel({to:'/pms/tasks',label:'Tasks'}), 'All tasks');
+assert.equal(menuLabel({to:'/crm/accounts',label:'Accounts'}), 'Companies');
+assert.equal(menuLabel({to:'/crm/contacts',label:'People'}), 'Contacts');
+assert.equal(menuLabel({to:'/crm/quotes',label:'Quotes'}), 'Quote builder');
+assert.ok(menuMatches({to:'/crm/accounts',label:'Accounts'}, 'accounts'));
 assert.ok(menuMatches({to:'/crm/quotations',label:'Quotations',group:'Sales'}, 'quotes'));
 assert.ok(menuMatches({to:'/crm/quotations',label:'Quotations',group:'Sales'}, 'quotations'));
 assert.equal(menuPages({to:'/pms/tasks',label:'Tasks',pages:[{to:'/pms/tasks',label:'Tasks'},{to:'/pms/navigator',label:'Navigator'}]}).length, 1);
@@ -55,3 +59,6 @@ for (const paths of [["/crm/deals", "/crm/pipeline", "/crm/templates"], ["/crm/f
   assert.deepEqual(result[0].pages.map(page => page.to).sort(), [...paths].sort());
 }
 console.log("CRM deal/form and PMS live-work consolidation checks passed.");
+
+assert.equal(workspacePageHref("/pms/workspaces", "?workspace=2&project=4", 2), "/pms/workspaces");
+assert.equal(workspacePageHref("/pms/workspaces?workspace=3", "?workspace=2", 2), "/pms/workspaces?workspace=3");

@@ -5,6 +5,7 @@ import { Navigate, UNSAFE_LocationContext as LocationContext, useLocation, useNa
 import type { FrontendRoute } from "@/appRegistry";
 import { canAccessRoute, getRoleNav } from "@/lib/roles";
 import { getOperationWorkspace, operationAliases } from "@/lib/navigation-workspaces";
+import { menuLabel } from "@/lib/navigation-menu";
 import { useAuthStore } from "@/store/authStore";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
 
@@ -17,13 +18,15 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
   const navigate = useNavigate();
   const user = useAuthStore(state => state.user);
   const pathname = `/${route.path}`;
+  const compactNavigation = /^\/(crm|pms)(\/|$)/.test(pathname);
   const workspace = getOperationWorkspace(pathname);
   const nav = getRoleNav(user?.role, user?.is_superuser, pathname);
   const pages = (workspace?.paths || []).flatMap(path => {
     const entry = routes.find(item => `/${item.path}` === path);
     if (!entry || !canAccessRoute(path, user?.role, user?.is_superuser)) return [];
     if (operationAliases[path] && canAccessRoute(operationAliases[path], user?.role, user?.is_superuser)) return [];
-    const label = nav.find(item => item.to === path)?.label || path.split("/").pop()!.replace(/-/g, " ");
+    const originalLabel = nav.find(item => item.to === path)?.label || path.split("/").pop()!.replace(/-/g, " ");
+    const label = compactNavigation ? menuLabel({to:path,label:originalLabel}) : originalLabel;
     return [{ path, label, element: entry.element }];
   });
   const canonical = pages[0]?.path;
@@ -56,8 +59,8 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
     navigate({ pathname: canonical, search: searchFor(path) });
   };
   return <section aria-label={`${workspace.label} workspace`}>
-    {pages.length > 1 && workspace.label !== "Deals" && <div className={`suite-operation-navigation mb-5 border-b border-border pb-3 ${/^\/(crm|pms)(\/|$)/.test(pathname) ? "ws-operation-navigation" : ""}`}>
-      <h1 className="mb-3 text-xl font-semibold">{workspace.label}</h1>
+    {pages.length > 1 && workspace.label !== "Deals" && <div className={`suite-operation-navigation mb-5 border-b border-border pb-3 ${compactNavigation ? "ws-operation-navigation" : ""}`}>
+      {compactNavigation ? <p className="mb-2 text-sm font-medium text-muted-foreground">{workspace.label}</p> : <h1 className="mb-3 text-xl font-semibold">{workspace.label}</h1>}
       <div role="tablist" aria-label={`${workspace.label} operations`} className="flex flex-wrap gap-2">
         {pages.map(page => <button key={page.path} id={`operation-tab-${page.path}`} type="button" role="tab"
           aria-selected={selected === page.path} aria-controls={`operation-panel-${page.path}`}

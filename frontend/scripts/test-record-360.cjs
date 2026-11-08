@@ -1,6 +1,7 @@
 const {chromium,expect}=require('playwright/test');
 const path=require('node:path');
 const fs=require('node:fs');
+process.chdir(path.resolve(__dirname,'..'));
 (async()=>{
  const {createServer}=await import('vite');
  const server=await createServer({root:path.resolve(__dirname,'..'),server:{host:'127.0.0.1',port:0}});
@@ -9,6 +10,7 @@ const fs=require('node:fs');
  try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}});let fail=true;const errors=[];const requests=[];
  page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/api/v1/accounting-sync/**',route=>route.fulfill({json:route.request().url().includes('/customer-360/')?{links:[],invoices:[],payments:[],balances:[] }:{items:[]}}));
  await page.route('**/api/v1/record-360/**',async route=>{
   const url=new URL(route.request().url()),id=Number(url.pathname.match(/company\/(\d+)/)?.[1]||1);
   requests.push({path:url.pathname,cursor:url.searchParams.get("cursor"),mode:url.searchParams.get("cursor_mode")});
@@ -19,7 +21,7 @@ const fs=require('node:fs');
    if(fail){fail=false;return route.fulfill({status:500,json:{detail:'History temporarily unavailable'}});}
    const filter=url.searchParams.get('event_type');
    data=filter==='file'?{items:[],total:null,has_more:false,next_cursor:null,page:1,per_page:25,sections:{}}:{items:[{id:'note:'+url.searchParams.get('page'),type:'note',title:filter==='note'?'Filtered note':'Customer note',body:'Private saved content',occurred_at:'2026-11-04T09:00:00Z',source:'crm_note'}],total:null,has_more:!url.searchParams.get('cursor'),next_cursor:url.searchParams.get('cursor')?null:'history-next',page:1,per_page:25,sections:{}};
-  } else data={id,kind:'company',name:route.request().headers()['x-suite-branch']==='2'?'Branch two customer':id===1?'Axiom Telecom':'Second customer',status:'Active',fields:{email:'customer@example.test',industry:'Telecom'},projects:[],sections:{}};
+  } else data={id,kind:'company',name:route.request().headers()['x-suite-branch']==='2'?'Branch two customer':id===1?'Axiom Telecom':'Second customer',status:'Active',fields:{email:'customer@example.test',industry:'Telecom',external_reference:'EnterpriseReferenceWithoutSpaces01234567890123456789012345678901234567890'},projects:[],sections:{}};
   await route.fulfill({json:data});
  });
  await page.goto(`http://127.0.0.1:${port}/record-360-qa.html`);
@@ -53,6 +55,25 @@ const fs=require('node:fs');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
  expect(overflow).toBe(false);
  await page.screenshot({path:path.join(out,'customer-mobile.png'),fullPage:true});
+ await expect(page.getByText('No accounting customer linked.',{exact:false})).toBeVisible();
+ const mobileOut=path.resolve(__dirname,'../../outputs/mobile-ux');fs.mkdirSync(mobileOut,{recursive:true});
+ for(const width of [320,360,375,390,414,430,480]){
+  await page.setViewportSize({width,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
+  await expect(page.getByText('EnterpriseReferenceWithoutSpaces01234567890123456789012345678901234567890',{exact:true})).toBeVisible();
+  for(const control of await page.locator('.r360-composer button,.r360-actions button,.r360-pager button').all())if(await control.isVisible())expect(await control.evaluate(el=>el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+  await page.getByRole('combobox',{name:'History event type'}).selectOption('note');await expect(page.getByText('Filtered note',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Call',exact:true}).click();await expect(page.getByLabel('Selected action')).toHaveText('call');
+ }
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(mobileOut,'record-detail-390.png'),fullPage:true});
+ await page.addStyleTag({content:'.r360 *{transition:none!important;animation:none!important}'});await page.mouse.move(0,0);
+ for(const width of [768,1024,1440]){
+  await page.setViewportSize({width,height:1000});
+  const style=page.locator('style[data-vite-dev-id$="/record-360-mobile.css"]');await expect(style).toHaveCount(1);
+  const capture=()=>page.locator('.r360 *').evaluateAll(nodes=>nodes.map(el=>{if(!el.checkVisibility())return [el.tagName,'not painted'];const s=getComputedStyle(el),r=el.getBoundingClientRect();return [el.tagName,s.fontSize,s.display,s.padding,s.margin,s.color,r.width,r.height]}));
+  const before=await capture();await style.evaluate(el=>el.media='not all');expect(await capture()).toEqual(before);await style.evaluate(el=>el.media='');
+ }
+ await page.setViewportSize({width:390,height:844});
  await page.goto(`http://127.0.0.1:${port}/record-360-qa.html?queue=1`);
  await expect(page.getByRole('heading',{name:'Tasks & Follow-ups'})).toBeVisible();
  await expect(page.getByText('Confirm delivery',{exact:true})).toBeVisible();
@@ -79,6 +100,6 @@ const fs=require('node:fs');
  await page.keyboard.press('Escape');
  await expect(page.getByRole('dialog',{name:'Record 360',exact:true})).toHaveCount(0);
  expect(errors).toEqual([]);
- console.log('Record 360 and PMS queue: source work/links, history errors/retry, filters, expansion, pagination, existing editor/actions, record switching, queue views/source/search and mobile layout passed.');
+ console.log('Record 360 and PMS queue: source work/links, history errors/retry, filters, expansion, pagination, existing editor/actions, record switching, queue views/source/search; seven mobile widths, long values, touch targets, activity callback and unchanged tablet/desktop detail styles passed.');
  }finally{await browser.close();await server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

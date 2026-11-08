@@ -708,7 +708,7 @@ export default function TaskDetail() {
       </Button>
 
       <TaskExecutionPanel taskId={task.id} onChanged={()=>void loadTaskData(true)} />
-      <RecordActions preview={false} record={{...task,key:task.task_key,project_name:project?.name}} canEdit={project?.can_manage_tasks===true} onChanged={deleted=>{if(deleted)navigate("/pms/tasks");else loadTaskData(true);}}>{menu=><Card>
+      <RecordActions preview={false} record={{...task,key:task.task_key,project_name:project?.name}} canEdit={project?.can_manage_tasks===true} onChanged={deleted=>{if(deleted)navigate("/pms/tasks");else loadTaskData(true);}}>{menu=><Card data-priority-row data-priority={task.priority}>
         <CardContent className="p-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-3">
@@ -726,7 +726,7 @@ export default function TaskDetail() {
               />
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <Badge className={statusColor(task.status)}>{task.status}</Badge>
-                <Badge className={statusColor(task.priority)}>{task.priority}</Badge>
+                <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>
                 <span className="inline-flex items-center gap-2">
                   <Avatar label={(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")} />
                   {(taskAssignees(task).map(id => userLabel(id, `Member ${id}`)).join(", ") || "Unassigned")}
@@ -1192,13 +1192,13 @@ function SubtaskRow({
     );
   }
   return (
-    <div className="rounded-md border px-3 py-2 text-sm">
+    <div data-priority-row data-priority={task.priority} className="rounded-md border px-3 py-2 text-sm">
       <div className="flex flex-col gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-primary">{task.task_key}</span>
             <Badge className={statusColor(task.status)}>{task.status}</Badge>
-            <Badge className={statusColor(task.priority)}>{task.priority}</Badge>
+            <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>
             {task.story_points !== undefined && task.story_points !== null ? <span className="text-xs text-muted-foreground">{task.story_points} pts</span> : null}
           </div>
           <button type="button" onClick={openSubtask} className="mt-1 line-clamp-2 text-left font-medium hover:text-primary">

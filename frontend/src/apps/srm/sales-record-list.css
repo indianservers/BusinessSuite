@@ -7,3 +7,7 @@
 .srm-record-workspace .srm-record-name { display:flex; align-items:center; gap:7px; font-size:13px; color:hsl(var(--foreground)); }
 .srm-record-workspace .udg { border-radius:8px; }
 .srm-record-workspace .udg-adapted-cell > div { flex-wrap:nowrap; justify-content:flex-start; }
+
+.srm-record-workspace .srm-record-name{min-width:0;max-width:100%}
+.srm-record-workspace .srm-record-name>[aria-hidden]{display:inline-flex;flex:none}
+.srm-record-workspace .srm-record-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

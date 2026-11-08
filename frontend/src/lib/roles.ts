@@ -929,6 +929,8 @@ const projectManagementNav: RoleNavItem[] = [
   { label: "Sprint Lifecycle", icon: Timer, to: "/pms/sprint-lifecycle", group: "Planning & delivery" },
   { label: "Components", icon: Package, to: "/pms/components", group: "Settings & administration" },
   { label: "Workflows", icon: GitBranch, to: "/pms/workflows", group: "Settings & administration" },
+  { label: "Project workflows", icon: GitBranch, to: "/pms/workflow-schemes", group: "Settings & administration" },
+  { label: "Transition approvals", icon: CheckCircle2, to: "/pms/transition-approvals", group: "Planning & delivery" },
   { label: "Blueprints", icon: Workflow, to: "/pms/blueprints", group: "Settings & administration" },
   { label: "Resource Utilization", icon: Users, to: "/pms/resource-utilization", group: "Planning & delivery" },
   { label: "Apps & Integrations", icon: Network, to: "/pms/apps", group: "Settings & administration" },
@@ -1385,6 +1387,7 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  if (/^\/(crm|srm|hrms|fam)\/workspaces\/?$/.test(pathname)) return canAccessRoute("/" + pathname.split("/")[1], role, isSuperuser);
   if (pathname === "/connectors") return true;
   if (/^\/(crm|srm|hrms|pms|fam)\/connectors\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
   if (pathname === "/admin/signup-requests") return Boolean(isSuperuser);

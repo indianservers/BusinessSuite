@@ -5,6 +5,8 @@ export function workspacePageHref(to: string, search: string, workspaceId?: numb
   if (!to.startsWith("/pms")) return to;
   const [path, query = ""] = to.split("?");
   const target = new URLSearchParams(query);
+  // The directory must not inherit the board's selected workspace.
+  if (path === "/pms/workspaces") return target.size ? `${path}?${target}` : path;
   const current = new URLSearchParams(search);
   for (const key of ["workspace", "project", "projectId"]) {
     const value = key === "workspace" && workspaceId ? String(workspaceId) : current.get(key);

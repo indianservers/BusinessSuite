@@ -1,9 +1,11 @@
+import {installNativeActor} from "./crud121-ui-actor";
 import {installPermissionAudit} from "./crud121-permissions";
-import {test,expect} from "../frontend/node_modules/playwright/test";
+import {test,expect as baseExpect} from "../frontend/node_modules/playwright/test";
+const expect=baseExpect.configure({timeout:45000});
 const BASE=process.env.PLAYWRIGHT_BASE_URL||"http://127.0.0.1:1582";
 test.setTimeout(240000);
 installPermissionAudit(test,BASE);
-async function setup(page:any,request:any){page.setDefaultTimeout(45000);const r=await request.post(BASE+'/api/v1/auth/login',{data:{email:'admin@suiteqa.example.com',password:'SuiteQA@12345'}});expect(r.ok()).toBeTruthy();const auth=await r.json();const headers={Authorization:'Bearer '+auth.access_token};await page.addInitScript((a:any)=>sessionStorage.getItem('hrms-auth')||sessionStorage.setItem('hrms-auth',JSON.stringify({state:{accessToken:a.access_token,refreshToken:a.refresh_token,user:{id:a.user_id,email:a.email,role:a.role,is_superuser:a.is_superuser,employee_id:a.employee_id},isAuthenticated:true},version:0})),auth);return{auth,headers};}
+async function setup(page:any,request:any){page.setDefaultTimeout(45000);const r=await request.post(BASE+'/api/v1/auth/login',{data:{email:'admin@suiteqa.example.com',password:'SuiteQA@12345'}});expect(r.ok()).toBeTruthy();const auth=await r.json();const headers={Authorization:'Bearer '+auth.access_token};const uiActor=await installNativeActor(page,request,BASE,auth,true);return{auth:uiActor,headers:{Authorization:"Bearer "+uiActor.access_token},fixtureHeaders:headers};}
 async function seed(request:any,headers:any,path:string,data:any){const r=await request.post(BASE+'/api/v1'+path,{headers,data});expect(r.ok(),await r.text()).toBeTruthy();return r.json();}
 function writing(page:any,contains:string,method?:string){return page.waitForResponse((r:any)=>r.url().includes('/api/v1'+contains)&&['POST','PUT','PATCH','DELETE'].includes(r.request().method())&&(!method||r.request().method()===method),{timeout:45000});}
 async function project(request:any,headers:any,tag:string){return seed(request,headers,'/project-management/projects',{name:'UI operational '+tag,project_key:'OP'+tag.slice(-10),workspace_id:1,status:'Active'});}

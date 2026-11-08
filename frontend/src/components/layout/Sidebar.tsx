@@ -20,6 +20,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getRoleLabel } from "@/lib/roles";
 import { getProductDisplayName, getProductForContext } from "@/lib/products";
 import "@/components/suite/suite.css";
+import "./shared-sidebar.css";
 
 type Props = {
   embedded?: boolean;

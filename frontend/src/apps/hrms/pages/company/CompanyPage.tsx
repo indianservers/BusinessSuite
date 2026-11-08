@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -38,6 +39,7 @@ const emptyDesignation = { level: 1 };
 
 export default function CompanyPage() {
   usePageTitle("Company");
+  const [companyOpen, setCompanyOpen] = useState(false);
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [form, setForm] = useState<OrgForm>(emptyCompany);
@@ -187,7 +189,7 @@ export default function CompanyPage() {
           <h1 className="page-title">Company</h1>
           <p className="page-description">Manage legal entities, branches, departments, and designations.</p>
         </div>
-        <Button variant="outline" onClick={() => { setSelectedId(null); setForm(emptyCompany); }}>
+        <Button variant="outline" onClick={() => { setSelectedId(null); setForm(emptyCompany); setCompanyOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           New Company
         </Button>
@@ -229,7 +231,7 @@ export default function CompanyPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <CompactForm
+              <SmartCreateSection title={form.id ? "Edit company" : "Create company"} autoOpen={companyOpen} onClose={() => setCompanyOpen(false)} size="large"><CompactForm
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -288,7 +290,7 @@ export default function CompanyPage() {
                     {saveCompany.isPending ? "Saving..." : "Save Company"}
                   </Button>
                 </div>
-              </CompactForm>
+              </CompactForm></SmartCreateSection>
             </CardContent>
           </Card>
 
@@ -400,6 +402,7 @@ function OrgPanel({
   loading?: boolean;
   error?: boolean;
 }) {
+  const [creationOpen, setCreationOpen] = useState(false);
   const hasMissingRequired = fields.some((field) => field.required && !form[field.key]);
 
   return (
@@ -413,13 +416,13 @@ function OrgPanel({
               <CardDescription>{items.length} active</CardDescription>
             </div>
           </div>
-          <Button type="button" variant="ghost" size="icon" onClick={onNew} title={`New ${title}`}>
+          <Button type="button" variant="ghost" size="icon" onClick={() => { onNew(); setCreationOpen(true); }} aria-label={`Create ${title.toLowerCase()}`} title={`New ${title}`}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <CompactForm
+        <SmartCreateSection title={`${form.id ? "Edit" : "Create"} ${title.toLowerCase()}`} autoOpen={creationOpen} onClose={() => setCreationOpen(false)} size="standard"><CompactForm
           className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
@@ -453,7 +456,7 @@ function OrgPanel({
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : form.id ? "Update" : "Add"}
           </Button>
-        </CompactForm>
+        </CompactForm></SmartCreateSection>
 
         <div className="space-y-2">
           {loading && <LoadingState label={`Loading ${title.toLowerCase()}`} />}
@@ -465,7 +468,7 @@ function OrgPanel({
                 <p className="truncate text-xs text-muted-foreground">{summary(item)}</p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <Button type="button" variant="ghost" size="icon" onClick={() => onEdit(item)} title="Edit">
+                <Button type="button" variant="ghost" size="icon" onClick={() => { onEdit(item); setCreationOpen(true); }} title="Edit">
                   <Edit3 className="h-4 w-4" />
                 </Button>
                 <Button

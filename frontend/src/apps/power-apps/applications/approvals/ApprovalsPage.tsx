@@ -1,3 +1,4 @@
+import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import {useModuleAction} from "@/hooks/use-module-action";
 import {useAuthStore} from "@/store/authStore";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
@@ -129,7 +130,7 @@ export function DelegationManager({
         Reason
         <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
       </label>
-      <button
+      <SmartCreateAction title="Create delegation"><button
         className="ap-primary"
         disabled={!canDelegate||!alternate.length || !start || !end || !reason}
         onClick={async () => {
@@ -148,8 +149,8 @@ export function DelegationManager({
         }}
       >
         Create delegation
-      </button>
-      {rows.map((d) => (
+      </button></SmartCreateAction>
+      {<GroupedRecords scope="apps/power-apps/applications/approvals/ApprovalsPage:records-1" items={(rows) || []} fields={standardRecordGroups((rows) || [])} gridClassName="space-y-3" renderItem={(d) => (
         <div className="ap-assignment" key={d.id}>
           <span>
             #{d.owner_user_id} → #{d.alternate_user_id}
@@ -178,7 +179,7 @@ export function DelegationManager({
             </button>
           )}
         </div>
-      ))}
+      )}/>}
     </section>
   );
 }
@@ -395,7 +396,7 @@ export default function ApprovalsPage() {
                 )}
               </div>
               {policies.length ? (
-                policies.map((p) => (
+                <GroupedRecords scope="apps/power-apps/applications/approvals/ApprovalsPage:records-2" items={(policies) || []} fields={standardRecordGroups((policies) || [])} gridClassName="space-y-3" renderItem={(p) => (
                   <div className="ap-assignment" key={p.id}>
                     <span>
                       <strong>{p.name}</strong>
@@ -406,7 +407,7 @@ export default function ApprovalsPage() {
                     </span>
                     <Link to={path(`designer/${p.id}`)}>Open designer ↗</Link>
                   </div>
-                ))
+                )}/>
               ) : (
                 <p className="ap-empty">
                   No processes yet. Start from a configurable template.
@@ -465,7 +466,7 @@ export default function ApprovalsPage() {
                 Full evidence is verified in each request's decision history.
               </p>
               {data?.recent.length ? (
-                data.recent.map((h) => (
+                <GroupedRecords scope="apps/power-apps/applications/approvals/ApprovalsPage:records-3" items={(data.recent) || []} fields={standardRecordGroups((data.recent) || [])} gridClassName="space-y-3" renderItem={(h) => (
                   <div className="ap-assignment" key={h.id}>
                     <span>
                       {h.event_type.replace(/_/g, " ")}
@@ -478,7 +479,7 @@ export default function ApprovalsPage() {
                     </span>
                     <span>{h.reason}</span>
                   </div>
-                ))
+                )}/>
               ) : (
                 <p className="ap-empty">No approval activity yet.</p>
               )}

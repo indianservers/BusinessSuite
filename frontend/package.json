@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test:workspace-redesign": "node scripts/test-universal-workspaces.cjs && node scripts/test-workspace-directory.cjs",
     "test:background-refresh": "node scripts/test-background-refresh.cjs",
     "test:defaults": "node scripts/test-form-defaults.cjs && node scripts/test-currency-selector.cjs && node scripts/test-phone-selector.cjs",
     "test:record-360": "node scripts/test-record-360.cjs && node scripts/test-task-record-links.cjs",
@@ -21,7 +22,10 @@
     "test:record-cache:assets": "node scripts/test-record-cache-sw.cjs",
     "test:record-cache": "node scripts/test-record-cache.cjs",
     "test:validation": "node scripts/test-validation.cjs",
-    "postbuild": "node scripts/write-release-version.mjs"
+    "postbuild": "node scripts/write-release-version.mjs",
+    "test:progress": "node scripts/test-progress-system.cjs && node scripts/test-progress-api.cjs",
+    "test:progress:deals": "node scripts/test-deal-progress.cjs",
+    "test:navigation-performance": "node scripts/test-desktop-navigation.cjs && node scripts/test-navigation-branding.cjs && node scripts/test-navigation-guards.cjs && node scripts/test-record-cache.cjs && node scripts/test-background-refresh.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

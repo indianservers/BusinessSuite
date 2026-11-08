@@ -1,4 +1,5 @@
-import ProjectQuickTask from "./ProjectQuickTask";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import CreateTaskModal from "../components/CreateTaskModal";
 import PipelineDomainDetails from "@/shared/pipeline/PipelineDomainDetails";
 import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -20,7 +21,7 @@ export default function KanbanBoard() {
   const [boardId,setBoardId]=useState<number>(),[boards,setBoards]=useState<Array<{id:number;name:string}>>([]);
   const [creating,setCreating]=useState(false),[newName,setNewName]=useState(""),[template,setTemplate]=useState("delivery");
   const [creatingBusy,setCreatingBusy]=useState(false);
-  const [taskCreating,setTaskCreating]=useState(false),[taskStage,setTaskStage]=useState("To Do"),[taskBusy,setTaskBusy]=useState(false);
+  const [taskCreating,setTaskCreating]=useState(false),[taskStage,setTaskStage]=useState("To Do");
   useEffect(()=>{setBoardId(undefined);},[id]);
   const [project,setProject]=useState<PMSProject>();
   const [loading,setLoading]=useState(true),[error,setError]=useState("");
@@ -57,7 +58,7 @@ export default function KanbanBoard() {
       onMove={async({record,stageId,beforeId})=>{const column=columns.find(c=>String(c.id)===stageId);if(!column)throw new Error("Destination column no longer exists. Refresh the board.");const status=({BACKLOG:"Backlog",TODO:"To Do",IN_PROGRESS:"In Progress",IN_REVIEW:"In Review",DONE:"Done"} as Record<string,string>)[column.status_key]||column.name;await arrangeTask(Number(record.id),{group_by:"status",status,before_id:beforeId?Number(beforeId):undefined});await load();}}
       actions={readOnly?[]:columns.filter(c=>c.status_key==="DONE").map(c=>({id:String(c.id),label:"Complete",tone:"success",onAction:async record=>{await arrangeTask(Number(record.id),{group_by:"status",status:"Done"});await load();}}))}
     />
-    <PipelineDrawer open={taskCreating} onClose={()=>{if(!taskBusy)setTaskCreating(false);}} title="Create task">{taskCreating&&<ProjectQuickTask projectId={id} projectName={project?.name||"Project"} initialStatus={taskStage} statuses={columns.map(c=>({BACKLOG:"Backlog",TODO:"To Do",IN_PROGRESS:"In Progress",IN_REVIEW:"In Review",DONE:"Done"} as Record<string,string>)[c.status_key]||c.name)} onBusy={setTaskBusy} onCreated={async()=>{setTaskCreating(false);await load();}} onFullForm={params=>navigate(`/pms/tasks/new?${params}`)}/>}</PipelineDrawer>
-    <PipelineDrawer open={creating} onClose={()=>setCreating(false)} title="Create a project pipeline"><form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();setCreatingBusy(true);try{const response=await api.post(`/project-management/projects/${id}/boards`,{name:newName,template});setBoards(b=>[...b,response.data]);setBoardId(response.data.id);setCreating(false);setNewName("");}catch(e){setError((e as {response?:{data?:{detail?:string}}}).response?.data?.detail||"Could not create pipeline");}finally{setCreatingBusy(false);}}}><p>Named boards show this project's existing tasks through their workflow statuses.</p><label>Pipeline name<input required maxLength={140} value={newName} onChange={e=>setNewName(e.target.value)}/></label><label>Template<select value={template} onChange={e=>setTemplate(e.target.value)}><option value="delivery">Delivery</option><option value="support">Support</option><option value="simple">Simple workflow</option></select></label><button type="submit" disabled={creatingBusy} className="pipeline-primary">Create pipeline</button></form></PipelineDrawer>
+    <CreateTaskModal isOpen={taskCreating} onClose={()=>setTaskCreating(false)} projectId={id} initialStatus={taskStage} onTaskCreated={()=>{void load();}} />
+    <PipelineDrawer open={creating} onClose={()=>setCreating(false)} title="Create a project pipeline"><SmartCreateSection title="Create pipeline" size="compact"><form className="pipeline-settings-panel" onSubmit={async e=>{e.preventDefault();setCreatingBusy(true);try{const response=await api.post(`/project-management/projects/${id}/boards`,{name:newName,template});setBoards(b=>[...b,response.data]);setBoardId(response.data.id);setCreating(false);setNewName("");}catch(e){setError((e as {response?:{data?:{detail?:string}}}).response?.data?.detail||"Could not create pipeline");}finally{setCreatingBusy(false);}}}><p>Named boards show this project's existing tasks through their workflow statuses.</p><label>Pipeline name<input required maxLength={140} value={newName} onChange={e=>setNewName(e.target.value)}/></label><label>Template<select value={template} onChange={e=>setTemplate(e.target.value)}><option value="delivery">Delivery</option><option value="support">Support</option><option value="simple">Simple workflow</option></select></label><button type="submit" disabled={creatingBusy} className="pipeline-primary">Create pipeline</button></form></SmartCreateSection></PipelineDrawer>
   </div>;
 }

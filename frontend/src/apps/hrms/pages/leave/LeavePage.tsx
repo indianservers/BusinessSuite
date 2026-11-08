@@ -1,4 +1,6 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { defaultId } from "@/lib/form-defaults";
@@ -449,6 +451,7 @@ export default function LeavePage() {
       </div>
 
       {showApplyForm && (
+        <SmartCreateModal definition={{ entity: "leave", title: "Apply for leave", presentation: "page", size: "standard" }} busy={applyMutation.isPending} onClose={() => setShowApplyForm(false)}>
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Apply for Leave</CardTitle>
@@ -515,6 +518,7 @@ export default function LeavePage() {
             </CompactForm>
           </CardContent>
         </Card>
+        </SmartCreateModal>
       )}
 
       {canManageAccounts && (
@@ -523,7 +527,7 @@ export default function LeavePage() {
             <CardTitle className="text-base">Employee Account Wizard</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+            <SmartCreateSection title="Create employee account wizard" size="standard"><div className="space-y-4"><div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
               <Input value={accountEmployeeSearch} onChange={(event) => setAccountEmployeeSearch(event.target.value)} placeholder="Search employee code or name" />
               <NativeSelect value={accountEmployeeId} onChange={(event) => {
                 const employeeId = event.target.value;
@@ -573,7 +577,7 @@ export default function LeavePage() {
                   ? `${selectedAccountEmployee.employee_id} will be able to login, apply leave, appear in manager/HR approvals, update leave balance after approval, and feed payroll LOP.`
                   : "Select an employee to link or create their login account."}
               </p>
-            </div>
+            </div></div></SmartCreateSection>
           </CardContent>
         </Card>
       )}
@@ -583,7 +587,7 @@ export default function LeavePage() {
           <CardTitle className="text-base">Leave Encashment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_1.4fr_auto]">
+          <SmartCreateSection title="Create leave encashment" size="compact"><div className="space-y-4"><div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_1.4fr_auto]">
             <NativeSelect
               value={encashLeaveTypeId}
               onChange={(event) => setEncashLeaveTypeId(event.target.value)}
@@ -602,7 +606,7 @@ export default function LeavePage() {
             >
               Request
             </Button>
-          </div>
+          </div></div></SmartCreateSection>
 
           <div className="overflow-x-auto">
             <GridTable gridId="apps/hrms/pages/leave/LeavePage:table-1" className="w-full min-w-[900px] text-sm">
@@ -726,8 +730,8 @@ export default function LeavePage() {
                     myRequests.map((r) => (
                       <tr {...recordPreviewProps(r)} key={r.id} className="border-b hover:bg-muted/30">
                         <td className="px-4 py-3 font-medium">{r.leave_type?.name}</td>
-                        <td className="px-4 py-3">{formatDate(r.from_date)}</td>
-                        <td className="px-4 py-3">{formatDate(r.to_date)}</td>
+                        <td className="px-4 py-3" data-grid-value={r.from_date}>{formatDate(r.from_date)}</td>
+                        <td className="px-4 py-3" data-grid-value={r.to_date}>{formatDate(r.to_date)}</td>
                         <td className="px-4 py-3 text-center">{Number(r.days_count).toFixed(1)}</td>
                         <td className="max-w-[160px] truncate px-4 py-3 text-muted-foreground">{r.reason || "-"}</td>
                         <td className="max-w-[180px] truncate px-4 py-3 text-muted-foreground">{r.review_remarks || "-"}</td>
@@ -897,8 +901,8 @@ export default function LeavePage() {
                           )}
                         </td>
                         <td className="px-4 py-3">{r.leave_type?.name}</td>
-                        <td className="px-4 py-3">{formatDate(r.from_date)}</td>
-                        <td className="px-4 py-3">{formatDate(r.to_date)}</td>
+                        <td className="px-4 py-3" data-grid-value={r.from_date}>{formatDate(r.from_date)}</td>
+                        <td className="px-4 py-3" data-grid-value={r.to_date}>{formatDate(r.to_date)}</td>
                         <td className="px-4 py-3 text-center">{Number(r.days_count).toFixed(1)}</td>
                         <td className="max-w-[160px] truncate px-4 py-3 text-muted-foreground">{r.reason || "-"}</td>
                         <td className="min-w-[220px] px-4 py-3">

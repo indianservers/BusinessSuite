@@ -1,3 +1,4 @@
+import { WorkspaceDirectoryMenu } from "@/shared/workspace/WorkspaceDirectoryMenu";
 import CompactForm from "@/components/forms/CompactForm";
 import SuiteNotificationBell from "@/components/suite/SuiteNotificationBell";
 import BranchSwitcher from "@/components/suite/BranchSwitcher";
@@ -96,6 +97,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex min-w-0 flex-1"><GlobalSearch compact /></div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <WorkspaceDirectoryMenu />
         <div className="hidden xl:block"><BranchSwitcher /></div>
         <Link to="/company-admin" className="hidden rounded-md border px-3 py-2 text-sm font-medium lg:inline-flex" aria-label="Company Admin">Company Admin</Link>
         <span className="hidden lg:contents">{location.pathname !== "/hrms/interns/applications" && <PageRefreshButton compact />}<RefreshPagesCatalog /></span>

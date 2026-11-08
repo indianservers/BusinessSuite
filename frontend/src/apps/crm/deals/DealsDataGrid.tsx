@@ -265,7 +265,7 @@ export default function DealsDataGrid({
           label: value,
         })),
         render: (r) => (
-          <span
+          <span data-priority-badge data-priority={r.priority || "Medium"}
             className={`udg-priority ${String(r.priority || "Medium").toLowerCase()}`}
           >
             <i />

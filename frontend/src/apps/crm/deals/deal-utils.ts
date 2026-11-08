@@ -17,7 +17,7 @@ export async function dealOptions(resource: string, params: Record<string, strin
   let page = 1, pages = 1;
   do {
     // The API maximum is 100. Never bypass it with an unlimited page request.
-    const response = await crmApi.list(resource, {...params, page, per_page: 100});
+    const response = await crmApi.list(resource, {...params, page, per_page: 100}, signal ? {signal, progress:false, recordCache:false} : undefined);
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     items.push(...response.data.items);
     pages = response.data.pages || Math.ceil((response.data.total || 0) / 100) || 1;

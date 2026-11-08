@@ -3,7 +3,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Link2, RefreshCw, Trash2, ZoomIn } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { beginProgress } from "@/lib/async-progress";
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatDate, statusColor } from "@/lib/utils";
 import { usePMSRealtime } from "../realtime";
 import { ganttAPI } from "../services/api";
+import AdvancedSchedulingPanel from "../components/AdvancedSchedulingPanel";
 import type { PMSGanttResponse, PMSTaskDependency, PMSTaskListItem } from "../types";
 
 type ZoomLevel = "day" | "week" | "month";
@@ -48,11 +49,13 @@ const defaultFilters: FilterState = { projectId: "", sprintId: "", assigneeId: "
 
 export default function GanttPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const [searchParams] = useSearchParams();
+  const queryProject = searchParams.get("project") || searchParams.get("projectId") || "";
   const user = useAuthStore(state => state.user);
   const [data, setData] = useState<PMSGanttResponse | null>(null);
   const [tasks, setTasks] = useState<PMSTaskListItem[]>([]);
   const [dependencies, setDependencies] = useState<PMSTaskDependency[]>([]);
-  const [filters, setFilters] = useState<FilterState>({ ...defaultFilters, projectId: projectId || "" });
+  const [filters, setFilters] = useState<FilterState>({ ...defaultFilters, projectId: projectId || queryProject });
   const [zoom, setZoom] = useState<ZoomLevel>("week");
   const [drag, setDrag] = useState<DragState | null>(null);
   const [sourceTaskId, setSourceTaskId] = useState("");
@@ -104,8 +107,8 @@ export default function GanttPage() {
   };
 
   useEffect(() => {
-    setFilters((current) => ({ ...current, projectId: projectId || current.projectId }));
-  }, [projectId]);
+    setFilters((current) => ({ ...current, projectId: projectId || queryProject || current.projectId }));
+  }, [projectId, queryProject]);
 
   useRefreshableEffect(() => {
     void load();
@@ -311,6 +314,8 @@ export default function GanttPage() {
       </Card>
 
       <Dialog.Root open={!!editor} onOpenChange={open => { if (!open && !saving) setEditor(null); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" /><Dialog.Content onEscapeKeyDown={event => { if (saving) event.preventDefault(); }} onInteractOutside={event => event.preventDefault()} className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border bg-background p-5 shadow-xl"><Dialog.Title className="text-lg font-semibold">Schedule · {editor?.title}</Dialog.Title><Dialog.Description>Choose dates or leave both blank to unschedule. Dependency warnings are checked after saving.</Dialog.Description>{error && <p role="alert" className="my-3 text-destructive">{error}</p>}<CompactForm className="mt-4 space-y-4" onSubmit={event => { event.preventDefault(); void saveSchedule(); }}><fieldset disabled={saving || !canEditProject(editor?.project_id)} className="grid gap-4 sm:grid-cols-2"><label>Start date<input aria-label="Schedule start date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.start} onChange={event => setDates({ ...dates, start: event.target.value })} /></label><label>Due date<input aria-label="Schedule due date" className="mt-1 h-11 w-full rounded border bg-background px-3" type="date" value={dates.due} onChange={event => setDates({ ...dates, due: event.target.value })} /></label></fieldset>{!canEditProject(editor?.project_id) && <p>You have read-only access.</p>}<div className="flex flex-wrap justify-end gap-3">{canEditProject(editor?.project_id) && <Button type="button" variant="outline" disabled={saving} onClick={() => setDates({ start: "", due: "" })}>Clear dates</Button>}<Button type="button" variant="outline" disabled={saving} onClick={() => setEditor(null)}>Close</Button>{canEditProject(editor?.project_id) && <Button disabled={saving}>{saving ? "Saving…" : "Save schedule"}</Button>}</div></CompactForm></Dialog.Content></Dialog.Portal></Dialog.Root>
+      {filters.projectId && <AdvancedSchedulingPanel key={filters.projectId} projectId={Number(filters.projectId)} canManage={canEditProject(Number(filters.projectId))} onApplied={()=>{void load();}}/>}
+      {!filters.projectId && <p className="text-sm text-muted-foreground">Select a project to analyze its critical path, preview dependency cascades and compare schedule baselines.</p>}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" />Dependencies</CardTitle></CardHeader>

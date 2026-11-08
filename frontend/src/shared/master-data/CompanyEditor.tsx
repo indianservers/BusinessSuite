@@ -24,7 +24,7 @@ type Props={placement?:"create"|"quick_create";allowSaveNew?:boolean;source?:Mas
 type Row=Record<string,string>;
 const values=(record?:Company,seedName='')=>({name:record?.name||seedName,email:record?.email||'',phone:record?.phone||'',phone_country_code:record?.phone_country_code||(record?'':defaultText('phone_country_code')),website:record?.website||'',industry:record?.industry||'',country:record?countryIso(record.country):defaultText("country"),legalName:record?.legalName||record?.name||seedName,tradeName:record?.tradeName||'',businessType:canonicalBusinessType(record?.businessType),notes:record?.notes||'',status:record?.status||'Active',vendorClassification:record?.vendorClassification||'',paymentTerms:record?.paymentTerms||(record?'Due on receipt':defaultPaymentTerms())});
 
-export function CompanyQuickCreate({placement="quick_create",allowSaveNew=true,source='crm',initial,seedName='',roles=['Prospect'],recordLabel='company',defaultEntityKind='Company',onClose,onSaved}:Props){
+export function CompanyQuickCreate({placement="create",allowSaveNew=true,source='crm',initial,seedName='',roles=['Prospect'],recordLabel='company',defaultEntityKind='Company',onClose,onSaved}:Props){
   const qc=useQueryClient(),formRef=useRef<HTMLFormElement>(null),nameRef=useRef<HTMLInputElement>(null);
   const [record,setRecord]=useState(initial),[form,setForm]=useState(()=>values(initial,seedName));
   const [availability,setAvailability]=useState<BranchAvailabilityValue>();

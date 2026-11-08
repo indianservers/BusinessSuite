@@ -31,6 +31,45 @@ def request(client, tid, headers, target="Done"):
     return response.json()
 
 
+def test_default_stage_destinations_and_configured_workflow_limits(client, db):
+    wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
+    tid = task(client, pid, mh)
+    url = f"{BASE}/tasks/{tid}/transition-approvals"
+    response = client.get(url, headers=mh)
+    assert response.status_code == 200, response.text
+    assert response.json()["can_request"] is True
+    assert {row["target"] for row in response.json()["transitions"]} == {
+        "Backlog", "In Progress", "In Review", "Blocked", "Done"
+    }
+    assert all(not row["approval_required"] for row in response.json()["transitions"])
+    assert client.get(url, headers=gh).json()["can_request"] is False
+    configured = client.put(f"{BASE}/projects/{pid}/workflow-scheme", headers=oh, json={
+        "revision": 0, "enabled": True,
+        "transitions": [{"source": "To Do", "target": "In Review"}],
+    })
+    assert configured.status_code == 200, configured.text
+    assert client.get(url, headers=mh).json()["transitions"] == [
+        {"target": "In Review", "approval_required": False}
+    ]
+
+
+def test_dashboard_projection_uses_accessible_workspace_and_compact_fields(client, db):
+    wid, pid, owner, oh, ah, member, mh, guest, gh = setup_workspace(client, db)
+    tid = task(client, pid, mh)
+    response = client.get(f"{BASE}/dashboard-workflow?workspaceId={wid}", headers=mh)
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["total"] == 1
+    assert [row["id"] for row in data["items"]] == [tid]
+    assert data["items"][0]["project_id"] == pid
+    assert "assignees" in data["items"][0] and "group_targets" in data["items"][0]
+    assert "description" not in data["items"][0]
+    assert "development_branch" not in data["items"][0]
+    outside = client.get(f"{BASE}/dashboard-workflow?workspaceId=999999", headers=mh)
+    assert outside.status_code == 200 and outside.json() == {"items": [], "total": 0}
+    assert client.get(f"{BASE}/dashboard-workflow").status_code in {401, 403}
+
+
 def decide(client, approval, headers, decision="approve"):
     return client.put(f"{ENGINE}/tasks/{approval}/decision", headers=headers, json={"decision": decision})
 

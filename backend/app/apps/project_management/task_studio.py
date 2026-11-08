@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from app.core.deps import get_db, get_current_user
 from app.models.user import User
 from .models import PMSTask, PMSActivity, PMSWorkspaceTeam
@@ -72,6 +73,12 @@ class UpdateInput(BaseModel):
     version: str
 
 
+def can_self_assign(db, project, user):
+    return (user.is_active and can_access_project(db, project, user, "manage_tasks")
+            and (not user.person or user.person.status == "active")
+            and (not getattr(user, "employee", None) or user.employee.status not in {"Terminated", "Inactive", "Suspended"}))
+
+
 def choices(db, project, user, compact=False):
     from .api.router import _project_user_query
     from .people_workspace import load_users, scope, batches_query
@@ -90,6 +97,9 @@ def choices(db, project, user, compact=False):
             or u.employee.status not in {"Terminated", "Inactive", "Suspended"}
         )
     ]
+    # A project task manager may own work without redundant workspace membership.
+    if can_self_assign(db, project, user) and user.id not in {candidate.id for candidate in candidates}:
+        candidates.append(user)
     ids = {u.id for u in candidates}
 
     def group(identity, name, members):
@@ -205,6 +215,7 @@ def choices(db, project, user, compact=False):
             {
                 u.id: u
                 for u in candidates[:40]
+                + [u for u in candidates if u.id == user.id]
                 + [u for u in candidates if u.id in reviewers][:40]
             }.values()
         )
@@ -286,9 +297,9 @@ def picker_people(
     from .api.router import _project_user_query
 
     project = get_project_for_action(db, project_id, user, "browse")
-    query = query_people(db, user, Filters(q=q, status="active")).filter(
-        User.id.in_(_project_user_query(db, project).with_entities(User.id))
-    )
+    eligible = or_(User.id.in_(_project_user_query(db, project).with_entities(User.id)),
+                   User.id == user.id if can_self_assign(db, project, user) else False)
+    query = query_people(db, user, Filters(q=q, status="active")).filter(eligible)
     from app.models.user import Role
     role_options = [row[0] for row in db.query(Role.name).filter(Role.id.in_(query.with_entities(User.role_id))).distinct().order_by(Role.name)]
     if query.filter(User.is_superuser.is_(True)).first():
@@ -321,7 +332,7 @@ def picker_people(
         load_users(
             query_people(db, user, Filters(status="active")).filter(
                 User.id.in_(ids),
-                User.id.in_(_project_user_query(db, project).with_entities(User.id)),
+                eligible,
             )
         ).all()
         if ids

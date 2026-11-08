@@ -140,7 +140,31 @@ def list_workspaces(db: Session = Depends(get_db), user: User = Depends(get_curr
     if not organization_admin(user):query=query.filter(PMSWorkspace.id.in_(memberships))
     rows=query.order_by(PMSWorkspace.id).all()
     counts=dict(db.query(PMSWorkspaceMember.workspace_id,func.count(PMSWorkspaceMember.id)).filter(PMSWorkspaceMember.workspace_id.in_([w.id for w in rows])).group_by(PMSWorkspaceMember.workspace_id).all()) if rows else {}
-    return [{"id":w.id,"name":w.name,"role":memberships.get(w.id,"Admin"),"access_source":"Workspace membership" if w.id in memberships else "Organization role","member_count":counts.get(w.id,0),"created_at":w.created_at} for w in rows]
+    # Reuse exactly the live project/task scope used by the overview endpoint.
+    # Group once for the directory instead of fetching every workspace overview.
+    ids = [w.id for w in rows]
+    owners = {}
+    for wid, email in (db.query(PMSWorkspaceMember.workspace_id, User.email)
+        .join(User, User.id == PMSWorkspaceMember.user_id)
+        .filter(PMSWorkspaceMember.workspace_id.in_(ids), PMSWorkspaceMember.role == "Owner")
+        .order_by(User.email).all() if ids else []):
+        owners.setdefault(wid, []).append(email)
+    projects = dict(db.query(PMSProject.workspace_id, func.count(PMSProject.id)).filter(
+        PMSProject.workspace_id.in_(ids), PMSProject.deleted_at.is_(None)
+    ).group_by(PMSProject.workspace_id).all()) if ids else {}
+    task_counts = {}
+    completed = {"Done", "Completed", "Closed", "Resolved"}
+    for wid, status, count in (db.query(PMSProject.workspace_id, PMSTask.status, func.count(PMSTask.id))
+        .join(PMSTask, PMSTask.project_id == PMSProject.id)
+        .filter(PMSProject.workspace_id.in_(ids), PMSProject.deleted_at.is_(None), PMSTask.deleted_at.is_(None))
+        .group_by(PMSProject.workspace_id, PMSTask.status).all() if ids else []):
+        totals = task_counts.setdefault(wid, {"total": 0, "completed": 0})
+        totals["total"] += count
+        if status in completed:
+            totals["completed"] += count
+    return [{"id":w.id,"name":w.name,"role":memberships.get(w.id,"Admin"),"access_source":"Workspace membership" if w.id in memberships else "Organization role","member_count":counts.get(w.id,0),"created_at":w.created_at,
+             "owners": owners.get(w.id, []), "project_count": projects.get(w.id, 0), "task_count": task_counts.get(w.id, {}).get("total", 0),
+             "completed_task_count": task_counts.get(w.id, {}).get("completed", 0)} for w in rows]
 
 
 @router.get("/workspaces/{workspace_id}/overview")

@@ -314,6 +314,17 @@ def action_for(request):
         return "view" if path.endswith("/validate") else "configure"
     if path.startswith("/api/v1/power-apps/executions/") or (path.startswith("/api/v1/power-apps/automations/") and path.endswith("/execute")):
         return "create"
+    # Personal chat state never edits another person's message or conversation.
+    chat_base = r"/api/v1/(?:collaboration|project-management)/workspaces/\d+/chat/conversations/\d+"
+    if request.method == "PUT":
+        if re.fullmatch(chat_base + r"/(?:presence|preferences|mute|read)", path):
+            return "view"
+        if re.fullmatch(chat_base + r"/draft", path):
+            return "create"
+        if re.fullmatch(chat_base + r"/messages/\d+/saved", path):
+            return "view"
+        if re.fullmatch(chat_base + r"/messages/\d+/reactions/[^/]+", path):
+            return "create"
     segments = set(path.split("/"))
     if segments.intersection({"roles", "permissions", "users", "user-access"}):
         return "manage_users"

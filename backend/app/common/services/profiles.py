@@ -876,6 +876,11 @@ def serialize_profile(db, user, actor):
             else []
         ),
         "pendingRequests": pending,
+        "certificationAlerts": [
+            {"name": row.certification_name, "expires": str(row.expiry_date), "expired": row.expiry_date < date.today()}
+            for row in employee.certifications
+            if row.expiry_date and (row.expiry_date-date.today()).days <= 90
+        ] if employee else [],
     }
 
 
@@ -915,6 +920,16 @@ def update_profile(db, user, actor, values, version=None, reason="Profile update
                     422, "Education/experience record does not belong to this employee"
                 )
     if direct:
+        if employee:
+            from app.core.hr_audit import record_employee_field_changes
+            from app.services.employee_profile_reliability import check_duplicates, touch
+            contacts = {k:v for k,v in direct.items() if k in {"personal_email","work_email","phone_number","phone_number_country_code"}}
+            if contacts: check_duplicates(db, contacts, employee.id)
+            record_employee_field_changes(db, employee, direct, actor.id, reason)
+            from app.core.hr_audit import record_field_audit
+            for collection in {"education", "experience", "skills"}.intersection(direct):
+                record_field_audit(db,module="employee",entity_type="employee",entity_id=employee.id,employee_id=employee.id,field_name=collection,old_value=current["values"].get(collection),new_value=direct[collection],actor_user_id=actor.id,reason=reason)
+            touch(employee)
         apply_values(db, user, direct, employee)
     request_id = None
     if protected:

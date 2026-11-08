@@ -1,3 +1,6 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import RecordMaintenance from "@/components/RecordMaintenance";
 import {useAuthStore} from "@/store/authStore";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -303,7 +306,7 @@ export default function PerformancePage() {
         <div className="space-y-4">
           {/* Create goal form */}
           {showGoalForm && (
-            <Card>
+            <SmartCreateSection title={<>New Goal</>} size="standard" autoOpen onClose={() => setShowGoalForm(false)}><Card>
               <CardHeader><CardTitle className="text-base">New Goal</CardTitle></CardHeader>
               <CardContent>
                 <CompactForm
@@ -336,7 +339,7 @@ export default function PerformancePage() {
                   </div>
                 </CompactForm>
               </CardContent>
-            </Card>
+            </Card></SmartCreateSection>
           )}
 
           {/* Goals list */}
@@ -358,14 +361,14 @@ export default function PerformancePage() {
                 : 0);
 
               return (
-                <Card key={goal.id}>
+                <Card data-priority-row data-priority={goal.priority} key={goal.id}>
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-sm">{goal.title}</h3>
                           {goal.priority && (
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${statusColor(goal.priority)}`}>
+                            <span data-priority-badge data-priority={goal.priority} className={`text-xs px-1.5 py-0.5 rounded ${statusColor(goal.priority)}`}>
                               {goal.priority}
                             </span>
                           )}
@@ -422,7 +425,7 @@ export default function PerformancePage() {
             <CardDescription>Submit your performance self-assessment</CardDescription>
           </CardHeader>
           <CardContent>
-            <CompactForm
+            <SmartCreateSection title="Submit performance review" size="standard"><CompactForm
               onSubmit={submitReview((data) => submitReviewMutation.mutate(data))}
               className="space-y-6"
             >
@@ -465,7 +468,7 @@ export default function PerformancePage() {
               <Button type="submit" disabled={!canCreate||!selectedCycle||!(cycles as Cycle[] | undefined)?.some(cycle=>cycle.id===Number(selectedCycle)&&["active","self_review","manager_review","calibration"].includes(cycle.status))||submitReviewMutation.isPending}>
                 {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
               </Button>
-            </CompactForm>
+            </CompactForm></SmartCreateSection>
           </CardContent>
         </Card>
       )}
@@ -485,7 +488,7 @@ export default function PerformancePage() {
                 No 360 feedback requests assigned.
               </div>
             ) : (
-              (feedback360 || []).map((item) => (
+              <GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-1" items={((feedback360 || [])) || []} fields={standardRecordGroups(((feedback360 || [])) || [])} gridClassName="space-y-3" renderItem={(item) => (
                 <div key={item.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium">Employee #{item.employee_id} feedback</p>
@@ -496,7 +499,7 @@ export default function PerformancePage() {
                   </div>
                   <Badge variant={item.status === "Submitted" ? "default" : "secondary"}>{item.status}</Badge>
                 </div>
-              ))
+              )}/>
             )}
           </CardContent>
         </Card>
@@ -509,7 +512,7 @@ export default function PerformancePage() {
             <CardDescription>Review-cycle rating moderation with proposed, final, and potential ratings.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(calibrationSessions || []).map((session) => (
+            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-2" items={((calibrationSessions || [])) || []} fields={standardRecordGroups(((calibrationSessions || [])) || [])} gridClassName="space-y-3" renderItem={(session) => (
               <div key={session.id} className="rounded-lg border p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -528,7 +531,7 @@ export default function PerformancePage() {
                   ))}
                 </div>
               </div>
-            ))}
+            )}/>}
             {!calibrationSessions?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No calibration sessions yet.</p>}
           </CardContent>
         </Card>
@@ -541,7 +544,7 @@ export default function PerformancePage() {
             <CardDescription>Manager and employee conversations with action follow-through.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(oneOnOnes || []).slice(0, 20).map((item) => (
+            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-3" items={((oneOnOnes || []).slice(0, 20)) || []} fields={standardRecordGroups(((oneOnOnes || []).slice(0, 20)) || [])} gridClassName="space-y-3" renderItem={(item) => (
               <div key={item.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto]">
                 <div>
                   <p className="text-sm font-medium">Employee #{item.employee_id} with Manager #{item.manager_id}</p>
@@ -552,7 +555,7 @@ export default function PerformancePage() {
                 </div>
                 <Badge variant={item.status === "Closed" ? "default" : "secondary"}>{item.status}</Badge>
               </div>
-            ))}
+            )}/>}
             {!oneOnOnes?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No one-on-one records yet.</p>}
           </CardContent>
         </Card>
@@ -587,7 +590,7 @@ export default function PerformancePage() {
             <CardDescription>Critical roles, successors, readiness, and development actions.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(criticalRoles || []).map((role) => (
+            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-4" items={((criticalRoles || [])) || []} fields={standardRecordGroups(((criticalRoles || [])) || [])} gridClassName="space-y-3" renderItem={(role) => (
               <div key={role.id} className="rounded-lg border p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -605,7 +608,7 @@ export default function PerformancePage() {
                   ))}
                 </div>
               </div>
-            ))}
+            )}/>}
             {!criticalRoles?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No critical roles configured.</p>}
           </CardContent>
         </Card>

@@ -131,6 +131,7 @@ class PMSProjectResponse(PMSProjectBase):
 
     can_manage_tasks: bool = False
     can_upload_files: bool = False
+    can_log_time: bool = False
     can_manage_members: bool = False
     can_edit_project: bool = False
     id: int
@@ -936,6 +937,7 @@ class PMSTimeLogUpdate(BaseModel):
 
 
 class PMSTimeLogResponse(PMSTimeLogBase):
+    timesheet_locked: bool = False
     id: int
     timesheet_id: Optional[int] = None
     user_id: int

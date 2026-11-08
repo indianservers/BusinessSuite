@@ -39,6 +39,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      // Generated Playwright trace HTML must not reload an active app session.
+      watch: { ignored: ["**/test-results*/**", "**/playwright-report/**", "**/.local/**", "**/outputs/**", "**/docs/qa/**"] },
       proxy: {
         "/api": {
           ws: true,

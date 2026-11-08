@@ -1,0 +1,51 @@
+/* Narrow mobile task presentation. Existing tablet and desktop rules are untouched. */
+@media (max-width: 480px) {
+  .task-studio {
+    --task-mobile-border: #e5def4;
+    padding: 12px 10px calc(18px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: 100px;
+  }
+  .task-studio .ts-title { gap: 10px; flex-wrap: wrap; margin-inline: 0; }
+  .task-studio .ts-title h1 { font-size: 23px; letter-spacing: -.4px; }
+  .task-studio .ts-title p { font-size: 13px; line-height: 1.45; max-width: none; }
+  .task-studio .ts-back { width: 44px; height: 44px; }
+  .task-studio .ts-title-actions { gap: 8px; }
+  .task-studio .ts-title-actions > button { flex: 1; min-width: 0; min-height: 44px; height: auto; }
+  .task-studio .ts-section { border-radius: 16px; padding: 12px; }
+  .task-studio .ts-section > header { margin-bottom: 12px; }
+  .task-studio .ts-section header h2 { font-size: 15px; }
+  .task-studio .ts-section header p { font-size: 12px; line-height: 1.45; }
+  .task-studio .ts-field { min-width: 0; font-size: 14px; }
+  .task-studio .ts-field > :is(span, div) { min-width: 0; }
+  .task-studio .ts-field small { font-size: 12px; line-height: 1.4; }
+  .task-studio :is(input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea) {
+    min-height: 44px; font-size: 16px; max-width: 100%; scroll-margin-block: 76px;
+  }
+  .task-studio :is(button, summary) { min-height: 44px; }
+  .task-studio .ts-worktype [role=group] { gap: 6px; }
+  .task-studio .ts-worktype button { font-size: 13px; padding: 8px 10px; }
+  .task-studio .ts-assignment-cards { gap: 6px; }
+  .task-studio .ts-assignment-cards > button { padding: 8px; min-height: 86px; gap: 6px; }
+  .task-studio .ts-assignment-cards strong { font-size: 12px; overflow-wrap: anywhere; }
+  .task-studio .ts-assignment-cards small { font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+  .task-studio .ts-picker-list { max-height: min(300px, 44dvh); overscroll-behavior: contain; }
+  .task-studio .ts-picker-list label { min-height: 44px; font-size: 14px; }
+  .task-studio .ts-chips { gap: 6px; flex-wrap: wrap; }
+  .task-studio .ts-chips > span { max-width: 100%; overflow-wrap: anywhere; }
+  .task-studio .ts-chips button { min-width: 44px; flex-shrink: 0; }
+  .task-studio .ts-summary-row { font-size: 13px; gap: 8px; }
+  .task-studio .ts-summary-row strong { overflow-wrap: anywhere; min-width: 0; }
+  .task-studio .ts-bottom { padding: 10px; gap: 8px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .task-studio .ts-bottom > div { min-width: 0; flex-wrap: wrap; }
+  .task-studio .ts-bottom :is(button, label) { min-height: 44px; }
+  .task-studio .ts-bottom button { font-size: 14px; }
+  .task-studio .ts-upload { padding: 14px 12px; }
+  .task-studio .ts-upload small { font-size: 12px; }
+  .task-studio .suite-rte-toolbar { flex-wrap: wrap; }
+  .task-studio .suite-rte-toolbar button { min-width: 36px; min-height: 36px; }
+}
+@media (max-width: 480px) {
+  .task-studio .suite-auto-form-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  .task-studio .suite-auto-form-tabs button { padding: 8px 4px; font-size: 12px; }
+  .task-studio .ts-add-person { position: static; display: inline-flex; align-items: center; margin-block: 6px; }
+}

@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -325,7 +327,7 @@ function SavedReports() {
           ))}
           <div className="border-t pt-3">
             <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Schedules</p>
-            {(schedules.data || []).map((schedule) => (
+            {<GroupedRecords scope="apps/hrms/pages/reports/ReportsPage:records-1" items={((schedules.data || [])) || []} fields={standardRecordGroups(((schedules.data || [])) || [])} gridClassName="space-y-3" renderItem={(schedule) => (
               <div key={schedule.id} className="mb-2 rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-medium">{schedule.name}</p>
@@ -334,7 +336,7 @@ function SavedReports() {
                 <p className="mt-1 text-xs text-muted-foreground">{schedule.cron_expression}</p>
                 <Button className="mt-2 h-7 text-xs" variant="outline" onClick={() => runSchedule.mutate(schedule.id)}>Run</Button>
               </div>
-            ))}
+            )}/>}
             {!schedules.isLoading && !schedules.data?.length && <p className="text-xs text-muted-foreground">No scheduled exports configured.</p>}
           </div>
         </CardContent>

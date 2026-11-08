@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -81,15 +82,15 @@ export default function OnboardingPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Template</CardTitle><CardDescription>Create reusable onboarding plans.</CardDescription></CardHeader>
             <CardContent>
-              <CompactForm onSubmit={submitTemplate} className="flex gap-2">
+              <SmartCreateSection title="Create onboarding template" size="compact"><CompactForm onSubmit={submitTemplate} className="flex gap-2">
                 <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Engineering joining checklist" required />
                 <Button type="submit"><Plus className="h-4 w-4" />Add</Button>
-              </CompactForm>
+              </CompactForm></SmartCreateSection>
               <GroupedRecords scope="apps/hrms/pages/onboarding/OnboardingPage:cards-1" items={(templates.data) || []} fields={standardRecordGroups((templates.data) || [])} gridClassName="mt-4 space-y-2" renderItem={(t: any) => <TemplateSteps key={t.id} template={t} refresh={() => templates.refetch()} />}/>
             </CardContent>
           </Card>
 
-          <Card>
+          <SmartCreateSection title={<>Start onboarding</>} size="compact"><Card>
             <CardHeader><CardTitle className="text-base">Start onboarding</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2">
@@ -109,13 +110,13 @@ export default function OnboardingPage() {
               <div className="space-y-2"><Label>Start date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
               <Button onClick={() => start.mutate()} disabled={!employeeId || start.isPending}>Start</Button>
             </CardContent>
-          </Card>
+          </Card></SmartCreateSection>
         </div>
 
         <Card>
           <CardHeader><CardTitle className="text-base">Employee onboarding</CardTitle><CardDescription>{onboardings.data?.length ?? 0} records</CardDescription></CardHeader>
           <CardContent className="space-y-3">
-            {onboardings.data?.map((item: any) => (
+            {<GroupedRecords scope="apps/hrms/pages/onboarding/OnboardingPage:records-1" items={(onboardings.data) || []} fields={standardRecordGroups((onboardings.data) || [])} gridClassName="space-y-3" renderItem={(item: any) => (
               <div key={item.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><ClipboardCheck className="h-5 w-5" /></div>
@@ -129,7 +130,7 @@ export default function OnboardingPage() {
                   {item.status !== "Completed" && <Button size="sm" variant="outline" onClick={() => complete.mutate(item.id)}><CheckCircle2 className="h-4 w-4" />Complete</Button>}
                 </div>
               </div>
-            ))}
+            )}/>}
             {!onboardings.isLoading && !onboardings.data?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No onboarding records yet.</p>}
           </CardContent>
         </Card>

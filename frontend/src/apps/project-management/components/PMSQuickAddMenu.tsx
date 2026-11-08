@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle2, Folder, Users, LayoutGrid, Bug, FileText } from "lucide-react";
 import { api } from "@/services/api";
@@ -6,13 +6,9 @@ import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import NewMenu, { type NewAction } from "@/components/app/NewMenu";
 
-const TaskQuickCreate=lazy(()=>import("./ProjectTaskQuickCreate"));
-const QuickCreateProject=lazy(()=>import("./QuickCreateProject"));
 
 export default function PMSQuickAddMenu({ children }: { children?: (actions: NewAction[]) => ReactNode } = {}) {
   const location = useLocation();
-  const [quickTask,setQuickTask]=useState<"Task"|"Story"|"Bug">();
-  const [quickProject,setQuickProject]=useState(false);
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   const [context, setContext] = useState<{ id: number; role: string; name: string }>();
@@ -40,9 +36,9 @@ export default function PMSQuickAddMenu({ children }: { children?: (actions: New
   const actions: NewAction[] = [];
   actions.push({ label: "Private note", description: "Capture an idea, with or without a project", icon: FileText, menuPaths: ["/pms/notes"], onSelect: () => { const project = location.pathname.match(/\/pms\/projects\/(\d+)/)?.[1]; navigate(`/pms/notes?new=1${project ? `&project=${project}` : ""}`); } });
   if (context && context.role !== "Guest") {
-    for (const [label, kind, icon] of [["Task", "task", CheckCircle2], ["Story", "story", FileText], ["Bug", "bug", Bug]] as const) actions.push({ label, description: `Add to ${context.name}`, icon, menuPaths: kind === "task" ? ["/pms/tasks", "/pms/my-work", "/pms/backlog", "/pms/work-hub"] : [], onSelect: () => setQuickTask(label) });
+    for (const [label, kind, icon] of [["Task", "task", CheckCircle2], ["Story", "story", FileText], ["Bug", "bug", Bug]] as const) actions.push({ label, description: `Add to ${context.name}`, icon, menuPaths: kind === "task" ? ["/pms/tasks", "/pms/my-work", "/pms/backlog", "/pms/work-hub"] : [], onSelect: () => navigate(`/pms/tasks/new?workType=${label}&workspace=${context.id}`) });
   }
-  if (context && ["Owner", "Admin"].includes(context.role)) actions.push({ label: "Project", description: `Organize work in ${context.name}`, icon: Folder, menuPaths: ["/pms/projects"], onSelect: () => setQuickProject(true) }, { label: "User / invitation", description: "Invite a person with a secure share link", icon: Users, menuPaths: ["/pms/members", "/pms/people"], onSelect: () => open("user") });
+  if (context && ["Owner", "Admin"].includes(context.role)) actions.push({ label: "Project", description: `Organize work in ${context.name}`, icon: Folder, menuPaths: ["/pms/projects"], onSelect: () => navigate(`/pms/projects/new?workspace_id=${context.id}`) }, { label: "User / invitation", description: "Invite a person with a secure share link", icon: Users, menuPaths: ["/pms/members", "/pms/people"], onSelect: () => open("user") });
   if (canAccessRoute("/pms/projects/new", user?.role, user?.is_superuser)) actions.push({ label: "Workspace", description: "Create a workspace for a team", icon: LayoutGrid, menuPaths: ["/pms/workspaces"], onSelect: () => open("workspace") });
-  return <>{children ? children(loading ? [] : actions) : <NewMenu actions={actions} disabled={loading} />}{quickTask&&<Suspense fallback={<p role="status">Loading task form...</p>}><TaskQuickCreate initialWorkType={quickTask} workspaceId={context?.id} initialProjectId={Number(location.pathname.match(/\/pms\/projects\/(\d+)/)?.[1])||undefined} close={()=>setQuickTask(undefined)} saved={()=>setQuickTask(undefined)}/></Suspense>}{quickProject&&<Suspense fallback={<p role="status">Loading project form...</p>}><QuickCreateProject open initialWorkspace={context?.id} onClose={()=>setQuickProject(false)} onCreated={()=>{}}/></Suspense>}</>;
+  return children ? <>{children(loading ? [] : actions)}</> : <NewMenu actions={actions} disabled={loading} />;
 }

@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import {useModuleAction} from "@/hooks/use-module-action";
 import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
@@ -282,7 +283,7 @@ export default function FollowUpsPage() {
           ))}
       </details>
       {creating && canCreate && (
-        <CompactForm
+        <SmartCreateSection title="Save follow-up" autoOpen onClose={() => setCreating(false)} size="compact"><CompactForm
           className="space-y-3 rounded-xl border bg-card p-4"
           onSubmit={(e) => {
             e.preventDefault();
@@ -414,7 +415,7 @@ export default function FollowUpsPage() {
             teams={options.data?.teams}
           />
           <Button disabled={!canCreate || busy || !schedule.required}>Save follow-up</Button>
-        </CompactForm>
+        </CompactForm></SmartCreateSection>
       )}
       {(query.isError || detail.isError || stats.isError) && (
         <p role="alert" className="rounded border border-red-300 p-3">
@@ -903,7 +904,7 @@ export default function FollowUpsPage() {
                 </thead>
                 <tbody>
                   {rows.map((r) => (
-                    <tr key={r.id} className="border-t">
+                    <tr data-priority-row data-priority={r.priority} key={r.id} className="border-t">
                       <td className="p-3">
                         <input
                           type="checkbox"

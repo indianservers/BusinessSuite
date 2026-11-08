@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bot, Gauge, Layers3, RefreshCw, Search, ShieldCheck } from "lucide-react";
@@ -110,7 +112,7 @@ export default function BusinessOSWorkspacePage() {
 
       {view === "reports" ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {reports.map((report) => (
+          {<GroupedRecords scope="apps/business-os/BusinessOSWorkspacePage:records-1" items={(reports) || []} fields={standardRecordGroups((reports) || [])} gridClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-3" renderItem={(report) => (
             <Card key={report.key} className={report.enabled ? "" : "opacity-70"}>
               <CardHeader className="pb-2"><CardTitle className="text-base">{report.title}</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
@@ -119,7 +121,7 @@ export default function BusinessOSWorkspacePage() {
                 <p className="text-xs text-muted-foreground">Requires: {report.required_modules.join(", ") || "Business OS"}</p>
               </CardContent>
             </Card>
-          ))}
+          )}/>}
         </div>
       ) : null}
 
@@ -156,7 +158,7 @@ export default function BusinessOSWorkspacePage() {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2 text-base"><ShieldCheck className="h-4 w-4 text-primary" />Module-Aware Roles</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {roles.map((role) => (
+              {<GroupedRecords scope="apps/business-os/BusinessOSWorkspacePage:records-2" items={(roles) || []} fields={standardRecordGroups((roles) || [])} gridClassName="space-y-3" renderItem={(role) => (
                 <div key={role.role} className="rounded-md border p-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">{role.role}</span>
@@ -165,7 +167,7 @@ export default function BusinessOSWorkspacePage() {
                   <p className="mt-1 text-xs text-muted-foreground">{role.reason}</p>
                   {role.available ? <p className="mt-1 text-xs text-muted-foreground">{role.permissions.join(", ") || "No disabled-module permissions exposed"}</p> : null}
                 </div>
-              ))}
+              )}/>}
             </CardContent>
           </Card>
         </div>

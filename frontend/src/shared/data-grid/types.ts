@@ -90,6 +90,8 @@ export type GridExportRequest = {
 };
 export type GridDataSource<T> = {
   localRows?: T[];
+  /** Matching records already held by a local adapter, before grouping/pagination. */
+  summaryRows?: (query: GridQuery) => T[];
   personalIdentity?: "id" | "key";
   key: string;
   load: (query: GridQuery, signal?: AbortSignal) => Promise<GridResult<T>>;
@@ -206,6 +208,8 @@ export type SharedDataGridProps<T> = {
   renderDetails?: (row: T) => ReactNode;
   detailsEnabled?: boolean;
   dataScope?: "all" | "loaded";
+  overview?: boolean;
+  emptyContent?: ReactNode;
   hideSearch?: boolean;
   externalPagination?: boolean;
   bulkToolbar?: ReactNode;

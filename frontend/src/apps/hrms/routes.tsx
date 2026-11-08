@@ -1,69 +1,71 @@
+import { lazyRoute } from "@/lib/lazy-route";
+const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
 import React from "react";
-const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+const ImportWorkspace = lazyRoute(() => import("@/shared/data-transfer/ImportWorkspace"));
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-const UserAccountsPage = React.lazy(() => import("@/apps/hrms/pages/employees/UserAccountsPage"));
-const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
-const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
+const UserAccountsPage = lazyRoute(() => import("@/apps/hrms/pages/employees/UserAccountsPage"));
+const CommunicationWorkspace = lazyRoute(() => import("@/shared/communication/CommunicationWorkspace"));
+const ModuleGanttPage = lazyRoute(() => import("@/components/scheduling/ModuleGanttPage"));
 import { Navigate, useLocation } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
-const WorkforceOperationsPage = React.lazy(() => import("@/components/workforce/WorkforceOperationsPage"));
+const WorkforceOperationsPage = lazyRoute(() => import("@/components/workforce/WorkforceOperationsPage"));
 
-const InternApplicationsPage = React.lazy(() => import("@/apps/hrms/pages/interns/InternApplicationsPage"));
-const HRDailyWork = React.lazy(() => import("./workbench/HRDailyWork"));
-const DashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/DashboardPage"));
-const RoleWorkspacePage = React.lazy(() => import("@/apps/hrms/pages/dashboard/RoleWorkspacePage"));
-const ManagerDashboardPage = React.lazy(() => import("@/apps/hrms/pages/dashboard/ManagerDashboardPage"));
-const EmployeesPage = React.lazy(() => import("@/apps/hrms/pages/employees/EmployeesPage"));
-const EmployeeDirectoryPage = React.lazy(() => import("@/components/PeopleDirectoryPage"));
-const EmployeeDetailPage = React.lazy(() => import("@/apps/hrms/pages/employees/EmployeeDetailPage"));
-const AddEmployeePage = React.lazy(() => import("@/apps/hrms/pages/employees/AddEmployeePage"));
-const ProbationPage = React.lazy(() => import("@/apps/hrms/pages/employees/ProbationPage"));
-const AttendancePage = React.lazy(() => import("@/apps/hrms/pages/attendance/AttendancePage"));
-const MyAttendancePage = React.lazy(() => import("@/apps/hrms/pages/attendance/MyAttendancePage"));
-const ShiftRosterPage = React.lazy(() => import("@/apps/hrms/pages/attendance/ShiftRosterPage"));
-const MyRosterPage = React.lazy(() => import("@/apps/hrms/pages/attendance/MyRosterPage"));
-const TimesheetsPage = React.lazy(() => import("@/apps/hrms/pages/timesheets/TimesheetsPage"));
-const ApprovalOsPage = React.lazy(() => import("@/apps/hrms/pages/workflow/ApprovalOsPage"));
-const WorkflowInboxPage = React.lazy(() => import("@/apps/hrms/pages/workflow/WorkflowInboxPage"));
-const WorkflowDesignerPage = React.lazy(() => import("@/apps/hrms/pages/workflow/WorkflowDesignerPage"));
-const NotificationsPage = React.lazy(() => import("@/apps/hrms/pages/notifications/NotificationsPage"));
-const LeavePage = React.lazy(() => import("@/apps/hrms/pages/leave/LeavePage"));
-const PayrollPage = React.lazy(() => import("@/apps/hrms/pages/payroll/PayrollPage"));
-const MyPayslipsPage = React.lazy(() => import("@/apps/hrms/pages/profile/MyPayslipsPage"));
-const FnFSettlementPage = React.lazy(() => import("@/apps/hrms/pages/payroll/FnFSettlementPage"));
-const InvestmentDeclarationPage = React.lazy(() => import("@/apps/hrms/pages/payroll/InvestmentDeclarationPage"));
-const RecruitmentPage = React.lazy(() => import("@/apps/hrms/pages/recruitment/RecruitmentPage"));
-const PerformancePage = React.lazy(() => import("@/apps/hrms/pages/performance/PerformancePage"));
-const HelpdeskPage = React.lazy(() => import("@/apps/hrms/pages/helpdesk/HelpdeskPage"));
-const ReportsPage = React.lazy(() => import("@/apps/hrms/pages/reports/ReportsPage"));
-const AdvancedAnalyticsPage = React.lazy(() => import("@/apps/hrms/pages/analytics/AdvancedAnalyticsPage"));
-const AdminLogsPage = React.lazy(() => import("@/apps/hrms/pages/logs/AdminLogsPage"));
-const CompanyPage = React.lazy(() => import("@/apps/hrms/pages/company/CompanyPage"));
-const OrgChartPage = React.lazy(() => import("@/apps/hrms/pages/company/OrgChartPage"));
-const AIAssistantPage = React.lazy(() => import("@/apps/hrms/pages/ai/AIAssistantPage"));
-const ProfilePage = React.lazy(() => import("@/apps/hrms/pages/profile/ProfilePage"));
-const SharedProfilePage = React.lazy(() => import("@/features/profiles/ProfilePage"));
-const SharedProfileManagementPage = React.lazy(() => import("@/features/profiles/ProfilePage").then(module => ({ default: module.SharedProfileManagementPage })));
-const ESSPortalPage = React.lazy(() => import("@/apps/hrms/pages/profile/ESSPortalPage"));
-const AssetsPage = React.lazy(() => import("@/apps/hrms/pages/assets/AssetsPage"));
-const ExpensesPage = React.lazy(() => import("@/apps/hrms/pages/expenses/ExpensesPage"));
-const OnboardingPage = React.lazy(() => import("@/apps/hrms/pages/onboarding/OnboardingPage"));
-const DocumentsPage = React.lazy(() => import("@/apps/hrms/pages/documents/DocumentsPage"));
-const DocumentStudioPage = React.lazy(() => import("@/apps/hrms/pages/documents/DocumentStudioPage"));
-const ExitPage = React.lazy(() => import("@/apps/hrms/pages/exit/ExitPage"));
-const SettingsPage = React.lazy(() => import("@/apps/hrms/pages/settings/SettingsPage"));
-const EngagementPage = React.lazy(() => import("@/apps/hrms/pages/engagement/EngagementPage"));
-const BenefitsPage = React.lazy(() => import("@/apps/hrms/pages/benefits/BenefitsPage"));
-const LMSPage = React.lazy(() => import("@/apps/hrms/pages/lms/LMSPage"));
-const StatutoryCompliancePage = React.lazy(() => import("@/apps/hrms/pages/compliance/StatutoryCompliancePage"));
-const BackgroundVerificationPage = React.lazy(() => import("@/apps/hrms/pages/compliance/BackgroundVerificationPage"));
-const WhatsAppESSPage = React.lazy(() => import("@/apps/hrms/pages/platform/WhatsAppESSPage"));
-const CustomFieldsPage = React.lazy(() => import("@/apps/hrms/pages/platform/CustomFieldsPage"));
-const EnterprisePage = React.lazy(() => import("@/apps/hrms/pages/platform/EnterprisePage"));
+const InternApplicationsPage = lazyRoute(() => import("@/apps/hrms/pages/interns/InternApplicationsPage"));
+const HRDailyWork = lazyRoute(() => import("./workbench/HRDailyWork"));
+const DashboardPage = lazyRoute(() => import("@/apps/hrms/pages/dashboard/DashboardPage"));
+const RoleWorkspacePage = lazyRoute(() => import("@/apps/hrms/pages/dashboard/RoleWorkspacePage"));
+const ManagerDashboardPage = lazyRoute(() => import("@/apps/hrms/pages/dashboard/ManagerDashboardPage"));
+const EmployeesPage = lazyRoute(() => import("@/apps/hrms/pages/employees/EmployeesPage"));
+const EmployeeDirectoryPage = lazyRoute(() => import("@/components/PeopleDirectoryPage"));
+const EmployeeDetailPage = lazyRoute(() => import("@/apps/hrms/pages/employees/EmployeeDetailPage"));
+const AddEmployeePage = lazyRoute(() => import("@/apps/hrms/pages/employees/AddEmployeePage"));
+const ProbationPage = lazyRoute(() => import("@/apps/hrms/pages/employees/ProbationPage"));
+const AttendancePage = lazyRoute(() => import("@/apps/hrms/pages/attendance/AttendancePage"));
+const MyAttendancePage = lazyRoute(() => import("@/apps/hrms/pages/attendance/MyAttendancePage"));
+const ShiftRosterPage = lazyRoute(() => import("@/apps/hrms/pages/attendance/ShiftRosterPage"));
+const MyRosterPage = lazyRoute(() => import("@/apps/hrms/pages/attendance/MyRosterPage"));
+const TimesheetsPage = lazyRoute(() => import("@/apps/hrms/pages/timesheets/TimesheetsPage"));
+const ApprovalOsPage = lazyRoute(() => import("@/apps/hrms/pages/workflow/ApprovalOsPage"));
+const WorkflowInboxPage = lazyRoute(() => import("@/apps/hrms/pages/workflow/WorkflowInboxPage"));
+const WorkflowDesignerPage = lazyRoute(() => import("@/apps/hrms/pages/workflow/WorkflowDesignerPage"));
+const NotificationsPage = lazyRoute(() => import("@/apps/hrms/pages/notifications/NotificationsPage"));
+const LeavePage = lazyRoute(() => import("@/apps/hrms/pages/leave/LeavePage"));
+const PayrollPage = lazyRoute(() => import("@/apps/hrms/pages/payroll/PayrollPage"));
+const MyPayslipsPage = lazyRoute(() => import("@/apps/hrms/pages/profile/MyPayslipsPage"));
+const FnFSettlementPage = lazyRoute(() => import("@/apps/hrms/pages/payroll/FnFSettlementPage"));
+const InvestmentDeclarationPage = lazyRoute(() => import("@/apps/hrms/pages/payroll/InvestmentDeclarationPage"));
+const RecruitmentPage = lazyRoute(() => import("@/apps/hrms/pages/recruitment/RecruitmentPage"));
+const PerformancePage = lazyRoute(() => import("@/apps/hrms/pages/performance/PerformancePage"));
+const HelpdeskPage = lazyRoute(() => import("@/apps/hrms/pages/helpdesk/HelpdeskPage"));
+const ReportsPage = lazyRoute(() => import("@/apps/hrms/pages/reports/ReportsPage"));
+const AdvancedAnalyticsPage = lazyRoute(() => import("@/apps/hrms/pages/analytics/AdvancedAnalyticsPage"));
+const AdminLogsPage = lazyRoute(() => import("@/apps/hrms/pages/logs/AdminLogsPage"));
+const CompanyPage = lazyRoute(() => import("@/apps/hrms/pages/company/CompanyPage"));
+const OrgChartPage = lazyRoute(() => import("@/apps/hrms/pages/company/OrgChartPage"));
+const AIAssistantPage = lazyRoute(() => import("@/apps/hrms/pages/ai/AIAssistantPage"));
+const ProfilePage = lazyRoute(() => import("@/apps/hrms/pages/profile/ProfilePage"));
+const SharedProfilePage = lazyRoute(() => import("@/features/profiles/ProfilePage"));
+const SharedProfileManagementPage = lazyRoute(() => import("@/features/profiles/ProfilePage").then(module => ({ default: module.SharedProfileManagementPage })));
+const ESSPortalPage = lazyRoute(() => import("@/apps/hrms/pages/profile/ESSPortalPage"));
+const AssetsPage = lazyRoute(() => import("@/apps/hrms/pages/assets/AssetsPage"));
+const ExpensesPage = lazyRoute(() => import("@/apps/hrms/pages/expenses/ExpensesPage"));
+const OnboardingPage = lazyRoute(() => import("@/apps/hrms/pages/onboarding/OnboardingPage"));
+const DocumentsPage = lazyRoute(() => import("@/apps/hrms/pages/documents/DocumentsPage"));
+const DocumentStudioPage = lazyRoute(() => import("@/apps/hrms/pages/documents/DocumentStudioPage"));
+const ExitPage = lazyRoute(() => import("@/apps/hrms/pages/exit/ExitPage"));
+const SettingsPage = lazyRoute(() => import("@/apps/hrms/pages/settings/SettingsPage"));
+const EngagementPage = lazyRoute(() => import("@/apps/hrms/pages/engagement/EngagementPage"));
+const BenefitsPage = lazyRoute(() => import("@/apps/hrms/pages/benefits/BenefitsPage"));
+const LMSPage = lazyRoute(() => import("@/apps/hrms/pages/lms/LMSPage"));
+const StatutoryCompliancePage = lazyRoute(() => import("@/apps/hrms/pages/compliance/StatutoryCompliancePage"));
+const BackgroundVerificationPage = lazyRoute(() => import("@/apps/hrms/pages/compliance/BackgroundVerificationPage"));
+const WhatsAppESSPage = lazyRoute(() => import("@/apps/hrms/pages/platform/WhatsAppESSPage"));
+const CustomFieldsPage = lazyRoute(() => import("@/apps/hrms/pages/platform/CustomFieldsPage"));
+const EnterprisePage = lazyRoute(() => import("@/apps/hrms/pages/platform/EnterprisePage"));
 
-const InternManagementPage = React.lazy(() => import("./pages/interns/InternManagementPage"));
+const InternManagementPage = lazyRoute(() => import("./pages/interns/InternManagementPage"));
 
-const MyAssignmentsPage=React.lazy(()=>import("@/apps/project-management/pages/MyAssignmentsPage"));
+const MyAssignmentsPage=lazyRoute(()=>import("@/apps/project-management/pages/MyAssignmentsPage"));
 const moduleRoutes: FrontendRoute[] = [
   {path:"daily-work",element:<HRDailyWork/>},
   {path:"my-assignments",element:<React.Suspense><MyAssignmentsPage/></React.Suspense>},
@@ -142,8 +144,9 @@ function LegacyHrmsRedirect() {
   return <Navigate to={`/hrms${location.pathname}${location.search}${location.hash}`} replace />;
 }
 
-const BirthdaysPage = React.lazy(()=>import("@/shared/master-data/BirthdaysPage"));
+const BirthdaysPage = lazyRoute(()=>import("@/shared/master-data/BirthdaysPage"));
 export const hrmsRoutes: FrontendRoute[] = [
+  { path: "hrms/workspaces", element: <OperationalWorkspaceDirectory module="hrms" /> },
   {path:"hrms/import-data",element:<ImportWorkspace module="hrms"/>},
  {path:"hrms/birthdays",element:<BirthdaysPage source="hrms"/>},
  { path: "hrms/messages", element: <CommunicationWorkspace module="HRMS" /> },

@@ -1,0 +1,1734 @@
+[
+  {
+    "module": "HRMS",
+    "route": "/hrms/employees"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/projects"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/leads"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/tasks"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/attendance"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/my-work"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/leave"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/contacts"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/my-assignments"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/payroll"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/companies"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/risks"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/recruitment"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/files"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/performance"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/assets"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/notes"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/expenses"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/documents"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/tickets"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/timesheets"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/quotations"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/sales-orders"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/campaigns"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/contracts"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/products-services"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/engagements"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/billing-plans"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/chart-of-accounts"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/portfolio"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/ledger-groups"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/invoice-drafts"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/ledgers"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/dashboard"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/invoices"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/opening-balances"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/items"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/collections"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/vouchers"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/stock-groups"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/revenue-recognition"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/journal"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/units"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/day-book"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/profitability"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/warehouses"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/ledger-entries"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/customer-360"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/opening-stock"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/parties"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/stock-in"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/banking"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/config"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/stock-out"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/calendar"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/approvals"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/stock-transfers"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/notes"
+  },
+  {
+    "module": "Inventory",
+    "route": "/srm/inventory/stock-adjustments"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/analytics"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/tasks"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/workflow-automation"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/usage"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/automations"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/communication-hub"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/security"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/approvals"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/whatsapp"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/security/permissions"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/forms"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/whatsapp/inbox"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/feedback"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/tables"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/whatsapp/sent"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/handoff"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/app-builder"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/whatsapp/templates"
+  },
+  {
+    "module": "PowerApps",
+    "route": "/power-apps/notifications"
+  },
+  {
+    "module": "AI",
+    "route": "/ai-agents/logs"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/customer"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/customer/quotes"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/whatsapp/profile"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/customer/invoices"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/customer/projects"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/whatsapp/settings"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/customer/profile"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/report-builder"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/partner"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/communication-timeline"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/partner/leads"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/reports"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/partner/commissions"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/partner/profile"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/dashboards"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/messages"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/customer/login"
+  },
+  {
+    "module": "Portals",
+    "route": "/portal/partner/login"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/scheduled-reports"
+  },
+  {
+    "module": "Communication",
+    "route": "/pms/messages"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/entities"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/exports"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/funnel"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/fields"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/layouts"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/forecast"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/views"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/kanban"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/validation-rules"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/collections"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/buttons"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/related-lists"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/picklists"
+  },
+  {
+    "module": "Administration",
+    "route": "/admin/customization/formulas"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/time-tracking"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/clients"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/deals"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/follow-ups"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/pipeline"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/profitability"
+  },
+  {
+    "module": "AI Copilot",
+    "route": "/ai/action-log"
+  },
+  {
+    "module": "AI Copilot",
+    "route": "/ai/prompt-templates"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/audit-logs"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/backups"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/compliance"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/data-retention"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/data-sharing"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/duplicates"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/field-security"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/ip-restrictions"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/profiles"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/record-sharing"
+  },
+  {
+    "module": "Admin & Security",
+    "route": "/admin/roles"
+  },
+  {
+    "module": "Analytics",
+    "route": "/analytics/anomalies"
+  },
+  {
+    "module": "Automation",
+    "route": "/admin/automation/approvals"
+  },
+  {
+    "module": "Automation",
+    "route": "/admin/automation/assignment-rules"
+  },
+  {
+    "module": "Automation",
+    "route": "/admin/automation/blueprints"
+  },
+  {
+    "module": "Automation",
+    "route": "/admin/automation/cadences"
+  },
+  {
+    "module": "Automation",
+    "route": "/admin/automation/logs"
+  },
+  {
+    "module": "Automation",
+    "route": "/admin/automation/webhooks"
+  },
+  {
+    "module": "Automation",
+    "route": "/admin/automation/workflows"
+  },
+  {
+    "module": "Business OS",
+    "route": "/admin/business-os/integrations"
+  },
+  {
+    "module": "Business OS",
+    "route": "/admin/business-os/lifecycle"
+  },
+  {
+    "module": "Business OS",
+    "route": "/admin/business-os/modules"
+  },
+  {
+    "module": "Business OS",
+    "route": "/business-os/customer-720"
+  },
+  {
+    "module": "Business OS",
+    "route": "/business-os/reports"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/accounts"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/activities"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/admin"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/calendar-integrations"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/calls"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/cpq"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/customer-360"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/customer-follow-ups"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/customers"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/duplicates"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/email-templates"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/feature-checklist"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/files"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/follow-ups/directory"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/forecasting"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/funnel"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/guided-selling"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/inventory-templates"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/lead-to-cash"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/leads/classic"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/leads/workbench"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/lost-analysis"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/mail-merge-templates"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/meetings"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/my-approvals"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/payment-requests"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/pipeline-templates"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/pipelines"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/potential-clients"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/price-books"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/product-customers"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/products"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/quote-approvals"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/quotes"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/records"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/reports"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/sales-performance"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/services"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/targets"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/tasks"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/tasks/legacy"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/templates"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/vendors"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/auto-responses"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/birthdays"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/consents"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/delivery-logs"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/emails"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/greetings"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/send-reminders"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/webforms"
+  },
+  {
+    "module": "Communication",
+    "route": "/crm/whatsapp-communication"
+  },
+  {
+    "module": "Customization",
+    "route": "/admin/customization/audit"
+  },
+  {
+    "module": "Customization",
+    "route": "/admin/customization/modules"
+  },
+  {
+    "module": "Customization",
+    "route": "/admin/customization/rollups"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/ap"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/ap/aging"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/ap/outstanding"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/ar"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/ar/aging"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/ar/outstanding"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/audit"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bank-accounts"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bank-book"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bank-charges"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bank-reconciliation"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bank-rules"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bank-statements"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bill-allocations"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/bill-references"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/cash-book"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/contra"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/customers"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/expense-register"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/expenses"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/financial-statements"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/einvoice"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/ewaybill"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/gstr1"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/gstr3b"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/hsn-sac"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/purchase-register"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/rates"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/reconciliation"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/registrations"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/gst/sales-register"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/posting-jobs"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/posting-rules"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/purchase-bills"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/purchase-register"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/purchases"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/recurring-purchases"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/tds"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/tds/payable"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/tds/sections"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/tds/transactions"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/transaction-locking"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/uae-tax"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/vendor-payments"
+  },
+  {
+    "module": "Finance / FAM",
+    "route": "/fam/vendors"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/advanced-analytics"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/approval-os"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/attendance/shift-roster"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/background-verification"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/benefits"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/birthdays"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/custom-fields"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/daily-work"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/employee-directory"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/engagement"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/enterprise"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/exit"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/fnf-settlements"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/helpdesk"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/investment-declaration"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/letters-certificates"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/lms"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/logs"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/my-assignments"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/my-attendance"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/my-payslips"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/my-roster"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/notifications"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/onboarding"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/people-work"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/probation"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/profile-management"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/reports"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/statutory-compliance"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/users"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/whatsapp-ess"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/workflow"
+  },
+  {
+    "module": "Interns",
+    "route": "/hrms/interns/applications"
+  },
+  {
+    "module": "Interns",
+    "route": "/hrms/interns/batches"
+  },
+  {
+    "module": "Interns",
+    "route": "/hrms/interns/operations"
+  },
+  {
+    "module": "Interns",
+    "route": "/hrms/interns/performance"
+  },
+  {
+    "module": "Interns",
+    "route": "/hrms/interns/profiles"
+  },
+  {
+    "module": "Interns",
+    "route": "/hrms/interns/reviews"
+  },
+  {
+    "module": "Interns",
+    "route": "/hrms/interns/tasks"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/audit"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/categories"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/cogs"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/crm-link"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/dead-stock"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/delivery-notes"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/fast-slow-moving"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/grni"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/gross-margin"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/items"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/purchase-receipts"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reconciliation"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reconciliation/cogs"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reconciliation/gl"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reconciliation/grni"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reconciliation/gst"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reorder-alerts"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reorder-report"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reports"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reports/cogs"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reports/gross-margin"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/reports/hsn-summary"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/srm-link"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/stock-adjustments"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/stock-aging"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/stock-groups"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/stock-in"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/stock-out"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/stock-summary"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/stock-transfers"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/units"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/valuation"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/warehouse-stock"
+  },
+  {
+    "module": "Inventory (Finance)",
+    "route": "/fam/inventory/warehouses"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/audit"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/batches"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/cogs"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/dead-stock"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/delivery-notes"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/fast-slow-moving"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/grn"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/gross-margin"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/manufacturing"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/manufacturing/bom"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/manufacturing/orders"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/price-lists"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/products"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/purchase-orders"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/purchase-receipts"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reconciliation"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reconciliation/cogs"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reconciliation/gl"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reconciliation/grni"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reconciliation/gst"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reorder-alerts"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reorder-report"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reports"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reports/cogs"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reports/complete"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reports/gross-margin"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/reports/hsn-summary"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/serial-numbers"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/stock-aging"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/stock-summary"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/valuation"
+  },
+  {
+    "module": "Inventory (Sales)",
+    "route": "/srm/inventory/warehouse-stock"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/branches"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/composite-items"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/products/barcodes"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/repacking"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/abc-analysis"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/dead-stock-source"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/expiry"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/inventory-ledger"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/low-stock"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/reorder"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/sales-velocity"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/serial-numbers"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/stock"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/stock-health"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/stock-movement"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/stock-summary-source"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/inventory/reports/valuation"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/pos/held-bills"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/pos/registers"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/challans"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/delivery-bills"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/invoices"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/orders"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/packages"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/picklists"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/proforma"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/quotations"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/refunds"
+  },
+  {
+    "module": "Inventory source bridge",
+    "route": "/srm/sales-inventory/returns"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/admin/feature-flags"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/admin/sandbox"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/developer/api-logs"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/marketplace/apps"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/marketplace/installed"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/mobile/activities"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/mobile/deals"
+  },
+  {
+    "module": "Platform / SaaS",
+    "route": "/mobile/leads"
+  },
+  {
+    "module": "Power Apps",
+    "route": "/power-apps/activity"
+  },
+  {
+    "module": "Power Apps",
+    "route": "/power-apps/ai-agents"
+  },
+  {
+    "module": "Power Apps",
+    "route": "/power-apps/automations/executions"
+  },
+  {
+    "module": "Power Apps",
+    "route": "/power-apps/connectors"
+  },
+  {
+    "module": "Power Apps",
+    "route": "/power-apps/dashboards"
+  },
+  {
+    "module": "Power Apps",
+    "route": "/power-apps/documents"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/companies"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/customers"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/follow-ups"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/follow-ups/directory"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/payment-requests"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/pos/cashier-closing"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/pos/returns"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/pos/sessions"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/products-services"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/quotes"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/reports"
+  },
+  {
+    "module": "Sales / SRM",
+    "route": "/srm/vendors"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/crm/forms"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/crm/forms/custom-fields"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/crm/forms/published"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/crm/forms/responses"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/fam/forms"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/fam/forms/custom-fields"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/fam/forms/published"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/fam/forms/responses"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/hrms/forms"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/hrms/forms/custom-fields"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/hrms/forms/published"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/hrms/forms/responses"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/pms/forms"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/pms/forms/custom-fields"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/pms/forms/published"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/pms/forms/responses"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/srm/forms"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/srm/forms/custom-fields"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/srm/forms/published"
+  },
+  {
+    "module": "Shared Forms",
+    "route": "/srm/forms/responses"
+  },
+  {
+    "module": "Suite / Shared",
+    "route": "/admin/control/organizations"
+  },
+  {
+    "module": "Suite / Shared",
+    "route": "/connectors"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/statistics/leads"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/statistics/open-deals"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/statistics/overdue"
+  }
+]

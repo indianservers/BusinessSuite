@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -473,7 +474,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                   Publish learning resources and assessments for a department,
                   or make them available to all interns.
                 </p>
-                <CompactForm
+                <SmartCreateSection title="Publish Learning Module" size="standard"><CompactForm
                   className="space-y-4"
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -707,7 +708,7 @@ export default function InternsHubAdminPage({ resourceOnly = false }: { resource
                       Publish Module
                     </Button>
                   </div>
-                </CompactForm>
+                </CompactForm></SmartCreateSection>
               </CardContent>
             </Card>
           )}

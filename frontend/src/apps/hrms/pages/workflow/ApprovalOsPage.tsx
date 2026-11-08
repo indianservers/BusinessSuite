@@ -170,13 +170,13 @@ export default function ApprovalOsPage() {
               const id = nativeApprovalId(item);
               const overdue = item.sla_due_at ? new Date(item.sla_due_at).getTime() < Date.now() && item.status.toLowerCase() === "pending" : false;
               return (
-                <div key={item.id} className="rounded-lg border p-4">
+                <div data-priority-row data-priority={item.priority} key={item.id} className="rounded-lg border p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{item.title}</p>
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${toneForStatus(item.status)}`}>{item.status}</span>
-                        {item.priority.toLowerCase() !== "normal" ? <Badge variant={item.priority.toLowerCase() === "high" ? "destructive" : "outline"}>{item.priority}</Badge> : null}
+                        {item.priority.toLowerCase() !== "normal" ? <Badge data-priority-badge data-priority={item.priority} variant={item.priority.toLowerCase() === "high" ? "destructive" : "outline"}>{item.priority}</Badge> : null}
                         {overdue ? <Badge variant="destructive">SLA overdue</Badge> : null}
                         {!id ? <Badge variant="outline">Workflow engine</Badge> : null}
                       </div>

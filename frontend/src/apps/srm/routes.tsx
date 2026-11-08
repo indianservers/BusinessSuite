@@ -1,29 +1,31 @@
+import { lazyRoute } from "@/lib/lazy-route";
+const OperationalWorkspaceDirectory = lazyRoute(() => import("@/shared/workspace/OperationalWorkspaceDirectory"));
 import React from "react";
-const WhatsAppCommunicationPage = React.lazy(() => import("@/apps/communication/WhatsAppCommunicationPage"));
-const ImportWorkspace = React.lazy(() => import("@/shared/data-transfer/ImportWorkspace"));
+const WhatsAppCommunicationPage = lazyRoute(() => import("@/apps/communication/WhatsAppCommunicationPage"));
+const ImportWorkspace = lazyRoute(() => import("@/shared/data-transfer/ImportWorkspace"));
 import { Navigate } from "react-router-dom";
-const FollowUpSummary = React.lazy(() => import("@/shared/follow-ups/FollowUpSummary"));
-const FollowUpsPage = React.lazy(() => import("@/shared/follow-ups/FollowUpsPage"));
+const FollowUpSummary = lazyRoute(() => import("@/shared/follow-ups/FollowUpSummary"));
+const FollowUpsPage = lazyRoute(() => import("@/shared/follow-ups/FollowUpsPage"));
 import CentralSettingsRedirect from "@/pages/settings/CentralSettingsRedirect";
-const CommunicationWorkspace = React.lazy(() => import("@/shared/communication/CommunicationWorkspace"));
-const Record360Page = React.lazy(() => import("@/shared/records/Record360Page"));
-const PaymentRequestsPage = React.lazy(() => import("@/shared/payments/PaymentRequestsPage"));
-const ModuleGanttPage = React.lazy(() => import("@/components/scheduling/ModuleGanttPage"));
+const CommunicationWorkspace = lazyRoute(() => import("@/shared/communication/CommunicationWorkspace"));
+const Record360Page = lazyRoute(() => import("@/shared/records/Record360Page"));
+const PaymentRequestsPage = lazyRoute(() => import("@/shared/payments/PaymentRequestsPage"));
+const ModuleGanttPage = lazyRoute(() => import("@/components/scheduling/ModuleGanttPage"));
 import type { FrontendRoute } from "@/appRegistry";
 import type { SRMViewKind } from "./types";
 import type { FAMViewKind } from "@/apps/fam/types";
 import { inventorySourceAppPaths } from "@/apps/inventory/sourceCatalog";
 
-const MobileQuotesWorkspace = React.lazy(() => import("@/components/mobile/MobileQuotesWorkspace"));
-const CRMWorkspacePage = React.lazy(() => import("@/apps/crm/CRMWorkspacePage"));
-const SRMWorkspacePage = React.lazy(() => import("./pages/SRMWorkspacePage"));
-const SharedInvoicePage = React.lazy(() => import("./pages/SharedInvoicePage"));
-const SRMCommercialDetailPage = React.lazy(() => import("./pages/SRMCommercialDetailPage"));
-const SRMPOSPage = React.lazy(() => import("./pages/SRMPOSPage"));
-const FAMWorkspacePage = React.lazy(() => import("@/apps/fam/FAMWorkspacePage"));
-const InventoryBridgePage = React.lazy(() => import("@/apps/inventory/InventoryBridgePage"));
-const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
-const CatalogPage = React.lazy(() => import("@/shared/catalog/CatalogPage"));
+const MobileQuotesWorkspace = lazyRoute(() => import("@/components/mobile/MobileQuotesWorkspace"));
+const CRMWorkspacePage = lazyRoute(() => import("@/apps/crm/CRMWorkspacePage"));
+const SRMWorkspacePage = lazyRoute(() => import("./pages/SRMWorkspacePage"));
+const SharedInvoicePage = lazyRoute(() => import("./pages/SharedInvoicePage"));
+const SRMCommercialDetailPage = lazyRoute(() => import("./pages/SRMCommercialDetailPage"));
+const SRMPOSPage = lazyRoute(() => import("./pages/SRMPOSPage"));
+const FAMWorkspacePage = lazyRoute(() => import("@/apps/fam/FAMWorkspacePage"));
+const InventoryBridgePage = lazyRoute(() => import("@/apps/inventory/InventoryBridgePage"));
+const ModuleProfilePage = lazyRoute(() => import("@/pages/ModuleProfilePage"));
+const CatalogPage = lazyRoute(() => import("@/shared/catalog/CatalogPage"));
 
 const route = (path: string, kind: SRMViewKind): FrontendRoute => ({
   path,
@@ -40,8 +42,9 @@ const inventorySourceRoute = (path: string): FrontendRoute => ({
   element: <InventoryBridgePage />,
 });
 
-const CompaniesPage = React.lazy(()=>import("@/shared/master-data/CompaniesPage"));
+const CompaniesPage = lazyRoute(()=>import("@/shared/master-data/CompaniesPage"));
 export const srmRoutes: FrontendRoute[] = [
+  { path: "srm/workspaces", element: <OperationalWorkspaceDirectory module="srm" /> },
   { path: "srm/whatsapp-communication", element: <WhatsAppCommunicationPage /> },
   {path:"srm/import-data",element:<ImportWorkspace module="srm"/>},
  {path:"srm/customers/:id/360",element:<Record360Page/>},

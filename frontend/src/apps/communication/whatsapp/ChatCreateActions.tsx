@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react';
-import { Dialog,DialogContent,DialogTitle } from '@/components/ui/dialog';
+import { SmartCreateModal } from '@/shared/creation/SmartCreateModal';
 import { Button } from '@/components/ui/button';
 import { api } from '@/services/api';
 import { useCenterScope } from '../center/shared';
@@ -19,12 +19,12 @@ export default function ChatCreateActions({contactId,source,creation,saved}:{con
     <Suspense fallback={<p role="status">Loading shared creation form…</p>}>
       {action==='deal'&&<Deal draftScope={draftScope} initialValues={{contactId:creation.personId||'',companyId:creation.companyId||'',name:`Opportunity · ${source.name}`,source:'WhatsApp'}} close={()=>setAction(null)} saved={()=>void done()}/>}
       {action==='quotation'&&<Quote action="quotation" kind={source.entity==='companies'?'accounts':source.entity} record={{id:source.id,...related}} entity={source.entity} recordId={source.id} initialValues={related} onClose={()=>setAction(null)} onDone={()=>void done()}/>}
-      {(action==='invoice'||action==='task')&&<Dialog open onOpenChange={open=>{if(!open&&!busy)setAction(null);}}><DialogContent className="wa-create-dialog" onPointerDownOutside={e=>e.preventDefault()}><DialogTitle>{action==='invoice'?'Create invoice':'Create PMS task'} · {source.name}</DialogTitle>{action==='invoice'?<Invoice onBusyChange={setBusy} initialCustomerId={creation.companyId||undefined} initialContactId={creation.personId||undefined} onCreated={()=>void done()}/>:<Task onBusyChange={setBusy} embedded draftScope={draftScope} initialTitle={`Follow up · ${source.name}`} initialDescription={`From WhatsApp conversation #${contactId}. CRM ${source.entity} #${source.id}.`} onClose={()=>{if(!busy)setAction(null);}} onCreated={async task=>{
+      {(action==='invoice'||action==='task')&&<SmartCreateModal definition={{entity:action==='invoice'?'invoice':'task',title:action==='invoice'?'Create invoice':'Create task',presentation:"page",size:"large"}} busy={busy} onClose={()=>setAction(null)}>{action==='invoice'?<Invoice onBusyChange={setBusy} initialCustomerId={creation.companyId||undefined} initialContactId={creation.personId||undefined} onCreated={()=>void done()}/>:<Task onBusyChange={setBusy} embedded draftScope={draftScope} initialTitle={`Follow up · ${source.name}`} initialDescription={`From WhatsApp conversation #${contactId}. CRM ${source.entity} #${source.id}.`} onClose={()=>{if(!busy)setAction(null);}} onCreated={async task=>{
         const kind=source.entity==='leads'?'lead':'contact',id=kind==='lead'?source.id:creation.personId;
         if(!id)throw new Error('Link a person or lead before creating a CRM-linked task.');
         await api.post(`/project-management/task-workspace/tasks/${task.id}/crm-links`,{kind,record_id:id});
         await done();
-      }}/>}</DialogContent></Dialog>}
+      }}/>}</SmartCreateModal>}
     </Suspense>
   </section>;
 }

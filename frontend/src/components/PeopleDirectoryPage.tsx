@@ -1,3 +1,4 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { openPerson } from "@/apps/project-management/components/people/peopleTypes";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -67,7 +68,17 @@ export default function PeopleDirectoryPage() {
       </div>
       <p role="status">{people.length} of {data.total} users</p>
       <div className="space-y-2 rounded-lg border p-3"><div className="flex flex-wrap items-center gap-2"><label className="text-sm">Load saved directory view<NativeSelect className="ml-2 rounded border bg-background p-2" value="" onChange={e => { const view = savedViews.find(v => v.name === e.target.value); if (view) { setQuery(view.query); setWorkspace(view.workspace); setTeam(view.team); setRole(view.role); } }}><option value="">Choose a saved view</option>{savedViews.map(v => <option key={v.name}>{v.name}</option>)}</NativeSelect></label><CompactForm className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); const next = [...savedViews.filter(v => v.name !== viewName.trim()), { name: viewName.trim(), query, workspace, team, role }].slice(-20); try { localStorage.setItem(viewKey, JSON.stringify(next)); setSavedViews(next); setViewName(""); setViewMessage("Directory view saved on this browser."); } catch { setViewMessage("This browser could not save the view. Your filters are unchanged."); } }}><Input aria-label="Directory view name" placeholder="Save current filters as…" required maxLength={60} value={viewName} onChange={e => setViewName(e.target.value)} /><Button variant="outline" disabled={!viewName.trim()}>Save directory view</Button></CompactForm></div>{viewMessage && <p role="status" className="text-xs text-muted-foreground">{viewMessage}</p>}{savedViews.length > 0 && <details><summary className="cursor-pointer text-xs">Manage saved views</summary>{savedViews.map(v => <div key={v.name} className="mt-2 flex gap-3 text-sm"><span>{v.name}</span><button className="underline" onClick={() => { const next = savedViews.filter(item => item.name !== v.name); try { localStorage.setItem(viewKey, JSON.stringify(next)); setSavedViews(next); } catch { setViewMessage("Could not remove saved view."); } }}>Remove</button></div>)}</details>}</div>
-      <div className="grid gap-2.5 lg:grid-cols-2 xl:grid-cols-3">{people.map(p => {
+      <GroupedRecords scope="people-directory" hideSearch items={people} gridClassName="grid gap-2.5 lg:grid-cols-2 xl:grid-cols-3" fields={[
+        {id:"role",label:"Role",value:person=>person.role.replace(/_/g," ")},
+        {id:"status",label:"Status",value:person=>person.is_active?"Active":"Inactive"},
+      ]} tableColumns={[
+        {id:"name",title:"Person",width:220,accessor:person=>person.name},
+        {id:"email",title:"Email",accessor:person=>person.email},
+        {id:"role",title:"Role",accessor:person=>person.role.replace(/_/g," ")},
+        {id:"status",title:"Status",accessor:person=>person.is_active?"Active":"Inactive"},
+        {id:"workspaces",title:"Workspaces",accessor:person=>person.workspace_ids.map(id=>data.workspaces.find(workspace=>workspace.id===id)?.name).filter(Boolean).join(", ")||"Unassigned"},
+        {id:"teams",title:"Teams",accessor:person=>data.teams.filter(team=>team.member_ids.includes(person.id)).map(team=>team.name).join(", ")||"Unassigned"},
+      ]} onOpenRecord={setSelectedPerson} renderItem={p => {
         const workspaces = p.workspace_ids.map(id => ({ id, name: data.workspaces.find(w => w.id === id)?.name })).filter(w => !!w.name);
         const memberTeams = data.teams.filter(t => t.member_ids.includes(p.id));
         return <ProfileListCard key={p.id} name={p.name} photoUrl={p.profile_photo_url}
@@ -80,7 +91,7 @@ export default function PeopleDirectoryPage() {
             ...(workspaces.length + memberTeams.length > 4 ? [{ label: "More memberships", onClick: () => setSelectedPerson(p) }] : []),
           ]}
           actions={<>{p.is_active && <ProfileAction onClick={() => openPerson({ userId: p.id, compactMemberships: true })} label={`Add ${p.name} to workspace or project`}>Add to workspace / project</ProfileAction>}<ProfileAction onClick={() => setSelectedPerson(p)} label={`View profile of ${p.name}`}>View profile</ProfileAction><ProfileAction href={`mailto:${p.email}`} label={`Email ${p.name}`}>Email</ProfileAction></>} />;
-      })}</div>
+      }}/>
       {selectedPerson && <PersonRecordPreview key={selectedPerson.id} record={{ ...selectedPerson, status: selectedPerson.is_active ? "Active" : "Inactive", workspaces: selectedPerson.workspace_ids.map(id => data.workspaces.find(w => w.id === id)).filter(Boolean), teams: data.teams.filter(t => t.member_ids.includes(selectedPerson.id)) }} onClose={() => setSelectedPerson(null)} actions={selectedPerson.is_active && <button onClick={() => openPerson({ userId: selectedPerson.id, compactMemberships: true })}>Add to workspace / project</button>} work={<div><h3 className="mb-2 text-sm font-medium">Workspaces &amp; teams</h3><div className="flex flex-wrap gap-2">
             {selectedPerson.workspace_ids.map(id => <ProfileAction key={id} onClick={() => {setWorkspace(String(id));setTeam("");setSelectedPerson(null);}}>{data.workspaces.find(w => w.id === id)?.name || "Workspace"}</ProfileAction>)}
             {data.teams.filter(t => t.member_ids.includes(selectedPerson.id)).map(t => <ProfileAction key={`team-${t.id}`} onClick={() => {setWorkspace(String(t.workspace_id));setTeam(String(t.id));setSelectedPerson(null);}}>{t.name}</ProfileAction>)}

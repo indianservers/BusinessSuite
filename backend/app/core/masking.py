@@ -105,6 +105,10 @@ def _mask_value(field: str, value: Any) -> Any:
 
 def mask_employee_detail(employee: Any, user: User) -> dict[str, Any]:
     data = EmployeeSchema.model_validate(employee).model_dump()
+    from sqlalchemy.orm import object_session
+    from app.services.employee_profile_reliability import profile_version
+    if object_session(employee): data['profile_version'] = profile_version(object_session(employee), employee)
+    data['can_edit_profile'] = user_has_permission(user, 'employee_update')
     if can_view_sensitive_employee(user, employee.id):
         return data
     # Document URLs and metadata reveal restricted identity and HR records.

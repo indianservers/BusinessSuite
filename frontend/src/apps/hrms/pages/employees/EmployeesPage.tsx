@@ -1,3 +1,5 @@
+import {useRouteViewState} from "@/hooks/use-route-view-state";
+import { LoadingState } from "@/components/ui/state";
 import WorkspaceViewBar from "@/shared/workspace/WorkspaceViewBar";
 import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import RecordMaintenance from "@/components/RecordMaintenance";
@@ -94,13 +96,13 @@ function EmployeesPage() {
   const [quickAdd,setQuickAdd]=useState(false);
   const [search, setSearch] = useHRSession("employee-list-search","");
   const debouncedSearch = useDebouncedValue(search);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useRouteViewState("page",1);
   const [statusFilter, setStatusFilter] = useHRSession("employee-list-status","");
   const [filters, setFilters] = useHRSession<Record<string,string>>("employee-list-filters",{});
-  const [sortBy, setSortBy] = useState("name");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortBy, setSortBy] = useRouteViewState("sortBy","name");
+  const [sortOrder, setSortOrder] = useRouteViewState("sortOrder","asc");
   const [perPage, setPerPage] = useState(20);
-  const [layout, setLayout] = useState<"cards" | "table">("cards");
+  const [layout, setLayout] = useState<"cards" | "table">("table");
   const { data: filterOptions, isError: optionsError, refetch: reloadOptions } = useQuery({
     queryKey: ["employee-filter-options"],
     queryFn: async () => {
@@ -274,7 +276,7 @@ function EmployeesPage() {
           <DataExportButton filename="employees" description="All employees matching the current filters, subject to your export permissions." load={async()=> (await employeeApi.exportCsv(queryFilters)).data}/>
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
-          <Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Quick Add Employee</Button><Link className="p-2 text-sm underline" to="/hrms/employees/new">Full employee form</Link>
+          <Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Create employee</Button>
         </CompactActions>
       </div>
 
@@ -334,7 +336,7 @@ function EmployeesPage() {
       {/* Table */}
       <Card className={layout === "cards" ? "overflow-hidden border-0 bg-transparent shadow-none" : "overflow-hidden"}>
         {layout === "cards" && <>
-          {isLoading ? <div role="status" className="p-4 text-sm text-muted-foreground">Loading employees…</div> : <GroupedRecords scope="hrms-employees" items={data?.items || []} gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3" fields={[
+          {isLoading ? <LoadingState label="Loading Employee Records" variant="cards"/> : <GroupedRecords scope="hrms-employees" items={data?.items || []} gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3" fields={[
             {id:"status",label:"Status",value:employee=>employee.status},
             {id:"type",label:"Employment type",value:employee=>employee.employment_type},
           ]} renderItem={(employee: Employee) => {
@@ -456,7 +458,7 @@ function EmployeesPage() {
             <DialogTitle className="text-lg font-semibold">{employeePopup?.editing ? "Edit employee" : "Employee preview"}: {employeePopup?.employee.first_name} {employeePopup?.employee.last_name}</DialogTitle>
           </div>
           <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-5 sm:px-6">
-      {employeePopup && <Suspense fallback={<p role="status" className="p-6 text-muted-foreground">Loading employee details…</p>}>
+      {employeePopup && <Suspense fallback={<LoadingState label="Loading Employee Details" variant="form"/>}>
               <EmployeeDetailPage key={`${employeePopup.employee.id}-${employeePopup.editing}`} employeeId={employeePopup.employee.id} initialEditing={employeePopup.editing} onClose={() => setEmployeePopup(null)} />
             </Suspense>}
           </div>

@@ -121,8 +121,8 @@ const detailConfig: Record<DetailKind, { entity: string; listPath: string; label
   quotations: {
     entity: "quotations",
     listPath: "/crm/quotations",
-    label: "Quotations",
-    singular: "Quotation",
+    label: "Quotes",
+    singular: "Quote",
     nameKeys: ["quote_number"],
     statusKeys: ["status"],
     keyFields: ["quote_number", "status", "issue_date", "expiry_date", "subtotal", "discount_amount", "tax_amount", "total_amount", "deal_id", "company_id", "contact_id"],

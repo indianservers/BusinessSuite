@@ -1,3 +1,4 @@
+import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
 import { CurrencySelect } from "@/lib/validation/business";
 import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
@@ -115,8 +116,9 @@ const stepFields: Array<Array<keyof FormData>> = [
   ["create_user_account", "user_email", "user_password"],
 ];
 
-export default function AddEmployeePage() {
+export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: { id: number }) => void } = {}) {
   const submitting=useRef(false);
+  const [allowContactDuplicate,setAllowContactDuplicate]=useState(false);
   const customFieldForm=useCrmFieldForm("employees","create");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -183,11 +185,11 @@ export default function AddEmployeePage() {
 
   const mutation = useMutation({
     mutationFn: (data: FormData) =>
-      employeeApi.create({...cleanEmployeePayload(data),custom_fields:customFieldForm.validate()}),
+      employeeApi.create({...cleanEmployeePayload(data),custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}),
     onSuccess: (res) => {
       setSubmitError(null);
       toast({ title: "Employee created successfully!", variant: "default" });
-      navigate(`/hrms/employees/${res.data.id}`);
+      if (onCreated) onCreated(res.data); else navigate(`/hrms/employees/${res.data.id}`);
     },
     onSettled: ()=>{submitting.current=false;},
     onError: (err: unknown) => {
@@ -285,6 +287,7 @@ export default function AddEmployeePage() {
         </Button>
       </div>
 
+      <EmployeeDuplicateWarning values={{personal_email:watch("personal_email"),phone_number:watch("phone_number"),phone_number_country_code:watch("phone_number_country_code")}} acknowledged={allowContactDuplicate} onAcknowledge={setAllowContactDuplicate}/>
       {/* Step indicator */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
         {steps.map((step, i) => (

@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { aiAgentsApi, type AiAgent, type AiPermissionRule } from "@/services/aiAgentsApi";
 
 export default function AiAgentPermissionsPage() {
-  const canAdmin=useAiAdministration();
+  const canAdmin=useAiAdministration("manage_users");
   const [saving,setSaving]=useState(false);
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [rules, setRules] = useState<AiPermissionRule[]>([]);
@@ -32,7 +32,7 @@ export default function AiAgentPermissionsPage() {
     finally{setSaving(false);}
   };
 
-  if(!canAdmin)return <AiAdministrativeNotice/>;
+  if(!canAdmin)return <AiAdministrativeNotice permission="AI configuration and user-management"/>;
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -46,7 +46,7 @@ export default function AiAgentPermissionsPage() {
         <CardHeader><CardTitle>Rules</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {rules.map((rule, index) => (
-            <div key={rule.id || index} className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.5fr_1fr_1fr_2fr]">
+            <div key={rule.id ? `saved:${rule.id}` : `draft:${index}`} className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.5fr_1fr_1fr_2fr]">
               <NativeSelect aria-label={`Agent for rule ${index+1}`} className="rounded-md border bg-background px-3 py-2 text-sm" value={rule.agent_id} onChange={(event) => update(index, { agent_id: Number(event.target.value) })}>
                 {agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
               </NativeSelect>

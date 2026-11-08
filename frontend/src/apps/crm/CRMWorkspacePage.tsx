@@ -1,3 +1,8 @@
+import CatalogEditor from "@/shared/catalog/CatalogEditor";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { progress, operationId, type ProgressStep } from "@/lib/async-progress";
+import { LoadingState } from "@/components/ui/state";
+import CRMReferenceDashboard from "./CRMReferenceDashboard";
 import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
@@ -311,7 +316,7 @@ const pageTitles: Record<CRMPageKind, string> = {
   dashboard: "CRM Dashboard",
   leads: "Leads",
   contacts: "Contacts",
-  companies: "Accounts",
+  companies: "Companies",
   deals: "Deals",
   pipeline: "Sales Pipeline",
   pipelineSettings: "Pipeline Settings",
@@ -329,7 +334,7 @@ const pageTitles: Record<CRMPageKind, string> = {
   quoteApprovals: "Quote Approvals",
   cpq: "CPQ Rules",
   guidedSelling: "Guided Selling",
-  quotations: "Quotations",
+  quotations: "Quotes",
   approvalSettings: "Approval Settings",
   myApprovals: "My Approvals",
   duplicates: "Duplicate Management",
@@ -460,7 +465,7 @@ const quickFormFieldsByKind: Partial<Record<CRMPageKind, QuickFormField[]>> = {
   companies: [
     { key: "name", label: "Company name", required: true, placeholder: "Acme India" },
     { key: "industry", label: "Industry", placeholder: "Software" },
-    { key: "type", label: "Account type", type: "select", options: ["Prospect", "Customer", "Partner", "Vendor"] },
+    { key: "type", label: "Company type", type: "select", options: ["Prospect", "Customer", "Partner", "Vendor"] },
     { key: "revenue", label: "Annual revenue", type: "number", placeholder: "5000000" },
     { key: "status", label: "Status", type: "select", options: ["Active", "Prospect", "Inactive"] },
     { key: "owner", label: "Owner", placeholder: "Owner ID or name" },
@@ -560,7 +565,7 @@ const customFieldEntities = [
   { value: "contacts", label: "Contacts" },
   { value: "companies", label: "Companies" },
   { value: "deals", label: "Deals" },
-  { value: "quotations", label: "Quotations" },
+  { value: "quotations", label: "Quotes" },
   { value: "tasks", label: "Tasks" },
 ];
 
@@ -760,11 +765,7 @@ function CRMDashboard() {
   const moneyGroups=(rows?:{currency:string;amount:string}[])=>!rows?"Not available":rows.length?rows.map(row=>`${row.currency} ${Number(row.amount).toLocaleString(undefined,{maximumFractionDigits:2})}`).join(" / "):"0 (no open deals)";
   const [dateRange, setDateRange] = useState<"month" | "quarter" | "all">("month");
   useRefreshableEffect(()=>{let active=true;const load=()=>{setCanonical({loading:true});statisticsApi.get("/crm/dashboard",{params:{period:dateRange}}).then(r=>{if(active)setCanonical({data:r.data.period_statistics,loading:false})}).catch(e=>{if(active)setCanonical({loading:false,error:e?.response?.data?.detail||"Authoritative statistics unavailable. Refresh to retry."})})};load();window.addEventListener("suite:metrics-changed",load);return()=>{active=false;window.removeEventListener("suite:metrics-changed",load)}},[dateRange]);
-  const [quickCreateKind, setQuickCreateKind] = useState<DashboardQuickCreateKind>("leads");
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
-  useCreateIntent(kind => { if (dashboardQuickCreateKinds.some(item => item.kind === kind)) { setQuickCreateKind(kind as DashboardQuickCreateKind); setShowQuickCreate(true); } });
-  const [quickCreateSaving, setQuickCreateSaving] = useState(false);
-  const [quickCreateError, setQuickCreateError] = useState<string | null>(null);
+  useCreateIntent(kind => { if (dashboardQuickCreateKinds.some(item => item.kind === kind)) navigate(kind === "tasks" ? "/pms/tasks/new" : `/crm/${kind}?new=${kind}`); });
   const [forecastState, setForecastState] = useState<CRMApiState<{ summary: CRMApiRecord; items: CRMApiRecord[] }>>({ data: { summary: {}, items: [] }, loading: true, error: null });
   const [calendarState, setCalendarState] = useState<CRMApiState<CRMCalendarEvent[]>>({ data: [], loading: true, error: null });
   const crmLeads = useMemo(() => leadState.data.map(recordToLead), [leadState.data]);
@@ -797,12 +798,12 @@ function CRMDashboard() {
   const priorityDeals = useMemo(() => priorityDealRows(openCrmDeals), [openCrmDeals]);
   const todayItems = useMemo(() => todayWorkItems(calendarState.data, taskState.data, activityState.data).slice(0, 7), [calendarState.data, taskState.data, activityState.data]);
   const briefingRows = useMemo(() => smartBriefingRows({
-    overdueFollowUps,
+    overdueFollowUps: canonical.data?.overdue_followups ?? overdueFollowUps,
     staleOpenDeals,
     closingThisWeek: openCrmDeals.filter((deal) => isWithinNextDays(deal.closeDate, 7)).length,
     highValueDeals: priorityDeals.filter((deal) => deal.reason.includes("High value")).length,
     pipelineValue,
-  }), [overdueFollowUps, staleOpenDeals, openCrmDeals, priorityDeals, pipelineValue]);
+  }), [canonical.data?.overdue_followups, overdueFollowUps, staleOpenDeals, openCrmDeals, priorityDeals, pipelineValue]);
   const loading = leadState.loading || companyState.loading || dealState.loading || stageState.loading || taskState.loading || activityState.loading || forecastState.loading || calendarState.loading;
   const error = canonical.error || leadState.error || companyState.error || dealState.error || stageState.error || taskState.error || activityState.error || forecastState.error || calendarState.error;
 
@@ -843,206 +844,9 @@ function CRMDashboard() {
     };
   }, []);
 
-  const createQuickRecord = (draft: CRMRecord, customFields?: CRMApiRecord) => {
-    const apiEntity = apiEntityForKind[quickCreateKind];
-    if (!apiEntity) return;
-    const payload = { ...createPayloadForKind(quickCreateKind, draft), customFields: customFields || {} };
-    setQuickCreateSaving(true);
-    setQuickCreateError(null);
-    crmApi
-      .create<CRMApiRecord>(apiEntity, payload)
-      .then((response) => {
-        setShowQuickCreate(false);
-        const detailPath = detailPathFor(quickCreateKind);
-        if (detailPath && response.data?.id) {
-          navigate(`${detailPath}/${response.data.id}`);
-          return;
-        }
-        navigate(`/crm/${quickCreateKind}`);
-      })
-      .catch((err) => setQuickCreateError(err?.response?.data?.detail || "CRM record could not be created."))
-      .finally(() => setQuickCreateSaving(false));
-  };
-
-  return (
-    <div className="min-h-[calc(100vh-5rem)] max-w-full overflow-hidden bg-background text-foreground">
-      <div className="border-b border-border bg-muted/40 px-4 py-3 sm:px-5 lg:px-8">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">CRM Dashboard</h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />{canonical.loading ? "Refreshing" : canonical.error ? "Unavailable" : "Updated"}
-              </span>
-              <span className="text-xs text-muted-foreground">{label}</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">Your sales priorities, upcoming commitments and pipeline performance.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="sr-only" htmlFor="crm-dashboard-range">Dashboard range</label>
-            <NativeSelect
-              id="crm-dashboard-range"
-              className="h-8 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-              value={dateRange}
-              onChange={(event) => setDateRange(event.target.value as "month" | "quarter" | "all")}
-            >
-              <option value="month">This month</option>
-              <option value="quarter">This quarter</option>
-              <option value="all">All open data</option>
-            </NativeSelect>
-            <Button size="sm" variant="outline" className="h-8 border-border bg-card px-3 text-xs text-foreground hover:bg-accent" onClick={() => navigate("/crm/reports")}><BarChart3 className="h-3.5 w-3.5" />Reports</Button>
-            <Button size="sm" variant="outline" className="h-8 border-border bg-card px-3 text-xs text-foreground hover:bg-accent" onClick={() => navigate("/crm/forecasting")}><Target className="h-3.5 w-3.5" />Forecast</Button>
-            <Button size="sm" className="h-8 bg-primary px-3 text-xs text-primary-foreground hover:bg-primary/90" onClick={() => setShowQuickCreate(true)}><Plus className="h-3.5 w-3.5" />Create</Button>
-          </div>
-        </div>
-      </div>
-      <main className="space-y-3 px-4 py-3 sm:px-5 lg:px-8">
-      {error ? <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-200">{error}</div> : null}
-      {loading ? <DashboardSkeleton /> : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><span>{label}{canonical.data&&` · Last refreshed ${new Date(canonical.data.context.as_of).toLocaleString()}`}</span><details><summary className="cursor-pointer">Metric definitions</summary><p className="max-w-xl py-2">{canonical.data?.context.definition||"Full-dataset statistics unavailable."} {canonical.data?.context.timezone}</p></details></div>
-      <section aria-label="Sales priorities" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
-        <div className="flex items-start gap-3"><AlertTriangle className="mt-1 h-5 w-5 text-destructive" aria-hidden="true"/><div><h2 className="font-semibold">Follow-ups needing attention</h2><p className="text-sm text-muted-foreground">{canonical.loading ? "Loading commitments…" : canonical.data ? `${canonical.data.overdue_followups} overdue commitments across active leads and tasks` : "Follow-up totals unavailable"}</p></div></div>
-        <Button variant="outline" onClick={()=>navigate("/crm/sales-home?view=overdue")}>Review overdue follow-ups</Button>
-      </section>
-      <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6" aria-label="CRM metrics">
-        <CompactMetricCard title="New leads" value={canonical.loading?"Loading...":canonical.data?.leads_created??"Unavailable"} detail="New leads in selected period" tone="emerald" onClick={() => navigate(`/crm/statistics/leads?period=${dateRange}`)} />
-        <CompactMetricCard title="Open deals" value={canonical.loading?"Loading...":canonical.data?.open_deals??"Unavailable"} detail="Selected reporting period" tone="sky" onClick={() => navigate(`/crm/statistics/open-deals?period=${dateRange}`)} />
-        <CompactMetricCard title="Pipeline by currency" value={moneyGroups(canonical.data?.pipeline_by_currency)} detail="No currency conversion" tone="sky" onClick={() => navigate(`/crm/statistics/open-deals?period=${dateRange}`)} />
-        <CompactMetricCard title="Weighted open pipeline" value={moneyGroups(canonical.data?.weighted_by_currency)} detail="Amount multiplied by probability" tone="emerald" onClick={() => navigate("/crm/forecasting")} />
-        <CompactMetricCard title="Win rate" value={canonical.data?.win_rate==null?"Not available":`${canonical.data.win_rate}%`} detail={canonical.data?`${canonical.data.won_deals} won / ${canonical.data.lost_deals} lost`:"Closed deals in selected period"} tone="amber" onClick={() => navigate("/crm/reports")} />
-        <CompactMetricCard title="Overdue follow-ups" value={canonical.data?.overdue_followups??"Not available"} detail="All current active lead and task commitments" tone="red" onClick={() => navigate(`/crm/statistics/overdue?period=${dateRange}`)} />
-      </section><p className="text-xs text-muted-foreground">Record previews below use the first 100 permitted records. They are not full-dataset totals. Currency-specific forecasting is available in Forecast.</p>
-
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(22rem,0.85fr)]">
-        <div className="space-y-3">
-          <DashboardPanel title="Risk-aware pipeline" actionLabel="Open pipeline" onAction={() => navigate("/crm/pipeline")}>
-            {pipelineStages.length ? (
-              <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-5">
-                {pipelineStages.map((stage) => {
-                  const stageDeals = openCrmDeals.filter((deal) => deal.stageId === stage.id || deal.stage === stage.name);
-                  const stageCurrencyValues=Object.entries(stageDeals.reduce((groups,deal)=>{const code=deal.currency||"Unknown";groups[code]=(groups[code]||0)+deal.amount;return groups},{} as Record<string,number>)).map(([currency,amount])=>`${currency} ${amount.toLocaleString()}`).join(" / ");
-                  const risk = pipelineStageRisk(stageDeals);
-                  return (
-                    <button key={`${stage.id}-${stage.name}`} type="button" className="rounded-md border border-border bg-white/[0.035] p-3 text-left transition hover:border-emerald-400/40 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate("/crm/pipeline")}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold text-foreground">{stage.name}</span>
-                        <span className={`h-2 w-2 rounded-full ${risk.dot}`} aria-label={risk.label} />
-                      </div>
-                      <div className="mt-3 text-xl font-semibold text-foreground">{stageDeals.length}</div>
-                      <div className="text-xs text-muted-foreground">{stageCurrencyValues||"No open deals"}</div>
-                      <div className={`mt-2 text-[11px] font-medium ${risk.text}`}>{risk.label}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : <DarkEmptyState label="No pipeline stages are configured." action="Open pipeline settings" onAction={() => navigate("/crm/pipeline-settings")} />}
-          </DashboardPanel>
-
-          <DashboardPanel title="Priority deals" actionLabel="View deals" onAction={() => navigate("/crm/deals")}>
-            {priorityDeals.length ? <PriorityDealsTable rows={priorityDeals} onOpen={(id) => navigate(`/crm/deals/${id}`)} /> : <DarkEmptyState label="No open deals currently match overdue, near-close, stale, or high-value priority rules." action="Open deals" onAction={() => navigate("/crm/deals")} />}
-          </DashboardPanel>
-
-<SecondaryDetails title="Forecast and sales analysis">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
-            <DashboardPanel title="Forecast by owner" actionLabel="Forecasting" onAction={() => navigate("/crm/forecasting")}>
-              {forecastState.data.items.length ? (
-                <div className="h-52" aria-label="Forecast by owner chart">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={forecastState.data.items.slice(0, 6)}>
-                      <CartesianGrid stroke="rgba(148,163,184,0.14)" vertical={false} />
-                      <XAxis dataKey="owner" tickLine={false} axisLine={false} stroke="#94a3b8" fontSize={11} />
-                      <YAxis tickFormatter={formatChartCurrency} tickLine={false} axisLine={false} stroke="#94a3b8" fontSize={11} />
-                      <Tooltip formatter={(value) => formatCurrency(Number(value))} contentStyle={{ background: "#0b1a2a", border: "1px solid rgba(255,255,255,.12)", color: "#e2e8f0" }} />
-                      <Bar dataKey="weightedAmount" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : <DarkEmptyState label={forecastState.error || "No forecast rows for this range."} />}
-            </DashboardPanel>
-
-            <DashboardPanel title="Sales velocity">
-              <div className="grid gap-3 text-sm">
-                <MetricLine label="Avg. open deal value" value={formatCurrency(salesVelocity)} />
-                <MetricLine label="Avg. deal age" value={averageDealAge ? `${averageDealAge} days` : "-"} />
-                <MetricLine label="Expected this week" value={openCrmDeals.filter((deal) => isWithinNextDays(deal.closeDate, 7)).length} />
-                <MetricLine label="Stale open deals" value={staleOpenDeals} danger={staleOpenDeals > 0} />
-              </div>
-            </DashboardPanel>
-          </div>
-
-</SecondaryDetails>
-        </div>
-
-        <aside className="space-y-3">
-          <DashboardPanel title="Smart briefing">
-            {briefingRows.length ? (
-              <div className="space-y-2">
-                {briefingRows.map((row) => (
-                  <button key={row.title} type="button" className="w-full rounded-md border border-border bg-white/[0.035] p-3 text-left transition hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => navigate(row.path)}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{row.title}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{row.reason}</p>
-                      </div>
-                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{row.action}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : <DarkEmptyState label="No rule-based briefing items need attention right now." />}
-          </DashboardPanel>
-
-          <DashboardPanel title="Today" actionLabel="Calendar" onAction={() => navigate("/crm/calendar")}>
-            {todayItems.length ? <TodayWorkList rows={todayItems} onOpen={(path) => navigate(path)} /> : <DarkEmptyState label="No CRM tasks, activities, or calendar items are due today." action="Open calendar" onAction={() => navigate("/crm/calendar")} />}
-          </DashboardPanel>
-
-<SecondaryDetails title="Lead source analysis">
-          <DashboardPanel title="Lead sources">
-            {sourceData.length ? (
-              <div className="grid gap-3 sm:grid-cols-[9rem_1fr] xl:grid-cols-1 2xl:grid-cols-[8.5rem_1fr]">
-                <div className="h-36" aria-label="Lead source distribution">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={sourceData} dataKey="value" nameKey="name" innerRadius={38} outerRadius={62}>
-                        {sourceData.map((_, index) => <Cell key={index} fill={["#22c55e", "#38bdf8", "#f59e0b", "#94a3b8", "#e879f9", "#f43f5e"][index % 6]} />)}
-                      </Pie>
-                      <Tooltip contentStyle={{ background: "#0b1a2a", border: "1px solid rgba(255,255,255,.12)", color: "#e2e8f0" }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="space-y-2">
-                  {sourceData.slice(0, 5).map((row, index) => (
-                    <div key={row.name} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="flex min-w-0 items-center gap-2 text-muted-foreground"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: ["#22c55e", "#38bdf8", "#f59e0b", "#94a3b8", "#e879f9"][index % 5] }} /> <span className="truncate">{row.name}</span></span>
-                      <span className="font-semibold text-foreground">{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : <DarkEmptyState label="No lead source data is available for this range." />}
-          </DashboardPanel>
-
-</SecondaryDetails>
-        </aside>
-      </div>
-      <details className="rounded-lg border"><summary className="cursor-pointer p-3 text-sm font-medium">Explore CRM workflows</summary><div className="p-3 pt-0"><ModuleWorkflows module="crm" /></div></details>
-      {showQuickCreate ? (
-        <DashboardQuickCreateDialog
-          kind={quickCreateKind}
-          saving={quickCreateSaving}
-          error={quickCreateError}
-          onKindChange={(kind) => {
-            setQuickCreateKind(kind);
-            setQuickCreateError(null);
-          }}
-          onClose={() => setShowQuickCreate(false)}
-        onCreate={createQuickRecord}
-      />
-      ) : null}
-      </main>
-    </div>
-  );
+  return <>
+    <CRMReferenceDashboard statistics={canonical.data} loading={canonical.loading || loading} error={error || undefined} range={dateRange} onRange={setDateRange} onCreate={(kind) => navigate(kind === "tasks" ? "/pms/tasks/new" : `/crm/${kind}?new=${kind}`)} stages={pipelineStages} deals={crmDeals} briefing={briefingRows} today={todayItems} events={calendarState.data} tasks={taskState.data} />
+  </>;
 }
 
 type DashboardRange = { start: Date; end: Date; label: string };
@@ -2152,7 +1956,7 @@ function CustomFieldsSettingsPageLegacy() {
         <CardHeader><CardTitle>Custom Fields</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <label className="space-y-1 text-sm"><span className="font-medium">Entity</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.entity || "leads")} onChange={(event) => setDraft((current) => ({ ...current, entity: event.target.value }))}><option value="leads">Leads</option><option value="contacts">Contacts</option><option value="companies">Accounts</option><option value="deals">Deals</option><option value="quotations">Quotations</option><option value="tasks">Tasks</option></NativeSelect></label>
+            <label className="space-y-1 text-sm"><span className="font-medium">Entity</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.entity || "leads")} onChange={(event) => setDraft((current) => ({ ...current, entity: event.target.value }))}><option value="leads">Leads</option><option value="contacts">Contacts</option><option value="companies">Companies</option><option value="deals">Deals</option><option value="quotations">Quotes</option><option value="tasks">Tasks</option></NativeSelect></label>
             <label className="space-y-1 text-sm"><span className="font-medium">Field key</span><Input value={String(draft.fieldKey || "")} onChange={(event) => setDraft((current) => ({ ...current, fieldKey: event.target.value }))} /></label>
             <label className="space-y-1 text-sm"><span className="font-medium">Label</span><Input value={String(draft.label || "")} onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))} /></label>
             <label className="space-y-1 text-sm"><span className="font-medium">Type</span><NativeSelect className="h-10 w-full rounded-md border bg-background px-3" value={String(draft.fieldType || "text")} onChange={(event) => setDraft((current) => ({ ...current, fieldType: event.target.value }))}><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="boolean">Boolean</option><option value="select">Select</option></NativeSelect></label>
@@ -2288,7 +2092,7 @@ function CustomFieldsSettingsPageOld() {
       {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <Card>
         <CardContent className="grid gap-3 p-4 lg:grid-cols-[12rem_1fr_10rem_1.2fr_7rem_6rem_6rem_6rem_auto] lg:items-end">
-          <Field label="Entity"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={entity} onChange={(event) => setEntity(event.target.value)}>{customFieldEntities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</NativeSelect></Field>
+          <SmartCreateSection title="Create" size="compact"><div className="space-y-4"><Field label="Entity"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={entity} onChange={(event) => setEntity(event.target.value)}>{customFieldEntities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</NativeSelect></Field>
           <Field label="Field name"><Input value={String(draft.fieldName || "")} onChange={(event) => patchDraft("fieldName", event.target.value)} onBlur={() => !draft.fieldKey && patchDraft("fieldKey", slugifyKey(String(draft.fieldName || "")))} /></Field>
           <Field label="Field key"><Input value={String(draft.fieldKey || "")} onChange={(event) => patchDraft("fieldKey", slugifyKey(event.target.value))} /></Field>
           <Field label="Type"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.fieldType || "text")} onChange={(event) => patchDraft("fieldType", event.target.value)}>{customFieldTypes.map((type) => <option key={type} value={type}>{labelFor(type)}</option>)}</NativeSelect></Field>
@@ -2297,7 +2101,7 @@ function CustomFieldsSettingsPageOld() {
           <Field label="Visible"><ToggleBox checked={Boolean(draft.isVisible ?? true)} onChange={(checked) => patchDraft("isVisible", checked)} /></Field>
           <Field label="Filterable"><ToggleBox checked={Boolean(draft.isFilterable)} onChange={(checked) => patchDraft("isFilterable", checked)} /></Field>
           <Button onClick={createField}>Create</Button>
-          {["dropdown", "multi_select"].includes(String(draft.fieldType)) ? <div className="lg:col-span-9"><Field label="Options"><Input value={String(draft.options || "")} onChange={(event) => patchDraft("options", event.target.value)} placeholder="Comma separated options" /></Field></div> : null}
+          {["dropdown", "multi_select"].includes(String(draft.fieldType)) ? <div className="lg:col-span-9"><Field label="Options"><Input value={String(draft.options || "")} onChange={(event) => patchDraft("options", event.target.value)} placeholder="Comma separated options" /></Field></div> : null}</div></SmartCreateSection>
         </CardContent>
       </Card>
       <Card>
@@ -2400,7 +2204,7 @@ function LeadScoringSettingsPage() {
             ))}
           </CardContent>
         </Card>
-        <Card>
+        <SmartCreateSection title={<>Add Rule</>} size="standard"><Card>
           <CardHeader><CardTitle>Add Rule</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <Field label="Name"><Input value={String(draft.name || "")} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
@@ -2410,7 +2214,7 @@ function LeadScoringSettingsPage() {
             <Field label="Points"><Input type="number" value={Number(draft.points || 0)} onChange={(event) => setDraft((current) => ({ ...current, points: Number(event.target.value) }))} /></Field>
             <Button className="w-full" onClick={createRule}>Add scoring rule</Button>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
       </div>
     </div>
   );
@@ -2840,7 +2644,7 @@ function CalendarCreateDialog({ date, onClose, onCreated }: { date: Date; onClos
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-      <Card className="w-full max-w-lg">
+      <SmartCreateSection title={<>Create calendar item</>} size="standard"><Card className="w-full max-w-lg">
         <CardHeader><CardTitle>Create calendar item</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
@@ -2853,7 +2657,7 @@ function CalendarCreateDialog({ date, onClose, onCreated }: { date: Date; onClos
           {kind === "meetings" ? <label className="flex items-center gap-2 rounded-md border bg-muted/25 p-3 text-sm"><input type="checkbox" checked={syncToCalendar} onChange={(event) => setSyncToCalendar(event.target.checked)} />Sync to connected calendar</label> : null}
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving}>{saving ? "Saving..." : "Create"}</Button></div>
         </CardContent>
-      </Card>
+      </Card></SmartCreateSection>
     </div>
   );
 }
@@ -4063,23 +3867,23 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivi
   return <aside className="p-4"><Button variant="ghost" onClick={onClose}>Close</Button><Record360Workspace key={contact.id} kind="contact" id={contact.id} actions={<Button variant="outline" disabled={!onEdit} onClick={()=>onEdit?.(contact)}>Edit</Button>}/></aside>;
 }
 
-export function CRMContactQuickCreate({close,saved}:{close:()=>void;saved:()=>void}) {
+export function CRMContactQuickCreate({close,saved,initialValues}:{close:()=>void;saved:(record?:CRMApiRecord)=>void;initialValues?:CRMApiRecord}) {
   const [companies,setCompanies]=useState<CRMRecord[]>([]),[owners,setOwners]=useState<CRMRecord[]>([]);
   const [saving,setSaving]=useState(false),[error,setError]=useState<string|null>(null);
   const lock=useRef(false);
   useEffect(()=>{let active=true;void Promise.all([crmApi.list("companies",{per_page:100}),crmApi.list("owners",{per_page:100})]).then(([a,b])=>{if(active){setCompanies(a.data.items.map(item=>normalizeApiRecord("companies",item)));setOwners(b.data.items);}}).catch(()=>{});return()=>{active=false;};},[]);
-  return createPortal(<ContactFormModal mode="create" contact={null} saving={saving} error={error} companies={companies} owners={owners} statuses={["Active","Inactive","Do Not Contact"]} stages={["Lead","Prospect","Customer"]} sources={leadSourceOptions()} onClose={close} onSave={async payload=>{
+  return createPortal(<ContactFormModal initialValues={initialValues} mode="create" contact={null} saving={saving} error={error} companies={companies} owners={owners} statuses={["Active","Inactive","Do Not Contact"]} stages={["Lead","Prospect","Customer"]} sources={leadSourceOptions()} onClose={close} onSave={async payload=>{
     if(lock.current)return;lock.current=true;setSaving(true);setError(null);
-    try{const response=await crmApi.create("contacts",payload);saved();close();return response.data;}catch(error){setError(dealError(error));}finally{lock.current=false;setSaving(false);}
+    try{const response=await crmApi.create("contacts",payload);saved(response.data);close();return response.data;}catch(error){setError(dealError(error));}finally{lock.current=false;setSaving(false);}
   }}/>,document.body);
 }
 
-export function ContactFormModal({ mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord, automatic?:boolean) => Promise<CRMApiRecord|void>|void }) {
+export function ContactFormModal({ initialValues, mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { initialValues?:CRMApiRecord; mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord, automatic?:boolean) => Promise<CRMApiRecord|void>|void }) {
   const allowed=useDefinitionPermission(["crm_contacts_manage","crm_manage","crm_admin"],mode==="edit"?"edit":"create");
   const customFieldForm=useCrmFieldForm("contacts",mode === "edit" ? "edit" : "create",mode === "edit" ? contact?.id : undefined);
   const [customDirty,setCustomDirty]=useState(false);
   const [customError,setCustomError]=useState("");
-  const [initial,setInitial] = useState(() => contactFormInitial(mode === "edit" ? contact : null));
+  const [initial,setInitial] = useState(() => ({...contactFormInitial(mode === "edit" ? contact : null),...(mode === "create" ? initialValues : {})}));
   const [availability, setAvailability] = useState<BranchAvailabilityValue>();
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
@@ -4402,7 +4206,7 @@ function CRMAccountsPage() {
         });
       })
       .catch((err) => {
-        if (!cancelled) setState((current) => ({ ...current, loading: false, error: err?.response?.data?.detail || "Accounts could not be loaded." }));
+        if (!cancelled) setState((current) => ({ ...current, loading: false, error: err?.response?.data?.detail || "Companies could not be loaded." }));
       });
     return () => {
       cancelled = true;
@@ -4455,9 +4259,9 @@ function CRMAccountsPage() {
         upsertAccount(account);
         closeForm();
         refresh();
-        toast({ title: formMode === "edit" ? "Account updated" : "Account created", description: account.name });
+        toast({ title: formMode === "edit" ? "Company updated" : "Company created", description: account.name });
       })
-      .catch((err) => setFormError(err?.response?.data?.detail || "Account could not be saved."))
+      .catch((err) => setFormError(err?.response?.data?.detail || "Company could not be saved."))
       .finally(() => setFormSaving(false));
   };
   const bulkPatch = (payload: CRMApiRecord, title: string) => {
@@ -4490,7 +4294,7 @@ function CRMAccountsPage() {
     crmApi
       .exportEntity("companies")
       .then((response) => downloadBlob(response.data, "accounts.csv"))
-      .catch((err) => toast({ title: "Export failed", description: err?.response?.data?.detail || "Account export failed." }));
+      .catch((err) => toast({ title: "Export failed", description: err?.response?.data?.detail || "Company export failed." }));
   };
 
   return (
@@ -4501,12 +4305,12 @@ function CRMAccountsPage() {
             <div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>CRM</span><ChevronRight className="h-3 w-3" /><span className="text-foreground">Companies</span></div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Accounts</h1>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Companies</h1>
                 <Badge variant="outline" className="border-border bg-white/[0.04] text-foreground">{accountCountLabel}</Badge>
               </div>
-              <p className="mt-3 text-sm text-muted-foreground">Manage account master data with owners, industries, revenue, and status.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Manage companies, owners, industries, revenue, and status.</p>
             </div>
-            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create account</Button>
+            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create company</Button>
           </div>
 
           <section className="rounded-md border border-border bg-card">
@@ -4598,8 +4402,8 @@ function CRMAccountsPage() {
 
 function AccountsToolbar({ search, view, activeFilters, showColumns, visibleColumns, onSearch, onView, onFilters, onColumns, onColumnToggle, onExport, onImport }: { search: string; view: AccountViewKey; activeFilters: number; showColumns: boolean; visibleColumns: Record<string, boolean>; onSearch: (value: string) => void; onView: (value: AccountViewKey) => void; onFilters: () => void; onColumns: () => void; onColumnToggle: (key: string) => void; onExport: () => void; onImport: () => void }) {
   const views: Array<{ key: AccountViewKey; label: string }> = [
-    { key: "all", label: "All accounts" },
-    { key: "mine", label: "My accounts" },
+    { key: "all", label: "All companies" },
+    { key: "mine", label: "My companies" },
     { key: "customers", label: "Customers" },
     { key: "prospects", label: "Prospects" },
   ];
@@ -4609,8 +4413,8 @@ function AccountsToolbar({ search, view, activeFilters, showColumns, visibleColu
       <div className="grid gap-2 xl:grid-cols-[minmax(15rem,24rem)_1fr] xl:items-center">
         <label className="flex h-10 min-w-0 items-center gap-2 rounded-md border border-border bg-white/[0.035] px-3 text-sm text-muted-foreground">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <span className="sr-only">Search accounts</span>
-          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search accounts..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
+          <span className="sr-only">Search companies</span>
+          <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search companies..." className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" />
           {search ? <button type="button" onClick={() => onSearch("")} aria-label="Clear account search"><X className="h-3.5 w-3.5" /></button> : null}
         </label>
         <div className="flex flex-wrap justify-between gap-2">
@@ -4659,8 +4463,8 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
         <GridTable gridId="apps/crm/CRMWorkspacePage:table-5" className="w-full min-w-[980px] text-left text-sm">
           <thead className="sticky top-0 z-10 bg-muted text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all accounts" /></th>
-              <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}><Building2 className="h-3.5 w-3.5" />Account<ArrowUpDown className="h-3 w-3" /></button></th>
+              <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all companies" /></th>
+              <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}><Building2 className="h-3.5 w-3.5" />Company<ArrowUpDown className="h-3 w-3" /></button></th>
               {visibleColumns.industry ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("industry")}>Industry<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.type ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("type")}>Type<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.status ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>Status<ArrowUpDown className="h-3 w-3" /></button></th> : null}
@@ -4672,7 +4476,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
             </tr>
           </thead>
           <tbody>
-            {initialLoading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading accounts...</td></tr> : null}
+            {initialLoading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading companies...</td></tr> : null}
             {!initialLoading && rows.map((account) => (
               <tr {...recordPreviewProps(account)} data-context-record="Account" data-context-open="Open account details" key={account.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === account.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(account)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(account.id)])} onChange={(event) => onToggleRow(account, event.target.checked)} aria-label={`Select ${account.name}`} /></td>
@@ -4687,7 +4491,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
               </tr>
             ))}
-            {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No accounts match the current search or filters.</td></tr> : null}
+            {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No companies match the current search or filters.</td></tr> : null}
           </tbody>
         </GridTable>
       </div>
@@ -4723,7 +4527,7 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
         setRelated(response.data.related || {});
         setTimeline((response.data.timeline || []).slice().reverse());
       })
-      .catch((err) => setError(err?.response?.data?.detail || "Account activity could not be loaded."))
+      .catch((err) => setError(err?.response?.data?.detail || "Company activity could not be loaded."))
       .finally(() => setLoading(false));
   }, [account?.id]);
   if (!account) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select an account to inspect details.</aside>;
@@ -4747,7 +4551,7 @@ function AccountDetailDrawer({ account, onClose, onEdit, onNavigate }: { account
         <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => onNavigate("/crm/tasks")}><CheckCircle2 className="h-3.5 w-3.5" />Task</Button>
         <Button size="sm" className="h-8 bg-emerald-500 text-white hover:bg-emerald-400" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button>
       </CompactActions>
-      <LeadDrawerSection title="Account details">
+      <LeadDrawerSection title="Company details">
         <LeadInfo label="Industry" value={account.industry || "Not provided"} />
         <LeadInfo label="Type" value={account.type || "Prospect"} />
         <LeadInfo label="Status" value={account.status || "Active"} />
@@ -5364,12 +5168,20 @@ export function QuickDealDialog({placement="create",close, saved, dealId, initia
   const [saving, setSaving] = useState(false);
   const [reload, setReload] = useState(0);
   const user = useAuthStore(state => state.user);
+  const formProgress=useRef<ReturnType<typeof progress.start>>();
+  useEffect(()=>{if(lookups){formProgress.current?.complete();formProgress.current?.dispose();}},[lookups]);
   useEffect(() => {
     let active = true;
+    const controller=new AbortController();
+    const steps:ProgressStep[]=[{id:"records",label:"Loading deal configuration and related records",status:"active"},{id:"fields",label:"Loading custom fields",status:"active"},{id:"permissions",label:"Checking deal permissions",status:"active"},{id:"form",label:"Preparing form layout",status:"pending"}];
+    const operation=progress.start({id:operationId("deal-form"),title:dealId?"Loading Deal Details":"Preparing New Deal",description:"Loading fields, permissions, and form settings.",mode:"modal",operationType:"fetch",steps,cancellable:true,onCancel:()=>{active=false;controller.abort();close();},onRetry:()=>setReload(v=>v+1),errorTitle:"Unable to Load Deal Form"});
+    formProgress.current=operation;
+    const stage=(id:string,status:ProgressStep["status"])=>{const step=steps.find(s=>s.id===id);if(step)step.status=status;operation.update({steps:steps.map(s=>({...s}))});};
     const resources = ["companies", "contacts", "deal-workspace/assignees", "deal-workspace/teams", "territories", "deal-workspace/pipelines", "deal-workspace/pipeline-stages", "products", "services", "custom-fields"];
-    setError(null);
-    void Promise.all([Promise.all(resources.map(async resource => [resource, await (["companies", "contacts", "products", "services"].includes(resource) ? crmApi.list(resource, {per_page: 100, page: 1}).then(response => response.data.items) : dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {})).catch(error => {if (["companies", "contacts", "products", "services", "territories", "custom-fields"].includes(resource) && error?.response?.status === 403) return [];throw error;})] as const)), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions")]).then(([entries, response, permissions]) => {
+    setError(null);setLookups(undefined);setRecord(null);
+    void Promise.all([Promise.all(resources.map(async resource => [resource, await (["companies", "contacts", "products", "services"].includes(resource) ? crmApi.list(resource, {per_page: 100, page: 1}, {signal:controller.signal,progress:false,recordCache:false}).then(response => response.data.items) : dealOptions(resource, resource === "custom-fields" ? {entityType: "deals"} : {}, controller.signal)).catch(error => {if (["companies", "contacts", "products", "services", "territories", "custom-fields"].includes(resource) && error?.response?.status === 403) return [];throw error;})] as const)).then(entries=>{stage("records","completed");stage("fields","completed");return entries;}), dealId ? movementApi.get(`/crm/deal-workspace/${dealId}/record`,{signal:controller.signal,progress:false,recordCache:false}) : Promise.resolve(null), movementApi.get("/crm/deal-workspace/permissions",{signal:controller.signal,progress:false}).then(response=>{stage("permissions","completed");return response;})]).then(([entries, response, permissions]) => {
       if (!active) return;
+      stage("form","active");
       const options = Object.fromEntries(entries.map(([key, items]) => [key, items.map(item => normalizeApiRecord(key, item))]));
       options.pipelines = options["deal-workspace/pipelines"];
       options["pipeline-stages"] = options["deal-workspace/pipeline-stages"];
@@ -5377,12 +5189,13 @@ export function QuickDealDialog({placement="create",close, saved, dealId, initia
       if (response?.data.related?.contact) options.contacts = [normalizeApiRecord("contacts", response.data.related.contact), ...options.contacts.filter(item => item.id !== response.data.related.contact.id)];
       options.owners = options["deal-workspace/assignees"];
       setCanManualProbability(Boolean(permissions.data.can_manual_probability));
+      stage("form","completed");
       setLookups(options);
       if (response) setRecord(recordToDealRow(response.data, {companyNames: new Map(), contactNames: new Map(), ownerNames: new Map(), territoryNames: new Map(), stageNames: new Map(), pipelineNames: new Map(), stages: options["pipeline-stages"]}));
-    }).catch(err => {if (active) setError(dealError(err));});
-    return () => {active = false;};
+    }).catch(err => {if (active) {const message=dealError(err);steps.filter(s=>s.status==="active").forEach(s=>s.status="failed");operation.update({steps:steps.map(s=>({...s}))});operation.fail(message);setError(message);}});
+    return () => {active = false;controller.abort();operation.dispose();};
   }, [reload, dealId]);
-  if (!lookups) return createPortal(<div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-label={dealId ? "Edit deal" : "Create deal"} className="rounded-lg bg-card p-6 text-foreground">{error ? <><p role="alert">{error}</p><Button onClick={() => setReload(v => v + 1)}>Retry</Button></> : <div role="status" className="animate-pulse space-y-3"><p>Loading deal form...</p><div className="h-10 w-72 rounded bg-muted"/><div className="h-10 w-72 rounded bg-muted"/></div>}<Button variant="outline" onClick={close}>Cancel</Button></div></div>, document.body);
+  if (!lookups) return error ? <div role="alert" className="rounded-lg border p-4">{error}<Button onClick={()=>setReload(v=>v+1)}>Retry deal form</Button><Button variant="outline" onClick={close}>Close</Button></div> : null;
   return <DealFormModal autoSaveEnabled placement={placement} draftScope={draftScope} initialValues={!dealId?{...initialValues,...(initialStageId?{stageId:initialStageId}:{}),...(initialPipelineId?{pipelineId:initialPipelineId}:{})}:undefined} canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} teams={lookups["deal-workspace/teams"]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload, automatic=false) => {
     if(saveLock.current)return;saveLock.current=true;
     setSaving(!automatic);setError(null);
@@ -5533,11 +5346,11 @@ function DealFormModal({ autoSaveEnabled=false, placement="create", initialValue
             <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-900 dark:text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-800 dark:text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
           </aside>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{auto.message || (dirty ? "Unsaved changes" : "")}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button data-save-action className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || auto.saving || (mode === "edit" && !dirty)} onClick={()=>void submit()}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{auto.message || (dirty ? "Unsaved changes" : "")}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button data-save-action loading={saving} loadingLabel={mode === "edit" ? "Saving Deal" : "Creating Deal"} className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || auto.saving || (mode === "edit" && !dirty)} onClick={()=>void submit()}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
       </div>
     </div>
     </DealDialog.Content>
-    {inlineKind === "companies" ? <CompanyQuickCreate source="crm" seedName={inlineSeedName} onClose={()=>setInlineKind(null)} onSaved={(company,keepOpen)=>{setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company as unknown as CRMRecord]);setDraft(current=>prefillDealCompany(changeDealCompany(current,String(company.id)),company as unknown as CRMApiRecord));if(!keepOpen)setInlineKind(null);}}/> : inlineKind && <CreateRecordDialog seedName={inlineSeedName} kind={inlineKind} saving={inlineSaving} error={inlineError} onClose={() => {if (!inlineSaving) setInlineKind(null);}} onCreate={createInline}/>}
+    {inlineKind === "companies" ? <CompanyQuickCreate source="crm" seedName={inlineSeedName} onClose={()=>setInlineKind(null)} onSaved={(company,keepOpen)=>{setAddedCompanies(items=>[...items.filter(item=>item.id!==company.id),company as unknown as CRMRecord]);setDraft(current=>prefillDealCompany(changeDealCompany(current,String(company.id)),company as unknown as CRMApiRecord));if(!keepOpen)setInlineKind(null);}}/> : inlineKind === "contacts" ? <CRMContactQuickCreate initialValues={{name:inlineSeedName,companyId:draft.companyId}} close={()=>setInlineKind(null)} saved={record=>{if(!record)return;const created=normalizeApiRecord("contacts",record);setAddedContacts(items=>[...items.filter(item=>item.id!==created.id),created]);setDraft(current=>({...current,contactId:created.id}));}}/> : (inlineKind === "products" || inlineKind === "services") && <CatalogEditor source="crm" defaultKind={inlineKind === "services" ? "service" : "product"} close={()=>setInlineKind(null)} saved={item=>{const created={...item,catalogKind:item.kind} as unknown as CRMRecord;setAddedProducts(items=>[...items,created]);setLines(items=>[...items,{key:crypto.randomUUID(),productId:`${item.kind}:${item.id}`,unitPrice:String(item.price),quantity:"1",discount:"0"}]);setInlineKind(null);}}/>}
     </DealDialog.Root>, document.body
   );
 }
@@ -6411,7 +6224,7 @@ function ApprovalWorkflowDialog({ onClose, onCreated }: { onClose: () => void; o
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="w-full max-w-2xl">
+      <SmartCreateSection title={<>Create Approval Workflow</>} size="standard"><Card className="w-full max-w-2xl">
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Create Approval Workflow</CardTitle>
           <Button variant="ghost" size="sm" onClick={onClose}><X className="h-4 w-4" /></Button>
@@ -6429,7 +6242,7 @@ function ApprovalWorkflowDialog({ onClose, onCreated }: { onClose: () => void; o
           <label className="space-y-1 text-sm"><span className="font-medium">Conditions JSON</span><textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm" value={draft.conditions} onChange={(event) => patch("conditions", event.target.value)} /></label>
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving}>{saving ? "Creating..." : "Create"}</Button></div>
         </CardContent>
-      </Card>
+      </Card></SmartCreateSection>
     </div>
   );
 }
@@ -6730,7 +6543,7 @@ function WebhookSettingsPage() {
       {message ? <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
       {error ? <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 xl:grid-cols-[26rem_1fr]">
-        <Card>
+        <SmartCreateSection title={<>Create Webhook</>} size="standard"><Card>
           <CardHeader><CardTitle>Create Webhook</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <Field label="Name"><Input aria-label="Webhook name" disabled={busy} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
@@ -6749,7 +6562,7 @@ function WebhookSettingsPage() {
             </div>
             <div className="flex gap-2"><Button disabled={busy} className="flex-1" onClick={create}><Plus className="h-4 w-4" />Create</Button><Button disabled={busy} variant="outline" onClick={() => { resetDraft(); setError(null); setMessage(null); }}>Reset</Button></div>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
         <div className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Configured Webhooks</CardTitle></CardHeader>
@@ -6895,7 +6708,7 @@ function TerritorySettingsPage() {
       {message ? <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div> : null}
       {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 xl:grid-cols-[22rem_1fr]">
-        <Card>
+        <SmartCreateSection title={<>Create Territory</>} size="standard"><Card>
           <CardHeader><CardTitle>Create Territory</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <Field label="Name"><Input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></Field>
@@ -6918,14 +6731,14 @@ function TerritorySettingsPage() {
             <Button className="w-full" onClick={create}><Plus className="h-4 w-4" />Create territory</Button>
             <Button className="w-full" variant="outline" onClick={() => autoAssign(true)}>Reassign including manual overrides</Button>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
         <div className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Territory Rules</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {loading ? <p className="text-sm text-muted-foreground">Loading territories...</p> : null}
               {territories.map((territory) => (
-                <div key={String(territory.id)} className="grid gap-3 rounded-md border p-4 md:grid-cols-[1fr_8rem_9rem_auto] md:items-center">
+                <div data-priority-row data-priority={territory.priority} key={String(territory.id)} className="grid gap-3 rounded-md border p-4 md:grid-cols-[1fr_8rem_9rem_auto] md:items-center">
                   <div><p className="font-medium">{String(territory.name || "")}</p><p className="text-sm text-muted-foreground">{String(territory.city || territory.state || territory.country || "Custom rule")} / priority {String(territory.priority || 100)}</p></div>
                   <Badge className={statusColor((territory.isActive ?? territory.is_active) ? "Active" : "Inactive")}>{(territory.isActive ?? territory.is_active) ? "Active" : "Inactive"}</Badge>
                   <span className="text-sm text-muted-foreground">{Array.isArray(territory.users) ? territory.users.length : 0} user(s)</span>
@@ -7895,42 +7708,7 @@ function RecordPanel({ record, kind }: { record: CRMRecord | null; kind: CRMPage
 }
 
 
-function DashboardQuickCreateDialog({
-  kind,
-  saving,
-  error,
-  onKindChange,
-  onClose,
-  onCreate,
-}: {
-  kind: DashboardQuickCreateKind;
-  saving?: boolean;
-  error?: string | null;
-  onKindChange: (kind: DashboardQuickCreateKind) => void;
-  onClose: () => void;
-  onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void;
-}) {
-  return (
-    <CreateRecordDialog
-      kind={kind}
-      saving={saving}
-      error={error}
-      onClose={onClose}
-      onCreate={onCreate}
-      header={
-        <div className="flex flex-wrap gap-2">
-          {dashboardQuickCreateKinds.map((item) => (
-            <Button key={item.kind} type="button" size="sm" variant={kind === item.kind ? "default" : "outline"} onClick={() => onKindChange(item.kind)} disabled={saving}>
-              {item.label}
-            </Button>
-          ))}
-        </div>
-      }
-    />
-  );
-}
-
-function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, seedName, placement="quick_create" }: { placement?:"create"|"quick_create";seedName?: string; kind: CRMPageKind; saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void; header?: React.ReactNode }) {
+function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, seedName, placement="create" }: { placement?:"create"|"quick_create";seedName?: string; kind: CRMPageKind; saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void; header?: React.ReactNode }) {
   const title = actionFor(kind) || "Create record";
   const entity = apiEntityForKind[kind];
   const fieldEntity=entity==="quotes"?"quotations":entity==="accounts"?"companies":entity;
@@ -7990,7 +7768,7 @@ function CreateRecordDialog({ kind, saving, error, onClose, onCreate, header, se
   );
 }
 
-function CreateDealDialog({ placement="quick_create", saving, error, onClose, onCreate }: { placement?:"create"|"quick_create";saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void }) {
+function CreateDealDialog({ placement="create", saving, error, onClose, onCreate }: { placement?:"create"|"quick_create";saving?: boolean; error?: string | null; onClose: () => void; onCreate: (draft: CRMRecord, customFields?: CRMApiRecord) => void }) {
   const customFieldForm=useCrmFieldForm("deals",placement);
   const [mode, setMode] = useState<"simple" | "advanced">("simple");
   const [stageOpen, setStageOpen] = useState(false);

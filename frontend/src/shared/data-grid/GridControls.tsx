@@ -1,4 +1,5 @@
 import { NativeSelect } from "@/components/ui/native-select";
+import { ColumnHeadingIcon } from "./column-presentation";
 import { useEffect, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as Context from "@radix-ui/react-context-menu";
@@ -112,7 +113,7 @@ export function ColumnManager<T>({
     <Popover.Root>
       <Popover.Trigger className="udg-control">
         <Columns3 size={15} />
-        Columns
+        Columns {columns.filter(column => layout.visibility[column.id] !== false).length}/{columns.length}
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
@@ -146,7 +147,7 @@ export function ColumnManager<T>({
                       })
                     }
                   />
-                  {column.title}
+                  <ColumnHeadingIcon title={column.title}/>{column.title}
                 </label>
                 <button
                   aria-label={`Move ${column.title} left`}

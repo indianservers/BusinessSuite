@@ -1,3 +1,5 @@
+import { progress, operationId } from "@/lib/async-progress";
+import { useLoadingContext } from "@/hooks/use-loading-context";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -25,6 +27,7 @@ export default function DataExportButton({
   description?: string;
   disabled?: boolean;
 }) {
+  const context=useLoadingContext();
   const canExport=useModuleAction("export");
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
@@ -42,6 +45,7 @@ export default function DataExportButton({
     setMessage("");
     setFile(undefined);
     setTable(undefined);
+    const operation=progress.start({id:operationId("export-preview"),title:`Preparing ${context.resource} Export`,mode:"micro",operationType:"export"});
     try {
       const source = await load();
       if (Array.isArray(source) && !source.length)
@@ -62,7 +66,9 @@ export default function DataExportButton({
       setFile(selected);
       setTable(parsed);
       setColumns(parsed.headers);
+      operation.complete();
     } catch (e) {
+      operation.fail(transferError(e));
       setError(transferError(e));
     } finally {
       setBusy(false);
@@ -80,6 +86,7 @@ export default function DataExportButton({
       body.append("format", format);
       body.append("columns", JSON.stringify(columns));
       const response = await api.post("/data-transfer/export/convert", body, {
+        progress:{title:format==="clipboard"?"Preparing Clipboard Export":`Exporting ${context.resource} as ${format.toUpperCase()}`,operationType:"export",mode:"micro"},
         responseType: "blob",
       });
       if (format === "clipboard") {
@@ -116,7 +123,7 @@ export default function DataExportButton({
     <>
       <Button
         variant="outline"
-        disabled={disabled||!canExport}
+        disabled={disabled||!canExport||busy}
         onClick={() => void begin()}
       >
         <Download size={16} />
@@ -144,7 +151,7 @@ export default function DataExportButton({
               </Dialog.Close>
             </header>
             <div className="dt-body">
-              {busy && <p role="status">Preparing your export…</p>}
+              {busy && <p role="status">Preparing {context.resource} export…</p>}
               {error && (
                 <p role="alert" className="dt-error">
                   {error}

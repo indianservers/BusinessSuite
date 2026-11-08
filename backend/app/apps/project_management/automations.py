@@ -1,9 +1,11 @@
 """Workspace-scoped, deterministic task automation. No scripts or external calls."""
 import json
+from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
@@ -35,7 +37,9 @@ class RuleInput(BaseModel):
     project_id: int = Field(gt=0)
     trigger: Literal["task.created", "task.status_changed", "schedule.daily", "task.due_date"]
     status: Literal["", "To Do", "In Progress", "In Review", "Blocked", "Done"] = ""
-    action: Literal["set_priority", "assign_user"]
+    action: Literal["set_priority", "assign_user", "set_due_date", "webhook"]
+    connection_id: int | None = Field(default=None, gt=0)
+    due_date: date | None = None
     priority: Literal["Low", "Medium", "High", "Urgent"] = "High"
     assignee_id: int | None = None
     enabled: bool = True
@@ -44,6 +48,10 @@ class RuleInput(BaseModel):
 
     @model_validator(mode="after")
     def validate_conditions(self):
+        if self.action == "webhook" and self.connection_id is None:
+            raise ValueError("Choose a workspace webhook connection")
+        if self.action == "set_due_date" and self.due_date is None:
+            raise ValueError("The due-date action requires a due date")
         timed = self.trigger in {"schedule.daily", "task.due_date"}
         if timed != (self.schedule is not None):
             raise ValueError("Time-based triggers require a schedule; event triggers do not use one")
@@ -108,6 +116,9 @@ def create_rule(workspace_id: int, data: RuleInput, db: Session = Depends(get_db
         raise HTTPException(422, "Rule name is required")
     if not db.query(PMSProject).filter_by(id=data.project_id, workspace_id=workspace_id).first():
         raise HTTPException(404, "Project not found in this workspace")
+    if data.action == "webhook":
+        from .external_queue import connection
+        connection(db, workspace_id, data.connection_id)
     if data.action == "assign_user" and not _eligible_assignee(db, workspace_id, data.assignee_id):
         raise HTTPException(422, "Choose an active workspace collaborator")
     if db.query(PMSWorkspaceEntry).filter_by(workspace_id=workspace_id, kind="auto_rule").count() >= 100:
@@ -142,6 +153,9 @@ def edit_rule(workspace_id: int, rule_id: int, data: RuleInput, db: Session = De
         raise HTTPException(422, "Rule name is required")
     if not db.query(PMSProject).filter_by(id=data.project_id, workspace_id=workspace_id, deleted_at=None).first():
         raise HTTPException(404, "Project not found in this workspace")
+    if data.action == "webhook":
+        from .external_queue import connection
+        connection(db, workspace_id, data.connection_id)
     if data.action == "assign_user" and not _eligible_assignee(db, workspace_id, data.assignee_id):
         raise HTTPException(422, "Choose an active workspace collaborator")
     revision = int(json.loads(row.body).get("_revision", 1)) + 1
@@ -193,18 +207,64 @@ def _matches(rule, task):
 def _apply_rule(db, row, rule, task, project, actor):
     """Shared action path for event and clock triggers. Return False on revoked assignment."""
     skipped = False
+    reason = None
+    before = {"priority": task.priority, "due_date": task.due_date.isoformat() if task.due_date else None, "assignee_ids": list(task.assignee_user_ids)}
+    if rule["action"] == "webhook":
+        from .external_queue import enqueue
+        return enqueue(db, row, rule, task, project)
     if rule["action"] == "set_priority":
         if task.priority == rule["priority"]:
             return True
         task.priority = rule["priority"]
+    elif rule["action"] == "set_due_date":
+        due = date.fromisoformat(rule["due_date"])
+        if task.start_date and due < task.start_date:
+            skipped = True
+            reason = "Due date would be before task start"
+        elif task.status in {"Done", "Completed", "Cancelled", "Canceled", "Closed"}:
+            skipped = True
+            reason = "Completed/cancelled task is not rescheduled"
+        elif task.due_date == due:
+            return True
+        else:
+            task.due_date = due
     else:
         target = rule.get("assignee_id")
         if not _eligible_assignee(db, project.workspace_id, target):
             skipped = True
+            reason = "Assignee no longer eligible"
         elif target in task.assignee_user_ids:
             return True
         else:
             task.assignee_user_ids = sorted(set(task.assignee_user_ids + [target]))
             task.assignee_user_id = task.assignee_user_id or target
-    db.add(PMSActivity(project_id=project.id, task_id=task.id, actor_user_id=actor.id, action="automation.skipped" if skipped else "automation.executed", entity_type="automation", entity_id=row.id, summary=f'{rule["name"]}: {"assignee no longer eligible" if skipped else rule["action"]} on {task.task_key}'[:300], metadata_json=json.dumps({"rule_id": row.id, "trigger": rule["trigger"]})))
+    after = {"priority": task.priority, "due_date": task.due_date.isoformat() if task.due_date else None, "assignee_ids": list(task.assignee_user_ids)}
+    db.add(PMSActivity(project_id=project.id, task_id=task.id, actor_user_id=actor.id, action="automation.skipped" if skipped else "automation.executed", entity_type="automation", entity_id=row.id, summary=f'{rule["name"]}: {reason if skipped else rule["action"]} on {task.task_key}'[:300], metadata_json=json.dumps({"rule_id": row.id, "trigger": rule["trigger"], "before": before, "after": after, "reason": reason})))
     return not skipped
+
+
+@router.get("/workspaces/{workspace_id}/automation-runs/report")
+def execution_report(workspace_id: int, rule_id: int | None = None, outcome: Literal["all", "executed", "skipped"] = "all",
+                     since: date | None = None, until: date | None = None, before_id: int | None = Query(None, gt=0),
+                     limit: int = Query(25, ge=1, le=100), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _manage(db, workspace_id, user)
+    if since and until and since > until: raise HTTPException(422, "Start date must be on or before end date")
+    from .access import accessible_project_query
+    projects = accessible_project_query(db, user).filter(PMSProject.workspace_id == workspace_id).with_entities(PMSProject.id)
+    query = db.query(PMSActivity).filter(PMSActivity.project_id.in_(projects), PMSActivity.action.in_(["automation.executed", "automation.skipped"]))
+    if rule_id is not None: query = query.filter(PMSActivity.entity_id == rule_id)
+    if outcome != "all": query = query.filter(PMSActivity.action == f"automation.{outcome}")
+    if since: query = query.filter(PMSActivity.created_at >= datetime.combine(since, time.min, tzinfo=timezone.utc))
+    if until: query = query.filter(PMSActivity.created_at <= datetime.combine(until, time.max, tzinfo=timezone.utc))
+    totals = dict(query.with_entities(PMSActivity.action, func.count(PMSActivity.id)).group_by(PMSActivity.action).all())
+    if before_id: query = query.filter(PMSActivity.id < before_id)
+    page = query.order_by(PMSActivity.id.desc()).limit(limit + 1).all()
+    items = []
+    for row in page[:limit]:
+        try: metadata = json.loads(row.metadata_json or "{}")
+        except (ValueError, TypeError): metadata = {}
+        items.append({"id": row.id, "rule_id": row.entity_id, "task_id": row.task_id, "summary": row.summary,
+                      "outcome": row.action.split(".")[-1], "created_at": row.created_at.replace(tzinfo=timezone.utc) if row.created_at and row.created_at.tzinfo is None else row.created_at, "metadata": metadata})
+    return {"items": items, "next_cursor": page[limit-1].id if len(page)>limit else None,
+            "counts": {"executed": totals.get("automation.executed", 0), "skipped": totals.get("automation.skipped", 0)},
+            "basis": "Recorded actions matching filters; date filters use UTC; unchanged no-op evaluations are not execution records"}

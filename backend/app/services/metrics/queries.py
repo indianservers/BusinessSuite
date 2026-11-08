@@ -60,8 +60,10 @@ def registered_users(db, user, include_invited=False, organization_id=None):
     return query
 
 
-def employee_records(db, user=None):
-    query = db.query(Employee).filter(Employee.deleted_at.is_(None))
+def employee_records(db, user=None, *, include_archived=False):
+    query = db.query(Employee)
+    if not include_archived:
+        query = query.filter(Employee.deleted_at.is_(None))
     if user is None:
         # Compatibility for internal, already-scoped CRUD callers.
         return query

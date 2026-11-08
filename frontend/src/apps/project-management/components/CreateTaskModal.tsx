@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { PMSTask, PMSMentionUser } from "../types";
+import { useSmartCreation } from "@/shared/creation/SmartCreationProvider";
 export default function CreateTaskModal({
   isOpen,
   onClose,
@@ -8,6 +9,8 @@ export default function CreateTaskModal({
   initialDueDate = "",
   initialWorkType = "Task",
   initialTitle = "",
+  initialStatus = "",
+  onTaskCreated,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -18,8 +21,10 @@ export default function CreateTaskModal({
   initialDueDate?: string;
   initialWorkType?: "Task" | "Story" | "Bug";
   initialTitle?: string;
+  initialStatus?: string;
 }) {
   const navigate = useNavigate();
+  const creation = useSmartCreation();
   const opened = useRef(false);
   useEffect(() => {
     if (!isOpen) {
@@ -31,18 +36,24 @@ export default function CreateTaskModal({
     const query = new URLSearchParams();
     if (projectId) query.set("projectId", String(projectId));
     if (initialDueDate) query.set("dueDate", initialDueDate);
+    if (initialStatus) query.set("status", initialStatus);
     if (initialTitle) query.set("title", initialTitle);
     if (initialWorkType) query.set("workType", initialWorkType);
+    const destination = `/pms/tasks/new?${query}`;
+    const handled = creation?.open(destination, record => { if (record) onTaskCreated(record as PMSTask); });
     onClose();
-    navigate(`/pms/tasks/new?${query}`);
+    if (!handled) navigate(destination);
   }, [
     isOpen,
     projectId,
     initialDueDate,
     initialWorkType,
     initialTitle,
+    initialStatus,
     onClose,
     navigate,
+    creation,
+    onTaskCreated,
   ]);
   return null;
 }

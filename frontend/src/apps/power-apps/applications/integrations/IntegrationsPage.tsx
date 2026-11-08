@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -319,7 +321,7 @@ export default function IntegrationsPage() {
         </NativeSelect>
       </div>
       <div className="ic-grid">
-        {visible.map((c) => (
+        {<GroupedRecords scope="apps/power-apps/applications/integrations/IntegrationsPage:records-1" items={(visible) || []} fields={standardRecordGroups((visible) || [])} gridClassName="ic-grid" renderItem={(c) => (
           <article className="ic-card" key={c.id}>
             <div className="ic-card-mark">
               <Plug size={23} />
@@ -378,7 +380,7 @@ export default function IntegrationsPage() {
               Provider documentation
             </a>
           </article>
-        ))}
+        )}/>}
       </div>
       {!visible.length && (
         <p className="ic-empty">
@@ -394,7 +396,7 @@ export default function IntegrationsPage() {
         {!connections.length && (
           <p className="ic-empty">Connect an account above to start.</p>
         )}
-        {connections.map((c) => (
+        {<GroupedRecords scope="apps/power-apps/applications/integrations/IntegrationsPage:records-2" items={(connections) || []} fields={standardRecordGroups((connections) || [])} gridClassName="space-y-3" renderItem={(c) => (
           <article key={c.id}>
             <Plug size={20} />
             <div>
@@ -453,7 +455,7 @@ export default function IntegrationsPage() {
               {c.enabled ? "Disable" : "Enable"}
             </button>
           </article>
-        ))}
+        )}/>}
       </section>
       <section className="ic-monitor">
         <h2>Recent provider requests</h2>
@@ -462,7 +464,7 @@ export default function IntegrationsPage() {
           not confirm delivery.
         </p>
         {!logs.length && <p>No visible provider requests yet.</p>}
-        {logs.map((l) => (
+        {<GroupedRecords scope="apps/power-apps/applications/integrations/IntegrationsPage:records-3" items={(logs) || []} fields={standardRecordGroups((logs) || [])} gridClassName="space-y-3" renderItem={(l) => (
           <article key={l.id}>
             <strong>
               {l.connector_id} / {l.action_id}
@@ -472,7 +474,7 @@ export default function IntegrationsPage() {
             </span>
             <small>{l.correlation_id}</small>
           </article>
-        ))}
+        )}/>}
       </section>
       {(selected || testing) && (
         <div className="ic-overlay">

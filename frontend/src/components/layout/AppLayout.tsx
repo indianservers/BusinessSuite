@@ -1,3 +1,4 @@
+import RouteContent from "@/components/app/RouteContent";
 import PageWorkTools from "@/components/app/PageWorkTools";
 import { isSharedTaskWorkspace } from "@/lib/task-workspace";
 import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
@@ -22,13 +23,14 @@ import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
 import "./mobile-workspaces.css";
 
-export default function AppLayout() { return <FormDefaultsGate><AppLayoutContent/></FormDefaultsGate>; }
+export default function AppLayout() { return <AppLayoutContent/>; }
 
 function AppLayoutContent() {
   const location = useLocation();
   const mobileLead = useMobile() && /^\/crm\/leads\/\d+\/?$/.test(location.pathname);
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
+  const isWorkspaceDirectory = /^\/(pms|crm|hrms|srm|fam)\/workspaces\/?$/.test(location.pathname);
   const isPeopleDirectory = location.pathname === "/pms/people" || location.pathname === "/pms/directory" || /^\/pms\/people\/\d+$/.test(location.pathname);
   const isMessaging = /^\/(pms|crm|hrms|srm|fam)\/messages\/?$/.test(location.pathname) || /^\/crm\/whatsapp\/inbox\/?$/.test(location.pathname);
   const isPosTerminal = location.pathname === "/srm/pos" || location.pathname === "/srm/pos/terminal";
@@ -42,15 +44,15 @@ function AppLayoutContent() {
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   if (location.pathname === "/power-apps" || location.pathname.startsWith("/power-apps/")) {
-    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary><PageWorkTools /><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /></div>;
+    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /></div>;
   }
 
   if (isSharedTaskWorkspace(location.pathname, location.search)) {
-    return <div className="mobile-dock-fullscreen mobile-dock-tasks"><ErrorBoundary><PageWorkTools /><Outlet /></ErrorBoundary><SessionTimeoutWarning /><MobileModuleDock /></div>;
+    return <div className="mobile-dock-fullscreen mobile-dock-tasks"><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
-  if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><PageWorkTools /><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /><MobileModuleDock /></div>;
+  if (["/pms", "/pms/"].includes(location.pathname) || (location.pathname === "/pms/workspaces" && ["workspace","new","task","invite"].some(key=>new URLSearchParams(location.search).has(key)))) {
+    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /><MobileModuleDock /></div>;
   }
 
   return (
@@ -73,12 +75,12 @@ function AppLayoutContent() {
         }`}
       >
         {!mobileLead && <Topbar onMenuClick={() => setSidebarOpen(true)} />}
-        <main id="suite-main" tabIndex={-1} className={`kf-main suite-page-surface min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
-          {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory ? null : <Breadcrumbs />}
+        <main id="suite-main" tabIndex={-1} className={`kf-main suite-page-surface min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory || isWorkspaceDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+          {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory || isWorkspaceDirectory ? null : <Breadcrumbs />}
           {!mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <SetupReadiness embedded />
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingState label="Loading page data" />}><PageWorkTools /><Outlet /></Suspense>
+          <ErrorBoundary resetKey={location.pathname+location.search}>
+            <RouteContent><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></RouteContent>
           </ErrorBoundary>
         </main>
         {!mobileLead && <BackToTop />}

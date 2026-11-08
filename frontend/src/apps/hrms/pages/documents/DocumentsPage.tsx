@@ -1,3 +1,5 @@
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { ImportWizard } from "@/shared/data-transfer";
@@ -15,7 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { assetUrl, formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { getRoleKey } from "@/lib/roles";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 type EmployeeOption = {
   id: number;
@@ -60,13 +62,14 @@ function apiError(error: unknown) {
 
 export default function DocumentsPage() {
   const qc = useQueryClient();
+  const [params] = useSearchParams();
   const { user } = useAuthStore();
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
   const grants=user?.access?.grants.hrms;
   const canChooseEmployee = !!user?.is_superuser || (user?.access ? !!grants?.enabled && grants.permissions.includes("employee_view") : ["admin", "hr"].includes(roleKey));
   const canUpload=!!user?.is_superuser || !user?.access || !!grants?.enabled && grants.actions.includes("create");
   const canVerify=!!user?.is_superuser || (user?.access ? !!grants?.enabled && grants.actions.includes("edit") && grants.permissions.includes("employee_update") : ["admin", "hr"].includes(roleKey));
-  const [employeeId, setEmployeeId] = useState(user?.employee_id ? String(user.employee_id) : "");
+  const [employeeId, setEmployeeId] = useState(params.get("employee_id") || (user?.employee_id ? String(user.employee_id) : ""));
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [branchId, setBranchId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
@@ -86,7 +89,7 @@ export default function DocumentsPage() {
     department_id: departmentId || undefined,
     page: employeePage,
     per_page: 20,
-    status: "Active",
+
   };
 
   const employees = useQuery({
@@ -396,7 +399,7 @@ export default function DocumentsPage() {
             {certificates.isLoading ? (
               <div className="h-24 rounded-lg border bg-muted/30" />
             ) : certificates.data?.length ? (
-              certificates.data.map((item) => (
+              <GroupedRecords scope="apps/hrms/pages/documents/DocumentsPage:records-1" items={(certificates.data) || []} fields={standardRecordGroups((certificates.data) || [])} gridClassName="space-y-3" renderItem={(item) => (
                 <div key={item.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -426,7 +429,7 @@ export default function DocumentsPage() {
                     </Button>
                   )}
                 </div>
-              ))
+              )}/>
             ) : (
               <p className="rounded-lg border p-4 text-sm text-muted-foreground">No documents uploaded yet.</p>
             )}

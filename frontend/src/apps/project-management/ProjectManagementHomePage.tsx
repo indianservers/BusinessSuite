@@ -1,3 +1,5 @@
+import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
+import { LoadingState } from "@/components/ui/state";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -93,16 +95,7 @@ const ProjectManagementHomePage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading KaryaFlow...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState label="Loading Project Workspace"/>;
 
   return (
     <div className="space-y-6">
@@ -134,6 +127,8 @@ const ProjectManagementHomePage: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div className="grid grid-cols-2 gap-3 mb-4" aria-label="Project overview metrics"><div className="rounded-lg border bg-card p-4"><p className="text-xs text-muted-foreground">Loaded projects</p><strong className="text-2xl">{projects.length}</strong></div><div className="rounded-lg border bg-card p-4"><p className="text-xs text-muted-foreground">Recent intake requests</p><strong className="text-2xl">{intakes.length}</strong></div></div>
+        <ModuleWorkflowBoard module="pms" />
         {workflows.length > 0 && (
           <section className="mb-8" aria-labelledby="pms-workflows">
             <h2 id="pms-workflows" className="mb-3 text-lg font-bold text-foreground">Workflows</h2>
@@ -205,7 +200,7 @@ const ProjectManagementHomePage: React.FC = () => {
             <h2 className="text-lg font-bold text-foreground">Recent Intakes</h2>
             <div className="mt-3 space-y-3">
               {intakes.slice(0, 4).map((intake) => (
-                <div key={intake.id} className="rounded-lg border border-border p-3">
+                <div data-priority-row data-priority={intake.priority} key={intake.id} className="rounded-lg border border-border p-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-semibold text-foreground">{intake.title}</p>
                     <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">{intake.status}</span>

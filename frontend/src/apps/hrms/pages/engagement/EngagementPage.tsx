@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent } from "@/components/rich-text/LazyRichText";
@@ -109,15 +110,15 @@ export default function EngagementPage() {
         {canManageEngagement && <Card>
           <CardHeader><CardTitle className="text-base">Post Announcement</CardTitle></CardHeader>
           <CardContent>
-            <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createAnnouncement.mutate(); }}>
+            <SmartCreateSection title="Create post announcement" size="compact"><CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createAnnouncement.mutate(); }}>
               <div className="space-y-2"><Label>Title</Label><Input value={announcement.title} onChange={(e) => setAnnouncement({ ...announcement, title: e.target.value })} required /></div>
               <div className="space-y-2"><Label>Message</Label><RichTextField value={announcement.body} onChange={(e) => setAnnouncement({ ...announcement, body: e.target.value })} required /></div>
               <Button type="submit" disabled={createAnnouncement.isPending}><Send className="h-4 w-4" />Publish</Button>
-            </CompactForm>
+            </CompactForm></SmartCreateSection>
           </CardContent>
         </Card>}
 
-        {canManageEngagement && <Card>
+        {canManageEngagement && <SmartCreateSection title={<>Create Poll</>} size="compact"><Card>
           <CardHeader><CardTitle className="text-base">Create Poll</CardTitle></CardHeader>
           <CardContent>
             <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createPoll.mutate(); }}>
@@ -126,7 +127,7 @@ export default function EngagementPage() {
               <Button type="submit" disabled={createPoll.isPending}><Plus className="h-4 w-4" />Create poll</Button>
             </CompactForm>
           </CardContent>
-        </Card>}
+        </Card></SmartCreateSection>}
 
         <Card className={canManageEngagement ? "" : "xl:col-span-3"}>
           <CardHeader><CardTitle className="text-base">People Moments</CardTitle></CardHeader>

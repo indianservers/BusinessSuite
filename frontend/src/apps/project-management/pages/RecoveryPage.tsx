@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
@@ -298,7 +299,7 @@ export default function RecoveryPage() {
             excluded. Uploaded file contents are included in full-system
             archives.
           </p>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <SmartCreateSection title="Create savepoint"><div className="flex flex-col gap-2 sm:flex-row">
             <Input
               placeholder="Savepoint name, e.g. Before sprint planning"
               aria-label="Savepoint name"
@@ -318,7 +319,7 @@ export default function RecoveryPage() {
             >
               Create savepoint
             </Button>
-          </div>
+          </div></SmartCreateSection>
           {policyForm(policy, setPolicy)}
           <Button
             variant="outline"

@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -180,7 +181,7 @@ export default function BacklogPage() {
       </Card>
 
       {showSprintForm ? (
-        <Card>
+        <SmartCreateSection title={<>Create sprint</>} size="standard" autoOpen onClose={() => setShowSprintForm(false)}><Card>
           <CardHeader><CardTitle>Create sprint</CardTitle></CardHeader>
           <CardContent>
             <CompactForm onSubmit={createSprint} className="grid gap-3 md:grid-cols-[1fr_1fr_10rem_10rem_8rem_auto] md:items-end">
@@ -192,7 +193,7 @@ export default function BacklogPage() {
               <Button type="submit">Create</Button>
             </CompactForm>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
       ) : null}
 
       {error ? <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
@@ -312,7 +313,7 @@ function SortableTaskRow({ task }: { task: PMSTaskListItem }) {
 function TaskRow({ task, dragHandle, dragging = false }: { task: PMSTaskListItem; dragHandle?: Record<string, unknown>; dragging?: boolean }) {
   const tagNames = (task.tags || []).map((tag) => typeof tag === "string" ? tag : tag.name);
   return (
-    <div className={cn("rounded-md border bg-background p-3 shadow-sm", dragging && "w-[36rem] shadow-lg")}>
+    <div data-priority-row data-priority={task.priority} className={cn("rounded-md border bg-background p-3 shadow-sm", dragging && "w-[36rem] shadow-lg")}>
       <div className="flex items-start gap-3">
         <button type="button" className="mt-1 rounded p-1 text-muted-foreground hover:bg-muted" style={{touchAction:"none"}} aria-label={`Drag ${task.task_key}`} {...dragHandle}>
           <GripVertical className="h-4 w-4" />
@@ -320,7 +321,7 @@ function TaskRow({ task, dragHandle, dragging = false }: { task: PMSTaskListItem
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-primary">{task.task_key}</span>
-            <Badge className={statusColor(task.priority)}>{task.priority}</Badge>
+            <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>
             <Badge variant="outline">{task.status}</Badge>
             <span className="text-sm text-muted-foreground">{task.story_points ?? 0} pts</span>
           </div>

@@ -573,7 +573,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
             }}
           />
           <div className="tw-heading-tags">
-            <span
+            <span data-priority-badge data-priority={task.priority}
               className={`tw-tag tw-priority-${task.priority.toLowerCase()}`}
             >
               {task.priority} priority

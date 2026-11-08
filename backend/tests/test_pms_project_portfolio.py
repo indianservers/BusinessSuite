@@ -38,3 +38,24 @@ def test_inline_edits_validate_dates_enums_and_membership(client, db):
     assert client.patch(url, headers=headers, json={'priority':'High','name':'Renamed'}).status_code == 200
     row = next(p for p in client.get(BASE+'/projects', headers=headers).json() if p['id']==pid)
     assert row['priority'] == 'High' and row['name'] == 'Renamed'
+
+
+def test_project_capabilities_stay_distinct_for_each_workspace_and_actor(client, db):
+    from app.apps.project_management.models import PMSWorkspaceMember
+    from test_identity_utils import own_workflow_records
+    wid,pid,owner,oh,ah,member,mh,guest,gh=setup_workspace(client,db)
+    other=client.post(BASE+"/workspaces",headers=oh,json={"name":"Read-only comparison"}).json()["id"]
+    membership=PMSWorkspaceMember(workspace_id=other,user_id=member.id,role="Guest");db.add(membership);own_workflow_records(db,membership);db.commit()
+    writable=[pid];readonly=[]
+    for target,workspace,key in [(writable,wid,"CAP-A"),(readonly,other,"CAP-B"),(readonly,other,"CAP-C")]:
+        response=client.post(BASE+"/projects",headers=oh,json={"name":key,"project_key":key,"workspace_id":workspace});assert response.status_code==200,response.text;target.append(response.json()["id"])
+    response=client.get(BASE+"/projects",headers=mh);assert response.status_code==200,response.text
+    rows={row["id"]:row for row in response.json()}
+    for project in writable:
+        assert rows[project]["can_manage_tasks"] and rows[project]["can_log_time"]
+        assert not rows[project]["can_edit_project"]
+    for project in readonly:
+        assert not rows[project]["can_manage_tasks"] and not rows[project]["can_log_time"]
+        assert not rows[project]["can_edit_project"]
+    response=client.get(BASE+"/projects",headers=oh);assert response.status_code==200,response.text
+    assert all(row["can_edit_project"] and row["can_log_time"] for row in response.json() if row["id"] in writable+readonly)

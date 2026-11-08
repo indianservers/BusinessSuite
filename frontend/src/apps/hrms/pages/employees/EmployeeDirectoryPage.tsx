@@ -1,3 +1,4 @@
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import PhoneActions from "@/components/PhoneActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { MobileContactActions, MobileSheet } from "@/components/mobile/MobilePrimitives";
@@ -358,17 +359,13 @@ export default function EmployeeDirectoryPage() {
       )}
 
       {reportEmployee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="flex flex-row items-center justify-between"><CardTitle>Report Wrong Info</CardTitle><Button variant="ghost" size="icon" onClick={() => setReportEmployee(null)}><X className="h-4 w-4" /></Button></CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">{reportEmployee.full_name}</p>
-              <Input value={reportField} onChange={(e) => setReportField(e.target.value)} placeholder="Field name" />
-              <Input value={reportMessage} onChange={(e) => setReportMessage(e.target.value)} placeholder="What needs correction?" />
-              <Button disabled={!reportMessage || reportMutation.isPending} onClick={() => reportMutation.mutate()}>Submit report</Button>
-            </CardContent>
-          </Card>
-        </div>
+        <SmartCreateModal definition={{entity:"correctionReport",title:"Report wrong information",presentation:"page",size:"compact"}} onClose={() => setReportEmployee(null)} busy={reportMutation.isPending}>
+          <div className="space-y-4"><p>{reportEmployee.full_name}</p>
+            <Input aria-label="Field name" value={reportField} onChange={e=>setReportField(e.target.value)} placeholder="Field name" />
+            <Input aria-label="What needs correction?" value={reportMessage} onChange={e=>setReportMessage(e.target.value)} placeholder="What needs correction?" />
+            <Button disabled={!reportMessage || reportMutation.isPending} onClick={() => reportMutation.mutate()}>Submit report</Button>
+          </div>
+        </SmartCreateModal>
       )}
     </div>
   );

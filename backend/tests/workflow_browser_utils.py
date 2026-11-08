@@ -56,7 +56,7 @@ def run_browser(client, db, script, values):
         result = subprocess.run(["node", f"scripts/{script}"],
                                 cwd=Path(__file__).resolve().parents[2] / "frontend",
                                 env=env, capture_output=True, text=True, timeout=120)
-        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.returncode == 0, f"Browser runner exited {result.returncode}\n" + result.stdout + result.stderr
     finally:
         server.should_exit = True
         thread.join(timeout=10)

@@ -524,7 +524,7 @@ export default function TaskListPage() {
       case "status":
         return <StatusSelect label={`Status for ${task.title}`} value={task.status} options={taskStatuses} disabled={updatingTaskId===task.id || data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks!==true} onSave={status=>updateStatus(task,status as TaskStatus)} />;
       case "priority":
-        return <Badge className={statusColor(task.priority)}>{task.priority}</Badge>;
+        return <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>;
       case "assignee":
         return <span>{task.assignee_name || "Unassigned"}</span>;
       case "reporter":
@@ -770,7 +770,7 @@ export default function TaskListPage() {
                 {taskGroups.map(group => <Fragment key={group.status}>
                   {groupByStatus && <button type="button" className="col-span-full flex w-full items-center gap-2 py-2 text-left font-semibold" aria-expanded={!collapsedGroups.includes(group.status)} onClick={() => toggleGroup(group.status)}><ChevronDown className={cn("h-4 w-4", collapsedGroups.includes(group.status) && "-rotate-90")} /><Badge className={statusColor(group.status)}>{group.status}</Badge><span className="text-xs text-muted-foreground">{group.items.length} on this page</span></button>}
                   {(!groupByStatus || !collapsedGroups.includes(group.status)) && group.items.map((task) => (
-                  <RecordActions key={task.id} record={{...task,key:task.task_key}} canEdit={data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><div role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); } }} key={task.id} className="w-full rounded-lg border bg-background p-4 text-left shadow-sm">{menu}
+                  <RecordActions key={task.id} record={{...task,key:task.task_key}} canEdit={data?.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><div data-priority-row data-priority={task.priority} role="button" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openTask(task); } }} key={task.id} className="w-full rounded-lg border bg-background p-4 text-left shadow-sm">{menu}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 gap-3">
                         <input
@@ -785,7 +785,7 @@ export default function TaskListPage() {
                         <h2 className="mt-1 line-clamp-2 font-semibold"><button type="button" className="text-left hover:text-primary" onClick={()=>openTask(task)}>{task.title}</button></h2>
                         </div>
                       </div>
-                      <Badge className={statusColor(task.priority)}>{task.priority}</Badge>
+                      <Badge data-priority-badge data-priority={task.priority} className={statusColor(task.priority)}>{task.priority}</Badge>
                     </div>
                     <div className="mt-3 space-y-2 text-sm">{visibleColumnList.filter(column => !["task", "title", "tags"].includes(column.key)).map(column => <div key={column.key} className="flex flex-wrap items-center justify-between gap-2"><span className="text-muted-foreground">{column.label}</span><span>{renderCell(task, column.key)}</span></div>)}</div>
                     <div className="mt-3"><TaskBadges task={task} /></div>

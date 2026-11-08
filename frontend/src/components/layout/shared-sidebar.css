@@ -1,0 +1,32 @@
+/* One navigation palette regardless of the page or module content theme. */
+.suite-sidebar,.pa-shell .pa-sidebar {
+  --sidebar-background: 263 38% 25%;
+  --sidebar-foreground: 260 35% 96%;
+  --sidebar-primary: 266 85% 64%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 265 39% 33%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 264 25% 38%;
+  --muted-foreground: 260 26% 78%;
+  background:linear-gradient(165deg,#392452,#49307b);
+  color:hsl(var(--sidebar-foreground));
+}
+.suite-sidebar .module-menu,.pa-sidebar .module-menu {
+  --menu-accent: 270 100% 80%;
+  --menu-wash: hsl(266 85% 75% / .13);
+}
+.suite-sidebar .module-menu-row.is-active,.pa-sidebar .module-menu-row.is-active {
+  background:linear-gradient(105deg,#7c2ce8,#a96bea);
+  color:white;
+}
+.suite-sidebar .module-menu-search,.pa-sidebar .module-menu-search {background:hsl(264 35% 20% / .4);color:#e7ddf7}
+.suite-sidebar .module-menu .module-menu-create,.pa-sidebar .module-menu .module-menu-create {color:#f1e8ff;background:#b18ae526;border-color:#c6a7f547}
+.suite-sidebar .module-menu .module-menu-more,.pa-sidebar .module-menu .module-menu-more {color:#e2d4f6}
+.suite-sidebar .kf-module-switch,.suite-sidebar .suite-company {color:#eee4ff}
+
+@media(max-width:1023px){.suite-sidebar-embedded[role="dialog"]{z-index:50!important}}
+
+.suite-sidebar .kf-module-switch{background:linear-gradient(120deg,#f1e8ff,#dfc6fa);border-color:#cfb5ef;color:#4c1f7f;border-radius:11px}
+.suite-sidebar .kf-module-switch select{background:transparent;color:#4c1f7f;font-weight:650}
+.suite-sidebar .kf-module-switch svg{color:#7036af}
+.suite-sidebar .kf-module-switch option{background:white;color:#25143c}

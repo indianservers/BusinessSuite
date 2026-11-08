@@ -1,0 +1,10 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+import {BrowserRouter} from "react-router-dom";
+import BackgroundVerificationPage from "../src/apps/hrms/pages/compliance/BackgroundVerificationPage";
+import {useAuthStore} from "../src/store/authStore";
+import "../src/index.css";
+const config = (window as unknown as {__BGV_QA__: {token: string}}).__BGV_QA__;
+useAuthStore.setState({user: {id: 1, email: "qa@example.com", role: "admin", is_superuser: true}, accessToken: config.token});
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}><BrowserRouter><main className="mx-auto max-w-6xl p-4"><BackgroundVerificationPage/></main></BrowserRouter></QueryClientProvider>);

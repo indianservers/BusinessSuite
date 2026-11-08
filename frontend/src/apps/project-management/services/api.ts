@@ -66,6 +66,17 @@ import {
 
 const BASE_URL = "/project-management";
 
+/** Load every accessible project for selectors without truncating after the first page. */
+export async function listAllProjects(): Promise<PMSProject[]> {
+  const available: PMSProject[] = [];
+  const pageSize = 100;
+  for (let offset = 0; ; offset += pageSize) {
+    const batch = await projectsAPI.list(offset, pageSize);
+    available.push(...batch);
+    if (batch.length < pageSize) return available;
+  }
+}
+
 // ============= PROJECTS =============
 export const projectsAPI = {
   create: async (data: CreateProjectInput) => {

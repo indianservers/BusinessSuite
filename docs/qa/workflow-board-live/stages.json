@@ -1,0 +1,33 @@
+{
+  "checks": [
+    "hrms: live stage workflow verified",
+    "fam: live stage workflow verified",
+    "crm: live stage workflow verified",
+    "pms: live stage workflow verified",
+    "srm: live stage workflow verified"
+  ],
+  "failures": [],
+  "records": {
+    "hrms": {
+      "id": 218,
+      "persistedStage": "Screening"
+    },
+    "fam": {
+      "ageingBuckets": 5,
+      "manualMovesDisabled": true
+    },
+    "pms": {
+      "id": 2455,
+      "persistedStage": "In Progress"
+    },
+    "crm": {
+      "id": 263,
+      "persistedStage": 2
+    },
+    "srm": {
+      "id": 246,
+      "persistedStage": "confirmed"
+    }
+  },
+  "started": "2026-11-08T12:51:34.975Z"
+}

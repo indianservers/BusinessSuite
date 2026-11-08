@@ -200,13 +200,13 @@ export default function WorkloadPage() {
                 <MiniStat label="Basis" value={selectedCell.cell.load_unit} />
               </div>
               {selectedCell.cell.tasks.map((task) => (
-                <button key={task.id} type="button" className="w-full rounded-md border p-3 text-left hover:bg-muted/50" onClick={() => navigate(`/pms/tasks/${task.id}`)}>
+                <button data-priority-row data-priority={task.priority} key={task.id} type="button" className="w-full rounded-md border p-3 text-left hover:bg-muted/50" onClick={() => navigate(`/pms/tasks/${task.id}`)}>
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-semibold text-primary">{task.task_key}</p>
                       <h3 className="font-medium">{task.title}</h3>
                     </div>
-                    <Badge variant="outline">{task.priority}</Badge>
+                    <Badge data-priority-badge data-priority={task.priority} variant="outline">{task.priority}</Badge>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">{task.status} / {task.planned_hours}h / {task.story_points} pts</p>
                 </button>

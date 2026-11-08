@@ -1,3 +1,4 @@
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -32,6 +33,7 @@ export function usePipelinePreferences(context:PipelineContext|undefined,label:s
   return {preferences,update,views,applyView,canShare:canShare&&allowCreate,canSave:!context||allowEdit,canSaveView:!!context&&allowCreate,error,notice,busy,save,saveView,userId:user?.id,context};
 }
 export function PipelineDrawer({open,onClose,title,children,wide=false}:{open:boolean;onClose:()=>void;title:string;children:ReactNode;wide?:boolean}){
+  if (/^(create|new|add|invite)\b/i.test(title)) return open ? <SmartCreateModal definition={{entity:title,title,presentation:"page",size:wide?"large":"standard"}} onClose={onClose}>{children}</SmartCreateModal> : null;
   return <Dialog open={open} onOpenChange={v=>{if(!v)onClose();}}><DialogContent className="pipeline-drawer" style={{left:"auto",right:0,top:0,transform:"none",height:"100dvh",maxHeight:"100dvh",width:wide?"min(1280px,100vw)":"min(680px,100vw)",maxWidth:wide?"1280px":"680px",borderRadius:0,display:"block",overflowY:"auto"}}><DialogTitle className="text-lg font-semibold mb-5 pr-9">{title}</DialogTitle>{children}</DialogContent></Dialog>;
 }
 export function PipelinePreferencesPanel({state}:{state:ReturnType<typeof usePipelinePreferences>}){

@@ -271,7 +271,7 @@ def home(scope: Literal["mine", "team", "organization"]="mine", db: Session=Depe
     total=population.count();counts=approval_counts(db,user,scope)
     from app.services.metrics.queries import business_day,company_id
     today=business_day(db,user)
-    joiner_query=population.filter(Employee.status.notin_(["Terminated","Exited","Resigned"]),Employee.date_of_joining>=today-timedelta(days=7),Employee.date_of_joining<=today+timedelta(days=30))
+    joiner_query=population.filter(Employee.status.notin_(["Terminated","Exited","Resigned","Retired","Absconding"]),Employee.date_of_joining>=today-timedelta(days=7),Employee.date_of_joining<=today+timedelta(days=30))
     joiners=[summary(p,user)|{"joining_date":p.date_of_joining} for p in joiner_query.order_by(Employee.date_of_joining,Employee.id).limit(50)]
     exit_query=db.query(ExitRecord).filter(ExitRecord.employee_id.in_(ids),ExitRecord.status.notin_(["Completed","Cancelled"]))
     exits=exit_query.order_by(ExitRecord.id).limit(50).all() if permit(user,"exit_view") else []
@@ -408,14 +408,14 @@ def person_action(ident:int,data:PersonAction,db:Session=Depends(get_db),user:Us
     if not panel["permissions"][permission]:raise HTTPException(403,panel["access_reason"] or "This action is restricted")
     if len(data.reason.strip())<3:raise HTTPException(422,"Explain this action")
     before={"employment":row.status,"login_active":row.user.is_active if row.user else None}
-    if data.action=="reactivate_access" and row.status in {"Terminated","Exited","Resigned"}:
+    if data.action=="reactivate_access" and row.status in {"Terminated","Exited","Resigned","Retired","Absconding"}:
         raise HTTPException(409,"Restore employment through the authorized rehire workflow before reactivating login")
     if data.action=="terminate_employment":
         row.status="Terminated";row.date_of_exit=business_today()
         db.add(EmployeeLifecycleEvent(employee_id=ident,event_type="Termination",event_date=business_today(),effective_from=business_today(),
             from_status=before["employment"],to_status=row.status,reason=data.reason,created_by=user.id))
     elif data.action=="reactivate_employment":
-        if row.status not in {"Terminated","Exited","Resigned"}:raise HTTPException(409,"Employment is already active")
+        if row.status not in {"Terminated","Exited","Resigned","Retired","Absconding"}:raise HTTPException(409,"Employment is already active")
         row.status="Active";row.date_of_exit=None
         db.add(EmployeeLifecycleEvent(employee_id=ident,event_type="Employment reactivated",event_date=business_today(),effective_from=business_today(),from_status=before["employment"],to_status=row.status,reason=data.reason,created_by=user.id))
     if row.user and data.action!="reactivate_employment" and (data.action!="terminate_employment" or row.user.is_active or panel["permissions"]["access"] or user.is_superuser):
@@ -487,7 +487,7 @@ def quick_add(data:QuickEmployee,db:Session=Depends(get_db),user:User=Depends(Re
     from app.core.input_validation import national_phone
     from pydantic import ValidationError
     try:
-        values=EmployeeCreate(**data.model_dump(exclude={"existing_user_id"}),create_user_account=False).model_dump(exclude={"employee_id","create_user_account","user_email","user_password","custom_fields"})
+        values=EmployeeCreate(**data.model_dump(exclude={"existing_user_id"}),create_user_account=False).model_dump(exclude={"employee_id","create_user_account","user_email","user_password","custom_fields","allow_contact_duplicate"})
     except ValidationError as exc:
         raise HTTPException(422,str(exc)) from None
     if not user.is_superuser and not values.get("branch_id"):
@@ -496,6 +496,8 @@ def quick_add(data:QuickEmployee,db:Session=Depends(get_db),user:User=Depends(Re
     if values.get("phone_number"):
         try:values["phone_number"]=national_phone(values["phone_number"])
         except ValueError as exc:raise HTTPException(422,str(exc)) from None
+    from app.services.employee_profile_reliability import check_duplicates
+    check_duplicates(db,values)
     if duplicate_people(db,user,values.get("personal_email"),values.get("phone_number")):raise HTTPException(409,"A likely matching employee exists. Review the existing employee before saving")
     account=None
     if data.existing_user_id:
@@ -530,7 +532,7 @@ def lifecycle_checklist(ident:int,db:Session=Depends(get_db),user:User=Depends(g
     row=employee(db,user,ident)
     onboarding=db.query(EmployeeOnboarding).filter_by(employee_id=ident).order_by(EmployeeOnboarding.id.desc()).first()
     tasks=db.query(EmployeeOnboardingTask).filter_by(employee_onboarding_id=onboarding.id).order_by(EmployeeOnboardingTask.id).all() if onboarding else []
-    record=db.query(ExitRecord).filter_by(employee_id=ident).first() if permit(user,"exit_view") or permit(user,"exit_manage") else None
+    record=db.query(ExitRecord).filter_by(employee_id=ident).order_by(ExitRecord.id.desc()).first() if permit(user,"exit_view") or permit(user,"exit_manage") else None
     exit_tasks=db.query(ExitChecklistItem).filter_by(exit_record_id=record.id).order_by(ExitChecklistItem.id).all() if record else []
     assets=db.query(AssetAssignment).filter_by(employee_id=ident,is_active=True).count() if permit(user,"asset_view") else None
     documents=db.query(EmployeeDocument).filter_by(employee_id=ident).count()
@@ -557,14 +559,8 @@ class StartExit(Strict):
 
 @router.post("/people/{ident}/start-exit",status_code=201)
 def start_exit(ident:int,data:StartExit,db:Session=Depends(get_db),user:User=Depends(RequirePermission("exit_manage"))):
-    employee(db,user,ident,True)
-    if db.query(ExitRecord).filter_by(employee_id=ident).first():raise HTTPException(409,"An exit case already exists; open its existing checklist")
-    record=ExitRecord(employee_id=ident,exit_type=data.exit_type,resignation_date=business_today(),last_working_date=data.last_working_date,reason=data.reason,status="Initiated")
-    db.add(record);db.flush()
-    for label,role in [("Transfer open tasks and project ownership","Manager"),("Revoke login access and active sessions","IT"),
-        ("Return company assets and confirm condition","IT"),("Complete exit documents and certificates","HR"),
-        ("Review final settlement and outstanding recoveries","Finance")]:
-        db.add(ExitChecklistItem(exit_record_id=record.id,task_name=label,assigned_to_role=role))
+    from app.services.employee_exit import create_exit
+    record=create_exit(db,user,{"employee_id":ident,"exit_type":data.exit_type,"resignation_date":business_today(),"last_working_date":data.last_working_date,"reason":data.reason,"status":"Initiated"})
     audit(db,user,ident,"START_EXIT",data.reason,after={"exit_id":record.id,"last_working_date":data.last_working_date})
     db.commit();return {"id":record.id,"message":"Exit checklist created; employment and login remain unchanged until their separate actions are applied"}
 

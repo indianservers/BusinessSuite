@@ -24,7 +24,7 @@
 .udg .udg-group-row { background:var(--udg-bg); }
 .udg .udg-summary-footer,.udg .udg-pagination { padding:7px 12px; font-size:10px; }
 .udg .udg-th { padding:0 10px; border-right-color:transparent; background:var(--udg-bg); }
-.udg .udg-header { background:var(--udg-bg); }
+.udg .udg-header { background:var(--udg-bg); font-size:11px; font-weight:500; }
 .udg .udg-sort-button { gap:4px; }
 .udg .udg-sort-hint { display:none; }
 .udg .udg-th > :is(.udg-column-grip,.udg-column-more,.udg-header-filter) { position:absolute; opacity:0; background:var(--udg-bg); }
@@ -75,3 +75,7 @@
 .suite-page-surface .sc-page .sc-card-body { padding:12px; }
 .suite-page-surface .sc-page .sc-card-title { font-size:14px; margin:8px 0; }
 @media(max-width:760px) { .suite-page-surface .sc-page .sc-hero { align-items:flex-start; } .suite-page-surface .sc-page .sc-hero h1 { font-size:20px; } .suite-page-surface .sc-page .sc-hero-actions button { min-height:40px; height:auto; } }
+
+/* Keep table rows and grouping controls on the Projects white surface. */
+.udg .udg-row-alt{--udg-row-bg:var(--udg-bg)}
+.udg .udg-grouping{background:var(--udg-bg)}

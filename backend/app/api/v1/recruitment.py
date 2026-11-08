@@ -256,9 +256,13 @@ def convert_candidate_to_employee(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_create")),
 ):
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    from app.services.background_verification import candidate_query
+    candidate = candidate_query(db, current_user).filter(Candidate.id == candidate_id).populate_existing().with_for_update(of=Candidate).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
+    from app.models.background_verification import BackgroundVerificationRequest
+    if candidate.status == "Hired" or db.query(BackgroundVerificationRequest.id).filter(BackgroundVerificationRequest.candidate_id == candidate.id, BackgroundVerificationRequest.employee_id.is_not(None)).first():
+        raise HTTPException(409, "Candidate is already converted; open the existing employee file")
     from app.shared.pipeline_workspace import validate_hiring_move, stage_entry
     validate_hiring_move(db, current_user, candidate, "Hired")
     previous_status = candidate.status
@@ -275,7 +279,16 @@ def convert_candidate_to_employee(
         employment_type=data.employment_type,
         create_user_account=data.create_user_account,
         user_email=candidate.email if data.create_user_account else None,
-    ))
+    ), created_by=current_user.id, commit=False)
+    # Preserve the original candidate association while moving its BGV history
+    # into the employee file; never create a second case/report.
+    from app.services.background_verification import sync_employee_summary, record_event
+    for verification in db.query(BackgroundVerificationRequest).filter_by(candidate_id=candidate.id).all():
+        if verification.employee_id and verification.employee_id != employee.id:
+            raise HTTPException(409, "Candidate verification is already linked to an employee")
+        verification.employee_id = employee.id
+        record_event(db, verification, current_user, "verification.employee_linked", {"employee_id": employee.id, "candidate_id": candidate.id})
+    sync_employee_summary(db, employee.id)
     candidate.status = "Hired"
     stage_entry(db, current_user, "hrms", "candidate", candidate.id, previous_status, "Hired", scope=f"job:{candidate.job_id}")
     db.commit()
