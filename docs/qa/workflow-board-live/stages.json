@@ -1,10 +1,10 @@
 {
   "checks": [
     "hrms: live stage workflow verified",
-    "fam: live stage workflow verified",
     "crm: live stage workflow verified",
     "pms: live stage workflow verified",
-    "srm: live stage workflow verified"
+    "srm: live stage workflow verified",
+    "fam: live stage workflow verified"
   ],
   "failures": [],
   "records": {

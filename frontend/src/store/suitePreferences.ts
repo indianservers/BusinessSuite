@@ -7,6 +7,10 @@ export type SuitePreferences = {
   favorites: string[];
   recent: string[];
   compact: boolean;
+  favoritesOnly?: boolean;
+  applicationSearch?: string;
+  recentVisitedAt?: Record<string, string>;
+  favoritesDirty?: boolean;
   groups: Record<string, boolean>;
 };
 const defaults: SuitePreferences = {
@@ -38,12 +42,13 @@ export const useSuitePreferences = create<{
         if (!safe) return;
         set((state) => {
           const current = state.contexts[scope] || defaults;
-          if (current.recent[0] === safe) return state;
+
           return {
             contexts: {
               ...state.contexts,
               [scope]: {
                 ...current,
+                recentVisitedAt: { ...current.recentVisitedAt, [safe]: new Date().toISOString() },
                 recent: [
                   safe,
                   ...current.recent.filter((p) => p !== safe),

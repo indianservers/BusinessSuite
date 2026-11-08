@@ -35,6 +35,8 @@ from app.access.setup import router as setup_router
 router.include_router(setup_router)
 from app.access.homepage_banner import router as homepage_banner_router
 router.include_router(homepage_banner_router)
+from app.access.launcher_preferences import router as launcher_preferences_router
+router.include_router(launcher_preferences_router)
 
 
 class Strict(BaseModel):

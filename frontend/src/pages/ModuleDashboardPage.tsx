@@ -1,3 +1,4 @@
+import { useFavoriteSync } from "@/hooks/use-favorite-sync";
 import { accessQueryOptions } from "@/features/access/access-query";
 import PremiumLauncher from "@/components/suite/PremiumLauncher";
 import CompanySampleData from "@/shared/data-transfer/CompanySampleData";
@@ -29,6 +30,7 @@ export default function ModuleDashboardPage() {
   );
   const updatePreferences = useSuitePreferences((state) => state.update);
   const notifications = useNotificationSummary();
+  const favoriteSync = useFavoriteSync(scope, !!(isAuthenticated && user?.access));
   const access = useQuery({
     ...accessQueryOptions(),
     enabled: isHydrated && isAuthenticated && !!user,
@@ -66,18 +68,24 @@ export default function ModuleDashboardPage() {
   return <PremiumLauncher applications={ready ? allowed : []} authenticated
     company={user?.access?.companyName || branding.data?.company_name || "Your workspace"}
     favorites={preferences.favorites} unread={notifications.byModule}
+    loading={!ready && !access.isError}
+    workspaceCount={new Set(user?.access?.organizations?.map(org => org.id) || user?.access?.memberships || []).size}
+    query={preferences.applicationSearch || ""} onQuery={applicationSearch => updatePreferences(scope, { applicationSearch })}
+    favoritesOnly={preferences.favoritesOnly || false} onFavoritesOnly={favoritesOnly => updatePreferences(scope, { favoritesOnly })}
+    onReorder={favorites => updatePreferences(scope, { favorites, favoritesDirty: true })}
     compact={preferences.compact} onCompact={value => updatePreferences(scope, { compact: value })}
-    onFavorite={key => updatePreferences(scope, { favorites: preferences.favorites.includes(key)
+    onFavorite={key => updatePreferences(scope, { favoritesDirty: true, favorites: preferences.favorites.includes(key)
       ? preferences.favorites.filter(value => value !== key) : [...preferences.favorites, key] })}>
+    {favoriteSync.error && <p className="launcher-notice" role="status">Favorites are saved on this browser. Sync is unavailable. <button onClick={favoriteSync.retry}>Retry sync</button></p>}
     {location.state?.notice && <p className="launcher-notice" role="status">{location.state.notice}</p>}
     {!ready && <div className="launcher-notice" role={access.isError ? "alert" : "status"}>
       {access.isError ? <><p>We couldn't load your applications.</p><button onClick={() => void access.refetch()}>Try again</button></> : "Loading your authorized applications…"}
     </div>}
     {ready && !allowed.length && <p className="launcher-notice">No applications assigned yet. Contact your company administrator to request access.</p>}
-    {ready && recent.length > 0 && <details className="launcher-recents"><summary>Continue working</summary><div>
-      {recent.map(path => <Link key={path} to={path}>{suitePageLabel(path)}</Link>)}
-      <button onClick={() => updatePreferences(scope, { recent: [] })}>Clear recent pages</button>
-    </div></details>}
+    {ready && recent.length > 0 && <section className="launcher-recents" aria-label="Continue working"><h2>Continue working</h2><div>
+      {recent.map(path => <Link key={path} to={path}>{suitePageLabel(path)}{preferences.recentVisitedAt?.[path] && <time dateTime={preferences.recentVisitedAt[path]}>{new Date(preferences.recentVisitedAt[path]).toLocaleString()}</time>}</Link>)}
+      <button onClick={() => updatePreferences(scope, { recent: [], recentVisitedAt: {} })}>Clear recent pages</button>
+    </div></section>}
   <CompanySampleData/>
   </PremiumLauncher>;
 }

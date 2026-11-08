@@ -130,7 +130,8 @@ export default function MobileModuleDock() {
 
   useEffect(() => { if (!mobile || !menus) return; const entry = menus.find(entry => entry.to === location.pathname); if (entry && !new URLSearchParams(location.search).has("new")) { try { sessionStorage.setItem(`${memoryKey}:${entry.to}`, location.pathname + location.search); } catch { /* Optional browser persistence. */ } } }, [mobile, menus, location.pathname, location.search, memoryKey]);
 
-  if (!mobile || !menus) return null;
+  if (!mobile) return null;
+  if (!menus) return <MobileTools/>;
 
   const matches = (to: string) => location.pathname === to.split("?")[0] || location.pathname.startsWith(to.split("?")[0] + "/");
 
