@@ -13,7 +13,7 @@ import uuid
 from contextlib import ExitStack, nullcontext
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
-from sqlalchemy import or_, func, case
+from sqlalchemy import and_, or_, func, case
 from app.apps.power_apps.models import (
     PowerResource,
     PowerVersion,
@@ -933,12 +933,14 @@ def quota_lock(db, company, environment, skip=False):
     )
 
 
-def claim(db, worker_id):
+def claim(db, worker_id, *, run_ids=None):
     instant = now()
     eligible = or_(
         (Job.status == "queued") & (Job.available_at <= instant),
         (Job.status == "running") & (Job.lease_until < instant),
     )
+    if run_ids is not None:
+        eligible = and_(eligible, Job.run_id.in_(run_ids))
     last_dispatch = (
         db.query(
             Job.organization_id.label("company"),
@@ -1422,17 +1424,12 @@ def process(db, job_id, token):
         execution_scope.close()
 
 
-def tick(db, limit=100):
+def tick(db, limit=100, *, run_ids=None):
     resumed = 0
-    ids = [
-        x[0]
-        for x in db.query(Wait.id)
-        .filter_by(status="waiting")
-        .filter(Wait.wake_at <= now())
-        .order_by(Wait.wake_at)
-        .limit(limit)
-        .all()
-    ]
+    waiting = db.query(Wait.id).filter_by(status="waiting").filter(Wait.wake_at <= now())
+    if run_ids is not None:
+        waiting = waiting.filter(Wait.run_id.in_(run_ids))
+    ids = [x[0] for x in waiting.order_by(Wait.wake_at).limit(limit).all()]
     for wait_id in ids:
         hint = db.get(Wait, wait_id)
         quota_lock(db, hint.organization_id, hint.environment)

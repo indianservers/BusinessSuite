@@ -1,3 +1,5 @@
+import RecordMaintenance from "@/components/RecordMaintenance";
+import {useAuthStore} from "@/store/authStore";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -33,6 +35,7 @@ interface Goal {
   current_value?: number;
   unit?: string;
   due_date?: string;
+  target_date?: string;
   status: string;
   priority?: string;
   progress_pct?: number;
@@ -61,6 +64,7 @@ interface Feedback360Request {
   reviewer_id: number;
   relationship_type: string;
   due_date?: string;
+  target_date?: string;
   status: string;
   overall_rating?: number;
   comments?: string;
@@ -115,6 +119,8 @@ interface CompensationWorksheetRow {
 }
 
 export default function PerformancePage() {
+  const actor=useAuthStore(state=>state.user),grant=actor?.access?.grants.hrms;
+  const canCreate=!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("create"),canEdit=!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("edit");
   usePageTitle("Performance");
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<PerformanceTab>("goals");
@@ -173,7 +179,8 @@ export default function PerformancePage() {
       performanceApi.createGoal({
         ...data,
         cycle_id: selectedCycle ? Number(selectedCycle) : undefined,
-        target_value: data.target_value ? Number(data.target_value) : undefined,
+        target_value: data.target_value != null && String(data.target_value) !== "" ? Number(data.target_value) : undefined,
+        target_date: data.due_date || undefined,
       }),
     onSuccess: () => {
       toast({ title: "Goal created!" });
@@ -226,7 +233,7 @@ export default function PerformancePage() {
           <p className="page-description">Manage goals, track progress, and submit reviews.</p>
         </div>
         {activeTab === "goals" && (
-          <Button size="sm" onClick={() => setShowGoalForm((v) => !v)}>
+          <Button size="sm" disabled={!canCreate} onClick={() => setShowGoalForm((v) => !v)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Goal
           </Button>
@@ -252,8 +259,9 @@ export default function PerformancePage() {
 
       {/* Cycle selector */}
       <div className="flex items-center gap-3">
-        <Label className="text-sm">Review Cycle</Label>
+        <Label className="text-sm" htmlFor="performance-review-cycle">Review Cycle</Label>
         <NativeSelect
+          id="performance-review-cycle"
           value={selectedCycle}
           onChange={(e) => setSelectedCycle(e.target.value ? Number(e.target.value) : "")}
           className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -303,8 +311,9 @@ export default function PerformancePage() {
                   className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
                   <div className="sm:col-span-2 space-y-1.5">
+                    <label className="block space-y-1.5">Appraisal cycle<NativeSelect aria-label="Appraisal cycle" required value={selectedCycle} onChange={event=>setSelectedCycle(event.target.value?Number(event.target.value):"")}><option value="">Choose an appraisal cycle</option>{(cycles as Cycle[])?.map(cycle=><option key={cycle.id} value={cycle.id}>{cycle.name}</option>)}</NativeSelect></label>
                     <Label>Goal Title *</Label>
-                    <Input {...regGoal("title", { required: "Required" })} placeholder="e.g. Complete Q2 product launch" />
+                    <Input aria-label="Goal title" {...regGoal("title", { required: "Required" })} placeholder="e.g. Complete Q2 product launch" />
                     {goalErrors.title && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={goalErrors.title.message}/></div>}
                   </div>
                   <div className="sm:col-span-2 space-y-1.5">
@@ -316,27 +325,11 @@ export default function PerformancePage() {
                     <Input type="number" {...regGoal("target_value")} placeholder="e.g. 100" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Unit</Label>
-                    <Input {...regGoal("unit")} placeholder="e.g. %, deals, tasks" />
-                  </div>
-                  <div className="space-y-1.5">
                     <Label>Due Date</Label>
-                    <Input type="date" {...regGoal("due_date")} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Priority</Label>
-                    <NativeSelect
-                      {...regGoal("priority")}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">Normal</option>
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </NativeSelect>
+                    <Input aria-label="Due Date" type="date" {...regGoal("due_date")} />
                   </div>
                   <div className="sm:col-span-2 flex gap-3">
-                    <Button type="submit" disabled={createGoalMutation.isPending}>
+                    <Button type="submit" disabled={!canCreate||createGoalMutation.isPending}>
                       {createGoalMutation.isPending ? "Creating..." : "Create Goal"}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setShowGoalForm(false)}>Cancel</Button>
@@ -397,15 +390,16 @@ export default function PerformancePage() {
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(goal.status)}`}>
                           {goal.status}
                         </span>
-                        {goal.due_date && (
-                          <span className="text-xs text-muted-foreground">Due {formatDate(goal.due_date)}</span>
+                        {(goal.target_date || goal.due_date) && (
+                          <span className="text-xs text-muted-foreground">Due {formatDate(goal.target_date || goal.due_date || null)}</span>
                         )}
+                        <RecordMaintenance record={goal as unknown as Record<string,unknown>} name={goal.title} endpoint={`/performance/goals/${goal.id}`} fields={[{key:"title",label:"Goal title",required:true},{key:"description",label:"Description"},{key:"target_date",label:"Target date",type:"date"}]} queryKeys={["goals"]} canEdit={canEdit} canDelete={!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("delete")}/>
                         {goal.status !== "Completed" && (
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-7 text-xs"
-                            onClick={() => updateGoalMutation.mutate({ id: goal.id, data: { status: "Completed" } })}
+                            disabled={!canEdit||updateGoalMutation.isPending} onClick={() => updateGoalMutation.mutate({ id: goal.id, data: { status: "Completed" } })}
                           >
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                             Mark Done
@@ -440,6 +434,7 @@ export default function PerformancePage() {
                     <label key={r} className="cursor-pointer">
                       <input
                         type="radio"
+                        aria-label={`Rating ${r}`}
                         value={r}
                         {...regReview("rating")}
                         className="sr-only"
@@ -467,7 +462,7 @@ export default function PerformancePage() {
                 <Controller name="self_comments" control={reviewEditorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Self Comments" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
               </div>
 
-              <Button type="submit" disabled={submitReviewMutation.isPending}>
+              <Button type="submit" disabled={!canCreate||!selectedCycle||!(cycles as Cycle[] | undefined)?.some(cycle=>cycle.id===Number(selectedCycle)&&["active","self_review","manager_review","calibration"].includes(cycle.status))||submitReviewMutation.isPending}>
                 {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
               </Button>
             </CompactForm>

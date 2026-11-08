@@ -3979,6 +3979,11 @@ def _maybe_create_srm_handoff_for_won_deal(db: Session, deal: CRMDeal, current_u
     stage = db.query(CRMPipelineStage).filter(CRMPipelineStage.id == deal.stage_id).first() if deal.stage_id else None
     if not (is_won_status or bool(getattr(stage, "is_won", False))):
         return
+    grants = getattr(current_user, "_suite_grants", None)
+    grant = (grants or {}).get("srm", {})
+    if not current_user.is_superuser and grants is not None and not (grant.get("enabled") and "create" in grant.get("actions", [])):
+        _create_timeline_activity(db, organization_id=deal.organization_id or _organization_id(db,current_user), entity_type="deal", entity_id=deal.id, activity_type="srm_handoff_pending", title="SRM commercial handoff pending", body="The deal is won. A user with SRM create permission can complete the commercial handoff.", user_id=current_user.id)
+        return
     try:
         from app.apps.srm.api.router import create_sales_order_from_crm_deal_service
 
@@ -3994,6 +3999,7 @@ def _maybe_create_srm_handoff_for_won_deal(db: Session, deal: CRMDeal, current_u
             user_id=current_user.id,
         )
     except Exception as exc:
+        db.rollback()
         _create_timeline_activity(
             db,
             organization_id=getattr(deal, "organization_id", None) or _organization_id(db, current_user),
@@ -9256,7 +9262,7 @@ def update_record(
             if plan["missing"]:raise HTTPException(422,{"message":"Resolve deal stage requirements","missingFields":plan["missing"]})
         if str(data.get("status",record.status)).lower()=="lost" and len(str(data.get("lost_reason",record.lost_reason or record.loss_reason or "")).strip())<5:
             raise HTTPException(422,"Enter a meaningful lost reason of at least five characters")
-    _assert_write_scope(resource, {**_serialize(record), **data}, current_user, db)
+    _assert_write_scope(resource, data, current_user, db)
     _assert_final_action_allowed(db, organization_id, resource, record, data)
     for key, value in data.items():
         if key not in {"id", "organization_id", "created_at", "created_by_user_id"}:

@@ -1,3 +1,7 @@
+import RecordDefinitionActions from "@/components/RecordDefinitionActions";
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
+import { useCreateIntent } from "@/hooks/use-create-intent";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
@@ -11,12 +15,14 @@ type Field = Record<string, unknown> & { id: number; module_name: string; field_
 const places = ['create', 'edit', 'quick_create', 'detail'];
 const blank = () => ({ module_name: '', field_api_name: '', field_label: '', field_type: 'text', required: false, unique: false, visible: true, editable: true, help_text: '', options: '', places: [...places], lookup_module: '', formula_expression: '', related_module_name: '', lookup_field: '', aggregate_function: 'sum', aggregate_field: '', default_value: '' });
 export default function FieldManager() {
+  const canCreate=useDefinitionPermission(["customization_manage","customization_fields_manage"],"create"),canEdit=useDefinitionPermission(["customization_manage","customization_fields_manage"],"edit");
   const fields = useQuery({ queryKey: ['customization-fields'], queryFn: () => api.get<{ items: Field[] }>('/customization/fields', { recordCache: false }).then(r => r.data.items) });
   const modules = useQuery({ queryKey: ['customization-modules'], queryFn: () => api.get<{ items: { module_api_name: string; module_label: string }[] }>('/customization/modules').then(r => r.data.items) });
   const [draft, setDraft] = useState(blank), [editing, setEditing] = useState<Field | null>(null), [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [preview, setPreview] = useState<unknown>(null), [search, setSearch] = useState('');
   const automatic = ['formula', 'rollup', 'auto_number'].includes(draft.field_type);
   function edit(field: Field | null) {
+    if(field?!canEdit:!canCreate)return;
     const validation = field?.validation_json || {}, rollup = (field?.rollup_config_json || {}) as Record<string, unknown>;
     const options = Array.isArray(validation.options) ? validation.options as { value: string }[] : [];
     setEditing(field);
@@ -28,15 +34,17 @@ export default function FieldManager() {
       related_module_name: String(rollup.related_module_name || ''), lookup_field: String(rollup.lookup_field || ''), aggregate_function: String(rollup.aggregate_function || 'sum'), aggregate_field: String(rollup.aggregate_field || '') } : blank());
     setPreview(null); setError(''); setOpen(true);
   }
+  useCreateIntent(kind => { if (kind === "field") edit(null); });
   const text = (key: keyof ReturnType<typeof blank>, label: string, required = false) => <label className="block space-y-1 text-sm">{label}<Input required={required} value={String(draft[key])} onChange={e => setDraft({ ...draft, [key]: e.target.value })} /></label>;
   const moduleSelect = (key: 'module_name' | 'lookup_module' | 'related_module_name', label: string) => <label className="block space-y-1 text-sm">{label}<NativeSelect aria-label={label} required disabled={!!editing && key !== 'related_module_name'} value={draft[key]} onChange={e => setDraft({ ...draft, [key]: e.target.value })}><option value="">Choose module</option>{modules.data?.map(m => <option key={m.module_api_name} value={m.module_api_name}>{m.module_label}</option>)}</NativeSelect></label>;
-  return <section className="space-y-5"><header className="flex flex-wrap justify-between gap-4"><div><h2 className="text-xl font-semibold">Field library</h2><p className="text-sm text-muted-foreground">Configure fields, linked records, formulas and related totals.</p></div><Button onClick={() => edit(null)}>Add field</Button></header>
+  return <section className="space-y-5"><header className="flex flex-wrap justify-between gap-4"><div><h2 className="text-xl font-semibold">Field library</h2><p className="text-sm text-muted-foreground">Configure fields, linked records, formulas and related totals.</p></div><Button disabled={!canCreate} onClick={() => edit(null)}>Add field</Button></header>
     <Input aria-label="Search field library" placeholder="Search fields or modules…" value={search} onChange={e => setSearch(e.target.value)} />
     {fields.isError && <p role="alert">Could not load fields.</p>}
-    <div className="divide-y rounded-lg border">{fields.data?.filter(f => `${f.field_label} ${f.module_name}`.toLowerCase().includes(search.toLowerCase())).map(f => <article key={f.id} className="flex items-center justify-between gap-4 p-4"><div><h3 className="font-medium">{f.field_label}</h3><p className="text-xs text-muted-foreground">{f.module_name} · {f.field_type}{f.required ? ' · Required' : ''}</p></div><Button variant="outline" size="sm" onClick={() => edit(f)}>Edit</Button></article>)}</div>
+    <GroupedRecords scope="customization-fields" items={(fields.data || []).filter(f=>`${f.field_label} ${f.module_name}`.toLowerCase().includes(search.toLowerCase()))} gridClassName="divide-y rounded-lg border" fields={[{id:"module",label:"Module",value:field=>field.module_name},{id:"type",label:"Field type",value:field=>field.field_type}]} renderItem={f=><article key={f.id} className="flex items-center justify-between gap-4 p-4"><div><h3 className="font-medium">{f.field_label}</h3><p className="text-xs text-muted-foreground">{f.module_name} · {f.field_type}{f.required ? ' · Required' : ''}</p></div><div className="flex items-center gap-2">{f.visible===false&&f.editable===false&&<span className="text-xs text-muted-foreground">Retired</span>}<Button variant="outline" size="sm" disabled={!canEdit} onClick={() => edit(f)}>Edit</Button><RecordDefinitionActions record={f as unknown as Record<string,unknown>} nameField="field_label" endpoint={`/customization/fields/${f.id}`} queryKeys={["customization-fields"]} permissions={["customization_manage","customization_fields_manage"]} canRename={false} canDelete={!(f.visible===false&&f.editable===false)}/></div></article>}/>
+
     <Dialog open={open} onOpenChange={next => { if (!busy) setOpen(next); }}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogTitle>{editing ? 'Edit' : 'Add'} field</DialogTitle>
       <form onSubmit={async e => {
-        e.preventDefault(); setBusy(true); setError('');
+        e.preventDefault(); if(busy || (editing?!canEdit:!canCreate))return; setBusy(true); setError('');
         try {
           const options = draft.options.split('\n').map(v => v.trim()).filter(Boolean).map(value => ({ value, label: value }));
           const body = { module_name: draft.module_name, field_api_name: draft.field_api_name, field_label: draft.field_label, field_type: draft.field_type,
@@ -60,7 +68,7 @@ export default function FieldManager() {
         {(['required', 'unique', 'visible', 'editable'] as const).map(key => <label key={key} className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={automatic && ['required', 'editable'].includes(key)} checked={automatic && ['required', 'editable'].includes(key) ? false : draft[key]} onChange={e => setDraft({ ...draft, [key]: e.target.checked })} />{key}</label>)}
       </div><div className="space-y-4"><h3 className="text-sm font-semibold">Places where shown</h3>{places.map(key => <label key={key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.places.includes(key)} onChange={e => setDraft({ ...draft, places: e.target.checked ? [...draft.places, key] : draft.places.filter(p => p !== key) })} />{key.replace(/_/g, ' ')}</label>)}
         <section className="space-y-2 rounded-lg border bg-muted/20 p-4"><p className="text-xs font-semibold uppercase text-muted-foreground">Live preview</p><p className="text-sm">{draft.field_label || 'Your field'}</p><FieldControl field={{ label: draft.field_label, field_type: draft.field_type, options: draft.options, lookup_module: draft.lookup_module }} value={preview} onChange={setPreview} /></section>
-      </div></div>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<footer className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit">{busy ? 'Saving…' : 'Save field'}</Button></footer></fieldset></form>
+      </div></div>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<footer className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" disabled={busy || (editing?!canEdit:!canCreate)}>{busy ? 'Saving…' : 'Save field'}</Button></footer></fieldset></form>
     </DialogContent></Dialog>
   </section>;
 }

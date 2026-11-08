@@ -4,7 +4,7 @@ import { KeyRound, ShieldCheck, Loader2 } from "lucide-react";
 import ActionFields from "./ActionFields";
 import { integrationApi, message, type Connection, type Connector } from "./integrationApi";
 
-import { authFields, authLabels, supportsWrites } from "./moduleOptions";
+import { authFields, authLabels, supportsWrites, providerScopes } from "./moduleOptions";
 
 function verificationInput(connector: Connector, config: Record<string, unknown> = {}) {
   const action = connector.actions.find((a) => a.id === "test" && !a.mutates);
@@ -88,7 +88,7 @@ export default function ModuleConnectionSettings({ connector, connection, enviro
         <button type="button" className="as-button-primary" disabled={!canSave} onClick={async () => {
           setBusy(true); setError(""); setStatus(""); setAuthorizationUrl("");
           try {
-            const scopes = [...new Set(connector.actions.filter((a) => writes || !a.mutates).flatMap((a) => a.scopes))];
+            const scopes = [...new Set([...providerScopes(connector, auth, writes), ...connector.actions.filter((a) => writes || !a.mutates).flatMap((a) => a.scopes)])];
             if (auth === "oauth2" && ["outlook", "excel_online", "onedrive", "sharepoint", "microsoft_calendar", "microsoft_teams"].includes(connector.id)) scopes.push("offline_access");
             const effectiveConfig = { ...Object.fromEntries(Object.entries(configSchema.properties || {}).filter(([, field]) => field.default !== undefined).map(([key, field]) => [key, field.default])), ...config };
             if (auth !== "api_key") delete effectiveConfig.header_name;

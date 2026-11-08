@@ -30,6 +30,57 @@ def create(client, headers, payload=None, source="pms"):
     return r.json()
 
 
+def test_catalog_tags_are_shared_exact_and_preserved_by_older_clients(client, db, headers):
+    product = create(client, headers, item(tags=[" Priority ", "priority", "Monthly"]))
+    other = create(client, headers, item(code="OTHER", tags=["prior"]))
+    assert product["tags"] == ["priority", "monthly"]
+    foreign = SRMProduct(organization_id=99, sku="FOREIGN", item_name="Hidden", product_type="stock", active=True, metadata_json={"catalog_tags": ["private-tag"]})
+    db.add(foreign); db.commit()
+    for source in ("pms", "crm", "srm"):
+        response = client.get(ROOT + "/items", params={"source": source, "tag": "PRIORITY", "include_facets": True, "per_page": 1}, headers=headers)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["total"] == 1 and body["items"][0]["id"] == product["id"]
+        assert "private-tag" not in body["facets"]["tags"]
+        assert set(body["facets"]["tags"]) == {"priority", "monthly", "prior"}
+    payload = {key: value for key, value in product.items() if key not in {"id", "tags"}}
+    payload["name"] = "Legacy edit"
+    response = client.put(f"{ROOT}/items/product/{product['id']}?source=pms", headers=headers, json=payload)
+    assert response.status_code == 200, response.text
+    assert response.json()["tags"] == ["priority", "monthly"]
+    payload = {key: value for key, value in response.json().items() if key != "id"}
+    payload["tags"] = []
+    assert client.put(f"{ROOT}/items/product/{product['id']}?source=pms", headers=headers, json=payload).json()["tags"] == []
+    assert other["tags"] == ["prior"]
+
+
+def test_personal_catalog_key_filter_is_applied_before_pagination(client, headers):
+    first = create(client, headers, item(name="Alpha", code="ALPHA", category="Software", tags=["cloud"]))
+    last = create(client, headers, item("service", name="Zulu", code="ZULU", category="Consulting", tags=["advisory"]))
+    create(client, headers, item(name="Middle", code="MID", category="Hardware"))
+    keys = f"service:{last['id']},product:{first['id']}"
+    response = client.get(ROOT + "/items", params={"source": "pms", "item_keys": keys, "key_order": True, "per_page": 1, "include_facets": True}, headers=headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["total"] == 2 and body["pages"] == 2
+    assert body["items"][0]["id"] == last["id"]
+    assert set(body["facets"]["categories"]) == {"Software", "Consulting"}
+    second = client.get(ROOT + "/items", params={"source": "pms", "item_keys": keys, "key_order": True, "per_page": 1, "page": 2}, headers=headers).json()
+    assert second["items"][0]["id"] == first["id"]
+    empty = client.get(ROOT + "/items", params={"source": "pms", "item_keys": ""}, headers=headers).json()
+    assert empty["total"] == 0 and empty["items"] == []
+    assert client.get(ROOT + "/items", params={"item_keys": "product:1 OR 1=1"}, headers=headers).status_code == 422
+
+
+def test_catalog_tag_validation_and_duplicate_retention(client, headers):
+    assert client.post(ROOT + "/items", headers=headers, json=item(tags=["x" * 41])).status_code == 422
+    assert client.post(ROOT + "/items", headers=headers, json=item(tags=[str(n) for n in range(21)])).status_code == 422
+    product = create(client, headers, item(tags=["renewal"]))
+    duplicate = client.post(f"{ROOT}/items/product/{product['id']}/duplicate?source=pms", headers=headers)
+    assert duplicate.status_code == 201, duplicate.text
+    assert duplicate.json()["tags"] == ["renewal"]
+
+
 def test_shared_crud_preserves_legacy_ids_and_projects(client, db, headers):
     project = PMSProject(name="Project stays a project", project_key="KEEP", organization_id=1)
     db.add(project); db.commit()

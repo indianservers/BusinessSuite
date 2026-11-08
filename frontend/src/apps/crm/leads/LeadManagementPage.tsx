@@ -1,3 +1,8 @@
+import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
+import {recordSavedEvent,type RecordSaved} from "@/lib/record-changes";
+import {useModuleAction} from "@/hooks/use-module-action";
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
 import RecordLensViews from "@/shared/workspace/RecordLensViews";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
@@ -7,6 +12,7 @@ import { LeadRecordContext, useLeadRecord } from "./LeadRecordContext";
 import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
 import Record360Workspace from "@/shared/records/Record360Workspace";
 import GridTable from "@/shared/data-grid/GridTable";
+import { RecordStatusIcon } from "@/shared/data-grid/GroupLabel";
 import PhoneActions from "@/components/PhoneActions";
 import { SharedNumberConfirmation } from "@/shared/master-data/CompanySelect";
 import { PersonPreviewHeader } from "@/components/PersonPreviewDialog";
@@ -185,13 +191,16 @@ function Field({
   );
 }
 
-export default function LeadManagementPage({potential = false}: {potential?: boolean}) {
+function LeadManagementPage({potential = false}: {potential?: boolean}) {
   return <LeadRecordContext.Provider value={{api: potential ? potentialClientsApi : defaultLeadsApi, potential}}><LeadWorkbench key={potential ? "potential" : "lead"}/></LeadRecordContext.Provider>;
 }
 function LeadWorkbench() {
   const {api: leadsApi, potential} = useLeadRecord();
   const { toast } = useToast();
   const userId = useAuthStore((s) => s.user?.id);
+  const canEdit=useModuleAction("edit"),canAssign=useModuleAction("assign"),canDelete=useModuleAction("delete");
+  const bulkAllowed=(action:string)=>action.startsWith("owner:")?canAssign:["archive","restore"].includes(action)?canDelete:canEdit;
+  const canCreate=useDefinitionPermission(["crm_leads_manage","crm_manage","crm_admin"],"create");
   const [params, setParams] = useSearchParams();
   const [bootstrap, setBootstrap] = useState<Bootstrap>();
   const [result, setResult] = useState<ListResult>();
@@ -252,6 +261,24 @@ function LeadWorkbench() {
       return next;
     });
   const refresh = () => setRevision((v) => v + 1);
+  useEffect(()=>{
+    const changed=(event:Event)=>{
+      const change=(event as CustomEvent<RecordSaved>).detail;
+      if(!/^\/crm\/lead-management\/leads(?:\/\d+)?$/.test(change.url))return;
+      const lead=change.record as unknown as Lead;
+      if(!lead?.id||!lead.full_name)return;
+      setResult(current=>{
+        if(!current)return current;
+        const exists=current.items.some(row=>row.id===lead.id);
+        const hidden=queue!=="archived"&&lead.details?.archived||queue==="archived"&&!lead.details?.archived;
+        if(hidden){const items=current.items.filter(row=>row.id!==lead.id);return {...current,items,total:Math.max(0,current.total-(current.items.length-items.length))};}
+        if(!exists&&(page!==1||search||stage||owner||queue!=="all"||(lead.details?.recordType==="Potential")!==potential))return current;
+        return {...current,items:exists?current.items.map(row=>row.id===lead.id?{...row,...lead}:row):[lead,...current.items],total:current.total+(exists?0:1)};
+      });
+    };
+    window.addEventListener(recordSavedEvent,changed);return()=>window.removeEventListener(recordSavedEvent,changed);
+  },[page,search,stage,owner,queue,potential]);
+
   const report = (err: unknown) =>
     toast({
       title: "Action could not be completed",
@@ -349,6 +376,7 @@ function LeadWorkbench() {
     }
   };
   const previewBulk = async () => {
+    if(!bulkAllowed(bulkAction))return;
     let patch: LeadPatch;
     if (bulkAction.startsWith("owner:")) {
       const reason=window.prompt("Reason for reassigning these leads and their pending follow-ups");if(!reason?.trim())return;
@@ -413,7 +441,7 @@ function LeadWorkbench() {
         <div className="lm-actions">
           <DataExportButton filename={potential ? "potential-clients.xlsx" : "leads.xlsx"} description={selected.length?`${selected.length} selected leads`:"All permitted leads matching search, stage and owner filters. Includes archived leads."} load={async()=> (await leadsApi.export(selected.length?{ids:selected.join(",")}:{search,stage,...(owner?{owner}:{})})).data}/>
 
-          {bootstrap?.canManage && (
+          {bootstrap?.canManage && canCreate && (
             <>
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <FileSpreadsheet size={16} />
@@ -585,17 +613,7 @@ function LeadWorkbench() {
             ))}
           </NativeSelect>
           </MobileFilters>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={refresh}
-            aria-label="Refresh leads"
-          >
-            <RefreshCw size={16} />
-          </Button>
-        </div>
-        <WorkspaceViewBar label="Lead views" scope={potential ? "crm-potential-clients" : "crm-leads"} active={view} views={leadViews} onChange={view=>updateParams({view})} primary={["table","board","compact","gallery","calendar","team"]}/>
-        <div className="lm-view-tools">
+          <details className="lm-personal-options"><summary>View options</summary><div className="lm-view-tools">
           <NativeSelect
             aria-label="Saved views"
             value=""
@@ -666,7 +684,17 @@ function LeadWorkbench() {
               Escalate missed response deadlines
             </button>
           )}
+        </div></details>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={refresh}
+            aria-label="Refresh leads"
+          >
+            <RefreshCw size={16} />
+          </Button>
         </div>
+        <WorkspaceViewBar label="Lead views" scope={potential ? "crm-potential-clients" : "crm-leads"} active={view} views={leadViews} onChange={view=>updateParams({view})} primary={["table","board","compact","gallery","calendar","team"]}/>
         {!!selected.length && bootstrap?.canManage && (
           <div className="lm-bulk">
             <strong>{selected.length} selected</strong>
@@ -680,27 +708,27 @@ function LeadWorkbench() {
                 {bootstrap.settings.stages
                   .filter((s) => !["Converted", "Lost"].includes(s.name))
                   .map((s) => (
-                    <option value={`stage:${s.name}`} key={s.name}>
+                    <option disabled={!canEdit} value={`stage:${s.name}`} key={s.name}>
                       {s.name}
                     </option>
                   ))}
               </optgroup>
               <optgroup label="Assign owner">
                 {bootstrap.owners.map((o) => (
-                  <option value={`owner:${o.id}`} key={o.id}>
+                  <option disabled={!canAssign} value={`owner:${o.id}`} key={o.id}>
                     {o.name}
                   </option>
                 ))}
               </optgroup>
-              {potential && <option value="promote">Move to Leads</option>}
-              <option value="archive">Archive with reason</option>
-              <option value="restore">Restore from archive</option>
+              {potential && <option disabled={!canEdit} value="promote">Move to Leads</option>}
+              <option disabled={!canDelete} value="archive">Archive with reason</option>
+              <option disabled={!canDelete} value="restore">Restore from archive</option>
             </NativeSelect>
             <Button
               size="sm"
               variant="outline"
               onClick={previewBulk}
-              disabled={!bulkAction || busy}
+              disabled={!bulkAction || busy || !bulkAllowed(bulkAction)}
             >
               Preview changes
             </Button>
@@ -779,7 +807,7 @@ function LeadWorkbench() {
           </div>
         ) : (
           <div className="lm-table-scroll">
-            <GridTable gridId="apps/crm/leads/LeadManagementPage:table-1" className="lm-table">
+            <GridTable gridId="apps/crm/leads/LeadManagementPage:table-1" hideSearch externalPagination className="lm-table">
               <thead>
                 <tr>
                   <th>
@@ -830,6 +858,7 @@ function LeadWorkbench() {
                       )}
                     </td>
                     <td>
+                      <div className="lm-record-identity"><span aria-hidden="true"><RecordStatusIcon label={lead.status} field="Stage"/></span><div>
                       <button
                         className="lm-name"
                         onClick={() => openLead(lead.id)}
@@ -839,9 +868,10 @@ function LeadWorkbench() {
                       <span className="lm-secondary">
                         {lead.email || (lead.phone ? <PhoneActions value={lead.phone} record={lead} /> : "No contact details")}
                       </span>
+                      </div></div>
                     </td>
                     <td>
-                      {bootstrap?.canManage && !lead.is_converted ? (
+                      {bootstrap?.canManage && canEdit && !lead.is_converted ? (
                         <NativeSelect
                           className="lm-inline"
                           aria-label={`Stage for ${lead.full_name}`}
@@ -876,7 +906,7 @@ function LeadWorkbench() {
                     )}
                     {columns.includes("owner") && (
                       <td>
-                        {bootstrap?.canManage && bootstrap.owners.length > 1 ? (
+                        {bootstrap?.canManage && canAssign && bootstrap.owners.length > 1 ? (
                           <NativeSelect
                             className="lm-inline"
                             aria-label={`Owner for ${lead.full_name}`}
@@ -941,7 +971,7 @@ function LeadWorkbench() {
                         {lead.signals.slaBreached && (
                           <span className="lm-alert-dot" />
                         )}
-                        {lead.signals.nextAction}
+                        <span className="lm-next-action-text" title={lead.signals.nextAction}>{lead.signals.nextAction}</span>
                         {bootstrap?.canManage && lead.signals.active && (
                           <Button
                             size="sm"
@@ -992,10 +1022,10 @@ function LeadWorkbench() {
         <CaptureDialog
           bootstrap={bootstrap}
           close={() => setCreateOpen(false)}
-          saved={(id) => {
+          saved={() => {
             setCreateOpen(false);
             refresh();
-            openLead(id);
+            toast({ title: potential ? "Potential client created" : "Lead created" });
           }}
         />
       )}
@@ -1069,6 +1099,12 @@ function LeadWorkbench() {
                   bulk.items.map((i) => i.id),
                   bulk.patch,
                 );
+                const ids=new Set(bulk.items.map(item=>item.id));
+                if(response.data.updated===ids.size)setResult(current=>{
+                  if(!current)return current;
+                  const items=current.items.map(row=>ids.has(row.id)?{...row,...bulk.patch.values,details:{...row.details,...bulk.patch.details}}:row).filter(row=>queue==="archived"?!!row.details.archived:!row.details.archived);
+                  return {...current,items,total:Math.max(0,current.total-(current.items.length-items.length))};
+                });
                 toast({ title: `${response.data.updated} leads updated` });
                 setBulk(undefined);
                 setSelected([]);
@@ -1124,22 +1160,15 @@ export function CaptureDialog({
   useEffect(() => { sessionStorage.setItem(`${key}:catalog`, JSON.stringify(catalogLines)); }, [key, catalogLines]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const captureSubmitting = useRef(false);
   const [sharedConfirmed,setSharedConfirmed]=useState(false);const [sharedReason,setSharedReason]=useState("");
   const [duplicate,setDuplicate]=useState<{matched:boolean;items:{id:number;name:string}[];message:string}>();
   useEffect(()=>{const controller=new AbortController();const timer=setTimeout(()=>{if(!values.email&&!values.phone){setDuplicate(undefined);return;}void api.get("/crm/productivity/duplicate-check",{params:{email:values.email||"",phone:values.phone||"",phone_country_code:values.phone_country_code||""},signal:controller.signal}).then(r=>setDuplicate(r.data)).catch(()=>{});},350);return()=>{clearTimeout(timer);controller.abort();};},[values.email,values.phone,values.phone_country_code]);
   useEffect(() => {
     sessionStorage.setItem(key, JSON.stringify(values));
   }, [values, key]);
-  const dismiss = () => {
-    if (
-      !saving &&
-      (!values.full_name ||
-        window.confirm(
-          "Keep this draft and close? It will be available when you add a lead again.",
-        ))
-    )
-      close();
-  };
+  const dismiss = () => {if(!saving)close();};
+  const clearFullDraft=useRecordDraft(`${potential?"potential":"lead"}:capture`,{values,catalogLines,customValues:customFieldForm.values,sharedConfirmed,sharedReason},draft=>{setValues(draft.values);setCatalogLines(draft.catalogLines||[]);customFieldForm.setValues(draft.customValues||{});setSharedConfirmed(draft.sharedConfirmed);setSharedReason(draft.sharedReason);},!customFieldForm.loading);
   const [step, setStep] = useState(0);
   const captureForm = useRef<HTMLFormElement>(null);
   const captureTabs = ["Basic Details", "Contact Info", "Company Details", "Additional", "Products & services"];
@@ -1165,6 +1194,7 @@ export function CaptureDialog({
       <CompactForm noValidate ref={captureForm} className="lead-create-main"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (captureSubmitting.current) return;
             const nameMissing = !values.full_name?.trim();
             const contactError = emailError(values.email) || phoneError(values.phone, values.phone_country_code);
             if (nameMissing || contactError) {
@@ -1174,10 +1204,12 @@ export function CaptureDialog({
               return;
             }
             if (duplicate?.matched && bootstrap.settings.preventDuplicates && !sharedConfirmed) { setStep(1); setError("Review the matching lead before creating another record."); return; }
+            let customFields;
+            try { customFields=customFieldForm.validate(); } catch(error) { setError(error instanceof Error?error.message:"Check the custom fields."); return; }
+            captureSubmitting.current = true;
             setSaving(true);
             setError("");
             try {
-              const customFields=customFieldForm.validate();
               const response = await leadsApi.create({
                 customFields,
                 confirmShared:sharedConfirmed,sharedReason:sharedReason||undefined,
@@ -1193,12 +1225,14 @@ export function CaptureDialog({
                   }).filter(([name, value]) => value !== "" && name !== "capture_priority"),
                 ),
               });
+              clearFullDraft();
               sessionStorage.removeItem(key);
               sessionStorage.removeItem(`${key}:catalog`);
               saved(response.data.id);
             } catch (err) {
               setError(errorMessage(err));
             } finally {
+              captureSubmitting.current = false;
               setSaving(false);
             }
           }}
@@ -1225,7 +1259,7 @@ export function CaptureDialog({
             <CrmRecordFields state={customFieldForm}/>
             {error && <ErrorNotice message={error}/>}
           </div>
-          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={() => setStep(step + 1)} disabled={saving}>Next<ArrowRight size={16}/></Button>}<Button type="submit" disabled={saving}>{saving ? "Saving…" : "Create lead"}</Button></div></footer>
+          <footer className="lead-create-footer"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(key, JSON.stringify(values)); close();}} disabled={saving}><FileText size={18}/>Save as Draft</Button><div>{step > 0 && <Button type="button" variant="ghost" onClick={() => setStep(step - 1)} disabled={saving}>Back</Button>}{step < 4 && <Button type="button" variant="outline" onClick={() => setStep(step + 1)} disabled={saving}>Next<ArrowRight size={16}/></Button>}<Button type="submit" data-save-action disabled={saving||customFieldForm.loading||!!customFieldForm.error}>{saving ? "Saving…" : "Create lead"}</Button>{customFieldForm.loading&&<span role="status">Loading custom fields...</span>}{customFieldForm.error&&<p role="alert">{customFieldForm.error}</p>}</div></footer>
         </CompactForm>
     </DialogContent>
   </Dialog>;
@@ -1249,6 +1283,7 @@ export function LeadDrawer({
   next?: () => void;
 }) {
   const {api: leadsApi, potential} = useLeadRecord();
+  const canEdit=useModuleAction("edit"),canCreate=useModuleAction("create"),canAssign=useModuleAction("assign"),canDelete=useModuleAction("delete");
   const { toast } = useToast();
   const [lead, setLead] = useState<Lead>();
   const [error, setError] = useState("");
@@ -1281,6 +1316,7 @@ export function LeadDrawer({
   const [loggingInteraction,setLoggingInteraction]=useState(false);
   const customFieldForm=useCrmFieldForm("leads","edit",id,undefined,reload);
   const [editingCustomFields,setEditingCustomFields]=useState(false);
+  const editingSection = useRef<HTMLDetailsElement>(null);
   useRefreshableEffect(() => {
     const controller = new AbortController();
     setError("");
@@ -1308,6 +1344,7 @@ export function LeadDrawer({
       close();
   };
   const setValue = (key: string, value: unknown) => {
+    if (JSON.stringify(value ?? null) === JSON.stringify(values[key] ?? (lead as unknown as Record<string, unknown>)?.[key] ?? null)) return;
     setValues((current) => ({ ...current, [key]: value }));
     setDirty(true);
   };
@@ -1332,8 +1369,10 @@ export function LeadDrawer({
       setBusy(false);
     }
   };
-  const save = () => {
-    if (!lead) return;
+  const leadSaving=useRef(false);
+  const latestDraft=useRef({values,details,customValues:customFieldForm.values});latestDraft.current={values,details,customValues:customFieldForm.values};
+  const save = async (automatic=false) => {
+    if (!lead||!canEdit||leadSaving.current) return false;
     const writable = [
       "qualification",
       "interests",
@@ -1349,12 +1388,19 @@ export function LeadDrawer({
     const patch = Object.fromEntries(
       Object.entries(details).filter(([key]) => writable.includes(key)),
     );
-    return act(
-      () =>
-        leadsApi.update(id, { values, details: patch, customFields: customFieldForm.validate(), version: lead.version }),
-      "Lead saved",
-    );
+    leadSaving.current=true;setBusy(true);setError("");
+    const captured=JSON.stringify(latestDraft.current);
+    try{
+      const response=await leadsApi.update(id,{values,details:patch,customFields:customFieldForm.validate(),version:lead.version});
+      setLead(response.data);
+      setValues(current=>Object.fromEntries(Object.entries(current).filter(([key,value])=>JSON.stringify(value)!==JSON.stringify(values[key]))));
+      if(JSON.stringify(latestDraft.current)===captured){setDirty(false);setDetails(response.data.details);}
+      if(!automatic){setEditingCustomFields(false);toast({title:"Lead saved"});}
+      changed();return true;
+    }catch(error){setError(errorMessage(error));return false;}
+    finally{leadSaving.current=false;setBusy(false);}
   };
+  const auto=useRecordAutosave({value:{values,details,customValues:customFieldForm.values},enabled:!!lead&&canEdit&&!busy&&!customFieldForm.loading&&!teamDirty&&!targetStage,dirty,save:()=>save(true)});
   const qualification = { ...emptyQualification, ...details.qualification };
   const allowed =
     bootstrap.settings.stages.find((s) => s.name === lead?.status)
@@ -1383,8 +1429,9 @@ export function LeadDrawer({
           />
         )}
         <PersonPreviewHeader name={lead?.full_name || "Lead details"} identifier={`#${id}`} status={lead?.status}/>
+        {bootstrap.canManage && canEdit && lead && !lead.is_converted && <div className="lm-lead-save-toolbar"><span role="status">{busy ? "Saving…" : auto.message || (dirty ? "Unsaved changes" : "All changes saved")}</span><Button type="button" variant="outline" onClick={() => { if (editingSection.current) { editingSection.current.open = true; editingSection.current.scrollIntoView({block:"start",behavior:"smooth"}); } }}>Edit lead</Button><Button type="button" disabled={busy || !dirty || customFieldForm.loading || !!customFieldForm.error} onClick={() => void save()}>Save changes</Button></div>}
         <Record360Workspace key={id} kind="lead" id={id} actions={<Button variant="outline" onClick={()=>setScheduling(true)}>Schedule lead follow-up</Button>}/>
-        <details><summary className="cursor-pointer font-semibold">Lead qualification & editing</summary>
+        <details ref={editingSection}><summary className="cursor-pointer font-semibold">Lead qualification & editing</summary>
         <div className="wfp-body wf-space">
         <div className="flex gap-2"><Button variant="outline" disabled={!previous||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the previous record?"))previous?.();}}>Previous</Button><Button variant="outline" disabled={!next||busy} onClick={()=>{if(!(dirty||teamDirty)||window.confirm("Discard unsaved changes before opening the next record?"))next?.();}}>Next</Button></div>
         {!lead ? (
@@ -1457,7 +1504,7 @@ export function LeadDrawer({
             {error && <ErrorNotice message={error} />}
             <fieldset
               className="lm-fieldset"
-              disabled={!bootstrap.canManage || busy}
+              disabled={!bootstrap.canManage || !canEdit || busy}
             >
               {tab === "overview" && (
                 <><CatalogAssociations source="crm" target="lead" id={id}/>
@@ -1480,6 +1527,7 @@ export function LeadDrawer({
                     <Field label="Assigned employee">
                       <NativeSelect
                         value={value("owner_user_id")}
+                        disabled={!canAssign}
                         onChange={(e) =>
                           setValue("owner_user_id", Number(e.target.value))
                         }
@@ -1537,7 +1585,7 @@ export function LeadDrawer({
                     <Field label="Phone">
                       <PhoneInput
                         value={value("phone")}
-                        countryCode={value("phone_country_code")}
+                        countryCode={value("phone_country_code") || defaultText("phone_country_code", "crm")}
                         onChange={(number) => setValue("phone", number)}
                         onCountryCodeChange={(code) =>
                           setValue("phone_country_code", code)
@@ -1631,6 +1679,7 @@ export function LeadDrawer({
                       <input
                         type="checkbox"
                         checked={!!details.archived}
+                        disabled={!canDelete}
                         onChange={(e) =>
                           setDetail({ archived: e.target.checked })
                         }
@@ -2094,6 +2143,7 @@ export function LeadDrawer({
                   disabled={
                     busy ||
                     dirty ||
+                    !(potential?canEdit:canCreate) ||
                     (!potential && lead.status !== "Qualified") ||
                     lead.is_converted
                   }
@@ -2123,9 +2173,6 @@ export function LeadDrawer({
                   {potential ? "Move to Leads" : "Convert to customer"}
                 </Button>
                 <div className="w-full space-y-3">{editingCustomFields?<><CrmRecordFields state={{...customFieldForm,setValues:next=>{customFieldForm.setValues(next);setDirty(true);}}}/><Button type="button" variant="ghost" onClick={()=>setEditingCustomFields(false)}>View saved fields</Button></>:<><CrmFieldsReadOnly key={reload} entity="leads" recordId={id}/>{customFieldForm.fields.length>0&&<Button type="button" variant="outline" onClick={()=>setEditingCustomFields(true)}>Edit custom fields</Button>}</>}</div>
-                <Button disabled={busy} onClick={() => void save()}>
-                  Save changes
-                </Button>
               </footer>
             )}
             {lead.is_converted && (
@@ -2200,7 +2247,7 @@ export function LeadDrawer({
                 </Field>
                 <Field label="New deal name"><input value={conversionIds.dealName} placeholder={`${lead.full_name} opportunity`} onChange={e=>setConversionIds(v=>({...v,dealName:e.target.value}))}/></Field><label className="lm-check"><input type="checkbox" checked={conversionIds.createDeal} onChange={e=>setConversionIds(v=>({...v,createDeal:e.target.checked}))}/>Create a linked deal</label><div className="rounded border p-3 text-sm"><strong>Survivor / destination preview</strong><p>Contact: {conversionIds.existingContactId?`Reuse #${conversionIds.existingContactId}`:"Create a new contact"}</p><p>Company: {conversionIds.existingCompanyId?`Reuse #${conversionIds.existingCompanyId}`:lead.company_name?`Create or reuse ${lead.company_name}`:"No company"}</p><p>Deal: {conversionIds.createDeal?conversionIds.dealName||`${lead.full_name} opportunity`:"No new deal"}</p><p>Lead ownership, communication history, notes and follow-ups remain linked to the conversion.</p></div>
                 <Button
-                  disabled={busy || !conversion?.ready}
+                  disabled={busy || !canCreate || !conversion?.ready}
                   onClick={async () => {
                     if (
                       await act(
@@ -3045,3 +3092,5 @@ function WorkflowSettings({
     </Dialog>
   );
 }
+
+export default withRecordViewHost(LeadManagementPage);

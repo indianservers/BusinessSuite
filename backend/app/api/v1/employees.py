@@ -19,7 +19,7 @@ from app.core.security import get_password_hash
 from app.crud.crud_employee import crud_employee
 from app.models.audit import AuditLog
 from app.models.user import Role, User
-from app.models.employee import Employee, EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeChangeRequest
+from app.models.employee import Employee, EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeSkill, EmployeeCertification, EmployeeChangeRequest
 from app.services.notifications import create_notification
 from app.schemas.notification import NotificationCreate
 from app.schemas.employee import (
@@ -27,6 +27,7 @@ from app.schemas.employee import (
     EmployeeEducationCreate, EmployeeEducationSchema,
     EmployeeExperienceCreate, EmployeeExperienceSchema,
     EmployeeSkillCreate, EmployeeSkillSchema,
+    EmployeeCertificationCreate, EmployeeCertificationSchema,
     EmployeeDocumentCreate, EmployeeDocumentSchema, EmployeeDocumentVerificationUpdate,
     EmployeeLifecycleEventCreate, EmployeeLifecycleEventSchema,
     EmployeeChangeRequestCreate, EmployeeChangeRequestReview, EmployeeChangeRequestSchema,
@@ -1576,56 +1577,132 @@ def delete_employee(
     return {"message": "Employee terminated"}
 
 
-# ── Education ────────────────────────────────────────────────────────────────
+# Employee qualifications: every record is checked against its owning employee.
+def _profile_employee(db, employee_id):
+    employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
+    if not employee:
+        raise HTTPException(404, "Employee not found")
+    return employee
+
+
+def _profile_record(db, employee_id, record_id, model):
+    _profile_employee(db, employee_id)
+    record = db.query(model).filter(model.id == record_id, model.employee_id == employee_id).first()
+    if not record:
+        raise HTTPException(404, "Employee profile record not found")
+    return record
+
 
 @router.post("/{employee_id}/education", response_model=EmployeeEducationSchema, status_code=201)
-def add_education(
-    employee_id: int,
-    data: EmployeeEducationCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("employee_update")),
-):
-    return crud_employee.add_education(db, employee_id, data.model_dump())
+def add_education(employee_id: int, data: EmployeeEducationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    _profile_employee(db, employee_id)
+    record = EmployeeEducation(employee_id=employee_id, **data.model_dump())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
 
 
-@router.delete("/{employee_id}/education/{edu_id}")
-def delete_education(
-    employee_id: int,
-    edu_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("employee_update")),
-):
-    from app.models.employee import EmployeeEducation
-    edu = db.query(EmployeeEducation).filter_by(id=edu_id, employee_id=employee_id).first()
-    if not edu:
-        raise HTTPException(status_code=404, detail="Education record not found")
-    db.delete(edu)
+@router.put("/{employee_id}/education/{record_id}", response_model=EmployeeEducationSchema)
+def update_education(employee_id: int, record_id: int, data: EmployeeEducationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeEducation)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(record, key, value)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.delete("/{employee_id}/education/{record_id}")
+def delete_education(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeEducation)
+    db.delete(record)
     db.commit()
     return {"message": "Deleted"}
 
 
-# ── Experience ───────────────────────────────────────────────────────────────
-
 @router.post("/{employee_id}/experience", response_model=EmployeeExperienceSchema, status_code=201)
-def add_experience(
-    employee_id: int,
-    data: EmployeeExperienceCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("employee_update")),
-):
-    return crud_employee.add_experience(db, employee_id, data.model_dump())
+def add_experience(employee_id: int, data: EmployeeExperienceCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    _profile_employee(db, employee_id)
+    record = EmployeeExperience(employee_id=employee_id, **data.model_dump())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
 
 
-# ── Skills ───────────────────────────────────────────────────────────────────
+@router.put("/{employee_id}/experience/{record_id}", response_model=EmployeeExperienceSchema)
+def update_experience(employee_id: int, record_id: int, data: EmployeeExperienceCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeExperience)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(record, key, value)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.delete("/{employee_id}/experience/{record_id}")
+def delete_experience(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeExperience)
+    db.delete(record)
+    db.commit()
+    return {"message": "Deleted"}
+
 
 @router.post("/{employee_id}/skills", response_model=EmployeeSkillSchema, status_code=201)
-def add_skill(
-    employee_id: int,
-    data: EmployeeSkillCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(RequirePermission("employee_update")),
-):
-    return crud_employee.add_skill(db, employee_id, data.model_dump())
+def add_skills(employee_id: int, data: EmployeeSkillCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    _profile_employee(db, employee_id)
+    record = EmployeeSkill(employee_id=employee_id, **data.model_dump())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.put("/{employee_id}/skills/{record_id}", response_model=EmployeeSkillSchema)
+def update_skills(employee_id: int, record_id: int, data: EmployeeSkillCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeSkill)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(record, key, value)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.delete("/{employee_id}/skills/{record_id}")
+def delete_skills(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeSkill)
+    db.delete(record)
+    db.commit()
+    return {"message": "Deleted"}
+
+
+@router.post("/{employee_id}/certifications", response_model=EmployeeCertificationSchema, status_code=201)
+def add_certifications(employee_id: int, data: EmployeeCertificationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    _profile_employee(db, employee_id)
+    record = EmployeeCertification(employee_id=employee_id, **data.model_dump())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.put("/{employee_id}/certifications/{record_id}", response_model=EmployeeCertificationSchema)
+def update_certifications(employee_id: int, record_id: int, data: EmployeeCertificationCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeCertification)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(record, key, value)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.delete("/{employee_id}/certifications/{record_id}")
+def delete_certifications(employee_id: int, record_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("employee_update"))):
+    record = _profile_record(db, employee_id, record_id, EmployeeCertification)
+    db.delete(record)
+    db.commit()
+    return {"message": "Deleted"}
 
 
 # ── Documents ────────────────────────────────────────────────────────────────

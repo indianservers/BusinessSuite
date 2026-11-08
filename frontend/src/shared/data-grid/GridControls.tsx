@@ -412,6 +412,7 @@ export function GridToolbar({
   undo,
   reset,
   searchPlaceholder,
+  hideSearch,
 }: {
   search: string;
   setSearch: (s: string) => void;
@@ -425,10 +426,11 @@ export function GridToolbar({
   undo?: () => void;
   reset: () => void;
   searchPlaceholder?: string;
+  hideSearch?: boolean;
 }) {
   return (
     <div className="udg-toolbar">
-      <label className="udg-search">
+      {!hideSearch && <label className="udg-search">
         <Search size={16} />
         <input
           aria-label="Search grid"
@@ -441,7 +443,7 @@ export function GridToolbar({
             <X size={13} />
           </button>
         )}
-      </label>
+      </label>}
       <button
         className={`udg-control ${filterCount ? "is-active" : ""}`}
         onClick={openFilters}

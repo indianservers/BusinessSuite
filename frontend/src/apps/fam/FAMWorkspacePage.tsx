@@ -1,3 +1,10 @@
+import RecordMaintenance from "@/components/RecordMaintenance";
+import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
+import { api } from "@/services/api";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import RecordDefinitionActions from "@/components/RecordDefinitionActions";
+import { useFinanceWrite } from "./useFinanceWrite";
 import { defaultFiscalYear, defaultText, defaultId, defaultDateAfter } from "@/lib/form-defaults";
 import SuiteBarChart from "@/components/visuals/SuiteBarChart";
 import { SuiteHeading, SuiteMetric } from "@/components/visuals/SuiteVisuals";
@@ -285,7 +292,7 @@ function SettingsView() {
   const mutation = useMutation({
     mutationFn: () => famApi.updateSettings(effective),
     onSuccess: () => { toast({ title: "FAM settings saved" }); setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
-  });
+   onError: showMutationError });
   const patch = (key: string, value: unknown) => setDraft((current) => ({ ...current, [key]: value }));
   return (
     <Card>
@@ -306,15 +313,16 @@ function SettingsView() {
   );
 }
 
-function DataTable({ rows, columns }: { rows: FAMRecord[]; columns: string[] }) {
+function DataTable({ rows, columns, renderActions }: { rows: FAMRecord[]; columns: string[]; renderActions?:(row:FAMRecord)=>React.ReactNode }) {
   const { pathname } = useLocation();
   const detailRoutes: Record<string, string> = { "/fam/vouchers": "/fam/vouchers", "/fam/customers": "/fam/parties", "/fam/vendors": "/fam/parties", "/fam/parties": "/fam/parties", "/fam/purchase-bills": "/fam/purchase-bills", "/fam/expenses": "/fam/expenses", "/fam/bank-statements": "/fam/bank-statements", "/fam/posting-jobs": "/fam/posting-jobs" };
   const detailBase = detailRoutes[pathname];
+  const definitionName=pathname==="/fam/ledger-groups"?"group_name":pathname==="/fam/ledgers"?"ledger_name":null;
   return (
     <div className="overflow-x-auto rounded-lg border">
       <GridTable gridId="apps/fam/FAMWorkspacePage:table-1" className="w-full min-w-[780px] text-sm">
-        <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead>
-        <tbody>{rows.map((row) => <tr {...recordPreviewProps(row)} key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2">{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}</tr>)}</tbody>
+        <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{columns.map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}{renderActions&&<th className="px-3 py-2">Actions</th>}</tr></thead>
+        <tbody>{rows.map((row) => <tr {...recordPreviewProps(row)} key={String(row.id)} className="border-t">{columns.map((column, index) => <td key={column} className="px-3 py-2">{index === 0 && detailBase && row.id ? <Link data-context-action={`Open ${pathname.split("/").pop()?.replace(/-/g, " ")} · ${text(row[column])}`} to={`${detailBase}/${row.id}`} className="text-primary underline">{text(row[column])}</Link> : column.includes("status") || column === "nature" ? <Badge variant={statusTone(row[column])}>{text(row[column])}</Badge> : ["notes","remarks","narration","description"].includes(column) ? <RichTextContent legacyFormat="plain" value={String(row[column] || "")}/> : text(row[column])}</td>)}{renderActions&&<td>{renderActions(row)}</td>}{definitionName&&<td className="flex gap-2 px-3 py-2"><RecordDefinitionActions record={row} nameField={definitionName} endpoint={`${pathname}/${row.id}`} queryKeys={["fam"]} permissions={["fam_admin","fam_chart_manage"]}/></td>}</tr>)}</tbody>
       </GridTable>
     </div>
   );
@@ -337,6 +345,7 @@ function ChartView() {
 
 function ListCreateView({ kind }: { kind: FAMViewKind }) {
   const queryClient = useQueryClient();
+  const canWrite = useFinanceWrite(["fam_admin","fam_chart_manage"],"create");
   const config = getListConfig(kind);
   const query = useQuery({ queryKey: ["fam", kind], queryFn: config.query });
   const rows = listItems(query.data);
@@ -344,12 +353,12 @@ function ListCreateView({ kind }: { kind: FAMViewKind }) {
   const mutation = useMutation({
     mutationFn: () => config.create(draft),
     onSuccess: () => { toast({ title: `${config.label} created` }); setDraft(config.initial); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
-  });
+   onError: showMutationError });
   return (
     <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
       <Card><CardHeader><CardTitle className="text-base">Create {config.label}</CardTitle></CardHeader><CardContent className="space-y-3">
         {config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
-        <Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending}><Plus className="h-4 w-4" />Create</Button>
+        <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}><Plus className="h-4 w-4" />Create</Button>
       </CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">{config.label} list</CardTitle></CardHeader><CardContent><State label={config.label} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={config.columns} /></CardContent></Card>
     </div>
@@ -358,12 +367,13 @@ function ListCreateView({ kind }: { kind: FAMViewKind }) {
 
 function OpeningBalancesView() {
   const queryClient = useQueryClient();
+  const canWrite = useFinanceWrite(["fam_admin","fam_opening_balance_manage"],"create"),canPost=useFinanceWrite(["fam_admin","fam_opening_balance_manage"],"approve");
   const query = useQuery({ queryKey: ["fam", "openingBalances"], queryFn: famApi.openingBalances });
   const data = (query.data || {}) as FAMRecord;
   const rows = listItems(data);
   const [draft, setDraft] = useState<FAMRecord>({ financial_year_id: 1, ledger_id: 1, debit_amount: 0, credit_amount: 0, narration: "" });
-  const createMutation = useMutation({ mutationFn: () => famApi.createOpeningBalance(draft), onSuccess: () => { toast({ title: "Opening balance saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  const postMutation = useMutation({ mutationFn: famApi.postOpeningBalances, onSuccess: () => { toast({ title: "Opening balances posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const createMutation = useMutation({ mutationFn: () => famApi.createOpeningBalance(draft), onSuccess: () => { toast({ title: "Opening balance saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const postMutation = useMutation({ mutationFn: famApi.postOpeningBalances, onSuccess: () => { toast({ title: "Opening balances posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const difference = Number(data.difference || 0);
   return (
     <div className="space-y-4">
@@ -371,9 +381,9 @@ function OpeningBalancesView() {
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Debit</p><p className="text-lg font-semibold">{money(data.debitTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Credit</p><p className="text-lg font-semibold">{money(data.creditTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Difference</p><p className={difference ? "text-lg font-semibold text-destructive" : "text-lg font-semibold text-emerald-700"}>{money(difference)}</p></CardContent></Card>
-        <Button className="h-full min-h-20" onClick={() => postMutation.mutate()} disabled={Boolean(difference) || postMutation.isPending}><LockKeyhole className="h-4 w-4" />Post balanced opening</Button>
+        <Button className="h-full min-h-20" onClick={() => postMutation.mutate()} disabled={!canPost || Boolean(difference) || postMutation.isPending}><LockKeyhole className="h-4 w-4" />Post balanced opening</Button>
       </div>
-      <ListCreateInline fields={["financial_year_id", "ledger_id", "debit_amount", "credit_amount", "narration"]} draft={draft} setDraft={setDraft} onCreate={() => createMutation.mutate()} />
+      <fieldset disabled={!canWrite || createMutation.isPending}><ListCreateInline fields={["financial_year_id", "ledger_id", "debit_amount", "credit_amount", "narration"]} draft={draft} setDraft={setDraft} onCreate={() => {if(canWrite && !createMutation.isPending)createMutation.mutate();}} /></fieldset>
       <Card><CardHeader><CardTitle className="text-base">Ledger-wise opening balances</CardTitle></CardHeader><CardContent><State label="opening balances" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={["financial_year_id", "ledger_id", "debit_amount", "credit_amount", "posted", "narration"]} /></CardContent></Card>
     </div>
   );
@@ -398,6 +408,11 @@ function voucherDraft(kind: FAMViewKind): FAMRecord {
 
 function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
   const params = useParams();
+  const canCreate = useFinanceWrite(["fam_admin","fam_vouchers_create"],"create");
+  const canUpdate = useFinanceWrite(["fam_admin","fam_vouchers_create"],"edit");
+  const canPost = useFinanceWrite(["fam_admin","fam_vouchers_post"],"approve");
+  const canCancel = useFinanceWrite(["fam_admin","fam_vouchers_cancel"],"create");
+  const canReverse = useFinanceWrite(["fam_admin","fam_vouchers_reverse"],"create");
   const queryClient = useQueryClient();
   const voucherQuery = useQuery({ queryKey: ["fam", "voucher", params.id], queryFn: () => famApi.getVoucher(params.id || ""), enabled: mode === "detail" && Boolean(params.id) });
   const typesQuery = useQuery({ queryKey: ["fam", "voucherTypes"], queryFn: famApi.voucherTypes });
@@ -412,18 +427,18 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
   const saveMutation = useMutation({
     mutationFn: () => (mode === "detail" && voucherId ? famApi.updateVoucher(voucherId, { ...effective, total_debit: debitTotal, total_credit: creditTotal }) : famApi.createVoucher({ ...effective, total_debit: debitTotal, total_credit: creditTotal })),
     onSuccess: () => { toast({ title: "Voucher draft saved" }); if (mode === "detail") setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
-  });
-  const postMutation = useMutation({ mutationFn: () => famApi.postVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  const cancelMutation = useMutation({ mutationFn: () => famApi.cancelVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cancelled" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  const reverseMutation = useMutation({ mutationFn: () => famApi.reverseVoucher(voucherId), onSuccess: () => { toast({ title: "Reversal voucher created" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  const cloneMutation = useMutation({ mutationFn: () => famApi.cloneVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cloned" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+   onError: showMutationError });
+  const postMutation = useMutation({ mutationFn: () => famApi.postVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const cancelMutation = useMutation({ mutationFn: () => famApi.cancelVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cancelled" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const reverseMutation = useMutation({ mutationFn: () => famApi.reverseVoucher(voucherId), onSuccess: () => { toast({ title: "Reversal voucher created" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const cloneMutation = useMutation({ mutationFn: () => famApi.cloneVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cloned" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const patch = (key: string, value: unknown) => setDraft((current) => ({ ...effective, ...current, [key]: value }));
   const patchLine = (index: number, key: string, value: unknown) => {
     const next = lines.map((line, lineIndex) => lineIndex === index ? { ...line, [key]: numericFields.has(key) ? Number(value) : value } : line);
     patch("lines", next);
   };
   const addLine = () => patch("lines", [...lines, { ...defaultVoucherLine, cost_center_id: defaultId("accounting_cost_center_id", "fam") }]);
-  const canEdit = (mode !== "detail" || !!voucherQuery.data) && String(effective.status || "draft") === "draft";
+  const canEdit = (mode === "detail"?canUpdate:canCreate) && (mode !== "detail" || !!voucherQuery.data) && String(effective.status || "draft") === "draft";
   return (
     <div className="space-y-4">
       <State label="voucher" isLoading={voucherQuery.isLoading || typesQuery.isLoading || ledgersQuery.isLoading} isError={voucherQuery.isError || typesQuery.isError || ledgersQuery.isError} />
@@ -472,10 +487,10 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
       ]}/>
       <ActionToolbar label="Voucher actions" actions={[
         {id:"save",kind:"save",label:"Save draft",prominent:true,primary:true,available:canEdit,loading:saveMutation.isPending,onSelect:()=>saveMutation.mutate()},
-        {id:"post",kind:"approve",label:"Post voucher",prominent:true,available:!!voucherId&&canEdit,loading:postMutation.isPending,disabled:Boolean(difference),disabledReason:difference?"Balance debit and credit totals before posting":undefined,onSelect:()=>postMutation.mutate(),confirm:{title:"Post this voucher?",description:`${effective.voucher_number || voucherId} · debit ${money(debitTotal)} · credit ${money(creditTotal)}. Review the lines before posting to the ledger.`,label:"Post voucher"}},
-        {id:"clone",kind:"copy",label:"Clone voucher",prominent:true,available:!!voucherId&&!!voucherQuery.data,loading:cloneMutation.isPending,onSelect:()=>cloneMutation.mutate()},
-        {id:"cancel",kind:"reject",label:"Cancel voucher",danger:true,available:!!voucherId&&["draft","posted"].includes(String(effective.status)),loading:cancelMutation.isPending,onSelect:()=>cancelMutation.mutate(),confirm:{title:"Cancel this voucher?",description:`Voucher ${effective.voucher_number || voucherId}. Review its accounting impact before cancelling.`,label:"Cancel voucher"}},
-        {id:"reverse",kind:"review",label:"Reverse voucher",danger:true,available:!!voucherId&&effective.status==="posted",loading:reverseMutation.isPending,onSelect:()=>reverseMutation.mutate(),confirm:{title:"Reverse this posted voucher?",description:`Voucher ${effective.voucher_number || voucherId}. This creates a linked reversal and records it in history.`,label:"Reverse voucher"}},
+        {id:"post",kind:"approve",label:"Post voucher",prominent:true,available:canPost&&!!voucherId&&String(effective.status||"draft")==="draft",loading:postMutation.isPending,disabled:Boolean(difference),disabledReason:difference?"Balance debit and credit totals before posting":undefined,onSelect:()=>postMutation.mutate(),confirm:{title:"Post this voucher?",description:`${effective.voucher_number || voucherId} · debit ${money(debitTotal)} · credit ${money(creditTotal)}. Review the lines before posting to the ledger.`,label:"Post voucher"}},
+        {id:"clone",kind:"copy",label:"Clone voucher",prominent:true,available:canCreate&&!!voucherId&&!!voucherQuery.data,loading:cloneMutation.isPending,onSelect:()=>cloneMutation.mutate()},
+        {id:"cancel",kind:"reject",label:"Cancel voucher",danger:true,available:canCancel&&!!voucherId&&["draft","posted"].includes(String(effective.status)),loading:cancelMutation.isPending,onSelect:()=>cancelMutation.mutate(),confirm:{title:"Cancel this voucher?",description:`Voucher ${effective.voucher_number || voucherId}. Review its accounting impact before cancelling.`,label:"Cancel voucher"}},
+        {id:"reverse",kind:"review",label:"Reverse voucher",danger:true,available:canReverse&&!!voucherId&&effective.status==="posted",loading:reverseMutation.isPending,onSelect:()=>reverseMutation.mutate(),confirm:{title:"Reverse this posted voucher?",description:`Voucher ${effective.voucher_number || voucherId}. This creates a linked reversal and records it in history.`,label:"Reverse voucher"}},
       ]}/>
     </div>
   );
@@ -504,18 +519,19 @@ function LedgerEntriesView({ detail }: { detail?: boolean }) {
 function PartiesView({ partyType }: { partyType?: "customer" | "vendor" }) {
   const createRef = useNewRecordFocus();
   const queryClient = useQueryClient();
+  const canWrite = useFinanceWrite(["fam_admin","fam_parties_manage"],"create"),canEdit=useFinanceWrite(["fam_admin","fam_parties_manage"],"edit"),canDelete=useFinanceWrite(["fam_admin","fam_parties_manage"],"delete");
   const query = useQuery({ queryKey: ["fam", "parties", partyType || "all"], queryFn: () => famApi.parties(partyType) });
-  const rows = listItems(query.data);
+  const rows = listItems(query.data).filter(row=>row.active!==false);
   const [draft, setDraft] = useState<FAMRecord>({ party_type: partyType || "customer", party_code: "", legal_name: "", registration_type: "regular", state_code: "29", payment_terms_days: 30, credit_limit: 0, create_ledger: true });
-  const mutation = useMutation({ mutationFn: () => famApi.createParty(draft), onSuccess: () => { toast({ title: "Party saved" }); setDraft({ ...draft, party_code: "", legal_name: "" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.createParty(draft), onSuccess: () => { toast({ title: "Party saved" }); setDraft({ ...draft, party_code: "", legal_name: "" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const title = partyType === "customer" ? "customer" : partyType === "vendor" ? "vendor" : "party";
   return (
     <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
       <Card ref={createRef} id="new-record"><CardHeader><CardTitle className="text-base">Create {title}</CardTitle></CardHeader><CardContent className="space-y-3">
         {["party_type", "party_code", "legal_name", "gstin", "pan", "state_code", "payment_terms_days", "credit_limit"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}
-        <Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending}><Plus className="h-4 w-4" />Create with ledger</Button>
+        <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}><Plus className="h-4 w-4" />Create with ledger</Button>
       </CardContent></Card>
-      <Card><CardHeader><CardTitle className="text-base">{title} masters</CardTitle></CardHeader><CardContent><State label="parties" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={["party_code", "legal_name", "party_type", "ledger_id", "payment_terms_days", "credit_limit", "active"]} /></CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-base">{title} masters</CardTitle></CardHeader><CardContent><State label="parties" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={["party_code", "legal_name", "party_type", "ledger_id", "payment_terms_days", "credit_limit", "active"]} renderActions={row=><RecordMaintenance record={row} name={String(row.legal_name)} endpoint={`/fam/parties/${row.id}`} fields={[{key:"legal_name",label:"Legal name",required:true},{key:"credit_limit",label:"Credit limit",type:"number"}]} queryKeys={["fam"]} canEdit={canEdit} canDelete={canDelete} mergeRecord/>}/></CardContent></Card>
     </div>
   );
 }
@@ -548,7 +564,7 @@ function BillReferencesView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "billReferences"], queryFn: famApi.billReferences });
   const [draft, setDraft] = useState<FAMRecord>({ party_id: 1, bill_number: "", bill_date: "2026-06-06", bill_type: "invoice", original_amount: 1000 });
-  const mutation = useMutation({ mutationFn: () => famApi.createBillReference(draft), onSuccess: () => { toast({ title: "Bill reference saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.createBillReference(draft), onSuccess: () => { toast({ title: "Bill reference saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create bill reference</CardTitle></CardHeader><CardContent className="space-y-3">{["party_id", "bill_number", "bill_date", "bill_type", "original_amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Create bill</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bill-wise tracking</CardTitle></CardHeader><CardContent><State label="bill references" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["bill_number", "party_id", "bill_date", "due_date", "bill_type", "original_amount", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
@@ -556,7 +572,7 @@ function BillAllocationsView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "billAllocations"], queryFn: famApi.billAllocations });
   const [draft, setDraft] = useState<FAMRecord>({ allocation_date: "2026-06-06", party_id: 1, from_bill_reference_id: 1, to_bill_reference_id: 1, allocated_amount: 100, allocation_type: "receipt" });
-  const mutation = useMutation({ mutationFn: () => famApi.createBillAllocation(draft), onSuccess: () => { toast({ title: "Bill allocation saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.createBillAllocation(draft), onSuccess: () => { toast({ title: "Bill allocation saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Allocate bill</CardTitle></CardHeader><CardContent className="space-y-3">{["allocation_date", "party_id", "from_bill_reference_id", "to_bill_reference_id", "allocated_amount", "allocation_type"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Allocate</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Allocations</CardTitle></CardHeader><CardContent><State label="bill allocations" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["allocation_date", "party_id", "allocation_type", "allocated_amount", "from_bill_reference_id", "to_bill_reference_id"]} /></CardContent></Card></div>;
 }
 
@@ -602,7 +618,7 @@ function SRMIntegrationView() {
 function PostingJobsView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "postingJobs"], queryFn: famApi.postingJobs });
-  const retry = useMutation({ mutationFn: (id: number | string) => famApi.retryPostingJob(id), onSuccess: () => { toast({ title: "Posting job retried" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const retry = useMutation({ mutationFn: (id: number | string) => famApi.retryPostingJob(id), onSuccess: () => { toast({ title: "Posting job retried" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <Card><CardHeader><CardTitle className="text-base">SRM posting queue</CardTitle></CardHeader><CardContent className="space-y-3"><State label="posting jobs" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["id", "source_module", "source_record_type", "source_record_id", "posting_type", "status", "voucher_id", "retry_count", "error_message"]} />{listItems(query.data).slice(0, 3).map((item) => <div key={String(item.id)} className="flex items-center justify-between rounded-md border p-3 text-sm"><Link className="text-primary underline-offset-4 hover:underline" to={`/fam/posting-jobs/${item.id}`}>Posting job #{text(item.id)}</Link><Button size="sm" variant="outline" onClick={() => retry.mutate(String(item.id))}>Retry</Button></div>)}</CardContent></Card>;
 }
 
@@ -619,7 +635,7 @@ function PostingRulesView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "postingRules"], queryFn: famApi.postingRules });
   const [draft, setDraft] = useState<FAMRecord>({ source_module: "srm", transaction_type: "sales_invoice", debit_ledger_rule_json: '{"type":"customer_ledger"}', credit_ledger_rule_json: '{"ledger_code":"SALES"}', tax_ledger_rule_json: '{"cgst":"OUTPUT-CGST","sgst":"OUTPUT-SGST"}', active: true });
-  const mutation = useMutation({ mutationFn: () => famApi.createPostingRule({ ...draft, debit_ledger_rule_json: parseJson(draft.debit_ledger_rule_json), credit_ledger_rule_json: parseJson(draft.credit_ledger_rule_json), tax_ledger_rule_json: parseJson(draft.tax_ledger_rule_json) }), onSuccess: () => { toast({ title: "Posting rule saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.createPostingRule({ ...draft, debit_ledger_rule_json: parseJson(draft.debit_ledger_rule_json), credit_ledger_rule_json: parseJson(draft.credit_ledger_rule_json), tax_ledger_rule_json: parseJson(draft.tax_ledger_rule_json) }), onSuccess: () => { toast({ title: "Posting rule saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[26rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create posting rule</CardTitle></CardHeader><CardContent className="space-y-3">{["source_module", "transaction_type", "debit_ledger_rule_json", "credit_ledger_rule_json", "tax_ledger_rule_json"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] || "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save posting rule</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Posting rules</CardTitle></CardHeader><CardContent><State label="posting rules" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["source_module", "transaction_type", "active", "roundoff_ledger_id"]} /></CardContent></Card></div>;
 }
 
@@ -658,17 +674,20 @@ function BankingView() {
 
 function BankAccountsView() {
   const queryClient = useQueryClient();
+  const canWrite = useFinanceWrite(["fam_admin","fam_banking_manage"],"create"),canEdit=useFinanceWrite(["fam_admin","fam_banking_manage"],"edit"),canDelete=useFinanceWrite(["fam_admin","fam_banking_manage"],"delete");
   const query = useQuery({ queryKey: ["fam", "bankAccounts"], queryFn: famApi.bankAccounts });
-  const [draft, setDraft] = useState<FAMRecord>({ ledger_id: 1, bank_name: "HDFC Bank", branch_name: "Bengaluru", account_number_masked: "XXXX1234", ifsc: "HDFC0001234", account_type: "current", opening_balance: 0, active: true });
-  const mutation = useMutation({ mutationFn: () => famApi.createBankAccount(draft), onSuccess: () => { toast({ title: "Bank account saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create bank account</CardTitle></CardHeader><CardContent className="space-y-3">{["ledger_id", "bank_name", "branch_name", "account_number_masked", "ifsc", "account_type", "opening_balance"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save bank account</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank accounts</CardTitle></CardHeader><CardContent><State label="bank accounts" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["bank_name", "branch_name", "ledger_id", "account_number_masked", "ifsc", "account_type", "opening_balance", "active"]} /></CardContent></Card></div>;
+  const ledgerQuery = useQuery({ queryKey: ["fam", "ledgers", "bank-account-picker"], queryFn: famApi.ledgers });
+  const bankLedgers = listItems(ledgerQuery.data).filter(ledger => ledger.ledger_type === "bank" && ledger.active !== false && !listItems(query.data).some(account=>account.ledger_id===ledger.id));
+  const [draft, setDraft] = useState<FAMRecord>({ ledger_id: "", bank_name: "", branch_name: "", account_number_masked: "", ifsc: "", account_type: "current", opening_balance: 0, active: true });
+  const mutation = useMutation({ mutationFn: () => famApi.createBankAccount(draft), onSuccess: () => { toast({ title: "Bank account saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create bank account</CardTitle></CardHeader><CardContent className="space-y-3"><Field label="Bank ledger"><NativeSelect aria-label="Bank ledger" value={String(draft.ledger_id || "")} onChange={event => setDraft(current => ({...current,ledger_id:Number(event.target.value)}))}><option value="">Choose bank ledger</option>{bankLedgers.map(ledger => <option key={String(ledger.id)} value={String(ledger.id)}>{String(ledger.ledger_name || ledger.id)}</option>)}</NativeSelect></Field>{ledgerQuery.isError ? <p role="alert">Bank ledgers could not be loaded.</p> : !ledgerQuery.isLoading && !bankLedgers.length ? <p className="text-sm text-muted-foreground">Create an active bank ledger before registering a bank account.</p> : null}{["bank_name", "branch_name", "account_number_masked", "ifsc", "account_type", "opening_balance"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending || !Number(draft.ledger_id) || !String(draft.bank_name || "").trim()} title={!canWrite ? "Write permission required" : undefined}>Save bank account</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank accounts</CardTitle></CardHeader><CardContent><State label="bank accounts" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data).filter(row=>row.active!==false)} columns={["bank_name", "branch_name", "ledger_id", "account_number_masked", "ifsc", "account_type", "opening_balance", "active"]} renderActions={row=><RecordMaintenance record={row} name={String(row.bank_name)} endpoint={`/fam/bank-accounts/${row.id}`} fields={[{key:"bank_name",label:"Bank name",required:true},{key:"branch_name",label:"Branch name"}]} queryKeys={["fam"]} canEdit={canEdit} canDelete={canDelete} mergeRecord/>}/></CardContent></Card></div>;
 }
 
 function PaymentModesView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "paymentModes"], queryFn: famApi.paymentModes });
   const [draft, setDraft] = useState<FAMRecord>({ name: "UPI", type: "upi", default_ledger_id: 1, active: true });
-  const mutation = useMutation({ mutationFn: () => famApi.createPaymentMode(draft), onSuccess: () => { toast({ title: "Payment mode saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.createPaymentMode(draft), onSuccess: () => { toast({ title: "Payment mode saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create payment mode</CardTitle></CardHeader><CardContent className="space-y-3">{["name", "type", "default_ledger_id"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save payment mode</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Payment modes</CardTitle></CardHeader><CardContent><State label="payment modes" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["name", "type", "default_ledger_id", "active"]} /></CardContent></Card></div>;
 }
 
@@ -676,7 +695,7 @@ function BankStatementsView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "bankStatements"], queryFn: famApi.bankStatements });
   const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: defaultId("bank_account_id", "fam") || "", statement_period_start: "2026-06-01", statement_period_end: "2026-06-30", imported_file_name: "hdfc-june.csv", file_content: "transaction_date,description,reference_number,debit_amount,credit_amount,balance\n2026-06-06,Receipt from customer,REF-1,0,1000,1000" });
-  const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.importBankStatement(draft), onSuccess: () => { toast({ title: "Bank statement imported" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Upload statement</CardTitle></CardHeader><CardContent className="space-y-3">{["bank_account_id", "statement_period_start", "statement_period_end", "imported_file_name"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input type={field.includes("period") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<ImportWizard title="Map bank statement" label="Choose Excel or CSV" fields={bankStatementFields} confirmLabel="Use mapped statement" onImport={async({rows,filename})=>{setDraft(current=>({...current,imported_file_name:filename.replace(/\.[^.]+$/,".csv"),file_content:csvText(rows)}));return {created:rows.length,message:"Statement prepared. Close this dialog, review the account and period, then click Import statement. Nothing has been posted."};}}/><Field label="CSV content"><textarea className="min-h-36 w-full rounded-md border bg-background px-3 py-2 text-sm" value={String(draft.file_content || "")} onChange={(event) => setDraft((current) => ({ ...current, file_content: event.target.value }))} /></Field><p className="text-xs text-muted-foreground">Manual import only. Statement lines are imported for review and are not posted automatically.</p><Button className="w-full" onClick={() => mutation.mutate()}>Import statement</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Bank statements</CardTitle></CardHeader><CardContent><State label="bank statements" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["id", "bank_account_id", "statement_period_start", "statement_period_end", "status", "imported_file_name"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/fam/bank-statements/${item.id}`}>Open statement #{text(item.id)}</Link></Button>)}</CardContent></Card></div>;
 }
 
@@ -686,7 +705,7 @@ function BankStatementDetailView() {
   const query = useQuery({ queryKey: ["fam", "bankStatement", id], queryFn: () => famApi.bankStatement(id) });
   const data = (query.data || {}) as FAMRecord;
   const firstLine = (((data.lines as FAMRecord[] | undefined) || [])[0] || {}) as FAMRecord;
-  const action = useMutation({ mutationFn: (run: () => Promise<FAMRecord>) => run(), onSuccess: () => { toast({ title: "Bank reconciliation updated" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const action = useMutation({ mutationFn: (run: () => Promise<FAMRecord>) => run(), onSuccess: () => { toast({ title: "Bank reconciliation updated" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="space-y-4"><div className="grid gap-3 md:grid-cols-4">{["status", "bank_account_id", "statement_period_start", "statement_period_end"].map((field) => <Card key={field}><CardContent className="p-4"><p className="text-xs text-muted-foreground">{field.replace(/_/g, " ")}</p><p className="text-lg font-semibold">{text(data[field])}</p></CardContent></Card>)}</div><Card><CardHeader><CardTitle className="text-base">Review and match</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2"><ActionToolbar label="Bank reconciliation actions" actions={[
     {id:"auto",kind:"refresh",label:"Auto-match",prominent:true,primary:true,disabled:action.isPending || query.isPending,onSelect:()=>action.mutate(()=>famApi.autoMatchBankStatement(id))},
     {id:"match",kind:"approve",label:"Confirm match",prominent:true,disabled:action.isPending || !firstLine.id || !firstLine.matched_voucher_id,onSelect:()=>action.mutate(()=>famApi.matchBankStatement(id,{statement_line_id:Number(firstLine.id),voucher_id:Number(firstLine.matched_voucher_id),matched_amount:Number(firstLine.credit_amount || firstLine.debit_amount || 0),confirm:true})),confirm:{title:"Confirm this bank match?",description:`First statement line #${firstLine.id || "—"}, voucher #${firstLine.matched_voucher_id || "—"}. Review the statement lines and amount below before confirming.`,label:"Confirm match"}},
@@ -710,13 +729,13 @@ function BookView({ kind }: { kind: "bank" | "cash" }) {
 
 function ContraView() {
   const [draft, setDraft] = useState<FAMRecord>({ from_ledger_id: 1, to_ledger_id: 2, amount: 1000, contra_date: "2026-06-06", reference_number: "CONTRA-1", narration: "Cash deposited to bank" });
-  const mutation = useMutation({ mutationFn: () => famApi.postContra(draft), onSuccess: () => toast({ title: "Contra voucher posted" }) });
+  const mutation = useMutation({ mutationFn: () => famApi.postContra(draft), onSuccess: () => toast({ title: "Contra voucher posted" }) , onError: showMutationError });
   return <Card><CardHeader><CardTitle className="text-base">Post contra entry</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{["from_ledger_id", "to_ledger_id", "amount", "contra_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<div className="md:col-span-2"><Button onClick={() => mutation.mutate()}>Post contra</Button></div></CardContent></Card>;
 }
 
 function BankChargesView() {
   const [draft, setDraft] = useState<FAMRecord>({ bank_account_id: defaultId("bank_account_id", "fam") || "", expense_ledger_id: 1, amount: 250, charge_date: "2026-06-06", reference_number: "CHG-1", narration: "Monthly bank charges" });
-  const mutation = useMutation({ mutationFn: () => famApi.postBankCharges(draft), onSuccess: () => toast({ title: "Bank charge voucher posted" }) });
+  const mutation = useMutation({ mutationFn: () => famApi.postBankCharges(draft), onSuccess: () => toast({ title: "Bank charge voucher posted" }) , onError: showMutationError });
   return <Card><CardHeader><CardTitle className="text-base">Post bank charges</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{["bank_account_id", "expense_ledger_id", "amount", "charge_date", "reference_number", "narration"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<div className="md:col-span-2"><Button onClick={() => mutation.mutate()}>Post bank charge</Button></div></CardContent></Card>;
 }
 
@@ -741,7 +760,7 @@ function GSTMasterView({ kind }: { kind: "registrations" | "rates" | "hsn" }) {
   }[kind];
   const query = useQuery({ queryKey: ["fam", config.queryKey], queryFn: config.queryFn });
   const [draft, setDraft] = useState<FAMRecord>(config.draft);
-  const mutation = useMutation({ mutationFn: () => config.mutationFn(draft), onSuccess: () => { toast({ title: "GST master saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => config.mutationFn(draft), onSuccess: () => { toast({ title: "GST master saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create {kind}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} /></CardContent></Card></div>;
 }
 
@@ -811,8 +830,7 @@ function ComplianceReadinessPanel() {
       <CardHeader><CardTitle className="text-base">Statutory and integration readiness</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <State label="readiness" isLoading={loading} isError={error} />
-        <div className="grid gap-3 lg:grid-cols-2">
-          {rows.map((row) => (
+        <GroupedRecords scope="apps/fam/FAMWorkspacePage:cards-1" items={(rows) || []} fields={standardRecordGroups((rows) || [])} gridClassName="grid gap-3 lg:grid-cols-2" renderItem={(row) => (
             <div key={row.label} className="rounded-lg border p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -823,8 +841,7 @@ function ComplianceReadinessPanel() {
               </div>
               <Button asChild variant="outline" size="sm" className="mt-3"><Link to={row.action}>Open</Link></Button>
             </div>
-          ))}
-        </div>
+          )}/>
       </CardContent>
     </Card>
   );
@@ -846,7 +863,7 @@ function GSTReturnView({ kind }: { kind: "gstr1" | "gstr3b" }) {
   const query = useQuery({ queryKey: ["fam", kind], queryFn: kind === "gstr1" ? famApi.gstr1 : famApi.gstr3b });
   const data = (query.data || {}) as FAMRecord;
   const [draft, setDraft] = useState<FAMRecord>({ period_month: 6, period_year: 2026 });
-  const mutation = useMutation({ mutationFn: () => kind === "gstr1" ? famApi.prepareGstr1(draft) : famApi.prepareGstr3b(draft), onSuccess: () => { toast({ title: `${kind.toUpperCase()} prepared` }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => kind === "gstr1" ? famApi.prepareGstr1(draft) : famApi.prepareGstr3b(draft), onSuccess: () => { toast({ title: `${kind.toUpperCase()} prepared` }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[20rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Prepare {kind.toUpperCase()}</CardTitle></CardHeader><CardContent className="space-y-3">{["period_month", "period_year"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field])} onChange={(event) => setDraft((current) => ({ ...current, [field]: Number(event.target.value) }))} /></Field>)}<Badge variant={statusTone(data.portal_status)}>{text(data.portal_status || "not_configured")}</Badge><p className="text-xs text-muted-foreground">Working return only. GST portal filing is not integrated until a GST provider is connected.</p><Button className="w-full" onClick={() => mutation.mutate()}>Prepare</Button><ExportButton exportType="gst_summary" label="Export GST summary CSV" /></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Prepared records</CardTitle></CardHeader><CardContent><State label={kind} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section", "taxable_value", "cgst_amount", "sgst_amount", "igst_amount", "cess_amount", "record_count"]} /></CardContent></Card></div>;
 }
 
@@ -942,6 +959,10 @@ function defaultPurchaseBill(): FAMRecord {
 }
 
 function PurchaseBillFormView({ detail }: { detail?: boolean }) {
+  const financialSettings = useQuery({ queryKey: ["fam", "settings"], queryFn: famApi.settings });
+  const isUAE = ["AE", "UAE"].includes(String(financialSettings.data?.country_code || "").toUpperCase());
+  const taxFieldLabel = (field: string) => isUAE && field === "gst_amount" ? "Recoverable VAT" : isUAE && field === "gstin" ? "TRN" : field.replace(/_/g, " ");
+  const billLineFields = ["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].filter(field => !isUAE || !["hsn_sac", "tds_section_id", "tds_amount"].includes(field));
   const params = useParams();
   const queryClient = useQueryClient();
   const billQuery = useQuery({ queryKey: ["fam", "purchaseBill", params.id], queryFn: () => famApi.purchaseBill(params.id || "1"), enabled: Boolean(detail && params.id) });
@@ -956,21 +977,22 @@ function PurchaseBillFormView({ detail }: { detail?: boolean }) {
   const canEdit = String(effective.status || "draft") === "draft" && !detail;
   const patch = (key: string, value: unknown) => setDraft((current) => ({ ...effective, ...current, [key]: numericFields.has(key) ? Number(value) : value }));
   const patchLine = (index: number, key: string, value: unknown) => patch("lines", lines.map((line, lineIndex) => lineIndex === index ? { ...line, [key]: numericFields.has(key) ? Number(value) : value } : line));
-  const save = useMutation({ mutationFn: () => detail && billId ? famApi.updatePurchaseBill(billId, effective) : famApi.createPurchaseBill(effective), onSuccess: () => { toast({ title: "Purchase bill saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  const post = useMutation({ mutationFn: () => famApi.postPurchaseBill(billId), onSuccess: () => { toast({ title: "Purchase bill posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  const cancel = useMutation({ mutationFn: () => famApi.cancelPurchaseBill(billId), onSuccess: () => { toast({ title: "Purchase bill cancelled" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const save = useMutation({ mutationFn: () => detail && billId ? famApi.updatePurchaseBill(billId, effective) : famApi.createPurchaseBill(effective), onSuccess: () => { toast({ title: "Purchase bill saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const post = useMutation({ mutationFn: () => famApi.postPurchaseBill(billId), onSuccess: () => { toast({ title: "Purchase bill posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const cancel = useMutation({ mutationFn: () => famApi.cancelPurchaseBill(billId), onSuccess: () => { toast({ title: "Purchase bill cancelled" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return (
     <CompactFields className="space-y-4">
+      {isUAE && <p className="text-sm text-muted-foreground">Enter recoverable VAT in the company base currency. Include non-recoverable VAT in the expense amount. Configure the existing input VAT account in UAE tax settings; VAT201 workings require reconciled AED figures.</p>}
       <State label="purchase bill" isLoading={billQuery.isLoading} isError={billQuery.isError} />
       <div data-form-section-label="Bill details" className="grid gap-3 md:grid-cols-4">
-        {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} />}</Field>)}
+        {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={taxFieldLabel(field)}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} />}</Field>)}
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(effective.status || "draft")}>{text(effective.status || "draft")}</Badge></CardContent></Card>
       </div>
-      <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><GridTable gridId="apps/fam/FAMWorkspacePage:table-3" className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((column) => <th key={column} className="px-3 py-2">{column.replace(/_/g, " ")}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr {...recordPreviewProps(line)} key={index} className="border-t">{["expense_ledger_id", "description", "hsn_sac", "quantity", "rate", "taxable_value", "gst_amount", "tds_section_id", "tds_amount", "line_total"].map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></GridTable></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><GridTable gridId="apps/fam/FAMWorkspacePage:table-3" className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{billLineFields.map((column) => <th key={column} className="px-3 py-2">{taxFieldLabel(column)}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr {...recordPreviewProps(line)} key={index} className="border-t">{billLineFields.map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></GridTable></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
       <div className="grid gap-3 md:grid-cols-4">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Subtotal</p><p className="text-lg font-semibold">{money(effective.subtotal || subtotal)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Input GST</p><p className="text-lg font-semibold">{money(effective.gst_total || gstTotal)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">TDS deduction</p><p className="text-lg font-semibold">{money(effective.tds_amount || tdsTotal)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">{isUAE ? "Recoverable input VAT" : "Input GST"}</p><p className="text-lg font-semibold">{money(effective.gst_total || gstTotal)}</p></CardContent></Card>
+        {!isUAE && <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">TDS deduction</p><p className="text-lg font-semibold">{money(effective.tds_amount || tdsTotal)}</p></CardContent></Card>}
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Grand total</p><p className="text-lg font-semibold">{money(effective.grand_total || grandTotal)}</p></CardContent></Card>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -991,24 +1013,26 @@ function PurchaseBillsView() {
 
 function ExpenseFormView() {
   const queryClient = useQueryClient();
+  const financialSettings = useQuery({ queryKey: ["fam", "settings"], queryFn: famApi.settings });
+  const isUAE = ["AE", "UAE"].includes(String(financialSettings.data?.country_code || "").toUpperCase());
   const [draft, setDraft] = useState<FAMRecord>({ claimant_name: "Finance User", claim_number: "EXP-001", claim_date: "2026-06-06", status: "draft", lines: [{ expense_ledger_id: 1, description: "Travel expense", taxable_value: 1200, gst_amount: 0 }] });
   const lines = (draft.lines as FAMRecord[]) || [];
   const total = lines.reduce((sum, line) => sum + Number(line.taxable_value || 0) + Number(line.gst_amount || 0), 0);
-  const mutation = useMutation({ mutationFn: () => famApi.createExpense(draft), onSuccess: () => { toast({ title: "Expense claim saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <CompactFields className="space-y-4"><div data-form-section-label="Claim details" className="grid gap-3 md:grid-cols-4">{["claimant_name", "claim_number", "claim_date", "status"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}</div><Card><CardHeader><CardTitle className="text-base">Expense lines</CardTitle></CardHeader><CardContent className="space-y-3">{lines.map((line, index) => <div key={index} className="grid gap-3 md:grid-cols-4">{["expense_ledger_id", "description", "taxable_value", "gst_amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: lines.map((item, lineIndex) => lineIndex === index ? { ...item, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value } : item) }))} /></Field>)}</div>)}<Button variant="outline" onClick={() => setDraft((current) => ({ ...current, lines: [...lines, { expense_ledger_id: 1, description: "", taxable_value: 0, gst_amount: 0 }] }))}><Plus className="h-4 w-4" />Add expense line</Button></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Claim total</p><p className="text-lg font-semibold">{money(total)}</p></CardContent></Card><Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save expense claim</Button></CompactFields>;
+  const mutation = useMutation({ mutationFn: () => famApi.createExpense(draft), onSuccess: () => { toast({ title: "Expense claim saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  return <CompactFields className="space-y-4"><div data-form-section-label="Claim details" className="grid gap-3 md:grid-cols-4">{["claimant_name", "claim_number", "claim_date", "status"].map((field) => <Field key={field} label={isUAE && field === "gst_amount" ? "Recoverable VAT" : field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}</div><Card><CardHeader><CardTitle className="text-base">Expense lines</CardTitle></CardHeader><CardContent className="space-y-3">{lines.map((line, index) => <div key={index} className="grid gap-3 md:grid-cols-4">{["expense_ledger_id", "description", "taxable_value", "gst_amount"].map((field) => <Field key={field} label={isUAE && field === "gst_amount" ? "Recoverable VAT" : field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: lines.map((item, lineIndex) => lineIndex === index ? { ...item, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value } : item) }))} /></Field>)}</div>)}<Button variant="outline" onClick={() => setDraft((current) => ({ ...current, lines: [...lines, { expense_ledger_id: 1, description: "", taxable_value: 0, gst_amount: 0 }] }))}><Plus className="h-4 w-4" />Add expense line</Button></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Claim total</p><p className="text-lg font-semibold">{money(total)}</p></CardContent></Card><Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save expense claim</Button></CompactFields>;
 }
 
 function ExpensesView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "expenses"], queryFn: famApi.expenses });
   const rows = listItems(query.data);
-  const post = useMutation({ mutationFn: (id: number | string) => famApi.postExpense(id), onSuccess: () => { toast({ title: "Expense posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const post = useMutation({ mutationFn: (id: number | string) => famApi.postExpense(id), onSuccess: () => { toast({ title: "Expense posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <Card><CardHeader><CardTitle className="text-base">Expense claims</CardTitle></CardHeader><CardContent className="space-y-3"><Button asChild><Link to="/fam/expenses/new"><Plus className="h-4 w-4" />New expense</Link></Button><State label="expenses" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={rows} columns={["claim_number", "employee_id", "claim_date", "total_amount", "status", "voucher_id"]} />{rows.slice(0, 3).map((item) => <Button key={String(item.id)} variant="outline" onClick={() => post.mutate(String(item.id))} disabled={String(item.status) !== "draft"}>Post {text(item.claim_number)}</Button>)}</CardContent></Card>;
 }
 
 function TDSHomeView() {
   const [draft, setDraft] = useState<FAMRecord>({ vendor_id: 2, section_id: 1, taxable_amount: 1000, deduction_date: "2026-06-06" });
-  const calc = useMutation({ mutationFn: () => famApi.calculateTds(draft), onSuccess: (data) => toast({ title: `TDS ${money((data as FAMRecord).tds_amount)}` }) });
+  const calc = useMutation({ mutationFn: () => famApi.calculateTds(draft), onSuccess: (data) => toast({ title: `TDS ${money((data as FAMRecord).tds_amount)}` }) , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Calculate TDS</CardTitle></CardHeader><CardContent className="space-y-3">{["vendor_id", "section_id", "taxable_amount", "deduction_date"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => calc.mutate()}>Calculate TDS</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">TDS workbench</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2">{[["Sections", "/fam/tds/sections"], ["Transactions", "/fam/tds/transactions"], ["Payable", "/fam/tds/payable"]].map(([label, href]) => <Button key={href} asChild variant="outline"><Link to={href}>{label}</Link></Button>)}<p className="text-xs text-muted-foreground sm:col-span-2">TDS return filing is not implemented or simulated in this phase.</p></CardContent></Card></div>;
 }
 
@@ -1016,7 +1040,7 @@ function TDSSectionsView() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["fam", "tdsSections"], queryFn: famApi.tdsSections });
   const [draft, setDraft] = useState<FAMRecord>({ section_code: "194J", description: "Professional fees", default_rate: 10, threshold_amount: 30000, effective_from: "2026-04-01", active: true });
-  const mutation = useMutation({ mutationFn: () => famApi.createTdsSection(draft), onSuccess: () => { toast({ title: "TDS section saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.createTdsSection(draft), onSuccess: () => { toast({ title: "TDS section saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create TDS section</CardTitle></CardHeader><CardContent className="space-y-3">{["section_code", "description", "default_rate", "threshold_amount", "effective_from"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save section</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Sections</CardTitle></CardHeader><CardContent><State label="TDS sections" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["section_code", "description", "default_rate", "threshold_amount", "effective_from", "active"]} /></CardContent></Card></div>;
 }
 
@@ -1048,8 +1072,8 @@ function VendorPaymentsView() {
   const dashboard = useQuery({ queryKey: ["fam", "payablesDashboard"], queryFn: famApi.payablesDashboard });
   const [draft, setDraft] = useState<FAMRecord>({ payment_date: "2026-06-06", bank_ledger_id: 3, items: [{ vendor_id: 2, purchase_bill_id: 1, bill_reference_id: 2, amount: 900 }] });
   const line = ((draft.items as FAMRecord[]) || [])[0] || {};
-  const prepare = useMutation({ mutationFn: () => famApi.prepareVendorPayment(draft), onSuccess: () => toast({ title: "Payment run prepared" }) });
-  const post = useMutation({ mutationFn: () => famApi.postVendorPayment(draft), onSuccess: () => { toast({ title: "Vendor payment posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const prepare = useMutation({ mutationFn: () => famApi.prepareVendorPayment(draft), onSuccess: () => toast({ title: "Payment run prepared" }) , onError: showMutationError });
+  const post = useMutation({ mutationFn: () => famApi.postVendorPayment(draft), onSuccess: () => { toast({ title: "Vendor payment posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Vendor payment run</CardTitle></CardHeader><CardContent className="space-y-3">{["payment_date", "bank_ledger_id"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{["vendor_id", "purchase_bill_id", "bill_reference_id", "amount"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, items: [{ ...line, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }] }))} /></Field>)}<div className="flex gap-2"><Button variant="outline" onClick={() => prepare.mutate()}>Prepare</Button><Button onClick={() => post.mutate()}>Post payment</Button></div></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Open payables</CardTitle></CardHeader><CardContent><State label="payables" isLoading={dashboard.isLoading} isError={dashboard.isError} /><DataTable rows={(dashboard.data as FAMRecord | undefined)?.items as FAMRecord[] || []} columns={["bill_number", "party_id", "due_date", "outstanding_amount", "status"]} /></CardContent></Card></div>;
 }
 
@@ -1345,10 +1369,11 @@ function InventoryItemsView() {
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
   const api = isSrmInventory ? srmApi : famApi;
   const query = useQuery({ queryKey: [isSrmInventory ? "srm" : "fam", "inventoryItems"], queryFn: () => api.inventoryItems(), refetchInterval: isSrmInventory ? 3000 : false, refetchIntervalInBackground: isSrmInventory, refetchOnWindowFocus: true });
+  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_inventory_manage"]);
   const [draft, setDraft] = useState<FAMRecord>({ sku: "ITEM-001", item_name: "Demo Stock Item", purchase_rate: 100, sales_rate: 150, reorder_level: 5, min_stock: 2, track_inventory: true });
-  const mutation = useMutation({ mutationFn: () => api.createInventoryItem(draft), onSuccess: () => { toast({ title: isSrmInventory ? "SRM product saved" : "Stock item saved" }); queryClient.invalidateQueries({ queryKey: [isSrmInventory ? "srm" : "fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => api.createInventoryItem(draft), onSuccess: () => { toast({ title: isSrmInventory ? "SRM product saved" : "Stock item saved" }); queryClient.invalidateQueries({ queryKey: [isSrmInventory ? "srm" : "fam"] }); } , onError: showMutationError });
   const fields = isSrmInventory ? ["sku", "item_name", "barcode", "category_name", "unit_code", "hsn_code", "gst_rate", "purchase_rate", "sales_rate", "mrp", "reorder_level", "min_stock"] : ["sku", "item_name", "hsn_code", "stock_group_id", "unit_id", "default_warehouse_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock"];
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "Create SRM product" : "Create item"}</CardTitle></CardHeader><CardContent className="space-y-3">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) || ["gst_rate", "mrp"].includes(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>{isSrmInventory ? "Save product" : "Save item"}</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "SRM products" : "Stock items"}</CardTitle></CardHeader><CardContent><State label={isSrmInventory ? "SRM products" : "stock items"} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "category_name", "hsn_code", "current_quantity", "sales_rate", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/srm/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "Create SRM product" : "Create item"}</CardTitle></CardHeader><CardContent className="space-y-3">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) || ["gst_rate", "mrp"].includes(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>{isSrmInventory ? "Save product" : "Save item"}</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "SRM products" : "Stock items"}</CardTitle></CardHeader><CardContent><State label={isSrmInventory ? "SRM products" : "stock items"} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "category_name", "hsn_code", "current_quantity", "sales_rate", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/srm/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
 }
 
 function InventoryLedgerMappingView() {
@@ -1359,7 +1384,7 @@ function InventoryLedgerMappingView() {
   const [draft, setDraft] = useState<FAMRecord>({});
   const data = { ...((query.data || {}) as FAMRecord), ...draft };
   const fields = ["inventory_ledger_id", "purchase_ledger_id", "sales_ledger_id", "cogs_ledger_id", "adjustment_gain_ledger_id", "adjustment_loss_ledger_id", "grni_ledger_id", "gst_rate_id", "hsn_code", "valuation_method", "cost_center_id", "branch_id", "default_warehouse_id"];
-  const mutation = useMutation({ mutationFn: () => famApi.updateInventoryLedgerMapping(itemId, data), onSuccess: () => { toast({ title: "Inventory ledger mapping saved" }); setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
+  const mutation = useMutation({ mutationFn: () => famApi.updateInventoryLedgerMapping(itemId, data), onSuccess: () => { toast({ title: "Inventory ledger mapping saved" }); setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   return <Card><CardHeader><CardTitle className="text-base">{text(data.sku || "Item")} ledger mapping</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3"><State label="ledger mapping" isLoading={query.isLoading} isError={query.isError} />{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(data[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}><Save className="h-4 w-4" />Save mapping</Button></div></CardContent></Card>;
 }
 
@@ -1375,16 +1400,23 @@ function InventoryItemDetailView({ ledger = false }: { ledger?: boolean }) {
 }
 
 function InventoryMasterView({ kind }: { kind: "groups" | "units" | "warehouses" }) {
+  const location=useLocation();
+  const isSrmWarehouse=kind === "warehouses" && location.pathname.startsWith("/srm/inventory");
   const queryClient = useQueryClient();
+  const permissions=isSrmWarehouse?["srm_admin","srm_manage"]:["fam_admin","fam_inventory_manage"];
+  const canCreate=useFinanceWrite(permissions,"create"),canEdit=useFinanceWrite(permissions,"edit"),canDelete=useFinanceWrite(permissions,"delete");
   const config = {
     groups: { queryKey: "inventoryGroups", query: famApi.inventoryStockGroups, create: famApi.createInventoryStockGroup, initial: { group_code: "RAW", group_name: "Raw Materials" }, fields: ["group_code", "group_name", "parent_group_id"], columns: ["group_code", "group_name", "parent_group_id", "active"] },
     units: { queryKey: "inventoryUnits", query: famApi.inventoryUnits, create: famApi.createInventoryUnit, initial: { unit_code: "PCS", unit_name: "Pieces", symbol: "pcs", decimal_allowed: true }, fields: ["unit_code", "unit_name", "symbol"], columns: ["unit_code", "unit_name", "symbol", "decimal_allowed", "active"] },
-    warehouses: { queryKey: "inventoryWarehouses", query: famApi.inventoryWarehouses, create: famApi.createInventoryWarehouse, initial: { warehouse_code: "MAIN", warehouse_name: "Main Warehouse" }, fields: ["warehouse_code", "warehouse_name", "branch_id", "address"], columns: ["warehouse_code", "warehouse_name", "branch_id", "active"] },
+    warehouses: { queryKey: "inventoryWarehouses", query: isSrmWarehouse ? srmApi.inventoryWarehouses : famApi.inventoryWarehouses, create: isSrmWarehouse ? srmApi.createInventoryWarehouse : famApi.createInventoryWarehouse, initial: { warehouse_code: "MAIN", warehouse_name: "Main Warehouse" }, fields: ["warehouse_code", "warehouse_name", "branch_id", "address"], columns: ["warehouse_code", "warehouse_name", "branch_id", "active"] },
   }[kind];
-  const query = useQuery({ queryKey: ["fam", config.queryKey], queryFn: config.query });
+  const query = useQuery({ queryKey: [isSrmWarehouse ? "srm" : "fam", config.queryKey], queryFn: config.query });
   const [draft, setDraft] = useState<FAMRecord>(config.initial);
-  const mutation = useMutation({ mutationFn: () => config.create(draft), onSuccess: () => { toast({ title: "Inventory master saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } });
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Create</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()}>Save</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} /></CardContent></Card></div>;
+  const [editing,setEditing]=useState<FAMRecord|null>(null),[deleting,setDeleting]=useState<FAMRecord|null>(null);
+  const endpoint=isSrmWarehouse?"/srm/inventory/warehouses":`/fam/inventory/${kind==="groups"?"stock-groups":kind}`;
+  const mutation = useMutation({ mutationFn: () => editing ? api.put(`${endpoint}/${editing.id}`,draft) : config.create(draft), onSuccess: () => { toast({ title: "Inventory master saved" }); setEditing(null);setDraft(config.initial); queryClient.invalidateQueries({ queryKey: [isSrmWarehouse ? "srm" : "fam"] }); } , onError: showMutationError });
+  const removeMutation=useMutation({mutationFn:()=>api.delete(`${endpoint}/${deleting?.id}`),onSuccess:()=>{setDeleting(null);queryClient.invalidateQueries({queryKey:[isSrmWarehouse?"srm":"fam"]});},onError:showMutationError});
+  return <><div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">{editing?"Edit":"Create"}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!(editing?canEdit:canCreate) || mutation.isPending} title={!(editing?canEdit:canCreate) ? "Write permission required" : undefined}>{editing?"Save changes":"Save"}</Button>{editing&&<Button variant="outline" onClick={()=>{setEditing(null);setDraft(config.initial);}}>Cancel editing</Button>}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} renderActions={row=><div className="flex gap-2"><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>{setEditing(row);setDraft({...row});}}>Edit</Button><Button variant="outline" disabled={!canDelete} aria-label={`Delete ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>setDeleting(row)}>Delete</Button></div>}/></CardContent></Card></div><Dialog open={!!deleting} onOpenChange={v=>{if(!v&&!removeMutation.isPending)setDeleting(null);}}><DialogContent><DialogTitle>Delete inventory master?</DialogTitle><p>This retires the selected record from active use and retains its stock history.</p><Button disabled={removeMutation.isPending||!canDelete} onClick={()=>removeMutation.mutate()}>Confirm delete master</Button><Button variant="outline" onClick={()=>setDeleting(null)}>Keep record</Button></DialogContent></Dialog></>;
 }
 
 function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "delivery" }) {
@@ -1393,7 +1425,8 @@ function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "de
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
   const movementType = mode === "in" ? "stock_in" : mode === "out" ? "stock_out" : mode === "purchase" ? "purchase_receipt" : "delivery_note";
   const quantityKey = mode === "out" || mode === "delivery" ? "quantity_out" : "quantity_in";
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: "2026-06-20", movement_type: movementType, product_id: 1, warehouse_id: 1, quantity: 1, rate: 100 } : { movement_date: "2026-06-06", movement_type: movementType, lines: [{ stock_item_id: 1, warehouse_id: 1, [quantityKey]: 1, rate: 100 }] });
+  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_post","fam_inventory_manage"],"create");
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: financialToday(), movement_type: movementType, product_id: 1, warehouse_id: 1, quantity: 1, rate: 100 } : { movement_date: financialToday(), movement_type: movementType, lines: [{ stock_item_id: 1, warehouse_id: 1, [quantityKey]: 1, rate: 100 }] });
   const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
   const mutation = useMutation({
     mutationFn: async () => {
@@ -1406,16 +1439,17 @@ function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "de
       if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: `srm-${movementType}` });
       else queryClient.invalidateQueries({ queryKey: ["fam"] });
     },
-  });
+   onError: showMutationError });
   const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate"] : ["stock_item_id", "warehouse_id", quantityKey, "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Post {movementType.replace(/_/g, " ")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["movement_date", "reference_number", "notes"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} />}</Field>)}{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: Number(event.target.value) })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post movement</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Post {movementType.replace(/_/g, " ")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{["movement_date", "reference_number", "notes"].map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))} />}</Field>)}{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: Number(event.target.value) })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Post movement</Button></div></CardContent></Card>;
 }
 
 function InventoryOpeningStockView() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { product_id: 1, warehouse_id: 1, quantity: 1, rate: 100, movement_date: "2026-06-20" } : { stock_item_id: 1, warehouse_id: 1, opening_quantity: 1, opening_rate: 100, opening_date: "2026-06-20" });
+  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_post","fam_inventory_manage"],"create");
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { product_id: 1, warehouse_id: 1, quantity: 1, rate: 100, movement_date: financialToday() } : { stock_item_id: 1, warehouse_id: 1, quantity: 1, rate: 100, opening_date: financialToday() });
   const mutation = useMutation({
     mutationFn: () => isSrmInventory ? srmApi.createInventoryOpeningStock(draft) : famApi.createInventoryOpeningStock(draft),
     onSuccess: async () => {
@@ -1423,8 +1457,8 @@ function InventoryOpeningStockView() {
       if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-opening-stock" });
       else queryClient.invalidateQueries({ queryKey: ["fam"] });
     },
-  });
-  const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate", "movement_date"] : ["stock_item_id", "warehouse_id", "opening_quantity", "opening_rate", "opening_date"];
+   onError: showMutationError });
+  const fields = isSrmInventory ? ["product_id", "warehouse_id", "quantity", "rate", "movement_date"] : ["stock_item_id", "warehouse_id", "quantity", "rate", "opening_date"];
   return (
     <div className="grid gap-4 lg:grid-cols-[24rem_1fr]">
       <Card>
@@ -1443,7 +1477,7 @@ function InventoryOpeningStockView() {
               />}
             </Field>
           ))}
-          <Button className="w-full" onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save opening stock</Button>
+          <Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Save opening stock</Button>
         </CardContent>
       </Card>
       <InventorySummaryView kind="summary" />
@@ -1520,7 +1554,7 @@ function InventoryBatchesView() {
       toast({ title: "Batch saved" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   const createSerial = useMutation({
     mutationFn: () => srmApi.createSerialNumber({
       ...serialDraft,
@@ -1530,7 +1564,7 @@ function InventoryBatchesView() {
       toast({ title: "Serial number saved" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryBatches" />;
   return (
     <div className="space-y-4">
@@ -1637,7 +1671,7 @@ function InventoryPriceListsView() {
       toast({ title: "Price list saved" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   const lookup = useMutation({
     mutationFn: () => srmApi.lookupPrices({
       product_ids: [Number(draft.product_id || 1)],
@@ -1646,7 +1680,7 @@ function InventoryPriceListsView() {
       price_date: draft.effective_from,
       quantity: draft.min_quantity || 1,
     }),
-  });
+   onError: showMutationError });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryPriceLists" />;
   const lookupRows = listItems(lookup.data);
   return (
@@ -1728,7 +1762,7 @@ function InventoryManufacturingView() {
       toast({ title: "BOM saved" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   const createOrder = useMutation({
     mutationFn: () => srmApi.createProductionOrder({
       bom_id: orderDraft.bom_id,
@@ -1741,7 +1775,7 @@ function InventoryManufacturingView() {
       toast({ title: "Production order created" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   const postOrder = useMutation({
     mutationFn: () => srmApi.postProductionOrder(String(orderDraft.order_id || 1), {
       completed_quantity: orderDraft.completed_quantity,
@@ -1751,7 +1785,7 @@ function InventoryManufacturingView() {
       toast({ title: "Production posted and stock updated" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryManufacturing" />;
   return (
     <div className="space-y-4">
@@ -1834,7 +1868,7 @@ function InventoryPurchaseOrdersView() {
       toast({ title: "Purchase order created" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   const createGrn = useMutation({
     mutationFn: () => srmApi.createGoodsReceipt({
       purchase_order_id: grnDraft.purchase_order_id,
@@ -1852,7 +1886,7 @@ function InventoryPurchaseOrdersView() {
       toast({ title: "GRN posted and stock updated" });
       queryClient.invalidateQueries({ queryKey: ["srm"] });
     },
-  });
+   onError: showMutationError });
   if (!isSrmInventory) return <InventorySourceBridgeView kind="inventoryPurchaseOrders" />;
   return (
     <div className="space-y-4">
@@ -1892,7 +1926,8 @@ function InventoryTransferView() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: "2026-06-20", product_id: 1, from_warehouse_id: 1, to_warehouse_id: 2, quantity: 1, rate: 100 } : { transfer_date: "2026-06-06", from_warehouse_id: 1, to_warehouse_id: 2, lines: [{ stock_item_id: 1, quantity: 1, rate: 100 }] });
+  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_transfer","fam_inventory_manage"],"create");
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: financialToday(), product_id: 1, from_warehouse_id: 1, to_warehouse_id: 2, quantity: 1, rate: 100 } : { transfer_date: "2026-06-06", from_warehouse_id: 1, to_warehouse_id: 2, lines: [{ stock_item_id: 1, quantity: 1, rate: 100 }] });
   const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
   const mutation = useMutation({
     mutationFn: async () => {
@@ -1905,17 +1940,18 @@ function InventoryTransferView() {
       if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-stock-transfer" });
       else queryClient.invalidateQueries({ queryKey: ["fam"] });
     },
-  });
+   onError: showMutationError });
   const headerFields = isSrmInventory ? ["movement_date", "from_warehouse_id", "to_warehouse_id"] : ["transfer_date", "from_warehouse_id", "to_warehouse_id"];
   const lineFields = isSrmInventory ? ["product_id", "quantity", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity", "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Stock transfer</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post transfer</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Stock transfer</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Post transfer</Button></div></CardContent></Card>;
 }
 
 function InventoryAdjustmentView() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const isSrmInventory = location.pathname.startsWith("/srm/inventory");
-  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: "2026-06-20", product_id: 1, warehouse_id: 1, reason: "Cycle count", quantity_in: 1, quantity_out: 0, rate: 100 } : { adjustment_date: "2026-06-06", warehouse_id: 1, reason: "Cycle count", lines: [{ stock_item_id: 1, quantity_in: 1, quantity_out: 0, rate: 100 }] });
+  const canWrite = useFinanceWrite(isSrmInventory ? ["srm_admin","srm_manage"] : ["fam_admin","fam_stock_adjust","fam_inventory_manage"],"create");
+  const [draft, setDraft] = useState<FAMRecord>(isSrmInventory ? { movement_date: financialToday(), product_id: 1, warehouse_id: 1, reason: "Cycle count", quantity_in: 1, quantity_out: 0, rate: 100 } : { adjustment_date: "2026-06-06", warehouse_id: 1, reason: "Cycle count", lines: [{ stock_item_id: 1, quantity_in: 1, quantity_out: 0, rate: 100 }] });
   const line = ((draft.lines as FAMRecord[]) || [])[0] || {};
   const mutation = useMutation({
     mutationFn: async () => {
@@ -1928,10 +1964,10 @@ function InventoryAdjustmentView() {
       if (isSrmInventory) await syncSrmNow(queryClient, { type: "inventory_changed", source: "srm-stock-adjustment" });
       else queryClient.invalidateQueries({ queryKey: ["fam"] });
     },
-  });
+   onError: showMutationError });
   const headerFields = isSrmInventory ? ["movement_date", "warehouse_id", "reason"] : ["adjustment_date", "warehouse_id", "reason"];
   const lineFields = isSrmInventory ? ["product_id", "quantity_in", "quantity_out", "rate", "reference_number", "notes"] : ["stock_item_id", "quantity_in", "quantity_out", "rate"];
-  return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()}>Post adjustment</Button></div></CardContent></Card>;
+  return <Card><CardHeader><CardTitle className="text-base">Stock adjustment</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-3">{headerFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: field.includes("date") ? event.target.value : numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}{lineFields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(isSrmInventory ? draft[field] ?? "" : line[field] ?? "")} onChange={(event) => isSrmInventory ? setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value })) : setDraft((current) => ({ ...current, lines: [{ ...line, [field]: Number(event.target.value) }] }))} /></Field>)}<div className="md:col-span-3"><Button onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>Post adjustment</Button></div></CardContent></Card>;
 }
 
 type InventoryReportKind = "summary" | "valuation" | "reorder" | "reports" | "warehouse" | "aging" | "dead" | "fastSlow" | "grossMargin" | "cogs" | "hsnSummary" | "audit" | "crmLink" | "srmLink";
@@ -2034,7 +2070,7 @@ function MetricGrid({ items }: { items: Array<[string, React.ReactNode]> }) {
 
 function InventoryAIView() {
   const [prompt, setPrompt] = useState("Show reorder and dead stock risks.");
-  const mutation = useMutation({ mutationFn: () => famApi.inventoryAI({ prompt }) });
+  const mutation = useMutation({ mutationFn: () => famApi.inventoryAI({ prompt }) , onError: showMutationError });
   const data = (mutation.data || {}) as FAMRecord;
   const response = (data.response || data.response_json || {}) as FAMRecord;
   return <div className="grid gap-4 lg:grid-cols-[28rem_1fr]"><Card><CardHeader><CardTitle className="text-base">Audited AI request</CardTitle></CardHeader><CardContent className="space-y-3"><Field label="Prompt"><textarea className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm" value={prompt} onChange={(event) => setPrompt(event.target.value)} /></Field><Button onClick={() => mutation.mutate()}>Run inventory AI</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Result</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><State label="inventory AI" isLoading={mutation.isPending} isError={mutation.isError} /><div><RichTextContent legacyFormat="plain" value={text(response.message || "No request submitted.")}/></div><Badge variant="outline">{text(data.status)}</Badge><p className="text-xs text-muted-foreground">Requests are logged in fam_inventory_ai_logs. Unsupported providers remain labelled as not configured.</p></CardContent></Card></div>;
@@ -2201,3 +2237,11 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
     </section>
   );
 }
+
+function showMutationError(error: unknown) {
+  const detail=(error as {response?:{data?:{detail?:unknown}}})?.response?.data?.detail;
+  const message=typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map(item => typeof item === "object" && item && "msg" in item ? String(item.msg) : String(item)).join("; ") : error instanceof Error ? error.message : "Could not save. Your details are kept for retry.";
+  toast({title:"Action failed",description:message,variant:"destructive"});
+}
+
+function financialToday() { return new Date().toLocaleDateString("en-CA", {timeZone:defaultText("timezone", "fam")}); }

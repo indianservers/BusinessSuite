@@ -1,3 +1,4 @@
+import {useModuleAction} from "@/hooks/use-module-action";
 import { IconActionButton } from "@/components/actions";
 import { savedWithUndo } from "@/components/actions/undo-feedback";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -61,6 +62,7 @@ type Props = {
   people?: { id: number; name: string }[];
   onOpen?: () => void;
   onChanged?: (deleted?: boolean) => void | Promise<void>;
+  extraActions?: Action[];
   children: (menuButton: ReactNode) => ReactElement;
 };
 const done = (status?: string) =>
@@ -139,7 +141,9 @@ export default function RecordActions({
   onOpen,
   onChanged,
   children,
+  extraActions = [],
 }: Props) {
+  const allowEdit=useModuleAction("edit"),allowCreate=useModuleAction("create"),allowDelete=useModuleAction("delete");
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
@@ -375,6 +379,7 @@ export default function RecordActions({
         }, "Task duplicated in the same project. Attachments and comments stay with the original."),
     });
   }
+  actions.push(...extraActions);
   if (canEdit) {
     actions.push({
       label: kind === "task" ? "Delete task…" : "Move to trash…",
@@ -386,27 +391,33 @@ export default function RecordActions({
       },
     });
   }
-  function items(mode: "context" | "dropdown", list = actions): ReactNode {
+  function actionAllowed(label:string){
+    if (/^(Delete task|Move to trash)/.test(label))return allowDelete;
+    if (/^(Duplicate|Add task)/.test(label))return allowCreate;
+    if (/^(Edit |Mark complete|Reopen task|Change status|Change priority|Assign people)/.test(label))return allowEdit;
+    return true;
+  }
+  function items(mode: "context" | "dropdown", list = actions, parentAllowed=true): ReactNode {
     const M = mode === "context" ? Context : Dropdown;
     return list.map((action, index) =>
       action.children ? (
         <M.Sub key={action.label}>
-          <M.SubTrigger className="pms-record-item" disabled={busy}>
+          <M.SubTrigger className="pms-record-item" disabled={busy||!parentAllowed||!actionAllowed(action.label)}>
             {action.label}
             <ChevronRight size={14} />
           </M.SubTrigger>
           <M.Portal>
             <M.SubContent className="pms-record-menu">
-              {items(mode, action.children)}
+              {items(mode, action.children,parentAllowed&&actionAllowed(action.label))}
             </M.SubContent>
           </M.Portal>
         </M.Sub>
       ) : (
         <span key={action.label} className="contents">{action.danger && <M.Separator className="my-1 border-t"/>}<M.Item
-          disabled={busy}
+          disabled={busy||!parentAllowed||!actionAllowed(action.label)}
           className={`pms-record-item ${action.danger ? "danger" : ""}`}
           onSelect={() => {
-            action.run?.();
+            if(parentAllowed&&actionAllowed(action.label))action.run?.();
           }}
         >
           <span className="pms-record-item-icon">
@@ -420,7 +431,7 @@ export default function RecordActions({
   }
   const menuButton = (
     <span className="inline-flex items-center gap-1">
-    {kind === "task" && canEdit && <IconActionButton action="edit" tooltip="Edit task details" aria-label={`Edit task ${record.title}`} onClick={e => { e.stopPropagation(); navigate(`${href}/edit`); }}/>}
+    {kind === "task" && canEdit && allowEdit && <IconActionButton action="edit" tooltip="Edit task details" aria-label={`Edit task ${record.title}`} onClick={e => { e.stopPropagation(); navigate(`${href}/edit`); }}/>}
     <Dropdown.Root
       open={menuOpen}
       onOpenChange={(value) => {
@@ -451,7 +462,7 @@ export default function RecordActions({
             event.stopPropagation();
             setMenuOpen(false);
           }}
-          className="pms-record-menu"
+          className="pms-record-menu pms-record-mobile-sheet"
           align="end"
           sideOffset={6}
           collisionPadding={12}

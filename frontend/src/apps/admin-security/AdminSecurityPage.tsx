@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { ImportWizard, DataExportButton } from "@/shared/data-transfer";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -323,8 +325,7 @@ function ListCard({ title, items, loading = false }: { title: string; items: Adm
       <CardContent>
         {loading ? <p className="text-sm text-muted-foreground">Loading governance data...</p> : null}
         {!loading && !items.length ? <p className="text-sm text-muted-foreground">No records yet.</p> : null}
-        <div className="grid gap-3 md:grid-cols-2">
-          {items.map((item, index) => (
+        <GroupedRecords scope="apps/admin-security/AdminSecurityPage:cards-1" items={(items) || []} fields={standardRecordGroups((items) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item, index) => (
             <div key={String(item.id || index)} className="rounded-md border p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-medium">{String(item.name || item.rule_name || item.setting_key || item.module_name || item.action || item.filename || `Record ${index + 1}`)}</p>
@@ -332,8 +333,7 @@ function ListCard({ title, items, loading = false }: { title: string; items: Adm
               </div>
               <pre className="mt-2 max-h-40 overflow-auto rounded bg-muted p-2 text-xs">{JSON.stringify(item, null, 2)}</pre>
             </div>
-          ))}
-        </div>
+          )}/>
       </CardContent>
     </Card>
   );

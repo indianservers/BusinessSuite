@@ -3,6 +3,15 @@ import { api } from "@/services/api";
 export type SaaSRecord = Record<string, any>;
 type ListResponse = { items: SaaSRecord[]; total: number };
 
+let previousPortalToken: string | null | undefined;
+let portalScope = "";
+/** Cache identities are opaque and rotate whenever the invite session changes. */
+export function portalSessionScope() {
+  const token = window.localStorage.getItem("portalSessionToken");
+  if (token !== previousPortalToken) { previousPortalToken = token; portalScope = crypto.randomUUID(); }
+  return portalScope;
+}
+
 const portalHeaders = () => {
   const token = window.localStorage.getItem("portalSessionToken");
   return token ? { "X-Portal-Session": token } : {};
@@ -16,8 +25,12 @@ export const saasApi = {
   customerInvoices: () => api.get<ListResponse>("/customer-portal/invoices", { headers: portalHeaders() }).then((response) => response.data),
   customerProjects: () => api.get<ListResponse>("/customer-portal/projects", { headers: portalHeaders() }).then((response) => response.data),
   acceptQuote: (id: number) => api.post<SaaSRecord>(`/customer-portal/quotes/${id}/accept`, {}, { headers: portalHeaders() }).then((response) => response.data),
+  partnerMe: () => api.get<SaaSRecord>("/partner-portal/me", { headers: portalHeaders() }).then((response) => response.data),
   partnerLeads: () => api.get<ListResponse>("/partner-portal/leads", { headers: portalHeaders() }).then((response) => response.data),
   submitPartnerLead: (data: SaaSRecord) => api.post<SaaSRecord>("/partner-portal/leads", data, { headers: portalHeaders() }).then((response) => response.data),
+  commissionClaims: () => api.get<ListResponse>('/partner-portal/commissions',{headers:portalHeaders(),recordCache:false}).then(r=>r.data),
+  saveCommission: (data:SaaSRecord,id?:number) => (id?api.put(`/partner-portal/commissions/${id}`,data,{headers:portalHeaders()}):api.post('/partner-portal/commissions',data,{headers:portalHeaders()})).then(r=>r.data),
+  deleteCommission: (id:number,version:number) => api.delete(`/partner-portal/commissions/${id}`,{headers:portalHeaders(),params:{expected_version:version}}),
   partnerDashboard: () => api.get<SaaSRecord>("/partner-portal/dashboard", { headers: portalHeaders() }).then((response) => response.data),
   checkIns: () => api.get<ListResponse>("/mobile/check-in").then((response) => response.data),
   createCheckIn: (data: SaaSRecord) => api.post<SaaSRecord>("/mobile/check-in", data).then((response) => response.data),

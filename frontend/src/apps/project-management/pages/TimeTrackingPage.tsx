@@ -1,3 +1,4 @@
+import {useId as useTimeFieldId,cloneElement as cloneTimeField,isValidElement as isTimeField} from "react";
 import { useSearchParams } from "react-router-dom";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -248,7 +249,8 @@ export default function TimeTrackingPage() {
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label className="text-xs uppercase text-muted-foreground">{label}</Label>{children}</div>;
+  const id=useTimeFieldId();const control=isTimeField(children)?cloneTimeField(children as React.ReactElement<{id?:string;"aria-label"?:string}>,{id,"aria-label":label}):children;
+  return <div className="space-y-2"><Label htmlFor={id} className="text-xs uppercase text-muted-foreground">{label}</Label>{control}</div>;
 }
 
 function Metric({ label, minutes }: { label: string; minutes: number }) {

@@ -1,0 +1,77 @@
+/* Shared page rhythm across modules. Specialized charts and editors keep their layout. */
+.suite-page-surface { --suite-list-gap:10px; }
+.suite-page-surface :is(.suite-page-heading) { padding:6px 0 10px; border:0; border-radius:0; background:none; box-shadow:none; gap:12px; }
+.suite-page-surface .suite-heading-icon { width:34px; height:34px; border-radius:9px; box-shadow:none; }
+.suite-page-surface .suite-heading-icon svg { width:19px; height:19px; }
+.suite-page-surface :is(.suite-page-heading h1,.page-title) { font-size:22px; line-height:1.3; letter-spacing:-.025em; }
+.suite-page-surface :is(.suite-heading-description,.page-description) { font-size:12px; line-height:1.5; margin-top:3px; }
+.suite-page-surface .suite-heading-actions :is(button,a) { min-height:32px; height:32px; font-size:11px; }
+/* Record pages receive compact spacing without changing modal forms or dashboards. */
+.suite-page-surface:has(:is(.udg,.udg-native)) > :is(.space-y-6,.space-y-5),
+.suite-page-surface:has(:is(.udg,.udg-native)) [role="tabpanel"] > :is(.space-y-6,.space-y-5) { --tw-space-y-reverse:0; }
+.suite-page-surface:has(:is(.udg,.udg-native)) > :is(.space-y-6,.space-y-5) > :not([hidden]) ~ :not([hidden]),
+.suite-page-surface:has(:is(.udg,.udg-native)) [role="tabpanel"] > :is(.space-y-6,.space-y-5) > :not([hidden]) ~ :not([hidden]) { margin-top:12px; }
+.suite-page-surface :is(.ws-operation-navigation) { margin-bottom:10px; padding-bottom:7px; }
+.suite-page-surface .ws-operation-navigation h1 { font-size:18px; margin-bottom:8px; }
+.suite-page-surface .ws-operation-navigation [role="tab"] { min-height:30px; padding:5px 9px; font-size:11px; }
+/* The same compact, neutral grid is used by local and server-backed sources. */
+.udg { border-radius:8px; box-shadow:none; }
+.udg .udg-statistics { padding:9px 12px; gap:20px; background:var(--udg-bg); }
+.udg .udg-statistics > div { min-width:90px; gap:2px; }
+.udg .udg-statistics strong { font-size:17px; letter-spacing:-.3px; }
+.udg .udg-toolbar { padding:7px 12px; gap:6px; }
+.udg .udg-grouping { padding:6px 12px; min-height:38px; }
+.udg .udg-group-row { background:var(--udg-bg); }
+.udg .udg-summary-footer,.udg .udg-pagination { padding:7px 12px; font-size:10px; }
+.udg .udg-th { padding:0 10px; border-right-color:transparent; background:var(--udg-bg); }
+.udg .udg-header { background:var(--udg-bg); }
+.udg .udg-sort-button { gap:4px; }
+.udg .udg-sort-hint { display:none; }
+.udg .udg-th > :is(.udg-column-grip,.udg-column-more,.udg-header-filter) { position:absolute; opacity:0; background:var(--udg-bg); }
+.udg .udg-column-grip { left:0; }
+.udg .udg-column-more { right:4px; }
+.udg .udg-header-filter { right:24px; }
+.udg .udg-th:is(:hover,:focus-within) > :is(.udg-column-grip,.udg-column-more,.udg-header-filter),.udg .udg-th > .udg-header-filter.is-active { opacity:1; }
+.udg .udg-th:has(input[type="checkbox"]) > :is(.udg-column-grip,.udg-column-more) { display:none; }
+.udg .udg-adapted-cell.udg-record-identity,.native-record-identity { display:flex; align-items:center; gap:7px; min-width:0; }
+.udg-cell-content,.native-cell-content { min-width:0; width:100%; }
+.udg-record-identity > span,.native-record-identity > span { flex:none; display:inline-flex; }
+.udg-cell-content :is(button,a) { max-width:100%; }
+.udg-native { border-radius:8px; }
+.udg-native .native-table-layout > table { border-collapse:collapse; text-align:left; font-size:12px; color:hsl(var(--foreground)); }
+.udg-native .native-table-layout > table > thead > tr > :is(th,td),.native-table-static > table > thead > tr > :is(th,td) { background:hsl(var(--card)); border-bottom:1px solid hsl(var(--border)); font-size:11px; font-weight:500; padding:8px 10px; }
+.udg-native .native-table-layout > table > tbody > tr:not(.native-group-row):not(.native-group-create) > :is(th,td) { border-bottom:1px solid hsl(var(--border)/.65); vertical-align:middle; }
+.udg-native .native-table-layout > table > tbody > tr:not(.native-group-row):not(.native-group-create):hover { background:hsl(var(--muted)/.4); }
+.native-table-static { overflow:auto; max-width:100%; }
+.native-table-static > table { width:100%; border-collapse:collapse; font-size:12px; }
+.native-table-static > table > tbody > tr > :is(td,th) { padding:8px 10px; border-bottom:1px solid hsl(var(--border)/.65); }
+.native-record-identity .suite-record-status { width:18px; height:18px; }
+@media(max-width:760px) {
+ .suite-page-surface :is(.suite-page-heading h1,.page-title) { font-size:20px; }
+ .suite-page-surface .suite-heading-actions :is(button,a) { min-height:40px; height:auto; }
+ .udg .udg-control { min-height:36px; }
+ .native-table-static > table > tbody > tr > :is(td,th) { padding-top:10px; padding-bottom:10px; }
+}
+/* Compact operation navigation and the shared product/service catalog. */
+.suite-page-surface .suite-operation-navigation { margin-bottom:10px; padding-bottom:7px; }
+.suite-page-surface .suite-operation-navigation h1 { font-size:16px; margin-bottom:6px; }
+.suite-page-surface .suite-operation-navigation [role="tab"] { min-height:30px; padding:5px 9px; font-size:11px; }
+.suite-page-surface .sc-page .sc-hero { padding:6px 0 10px; margin-bottom:12px; border:0; border-radius:0; background:none; gap:16px; }
+.suite-page-surface .sc-page .sc-eyebrow { display:none; }
+.suite-page-surface .sc-page .sc-hero h1 { font-size:22px; letter-spacing:-.5px; margin:0 0 5px; gap:9px; }
+.suite-page-surface .sc-page .sc-hero h1>span { width:32px; height:32px; border-radius:8px; }
+.suite-page-surface .sc-page .sc-hero h1>span svg { width:18px; height:18px; }
+.suite-page-surface .sc-page .sc-hero p:not(.sc-eyebrow) { font-size:12px; line-height:1.5; }
+.suite-page-surface .sc-page .sc-hero-tags { margin-top:8px; gap:6px; }
+.suite-page-surface .sc-page .sc-hero-tags>span { padding:3px 7px; font-size:9px; }
+.suite-page-surface .sc-page .sc-hero-actions button { min-height:32px; height:32px; font-size:11px; }
+.suite-page-surface .sc-page .sc-catalog-bar { margin:12px 0; }
+.suite-page-surface .sc-page .sc-filters { margin-bottom:10px; gap:7px; }
+.suite-page-surface .sc-page .sc-search input { height:32px; }
+.suite-page-surface .sc-page .sc-filters>:is(button,input,select) { padding:5px 8px; min-height:32px; font-size:11px; border-radius:6px; }
+.suite-page-surface .sc-page .sc-grid { gap:12px; }
+.suite-page-surface .sc-page .sc-card { border-radius:8px; }
+.suite-page-surface .sc-page .sc-card-cover { height:90px; }
+.suite-page-surface .sc-page .sc-card-body { padding:12px; }
+.suite-page-surface .sc-page .sc-card-title { font-size:14px; margin:8px 0; }
+@media(max-width:760px) { .suite-page-surface .sc-page .sc-hero { align-items:flex-start; } .suite-page-surface .sc-page .sc-hero h1 { font-size:20px; } .suite-page-surface .sc-page .sc-hero-actions button { min-height:40px; height:auto; } }

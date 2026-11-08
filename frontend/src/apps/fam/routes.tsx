@@ -7,6 +7,11 @@ import type { FrontendRoute } from "@/appRegistry";
 import type { FAMViewKind } from "./types";
 
 const FAMWorkspacePage = React.lazy(() => import("./FAMWorkspacePage"));
+const UAETaxPage = React.lazy(() => import("./UAETaxPage"));
+const TransactionLocksPage = React.lazy(() => import("./TransactionLocksPage"));
+const FinancialStatementsPage = React.lazy(() => import("./FinancialStatementsPage"));
+const RecurringPurchasesPage = React.lazy(() => import("./RecurringPurchasesPage"));
+const BankRulesPage = React.lazy(() => import("./BankRulesPage"));
 const ModuleProfilePage = React.lazy(() => import("@/pages/ModuleProfilePage"));
 
 const route = (path: string, kind: FAMViewKind): FrontendRoute => ({
@@ -16,6 +21,11 @@ const route = (path: string, kind: FAMViewKind): FrontendRoute => ({
 
 
 export const famRoutes: FrontendRoute[] = [
+  { path: "fam/bank-rules", element: <BankRulesPage /> },
+  { path: "fam/recurring-purchases", element: <RecurringPurchasesPage /> },
+  { path: "fam/financial-statements", element: <FinancialStatementsPage /> },
+  { path: "fam/uae-tax", element: <UAETaxPage /> },
+  { path: "fam/transaction-locking", element: <TransactionLocksPage /> },
   {path:"fam/import-data",element:<ImportWorkspace module="fam"/>},
  { path: "fam/messages", element: <CommunicationWorkspace module="Finance" /> },
   { path: "fam/gantt", element: <ModuleGanttPage key="fam" module="fam" /> },

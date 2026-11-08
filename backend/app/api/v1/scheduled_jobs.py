@@ -60,6 +60,12 @@ def cron(response: Response, authorization: str = Header(""), db=Depends(get_db)
     if is_app_enabled("crm"):
         from app.apps.crm.lead_management import scheduled_lead_alerts
         result["lead_management"] = scheduled_lead_alerts(db)
+    if is_app_enabled("srm"):
+        from app.apps.srm.services.recurring_jobs import dispatch_due as recurring_due
+        result["recurring_invoices"] = recurring_due(db)
+    if is_app_enabled("fam"):
+        from app.apps.fam.recurring_purchases import dispatch_due as recurring_purchases_due
+        result["recurring_purchases"] = recurring_purchases_due(db)
     if is_app_enabled("hrms") and is_app_enabled("project_management"):
         from app.apps.interns_hub.distribution import scheduled_tick
         from app.apps.interns_hub.router import today

@@ -1,0 +1,137 @@
+[
+  {
+    "file": "apps/admin-security/AdminSecurityPage.tsx",
+    "line": 326,
+    "collection": "items"
+  },
+  {
+    "file": "apps/ai-copilot/AICopilotPage.tsx",
+    "line": 132,
+    "collection": "(query.data?.items || [])"
+  },
+  {
+    "file": "apps/ai-copilot/AICopilotPage.tsx",
+    "line": 149,
+    "collection": "(query.data?.items || [])"
+  },
+  {
+    "file": "apps/analytics/AnalyticsPage.tsx",
+    "line": 209,
+    "collection": "items"
+  },
+  {
+    "file": "apps/automation/AutomationStudioPage.tsx",
+    "line": 107,
+    "collection": "items"
+  },
+  {
+    "file": "apps/communication/center/DeliveryWorkspace.tsx",
+    "line": 16,
+    "collection": "rows"
+  },
+  {
+    "file": "apps/communication/center/GuidedTools.tsx",
+    "line": 25,
+    "collection": "records.data?.items"
+  },
+  {
+    "file": "apps/communication/whatsapp/TemplatesPanel.tsx",
+    "line": 30,
+    "collection": "filtered"
+  },
+  {
+    "file": "apps/crm/CRMReportDirectory.tsx",
+    "line": 20,
+    "collection": "filtered"
+  },
+  {
+    "file": "apps/fam/FAMWorkspacePage.tsx",
+    "line": 825,
+    "collection": "rows"
+  },
+  {
+    "file": "apps/hrms/pages/interns/InternApplicationsPage.tsx",
+    "line": 450,
+    "collection": "list"
+  },
+  {
+    "file": "apps/hrms/pages/leave/LeavePage.tsx",
+    "line": 671,
+    "collection": "pendingEncashments"
+  },
+  {
+    "file": "apps/hrms/pages/lms/LMSPage.tsx",
+    "line": 151,
+    "collection": "courses"
+  },
+  {
+    "file": "apps/hrms/pages/onboarding/OnboardingPage.tsx",
+    "line": 86,
+    "collection": "templates.data"
+  },
+  {
+    "file": "apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2536,
+    "collection": "(salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5)"
+  },
+  {
+    "file": "apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2550,
+    "collection": "(payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5)"
+  },
+  {
+    "file": "apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2812,
+    "collection": "(payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined)"
+  },
+  {
+    "file": "apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2842,
+    "collection": "(salaryTemplates as { id: number; name: string; code: string; components?: unknown[] }[] | undefined || [])"
+  },
+  {
+    "file": "apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "line": 407,
+    "collection": "templates"
+  },
+  {
+    "file": "apps/power-apps/applications/automations/AutomationList.tsx",
+    "line": 182,
+    "collection": "templates\r\n            .filter((t) =>\r\n              `${t.name} ${t.description}`\r\n                .toLowerCase()\r\n                .includes(query.toLowerCase()),\r\n            )"
+  },
+  {
+    "file": "apps/project-management/pages/PeopleManagementDirectory.tsx",
+    "line": 780,
+    "collection": "people.data?.items"
+  },
+  {
+    "file": "apps/project-management/pages/TaskTypesPage.tsx",
+    "line": 45,
+    "collection": "visible"
+  },
+  {
+    "file": "apps/project-management/pages/TrashPage.tsx",
+    "line": 44,
+    "collection": "visible"
+  },
+  {
+    "file": "features/forms/FormsPage.tsx",
+    "line": 1054,
+    "collection": "catalog\n              .filter((f) =>\n                `${f.label} ${f.module_name} ${f.api_name}`\n                  .toLowerCase()\n                  .includes(search.toLowerCase()),\n              )"
+  },
+  {
+    "file": "features/forms/FormsPage.tsx",
+    "line": 1095,
+    "collection": "forms\n              .filter(matches)\n              .filter((f) => page !== \"responses\" || !f.read_only)\n              .filter((f) => page !== \"published\" || !!f.published)"
+  },
+  {
+    "file": "pages/ai-agents/AiAgentConfigPage.tsx",
+    "line": 70,
+    "collection": "visibleRows"
+  },
+  {
+    "file": "shared/catalog/CatalogPage.tsx",
+    "line": 43,
+    "collection": "data.items"
+  }
+]

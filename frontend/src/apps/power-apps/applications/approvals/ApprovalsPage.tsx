@@ -1,3 +1,7 @@
+import {useModuleAction} from "@/hooks/use-module-action";
+import {useAuthStore} from "@/store/authStore";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ApprovalAnalytics } from "./ApprovalAnalytics";
 export { ApprovalAnalytics } from "./ApprovalAnalytics";
@@ -69,6 +73,8 @@ export function DelegationManager({
   environment: string;
   people: Person[];
 }) {
+  const actor=useAuthStore(s=>s.user);
+  const canDelegate=useModuleAction("assign")&&people.some(person=>person.id===actor?.id);
   const [rows, setRows] = useState<Delegation[]>([]),
     [alternate, setAlternate] = useState<number[]>([]),
     [start, setStart] = useState(""),
@@ -125,9 +131,10 @@ export function DelegationManager({
       </label>
       <button
         className="ap-primary"
-        disabled={!alternate.length || !start || !end || !reason}
+        disabled={!canDelegate||!alternate.length || !start || !end || !reason}
         onClick={async () => {
           try {
+            if(!canDelegate)return;
             await api.post("/delegations", environment, {
               alternate_user_id: alternate[0],
               starts_at: new Date(start).toISOString(),
@@ -153,7 +160,9 @@ export function DelegationManager({
           </span>
           {d.enabled && (
             <button
+              disabled={!canDelegate}
               onClick={async () => {
+                if(!canDelegate)return;
                 try {
                   const { api } = await import("@/services/api");
                   await api.delete(`${root}/delegations/${d.id}`, {
@@ -214,8 +223,9 @@ export default function ApprovalsPage() {
       .catch((e) => setError(errorMessage(e)));
   }, [environment]);
   useEffect(load, [load]);
-  const manage = permissions.includes("power_apps_approval_manage"),
-    canSubmit = permissions.includes("power_apps_approval_submit");
+  const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants.power_apps;
+  const permits=(action:string)=>!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes(action);
+  const manage=permissions.includes("power_apps_approval_manage")&&["create","edit","delete","configure"].some(permits),canSubmit=permissions.includes("power_apps_approval_submit")&&permits("create");
   return (
     <main className="ap-app">
       <aside className="ap-sidebar">
@@ -405,8 +415,7 @@ export default function ApprovalsPage() {
             </section>
           )}
           {section === "templates" && (
-            <div className="ap-template-grid">
-              {templates.map((t) => (
+            <GroupedRecords scope="apps/power-apps/applications/approvals/ApprovalsPage:cards-1" items={(templates) || []} fields={standardRecordGroups((templates) || [])} gridClassName="ap-template-grid" renderItem={(t) => (
                 <article className="ap-panel" key={t.id}>
                   <span className="ap-template-icon">
                     <Layers3 size={21} />
@@ -437,8 +446,7 @@ export default function ApprovalsPage() {
                     </button>
                   )}
                 </article>
-              ))}
-            </div>
+              )}/>
           )}
           {section === "delegations" && (
             <DelegationManager environment={environment} people={people} />

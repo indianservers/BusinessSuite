@@ -182,3 +182,27 @@ def review_timesheet(
     db.commit()
     db.refresh(sheet)
     return sheet
+
+
+@router.put('/projects/{identity}',response_model=ProjectSchema)
+def edit_timesheet_project(identity:int,data:ProjectCreate,db:Session=Depends(get_db),user:User=Depends(RequirePermission('timesheet_manage'))):
+    from app.apps.srm.services.commercial import tenant
+    row=db.query(Project).filter_by(id=identity,organization_id=tenant(user)).first()
+    if not row:raise HTTPException(404,'Timesheet project not found')
+    for key,value in data.model_dump().items():setattr(row,key,value)
+    db.commit();db.refresh(row);return row
+@router.delete('/projects/{identity}',status_code=204)
+def delete_timesheet_project(identity:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('timesheet_manage'))):
+    from app.apps.srm.services.commercial import tenant
+    row=db.query(Project).filter_by(id=identity,organization_id=tenant(user)).first()
+    if not row:raise HTTPException(404,'Timesheet project not found')
+    if db.query(Timesheet).filter_by(project_id=identity).first():raise HTTPException(409,'Projects with time entries must be retained; mark the project inactive instead')
+    db.delete(row);db.commit()
+
+
+@router.get('/projects/{identity}',response_model=ProjectSchema)
+def read_timesheet_project(identity:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('timesheet_view'))):
+    from app.apps.srm.services.commercial import tenant
+    row=db.query(Project).filter_by(id=identity,organization_id=tenant(user)).first()
+    if not row:raise HTTPException(404,'Timesheet project not found')
+    return row

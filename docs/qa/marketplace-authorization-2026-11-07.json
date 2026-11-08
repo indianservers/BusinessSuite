@@ -1,0 +1,86 @@
+{
+  "date": "2026-11-07",
+  "environment": "local development and disposable acceptance data",
+  "implemented_adapters": [
+    "facebook_lead_ads",
+    "mailchimp",
+    "docusign",
+    "trello",
+    "zendesk",
+    "activecampaign",
+    "linkedin_lead_forms",
+    "klaviyo",
+    "surfe",
+    "apollo",
+    "cloudtalk"
+  ],
+  "blocked_external_contracts": [
+    "dedupely",
+    "nova"
+  ],
+  "blocker": "No verified external API/authentication contract or partner developer account; user confirmed they have neither.",
+  "scope": "Eight OAuth consent integrations, eleven resumable incoming native sync workflows and nine confirmed native outgoing workflows; reuse the vault, journal, imports and existing worker. Automatic imports preserve existing records.",
+  "combined_regression": {
+    "passed": 501,
+    "warnings": 2
+  },
+  "final_focused_checks": {
+    "oauth_passed": 10,
+    "sync_workflows_passed": 35
+  },
+  "tls_end_to_end": "Eleven authorization probes plus nine external write actions over real local TLS. Replaying each write request does not dispatch it again.",
+  "browser_verified": {
+    "current_flow": [
+      "CRM connection creation",
+      "incoming sync job creation",
+      "native contact import",
+      "native contact selection",
+      "preview and confirmed outgoing contact sync",
+      "native import receipt: one created record"
+    ],
+    "earlier_authorization_forms": 11,
+    "earlier_module_views": [
+      "crm",
+      "pms",
+      "hrms",
+      "srm",
+      "fam"
+    ],
+    "provider_fixture": "Disposable loopback server accepts only qa.api-us1.com. No external provider requests."
+  },
+  "typescript": "passed",
+  "production_build": "passed",
+  "live_provider_verification": false,
+  "external_side_effects": "No live account grants, messages, calls, payments or remote deployment. Existing changes preserved.",
+  "previous_read_adapter_evidence": {
+    "scope": "Authorized token/API key read adapters and provider-specific account configuration. These are not automatic two-way sync or public OAuth app consent implementations.",
+    "combined_regression": {
+      "passed": 470,
+      "warnings": 2
+    },
+    "final_focused_checks": {
+      "passed": 12
+    },
+    "tls_end_to_end": "All 11 providers exercised through authenticated local API, encrypted credential vault, egress policy, real local TLS sockets and controlled provider responses.",
+    "browser_verified": {
+      "authorization_forms": 11,
+      "module_views": [
+        "crm",
+        "pms",
+        "hrms",
+        "srm",
+        "fam"
+      ]
+    }
+  },
+  "oauth_providers": [
+    "facebook_lead_ads",
+    "mailchimp",
+    "docusign",
+    "trello",
+    "zendesk",
+    "linkedin_lead_forms",
+    "klaviyo",
+    "apollo"
+  ]
+}

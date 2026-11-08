@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { platformApi as api } from "@/services/platform-api";
 export type Data = Record<string, any>;
@@ -52,7 +53,7 @@ export function Table({ columns, rows, empty = "No records match this view." }: 
     rows: any[];
     empty?: string;
 }) {
-    return rows.length ? <div className="po-table-scroll"><table><thead><tr>{columns.map(c => <th key={c.label}>{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id ?? i}>{columns.map(c => <td key={c.label}>{c.render(r)}</td>)}</tr>)}</tbody></table></div> : <p className="po-empty">{empty}</p>;
+    return rows.length ? <div className="po-table-scroll"><GridTable gridId="platform/shared:table-1"><thead><tr>{columns.map(c => <th key={c.label}>{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id ?? i}>{columns.map(c => <td key={c.label}>{c.render(r)}</td>)}</tr>)}</tbody></GridTable></div> : <p className="po-empty">{empty}</p>;
 }
 export function ModulePicker({ value, onChange, disabled = false }: {
     value: string[];

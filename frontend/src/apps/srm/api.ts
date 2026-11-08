@@ -1,3 +1,4 @@
+import { downloadBlob } from "@/shared/data-transfer/transfer";
 import { api } from "@/services/api";
 import type { SRMRecord } from "./types";
 
@@ -22,12 +23,15 @@ export const srmApi = {
   updateEngagement: (id: number, data: SRMRecord) => api.patch(`/srm/engagements/${id}`, data).then((res) => res.data),
   updateEngagementStatus: (id: number, status: string) => api.post(`/srm/engagements/${id}/status/${status}`).then((res) => res.data),
   billingPlans: () => api.get<SRMRecord[]>("/srm/billing-plans").then((res) => res.data),
+  recurringInvoiceOptions: () => api.get<{ payment_modes: { value: number; label: string }[]; users: { value: number; label: string }[] }>("/srm/recurring-invoices/options").then(res => res.data),
+  createRecurringSchedule: (id: number, params: { start_date: string; amount: string; occurrences: number; payment_terms_days: number; automatic_drafts?: boolean; notify_on_creation?: boolean; never_expires?: boolean; interval?: number; payment_mode_id?: number; salesperson_id?: number; order_number?: string; end_date?: string; invoice_template?: "standard" | "compact" | "detailed"; subject?: string; customer_notes?: string; terms?: string }) => api.post<{ created: number; skipped: number }>(`/srm/billing-plans/${id}/recurring-schedule`, params).then(res => res.data),
   billingPlan: (id: number) => api.get<SRMRecord>(`/srm/billing-plans/${id}`).then((res) => res.data),
   createBillingPlan: (data: SRMRecord) => api.post("/srm/billing-plans", data).then((res) => res.data),
   updateBillingPlan: (id: number, data: SRMRecord) => api.patch(`/srm/billing-plans/${id}`, data).then((res) => res.data),
   addBillingMilestone: (id: number, data: SRMRecord) => api.post(`/srm/billing-plans/${id}/milestones`, data).then((res) => res.data),
   invoiceDrafts: () => api.get<SRMRecord[]>("/srm/invoice-drafts").then((res) => res.data),
   invoices: () => api.get<SRMRecord[]>("/srm/invoices").then((res) => res.data),
+  downloadInvoice: async (id: number) => { const response = await api.get<Blob>(`/srm/invoices/${id}/pdf`, { responseType: "blob" }); downloadBlob(response.data, `invoice-${id}.pdf`); },
   invoice: (id: number) => api.get<SRMRecord>(`/srm/invoices/${id}`).then((res) => res.data),
   addInvoiceLine: (id: number, data: SRMRecord) => api.post(`/srm/invoices/${id}/lines`, data).then((res) => res.data),
   manualInvoice: (data: SRMRecord) => api.post("/srm/invoices/manual", data).then((res) => res.data),

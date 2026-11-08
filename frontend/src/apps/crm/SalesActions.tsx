@@ -15,6 +15,8 @@ import {CaptureDialog} from "./leads/LeadManagementPage";
 import {crmApi} from "./api";
 import type {SalesRecord} from "./CRMSalesHome";
 const QuickDealDialog=lazy(()=>import("./CRMWorkspacePage").then(m=>({default:m.QuickDealDialog})));
+const TaskQuickCreate=lazy(()=>import("./TaskQuickCreate"));
+const ContactQuickCreate=lazy(()=>import("./CRMWorkspacePage").then(module=>({default:module.CRMContactQuickCreate})));
 const base="/crm/productivity";
 
 export function CRMInteractionDialog({record,close,saved,next,activities=[]}:{record:SalesRecord;close:()=>void;saved:()=>void;next?:()=>void;activities?:Record<string,any>[]}){
@@ -37,6 +39,9 @@ export function CRMQuickCreate({type,close,saved}:{type:string;close:()=>void;sa
  const customFieldForm=useCrmFieldForm(customEntity,"quick_create");
  const user=useAuthStore(s=>s.user);const [dueAt,setDueAt]=useState("");const [name,setName]=useState("");const [email,setEmail]=useState("");const [phone,setPhone]=useState("");const [code,setCode]=useState("+91");const [bootstrap,setBootstrap]=useState<Bootstrap>();const [error,setError]=useState("");const [busy,setBusy]=useState(false);
  useEffect(()=>{if(type==="lead")void leadsApi.bootstrap().then(r=>setBootstrap(r.data)).catch(e=>setError(errorMessage(e)));},[type]);
+ if(type==="task")return <Suspense fallback={<p role="status">Loading task form…</p>}><TaskQuickCreate close={close} saved={saved}/></Suspense>;
+ if(type==="contact")return <Suspense fallback={<p role="status">Loading contact form�</p>}><ContactQuickCreate close={close} saved={saved}/></Suspense>;
+ if(type==="company")return <CompanyQuickCreate recordLabel="company" onClose={close} onSaved={(_,keepOpen)=>{saved();if(!keepOpen)close();}}/>;
  if(type==="customer")return <CompanyQuickCreate roles={["Customer"]} recordLabel="customer" defaultEntityKind="Individual" onClose={close} onSaved={(_,keepOpen)=>{saved();if(!keepOpen)close();}}/>;
  if(type==="deal")return <Suspense fallback={<p role="status">Loading deal form…</p>}><QuickDealDialog placement="quick_create" close={close} saved={saved}/></Suspense>;
  if(type==="lead"&&bootstrap)return <CaptureDialog placement="quick_create" bootstrap={bootstrap} close={close} saved={()=>{saved();close();}}/>;

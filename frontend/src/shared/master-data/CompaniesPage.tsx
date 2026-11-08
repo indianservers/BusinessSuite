@@ -1,10 +1,11 @@
+import { useCreateIntent } from "@/hooks/use-create-intent";
 import { SuiteAvatar, SuiteHeading } from "@/components/visuals/SuiteVisuals";
 import { businessDefinitions } from "@/lib/validation/business";
 import PhoneActions, { phoneLinks } from "@/components/PhoneActions";
 import { Mail, Eye, Pencil, RefreshCw, Building2, Phone, Globe, Copy } from "lucide-react";
 import { WhatsAppIcon } from "@/components/actions/BrandIcons";
 import { RecordSidePane, RecordQuickActions, RecordMessageDraft, whatsappNumber, communicationBlocked } from "@/shared/records/RecordWorkspace";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import SharedDataGrid from "@/shared/data-grid/SharedDataGrid";
@@ -14,8 +15,11 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { CompanyProfile, CompanyQuickCreate, masterScope, type Company, type MasterSource } from "./CompanySelect";
 import { dealError } from "@/apps/crm/deals/deal-utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { affectsResource, publishGridRecord, removeGridRecords, removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 
 export default function CompaniesPage({source="crm",role="",entityKind="companies"}:{source?:MasterSource;role?:string;entityKind?:"all"|"companies"|"individuals"}) {
+  const queryClient = useQueryClient();
   const [notice,setNotice]=useState("");
   const [popupId,setPopupId]=useState<number>();const [draft,setDraft]=useState<{record:Company;channel:"email"|"whatsapp"}>();const [editing,setEditing]=useState<Company>();
   const singular=role.toLowerCase()||"company";const kind=role?"all":entityKind;
@@ -31,8 +35,23 @@ export default function CompaniesPage({source="crm",role="",entityKind="companie
     {id:"vendorClassification",title:"Classification",editable:false}, {id:"businessType",title:"Business type",editable:false,render:row=><span>{businessDefinitions.businessTypes.find(t=>t.id===row.businessType)?.label||row.businessType||"—"}</span>}, {id:"country",title:"Country",editable:false}, {id:"industry",title:"Industry",editable:false}, {id:"status",title:"Status",type:"status",editable:false,editor:"select",options:["Active","Inactive","Blocked"].map(x=>({value:x,label:x}))},
     {id:"tags_text",title:"Tags",accessor:row=>row.tags?.join(", "),render:row=><span>{row.tags?.join(", ")||"—"}</span>}
   ],[role,trash]);
-  const sourceData=useMemo<GridDataSource<Company>>(()=>({key:`master-companies:${scope}:${source}:${role}:${kind}:${trash}`,export:async(request)=>{if(request.format!=="csv"&&request.format!=="clipboard")throw new Error("Choose CSV or clipboard for company export");return (await api.post("/master-data/company-directory/export",{state:JSON.stringify(request.query),columns:request.columns,ids:request.scope!=="filtered"?request.ids.map(Number):undefined},{params:{source,role,entity_kind:kind,deleted:trash},responseType:request.format==="clipboard"?"text":"blob"})).data;},load:async(query,signal)=>(await api.get("/master-data/company-directory/query",{params:{source,role,entity_kind:kind,deleted:trash,state:JSON.stringify(query)},signal})).data}),[scope,source,role,kind,trash]);
+  const sourceData=useMemo<GridDataSource<Company>>(()=>({personalIdentity:"id",key:`master-companies:${scope}:${source}:${role}:${kind}:${trash}`,export:async(request)=>{if(request.format!=="csv"&&request.format!=="clipboard")throw new Error("Choose CSV or clipboard for company export");return (await api.post("/master-data/company-directory/export",{state:JSON.stringify(request.query),columns:request.columns,ids:request.scope!=="filtered"?request.ids.map(Number):undefined},{params:{source,role,entity_kind:kind,deleted:trash},responseType:request.format==="clipboard"?"text":"blob"})).data;},load:async(query,signal)=>(await api.get("/master-data/company-directory/query",{params:{source,role,entity_kind:kind,deleted:trash,state:JSON.stringify(query)},signal})).data}),[scope,source,role,kind,trash]);
   const bulk=async(action:string,entry?:string)=>{setBusy(true);setError("");try{await api.post("/master-data/company-directory/bulk",{ids:selected.map(Number),action,value:entry},{params:{source}});setSelected([]);setRefresh(x=>x+1);}catch(e){setError(dealError(e));}finally{setBusy(false);}};
+  useCreateIntent(() => setCreate(true));
+  useEffect(() => {
+    const changed = (event: Event) => {
+      const change=(event as CustomEvent<RecordSaved>).detail;
+      const {url, method, record} = change;
+      if (!affectsResource("/master-data/companies",url)&&change.resource!=="/master-data/companies") return;
+      const removed=change.operation==="restore"&&trash?change.ids||[]:removedRecordIds(change,"/master-data/companies");
+      if(removed.length){removeGridRecords(queryClient,sourceData.key,removed);setSelected(current=>current.filter(id=>!removed.map(String).includes(id)));setProfile(current=>current&&removed.map(String).includes(String(current))?undefined:current);setPopupId(current=>current&&removed.map(String).includes(String(current))?undefined:current);}
+      const row = record as unknown as Company;
+      if (!removed.length && method !== "delete" && row?.id && !trash && (!role || row.roles?.includes(role)) && (kind === "all" || (kind === "companies" ? row.entityKind === "Company" : row.entityKind === "Individual"))) publishGridRecord(queryClient,sourceData.key,row);
+      setRefresh(value => value + 1);
+    };
+    window.addEventListener(recordSavedEvent,changed);
+    return () => window.removeEventListener(recordSavedEvent,changed);
+  },[sourceData.key,role,kind,trash,queryClient]);
   const focused=result?.rows.find(row=>row.id===profile);
   const companyStats=(result as (GridResult<Company>&{companyStats?:Record<string,number>})|undefined)?.companyStats;
   const popup=(row:Company)=>setPopupId(row.id);
@@ -47,6 +66,6 @@ export default function CompaniesPage({source="crm",role="",entityKind="companie
     {popupId!==undefined&&<CompanyProfile key={`${scope}:popup:${popupId}`} id={popupId} source={source} recordLabel={singular} onClose={()=>setPopupId(undefined)}/>}
     {draft&&<RecordMessageDraft key={`${draft.record.id}:${draft.channel}`} record={draft.record} channel={draft.channel} close={()=>setDraft(undefined)}/>}
     {editing&&<CompanyQuickCreate source={source} initial={editing} recordLabel={singular} onClose={()=>setEditing(undefined)} onSaved={()=>{setEditing(undefined);setRefresh(x=>x+1);}}/>}
-    {create&&<CompanyQuickCreate placement="create" source={source} recordLabel={singular} defaultEntityKind={role==="Customer"?"Individual":"Company"} roles={role?[role]:["Prospect"]} onClose={()=>setCreate(false)} onSaved={(row,keepOpen)=>{setCreate(!!keepOpen);if(!keepOpen)setProfile(row.id);setRefresh(x=>x+1);}}/>}
+    {create&&result?.context?.canCreate===true&&<CompanyQuickCreate placement="create" source={source} recordLabel={singular} defaultEntityKind={role==="Customer"?"Individual":"Company"} roles={role?[role]:["Prospect"]} onClose={()=>setCreate(false)} onSaved={(row,keepOpen)=>{if(!trash)publishGridRecord(queryClient,sourceData.key,row);setCreate(!!keepOpen);setNotice(`${singular} saved.`);setRefresh(x=>x+1);}}/>}
   </main>;
 }

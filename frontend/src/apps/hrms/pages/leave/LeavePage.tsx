@@ -1,3 +1,6 @@
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { defaultId } from "@/lib/form-defaults";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -110,11 +113,15 @@ export default function LeavePage() {
   const mobile=useMobile();
   const qc = useQueryClient();
   const { user } = useAuthStore();
+  const grant=user?.access?.grants.hrms;
+  const canApply=!!user?.is_superuser || !user?.access?.managed || !!grant?.enabled&&grant.actions.includes("create");
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
-  const canApproveLeave = ["admin", "hr", "manager"].includes(roleKey);
+  const canApproveLeave=useDefinitionPermission(["leave_approve"],"approve");
+  const canCreateAccount=!!user?.is_superuser,canLinkAccount=!!user?.is_superuser,canManageAccounts=canCreateAccount||canLinkAccount;
+  const canCancel=!!user?.is_superuser||!user?.access?.managed||!!grant?.enabled&&grant.actions.includes("edit");
   const hasEmployeeProfile = Boolean(user?.employee_id);
   const [showApplyForm, setShowApplyForm] = useState(false);
-  useCreateIntent(kind => { if (kind === "leave" && hasEmployeeProfile) setShowApplyForm(true); });
+  useCreateIntent(kind => { if (kind === "leave" && hasEmployeeProfile && canApply) setShowApplyForm(true); });
   const [activeTab, setActiveTab] = useState<"my" | "approvals" | "calendar">("my");
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [calendarScope, setCalendarScope] = useState<"mine" | "team" | "all">(canApproveLeave ? "team" : "mine");
@@ -157,19 +164,19 @@ export default function LeavePage() {
   const { data: employeeOptions } = useQuery({
     queryKey: ["leave-account-employees", accountEmployeeSearch],
     queryFn: () => employeeApi.list({ search: accountEmployeeSearch || undefined, limit: 50 }).then((r) => r.data),
-    enabled: canApproveLeave,
+    enabled: canManageAccounts,
   });
 
   const { data: userOptions } = useQuery({
     queryKey: ["leave-account-user-options", accountUserSearch, accountEmployeeId],
     queryFn: () => employeeApi.userOptions({ search: accountUserSearch || undefined, include_employee_id: accountEmployeeId || undefined }).then((r) => r.data as UserOption[]),
-    enabled: canApproveLeave,
+    enabled: canManageAccounts,
   });
 
   const { data: roles } = useQuery({
     queryKey: ["leave-account-roles"],
     queryFn: () => authApi.roles().then((r) => r.data as Array<{ id: number; name: string }>),
-    enabled: canApproveLeave,
+    enabled: canManageAccounts,
   });
 
   const { data: encashmentRequests } = useQuery({
@@ -403,7 +410,7 @@ export default function LeavePage() {
               </Button>
             </>
           ) : null}
-          <Button size="sm" className="w-full sm:w-auto" onClick={() => setShowApplyForm((v) => !v)}>
+          <Button size="sm" className="w-full sm:w-auto" disabled={!canApply} onClick={() => setShowApplyForm((v) => !v)}>
             <Plus className="mr-2 h-4 w-4" />
             Apply Leave
           </Button>
@@ -447,7 +454,7 @@ export default function LeavePage() {
             <CardTitle className="text-base">Apply for Leave</CardTitle>
           </CardHeader>
           <CardContent>
-            <CompactForm onSubmit={handleSubmit((data) => applyMutation.mutate(data))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CompactForm onSubmit={handleSubmit((data) => {if(canApply&&!applyMutation.isPending)applyMutation.mutate(data);})} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Leave Type *</Label>
                 <NativeSelect
@@ -488,7 +495,7 @@ export default function LeavePage() {
               <div className={`rounded border bg-muted/30 p-3 text-sm sm:col-span-2 ${mobile ? "mobile-leave-balance" : ""}`} role="status"><p>Estimated request: {requestedDays} day(s) · Available: {selectedBalance?Number(selectedBalance.available).toFixed(1):"Select leave type"} · Estimated balance after request: {selectedBalance?(Number(selectedBalance.available)-requestedDays).toFixed(1):"—"}</p><p className="mt-1 text-xs">Current leave policy counts all calendar days in the inclusive date range, including weekends and holidays. Half-day requests count as 0.5 day. The server validates overlap and available balance before saving.</p></div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Reason *</Label>
-                <textarea
+                <textarea aria-label="Reason"
                   {...register("reason", { required: "Required" })}
                   rows={3}
                   className="flex w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -498,7 +505,7 @@ export default function LeavePage() {
               </div>
 
               <div className="flex gap-3 sm:col-span-2">
-                <Button type="submit" disabled={applyMutation.isPending}>
+                <Button type="submit" disabled={!canApply||applyMutation.isPending}>
                   {applyMutation.isPending ? "Submitting..." : "Submit Application"}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowApplyForm(false)}>
@@ -510,7 +517,7 @@ export default function LeavePage() {
         </Card>
       )}
 
-      {canApproveLeave && (
+      {canManageAccounts && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Employee Account Wizard</CardTitle>
@@ -546,7 +553,7 @@ export default function LeavePage() {
                   </option>
                 ))}
               </NativeSelect>
-              <Button disabled={!accountEmployeeId || !accountUserId || linkEmployeeUserMutation.isPending} onClick={() => linkEmployeeUserMutation.mutate()}>
+              <Button disabled={!canLinkAccount || !accountEmployeeId || !accountUserId || linkEmployeeUserMutation.isPending} onClick={() => linkEmployeeUserMutation.mutate()}>
                 Link Existing User
               </Button>
             </div>
@@ -554,7 +561,7 @@ export default function LeavePage() {
             <div className="grid gap-3 lg:grid-cols-[1fr_180px_auto]">
               <Input value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} placeholder="employee@email.com" />
               <Input value={accountPassword} onChange={(event) => setAccountPassword(event.target.value)} placeholder="Temporary password" type="password" />
-              <Button disabled={!accountEmployeeId || !accountEmail || !accountPassword || createAndLinkUserMutation.isPending} onClick={() => createAndLinkUserMutation.mutate()}>
+              <Button disabled={!canCreateAccount || !accountEmployeeId || !accountEmail || !accountPassword || createAndLinkUserMutation.isPending} onClick={() => createAndLinkUserMutation.mutate()}>
                 Create Login
               </Button>
             </div>
@@ -591,7 +598,7 @@ export default function LeavePage() {
             <Input value={encashRemarks} onChange={(event) => setEncashRemarks(event.target.value)} placeholder="Remarks" />
             <Button
               onClick={() => requestEncashmentMutation.mutate()}
-              disabled={!encashLeaveTypeId || !encashDays || requestEncashmentMutation.isPending}
+              disabled={!canApply || !encashLeaveTypeId || !encashDays || requestEncashmentMutation.isPending}
             >
               Request
             </Button>
@@ -669,8 +676,7 @@ export default function LeavePage() {
               {pendingEncashments.length === 0 ? (
                 <p className="rounded-md border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">No pending encashment approvals</p>
               ) : (
-                <div className="space-y-2">
-                  {pendingEncashments.map((item) => (
+                <GroupedRecords scope="apps/hrms/pages/leave/LeavePage:cards-1" items={(pendingEncashments) || []} fields={standardRecordGroups((pendingEncashments) || [])} gridClassName="space-y-2" renderItem={(item) => (
                     <div key={item.id} className="grid gap-2 rounded-md border p-3 lg:grid-cols-[1fr_120px_140px_1fr_auto] lg:items-center">
                       <div>
                         <p className="text-sm font-medium">{item.employeeName || item.employeeCode || "Employee"}</p>
@@ -688,8 +694,7 @@ export default function LeavePage() {
                         <Button size="sm" variant="outline" onClick={() => reviewEncashmentMutation.mutate({ id: item.id, action: "reject" })} disabled={reviewEncashmentMutation.isPending}>Reject</Button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}/>
               )}
             </div>
             <div className="overflow-x-auto">
@@ -738,7 +743,7 @@ export default function LeavePage() {
                               variant="ghost"
                               size="sm"
                               className="h-7 text-xs text-red-500 hover:text-red-700"
-                              onClick={() => cancelMutation.mutate(r.id)}
+                              disabled={!canCancel||cancelMutation.isPending} onClick={() => cancelMutation.mutate(r.id)}
                             >
                               Cancel
                             </Button>

@@ -1045,7 +1045,10 @@ def get_today_status(
     employee = _employee_or_400(current_user)
     today = _business_date()
     day_start, day_end = _utc_day_bounds(today)
-    record = compute_attendance_summary(employee.id, today, db)
+    record = db.query(Attendance).filter(Attendance.employee_id == employee.id, Attendance.attendance_date == today).first()
+    # Reading today's self-service panel must not recalculate HR's manual entry.
+    if record is None or record.source != "Manual":
+        record = compute_attendance_summary(employee.id, today, db)
     punches = (
         db.query(AttendancePunch)
         .filter(

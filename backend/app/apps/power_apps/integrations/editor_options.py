@@ -75,6 +75,18 @@ def narrow_action_schemas(registry):
 def connection_schema(connector):
     properties = {}
     required = []
+    from app.apps.power_apps.integrations.marketplace_providers import DYNAMIC
+    if connector.id in DYNAMIC:
+        properties['provider_host'] = {'type':'string','title':'Provider account hostname (no https:// or path)'}
+        required.append('provider_host')
+        if connector.id in {'mailchimp','docusign'}:
+            properties['provider_host']['default']='us1.api.mailchimp.com' if connector.id=='mailchimp' else 'account-d.docusign.com'
+    if connector.id=='docusign':
+        properties['api_host']={'type':'string','title':'DocuSign API hostname','default':'demo.docusign.net'}
+        properties['account_id']={'type':'string','title':'Signing account ID (optional; OAuth discovers it)'}
+    if connector.id == 'linkedin_lead_forms':
+        properties['form_id'] = {'type':'string','title':'Lead form ID for verification'}
+        required.append('form_id')
     if connector.id in {"http", "outgoing_webhook", "postgresql"}:
         properties["hosts"] = {"type": "array", "title": "Allowed hostnames", "items": {"type": "string"}, "default": []}
         required.append("hosts")
@@ -98,6 +110,10 @@ def connection_schema(connector):
 
 def editor_options(connector):
     credentials = {auth: deepcopy(AUTH_FIELDS[auth]) for auth in connector.authentication}
+    if connector.id in {'mailchimp','trello','cloudtalk'}:
+        labels={'mailchimp':('Username (anystring)','Mailchimp API key'), 'trello':('Trello API key','Trello user token'), 'cloudtalk':('API Access Key ID','API Access Key Secret')}
+        first,second=labels[connector.id]
+        credentials['basic']={'username':first,'password':second}
     if "bearer" in credentials:
         credentials["bearer"]["access_token"] = TOKEN_LABELS.get(connector.id, f"{connector.name} API token")
     if connector.id == "razorpay":

@@ -1,3 +1,7 @@
+import WorkspaceViewBar from "@/shared/workspace/WorkspaceViewBar";
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
+import RecordMaintenance from "@/components/RecordMaintenance";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { SuiteAvatar } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
@@ -77,8 +81,13 @@ function useDebouncedValue(value: string, delay = 300) {
   return debounced;
 }
 
-export default function EmployeesPage() {
+function EmployeesPage() {
   usePageTitle("Employees");
+  const employeeActor=useAccountAdminStore(state=>state.user);
+  const employeeGrant=employeeActor?.access?.grants.hrms;
+  const canEditEmployee=!!employeeActor?.is_superuser || !employeeActor?.access?.managed || !!employeeGrant?.enabled&&employeeGrant.actions.includes("edit")&&employeeGrant.permissions.includes("employee_update");
+  const canCreateEmployee=!!employeeActor?.is_superuser || !employeeActor?.access?.managed || !!employeeGrant?.enabled&&employeeGrant.actions.includes("create")&&employeeGrant.permissions.includes("employee_create");
+  const canDeleteEmployee=!!employeeActor?.is_superuser || !employeeActor?.access?.managed || !!employeeGrant?.enabled&&employeeGrant.actions.includes("delete")&&employeeGrant.permissions.includes("employee_delete");
   const canManageAccounts = useAccountAdminStore(state => state.user?.is_superuser === true);
   const [employeePopup, setEmployeePopup] = useState<{ employee: Employee; editing: boolean } | null>(null);
   const qc = useQueryClient();
@@ -146,6 +155,7 @@ export default function EmployeesPage() {
   const columns = [
     columnHelper.display({
       id: "avatar",
+      header: "Employee",
       cell: (info) => {
         const emp = info.row.original;
         const initials = getInitials(`${emp.first_name} ${emp.last_name}`);
@@ -203,7 +213,8 @@ export default function EmployeesPage() {
         <div className="flex items-center gap-1">
           <IconActionButton action="view" tooltip="Preview employee details" aria-label={`Preview ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: false }); }}>
           </IconActionButton>
-          <IconActionButton action="edit" tooltip="Edit employee details" aria-label={`Edit ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: true }); }}>
+          <RecordMaintenance record={info.row.original as unknown as Record<string,unknown>} name={`${info.row.original.first_name} ${info.row.original.last_name}`} endpoint={`/employees/${info.row.original.id}`} fields={[]} queryKeys={["employees"]} canEdit={false} canDelete={canDeleteEmployee} showEdit={false}/>
+          <IconActionButton disabled={!canEditEmployee} action="edit" tooltip="Edit employee details" aria-label={`Edit ${info.row.original.first_name} ${info.row.original.last_name}`} onClick={(event) => { event.stopPropagation(); setEmployeePopup({ employee: info.row.original, editing: true }); }}>
           </IconActionButton>
           <label aria-label="Upload employee photo" data-action-tooltip="Upload employee profile photo" className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md hover:bg-muted" onClick={(event) => event.stopPropagation()}>
             <Camera className="h-3.5 w-3.5" />
@@ -247,7 +258,7 @@ export default function EmployeesPage() {
   const colSpan = columns.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Employees</h1>
@@ -256,8 +267,6 @@ export default function EmployeesPage() {
           </p>
         </div>
         <CompactActions primaryId="quick-add-employee" className="flex flex-wrap items-center gap-2">
-          <Button variant={layout === "cards" ? "default" : "outline"} size="sm" aria-pressed={layout === "cards"} onClick={() => setLayout("cards")}>Profile cards</Button>
-          <Button variant={layout === "table" ? "default" : "outline"} size="sm" aria-pressed={layout === "table"} onClick={() => setLayout("table")}>Table</Button>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -265,12 +274,12 @@ export default function EmployeesPage() {
           <DataExportButton filename="employees" description="All employees matching the current filters, subject to your export permissions." load={async()=> (await employeeApi.exportCsv(queryFilters)).data}/>
           <FullDetailsExport endpoint="/employees/export/full" params={queryFilters} filename="employees_full_details.xlsx" />
           {canManageAccounts && <Link to="/hrms/users"><Button variant="outline">Users & Roles</Button></Link>}
-          <Button id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Quick Add Employee</Button><Link className="p-2 text-sm underline" to="/hrms/employees/new">Full employee form</Link>
+          <Button disabled={!canCreateEmployee} id="quick-add-employee" size="sm" onClick={()=>setQuickAdd(true)}><Plus className="h-4 w-4 mr-2"/>Quick Add Employee</Button><Link className="p-2 text-sm underline" to="/hrms/employees/new">Full employee form</Link>
         </CompactActions>
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
+      <Card className="employee-list-filters p-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -291,8 +300,8 @@ export default function EmployeesPage() {
             </SelectContent>
           </Select>
         </div>
-        <details open className="mt-4 border-t pt-3">
-          <summary className="cursor-pointer text-sm font-medium">Filters {activeCount > 0 ? `(${activeCount} active)` : "— city, education, job and account"}</summary>
+        <details className="mt-4 border-t pt-3">
+          <summary className="cursor-pointer text-sm font-medium">Filters {activeCount > 0 ? `(${activeCount} active)` : ""}</summary>
           {optionsError && <p role="alert" className="mt-2 text-sm text-destructive">Could not load filter choices. <button className="underline" onClick={() => void reloadOptions()}>Retry</button></p>}
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {filterFields.map(([key, label]) => (
@@ -310,21 +319,25 @@ export default function EmployeesPage() {
           </div>
         </details>
         <div className="mt-4 flex flex-wrap items-end gap-3 border-t pt-3">
-          <label className="space-y-1 text-xs font-medium"><span>Sort by</span><NativeSelect aria-label="Sort by" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">
+          <label className="space-y-1 text-xs font-medium"><span>Sort by</span><NativeSelect aria-label="Sort by" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm">
             {[["name", "Name"], ["employee_id", "Employee ID"], ["date_of_joining", "Joining date"], ["city", "City"], ["passout_year", "Passout year"], ["status", "Status"], ["employment_type", "Employment type"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </NativeSelect></label>
-          <label className="space-y-1 text-xs font-medium"><span>Order</span><NativeSelect aria-label="Sort order" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm"><option value="asc">Ascending</option><option value="desc">Descending</option></NativeSelect></label>
-          <label className="space-y-1 text-xs font-medium"><span>Rows per page</span><NativeSelect aria-label="Rows per page" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }} className="block h-10 rounded-md border bg-background px-3 text-sm">{[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</NativeSelect></label>
+          <label className="space-y-1 text-xs font-medium"><span>Order</span><NativeSelect aria-label="Sort order" value={sortOrder} onChange={(event) => { setSortOrder(event.target.value); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm"><option value="asc">Ascending</option><option value="desc">Descending</option></NativeSelect></label>
+          <label className="space-y-1 text-xs font-medium"><span>Rows per page</span><NativeSelect aria-label="Rows per page" value={perPage} onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }} className="block h-8 rounded-md border bg-background px-3 text-sm">{[20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</NativeSelect></label>
           <Button variant="ghost" onClick={() => { setFilters({}); setStatusFilter(""); setSearch(""); setSortBy("name"); setSortOrder("asc"); setPage(1); }}>Clear filters</Button>
           <span className="pb-2 text-sm text-muted-foreground" aria-live="polite">{data?.total ?? 0} matching employees</span>
         </div>
       </Card>
       {isError && <div role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail && typeof (error as any).response.data.detail === "string" ? (error as any).response.data.detail : "Could not load employees. Check filters and try again."} <button className="underline" onClick={() => void refetch()}>Retry</button></div>}
 
+      <WorkspaceViewBar scope="hrms-employees" label="Employee views" active={layout} views={[{id:"table",label:"Table",description:"Employee records and actions"},{id:"cards",label:"Profiles",description:"Employee profile cards"}]} onChange={id=>setLayout(id as "cards"|"table")} primary={["table","cards"]}/>
       {/* Table */}
       <Card className={layout === "cards" ? "overflow-hidden border-0 bg-transparent shadow-none" : "overflow-hidden"}>
-        {layout === "cards" && <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-          {isLoading ? Array.from({length:6},(_,i) => <div key={i} className="h-28 rounded-lg border bg-card p-4"><div className="h-10 w-10 rounded-full skeleton" /><div className="mt-2 h-3 w-2/3 skeleton" /></div>) : (data?.items || []).map((employee: Employee) => {
+        {layout === "cards" && <>
+          {isLoading ? <div role="status" className="p-4 text-sm text-muted-foreground">Loading employees…</div> : <GroupedRecords scope="hrms-employees" items={data?.items || []} gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3" fields={[
+            {id:"status",label:"Status",value:employee=>employee.status},
+            {id:"type",label:"Employment type",value:employee=>employee.employment_type},
+          ]} renderItem={(employee: Employee) => {
             const name = `${employee.first_name} ${employee.last_name}`;
             const designation = filterOptions?.designation_id?.find(option => option.value === String(employee.designation_id))?.label;
             const department = filterOptions?.department_id?.find(option => option.value === String(employee.department_id))?.label;
@@ -334,12 +347,12 @@ export default function EmployeesPage() {
               status={{label:employee.status,tone:employee.status.toLowerCase() === "active" ? "positive" : "muted"}}
               tags={[employee.employee_id,...(employee.skills_tags || "").split(",").map(tag => tag.trim()).filter(Boolean).slice(0,2)]}
               onOpen={() => setEmployeePopup({employee,editing:false})}
-              actions={<><ProfileAction onClick={() => setEmployeePopup({employee,editing:false})}>View profile</ProfileAction><ProfileAction onClick={() => setEmployeePopup({employee,editing:true})}>Edit</ProfileAction>{employee.personal_email && <ProfileAction href={`mailto:${employee.personal_email}`}>Email</ProfileAction>}</>} />;
-          })}
-          {!isLoading && !data?.items?.length && <div className="col-span-full rounded-lg border bg-card p-10 text-center text-muted-foreground">No profiles match these filters.</div>}
-        </div>}
+              actions={<><ProfileAction onClick={() => setEmployeePopup({employee,editing:false})}>View profile</ProfileAction>{canEditEmployee&&<ProfileAction onClick={() => setEmployeePopup({employee,editing:true})}>Edit</ProfileAction>}<RecordMaintenance record={employee as unknown as Record<string,unknown>} name={`${employee.first_name} ${employee.last_name}`} endpoint={`/employees/${employee.id}`} fields={[]} queryKeys={["employees"]} canEdit={false} canDelete={canDeleteEmployee} showEdit={false}/>{employee.personal_email && <ProfileAction href={`mailto:${employee.personal_email}`}>Email</ProfileAction>}</>} />;
+}}/>}
+          {!isLoading && !data?.items.length && <div className="p-8 text-center text-muted-foreground">No employees match the current filters.</div>}
+        </>}
         {layout === "table" && <div className="overflow-x-auto">
-          <GridTable gridId="apps/hrms/pages/employees/EmployeesPage:table-1" className="w-full text-sm">
+          <GridTable gridId="apps/hrms/pages/employees/EmployeesPage:table-1" hideSearch externalPagination className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -454,3 +467,5 @@ export default function EmployeesPage() {
     </div>
   );
 }
+
+export default withRecordViewHost(EmployeesPage);

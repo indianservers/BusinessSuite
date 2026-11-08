@@ -1,3 +1,4 @@
+import {useModuleAction} from "@/hooks/use-module-action";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
@@ -243,6 +244,7 @@ function exportTasks(tasks: WorkTask[]) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export default function MyWorkPage() {
+  const canCreateTask=useModuleAction("create");
   const identity = useAuthStore((s) => s.user);
   const uid = identity?.id;
   const contextKey = JSON.stringify([
@@ -330,6 +332,7 @@ export default function MyWorkPage() {
     if (query.owner && !query.assigneeIds) query.assigneeIds = query.owner;
     api
       .get<WorkData>("/project-management/tasks", {
+        recordCache: false,
         params: {
           ...query,
           workView: view,
@@ -541,7 +544,7 @@ export default function MyWorkPage() {
           >
             <RefreshCw size={16} />
           </button>
-          <Link className="mw-primary" to="/pms/tasks/new">
+          <Link className="mw-primary" to="/pms/tasks/new" aria-disabled={!canCreateTask} tabIndex={canCreateTask?0:-1} onClick={e=>{if(!canCreateTask)e.preventDefault();}}>
             <Plus size={18} /> Add Task
           </Link>
         </div>
@@ -1026,7 +1029,7 @@ export default function MyWorkPage() {
             <ListChecks size={32} />
             <h2>No tasks in this view</h2>
             <p>Adjust your filters or add a task to get started.</p>
-            <Link to="/pms/tasks/new" className="mw-primary">
+            <Link to="/pms/tasks/new" className="mw-primary" aria-disabled={!canCreateTask} tabIndex={canCreateTask?0:-1} onClick={e=>{if(!canCreateTask)e.preventDefault();}}>
               <Plus size={16} /> Add Task
             </Link>
           </div>

@@ -1,3 +1,4 @@
+import {useModuleAction} from "@/hooks/use-module-action";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -212,7 +213,7 @@ export function LeadWorkflowBoard({
     }),
     useSensor(KeyboardSensor),
   );
-  const canMove = bootstrap.canManage;
+  const canMove = bootstrap.canManage&&useModuleAction(mode==="owner"?"assign":"edit");
   const lanes =
     mode === "stage"
       ? bootstrap.settings.stages.map((s) => ({ id: s.name, title: s.name }))

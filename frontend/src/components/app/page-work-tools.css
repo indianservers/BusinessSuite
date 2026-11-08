@@ -1,0 +1,7 @@
+.page-work-tools { display:flex; justify-content:flex-end; margin-bottom:8px; font-size:12px; }
+.page-work-tools > button { border:1px solid hsl(var(--border)); border-radius:6px; min-height:36px; padding:6px 12px; }
+.page-actions-dialog { max-height:85dvh; overflow:auto; }
+.page-actions-list { display:flex; flex-direction:column; gap:4px; max-height:32dvh; overflow:auto; }
+.page-actions-list :is(button,a) { min-height:40px; padding:8px 12px; text-align:left; border-radius:4px; }
+.page-actions-list :is(button,a):hover { background:hsl(var(--muted)); }
+@media(min-width:1024px) { #suite-main { position:relative; } #suite-main .page-work-tools { position:absolute; right:24px; top:14px; margin:0; z-index:10; } #suite-main .page-work-tools > button { min-height:28px; padding:4px 9px; font-size:11px; background:hsl(var(--background)); } }

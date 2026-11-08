@@ -1147,3 +1147,13 @@ def test_parallel_loop_shared_writes_require_sequential_mode():
     )
     value["nodes"][1]["config"]["mode"] = "sequential"
     assert validate_runtime(value)
+
+
+def test_claim_run_filter_leaves_unselected_jobs_queued(client,db,actors):
+    first=publish(client,actors[0]);second=publish(client,actors[0])
+    a=run(client,actors[0],first,key="conditional-claim-first")
+    b=run(client,actors[0],second,key="conditional-claim-second")
+    selected=claim(db,"filtered-acceptance-worker",run_ids={b})
+    assert selected is not None
+    assert db.get(Job,selected[0]).run_id==b
+    assert all(job.status=="queued" for job in db.query(Job).filter_by(run_id=a))

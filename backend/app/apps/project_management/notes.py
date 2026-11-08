@@ -13,6 +13,11 @@ from app.models.user import User
 from .access import get_project_for_action, get_task_project_for_action, can_access_project
 from .models import PMSNote, PMSNoteRevision, PMSProject, PMSTask, PMSNoteFolder, PMSNoteShare, PMSNoteEvent
 
+def require_note_action(user, action):
+    from app.access.service import require_module_action
+    require_module_action(user, "project_management", action)
+
+
 def private_response(response: Response):
     response.headers["Cache-Control"] = "private, no-store"
 
@@ -235,7 +240,9 @@ def save_note(note_id: int, data: NoteSave, db: Session = Depends(get_db), user:
     if note.deleted_at:
         raise HTTPException(409, "Restore the note before editing")
     validate_links(db, data, user, note)
-    values = data.model_dump(exclude={"version"})
+    # Relationship changes must pass the ORM ownership/branch checks. Keep the
+    # scalar compare-and-swap so concurrent saves still reject stale versions.
+    values = data.model_dump(exclude={"version", "project_id", "task_id", "folder_id"})
     values.update(title=data.title.strip() or "Untitled note", version=data.version + 1, updated_at=datetime.now(timezone.utc))
     count = db.execute(update(PMSNote).where(PMSNote.id == note_id, PMSNote.owner_id == user.id,
         PMSNote.version == data.version, PMSNote.deleted_at.is_(None)).values(**values).execution_options(synchronize_session=False)).rowcount
@@ -243,6 +250,8 @@ def save_note(note_id: int, data: NoteSave, db: Session = Depends(get_db), user:
         db.rollback()
         raise HTTPException(409, "This note changed in another tab. Your draft is kept. Reload the latest note before saving.")
     db.refresh(note)
+    note.project_id, note.task_id, note.folder_id = data.project_id, data.task_id, data.folder_id
+    db.flush()
     revision(db, note)
     db.commit()
     return result(db, note, user)
@@ -459,6 +468,7 @@ class BulkInput(BaseModel):
 
 @router.post("/note-actions/bulk")
 def bulk_notes(data: BulkInput, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    require_note_action(user, "delete" if data.action in {"trash", "restore"} else "edit")
     if len({item.id for item in data.items}) != len(data.items): raise HTTPException(422, "Select each note once")
     rows = [(owned(db, item.id, user), item.version) for item in data.items]
     if data.action == "move": validate_links(db, data, user)
@@ -499,6 +509,7 @@ def undo_note_action(data: NoteUndoInput, db: Session = Depends(get_db), user: U
         raise HTTPException(422, "Select each note once")
     rows = [(owned(db, item.id, user), item) for item in data.items]
     for note, item in rows:
+        require_note_action(user, "delete" if bool(note.deleted_at) != item.trashed else "edit")
         if note.version != item.version:
             raise HTTPException(409, "A note changed since that action. Undo made no changes; reload the latest notes.")
         validate_links(db, item, user, note)

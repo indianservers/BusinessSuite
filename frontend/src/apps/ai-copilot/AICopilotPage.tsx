@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Bot, CheckCircle2, FileText, Gauge, Lightbulb, Mail, Play, ScrollText, Settings, ShieldCheck, Sparkles, Workflow } from "lucide-react";
@@ -129,9 +131,7 @@ function ProviderSettings() {
   return (
     <Section title="AI Provider Settings" action={<Button onClick={() => create.mutate()}>Add Mock Provider</Button>}>
       <div className="rounded border p-4 space-y-2"><h3 className="font-semibold">PMS operator API connections</h3><p className="text-sm text-muted-foreground">Configure encrypted credentials, connection tests, usage analytics and request logs for each provider.</p><div className="flex gap-4"><Link className="text-primary underline" to="/pms/settings/ai/openai">OpenAI / ChatGPT</Link><Link className="text-primary underline" to="/pms/settings/ai/gemini">Google Gemini</Link><Link className="text-primary underline" to="/pms/settings/ai/claude">Anthropic Claude</Link></div><p className="text-sm">Legacy copilot test providers below are separate from operator connections.</p></div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {(query.data?.items || []).map((item) => <Card key={item.id}><CardContent className="flex items-start justify-between gap-3 p-4"><div><p className="font-medium">{item.provider_name} / {item.model_name}</p><p className="mt-1 text-sm text-muted-foreground">Data sharing {item.data_sharing_allowed ? "allowed" : "blocked"}</p></div><div className="flex flex-col items-end gap-2"><Badge variant={item.enabled ? "default" : "outline"}>{item.enabled ? "Enabled" : "Disabled"}</Badge><Button variant="outline" size="sm" onClick={() => test.mutate(Number(item.id))}>Test</Button></div></CardContent></Card>)}
-      </div>
+      <GroupedRecords scope="apps/ai-copilot/AICopilotPage:cards-1" items={((query.data?.items || [])) || []} fields={standardRecordGroups(((query.data?.items || [])) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item) => <Card key={item.id}><CardContent className="flex items-start justify-between gap-3 p-4"><div><p className="font-medium">{item.provider_name} / {item.model_name}</p><p className="mt-1 text-sm text-muted-foreground">Data sharing {item.data_sharing_allowed ? "allowed" : "blocked"}</p></div><div className="flex flex-col items-end gap-2"><Badge variant={item.enabled ? "default" : "outline"}>{item.enabled ? "Enabled" : "Disabled"}</Badge><Button variant="outline" size="sm" onClick={() => test.mutate(Number(item.id))}>Test</Button></div></CardContent></Card>}/>
       {!query.isLoading && !(query.data?.items || []).length ? <p className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">No AI provider is configured.</p> : null}
     </Section>
   );
@@ -146,9 +146,7 @@ function PromptTemplates() {
   });
   return (
     <Section title="AI Prompt Templates" action={<Button onClick={() => create.mutate()}>Create Summary Prompt</Button>}>
-      <div className="grid gap-3 md:grid-cols-2">
-        {(query.data?.items || []).map((item) => <Card key={item.id}><CardContent className="p-4"><p className="font-medium">{item.name}</p><p className="mt-1 text-sm text-muted-foreground">{item.module_name} / {item.use_case}</p><Badge className="mt-3" variant={item.active ? "default" : "outline"}>{item.active ? "Active" : "Inactive"}</Badge></CardContent></Card>)}
-      </div>
+      <GroupedRecords scope="apps/ai-copilot/AICopilotPage:cards-2" items={((query.data?.items || [])) || []} fields={standardRecordGroups(((query.data?.items || [])) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item) => <Card key={item.id}><CardContent className="p-4"><p className="font-medium">{item.name}</p><p className="mt-1 text-sm text-muted-foreground">{item.module_name} / {item.use_case}</p><Badge className="mt-3" variant={item.active ? "default" : "outline"}>{item.active ? "Active" : "Inactive"}</Badge></CardContent></Card>}/>
     </Section>
   );
 }

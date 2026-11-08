@@ -41,6 +41,7 @@ const SettingsHubPage = React.lazy(() => import("@/pages/SettingsHubPage"));
 const CompanyAdminPage = React.lazy(() => import("@/pages/CompanyAdminPage"));
 const ModuleDashboardPage = React.lazy(() => import("@/pages/ModuleDashboardPage"));
 const IntegrationsPage = React.lazy(() => import("@/apps/power-apps/applications/integrations/IntegrationsPage"));
+const ConnectorCatalog = React.lazy(() => import("@/shared/ConnectorCatalog"));
 const PowerAppsPage = React.lazy(() => import("@/apps/power-apps/PowerAppsPage"));
 const SharedFormsPage = React.lazy(() => import("@/features/forms/FormsPage"));
 const PublicFormPage = React.lazy(() => import("@/features/forms/PublicFormPage"));
@@ -164,6 +165,8 @@ export default function App() {
   }, [isHydrated, isAuthenticated]);
   const enabledRoutes = getEnabledRoutes();
   const commonRoutes: FrontendRoute[] = [
+    { path: "connectors", element: <ConnectorCatalog /> },
+    ...["crm", "pms", "hrms", "srm", "fam"].map(module => ({ path: `${module}/connectors`, element: <ConnectorCatalog /> })),
     { path: "power-apps", element: <PowerAppsPage /> },
     { path: "power-apps/connectors", element: <IntegrationsPage /> },
     { path: "power-apps/integrations", element: <IntegrationsPage /> },
@@ -199,6 +202,7 @@ export default function App() {
     { path: "admin/automation/logs", element: <AutomationStudioPage /> },
     { path: "admin/customization", element: <CustomizationStudioPage /> },
     { path: "admin/customization/modules", element: <CustomizationStudioPage /> },
+    { path: "admin/customization/entities", element: <Navigate to="/admin/customization/modules" replace /> },
     { path: "admin/customization/modules/:id", element: <CustomizationStudioPage /> },
     { path: "admin/customization/fields", element: <CustomizationStudioPage /> },
     { path: "admin/customization/layouts", element: <CustomizationStudioPage /> },

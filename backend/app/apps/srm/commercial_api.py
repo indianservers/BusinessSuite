@@ -93,6 +93,7 @@ def customers(
     after: int = 0,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    ids: list[int] | None = Query(default=None, max_length=200),
 ):
     require(user, *DIRECTORY)
     query = db.query(CRMCompany).filter(
@@ -114,13 +115,16 @@ def customers(
                 "%" + q.replace("%", "\\%").replace("_", "\\_") + "%", escape="\\"
             )
         )
-    rows = query.order_by(CRMCompany.id).limit(51).all()
+    if ids:
+        query = query.filter(CRMCompany.id.in_(ids))
+    page_size = 200 if ids else 50
+    rows = query.order_by(CRMCompany.id).limit(page_size + 1).all()
     return {
         "items": [
             {"id": r.id, "name": r.name, "email": r.email, "phone": r.phone, "phone_country_code": r.phone_country_code, "address": r.address}
-            for r in rows[:50]
+            for r in rows[:page_size]
         ],
-        "next": rows[49].id if len(rows) > 50 else None,
+        "next": rows[page_size - 1].id if len(rows) > page_size else None,
     }
 
 

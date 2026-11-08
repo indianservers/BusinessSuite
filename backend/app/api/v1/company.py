@@ -195,6 +195,7 @@ def update_company_settings(
 
 # ── Branch ───────────────────────────────────────────────────────────────────
 
+@router.get("/branches", response_model=List[BranchSchema], include_in_schema=False)
 @router.get("/branches/", response_model=List[BranchSchema])
 def list_branches(
     company_id: Optional[int] = Query(None),
@@ -285,6 +286,7 @@ def delete_branch(
 
 # ── Department ───────────────────────────────────────────────────────────────
 
+@router.get("/departments", response_model=List[DepartmentSchema], include_in_schema=False)
 @router.get("/departments/", response_model=List[DepartmentSchema])
 def list_departments(
     branch_id: Optional[int] = Query(None),
@@ -360,6 +362,7 @@ def delete_department(
 
 # ── Designation ──────────────────────────────────────────────────────────────
 
+@router.get("/designations", response_model=List[DesignationSchema], include_in_schema=False)
 @router.get("/designations/", response_model=List[DesignationSchema])
 def list_designations(
     department_id: Optional[int] = Query(None),

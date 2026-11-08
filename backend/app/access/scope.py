@@ -11,6 +11,23 @@ from sqlalchemy.orm import with_loader_criteria
 from app.db.base_class import Base
 
 
+
+def domain_parent_fields(model):
+    """Workflow children inherit tenant scope only through real domain parent FKs."""
+    parents = {
+        "app.apps.fam.models": ("voucher_id", "financial_year_id"),
+        "app.apps.srm.models": ("sales_order_id", "engagement_id", "contract_id", "billing_plan_id"),
+        "app.apps.srm.commercial_models": ("sales_order_id", "engagement_id", "contract_id", "billing_plan_id"),
+        "app.models.payroll": ("payroll_run_id", "batch_id", "period_id", "pay_group_id", "payroll_record_id", "branch_id"),
+        "app.models.recruitment": ("branch_id", "department_id", "job_id", "candidate_id", "interview_id", "offer_id"),
+    }.get(model.__module__, ())
+    if model.__module__ == "app.apps.project_management.models" and model.__tablename__ in {
+        "pms_private_notes", "pms_note_folders", "pms_private_note_revisions", "pms_note_shares", "pms_note_events", "pms_private_note_attachments", "pms_private_note_task_links"
+    }:
+        parents = ("note_id",)
+    return tuple(name for name in parents if name in model.__table__.c and model.__table__.c[name].foreign_keys)
+
+
 def model_module(model):
     # The shared transactional outbox belongs to its originating module, not
     # HRMS. Tenant/branch boundaries and each producer's permission checks still
@@ -219,6 +236,13 @@ def install_scope(db, user, company, grants):
             return false()
         scope = grant.get("scope", "own")
         columns = model.__table__.c
+        if model.__tablename__ in {"pms_private_notes", "pms_note_folders"}:
+            # Personal documents are anchored by their owner, including when
+            # project/task are null. Notes services independently enforce private
+            # sharing and validate project/folder moves. Expanding every optional
+            # project/task ancestor here produces redundant recursive SQL.
+            tenant_owner = model.owner_id.in_(tenant_users)
+            return tenant_owner if scope == "organization" else and_(tenant_owner, model.owner_id.in_(scope_users.get(scope, own_users)))
         tenant = None
         from app.core.tenant_boundary import legacy_root
         if model is Employee:
@@ -254,6 +278,7 @@ def install_scope(db, user, company, grants):
                 "approval_id",
                 "quote_id",
                 "quotation_id",
+                *domain_parent_fields(model),
             )
         ):
             for origin in (
@@ -271,6 +296,7 @@ def install_scope(db, user, company, grants):
         if scope != "organization":
             ids = scope_users.get(scope, own_users)
             fields = (
+                *(("owner_id",) if model.__tablename__ in {"pms_private_notes", "pms_note_folders"} else ()),
                 "owner_user_id",
                 "assignee_user_id",
                 "assigned_to_user_id",
@@ -352,6 +378,7 @@ def install_scope(db, user, company, grants):
             "approval_id",
             "quote_id",
             "quotation_id",
+            *domain_parent_fields(model),
             *(("workflow_id", "step_definition_id") if pms_engine else ()),
             *(("product_id", "service_id") if model.__tablename__ in {"shared_catalog_details", "shared_catalog_links"} else ()),
         ):
@@ -522,6 +549,7 @@ def install_scope(db, user, company, grants):
                     "workspace_id",
                     "user_id",
                     "owner_user_id",
+                    *domain_parent_fields(type(item)),
                     *(("instance_id", "workflow_id", "step_definition_id") if pms_engine else ()),
                 )
             ):
@@ -547,6 +575,7 @@ def install_scope(db, user, company, grants):
                     "instance_id",
                     "form_id",
                     "approval_id",
+                    *domain_parent_fields(type(item)),
                     *(("workflow_id", "step_definition_id") if pms_engine else ()),
                 )
             ) and not pending_workflow:
@@ -556,6 +585,7 @@ def install_scope(db, user, company, grants):
                         for field in (
                             "requester_user_id",
                             "initiated_by_user_id",
+                            *(("owner_id",) if type(item).__tablename__ in {"pms_private_notes", "pms_note_folders"} else ()),
                             "owner_user_id",
                             "user_id",
                             "created_by_user_id",
@@ -569,6 +599,17 @@ def install_scope(db, user, company, grants):
                     raise HTTPException(
                         403, "A tenant-owned record or authorized parent is required"
                     )
+            for field in domain_parent_fields(type(item)):
+                value = getattr(item, field, None)
+                if value is None:
+                    continue
+                for fk in columns[field].foreign_keys:
+                    parent = all_models.get(fk.column.table.name)
+                    allowed = predicate(parent) if parent is not None else None
+                    if allowed is not None:
+                        with session.no_autoflush:
+                            if not session.query(parent.id).filter(parent.id == value, allowed).first():
+                                raise HTTPException(403, "Workflow parent is outside the assigned data scope")
             if grant.get("scope") != "organization":
                 ids = scope_users.get(grant.get("scope"), own_users)
                 fields = [

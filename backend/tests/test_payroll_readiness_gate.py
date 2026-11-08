@@ -132,3 +132,20 @@ def test_default_branch_rerun_reuses_run_and_replaces_checks(client, db):
     assert db.get(PayrollRun, run_id) is not None
     assert db.get(PayrollRun, sibling_run.json()["id"]) is not None
     assert db.query(PayrollRecord).filter_by(payroll_run_id=run_id).count() == record_count
+
+def test_readiness_error_with_decimal_values_is_a_validation_response(client, db, monkeypatch):
+    from decimal import Decimal
+    from app.crud import crud_payroll
+    init_db(db)
+    headers = _login(client)
+    summary = {
+        'critical_issue_count': 1,
+        'warning_issue_count': 0,
+        'issues': {'missing_salary': {'severity': 'Critical', 'amount': Decimal('123.45')}},
+    }
+    def blocked(*args, **kwargs):
+        raise crud_payroll.PayrollReadinessError(summary)
+    monkeypatch.setattr(crud_payroll, 'run_payroll', blocked)
+    response = client.post('/api/v1/payroll/run', json={'month': 5, 'year': 2026}, headers=headers)
+    assert response.status_code == 400
+    assert response.json()['detail']['readiness']['issues']['missing_salary']['amount'] == 123.45

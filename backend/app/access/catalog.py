@@ -1,3 +1,4 @@
+import re
 """Route and permission discovery. The frontend never maintains a module list."""
 
 from collections import defaultdict
@@ -169,6 +170,9 @@ def request_module(request):
         # Company administration; the endpoint checks approval, membership and
         # the current application grants before creating any sample records.
         return None
+    if request.url.path.startswith("/api/v1/pipeline-workspaces/"):
+        source = request.url.path.split("/")[4]
+        return source if source in {"crm", "srm", "hrms", "project_management"} else None
     if request.url.path.startswith("/api/v1/scheduling/"):
         source = request.url.path.split("/")[4]
         return {"crm": "crm", "srm": "srm", "inventory": "srm", "hrms": "hrms", "fam": "fam"}.get(source)
@@ -250,6 +254,33 @@ def permission_names(user):
 
 def action_for(request):
     path = request.url.path.lower()
+    if request.method == "POST" and path in {"/api/v1/project-management/note-actions/bulk", "/api/v1/project-management/note-actions/undo"}:
+        return "view"  # The command body is authorized by the notes endpoint.
+    if request.method == "POST" and path.startswith("/api/v1/project-management/notes/") and path.endswith("/restore"):
+        return "delete"
+    if request.method == "POST" and path.startswith("/api/v1/project-management/note-folders/") and path.endswith("/move"):
+        return "edit"
+    if (request.method == "POST" and path in {"/api/v1/crm/lead-management/bulk/apply", "/api/v1/crm/lead-management/bulk/preview"}) or (request.method == "PATCH" and re.fullmatch(r"/api/v1/crm/lead-management/leads/\d+", path)):
+        return "view"  # Lead patches enforce edit/assign/delete from their body.
+    if request.method == "POST" and re.fullmatch(r"/api/v1/crm/deal-workspace/\d+/close",path):
+        return "edit"
+    if path.startswith("/api/v1/project-management/notes/") and ((request.method in {"POST","DELETE"} and "/shares" in path) or (request.method=="PUT" and path.endswith("/visibility"))):
+        return "assign"
+    if request.method == "POST" and re.fullmatch(r"/api/v1/project-management/work/submissions/\d+/review",path):
+        return "approve"
+    # Reordering or arranging existing work is an edit, even when command routes use POST.
+    if request.method == "POST" and path.startswith("/api/v1/project-management/") and path.endswith(("/arrange", "/reorder", "/reorder-tasks", "/move-to-sprint", "/remove-from-sprint")):
+        return "edit"
+    # The follow-up action body selects edit or assignment; its endpoint checks both.
+    if request.method == "POST" and path.startswith("/api/v1/follow-ups/") and path.endswith("/actions"):
+        return "view"
+    # A receipt acknowledgement is an owner-scoped edit, not an assignment.
+    if path.startswith("/api/v1/assets/assignments/") and path.endswith("/acknowledge") and request.method == "PUT":
+        return "edit"
+    # Guided payroll authorizes its body action in the endpoint: review is edit;
+    # approval, locking, file preparation and reconciliation require approve.
+    if request.method == "POST" and path.startswith("/api/v1/payroll/runs/") and path.endswith("/guided"):
+        return "view"
     if request.method == "POST" and path.startswith("/api/v1/master-data/") and (path.endswith("/bulk") or path.endswith("/prepare-greeting")):
         return "edit"
     if path == "/api/v1/crm/deal-workspace/grid/archive":

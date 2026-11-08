@@ -259,3 +259,9 @@
 }
 
 @media(max-width:639px){.pms-record-more,.pms-record-item{min-height:44px;min-width:44px}}
+
+@media(max-width:640px) {
+  [data-radix-popper-content-wrapper]:has(> .pms-record-mobile-sheet) { position:fixed !important; inset:auto 0 0 !important; transform:none !important; width:100%; }
+  .pms-record-mobile-sheet { width:100%; max-width:none; max-height:70dvh; border-radius:16px 16px 0 0; padding:12px 12px max(12px,env(safe-area-inset-bottom)); }
+  .pms-record-mobile-sheet .pms-record-item { min-height:44px; }
+}

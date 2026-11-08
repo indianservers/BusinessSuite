@@ -48,7 +48,10 @@ PROVIDERS["onedrive"] = (
     "https://login.microsoftonline.com/common/oauth2/v2.0/token", None,
 )
 
-def app_config(connector_id):
+def app_config(connector_id, connection=None):
+    from app.apps.power_apps.integrations import marketplace_oauth
+    if connector_id in marketplace_oauth.PROVIDERS:
+        return marketplace_oauth.config(connector_id, connection)
     if connector_id not in PROVIDERS:
         raise HTTPException(422, "This connector has no OAuth authorization flow")
     name, authorize, token, revoke = PROVIDERS[connector_id]
@@ -81,6 +84,11 @@ def app_config(connector_id):
         secret=secret,
         redirect=redirect,
     )
+
+
+def connection_config(conn):
+    from app.apps.power_apps.integrations.marketplace_oauth import PROVIDERS as marketplace_providers
+    return app_config(conn.connector_id,conn) if conn.connector_id in marketplace_providers else app_config(conn.connector_id)
 
 
 def token_request(url, fields):
@@ -118,7 +126,7 @@ def token_request(url, fields):
 
 
 def start(db, conn, user, scopes):
-    config = app_config(conn.connector_id)
+    config = connection_config(conn)
     if set(scopes) != set(conn.scopes):
         raise HTTPException(422, "Authorize the exact visible connection scopes")
     state = secrets.token_urlsafe(32)
@@ -140,10 +148,14 @@ def start(db, conn, user, scopes):
         "redirect_uri": config["redirect"],
         "response_type": "code",
         "state": state,
-        "scope": " ".join(scopes),
+        "scope": config.get('separator',' ').join(scopes),
         "code_challenge": challenge,
         "code_challenge_method": "S256",
     }
+    if not config.get('pkce',True):
+        fields.pop('code_challenge');fields.pop('code_challenge_method')
+    if conn.connector_id=='mailchimp': fields.pop('scope',None)
+    if conn.connector_id=='trello': fields['prompt']='consent'
     if config["name"] == "google":
         fields.update(access_type="offline", prompt="consent")
     audit(db, conn, user, "oauth_started", {"scopes": scopes})
@@ -152,19 +164,22 @@ def start(db, conn, user, scopes):
 
 
 def store_tokens(db, conn, credential, tokens, allowed_scopes):
-    supplied = set(tokens.get("scope", " ".join(allowed_scopes)).split())
+    supplied = set(tokens.get("scope", " ".join(allowed_scopes)).replace(',',' ').split())
     if not supplied <= set(allowed_scopes):
         raise IntegrationFailure(
             "oauth_scope",
             "Provider granted unexpected scopes; connection was not enabled",
         )
+    from app.apps.power_apps.integrations.marketplace_oauth import PROVIDERS as marketplace_providers
+    if conn.connector_id in marketplace_providers and not set(allowed_scopes)<=supplied:
+        raise IntegrationFailure('oauth_scope','Provider did not grant the requested scopes; reconnect with the required permissions')
     old = CredentialVault.decrypt(credential)
     value = {"access_token": tokens["access_token"]}
     if tokens.get("refresh_token") or old.get("refresh_token"):
         value["refresh_token"] = tokens.get("refresh_token") or old["refresh_token"]
     credential.encrypted_value = CredentialVault.encrypt(value)
     credential.version += 1
-    conn.expires_at = now() + timedelta(seconds=int(tokens.get("expires_in", 3600)))
+    conn.expires_at = None if conn.connector_id=='mailchimp' and 'expires_in' not in tokens else now() + timedelta(seconds=int(tokens.get("expires_in", 3600)))
     conn.health = "unverified"
     conn.revision += 1
 
@@ -196,7 +211,7 @@ def callback(db, state, code):
     from app.apps.power_apps.integrations.service import config_identity
 
     user = config_identity(db, row.owner_user_id, row.organization_id, row.environment)
-    config = app_config(conn.connector_id)
+    config = connection_config(conn)
     if row.redirect_uri != config["redirect"]:
         raise HTTPException(400, "OAuth redirect configuration changed")
     verifier = CredentialVault.decrypt(
@@ -208,7 +223,11 @@ def callback(db, state, code):
     expected = conn.revision
     scopes = list(row.scopes)
     db.commit()  # consume state and release locks before network access
-    tokens = token_request(
+    exchange = token_request
+    if 'connector_id' in config:
+        from app.apps.power_apps.integrations.marketplace_oauth import request_token
+        exchange = lambda url, fields: request_token(config, fields)
+    tokens = exchange(
         config["token"],
         {
             "grant_type": "authorization_code",
@@ -234,6 +253,9 @@ def callback(db, state, code):
         .one()
     )
     config_identity(db, row.owner_user_id, row.organization_id, row.environment)
+    if 'connector_id' in config:
+        from app.apps.power_apps.integrations.marketplace_oauth import bind_account
+        bind_account(conn,credential,tokens)
     store_tokens(db, conn, credential, tokens, scopes)
     audit(db, conn, user, "oauth_authorized", {"scopes": scopes})
     db.commit()
@@ -242,6 +264,8 @@ def callback(db, state, code):
 
 def access_values(db, conn, credential, values):
     if credential.auth_type not in {"oauth2", "service_account"}:
+        return values
+    if conn.connector_id=='mailchimp' and conn.expires_at is None and values.get('access_token'):
         return values
     if (
         conn.expires_at
@@ -254,7 +278,7 @@ def access_values(db, conn, credential, values):
         raise IntegrationFailure(
             "expired", "OAuth authorization expired; reconnect this account"
         )
-    config = None if account_mode else app_config(conn.connector_id)
+    config = None if account_mode else connection_config(conn)
     token = str(uuid.uuid4())
     expected_version = credential.version
     expected_revision = conn.revision
@@ -305,7 +329,11 @@ def access_values(db, conn, credential, values):
                 },
             )
         else:
-            tokens = token_request(
+            exchange = token_request
+            if 'connector_id' in config:
+                from app.apps.power_apps.integrations.marketplace_oauth import request_token
+                exchange = lambda url, fields: request_token(config, fields)
+            tokens = exchange(
                 config["token"],
                 {
                     "grant_type": "refresh_token",

@@ -2305,6 +2305,9 @@ def update_project(
         entity={"id": project.id, "name": project.name, "projectKey": project.project_key},
         data={"changedFields": list(update_data.keys())},
     )
+    project.can_manage_tasks = can_access_project(db, project, current_user, "manage_tasks")
+    project.can_upload_files = can_access_project(db, project, current_user, "upload")
+    project.can_edit_project = can_access_project(db, project, current_user, "edit_project")
     return project
 
 

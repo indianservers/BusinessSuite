@@ -15,3 +15,11 @@
 .suite-sidebar-embedded{position:sticky!important;top:0;height:100dvh;flex-shrink:0;z-index:35!important}.suite-sidebar nav[aria-label="Module navigation"]{scrollbar-width:thin;scrollbar-color:hsl(var(--sidebar-border)) transparent}
 @media(max-width:1023px){.suite-sidebar-embedded{position:fixed!important}.module-menu-row>a{min-height:44px}.module-menu-subtoggle{min-height:44px;width:34px}}
 @media(prefers-reduced-motion:reduce){.module-menu *{transition:none!important}}
+
+/* Persistent quick-create controls: separate targets from navigation and disclosure. */
+.module-menu .module-menu-create{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;margin-right:3px;border:1px solid hsl(var(--menu-accent)/.18);border-radius:6px;background:hsl(var(--menu-accent)/.07);color:hsl(var(--menu-accent));padding:0}
+.module-menu .module-menu-create:hover{background:hsl(var(--menu-accent)/.17);border-color:hsl(var(--menu-accent)/.4)}
+.module-menu .module-menu-page-row{display:flex;align-items:center;gap:3px}.module-menu-page-row>a{flex:1;min-width:0}
+@media(pointer:coarse){.module-menu .module-menu-create{flex-basis:36px;width:36px;height:40px}}
+
+.module-menu-row>a>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.module-menu-page-row>a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

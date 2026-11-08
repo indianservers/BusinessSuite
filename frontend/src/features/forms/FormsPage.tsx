@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
@@ -1051,14 +1053,17 @@ export default function FormsPage() {
             Search fields
             <input value={search} onChange={(e) => setSearch(e.target.value)} />
           </label>
-          <div className="forms-card-grid">
-            {catalog
+          <GroupedRecords scope="features/forms/FormsPage:cards-1" items={(catalog
               .filter((f) =>
                 `${f.label} ${f.module_name} ${f.api_name}`
                   .toLowerCase()
                   .includes(search.toLowerCase()),
-              )
-              .map((f) => (
+              )) || []} fields={standardRecordGroups((catalog
+              .filter((f) =>
+                `${f.label} ${f.module_name} ${f.api_name}`
+                  .toLowerCase()
+                  .includes(search.toLowerCase()),
+              )) || [])} gridClassName="forms-card-grid" renderItem={(f) => (
                 <article className="forms-panel" key={f.id}>
                   <h3>{f.label}</h3>
                   <p>
@@ -1068,8 +1073,7 @@ export default function FormsPage() {
                   <p>{f.help}</p>
                   {f.options.length > 0 && <p>{f.options.join(" · ")}</p>}
                 </article>
-              ))}
-          </div>
+              )}/>
           {!catalog.length && (
             <p>
               No compatible global fields yet. Computed and record lookup fields
@@ -1092,12 +1096,13 @@ export default function FormsPage() {
               {forms.length} forms · {moduleKey.toUpperCase()}
             </span>
           </div>
-          <div className="forms-card-grid">
-            {forms
+          <GroupedRecords scope="features/forms/FormsPage:cards-2" items={(forms
               .filter(matches)
               .filter((f) => page !== "responses" || !f.read_only)
-              .filter((f) => page !== "published" || !!f.published)
-              .map((f) => (
+              .filter((f) => page !== "published" || !!f.published)) || []} fields={standardRecordGroups((forms
+              .filter(matches)
+              .filter((f) => page !== "responses" || !f.read_only)
+              .filter((f) => page !== "published" || !!f.published)) || [])} gridClassName="forms-card-grid" renderItem={(f) => (
                 <article className="forms-panel forms-library-card" key={f.id}>
                   <span className="forms-status">
                     {f.published ? (f.open ? "Published" : "Closed") : "Draft"}
@@ -1154,8 +1159,7 @@ export default function FormsPage() {
                       </p>
                     )}
                 </article>
-              ))}
-          </div>
+              )}/>
           {!forms
             .filter(matches)
             .filter((f) => page !== "responses" || !f.read_only)

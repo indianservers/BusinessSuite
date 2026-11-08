@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.core.deps import get_db, RequirePermission
+from app.core.deps import get_db, RequirePermission, get_current_user
 from app.apps.power_apps.service import organization, validate_environment
 from app.apps.power_apps.integrations.registry import catalog
 from app.apps.power_apps.integrations import vault, service, oauth
@@ -24,6 +24,13 @@ from app.apps.power_apps.integrations.contracts import (
 router = APIRouter(prefix="/power-apps/integrations", tags=["Power Apps Integrations"])
 view = RequirePermission("power_apps_view")
 manage = RequirePermission("power_apps_manage_credentials")
+
+
+@router.get("/discovery")
+def shared_connector_discovery(user=Depends(get_current_user)):
+    # Public provider metadata only. This grants no connection, token or action access.
+    from app.apps.power_apps.integrations.marketplace import discovery
+    return {"items": discovery()}
 
 
 @router.get("/catalog")
@@ -231,3 +238,7 @@ def callback(state: str, code: str, db: Session = Depends(get_db)):
         "connected": True,
         "message": "Authorization saved. Return to Integration Studio to test the connection.",
     }
+
+
+from app.apps.power_apps.integrations.marketplace_sync import router as marketplace_sync_router
+router.include_router(marketplace_sync_router)

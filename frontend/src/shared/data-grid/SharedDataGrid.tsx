@@ -1,4 +1,11 @@
+import {useRecordAutosave} from "@/hooks/use-record-autosave";
+import {moduleActionAllowed} from "@/hooks/use-module-action";
 import { mergePendingGridSearch } from "./pendingSearch";
+import RecordViewBar from "./RecordViewBar";
+import { useRecordPreferences } from "./record-preferences";
+import { localGridSource } from "./local-source";
+import { Star } from "lucide-react";
+import GroupLabel from "./GroupLabel";
 import { defaultText } from "@/lib/form-defaults";
 import { writeClipboard } from "@/lib/clipboard";
 import { SuiteDistribution, SuiteIllustration } from "@/components/visuals/SuiteVisuals";
@@ -53,6 +60,8 @@ import {
   ArrowLeft,
   ArrowRight,
   ChevronDown,
+  ChevronsUpDown,
+  ChevronsDownUp,
   ChevronRight,
   Copy,
   GripVertical,
@@ -185,7 +194,7 @@ export function GroupingPanel({
       ref={drop.setNodeRef}
     >
       <Layers size={15} />
-      <span>Group by</span>
+      <span>Group</span>
       <SortableContext
         items={query.grouping.map((id) => `group-column:${id}`)}
         strategy={horizontalListSortingStrategy}
@@ -207,7 +216,7 @@ export function GroupingPanel({
         ))}
       </SortableContext>
       {!query.grouping.length && (
-        <small>{loadedOnly ? "Drag a column here to group loaded rows" : "Drag a column here to group the full dataset"}</small>
+        <small title="Drag a column here to group records">{loadedOnly ? "Loaded rows" : "All matching records"}</small>
       )}
       <NativeSelect
         aria-label="Add grouping column"
@@ -237,8 +246,8 @@ export function GroupingPanel({
           ))}
       </NativeSelect>
       {query.grouping.length > 0 && <>
-        <button type="button" className="udg-control" disabled={expanding} onClick={expandAll}>{expanding ? "Expanding…" : "Expand loaded groups"}</button>
-        <button type="button" className="udg-control" onClick={collapseAll}>Collapse all</button>
+        <button type="button" className="udg-control udg-group-toggle" aria-label="Expand loaded groups" title="Expand loaded groups" disabled={expanding} onClick={expandAll}>{expanding ? <RefreshCw size={14} className="udg-spinning"/> : <ChevronsUpDown size={14}/>}</button>
+        <button type="button" className="udg-control udg-group-toggle" aria-label="Collapse all" title="Collapse all groups" onClick={collapseAll}><ChevronsDownUp size={14}/></button>
       </>}
     </div>
   );
@@ -435,19 +444,66 @@ function validateGridResult<T>(result: GridResult<T>): GridResult<T> {
 
 export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const [focused, setFocused] = useState<T>();
+  const [previewRows,setPreviewRows] = useState<T[]>([]);
+  const [previewNotice,setPreviewNotice] = useState("");
   const location = useLocation();
+  const personal = useRecordPreferences(`${location.pathname}:${props.workspaceId || "organization"}:${props.personalScope || props.gridId}`);
+  const enabled = props.personalViews !== false;
+  const category = props.columns.find(column => /^(category|department|type|stage|status|team|group)$/i.test(column.title));
+  const tags = props.columns.find(column => /^(tags?|labels)$/i.test(column.title));
+  const mode = enabled ? personal.view : "table";
+  const ranked = Object.entries(personal.activity).sort((a,b)=>b[1].count-a[1].count||b[1].last-a[1].last).map(([id])=>id);
+  const ids = mode === "favorites" ? personal.favorites : mode === "frequent" ? ranked : undefined;
+  const personalSignature = JSON.stringify([mode,ids]);
+  const source = useMemo(() => {
+    const base = props.dataSource;
+    if (!enabled || ids === undefined) return base;
+    const key = `${base.key}:personal:${personalSignature}`;
+    if (base.localRows) {
+      const rank = new Map(ids.map((id,index)=>[id,index]));
+      const records = base.localRows.filter(row=>rank.has(props.getRowId(row)));
+      if (mode === "frequent") records.sort((a,b)=>rank.get(props.getRowId(a))!-rank.get(props.getRowId(b))!);
+      const filtered = localGridSource(key,records,props.columns,props.getRowId);
+      return {...filtered,load:async(query:GridQuery,signal?:AbortSignal)=>{const [result,original]=await Promise.all([filtered.load(mode==="frequent"?{...query,sorting:[]}:query,signal),base.load(query,signal)]);return {...result,permissions:original.permissions};}, export:base.export?filtered.export:undefined};
+    }
+    const adapt = (query:GridQuery):GridQuery => base.personalIdentity ? {...query,recordIds:ids,recordOrder:mode==="frequent",recordIdentity:base.personalIdentity,sorting:mode==="frequent"?[]:query.sorting} : {...query,grouping:[],path:[]};
+    return {...base,key,load:async(query:GridQuery,signal?:AbortSignal)=>{
+      const result=await base.load(adapt(query),signal);
+      if(base.personalIdentity)return result;
+      const rank=new Map(ids.map((id,index)=>[id,index]));
+      const rows=result.rows.filter(row=>rank.has(props.getRowId(row)));
+      if(mode==="frequent")rows.sort((a,b)=>rank.get(props.getRowId(a))!-rank.get(props.getRowId(b))!);
+      return {...result,rows,groups:[],total:rows.length,pageTotal:rows.length};
+    },facets:base.facets?((field:string,search:string,query:GridQuery,signal?:AbortSignal)=>base.facets!(field,search,adapt(query),signal)):undefined,export:base.export&&base.personalIdentity?((request:GridExportRequest)=>base.export!({...request,query:adapt(request.query)})):undefined};
+  },[props.dataSource,personalSignature,enabled]);
+  const identity = props.columns.find(column=>/^(name|title|full_name)$/i.test(column.id)) || props.columns.find(column=>/^(name|title|project|employee|lead|deal|company|customer|record|item)( name)?$/i.test(column.title)) || props.columns.find(column=>!/select|action|favorite/i.test(column.title)) || props.columns[0];
+  const titleFor = (row:T) => identity ? String(identity.exportValue?.(row) ?? identity.accessor?.(row) ?? (row as Record<string,unknown>)[identity.id] ?? "Record") : "Record";
+  const track = (row:T) => {if(enabled)personal.use(props.getRowId(row));};
+  const favoriteColumn:GridColumn<T>={id:"__suite_favorite",title:"Favorite",width:47,minWidth:40,sortable:false,filterable:false,groupable:false,render:row=><button type="button" className="suite-record-star" data-record-personal aria-label={`${personal.favorites.includes(props.getRowId(row))?"Unfavorite":"Favorite"} ${titleFor(row)}`} title="Toggle favorite" aria-pressed={personal.favorites.includes(props.getRowId(row))} onClick={event=>{event.stopPropagation();personal.toggle(props.getRowId(row));}}><Star size={15} fill={personal.favorites.includes(props.getRowId(row))?"currentColor":"none"}/></button>};
+  const enhancedColumns=enabled?[favoriteColumn,...props.columns]:props.columns;
   useEffect(() => setFocused(undefined), [props.dataSource.key, location.pathname, location.search]);
   const canPreview = props.detailsEnabled !== false && !props.onSelectRecord;
-  const preview = (row: T) => setFocused(row);
+  const preview = (row: T) => {track(row);setFocused(row);};
   const titleColumn = props.columns.find(c => !/^(select|actions?|quick actions)$/i.test(c.title)) || props.columns[0];
   const title = focused === undefined ? "" : String(titleColumn?.accessor?.(focused) ?? (focused as Record<string, unknown>)[titleColumn?.id] ?? "Record");
   return <div className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
-    <div className="udg-workspace-main"><GridEngine {...props}
+    <div className="udg-workspace-main">{enabled&&<RecordViewBar scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>}
+    <GridEngine {...props}
+      dataSource={source} columns={enhancedColumns}
+      viewMode={enabled?(mode==="cards"||mode==="category"||mode==="tags"?"cards":mode==="list"?"list":"grid"):props.viewMode}
+      collectionGroup={mode==="category"?category?.id:mode==="tags"?tags?.id:undefined}
+      rowProps={row=>{const original=props.rowProps?.(row)||{};return {...original,onClickCapture:event=>{original.onClickCapture?.(event);const target=event.target as HTMLElement;if(target.closest("button,a,[data-record-open]")&&!target.closest("[data-record-personal]"))track(row);}};}}
+      onResult={result => {setPreviewRows(result.rows);props.onResult?.(result);}}
       onSelectRecord={props.onSelectRecord || (canPreview ? preview : undefined)}
-      onOpen={props.onOpen || (canPreview ? preview : undefined)}
-      rowActions={canPreview ? [{ id: "suite-preview", label: "Preview record", icon: Eye, quick: true, run: preview }, ...(props.rowActions || [])] : props.rowActions}
+      onOpen={props.onOpen ? row=>{track(row);props.onOpen!(row);} : (canPreview ? preview : undefined)}
+      rowActions={[...(canPreview ? [{ id: "suite-preview", label: "Preview record", icon: Eye, quick: true, run: preview }] : []),...(enabled?[{id:"suite-favorite",label:"Toggle favorite",icon:Star,run:(row:T)=>personal.toggle(props.getRowId(row))},{id:"suite-copy-name",label:"Copy record name",icon:Copy,run:(row:T)=>writeClipboard(titleFor(row))}]:[]),...(props.rowActions || []).map(action=>({...action,run:(row:T)=>{track(row);return action.run(row);}}))]}
     /></div>
     {focused !== undefined && <GridRecordPane title={title} close={() => setFocused(undefined)} expand={props.onOpen ? () => props.onOpen?.(focused) : undefined}>
+      <div className="flex flex-wrap gap-2 pb-3" role="group" aria-label="Record preview navigation">
+        <button type="button" disabled={previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))<=0} onClick={()=>setFocused(previewRows[previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))-1])}>Previous record</button>
+        <button type="button" disabled={previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))<0 || previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))>=previewRows.length-1} onClick={()=>setFocused(previewRows[previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))+1])}>Next record</button>
+        <button type="button" onClick={()=>{const text=props.columns.filter(c=>c.id!=="actions").map(c=>`${c.title}: ${String(c.accessor?c.accessor(focused):(focused as Record<string,unknown>)[c.id]??"")}`).join("\n");void writeClipboard(text).then(()=>setPreviewNotice("Record details copied"),()=>setPreviewNotice("Could not copy record details"));}}>Copy details</button>
+      </div>{previewNotice && <p role="status" className="text-xs">{previewNotice}</p>}
       {props.renderDetails ? props.renderDetails(focused) : <dl className="udg-details-fields">{props.columns.filter(c => c.id !== "actions").map(column => {
         const value = column.accessor ? column.accessor(focused) : (focused as Record<string, unknown>)[column.id];
         return <div key={column.id}><dt>{column.title}</dt><dd>{value == null || value === "" ? "—" : String(value)}</dd></div>;
@@ -513,10 +569,24 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         : [],
     };
   }, [preferenceKey]);
-  const [layout, setLayout] = useState(initial.layout),
+  const [storedLayout, setLayout] = useState(initial.layout),
     [query, setQuery] = useState<GridQuery>(initial.query),
     [views, setViews] = useState<GridSavedView[]>(initial.views);
+  const layout = props.viewMode ? {...storedLayout,view:props.viewMode} : storedLayout;
   const mobile = useMobile();
+  const previousCollectionView = useRef<GridLayout["view"]>();
+  const preservedGrouping = useRef<string[]>([]);
+  useEffect(()=>{
+    if(props.viewMode===previousCollectionView.current)return;
+    if(props.viewMode&&props.viewMode!=="grid"){
+      preservedGrouping.current=query.grouping;
+      setQuery(current=>({...current,grouping:[],path:[],page:1}));
+    }else if(previousCollectionView.current&&previousCollectionView.current!=="grid"&&preservedGrouping.current.length){
+      setQuery(current=>({...current,grouping:preservedGrouping.current,path:[],page:1}));
+    }
+    previousCollectionView.current=props.viewMode;
+  },[props.viewMode]);
+
   const effectiveRowHeight = mobile ? Math.max(48, layout.rowHeight) : layout.rowHeight;
   const restoredViewQuery = useRef<string>();
   const selectRecordTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -546,9 +616,12 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     row: string;
     column: string;
     value: string;
+    original: string;
     error?: string;
     busy?: boolean;
+    automatic?: boolean;
   }>();
+  const editWriting=useRef(false);
   const [active, setActive] = useState<{ row: string; column: string }>(),
     [range, setRange] = useState<{
       start: { row: string; column: string };
@@ -639,6 +712,11 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       props.refreshKey,
     ],
     queryFn: async ({ signal }) => validateGridResult(await dataSource.load(query, signal)),
+    // A refresh version changes data freshness, not the selected list. Keep its
+    // rows mounted; different filters, sources and identities get a fresh view.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery && JSON.stringify(previousQuery.queryKey.slice(0, 4)) === JSON.stringify(["shared-grid", preferenceKey, dataSource.key, query])
+        ? previous : undefined,
     staleTime: 15000,
     gcTime: 60000,
     refetchOnWindowFocus: true,
@@ -648,7 +726,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     if (request.data) props.onResult?.(request.data);
   }, [request.data]);
   const result = request.data,
-    permissions = result?.permissions || {};
+    permissions = {...result?.permissions,edit:!!result?.permissions?.edit&&moduleActionAllowed(user,location.pathname,"edit"),archive:!!result?.permissions?.archive&&moduleActionAllowed(user,location.pathname,"delete"),assign:!!result?.permissions?.assign&&moduleActionAllowed(user,location.pathname,"assign"),manualProbability:!!result?.permissions?.manualProbability&&moduleActionAllowed(user,location.pathname,"edit"),export:!!result?.permissions?.export&&moduleActionAllowed(user,location.pathname,"export")};
   const normalize = useCallback(
     (result: GridResult<T>): Node<T>[] =>
       result.groups?.length
@@ -796,7 +874,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const rowVirtual = useVirtualizer({
     count: modelRows.length,
     getScrollElement: () => scroll.current,
-    estimateSize: () => effectiveRowHeight,
+    estimateSize: (index) => modelRows[index]?.original.group ? (mobile ? 44 : 34) : effectiveRowHeight,
     overscan: 8,
     scrollMargin: 40,
     scrollPaddingStart: 40,
@@ -813,7 +891,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   });
   useEffect(() => {
     rowVirtual.measure();
-  }, [effectiveRowHeight]);
+  }, [effectiveRowHeight, mobile, modelRows.length, query.grouping.join("|")]);
   useEffect(() => {
     columnVirtual.measure();
   }, [effectiveSizes, layout.order, layout.visibility, effectivePinning]);
@@ -1056,6 +1134,14 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       setActionError(errorText(e));
     }
   }
+  function renderCollectionRecord(record:T) {
+    const actions=rowActions.filter(action=>!action.visible||action.visible(record));
+    return <article key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))onOpen?.(record);}}>
+      {columns.find(column=>column.id==="__suite_favorite")?.render?.(record)}
+      {props.renderCard?.(record)||<div className="udg-record-fields">{[...columns.filter(column=>column.id!=="__suite_favorite"&&layout.visibility[column.id]!==false&&!/^(select|actions?|quick actions)$/i.test(column.title)).slice(0,7),...columns.filter(column=>layout.visibility[column.id]!==false&&/^(actions?|quick actions)$/i.test(column.title))].map(column=><div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record,column)}</div>)}</div>}
+      <div className="udg-card-actions">{actions.filter(action=>action.quick).slice(0,4).map(action=><button type="button" key={action.id} title={action.label} aria-label={action.label} disabled={action.disabled?.(record)} onClick={()=>void runAction(action,record)}>{action.icon&&<action.icon size={15}/>}</button>)}{actions.length>0&&<Dropdown.Root modal={false}><Dropdown.Trigger aria-label="Record quick actions" title="Record quick actions"><MoreHorizontal size={16}/></Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="udg-menu" align="end" collisionPadding={10}>{actions.map(action=><Dropdown.Item key={action.id} disabled={action.disabled?.(record)} onSelect={()=>void runAction(action,record)}>{action.icon&&<action.icon size={14}/>} {action.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}</div>
+    </article>;
+  }
   function rowMenu(row: T) {
     return rowActions
       .filter((action) => !action.visible || action.visible(row))
@@ -1107,25 +1193,28 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         : value == null
           ? ""
           : String(value).slice(0, def.editor === "date" ? 10 : undefined);
-    setEdit({ row: node.id, column: def.id, value: editorValue });
+    setEdit({ row: node.id, column: def.id, value: editorValue, original:editorValue });
   }
-  async function commitEdit(node: Node<T>, def: GridColumn<T>) {
-    if (!edit || !node.record || edit.busy) return;
+  async function commitEdit(node: Node<T>, def: GridColumn<T>, automatic=false) {
+    if (!edit || !node.record || edit.busy || editWriting.current) return false;
     const validation = def.validate?.(edit.value, node.record);
-    if (validation) {
-      setEdit({ ...edit, error: validation });
-      return;
-    }
-    setEdit({ ...edit, busy: true, error: undefined });
+    if (validation) {setEdit({ ...edit, error: validation });return false;}
+    const captured=edit;editWriting.current=true;
+    setEdit({ ...edit, busy: true, automatic, error: undefined });
     try {
-      await onEdit?.(node.record, def.id, edit.value);
-      setEdit(undefined);
-      void request.refetch();
-      setNotice(`${def.title} saved.`);
+      await onEdit?.(node.record, def.id, captured.value);
+      if(automatic)setEdit(current=>current?.row===captured.row&&current.column===captured.column?{...current,original:captured.value,busy:false,automatic:false}:current);
+      else setEdit(undefined);
+      void request.refetch();setNotice(`${def.title} saved.`);return true;
     } catch (e) {
-      setEdit({ ...edit, error: errorText(e), busy: false });
-    }
+      setEdit(current=>current?.row===captured.row&&current.column===captured.column?{...current,error:errorText(e),busy:false,automatic:false}:current);return false;
+    } finally {editWriting.current=false;}
   }
+  const cellAuto=useRecordAutosave({value:edit?{row:edit.row,column:edit.column,value:edit.value}:null,enabled:!!edit&&!edit.busy&&permissions.edit&&!!onEdit,dirty:!!edit&&edit.value!==edit.original,save:async()=>{
+    if(!edit)return false;
+    const node=table.getRow(edit.row).original,def=columns.find(column=>column.id===edit.column);
+    return def?commitEdit(node,def,true):false;
+  }});
   function focusCell(index: number, columnIndex: number) {
     index = Math.max(0, Math.min(modelRows.length - 1, index));
     columnIndex = Math.max(0, Math.min(ordered.length - 1, columnIndex));
@@ -1207,7 +1296,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       setEdit(undefined);
     }
   }
-  function textFor(row: T, def: GridColumn<T>) {
+  function textFor(row: T, def: GridColumn<T>): string {
     return (
       def.exportValue?.(row) ||
       String(
@@ -1216,6 +1305,13 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           : ((row as Record<string, unknown>)[def.id] ?? ""),
       )
     );
+  }
+  function rowLabel(row:T):string {
+    const identity=columns.find(column=>/^(name|title|full_name|fullName|display_name|subject|item_name|project_name|employee_name|legal_name)$/i.test(column.id))
+      ||columns.find(column=>/name|title|subject/i.test(column.title)&&!/company|owner|manager|assignee/i.test(column.title))
+      ||columns.find(column=>column.id!=="__suite_favorite");
+    const label=identity?textFor(row,identity).trim():"";
+    return label&&label!=="—"?label:String((row as Record<string,unknown>).name||(row as Record<string,unknown>).title||getRowId(row));
   }
   function displayFor(row: T, def: GridColumn<T>) {
     if (isPhoneField(def.id)) {
@@ -1307,16 +1403,16 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       const editorProps = {
         autoFocus: true,
         value: edit.value,
-        disabled: edit.busy,
+        disabled: edit.busy&&!edit.automatic,
         "aria-label": `Edit ${definition.title}`,
         onChange: (
           e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
         ) => setEdit({ ...edit, value: e.target.value, error: undefined }),
         onKeyDown: (e: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
           e.stopPropagation();
-          if (e.key === "Enter") {
+          if (e.key === "Enter" || (e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s") {
             e.preventDefault();
-            void commitEdit(node, definition);
+            if(!e.repeat)void commitEdit(node, definition);
           }
           if (e.key === "Escape") {
             e.preventDefault();
@@ -1339,6 +1435,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           )}
           <button
             disabled={edit.busy}
+            data-save-action
             aria-label="Save cell"
             onClick={() => void commitEdit(node, definition)}
           >
@@ -1347,6 +1444,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           <button aria-label="Cancel cell edit" onClick={cancelEdit}>
             <X size={12} />
           </button>
+          {cellAuto.message&&<span role="status">{cellAuto.message}</span>}
           {edit.error && (
             <span role="alert" className="udg-cell-error">
               {edit.error}
@@ -1483,7 +1581,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     >
       {props.statistics && result
         ? props.statistics(result)
-        : result && (
+        : result && !!result.aggregates?.length && (
             <div className="udg-statistics">
               <div>
                 <span>Matching records</span>
@@ -1501,13 +1599,14 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       {visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
       <GridToolbar
         search={search}
+        hideSearch={props.hideSearch}
         searchPlaceholder={props.dataScope === "loaded" ? "Search loaded records…" : undefined}
         setSearch={setSearch}
         filterCount={filterRules(query.filters).length}
         openFilters={() => setFilterOpen(true)}
         layout={layout}
         updateLayout={updateLayout}
-        views={props.views || ["grid"]}
+        views={props.viewMode ? [props.viewMode] : props.views || ["grid"]}
         extra={props.toolbarExtra}
         undo={historySize ? undo : undefined}
         reset={() =>
@@ -1674,7 +1773,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           <div
             className="udg-scroll"
             ref={scroll}
-            style={{ height: props.height || Math.min(540, Math.max(240, (request.isPending ? 8 : modelRows.length) * effectiveRowHeight + 40)) }}
+            style={{ height: props.height || Math.min(540, Math.max(120, (request.isPending ? 8 * effectiveRowHeight : rowVirtual.getTotalSize()) + 40)) }}
             role="grid"
             aria-label={props.title || "Records"}
             aria-rowcount={(result?.total || 0) + 1}
@@ -1764,7 +1863,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                           top: 0,
                           left: 0,
                           width: "100%",
-                          height: effectiveRowHeight,
+                          height: virtual.size,
                           transform: `translateY(${virtual.start - 40}px)`,
                         };
                       if (node.more)
@@ -1822,17 +1921,9 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                               ) : (
                                 <ChevronRight size={15} />
                               )}
-                              <span>
-                                {
-                                  columns.find(
-                                    (c) => c.id === node.group!.field,
-                                  )?.title
-                                }
-                                : <strong>{node.group.label}</strong>
-                              </span>
-                              <b>{node.group.count.toLocaleString()}</b>
+                              <GroupLabel label={node.group.label} field={columns.find(c => c.id === node.group!.field)?.title} count={node.group.count}/>
                             </button>
-                            <NativeSelect
+                            {node.group.aggregates.length > 0 && <NativeSelect
                               aria-label={`Aggregation for ${node.group.label}`}
                               value={layout.summary}
                               onChange={(e) =>
@@ -1848,7 +1939,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                   <option key={key}>{key}</option>
                                 ),
                               )}
-                            </NativeSelect>
+                            </NativeSelect>}
                             {node.group.aggregates.map((a) => (
                               <span
                                 className="udg-group-total"
@@ -1912,7 +2003,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                               clearTimeout(selectRecordTimer.current);
                               const action = (event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]');
                               if (action && !action.hasAttribute('data-record-open')) return;
-                              if (props.onOpenPopup) { event.preventDefault(); event.stopPropagation(); props.onOpenPopup(record); }
+                              if (onOpen) { event.preventDefault(); event.stopPropagation(); onOpen(record); }
+                              else if (props.onOpenPopup) { event.preventDefault(); event.stopPropagation(); props.onOpenPopup(record); }
                               else if (props.rowProps?.(record).onDoubleClickCapture) props.rowProps(record).onDoubleClickCapture?.(event);
                               else recordPreviewProps(record).onDoubleClickCapture(event);
                             }}
@@ -1945,7 +2037,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                           >
                             {selectionWidth > 0 && <div className="udg-select-cell" role="gridcell">
                               <input
-                                aria-label={`Select row ${textFor(record, columns[0])}`}
+                                aria-label={`Select row ${rowLabel(record)}`}
                                 type="checkbox"
                                 checked={selection.includes(node.id)}
                                 onClick={(e) =>
@@ -1991,7 +2083,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                       key={action.id}
                                       className="udg-hover-action"
                                       data-action={action.id}
-                                      aria-label={`${action.label} ${textFor(record, columns[0])}`}
+                                      aria-label={`${action.label} ${rowLabel(record)}`}
                                       disabled={action.disabled?.(record)}
                                       title={action.disabled?.(record) ? action.disabledReason || action.label : action.label}
                                       onClick={() =>
@@ -2007,7 +2099,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                   ))}
                                 {rowActions.filter(a => !a.visible || a.visible(record)).some((a, _, actions) => !a.quick || actions.filter(item => item.quick).indexOf(a) >= (props.quickActionLimit ?? 4)) && <Dropdown.Root>
                                   <Dropdown.Trigger
-                                    aria-label={`Actions for ${textFor(record, columns[0])}`}
+                                    aria-label={`Actions for ${rowLabel(record)}`}
                                   >
                                     <MoreHorizontal size={16} />
                                   </Dropdown.Trigger>
@@ -2060,70 +2152,14 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           </div>
         ) : (
           <div className={`udg-alternate udg-view-${layout.view}`}>
-            {layout.view === "kanban"
-              ? [
-                  ...new Set(
-                    visibleRecords.map((r) =>
-                      String(
-                        (r as Record<string, unknown>)[
-                          props.kanbanField || "status"
-                        ] || "Not set",
-                      ),
-                    ),
-                  ),
-                ].map((key) => (
-                  <section key={key}>
-                    <h3>{key}</h3>
-                    {visibleRecords
-                      .filter(
-                        (r) =>
-                          String(
-                            (r as Record<string, unknown>)[
-                              props.kanbanField || "status"
-                            ] || "Not set",
-                          ) === key,
-                      )
-                      .map((r) => (
-                        <article
-                          key={getRowId(r)}
-                          {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();if(props.onOpenPopup)props.onOpenPopup(r);else recordPreviewProps(r).onDoubleClickCapture(event);}}}
-                        >
-                          {props.renderCard?.(r) ||
-                            columns
-                              .filter((c) => layout.visibility[c.id] !== false)
-                              .slice(0, 5)
-                              .map((c) => (
-                                <p key={c.id}>
-                                  <small>{c.title}</small>
-                                  {displayFor(r, c)}
-                                </p>
-                              ))}
-                        </article>
-                      ))}
-                  </section>
-                ))
-              : visibleRecords.map((r) => (
-                  <article key={getRowId(r)} {...recordPreviewProps(r)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]"))selectRecord(r);}} onDoubleClickCapture={event=>{clearTimeout(selectRecordTimer.current);if(!(event.target as HTMLElement).closest("button,a,input,select,textarea")||(event.target as HTMLElement).closest("[data-record-open]")){event.stopPropagation();if(props.onOpenPopup)props.onOpenPopup(r);else recordPreviewProps(r).onDoubleClickCapture(event);}}}>
-                    {props.renderCard?.(r) ||
-                      columns
-                        .filter((c) => layout.visibility[c.id] !== false)
-                        .slice(0, 6)
-                        .map((c) => (
-                          <p key={c.id}>
-                            <small>{c.title}</small>
-                            {displayFor(r, c)}
-                          </p>
-                        ))}
-                    <div className="udg-card-actions">{rowActions.filter(action=>action.quick&&(!action.visible||action.visible(r))).map(action=><button key={action.id} title={action.disabled?.(r)?action.disabledReason:action.label} aria-label={`${action.label} ${textFor(r,columns[0])}`} disabled={action.disabled?.(r)} onClick={event=>{event.stopPropagation();void runAction(action,r);}}>{action.icon&&<action.icon size={16}/>}</button>)}</div>
-                  </article>
-                ))}
-            {query.grouping.length > 0 && !visibleRecords.length && (
-              <p>Switch to Data Grid to expand the grouped records.</p>
-            )}
-            <small>
-              These views use the same filtered data source. Cards show loaded
-              rows.
-            </small>
+            {props.collectionGroup || layout.view === "kanban" ? (()=>{
+              const field=columns.find(column=>column.id===(props.collectionGroup||props.kanbanField||"status"));
+              const groups=new Map<string,T[]>();
+              for(const record of visibleRecords){const raw=field?.accessor?.(record) ?? (record as Record<string,unknown>)[field?.id||"status"];const labels=field&&/tags?|labels/i.test(field.title)?Array.isArray(raw)?raw.map(String):String(raw||"").split(",").map(value=>value.trim()).filter(Boolean):[String(raw||"Not set")];for(const label of labels.length?labels:["Untagged"])groups.set(label,[...(groups.get(label)||[]),record]);}
+              return [...groups].map(([label,records])=><section className="suite-record-group" key={label}><h3><GroupLabel label={label} field={field?.title} count={records.length}/></h3><div className="udg-alternate udg-view-cards">{records.map(renderCollectionRecord)}</div></section>);
+            })() : visibleRecords.map(renderCollectionRecord)}
+            {!visibleRecords.length&&<p className="suite-record-empty">No records in this view. Your current filters and access still apply.</p>}
+            <small>Alternate views show loaded records from the same filtered data source.</small>
           </div>
         )}
       </DndContext>
@@ -2137,7 +2173,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           </span>
         ))}
       </div>
-      <footer className="udg-pagination">
+      {(!props.externalPagination || (result?.pageTotal || 0) > query.pageSize) && <footer className="udg-pagination">
         <label>
           Rows per page
           <NativeSelect
@@ -2175,7 +2211,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         >
           Next
         </button>
-      </footer>
+      </footer>}
       {filterOpen && (
         <FilterBuilder
           columns={columns}

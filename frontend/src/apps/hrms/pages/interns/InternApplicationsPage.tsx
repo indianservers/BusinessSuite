@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -447,8 +449,7 @@ export default function InternApplicationsPage() {
         </Card>
       ) : (
         <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <div className="space-y-3">
-            {list.map((item) => (
+          <GroupedRecords scope="apps/hrms/pages/interns/InternApplicationsPage:cards-1" items={(list) || []} fields={standardRecordGroups((list) || [])} gridClassName="space-y-3" renderItem={(item) => (
               <div key={item.id} className="rounded-xl border bg-card">
                 <label className="flex items-center gap-2 px-4 pt-3 text-xs text-muted-foreground">
                   <input type="checkbox" aria-label={`Select ${item.full_name}`} checked={reviewable(item) && checkedIds.includes(item.id)} disabled={!reviewable(item) || busy}
@@ -481,8 +482,7 @@ export default function InternApplicationsPage() {
                 </p>
               </button>
               </div>
-            ))}
-          </div>
+            )}/>
           {application && (
             <div className="space-y-5">
               <Card>

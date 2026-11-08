@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, or_
@@ -2280,7 +2281,7 @@ def run_payroll(
         db.refresh(run)
         return run
     except crud_payroll.PayrollReadinessError as e:
-        raise HTTPException(status_code=400, detail={"message": "Payroll readiness checks failed", "readiness": e.summary})
+        raise HTTPException(status_code=400, detail={"message": "Payroll readiness checks failed", "readiness": jsonable_encoder(e.summary)})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

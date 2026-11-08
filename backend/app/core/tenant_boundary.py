@@ -812,6 +812,10 @@ def legacy_root(model):
 
 @event.listens_for(Session, "before_flush")
 def collect_legacy_ownership(session, *args):
+    deleted = [(item.__table__, item.id) for item in session.deleted
+               if hasattr(type(item), "__table__") and item.__table__.metadata is Base.metadata
+               and legacy_root(type(item)) and getattr(item, "id", None) is not None]
+    if deleted: session.info.setdefault("security_deleted_ownership", []).extend(deleted)
     roots = [
         item
         for item in session.new
@@ -845,8 +849,23 @@ def persist_legacy_ownership(session, *args):
     from app.models.security_boundary import SecurityResourceOwnership
 
     ownership = SecurityResourceOwnership.__table__
+    from app.branches.models import BranchOwnership, BranchRecordShare
+    from app.branches.catalog import resource_key
+    def discard(table, identity):
+        # Runs only after the domain DELETE/INSERT and its authorization checks succeeded.
+        session.connection().execute(ownership.delete().where(ownership.c.resource_table == table.name, ownership.c.resource_id == identity))
+        if set(table.primary_key.columns.keys()) != {"id"}: return
+        key = resource_key(table, {"id": identity})
+        for model in [BranchOwnership, BranchRecordShare]:
+            registry = model.__table__
+            session.connection().execute(registry.delete().where(registry.c.resource_table == table.name, registry.c.resource_key == key))
+    for table, identity in session.info.pop("security_deleted_ownership", []): discard(table, identity)
     for item, company in session.info.pop("security_new_ownership", []):
         if getattr(item, "id", None) is not None:
+            # A successful INSERT may reuse a deleted SQLite ID. It cannot replace a live row.
+            # Remove legacy orphan grants before stamping the new resource's actual owner.
+            stale = session.connection().execute(select(ownership.c.company_id).where(ownership.c.resource_table == item.__table__.name, ownership.c.resource_id == item.id)).scalar()
+            if stale is not None: discard(item.__table__, item.id)
             session.connection().execute(
                 ownership.insert().values(
                     resource_table=item.__table__.name,
@@ -902,3 +921,9 @@ def tenant_company_column(model):
 @event.listens_for(Session, "after_soft_rollback")
 def discard_pending_ownership(session, previous_transaction):
     session.info.pop("security_new_ownership", None)
+
+
+@event.listens_for(Session, "after_soft_rollback")
+def clear_rolled_back_legacy_ownership(session, *args):
+    session.info.pop("security_new_ownership", None)
+    session.info.pop("security_deleted_ownership", None)

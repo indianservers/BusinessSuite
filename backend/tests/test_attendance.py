@@ -243,3 +243,22 @@ def test_attendance_compute_overnight_shift(client, superuser_headers, db):
     assert data["is_short_hours"] is True
     assert data["short_minutes"] == 45
     assert data["total_hours"] == "7.25"
+
+
+def test_today_read_preserves_manual_wfh_hours_and_overtime(client, superuser_headers, db):
+    from app.models.attendance import Attendance
+    from app.models.user import User
+    from app.api.v1.attendance import _business_date
+    employee=_create_employee(db)
+    employee.user_id=db.query(User).filter(User.is_superuser.is_(True)).first().id
+    today=_business_date()
+    entry=Attendance(employee_id=employee.id,attendance_date=today,source='Manual',status='WFH',total_hours=Decimal('7.5'),overtime_hours=Decimal('2.25'),remarks='Reviewed manually')
+    db.add(entry);db.commit()
+    response=client.get('/api/v1/attendance/today',headers=superuser_headers)
+    assert response.status_code==200,response.text
+    body=response.json()['attendance']
+    assert body['status']=='WFH'
+    assert Decimal(str(body['total_hours']))==Decimal('7.5')
+    assert Decimal(str(body['overtime_hours']))==Decimal('2.25')
+    db.refresh(entry)
+    assert entry.status=='WFH'

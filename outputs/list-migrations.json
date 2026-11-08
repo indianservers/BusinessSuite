@@ -1,0 +1,52 @@
+[
+  {
+    "file": "frontend/src/platform/shared.tsx",
+    "gridId": "platform/shared:table-1",
+    "mode": "records"
+  },
+  {
+    "file": "frontend/src/apps/analytics/AnalyticsOverview.tsx",
+    "gridId": "apps/analytics/AnalyticsOverview:table-1",
+    "mode": "matrix"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/IndustryPackOnboarding.tsx",
+    "gridId": "apps/crm/templates/IndustryPackOnboarding:table-1",
+    "mode": "records"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/ProjectOverview.tsx",
+    "gridId": "apps/project-management/components/ProjectOverview:table-1",
+    "mode": "records"
+  },
+  {
+    "file": "frontend/src/shared/accounting/ConnectedAccounting.tsx",
+    "gridId": "shared/accounting/ConnectedAccounting:table-1",
+    "mode": "records"
+  },
+  {
+    "file": "frontend/src/shared/accounting/ConnectedAccounting.tsx",
+    "gridId": "shared/accounting/ConnectedAccounting:table-2",
+    "mode": "matrix"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/AccountingSyncPanel.tsx",
+    "gridId": "shared/data-transfer/AccountingSyncPanel:table-1",
+    "mode": "records"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "gridId": "shared/data-transfer/ImportWorkspace:table-1",
+    "mode": "matrix"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "gridId": "shared/data-transfer/ImportWorkspace:table-2",
+    "mode": "matrix"
+  },
+  {
+    "file": "frontend/src/shared/data-transfer/ImportWorkspace.tsx",
+    "gridId": "shared/data-transfer/ImportWorkspace:table-3",
+    "mode": "records"
+  }
+]

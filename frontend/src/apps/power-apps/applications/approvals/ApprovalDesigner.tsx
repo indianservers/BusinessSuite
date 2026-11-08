@@ -1,3 +1,5 @@
+import {useAuthStore} from "@/store/authStore";
+import { useModuleAction } from "@/hooks/use-module-action";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -320,6 +322,10 @@ export function ApprovalDesigner({
   const { id } = useParams();
   const navigate = useNavigate();
   const policy = policies.find((p) => p.id === Number(id));
+  const allowCreate=useModuleAction("create"),allowEdit=useModuleAction("edit"),allowPublish=useModuleAction("configure");
+  const owner=useAuthStore(s=>s.user?.id);
+  const ownsPolicy=!!policy&&policy.owner_user_id===owner;
+  const canSave=policy?allowEdit&&ownsPolicy:allowCreate;
   const [name, setName] = useState("New approval process"),
     [process, setProcess] = useState<Process>(starter),
     [selected, setSelected] = useState(0),
@@ -396,6 +402,7 @@ export function ApprovalDesigner({
         : false;
     });
   const save = async () => {
+    if(!canSave)return;
     try {
       const value = {
         name,
@@ -446,18 +453,19 @@ export function ApprovalDesigner({
         >
           Add approval stage
         </button>
-        <button className="ap-primary" onClick={() => void save()}>
+        <button className="ap-primary" disabled={!canSave} onClick={() => void save()}>
           Save version
         </button>
         {policy && (
           <button
-            disabled={dirty}
+            disabled={dirty||!allowPublish||!ownsPolicy}
             title={
               dirty
                 ? "Save your changes before publishing"
                 : "Activate the saved version"
             }
             onClick={async () => {
+              if(!allowPublish||!ownsPolicy)return;
               try {
                 await api.post(
                   `/policies/${policy.id}/activate`,

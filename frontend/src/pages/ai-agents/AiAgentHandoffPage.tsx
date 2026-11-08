@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { aiAgentsApi, type AiHandoffNote } from "@/services/aiAgentsApi";
 
 export default function AiAgentHandoffPage() {
+  const [saving,setSaving]=useState<number|null>(null);
   const [notes, setNotes] = useState<AiHandoffNote[]>([]);
 
   const load = () => {
@@ -16,9 +17,7 @@ export default function AiAgentHandoffPage() {
   useEffect(load, []);
 
   const updateStatus = async (note: AiHandoffNote, status: AiHandoffNote["status"]) => {
-    await aiAgentsApi.updateHandoffStatus(note.id, { status });
-    toast({ title: "Handoff note updated" });
-    load();
+    if(saving!==null)return;setSaving(note.id);try{await aiAgentsApi.updateHandoffStatus(note.id,{status});toast({title:"Handoff note updated"});load();}catch(error){const detail=(error as {response?:{data?:{detail?:unknown}}}).response?.data?.detail;toast({title:"Could not update handoff",description:typeof detail==="string"?detail:"Your note is retained. Try again.",variant:"destructive"});}finally{setSaving(null);}
   };
 
   return (
@@ -36,9 +35,9 @@ export default function AiAgentHandoffPage() {
               {note.reason ? <p className="mt-2 text-sm text-muted-foreground">{note.reason}</p> : null}
               {note.recommended_action ? <p className="mt-2 text-sm">{note.recommended_action}</p> : null}
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => updateStatus(note, "in_review")}>Review</Button>
-                <Button size="sm" variant="outline" onClick={() => updateStatus(note, "resolved")}>Resolve</Button>
-                <Button size="sm" variant="outline" onClick={() => updateStatus(note, "cancelled")}>Cancel</Button>
+                <Button size="sm" variant="outline" disabled={saving!==null} onClick={() => updateStatus(note, "in_review")}>Review</Button>
+                <Button size="sm" variant="outline" disabled={saving!==null} onClick={() => updateStatus(note, "resolved")}>Resolve</Button>
+                <Button size="sm" variant="outline" disabled={saving!==null} onClick={() => updateStatus(note, "cancelled")}>Cancel</Button>
               </div>
             </div>
           ))}

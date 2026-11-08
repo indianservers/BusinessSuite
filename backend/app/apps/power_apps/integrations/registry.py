@@ -441,3 +441,5 @@ from app.apps.power_apps.integrations.automation_catalog import install as insta
 install_automation_catalog(REGISTRY, INPUTS, action)
 from app.apps.power_apps.integrations.editor_options import narrow_action_schemas
 narrow_action_schemas(REGISTRY)
+from app.apps.power_apps.integrations.marketplace_oauth import install as install_marketplace_oauth
+install_marketplace_oauth(REGISTRY)

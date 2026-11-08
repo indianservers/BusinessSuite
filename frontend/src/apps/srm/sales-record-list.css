@@ -1,0 +1,9 @@
+.srm-record-workspace .suite-page-heading { padding:6px 0 10px; border:0; border-radius:0; background:none; }
+.srm-record-workspace .suite-heading-icon { width:34px; height:34px; border-radius:9px; box-shadow:none; }
+.srm-record-workspace .suite-heading-icon svg { width:19px; height:19px; }
+.srm-record-workspace .suite-page-heading h1 { font-size:22px; }
+.srm-record-workspace .suite-heading-description { font-size:12px; margin-top:3px; }
+.srm-record-workspace .suite-heading-actions button { height:32px; min-height:32px; font-size:11px; }
+.srm-record-workspace .srm-record-name { display:flex; align-items:center; gap:7px; font-size:13px; color:hsl(var(--foreground)); }
+.srm-record-workspace .udg { border-radius:8px; }
+.srm-record-workspace .udg-adapted-cell > div { flex-wrap:nowrap; justify-content:flex-start; }

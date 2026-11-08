@@ -9,7 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, ConfigDict, ValidationError, field_validator
-from sqlalchemy import func, or_, literal, select, union_all
+from sqlalchemy import func, or_, literal, select, union_all, cast, String, case
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -50,6 +50,7 @@ class ItemInput(BaseModel):
     name: str = Field(min_length=1, max_length=180)
     code: str = Field(min_length=1, max_length=80)
     category: str = Field(default="", max_length=120)
+    tags: list[Annotated[str, Field(min_length=1, max_length=40)]] | None = Field(default=None, max_length=20)
     description: str = Field(default="", max_length=50000)
     price: Decimal = Field(default=0, ge=0, le=9999999999, decimal_places=2)
     currency: str = Field(default="INR", pattern=r"^[A-Z]{3}$")
@@ -67,6 +68,13 @@ class ItemInput(BaseModel):
     custom_fields: dict[str, str | int | float | bool | None] = Field(default_factory=dict, max_length=100)
     pricing_options: list[Price] = Field(default_factory=list, max_length=30)
     version: int | None = Field(default=None, ge=0)
+
+    @field_validator("tags")
+    @classmethod
+    def normalized_tags(cls, values):
+        if values is None:
+            return None
+        return list(dict.fromkeys(value.strip().lower() for value in values if value.strip()))
 
     @field_validator("images")
     @classmethod
@@ -170,7 +178,7 @@ def output(row, kind, detail):
     policy = attributes.get("catalog_branches") or {}
     availability = None if policy.get("default", True) else {"scope": "selected", "branch_ids": sorted(int(key) for key, enabled in policy.get("overrides", {}).items() if enabled)}
     return {"branch_availability": availability, "follow_up": attributes.get("follow_up"), "id": row.id, "kind": kind, "name": row.item_name, "code": row.sku,
-            "category": row.category_name or "", "description": row.description or "", "price": float(row.sales_rate or 0),
+            "category": row.category_name or "", "tags": attributes.get("catalog_tags", []), "description": row.description or "", "price": float(row.sales_rate or 0),
             "currency": attributes.get("currency", "INR"), "tax": float(row.gst_rate or 0), "unit": row.unit_code or "unit",
             "barcode": row.barcode or "", "hsn_code": row.hsn_code or "", "cost": float(row.purchase_rate or 0), "mrp": float(row.mrp or 0), "reorder_level": float(row.reorder_level or 0), "track_inventory": bool(row.track_inventory),
             "status": "Active" if row.active else "Archived", "workspace_id": detail.workspace_id if detail else None,
@@ -221,7 +229,7 @@ def save_item(db, user, source, data, ident=None):
             setattr(row, attribute, (value or None) if field in {"barcode", "hsn_code"} else value)
     if data.kind == "service":
         row.track_inventory = False
-    row.metadata_json = {**(row.metadata_json or {}), "currency": data.currency, "images": data.images, **({"follow_up": data.follow_up.model_dump(mode="json")} if data.follow_up is not None else {})}
+    row.metadata_json = {**(row.metadata_json or {}), **({"catalog_tags": data.tags} if data.tags is not None else {}), "currency": data.currency, "images": data.images, **({"follow_up": data.follow_up.model_dump(mode="json")} if data.follow_up is not None else {})}
     db.flush()
     if detail is None:
         detail = CatalogDetails(organization_id=tenant(user), **{data.kind + "_id": row.id}, version=0)
@@ -324,12 +332,20 @@ def commit(db):
 
 
 @router.get("/items")
-def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source: Source = "crm", kind: Kind | None = None, search: str = Query("", max_length=180), category: str = "", status: Literal["all", "Active", "Archived"] = "Active", workspace_id: int | None = None, sort: Literal["name", "price", "category", "code"] = "name", direction: Literal["asc", "desc"] = "asc", page: int = Query(1, ge=1), per_page: int = Query(24, ge=1, le=100), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source: Source = "crm", kind: Kind | None = None, search: str = Query("", max_length=180), category: str = "", status: Literal["all", "Active", "Archived"] = "Active", workspace_id: int | None = None, sort: Literal["name", "price", "category", "code"] = "name", direction: Literal["asc", "desc"] = "asc", page: int = Query(1, ge=1), per_page: int = Query(24, ge=1, le=100), tag: Annotated[str, Query(max_length=40)] = "", item_keys: Annotated[str | None, Query(max_length=16000)] = None, key_order: bool = False, include_facets: bool = False, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     from app.apps.project_management.models import PMSWorkspaceMember, PMSWorkspace
     from app.apps.project_management.people_management import organization_admin
     if workspace_id:
         workspace_access(db, user, workspace_id)
+    keys = None
+    if item_keys is not None:
+        import re
+        values = item_keys.split(",") if item_keys else []
+        if len(values) > 500 or any(not re.fullmatch(r"(product|service):[1-9][0-9]{0,15}", value) for value in values):
+            raise HTTPException(422, "Choose up to 500 valid catalog records")
+        keys = list(dict.fromkeys(values))
     queries = []
+    facet_queries = []
     permissions = {}
     for selected in ([kind] if kind else ["product", "service"]):
         try:
@@ -346,7 +362,7 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
         model = SRMProduct
         price = func.coalesce(model.sales_rate, 0)
         code = model.sku
-        query = select(literal(selected).label("kind"), model.id.label("id"), model.item_name.label("name"), price.label("price"), model.category_name.label("category"), code.label("code")).outerjoin(CatalogDetails, getattr(CatalogDetails, selected + "_id") == model.id).where(func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None))
+        query = select(literal(selected).label("kind"), model.id.label("id"), model.item_name.label("name"), price.label("price"), model.category_name.label("category"), code.label("code"), model.metadata_json["catalog_tags"].label("catalog_tags")).outerjoin(CatalogDetails, getattr(CatalogDetails, selected + "_id") == model.id).where(func.coalesce(model.organization_id, 1) == tenant(user), model.deleted_at.is_(None))
         query = query.where(model.product_type == "service" if selected == "service" else func.coalesce(model.product_type, "stock") != "service")
         query = query.where(availability_clause(model, selected_branch(user)))
         if not user.is_superuser and not organization_admin(user):
@@ -360,12 +376,36 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
         if category: query = query.where(model.category_name == category)
         if workspace_id: query = query.where(CatalogDetails.workspace_id == workspace_id)
         if search: query = query.where(or_(model.item_name.ilike(f"%{search}%"), code.ilike(f"%{search}%"), model.description.ilike(f"%{search}%")))
+        if keys is not None:
+            selected_ids = [int(value.split(":")[1]) for value in keys if value.startswith(selected + ":")]
+            query = query.where(model.id.in_(selected_ids))
+        facet_queries.append(query)
+        if tag:
+            normalized_tag = tag.strip().lower()
+            if db.get_bind().dialect.name == "postgresql":
+                from sqlalchemy.dialects.postgresql import JSONB
+                query = query.where(cast(model.metadata_json, JSONB).contains({"catalog_tags": [normalized_tag]}))
+            else:
+                entries = func.json_each(model.metadata_json, "$.catalog_tags").table_valued("value").alias("catalog_tag")
+                query = query.where(select(1).select_from(entries).where(entries.c.value == normalized_tag).exists())
         queries.append(query)
     if not queries:
         raise HTTPException(403, "Catalog access is required")
     combined = union_all(*queries).subquery()
     total = db.scalar(select(func.count()).select_from(combined))
     ordering = combined.c[sort].asc() if direction == "asc" else combined.c[sort].desc()
+    if key_order and keys:
+        ordering = case({key: index for index, key in enumerate(keys)}, value=combined.c.kind + literal(":") + cast(combined.c.id, String), else_=len(keys)).asc()
+    facets = None
+    if include_facets:
+        facet_source = union_all(*facet_queries).subquery()
+        categories, tags = set(), set()
+        for record in db.execute(select(facet_source.c.category, facet_source.c.catalog_tags).execution_options(yield_per=1000)):
+            if record.category:
+                categories.add(record.category)
+            if isinstance(record.catalog_tags, list):
+                tags.update(value for value in record.catalog_tags if isinstance(value, str))
+        facets = {"categories": sorted(categories), "tags": sorted(tags)}
     rows = db.execute(select(combined).order_by(ordering, combined.c.kind, combined.c.id).offset((page - 1) * per_page).limit(per_page)).mappings().all()
     items = []
     for selected in ("product", "service"):
@@ -389,7 +429,7 @@ def list_items(price_book_id: Annotated[int | None, Query(gt=0)] = None, source:
                 item["tax"] = float(entry.tax_rate)
                 item["price_book_id"] = book.id
     indexed = {(v["kind"], v["id"]): v for v in items}
-    return {"items": [indexed[(r["kind"], r["id"])] for r in rows], "total": total, "pages": (total + per_page - 1) // per_page, "permissions": permissions}
+    return {"items": [indexed[(r["kind"], r["id"])] for r in rows], "total": total, "pages": (total + per_page - 1) // per_page, "permissions": permissions, **({"facets": facets} if facets is not None else {})}
 
 
 class ReuseItem(BaseModel):

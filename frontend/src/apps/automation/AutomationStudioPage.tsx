@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { workflowRunInput } from "./workflowRunInput";
 import type React from "react";
 import { useMemo, useState } from "react";
@@ -105,8 +107,7 @@ function QueryState({ isLoading, isError, onRetry }: { isLoading: boolean; isErr
 function RecordList({ items, empty, actions }: { items?: AutomationRecord[]; empty: string; actions?: (item: AutomationRecord) => React.ReactNode }) {
   if (!items?.length) return <div className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">{empty}</div>;
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {items.map((item) => (
+    <GroupedRecords scope="apps/automation/AutomationStudioPage:cards-1" items={(items) || []} fields={standardRecordGroups((items) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item) => (
         <Card key={String(item.id)}>
           <CardContent className="space-y-3 p-4">
             <div className="flex items-start justify-between gap-3">
@@ -119,8 +120,7 @@ function RecordList({ items, empty, actions }: { items?: AutomationRecord[]; emp
             {actions ? <div className="flex flex-wrap gap-2">{actions(item)}</div> : null}
           </CardContent>
         </Card>
-      ))}
-    </div>
+      )}/>
   );
 }
 

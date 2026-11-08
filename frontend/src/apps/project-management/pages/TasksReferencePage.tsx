@@ -1,9 +1,12 @@
+import {useModuleAction} from "@/hooks/use-module-action";
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
 import RecordLensViews from "@/shared/workspace/RecordLensViews";
 import ProjectCommunicationPage from "./ProjectCommunicationPage";
 import TeamCommunicationPage from "./TeamCommunicationPage";
 import { api } from "@/services/api";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
+import { reconcileRecordList, removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
@@ -151,8 +154,12 @@ function TaskAssignees({ task }: { task: PMSTaskListItem }) {
   </span>;
 }
 
-export default function TasksReferencePage() {
+function TasksReferencePage() {
   const { user } = useAuthStore();
+  const canEditTask=useModuleAction("edit");
+  const taskGrant=user?.access?.grants.project_management;
+  const canCreateTask=!!user?.is_superuser||!!user?.access&&!user.access.managed||!!taskGrant?.enabled&&taskGrant.actions.includes("create");
+  const canExportTasks=!!user?.is_superuser||!!user?.access&&!user.access.managed||!!taskGrant?.enabled&&taskGrant.actions.includes("export");
   const route = useParams();
   const routeLocation = useLocation();
   const studio = routeLocation.pathname === "/pms/tasks/new" || !!route.taskId;
@@ -303,6 +310,29 @@ export default function TasksReferencePage() {
   const allowed = (to: string) =>
     canAccessRoute(to, user?.role, user?.is_superuser);
   const projects = data?.filters.projects || [];
+  useEffect(() => {
+    const changed = (event: Event) => {
+      const change=(event as CustomEvent<RecordSaved>).detail;
+      const {url,method,record}=change;
+      if (!/^\/project-management\/(?:task-studio\/)?(?:projects\/\d+\/tasks|tasks(?:\/\d+)?)(?:$|\/)/.test(url)) return;
+      const removed=new Set(removedRecordIds(change,"/project-management/tasks").map(String));
+      if(removed.size){setData(current=>{if(!current)return current;const items=current.items.filter(row=>!removed.has(String(row.id)));return {...current,items,total:Math.max(0,current.total-(current.items.length-items.length))};});setSelected(current=>current.filter(id=>!removed.has(String(id))));if(opened&&removed.has(String(opened.id)))setDirty(false);setOpened(current=>current&&removed.has(String(current.id))?undefined:current);}
+      const task=(record?.task||record) as unknown as PMSTaskListItem;
+      if(change.resource==="/project-management/tasks"&&!task?.id&&change.ids?.length)setData(current=>reconcileRecordList(current,change) as typeof current);
+      if(!removed.size&&method!=="delete"&&task?.id&&task.title) {
+        setData(current=>{
+          if(!current||!current.filters.projects.some(project=>project.id===task.project_id))return current;
+          const exists=current.items.some(row=>row.id===task.id);
+          if(!exists&&(page!==1||filterKeys.some(key=>params.get(key))))return current;
+          const row={...task,project_name:current.filters.projects.find(project=>project.id===task.project_id)?.name};
+          return {...current,items:exists?current.items.map(item=>item.id===task.id?{...item,...row}:item):[row,...current.items].slice(0,pageSize),total:current.total+(exists?0:1)};
+        });
+      }
+      setRevision(value=>value+1);
+    };
+    window.addEventListener(recordSavedEvent,changed);
+    return () => window.removeEventListener(recordSavedEvent,changed);
+  },[page,pageSize,params.toString(),opened?.id]);
   const selectedProjectId = Number(params.get("projectId")) || undefined;
   const taskViews: WorkspaceView[] = [
     {id:"list",label:"List",description:"Fast inline editing and task execution",color:"#8b5cf6"},
@@ -330,7 +360,7 @@ export default function TasksReferencePage() {
   const add = (type: "Task" | "Story" | "Bug" = "Task", title = "") => {
     setTemplate(type);
     setStarterTitle(title);
-    if (!projectId) {
+    if (!projectId || !canCreateTask) {
       setNotice(
         "Choose a project where you can manage tasks. Create or join a project first.",
       );
@@ -365,7 +395,7 @@ export default function TasksReferencePage() {
     setOpened(task);
   };
   async function inlineUpdate(task: PMSTaskListItem, patch: Parameters<typeof tasksAPI.update>[1]) {
-    if (busy) return;
+    if (busy||!canEditTask) return;
     const before = data;
     setBusy(true); setError("");
     setData(current => current ? { ...current, items: current.items.map(item => item.id === task.id ? { ...item, ...patch } as PMSTaskListItem : item) } : current);
@@ -377,7 +407,7 @@ export default function TasksReferencePage() {
     finally { setBusy(false); }
   }
   async function inlineProgress(task: PMSTaskListItem, progress: number) {
-    if (busy || !Number.isInteger(progress) || progress < 0 || progress > 100) return;
+    if (busy || !canCreateTask || !Number.isInteger(progress) || progress < 0 || progress > 100) return;
     setBusy(true); setError("");
     try {
       const {data: workspace} = await api.get<{revision:number; progress_mode:string}>(`/project-management/task-workspace/tasks/${task.id}`, {recordCache:false});
@@ -436,7 +466,7 @@ export default function TasksReferencePage() {
     },
   ];
   async function bulk(field: "status" | "priority" | "assignee_user_id", value: string) {
-    if (!value) return;
+    if (!value||!canEditTask) return;
     setBusy(true);
     try {
       const result = await tasksAPI.bulkUpdate({ task_ids: selected, [field]: field === "assignee_user_id" ? Number(value) : value });
@@ -547,6 +577,7 @@ export default function TasksReferencePage() {
                 <Link to="/pms">KaryaFlow PMS</Link>
                 <ChevronRight />
                 <b>Tasks</b>
+                {routeLocation.pathname === "/crm/tasks" && <Link to="/crm/tasks/legacy">Previous CRM tasks</Link>}
               </div>
               <div className="tr-title">
                 <div>
@@ -556,7 +587,7 @@ export default function TasksReferencePage() {
                     Indian Servers.
                   </p>
                 </div>
-                <button className="tr-primary tr-add" onClick={() => add()}>
+                <button className="tr-primary tr-add" disabled={!projectId||!canCreateTask} title={!projectId||!canCreateTask?"Task creation requires a project where you can manage tasks":undefined} onClick={() => add()}>
                   <Plus />
                   Add Task
                 </button>
@@ -625,10 +656,10 @@ export default function TasksReferencePage() {
                       <fieldset className="tr-column-options"><legend>Visible columns</legend>{["Project","Priority","Assignee","Due date","Status","Progress","Labels"].map((label,index) => {const column=index+3;const hidden=(params.get("hideColumns") || "").split(",").includes(String(column));return <label key={column}><input type="checkbox" checked={!hidden} onChange={event => {const next=new Set((params.get("hideColumns") || "").split(",").filter(Boolean));if(event.target.checked)next.delete(String(column));else next.add(String(column));change("hideColumns",[...next].join(","));}}/>{label}</label>;})}</fieldset>
                       <details><summary>Task templates</summary>{[["Bug report","Bug"],["Feature request","Story"],["Client onboarding","Task"]].map(([title,type]) => <button key={title} className="tr-button" onClick={() => add(type as "Task" | "Story" | "Bug",title)}>{title}</button>)}</details>
                       <button className="tr-button" onClick={() => setSaveOpen(true)}><Save size={14} />Save current view</button>
-                      <button className="tr-button" onClick={() => { setImportProject(String(projectId || "")); setImportOpen(true); }}><Upload size={14} />Import tasks</button>
+                      <button className="tr-button" disabled={!canCreateTask} onClick={() => { setImportProject(String(projectId || "")); setImportOpen(true); }}><Upload size={14} />Import tasks</button>
                       <Link className="tr-button" to="/pms/automation"><Zap size={14} />Automations</Link>
                       <Link className="tr-button" to="/pms/custom-fields"><Settings2 size={14} />Custom fields</Link>
-                      <button className="tr-button" onClick={() => { const rows = [["Task ID", "Title", "Project", "Assignee", "Priority", "Status", "Due date"], ...(data?.items || []).map(t => [t.task_key, t.title, t.project_name, t.assignee_name, t.priority, t.status, t.due_date])]; const csv = rows.map(row => row.map(cell => '"' + String(cell || "").replace(/"/g, '""').replace(/^[=+@-]/, "'$&") + '"').join(",")).join("\r\n"); const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8;"})); const link = document.createElement("a"); link.href = url; link.download = "tasks-current-page.csv"; link.click(); URL.revokeObjectURL(url); setNotice("Current page exported."); }}><Download size={14} />Export current page</button>
+                      <button className="tr-button" disabled={!canExportTasks} onClick={() => { if(!canExportTasks)return;const rows = [["Task ID", "Title", "Project", "Assignee", "Priority", "Status", "Due date"], ...(data?.items || []).map(t => [t.task_key, t.title, t.project_name, t.assignee_name, t.priority, t.status, t.due_date])]; const csv = rows.map(row => row.map(cell => '"' + String(cell || "").replace(/"/g, '""').replace(/^[=+@-]/, "'$&") + '"').join(",")).join("\r\n"); const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8;"})); const link = document.createElement("a"); link.href = url; link.download = "tasks-current-page.csv"; link.click(); URL.revokeObjectURL(url); setNotice("Current page exported."); }}><Download size={14} />Export current page</button>
                     </div></details>
                     <NativeSelect
                       aria-label="Saved views"
@@ -822,11 +853,11 @@ export default function TasksReferencePage() {
                 {!!selected.length && (
                   <div className="tr-extra">
                     <strong>{selected.length} selected</strong>
-                    <NativeSelect aria-label="Bulk assignee" disabled={busy} value="" onChange={event => void bulk("assignee_user_id", event.target.value)}><option value="">Reassign to...</option>{data?.filters.assignees.map(person => <option value={person.id} key={person.id}>{person.name}</option>)}</NativeSelect>
+                    <NativeSelect aria-label="Bulk assignee" disabled={busy||!canEditTask} value="" onChange={event => void bulk("assignee_user_id", event.target.value)}><option value="">Reassign to...</option>{data?.filters.assignees.map(person => <option value={person.id} key={person.id}>{person.name}</option>)}</NativeSelect>
                     <button className="tr-button" onClick={() => setSelected([])}>Clear selection</button>
                     <NativeSelect
                       aria-label="Bulk status"
-                      disabled={busy}
+                      disabled={busy||!canEditTask}
                       value=""
                       onChange={(e) => void bulk("status", e.target.value)}
                     >
@@ -837,7 +868,7 @@ export default function TasksReferencePage() {
                     </NativeSelect>
                     <NativeSelect
                       aria-label="Bulk priority"
-                      disabled={busy}
+                      disabled={busy||!canEditTask}
                       value=""
                       onChange={(e) => void bulk("priority", e.target.value)}
                     >
@@ -848,8 +879,8 @@ export default function TasksReferencePage() {
                     </NativeSelect>
                   </div>
                 )}
-                {!alternateView && <details className="tr-arrange"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>}
-                {layout === "channel" ? <div className="tr-channel-view">{selectedProjectId ? <ProjectCommunicationPage selectedProjectId={selectedProjectId}/> : <TeamCommunicationPage/>}</div> : ["activity","team","mindmap","whiteboard"].includes(layout) ? <RecordLensViews scope={`pms-tasks:${selectedProjectId || "all"}`} view={layout} records={visibleTasks.map(task => ({id:String(task.id),title:task.title,subtitle:task.project_name,status:task.status,owner:task.assignee_name,start:task.start_date,due:task.due_date,updated:task.updated_at,progress:(task as PMSTaskListItem & {progress?:number}).progress,tags:task.tags?.map(tag => typeof tag === "string" ? tag : tag.name)}))} onOpen={record => open(visibleTasks.find(task => String(task.id) === record.id))}/> : alternateView ? <TaskWorkspaceViews view={layout} tasks={visibleTasks} summary={data?.summary} busy={busy} canEdit={task => editable.some(project => project.id === task.project_id)} onOpen={open} onUpdate={inlineUpdate} /> : <div
+                {!alternateView && <details className="tr-arrange"><summary>Arrange tasks on this page</summary><MoveBoard label="Task groups" disabled={busy||loading||!canEditTask} groups={statuses.map(s=>({id:s,label:s}))} items={[...(data?.items||[])].sort((a,b)=>(a.position||0)-(b.position||0)).map(t=>({id:t.id,label:t.title,group:t.status,disabled:!editable.some(p=>p.id===t.project_id),content:<Link to={`/pms/tasks/${t.id}`} className="text-xs text-primary">{t.task_key} · {t.project_name}</Link>}))} onMove={async({item,group,beforeId})=>{const tasks=data?.items||[];const source=tasks.find(t=>t.id===item.id);const target=tasks.find(t=>t.id===beforeId);await arrangeTask(Number(item.id),{group_by:"status",status:group,before_id:target?.project_id===source?.project_id?beforeId:undefined});reload();}}/></details>}
+                {layout === "channel" ? <div className="tr-channel-view">{selectedProjectId ? <ProjectCommunicationPage selectedProjectId={selectedProjectId}/> : <TeamCommunicationPage/>}</div> : ["activity","team","mindmap","whiteboard"].includes(layout) ? <RecordLensViews scope={`pms-tasks:${selectedProjectId || "all"}`} view={layout} records={visibleTasks.map(task => ({id:String(task.id),title:task.title,subtitle:task.project_name,status:task.status,owner:task.assignee_name,start:task.start_date,due:task.due_date,updated:task.updated_at,progress:(task as PMSTaskListItem & {progress?:number}).progress,tags:task.tags?.map(tag => typeof tag === "string" ? tag : tag.name)}))} onOpen={record => open(visibleTasks.find(task => String(task.id) === record.id))}/> : alternateView ? <TaskWorkspaceViews view={layout} tasks={visibleTasks} summary={data?.summary} busy={busy} canEdit={task => canEditTask&&editable.some(project => project.id === task.project_id)} onOpen={open} onUpdate={inlineUpdate} /> : <div
                   className={
                     cardLayout
                       ? "tr-gallery"
@@ -984,7 +1015,7 @@ export default function TasksReferencePage() {
                                     {task.title}
                                   </button>
                                   <button className="tr-row-edit" title="Edit task title" aria-label={`Edit title for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} onClick={() => setEditingTitle(task.id)}><Pencil size={12}/></button>
-                                  {editingTitle === task.id && <input autoFocus className="tr-inline-title" aria-label={`Title for ${task.task_key}`} defaultValue={task.title} maxLength={220} disabled={busy} onBlur={e => { const title = e.target.value.trim(); setEditingTitle(undefined); if (title && title !== task.title) void inlineUpdate(task, { title }); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = task.title; e.currentTarget.blur(); } }} />}
+                                  {editingTitle === task.id && <input data-autosave-blur autoFocus className="tr-inline-title" aria-label={`Title for ${task.task_key}`} defaultValue={task.title} maxLength={220} disabled={busy} onBlur={e => { const title = e.target.value.trim(); setEditingTitle(undefined); if (title && title !== task.title) void inlineUpdate(task, { title }); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = task.title; e.currentTarget.blur(); } }} />}
                                   <small>#{task.task_key || task.id}</small>
                                 </td>
                                 <td>
@@ -1018,10 +1049,10 @@ export default function TasksReferencePage() {
                                       : ""
                                   }
                                 >
-                                  <input type="date" aria-label={`Due date for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} key={`${task.id}:${task.due_date || ""}`} defaultValue={task.due_date || ""} onBlur={e => {const due_date = e.currentTarget.value; if(due_date !== (task.due_date || ""))void inlineUpdate(task, { due_date: due_date || null } as Parameters<typeof tasksAPI.update>[1]);}} onKeyDown={e => {if(e.key === "Enter")e.currentTarget.blur();}} />
+                                  <input data-autosave-blur type="date" aria-label={`Due date for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} key={`${task.id}:${task.due_date || ""}`} defaultValue={task.due_date || ""} onBlur={e => {const due_date = e.currentTarget.value; if(due_date !== (task.due_date || ""))void inlineUpdate(task, { due_date: due_date || null } as Parameters<typeof tasksAPI.update>[1]);}} onKeyDown={e => {if(e.key === "Enter")e.currentTarget.blur();}} />
                                 </td>
                                 <td><NativeSelect className={`tr-inline-select tr-status-${task.status.toLowerCase().replace(/ /g, "-")}`} aria-label={`Status for ${task.title}`} disabled={busy || !editable.some(p => p.id === task.project_id)} value={task.status} onChange={e => void inlineUpdate(task, { status: e.target.value as PMSTaskListItem["status"] })}>{Array.from(new Set([...statuses, task.status])).map(value => <option key={value}>{value}</option>)}</NativeSelect></td>
-                                <td><div className="tr-progress-cell"><progress max={100} value={(task as PMSTaskListItem & {progress?:number}).progress || 0}/><input type="number" min={0} max={100} step={1} aria-label={`Progress for ${task.title}`} key={`${task.id}:${(task as PMSTaskListItem & {progress?:number}).progress || 0}`} defaultValue={(task as PMSTaskListItem & {progress?:number}).progress || 0} disabled={busy || finished(task.status) || !editable.some(p => p.id === task.project_id)} onBlur={event => {const value = Number(event.currentTarget.value); if(event.currentTarget.value !== "" && event.currentTarget.validity.valid && value !== ((task as PMSTaskListItem & {progress?:number}).progress || 0)) void inlineProgress(task,value); else event.currentTarget.value = String((task as PMSTaskListItem & {progress?:number}).progress || 0);}} onKeyDown={event => {if(event.key === "Enter")event.currentTarget.blur();}}/><span>%</span></div></td>
+                                <td><div className="tr-progress-cell"><progress max={100} value={(task as PMSTaskListItem & {progress?:number}).progress || 0}/><input data-autosave-blur type="number" min={0} max={100} step={1} aria-label={`Progress for ${task.title}`} key={`${task.id}:${(task as PMSTaskListItem & {progress?:number}).progress || 0}`} defaultValue={(task as PMSTaskListItem & {progress?:number}).progress || 0} disabled={busy || !canCreateTask || finished(task.status) || !editable.some(p => p.id === task.project_id)} onBlur={event => {const value = Number(event.currentTarget.value); if(event.currentTarget.value !== "" && event.currentTarget.validity.valid && value !== ((task as PMSTaskListItem & {progress?:number}).progress || 0)) void inlineProgress(task,value); else event.currentTarget.value = String((task as PMSTaskListItem & {progress?:number}).progress || 0);}} onKeyDown={event => {if(event.key === "Enter")event.currentTarget.blur();}}/><span>%</span></div></td>
                                 <td><div className="tr-task-labels">{task.tags?.map((tag,index) => <span key={typeof tag === "string" ? tag : tag.id || index}>{typeof tag === "string" ? tag : tag.name}</span>)}</div></td>
                                 <td>{more}</td>
                               </tr>
@@ -1046,7 +1077,7 @@ export default function TasksReferencePage() {
                               <input
                                 type="checkbox"
                                 aria-label={`Select ${task.title}`}
-                                disabled={!editable.some((p) => p.id === task.project_id)}
+                                disabled={!canEditTask||!editable.some((p) => p.id === task.project_id)}
                                 checked={selected.includes(task.id)}
                                 onChange={(e) => setSelected((current) =>
                                   e.target.checked ? [...current, task.id] : current.filter((id) => id !== task.id),
@@ -1090,6 +1121,7 @@ export default function TasksReferencePage() {
                       </p>
                       <button
                         className="tr-primary"
+                        disabled={!error&&(!projectId||!canCreateTask)}
                         onClick={() => (error ? reload() : add())}
                       >
                         {error ? "Retry" : "Add Task"}
@@ -1159,7 +1191,7 @@ export default function TasksReferencePage() {
                   Quick Actions
                 </h2>
                 <CompactActions className="tr-quick">
-                  <button className="tr-primary" onClick={() => add()}>
+                  <button className="tr-primary" disabled={!projectId||!canCreateTask} onClick={() => add()}>
                     <Plus />
                     Add Task
                   </button>
@@ -1322,7 +1354,7 @@ export default function TasksReferencePage() {
             <button
               className="tr-primary"
               disabled={
-                busy ||
+                busy || !canCreateTask ||
                 !importProject ||
                 !importText.trim() ||
                 importText.split(/\r?\n/).filter((t) => t.trim()).length > 100
@@ -1491,3 +1523,5 @@ export default function TasksReferencePage() {
     </div>
   );
 }
+
+export default withRecordViewHost(TasksReferencePage);

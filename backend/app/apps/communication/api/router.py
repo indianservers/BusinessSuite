@@ -615,6 +615,17 @@ def list_delivery_logs(db: Session = Depends(get_db), current_user: User = Depen
     return _list_payload(query.order_by(CommunicationDeliveryLog.created_at.desc()).limit(250).all())
 
 
+
+@communication_router.delete('/campaigns/{identity}',status_code=204)
+def delete_unused_campaign(identity:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('communication_campaigns_manage'))):
+    company=getattr(user,'organization_id',None) or primary_company(user)
+    row=db.query(CommunicationCampaign).filter_by(id=identity,organization_id=company).with_for_update().first()
+    if not row:raise HTTPException(404,'Campaign not found')
+    if row.status not in {'draft','cancelled'} or db.query(CommunicationCampaignSend).filter_by(campaign_id=identity).first():raise HTTPException(409,'Campaign delivery history must be retained; cancel the campaign instead')
+    for member in db.query(CommunicationCampaignMember).filter_by(campaign_id=identity).all():db.delete(member)
+    _timeline(db,'campaign',identity,'email','campaign_deleted',row.name,'Unused campaign deleted',user.id,organization_id=company)
+    db.delete(row);db.commit()
+
 router.include_router(communication_router)
 router.include_router(public_router)
 from app.apps.communication.customer_api import router as customer_router, public_router as customer_public_router

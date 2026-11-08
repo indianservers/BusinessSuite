@@ -16,6 +16,14 @@ from app.crud import crud_payroll
 router = APIRouter()
 
 
+def _allows_action(user, action):
+    grants = getattr(user, "_suite_grants", None)
+    if user.is_superuser or grants is None:
+        return True
+    grant = grants.get("hrms", {})
+    return bool(grant.get("enabled") and action in grant.get("actions", []))
+
+
 @router.get("/employee-options")
 def employee_options(search: str = "", db: Session = Depends(get_db), user=Depends(RequirePermission("payroll_view"))):
     query = db.query(Employee).filter(Employee.deleted_at.is_(None))
@@ -71,8 +79,9 @@ def overview(run_id: int, db: Session = Depends(get_db), user=Depends(RequirePer
     permissions = {p.name for p in permission_objects(user)}
     return {"id": run.id, "currency": records[0].salary_currency or "INR" if records else "INR", "status": crud_payroll.normalize_payroll_run_status(run.status), "reviewed": reviewed,
             "blocked": blocked, "issues": issues, "blockers": extra,
-            "can_process": user.is_superuser or "payroll_run" in permissions,
-            "can_approve": user.is_superuser or "payroll_approve" in permissions,
+            "can_process": (user.is_superuser or "payroll_run" in permissions) and _allows_action(user,"approve"),
+            "can_review": (user.is_superuser or "payroll_run" in permissions) and _allows_action(user,"edit"),
+            "can_approve": (user.is_superuser or "payroll_approve" in permissions) and _allows_action(user,"approve"),
             "records": [{"id": r.id, "employee_id": r.employee_id,
                          "employee_name": f"{people[r.employee_id].first_name} {people[r.employee_id].last_name}" if r.employee_id in people else str(r.employee_id),
                          "gross": str(r.gross_salary), "deductions": str(r.total_deductions), "net": str(r.net_salary), "currency": r.salary_currency or "INR"} for r in records],
@@ -90,6 +99,9 @@ class GuidedAction(BaseModel):
 def advance(run_id: int, data: GuidedAction, db: Session = Depends(get_db), user=Depends(RequirePermission("payroll_view"))):
     from app.api.v1.payroll import approve_payroll, create_payment_batch
     from app.schemas.payroll import PayrollRunApproval, PayrollPaymentBatchCreate
+    required_action = "edit" if data.action == "review" else "approve"
+    if not _allows_action(user,required_action):
+        raise HTTPException(403, f"Payroll {required_action} action is required")
     run, records, fingerprint, reviewed = context(db, run_id, user)
     permissions = {p.name for p in permission_objects(user)}
     needed = "payroll_run" if data.action in {"review", "pay"} else "payroll_approve"

@@ -1,3 +1,5 @@
+import {useRecordAutosave} from "@/hooks/use-record-autosave";
+import {useModuleAction} from "@/hooks/use-module-action";
 import { defaultOwner } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -371,6 +373,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   const location = useLocation();
   const [params] = useSearchParams();
   const { user } = useAuthStore();
+  const allowCreate=useModuleAction("create"),allowEdit=useModuleAction("edit"),allowDelete=useModuleAction("delete");
   const initial = (): Draft => ({
     projectId: Number(params.get("projectId")) || 0,
     parent_task_id: Number(params.get("parentTaskId")) || null,
@@ -541,7 +544,8 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     (!!saved && saved !== JSON.stringify(draft)) ||
     files.length > 0 ||
     extraDirty;
-  const editable = id ? !!detail?.can_edit : options ? options.can_edit : true;
+  const membershipEdit = id ? !!detail?.can_edit : !!options?.can_edit;
+  const editable=membershipEdit&&(id?allowEdit:allowCreate),deletable=membershipEdit&&allowDelete,canAddItems=membershipEdit&&allowCreate;
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
   const assign = (changes: Partial<Selection>) =>
@@ -676,7 +680,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       .catch(() => {});
   }, []);
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty||(!id&&!files.length)) return;
     const guard = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
@@ -709,7 +713,8 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       window.removeEventListener("beforeunload", guard);
       document.removeEventListener("click", click, true);
     };
-  }, [dirty, draft, draftKey]);
+  }, [dirty, draft, draftKey,id,files.length]);
+  useEffect(()=>{if(!id&&dirty){try{localStorage.setItem(draftKey,JSON.stringify(draft));setDraftAvailable(true);}catch{/* Save draft reports storage errors. */}}},[id,dirty,draft,draftKey]);
   const selectedGroups = useMemo(
     () => [
       ...(options?.teams || []).filter((g) =>
@@ -769,19 +774,19 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       setError("The saved draft could not be restored.");
     }
   }
-  async function save() {
-    if(savingRef.current)return;
-    if(embedded&&draft.execution_mode==='individual'){setError("Use a shared task when creating from chat.");return;}
+  async function save(automatic=false) {
+    if(savingRef.current||!editable)return false;
+    if(embedded&&draft.execution_mode==='individual'){setError("Use a shared task when creating from chat.");return false;}
     if (extraDirty) {
       setError(
         "Save or discard the execution-panel changes before saving task details.",
       );
-      return;
+      return false;
     }
-    if (!formRef.current?.reportValidity()) return;
+    if (!(automatic?formRef.current?.checkValidity():formRef.current?.reportValidity())) return false;
     if (!options || !draft.projectId) {
       setError("Choose a project and wait for assignment options to load.");
-      return;
+      return false;
     }
     if (
       draft.start_date &&
@@ -789,7 +794,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       draft.start_date > draft.due_date
     ) {
       setError("Start date cannot be after due date.");
-      return;
+      return false;
     }
     if (
       draft.execution_mode !== "individual" &&
@@ -799,10 +804,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       setError(
         "Review excluded group members and acknowledge assigning eligible members only.",
       );
-      return;
+      return false;
     }
     savingRef.current=true;
-    setBusy(true);
+    setBusy(!automatic);
     setError("");
     try {
       const task = {
@@ -855,7 +860,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         setNotice(
           "Individual assignments published. Each intern has an independent execution and review record.",
         );
-        return;
+        return false;
       }
       let record: Detail;
       if (id || created.current) {
@@ -887,7 +892,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           );
         }
       }
-      if(embedded&&onCreated)await onCreated(record.task);
+      if(!automatic&&embedded&&onCreated)await onCreated(record.task);
       localStorage.removeItem(draftKey);
       setDraftAvailable(false);
       setFiles([]);
@@ -895,7 +900,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       setNotice(
         id ? "Task and assignments updated." : "Task created successfully.",
       );
-      if(embedded){allowNavigation.current=true;return;}
+      if(embedded){allowNavigation.current=true;return true;}
       if (!id && createAnother) {
         const next = {
           ...initial(),
@@ -910,22 +915,26 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         window.scrollTo({ top: 0 });
       } else if (!id) {
         allowNavigation.current = true;
-        navigate(`/pms/tasks/${record.task.id}`, {
+        navigate("/pms/tasks", {
           replace: true,
           state: { notice: "Task created successfully." },
         });
-      } else {
+      } else if(!automatic) {
         setAttachments(await tasksAPI.listAttachments(id));
       }
+      return true;
     } catch (e) {
       setError(
         `${created.current && !id ? "Task is saved. Retry to finish without creating a duplicate. " : ""}${workspaceError(e)}`,
       );
+      return false;
     } finally {
       savingRef.current=false;setBusy(false);
     }
   }
+  const auto=useRecordAutosave({value:draft,enabled:!!id&&editable&&!busy&&!loading&&!extraDirty&&!files.length,dirty:saved!==JSON.stringify(draft),save:()=>save(true)});
   async function remove() {
+    if(!deletable)return;
     setBusy(true);
     try {
       await tasksAPI.delete(id);
@@ -1016,7 +1025,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           <button
             className="tr-primary"
             disabled={
-              busy || scopeBusy || !!job || !editable || !options?.can_edit
+              busy || auto.saving || scopeBusy || !!job || !editable || !options?.can_edit
             }
             onClick={() => void save()}
           >
@@ -1088,7 +1097,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         className="ts-layout"
       >
         <div className="ts-fields">
-          <fieldset disabled={busy || (!!id && !editable)}>
+          <fieldset disabled={busy || !editable}>
             <Section
               icon={<FileText />}
               title="1. Basic Info"
@@ -1922,7 +1931,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                     />
                     <button
                       type="button"
-                      disabled={!editable}
+                      disabled={!deletable}
                       aria-label={`Delete checklist ${item.title}`}
                       onClick={async () => {
                         try {
@@ -1940,7 +1949,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 <div className="ts-check-row">
                   <input
                     aria-label="New checklist item"
-                    disabled={!editable}
+                    disabled={!canAddItems}
                     placeholder="Add a delivery check…"
                     value={checkTitle}
                     onChange={(e) => setCheckTitle(e.target.value)}
@@ -1948,7 +1957,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                   <button
                     type="button"
                     className="tr-button"
-                    disabled={!editable || !checkTitle.trim()}
+                    disabled={!canAddItems || !checkTitle.trim()}
                     onClick={() => void addCheck()}
                   >
                     <Plus size={15} />
@@ -1992,7 +2001,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 <button
                   type="button"
                   className="tr-button"
-                  disabled={!editable || busy}
+                  disabled={!deletable || busy}
                   onClick={() => setDeleteOpen(true)}
                 >
                   <Trash2 size={16} />
@@ -2007,7 +2016,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           )}
           <div className="ts-bottom">
             <span role="status">
-              {dirty ? "Unsaved changes" : "All task details saved"}
+              {auto.message || (dirty ? "Unsaved changes" : "All task details saved")}
             </span>
             {!id && !embedded && (
               <label>
@@ -2020,10 +2029,11 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               </label>
             )}
             <button
+              data-save-action
               className="tr-primary"
               type="submit"
               disabled={
-                busy || scopeBusy || !!job || !editable || !options?.can_edit
+                busy || auto.saving || scopeBusy || !!job || !editable || !options?.can_edit
               }
             >
               {id ? "Save Changes" : "Create Task"}
@@ -2247,7 +2257,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
             <button
               className="tr-primary"
               type="button"
-              disabled={busy}
+              disabled={busy||!deletable}
               onClick={() => void remove()}
             >
               Move to Trash

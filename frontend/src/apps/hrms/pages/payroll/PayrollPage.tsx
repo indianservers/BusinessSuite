@@ -1,3 +1,6 @@
+import { useModuleAction } from "@/hooks/use-module-action";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { defaultText } from "@/lib/form-defaults";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
@@ -237,9 +240,16 @@ export default function PayrollPage() {
   usePageTitle("Payroll");
   const qc = useQueryClient();
   const { user } = useAuthStore();
+  const canRunPayroll=useModuleAction("approve");
   const isEmployee = user?.role === "employee" && !user?.is_superuser;
   const today = new Date();
-  const [activeTab, setActiveTab] = useHRSession<PayrollTab>("payroll-active-tab",isEmployee ? "viewer" : "guided");  const location = useLocation();  const navigate = useNavigate();  useEffect(() => {    const requested = new URLSearchParams(location.search).get("tab");    if (!isEmployee && (requested === "templates" || requested === "payouts") && activeTab !== requested) setActiveTab(requested);  }, [location.search, isEmployee, activeTab, setActiveTab]);
+  const [activeTab, setActiveTab] = useHRSession<PayrollTab>("payroll-active-tab",isEmployee ? "viewer" : "guided");
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const requested = new URLSearchParams(location.search).get("tab");
+    if (!isEmployee && (requested === "templates" || requested === "payouts") && activeTab !== requested) setActiveTab(requested);
+  }, [location.search, isEmployee, activeTab, setActiveTab]);
   const [wizardStep, setWizardStep] = useState(0);
   const [slipMonth, setSlipMonth] = useState(today.getMonth() + 1);
   const [slipYear, setSlipYear] = useState(today.getFullYear());
@@ -1530,7 +1540,7 @@ export default function PayrollPage() {
                 </div>
                 <Button
                   onClick={() => runMutation.mutate(false)}
-                  disabled={runMutation.isPending}
+                  disabled={!canRunPayroll || runMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <Play className="h-4 w-4 mr-2" />
@@ -1540,7 +1550,7 @@ export default function PayrollPage() {
                   <Button
                     variant="outline"
                     onClick={() => runMutation.mutate(true)}
-                    disabled={runMutation.isPending}
+                    disabled={!canRunPayroll || runMutation.isPending}
                     className="border-amber-500 text-amber-700 hover:bg-amber-50"
                   >
                     <AlertTriangle className="h-4 w-4 mr-2" />
@@ -2527,28 +2537,24 @@ export default function PayrollPage() {
                   <Input placeholder="Reason" value={advanceReason} onChange={(event) => setAdvanceReason(event.target.value)} />
                   <Button onClick={() => createSalaryAdvanceMutation.mutate()} disabled={createSalaryAdvanceMutation.isPending}>Request Advance</Button>
                 </div>
-                <div className="space-y-2">
-                  {(salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5).map((item) => (
+                <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-1" items={((salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5)) || []} fields={standardRecordGroups(((salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5)) || [])} gridClassName="space-y-2" renderItem={(item) => (
                     <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
                       <span>#{item.employee_id} - {formatCurrency(item.requested_amount)}</span>
                       <div className="flex gap-2"><Badge variant="outline">{item.status}</Badge><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "approve", amount: Number(item.approved_amount || item.requested_amount) })}>Approve</Button><Button size="sm" variant="outline" onClick={() => reviewSalaryAdvanceMutation.mutate({ id: item.id, action: "reject" })}>Reject</Button></div>
                     </div>
-                  ))}
-                </div>
+                  )}/>
                 <div className="grid gap-3 md:grid-cols-[0.7fr_1fr_1.5fr_auto]">
                   <Input placeholder="Record ID" value={queryRecordId} onChange={(event) => setQueryRecordId(event.target.value)} />
                   <Input placeholder="Subject" value={querySubject} onChange={(event) => setQuerySubject(event.target.value)} />
                   <Input placeholder="Description" value={queryDescription} onChange={(event) => setQueryDescription(event.target.value)} />
                   <Button onClick={() => createPayslipQueryMutation.mutate()} disabled={!queryRecordId || createPayslipQueryMutation.isPending}>Create Query</Button>
                 </div>
-                <div className="space-y-2">
-                  {(payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5).map((item) => (
+                <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-2" items={((payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5)) || []} fields={standardRecordGroups(((payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5)) || [])} gridClassName="space-y-2" renderItem={(item) => (
                     <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
                       <span>{item.subject}</span>
                       <div className="flex gap-2"><Badge variant="outline">{item.status}</Badge><Button size="sm" variant="outline" onClick={() => resolvePayslipQueryMutation.mutate(item.id)}>Resolve</Button></div>
                     </div>
-                  ))}
-                </div>
+                  )}/>
               </CardContent>
             </Card>
 
@@ -2803,14 +2809,12 @@ export default function PayrollPage() {
               <Button onClick={() => payGroupMutation.mutate()} disabled={payGroupMutation.isPending}>
                 Create pay group
               </Button>
-              <div className="space-y-2">
-                {(payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined)?.map((item) => (
+              <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-3" items={((payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined)) || []} fields={standardRecordGroups(((payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined)) || [])} gridClassName="space-y-2" renderItem={(item) => (
                   <div key={item.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
                     <span className="font-medium">{item.name}</span>
                     <Badge variant="outline">{item.code} - {item.pay_frequency}</Badge>
                   </div>
-                ))}
-              </div>
+                )}/>
             </CardContent>
           </Card>
 
@@ -2833,14 +2837,12 @@ export default function PayrollPage() {
               <Button onClick={() => salaryTemplateMutation.mutate()} disabled={salaryTemplateMutation.isPending}>
                 Create template
               </Button>
-              <div className="space-y-2">
-                {(salaryTemplates as { id: number; name: string; code: string; components?: unknown[] }[] | undefined || []).map((item) => (
+              <GroupedRecords scope="apps/hrms/pages/payroll/PayrollPage:cards-4" items={((salaryTemplates as { id: number; name: string; code: string; components?: unknown[] }[] | undefined || [])) || []} fields={standardRecordGroups(((salaryTemplates as { id: number; name: string; code: string; components?: unknown[] }[] | undefined || [])) || [])} gridClassName="space-y-2" renderItem={(item) => (
                   <div key={item.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
                     <span className="font-medium">{item.name}</span>
                     <Badge variant="outline">{item.code} - {item.components?.length || 0} components</Badge>
                   </div>
-                ))}
-              </div>
+                )}/>
             </CardContent>
           </Card>
 

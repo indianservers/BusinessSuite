@@ -1,11 +1,18 @@
+import { useModuleAction } from "@/hooks/use-module-action";
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
+import RecordMaintenance from "@/components/RecordMaintenance";
 import {ExternalInvoices,DailyAccountingReport} from "@/shared/accounting/ConnectedAccounting";
 import { defaultText, defaultDateAfter, displayDate } from "@/lib/form-defaults";
 import { CurrencySelect } from "@/lib/validation/business";
 import CompaniesPage from "@/shared/master-data/CompaniesPage";
 import SalesPipeline from "../components/SalesPipeline";
-import { PipelineViewSwitch } from "@/shared/pipeline/PipelineBoard";
+import RecurringSchedule from "../components/RecurringSchedule";
+import WorkspaceViewBar from "@/shared/workspace/WorkspaceViewBar";
 import { SuiteHeading, SuiteMetric } from "@/components/visuals/SuiteVisuals";
 import GridTable from "@/shared/data-grid/GridTable";
+import { RecordStatusIcon } from "@/shared/data-grid/GroupLabel";
+import { api } from "@/services/api";
+import "../sales-record-list.css";
 import CompactActions from "@/components/actions/CompactActions";
 import { ActionButton } from "@/components/actions";
 import { MobileFilters } from "@/components/mobile/MobilePrimitives";
@@ -19,7 +26,7 @@ import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import ModuleWorkflows from "@/components/app/ModuleWorkflows";
 import SecondaryDetails from "@/components/app/SecondaryDetails";
 import { useEffect, useMemo, useState, type ElementType, type FormEvent, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useLocation } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Area,
@@ -780,11 +787,13 @@ function useRevenueAction() {
   return { ...mutation, message };
 }
 
-function useCanManageRevenue() {
+function useCanManageRevenue(action="any") {
   const user = useAuthStore((state) => state.user);
+  const grant=user?.access?.grants.srm;
+  if(user?.access?.managed&&!user.is_superuser)return !!grant?.enabled&&grant.permissions.some(p=>(action==="approve"?["srm_admin","srm_invoice_approve"]:action==="any"?["srm_admin","srm_invoice_create","srm_invoice_approve","srm_manage"]:["srm_admin","srm_invoice_create"]).includes(p))&&(action==="any"?grant.actions.some(a=>["create","edit","approve"].includes(a)):grant.actions.includes(action));
   const roleValue = typeof user?.role === "object" && user.role ? (user.role as { name?: string }).name : user?.role;
   const role = String(roleValue || "").toLowerCase();
-  const isSuperuser = useAuthStore((state) => Boolean(state.user?.is_superuser));
+  const isSuperuser = Boolean(user?.is_superuser);
   return isSuperuser || ["admin", "srm_admin", "srm_finance_manager", "srm_collection_executive"].includes(role);
 }
 
@@ -1116,7 +1125,7 @@ function InvoiceLineEditor({ invoiceId, onSaved }: { invoiceId: number; onSaved?
 }
 
 function InvoiceDraftsView() {
-  const canManage = useCanManageRevenue();
+  const canManage = useCanManageRevenue("create");
   const query = useQuery({ queryKey: ["srm", "invoiceDrafts"], queryFn: srmApi.invoiceDrafts });
   const action = useRevenueAction();
   const records = asList(query.data);
@@ -1141,21 +1150,23 @@ function InvoiceDraftsView() {
 function InvoicesView() {
   const [invoiceSearchParams]=useSearchParams();
   const accountingCustomer=Number(invoiceSearchParams.get("accounting_customer"))||undefined;
-  const canManage = useCanManageRevenue();
+  const canManage = useCanManageRevenue(),canCreate=useCanManageRevenue("create"),canEdit=useCanManageRevenue("edit"),canApprove=useCanManageRevenue("approve"),canExport=useModuleAction("export");
   const list = useQuery({ queryKey: ["srm", "invoices"], queryFn: srmApi.invoices });
-  const invoiceId = Number(asList(list.data)[0]?.id || 0);
+  const [selectedInvoice, setSelectedInvoice] = useState("");
+  const invoiceId = Number(selectedInvoice || asList(list.data)[0]?.id || 0);
   const detail = useQuery({ queryKey: ["srm", "invoice", invoiceId], queryFn: () => srmApi.invoice(invoiceId), enabled: invoiceId > 0 });
   const action = useRevenueAction();
   const invoice = (detail.data || asList(list.data)[0] || {}) as SRMRecord;
   const accountingStatus = (invoice.accounting_status || {}) as SRMRecord;
-  const pdfHref = `/api/v1/srm/invoices/${invoiceId}/pdf`;
+
   return (
     <div className="space-y-5">
       <ExternalInvoices key={accountingCustomer||"all"} crmCompanyId={accountingCustomer}/>
       <InvoiceList invoices={asList(list.data)} />
+      <label className="flex items-center gap-2">Invoice to review<NativeSelect aria-label="Invoice to review" value={invoiceId || ""} onChange={event => setSelectedInvoice(event.target.value)}><option value="" disabled>Select invoice</option>{asList(list.data).map(item => <option key={String(item.id)} value={String(item.id)}>{String(item.invoice_number || item.id)}</option>)}</NativeSelect></label>
       <PageHeader meta={viewMeta.invoices} isFetching={list.isFetching || detail.isFetching} onRefresh={() => { list.refetch(); if (invoiceId) detail.refetch(); }} />
       <ActionMessage message={!canManage ? "Read-only revenue access: invoice approval, send/export, and line edits are hidden for this role." : action.message} />
-      {canManage ? <ManualInvoiceComposer onCreated={() => { list.refetch(); if (invoiceId) detail.refetch(); }} /> : null}
+      {canCreate ? <ManualInvoiceComposer onCreated={() => { list.refetch(); if (invoiceId) detail.refetch(); }} /> : null}
       {!list.isLoading && !invoiceId ? <p className="rounded-lg border p-4 text-sm text-muted-foreground">No invoices yet. Create an invoice or generate a draft from a sales order to get started.</p> : null}
       <div className="grid gap-3 md:grid-cols-4">
         <MetricCard label="Invoice Number" value={invoice.invoice_number} />
@@ -1179,15 +1190,15 @@ function InvoicesView() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={action.isPending || !invoiceId} onClick={() => action.mutate({ label: "Invoice approval", run: () => srmApi.approveInvoice(invoiceId) })}>Approve Invoice</Button>
-              <Button disabled={action.isPending || !invoiceId} onClick={() => action.mutate({ label: "Invoice send/export", run: () => srmApi.sendInvoice(invoiceId) })}>Send / Export Invoice</Button>
-              {invoiceId ? <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button> : null}
+              <Button variant="outline" disabled={!canApprove || action.isPending || !invoiceId || !["draft","pending_approval"].includes(String(invoice.status))} onClick={() => action.mutate({ label: "Invoice approval", run: () => srmApi.approveInvoice(invoiceId) })}>Approve Invoice</Button>
+              <Button disabled={!canCreate || action.isPending || !invoiceId || !["approved","issued","sent"].includes(String(invoice.status))} onClick={() => action.mutate({ label: "Invoice send/export", run: () => srmApi.sendInvoice(invoiceId) })}>Send / Export Invoice</Button>
+              {invoiceId ? <Button variant="outline" disabled={!canExport || action.isPending} onClick={() => action.mutate({ label: "Invoice download", run: () => srmApi.downloadInvoice(invoiceId) })}>Download PDF</Button> : null}
             </div>
-            {invoiceId ? <InvoiceLineEditor invoiceId={invoiceId} onSaved={() => detail.refetch()} /> : null}
+            {invoiceId && canEdit && String(invoice.status)==="draft" ? <InvoiceLineEditor invoiceId={invoiceId} onSaved={() => detail.refetch()} /> : null}
           </CardContent>
         </Card>
       ) : (
-        invoiceId ? <Button asChild variant="outline"><a href={pdfHref} target="_blank" rel="noreferrer">Download PDF</a></Button> : null
+        invoiceId ? <Button variant="outline" disabled={!canExport || action.isPending} onClick={() => action.mutate({ label: "Invoice download", run: () => srmApi.downloadInvoice(invoiceId) })}>Download PDF</Button> : null
       )}
       <div className="grid gap-4 xl:grid-cols-2">
         <RecordList title="Invoices" records={asList(list.data)} primaryKey="invoice_number" secondaryKey="status" amountKey="balance_amount" />
@@ -1262,6 +1273,7 @@ function RevenueEventsView() {
 }
 
 const reportDefinitions = [
+  { key: "recurring_invoice_details", title: "Recurring Invoice Details", description: "Scheduled occurrences, plan status, due dates and linked invoice drafts. Amounts retain their original currency.", filters: "Customer ID, status, occurrence date" },
   { key: "sales_order_report", title: "Sales Order Report", description: "Orders by customer, owner, value, and lifecycle status.", filters: "Date range, customer, owner, status" },
   { key: "contract_report", title: "Contract Report", description: "Contract value, active/renewal status, and customer commitments.", filters: "Customer, status, renewal window" },
   { key: "invoice_register", title: "Invoice Register", description: "Invoice numbers, statuses, totals, paid amounts, and balances.", filters: "Invoice date, customer, status" },
@@ -1327,14 +1339,24 @@ function csvCell(value: unknown) {
 
 function ReportsView() {
   const query = useQuery({ queryKey: ["srm", "reports"], queryFn: srmApi.reports });
-  const [selected, setSelected] = useState(reportDefinitions[0].key);
+  const [selected, setSelected] = useState("sales_order_report");
   const [message, setMessage] = useState("");
+  const [recurringFilters, setRecurringFilters] = useState({ customer: "", status: "", from: "", to: "" });
   const data = (query.data || {}) as SRMRecord;
   const selectedDefinition = reportDefinitions.find((item) => item.key === selected) || reportDefinitions[0];
-  const rows = previewRows(data[selectedDefinition.key]);
-  const exportRows = reportRows(data[selectedDefinition.key]);
+  const filteredRows = (key: string) => {
+    const available = reportRows(data[key]);
+    if (key !== "recurring_invoice_details") return available;
+    return available.filter(row =>
+      (!recurringFilters.customer || String(row.customer_id || "").includes(recurringFilters.customer.trim())) &&
+      (!recurringFilters.status || String(row.status || "").toLowerCase().includes(recurringFilters.status.trim().toLowerCase())) &&
+      (!recurringFilters.from || String(row.date || "") >= recurringFilters.from) &&
+      (!recurringFilters.to || (!!row.date && String(row.date) <= recurringFilters.to)));
+  };
+  const exportRows = filteredRows(selectedDefinition.key);
+  const rows = selected === "recurring_invoice_details" ? exportRows : previewRows(data[selectedDefinition.key]);
   const exportSelected = (report = selectedDefinition) => {
-    const availableRows = reportRows(data[report.key]);
+    const availableRows = filteredRows(report.key);
     if (exportReportCsv(report.title, availableRows)) {
       setMessage(`${report.title} CSV exported with ${availableRows.length} row${availableRows.length === 1 ? "" : "s"}.`);
     } else {
@@ -1371,12 +1393,12 @@ function ReportsView() {
             <CardTitle className="text-base">{selectedDefinition.title} Preview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Input aria-label="report customer filter" placeholder="Customer" />
-              <Input aria-label="report status filter" placeholder="Status" />
-              <Input aria-label="report from date filter" placeholder="From date" />
-              <Input aria-label="report to date filter" placeholder="To date" />
-            </div>
+            {selected === "recurring_invoice_details" && <div className="grid gap-2 sm:grid-cols-2">
+              <Input aria-label="report customer filter" placeholder="Customer ID" value={recurringFilters.customer} onChange={e => setRecurringFilters({...recurringFilters, customer:e.target.value})}/>
+              <Input aria-label="report status filter" placeholder="Status" value={recurringFilters.status} onChange={e => setRecurringFilters({...recurringFilters, status:e.target.value})}/>
+              <Input type="date" aria-label="report from date filter" value={recurringFilters.from} onChange={e => setRecurringFilters({...recurringFilters, from:e.target.value})}/>
+              <Input type="date" min={recurringFilters.from} aria-label="report to date filter" value={recurringFilters.to} onChange={e => setRecurringFilters({...recurringFilters, to:e.target.value})}/>
+            </div>}
             <div className="overflow-x-auto rounded-lg border">
               <GridTable gridId="apps/srm/pages/SRMWorkspacePage:table-3" className="w-full min-w-[420px] text-sm">
                 <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
@@ -1391,9 +1413,9 @@ function ReportsView() {
                     <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">Loading report preview...</td></tr>
                   ) : rows.length ? rows.map((row, index) => (
                     <tr {...recordPreviewProps(row)} key={`${selected}-${index}`} className="border-t">
-                      <td className="px-3 py-2">{formatValue(row.invoice_number || row.order_number || row.contract_number || row.engagement_number || row.customer_id || row.id || selectedDefinition.title)}</td>
+                      <td className="px-3 py-2">{formatValue(row.invoice_number || row.plan_name || row.order_number || row.contract_number || row.engagement_number || row.customer_id || row.id || selectedDefinition.title)}</td>
                       <td className="px-3 py-2">{formatValue(row.status || row.collection_status || row.margin_status || "available")}</td>
-                      <td className="px-3 py-2 text-right">{formatValue(row.total || row.total_amount || row.total_outstanding || row.gross_margin || row.cash_margin_total || row.count || row.value || "-")}</td>
+                      <td className="px-3 py-2 text-right">{formatValue(row.total || row.total_amount || row.total_outstanding || row.gross_margin || row.cash_margin_total || row.count || row.value || "-")}{selected === "recurring_invoice_details" ? ` ${String(row.currency || "")} | ${String(row.date || "")}` : ""}</td>
                     </tr>
                   )) : (
                     <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">No preview data available for this report.</td></tr>
@@ -1977,7 +1999,7 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
               </div>
               <div className="grid gap-3 md:grid-cols-4">
                 <label className="space-y-2 text-sm"><span className="font-medium">Currency</span><CurrencySelect value={billingPlan.currency} onChange={currency => setBillingPlan((current) => ({ ...current, currency }))} /></label>
-                <label className="space-y-2 text-sm"><span className="font-medium">Recurrence</span><Input placeholder="monthly, quarterly" value={billingPlan.recurrence_rule} onChange={(event) => setBillingPlan((current) => ({ ...current, recurrence_rule: event.target.value }))} /></label>
+                <label className="space-y-2 text-sm"><span className="font-medium">Recurrence</span><NativeSelect value={billingPlan.recurrence_rule} onChange={(event) => setBillingPlan((current) => ({ ...current, recurrence_rule: event.target.value }))}><option value="">No recurrence</option>{["daily", "weekly", "monthly", "quarterly", "yearly"].map(rule => <option key={rule} value={rule}>{rule}</option>)}</NativeSelect></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Milestone</span><Input value={billingPlan.milestone_name} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_name: event.target.value }))} /></label>
                 <label className="space-y-2 text-sm"><span className="font-medium">Milestone amount</span><Input inputMode="decimal" value={billingPlan.milestone_amount} onChange={(event) => setBillingPlan((current) => ({ ...current, milestone_amount: event.target.value }))} /></label>
               </div>
@@ -1994,12 +2016,16 @@ function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: 
 }
 
 function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta }) {
+  const location = useLocation();
   const [showCreate,setShowCreate] = useState(false);
-  const [recordView,setRecordView] = useState<"board"|"list">("board");
+  const [recordView,setRecordView] = useState<"board"|"list">("list");
   const boardSupported = ["salesOrders","contracts","engagements","billingPlans"].includes(kind);
   const queryClient = useQueryClient();
   const user = useAuthStore(state => state.user);
-  const canManage = !!user?.is_superuser || ["admin", "super_admin", "srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(String(user?.role || "").toLowerCase());
+  const srmGrant = user?.access?.grants.srm;
+  const canManage = !!user?.is_superuser || (user?.access?.managed ? !!srmGrant?.enabled && srmGrant.permissions.some(permission => ["srm_manage", "srm_admin"].includes(permission)) : ["admin", "super_admin", "srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(String(user?.role || "").toLowerCase()));
+  const canCreate=canManage && (!!user?.is_superuser || !user?.access?.managed || !!srmGrant?.actions.includes("create"));
+  useEffect(() => { if (location.hash === "#new-record" && canCreate) setShowCreate(true); }, [location.key, location.hash, canManage]);
   const query = useQuery({
     queryKey: ["srm", kind],
     queryFn: () => srmApi[meta.endpoint as SRMQueryEndpoint](),
@@ -2010,6 +2036,23 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
   });
   useSrmRealtimeInvalidation(queryClient, Boolean(meta.endpoint));
   const records = asList(query.data);
+  const customerIds = [...new Set(records.map(record => Number(record.customer_id)).filter(id => Number.isInteger(id) && id > 0))].sort((a,b) => a-b);
+  const customers = useQuery({
+    queryKey: ["srm-list-customers", user?.access?.companyId, user?.id, customerIds.join(",")],
+    enabled: customerIds.length > 0,
+    staleTime: 60000,
+    retry: false,
+    queryFn: async ({signal}) => {
+      const names: Record<string,string> = {};
+      for (let offset=0; offset<customerIds.length; offset+=200) {
+        const params = new URLSearchParams();
+        customerIds.slice(offset,offset+200).forEach(id => params.append("ids",String(id)));
+        const {data} = await api.get<{items:{id:number;name:string}[]}>("/srm/business/customers",{params,signal,progress:false});
+        data.items.forEach(customer => {names[customer.id]=customer.name;});
+      }
+      return names;
+    },
+  });
   const action = useMutation({
     mutationFn: async ({ name, id }: { name: string; id: number }) => {
       const actions: Record<string, (id: number) => Promise<unknown>> = {
@@ -2035,13 +2078,14 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
   });
 
   return (
-    <div className="space-y-5">
+    <div className="srm-record-workspace space-y-3">
       <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
+      {kind === "billingPlans" && canCreate && <RecurringSchedule plans={records} onSaved={() => { void query.refetch(); }} />}
       <ActionMessage message={!canManage ? "Read-only revenue access: create and workflow actions are hidden for this role." : undefined} />
-      {canManage && (!boardSupported || showCreate) ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
+      {canCreate && (!boardSupported || showCreate) ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
       <SectionState label={meta.title} isError={query.isError} onRetry={() => query.refetch()} />
-      {boardSupported && <div className="flex items-center gap-3"><PipelineViewSwitch view={recordView} onChange={setRecordView}/>{canManage&&<button type="button" className="pipeline-primary" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</button>}<span className="text-xs text-muted-foreground">{recordView === "board" ? "Pipeline" : "Record list"}</span></div>}
-      {boardSupported && recordView === "board" && !query.isError && <SalesPipeline kind={kind} onCreate={()=>setShowCreate(true)} records={records} canManage={canManage} loading={query.isLoading} onAction={async(name,id)=>{await action.mutateAsync({name,id});await query.refetch();}}/>}
+      {boardSupported && <div className="flex items-center gap-3"><WorkspaceViewBar scope={`srm-${kind}`} label="Sales views" active={recordView} views={[{id:"list",label:"Table",description:"Commercial records"},{id:"board",label:"Board",description:"Sales pipeline"}]} onChange={id=>setRecordView(id as "board"|"list")} primary={["list","board"]}/>{canCreate&&<button type="button" className="pipeline-primary" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</button>}</div>}
+      {boardSupported && recordView === "board" && !query.isError && <SalesPipeline kind={kind} onCreate={canCreate?()=>setShowCreate(true):undefined} records={records} canManage={canManage} loading={query.isLoading} onAction={async(name,id)=>{await action.mutateAsync({name,id});await query.refetch();}}/>}
       {!query.isError && (!boardSupported || recordView === "list") ? (
         <Card>
           <CardContent className="p-0">
@@ -2063,22 +2107,22 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                   ) : records.length ? records.map((record, index) => {
                     const id = Number(record.id || 0);
                     const name = record.title || record.name || record.invoice_number || record.order_number || record.contract_number || record.engagement_number || `Record ${index + 1}`;
-                    const amount = record.total_amount || record.contract_value || record.budget_amount || record.outstanding_total || record.invoice_total || record.order_amount || record.total_outstanding;
+                    const amount = record.total_amount ?? record.contract_value ?? record.budget_amount ?? record.outstanding_total ?? record.invoice_total ?? record.order_amount ?? record.total_outstanding;
                     const status = String(record.status || "").toLowerCase();
                     const metadata = (record.metadata_json || {}) as SRMRecord;
                     const isPosSale = metadata.source === "pos";
                     return (
                       <tr {...recordPreviewProps(record)} key={`${kind}-${id || index}`} className="border-b last:border-0">
-                        <td className="px-4 py-3 font-medium">{formatValue(name)}</td>
+                        <td className="px-4 py-3 font-medium"><span className="srm-record-name"><span aria-hidden="true"><RecordStatusIcon label={status} field="Status"/></span>{formatValue(name)}</span></td>
                         <td className="px-4 py-3">
                           <Badge variant={statusTone(record.status)}>{formatValue(record.status || "live")}</Badge>
                         </td>
-                        <td className="px-4 py-3">{formatValue(record.customer_id)}</td>
-                        <td className="px-4 py-3">{typeof amount === "number" ? money(amount) : formatValue(amount)}</td>
-                        <td className="px-4 py-3">{formatValue(record.updated_at || record.created_at || record.snapshot_at)}</td>
+                        <td className="px-4 py-3">{formatValue(record.customer_name || customers.data?.[String(record.customer_id)] || (record.customer_id ? `Customer #${record.customer_id}` : null))}</td>
+                        <td className="px-4 py-3">{amount != null && Number.isFinite(Number(amount)) ? currencyMoney(amount,record.currency) : "—"}</td>
+                        <td className="px-4 py-3">{formatDate(record.updated_at || record.created_at || record.snapshot_at)}</td>
                         <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            {canManage && kind === "salesOrders" && id ? (
+                          <div className="flex justify-end gap-2">{["salesOrders","contracts","engagements","billingPlans"].includes(kind)&&<RecordMaintenance record={record} name={String(name)} endpoint={`/srm/${({salesOrders:"sales-orders",contracts:"contracts",engagements:"engagements",billingPlans:"billing-plans"} as Record<string,string>)[kind]}/${id}`} method="patch" fields={[{key:["salesOrders","contracts"].includes(kind)?"title":"name",label:"Record name",required:true}]} queryKeys={["srm"]} canEdit={canManage} canDelete={canManage&&["draft","planned","created"].includes(status)}/>}
+                            {canCreate && kind === "salesOrders" && id ? (
                               <>
                                 {isPosSale ? <span className="rounded-md border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">POS posted</span> : null}
                                 {!isPosSale && status === "draft" ? <ActionButton action="review" loading={action.isPending} tooltip="Submit this sales order for approval" onClick={() => action.mutate({ name: "submitSalesOrder", id })}>Submit</ActionButton> : null}
@@ -2088,7 +2132,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
                                 {!isPosSale && ["cancelled", "closed"].includes(status) ? <span className="text-xs text-muted-foreground">No action</span> : null}
                               </>
                             ) : null}
-                            {canManage && kind === "engagements" && id ? <ActionButton action="task" loading={action.isPending} tooltip="Create the delivery project for this engagement" onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</ActionButton> : null}
+                            {canCreate && kind === "engagements" && id ? <ActionButton action="task" loading={action.isPending} tooltip="Create the delivery project for this engagement" onClick={() => action.mutate({ name: "createPmsProject", id })}>Create Project</ActionButton> : null}
                             {canManage && kind === "invoices" && id ? (
                               <>
                                 <ActionButton action="approve" loading={action.isPending} tooltip="Approve this invoice" onClick={() => action.mutate({ name: "approveInvoice", id })}>Approve</ActionButton>
@@ -2112,7 +2156,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
   );
 }
 
-export default function SRMWorkspacePage({ kind }: { kind: SRMViewKind }) {
+function SRMWorkspacePage({ kind }: { kind: SRMViewKind }) {
   const queryClient = useQueryClient();
   useSrmRealtimeInvalidation(queryClient);
   const meta = viewMeta[kind];
@@ -2130,3 +2174,5 @@ export default function SRMWorkspacePage({ kind }: { kind: SRMViewKind }) {
   if (kind === "settings") return <SettingsView />;
   return <GenericRouteView kind={kind} meta={meta} />;
 }
+
+export default withRecordViewHost(SRMWorkspacePage);

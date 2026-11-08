@@ -1,3 +1,5 @@
+import {moduleActionAllowed} from "@/hooks/use-module-action";
+import {useAuthStore} from "@/store/authStore";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import {
@@ -23,6 +25,8 @@ export default function WorkReviewPanel({
   submissionId?: number;
   onReviewed?: () => void;
 }) {
+  const actor=useAuthStore(s=>s.user);
+  const canApprove=moduleActionAllowed(actor,"/pms/reviews","approve");
   const qc = useQueryClient();
   const [selected, setSelected] = useState<number>();
   const [decision, setDecision] = useState("Approved");
@@ -231,12 +235,12 @@ export default function WorkReviewPanel({
           ))}
         </div>
       )}
-      {item.status === "Pending Review" && item.can_review !== false ? (
+      {item.status === "Pending Review" && item.can_review !== false && canApprove ? (
         <CompactForm
           className="grid gap-4 sm:grid-cols-2"
           onSubmit={(e) => {
             e.preventDefault();
-            mutation.mutate();
+            if(canApprove)mutation.mutate();
           }}
         >
           <Label>

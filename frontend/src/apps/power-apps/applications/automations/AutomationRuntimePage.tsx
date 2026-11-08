@@ -1,3 +1,5 @@
+import {useAuthStore} from "@/store/authStore";
+import {moduleActionAllowed} from "@/hooks/use-module-action";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -224,8 +226,10 @@ export default function AutomationRuntimePage() {
     setNotice("");
     setError("");
   }, [environment, workflowId, runId]);
+  const pendingReads=useRef(0),mutationPending=useRef(busy);mutationPending.current=busy;
   const requestKey = useRef(crypto.randomUUID());
-  const can = (name: string) => permissions.includes(`power_apps_${name}`);
+  const actor=useAuthStore(s=>s.user);
+  const can = (name: string) => permissions.includes(`power_apps_${name}`)&&moduleActionAllowed(actor,location.pathname,({publish:"configure",manage_environment:"configure",execute:"create"} as Record<string,string>)[name]||name);
   useEffect(() => {
     let live = true;
     powerApi
@@ -243,13 +247,14 @@ export default function AutomationRuntimePage() {
   useEffect(() => {
     if (!auto) return;
     const timer = window.setInterval(() => {
-      if (!document.hidden) setRefresh((v) => v + 1);
+      if (!document.hidden && pendingReads.current===0 && !mutationPending.current) setRefresh((v) => v + 1);
     }, 5000);
     return () => clearInterval(timer);
   }, [auto]);
   useEffect(() => {
     let live = true;
     const load = async () => {
+      pendingReads.current+=1;
       try {
         if (runId) {
           const data = await client.history(runId);
@@ -274,7 +279,7 @@ export default function AutomationRuntimePage() {
         }
       } catch (e) {
         if (live) setError(runtimeError(e));
-      }
+      } finally {pendingReads.current-=1;}
     };
     void load();
     return () => {
@@ -287,12 +292,14 @@ export default function AutomationRuntimePage() {
   useEffect(() => {
     if (!permissions.includes("power_apps_manage_environment")) return;
     let live = true;
+    pendingReads.current+=1;
     client
       .health()
       .then((h) => {
         if (live) setHealth(h);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(()=>{pendingReads.current-=1;});
     return () => {
       live = false;
     };
@@ -1089,7 +1096,7 @@ export default function AutomationRuntimePage() {
               <div className="rt-actions">
                 <CompactActions>
                   <button
-                    disabled={!report.can_export || busy}
+                    disabled={!report.can_export || !moduleActionAllowed(actor,location.pathname,"export") || busy}
                     onClick={() =>
                       void action(async () => {
                         saveReport(await client.report(runId));

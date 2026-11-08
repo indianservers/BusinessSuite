@@ -1,5 +1,7 @@
 import { useEffect, useRef, useSyncExternalStore, type DependencyList, type EffectCallback } from "react";
 import type { QueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
+import { affectsResource, recordSavedEvent, type RecordSaved } from "./record-changes";
 
 type Handler = () => void | Promise<unknown>;
 const handlers = new Set<Handler>();
@@ -20,6 +22,7 @@ export function usePageRefresh(handler: Handler) {
 
 /** Re-run only a read effect; keep the component, filters and local UI state. */
 export function useRefreshableEffect(effect: EffectCallback, dependencies?: DependencyList) {
+  const { pathname } = useLocation();
   const latest = useRef(effect);
   latest.current = effect;
   useEffect(() => {
@@ -29,11 +32,16 @@ export function useRefreshableEffect(effect: EffectCallback, dependencies?: Depe
       cleanup = latest.current();
     };
     handlers.add(refresh);
+    const onSaved = (event: Event) => {
+      if (affectsResource(pathname, (event as CustomEvent<RecordSaved>).detail.url)) refresh();
+    };
+    window.addEventListener(recordSavedEvent, onSaved);
     return () => {
+      window.removeEventListener(recordSavedEvent, onSaved);
       handlers.delete(refresh);
       if (typeof cleanup === "function") cleanup();
     };
-  }, dependencies);
+  }, dependencies ? [...dependencies, pathname] : undefined);
 }
 
 /** Called by the API client for GETs started during a manual refresh. */

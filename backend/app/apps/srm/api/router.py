@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.apps.fam.models import FAMPostingJob, FAMSRMMapping
 from app.apps.business_os.models import BOSLifecycleEvent
 from app.apps.business_os.services.module_service import company_id_for as bos_company_id_for, is_module_enabled
+from app.apps.srm.schemas import SRMRecurringScheduleInput
 from app.apps.srm.access import engagement_query, get_engagement_for_user, get_sales_order_for_user, organization_id_for, sales_order_query
 from app.apps.srm.models import (
     SRMAuditLog,
@@ -185,11 +186,11 @@ def _audit(db: Session, user: User, entity_type: str, entity_id: int | None, act
     ))
 
 
-def _notify(db: Session, user_id: int | None, title: str, message: str, entity_type: str, entity_id: int | None, action_url: str) -> None:
+def _notify(db: Session, user_id: int | None, title: str, message: str, entity_type: str, entity_id: int | None, action_url: str, company_id: int | None = None) -> None:
     if not user_id:
         return
     db.add(Notification(
-        company_id=None,
+        company_id=company_id,
         user_id=user_id,
         title=title,
         message=message,
@@ -1208,7 +1209,7 @@ def create_srm_product_category(data: SRMProductCategoryCreate, db: Session = De
 @router.get("/inventory/warehouses")
 def list_srm_warehouses(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_manage", "srm_admin"))):
     org_id = _org(current_user)
-    rows = db.query(SRMWarehouse).filter(SRMWarehouse.organization_id == org_id).order_by(SRMWarehouse.warehouse_name).all()
+    rows = db.query(SRMWarehouse).filter(SRMWarehouse.organization_id == org_id, SRMWarehouse.active.is_(True)).order_by(SRMWarehouse.warehouse_name).all()
     return {"items": [_serialize(row) for row in rows], "total": len(rows)}
 
 
@@ -3060,6 +3061,86 @@ def _billing_plan_status(billing_plan_id: int, target_status: str, action: str, 
     return _serialize(item)
 
 
+@router.post("/billing-plans/{billing_plan_id}/recurring-schedule")
+def create_recurring_schedule(billing_plan_id: int, start_date: date | None = None, amount: Decimal | None = Query(default=None, gt=0), occurrences: int | None = Query(default=None, ge=1, le=120), payment_terms_days: int = Query(default=30, ge=0, le=365), automatic_drafts: bool = False, notify_on_creation: bool = True, never_expires: bool = False, interval: int = Query(default=1, ge=1, le=120), payment_mode_id: int | None = None, salesperson_id: int | None = None, order_number: str = Query(default="", max_length=80), end_date: date | None = None, invoice_template: Literal["standard", "compact", "detailed"] = "standard", subject: str = Query(default="", max_length=180), customer_notes: str = Query(default="", max_length=4000), terms: str = Query(default="", max_length=4000), payload: SRMRecurringScheduleInput | None = Body(default=None), db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
+    if payload is not None:
+        start_date, amount, occurrences = payload.start_date, payload.amount, payload.occurrences
+        payment_terms_days, automatic_drafts, never_expires = payload.payment_terms_days, payload.automatic_drafts, payload.never_expires
+        payment_mode_id, salesperson_id, order_number = payload.payment_mode_id, payload.salesperson_id, payload.order_number
+        end_date, invoice_template, subject = payload.end_date, payload.invoice_template, payload.subject
+        customer_notes, terms = payload.customer_notes, payload.terms
+        interval = payload.interval
+        notify_on_creation = payload.notify_on_creation
+    if start_date is None or amount is None or occurrences is None:
+        raise HTTPException(422, "Start date, amount and occurrences are required")
+    from app.apps.srm.services.recurrence import occurrence_dates
+    from app.apps.srm.services.commercial import money
+    money(amount)
+    if amount != amount.quantize(Decimal("0.01")):
+        raise HTTPException(422, "Recurring amounts support two decimal places")
+    lock_tenant(db, current_user)
+    if never_expires and end_date is not None: raise HTTPException(422, "Choose an end date or never expires")
+    if automatic_drafts:
+        from app.apps.srm.services.commercial import require
+        require(current_user, "srm_invoice_create", "srm_admin")
+    plan = db.query(SRMBillingPlan).filter(scoped(SRMBillingPlan.organization_id, current_user), SRMBillingPlan.id == billing_plan_id).with_for_update().first()
+    if not plan:
+        raise HTTPException(404, "Billing plan not found")
+    engagement = get_engagement_for_user(db, plan.engagement_id, current_user)
+    if automatic_drafts:
+        from app.apps.srm.services.commercial import customer
+        if not engagement.customer_id: raise HTTPException(422, "Link a customer to the engagement before enabling automatic invoices")
+        customer(db, engagement.customer_id, current_user)
+    from app.shared.form_defaults import reference_queries
+    references = reference_queries(db, _org(current_user))
+    presentation = {"order_number": order_number, "notify_on_creation": notify_on_creation}
+    for key, ident, label_key in [("payment_modes", payment_mode_id, "payment_method"), ("users", salesperson_id, "salesperson_name")]:
+        if ident is not None:
+            query, label = references[key]
+            model = query.column_descriptions[0]["entity"]
+            row = query.filter(model.id == ident).first()
+            if row is None: raise HTTPException(422, "Selected payment mode or salesperson is unavailable")
+            presentation[label_key] = getattr(row, label)
+            presentation["payment_mode_id" if key == "payment_modes" else "salesperson_id"] = ident
+    if plan.status in {"completed", "cancelled"}:
+        raise HTTPException(409, "This billing plan is closed")
+    try:
+        dates = occurrence_dates(start_date, occurrences, plan.recurrence_rule or "", interval=interval)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    if end_date is not None:
+        if end_date < start_date: raise HTTPException(422, "End date must not precede start date")
+        dates = [due for due in dates if due <= end_date]
+    existing = {row.due_date for row in db.query(SRMBillingMilestone).filter(SRMBillingMilestone.billing_plan_id == plan.id).all()}
+    created = []
+    for due in dates:
+        if due in existing:
+            continue
+        row = SRMBillingMilestone(billing_plan_id=plan.id, name=f"{subject or plan.name} · {due.isoformat()}", due_date=due, amount=amount, status="ready" if automatic_drafts else "pending", metadata_json={**presentation, "recurring": True, "payment_terms_days": payment_terms_days, "automatic_drafts": automatic_drafts, "invoice_template": invoice_template, "subject": subject, "customer_notes": customer_notes, "terms": terms})
+        db.add(row)
+        created.append(row)
+    from app.shared.models import ServicePolicy
+    key = f"recurring-profile:{plan.organization_id or 1}:{plan.id}"
+    profile = db.query(ServicePolicy).filter_by(scope_key=key, organization_id=plan.organization_id or 1).with_for_update().first()
+    profile_before = profile.values_json if profile else None
+    if profile is None:
+        metadata = {**presentation, "recurring": True, "payment_terms_days": payment_terms_days, "automatic_drafts": automatic_drafts, "invoice_template": invoice_template, "subject": subject, "customer_notes": customer_notes, "terms": terms}
+        profile = ServicePolicy(scope_key=key, organization_id=plan.organization_id or 1, module_key="srm", kind="recurring_profile", updated_by=current_user.id, values_json={"ongoing": never_expires, "interval": interval, "start_date": start_date.isoformat(), "next_index": occurrences, "amount": str(amount), "rule": plan.recurrence_rule, "metadata": metadata})
+        db.add(profile)
+    elif never_expires and profile.values_json.get("start_date") != start_date.isoformat():
+        raise HTTPException(409, "An ongoing schedule already exists for this plan")
+    elif never_expires and not profile.values_json.get("ongoing", True):
+        metadata = {**presentation, "recurring": True, "payment_terms_days": payment_terms_days, "automatic_drafts": automatic_drafts, "invoice_template": invoice_template, "subject": subject, "customer_notes": customer_notes, "terms": terms}
+        profile.values_json = {**profile.values_json, "ongoing": True, "interval": interval, "metadata": metadata, "amount": str(amount), "rule": plan.recurrence_rule}
+        profile.updated_by = current_user.id
+        profile.version += 1
+    plan.total_amount = _decimal(plan.total_amount) + amount * len(created)
+    db.flush()
+    _audit(db, current_user, "billing_plan", plan.id, "recurring_schedule_created", before={"profile": profile_before}, after={"created": len(created), "start_date": start_date.isoformat(), "profile": profile.values_json, "profile_version": profile.version})
+    db.commit()
+    return {"created": len(created), "skipped": len(dates) - len(created), "milestones": [_serialize(row) for row in created]}
+
+
 @router.post("/billing-plans/{billing_plan_id}/activate")
 def activate_billing_plan(billing_plan_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_admin"))):
     return _billing_plan_status(billing_plan_id, "active", "activated", db, current_user)
@@ -3240,12 +3321,69 @@ def draft_from_billing_milestone(milestone_id: int, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail="Billing milestone must be approved or completed before invoicing")
     invoice = _create_invoice_from_lines(db, current_user, "billing_milestone", milestone.id, engagement, order, [billing_milestone_line(db, milestone)], plan.currency, billing_plan_id=plan.id)
     db.flush()
+    from app.apps.srm.services.recurrence import apply_invoice_settings
+    apply_invoice_settings(db, invoice, milestone)
     milestone.invoice_draft_id = invoice.invoice_draft_id
     milestone.status = "invoiced"
     _audit(db, current_user, "billing_milestone", milestone.id, "invoiced", after={"invoice_id": invoice.id, "invoice_draft_id": invoice.invoice_draft_id})
     db.commit()
     db.refresh(invoice)
     return _invoice_payload(invoice)
+
+
+@router.get("/recurring-invoices/options")
+def recurring_invoice_options(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_manage", "srm_invoice_create", "srm_admin"))):
+    from app.shared.form_defaults import reference_queries
+    references = reference_queries(db, _org(current_user))
+    result = {}
+    for key in ("payment_modes", "users"):
+        query, label = references[key]
+        result[key] = [{"value": row.id, "label": getattr(row, label)} for row in query.all()]
+    return result
+
+
+@router.post("/recurring-invoices/process-due")
+def process_due_recurring_invoices(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_create", "srm_admin")), schedule_owner_id: int | None = None, schedule_plan_id: int | None = None):
+    """Create eligible recurring drafts without approving or posting invoices."""
+    lock_tenant(db, current_user)
+    from app.apps.srm.services.recurrence import billing_today
+    today = billing_today(db, current_user)
+    query = db.query(SRMBillingMilestone, SRMBillingPlan).join(SRMBillingPlan, SRMBillingPlan.id == SRMBillingMilestone.billing_plan_id).filter(
+        scoped(SRMBillingPlan.organization_id, current_user), SRMBillingPlan.status == "active",
+        SRMBillingPlan.engagement_id.in_(engagement_query(db, current_user).with_entities(SRMEngagement.id)),
+        SRMBillingMilestone.metadata_json["recurring"].as_boolean() == True,
+        SRMBillingMilestone.due_date <= today, SRMBillingMilestone.invoice_draft_id == None,
+        SRMBillingMilestone.status.in_(["approved", "ready", "completed"]),
+    )
+    if schedule_owner_id is not None:
+        query = query.filter(SRMBillingPlan.created_by == schedule_owner_id)
+    if schedule_plan_id is not None:
+        query = query.filter(SRMBillingPlan.id == schedule_plan_id)
+    rows = query.order_by(SRMBillingMilestone.due_date, SRMBillingMilestone.id).limit(100).with_for_update().all()
+    invoices = []
+    for milestone, plan in rows:
+        if not (milestone.metadata_json or {}).get("recurring"):
+            continue
+        engagement = get_engagement_for_user(db, plan.engagement_id, current_user)
+        if engagement.status in {"closed", "cancelled"}:
+            continue
+        from app.apps.srm.services.commercial import customer
+        if not engagement.customer_id: raise HTTPException(409, "Recurring engagement has no linked customer")
+        customer(db, engagement.customer_id, current_user)
+        order = db.get(SRMSalesOrder, engagement.sales_order_id) if engagement.sales_order_id else None
+        invoice = _create_invoice_from_lines(db, current_user, "billing_milestone", milestone.id, engagement, order, [billing_milestone_line(db, milestone)], plan.currency, billing_plan_id=plan.id)
+        from app.apps.srm.services.recurrence import apply_invoice_settings
+        apply_invoice_settings(db, invoice, milestone)
+        milestone.invoice_draft_id = invoice.invoice_draft_id
+        milestone.status = "invoiced"
+        if (milestone.metadata_json or {}).get("notify_on_creation", True):
+            _notify(db, current_user.id, "Recurring invoice draft created",
+                    f"Review {invoice.invoice_number} before approval and sending.",
+                    "invoice", invoice.id, f"/srm/invoices/{invoice.id}", company_id=invoice.organization_id)
+        _audit(db, current_user, "billing_milestone", milestone.id, "recurring_invoice_created", after={"invoice_id": invoice.id})
+        invoices.append(invoice.id)
+    db.commit()
+    return {"created": len(invoices), "invoice_ids": invoices}
 
 
 @router.post("/invoices/draft-from-pms-milestone/{pms_milestone_id}", status_code=201)
@@ -3747,6 +3885,7 @@ def profitability(
 
 @router.get("/reports")
 def reports(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_view", "srm_profitability_view", "srm_admin"))):
+    from app.apps.srm.services.recurrence import recurring_details
     aging = collections_aging(db, current_user)
     from app.services.metrics.sales import latest_profitability_query,invoice_statistics,scalar_currency
     from app.services.metrics.queries import business_day,business_context,amounts_by_currency
@@ -3761,6 +3900,7 @@ def reports(db: Session = Depends(get_db), current_user: User = Depends(RequireP
         "sales_order_report":{"count":sales_order_query(db,current_user).count()},
         "contract_report":{"count":db.query(SRMContract).filter(scoped(SRMContract.organization_id,current_user),SRMContract.deleted_at.is_(None)).count()},
         "invoice_register":{"count":invoices.count(),"total":scalar_currency(values["total_invoiced_value"]),"by_currency":values["total_invoiced_value"]},
+        "recurring_invoice_details":recurring_details(db,current_user),
         "invoice_aging":aging,"collection_aging":aging,
         "customer_outstanding":{"total_outstanding":scalar_currency(values["outstanding_value"]),"by_currency":values["outstanding_value"],"customers":aging},
         "engagement_profitability":snapshots,"project_profitability":[r for r in snapshots if r.get("engagement_id")],"customer_profitability":snapshots,
@@ -4120,3 +4260,37 @@ def upsert_setting(key: str, data: SRMSettingUpsert, db: Session = Depends(get_d
 
 from app.apps.srm.commercial_api import router as commercial_router
 router.include_router(commercial_router)
+
+
+@router.put('/inventory/warehouses/{identity}')
+def update_srm_warehouse(identity:int,data:SRMWarehouseCreate,db:Session=Depends(get_db),user:User=Depends(RequirePermission('srm_manage','srm_admin'))):
+    row=db.query(SRMWarehouse).filter_by(id=identity,organization_id=_org(user),active=True).with_for_update().first()
+    if not row:raise HTTPException(404,'Warehouse not found')
+    before=_serialize(row)
+    for key,value in data.model_dump().items():setattr(row,key,value)
+    _audit(db,user,'warehouse',row.id,'UPDATE',before,_serialize(row));db.commit();return _serialize(row)
+@router.delete('/inventory/warehouses/{identity}',status_code=204)
+def retire_srm_warehouse(identity:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('srm_manage','srm_admin'))):
+    row=db.query(SRMWarehouse).filter_by(id=identity,organization_id=_org(user),active=True).with_for_update().first()
+    if not row:raise HTTPException(404,'Warehouse not found')
+    before=_serialize(row);row.active=False;_audit(db,user,'warehouse',row.id,'RETIRE',before,_serialize(row));db.commit()
+
+
+# Delete unused commercial drafts; retain anything with delivery/billing history.
+def _commercial_delete(path,model):
+    @router.delete('/'+path+'/{identity}',status_code=204)
+    def delete_commercial_draft(identity:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('srm_manage','srm_admin'))):
+        query=db.query(model).filter(scoped(model.organization_id,user),model.id==identity)
+        if hasattr(model,'deleted_at'):query=query.filter(model.deleted_at.is_(None))
+        row=query.with_for_update().first()
+        if not row:raise HTTPException(404,'Commercial record not found')
+        if str(row.status or '').lower() not in {'draft','planned','created'}:raise HTTPException(409,'Only unused drafts can be deleted; cancel or close this active record instead')
+        dependencies={SRMSalesOrder:[(SRMContract,'sales_order_id'),(SRMEngagement,'sales_order_id'),(SRMInvoiceDraft,'sales_order_id'),(SRMInvoice,'sales_order_id')],SRMContract:[(SRMEngagement,'contract_id')],SRMEngagement:[(SRMBillingPlan,'engagement_id'),(SRMInvoiceDraft,'engagement_id'),(SRMInvoice,'engagement_id')],SRMBillingPlan:[(SRMBillingMilestone,'billing_plan_id'),(SRMInvoiceDraft,'billing_plan_id')]}
+        for child,key in dependencies[model]:
+            if hasattr(child,key) and db.query(child).filter(getattr(child,key)==row.id).first():raise HTTPException(409,'This record has linked delivery or billing records; retain it and use its lifecycle actions')
+        if model==SRMEngagement and row.pms_project_id:raise HTTPException(409,'A delivery project is linked; retain the engagement')
+        before=_serialize(row)
+        if hasattr(row,'deleted_at'):row.deleted_at=datetime.now(timezone.utc)
+        else:db.delete(row)
+        _audit(db,user,path,identity,'deleted',before,None);db.commit()
+for _path,_model in [('sales-orders',SRMSalesOrder),('contracts',SRMContract),('engagements',SRMEngagement),('billing-plans',SRMBillingPlan)]:_commercial_delete(_path,_model)

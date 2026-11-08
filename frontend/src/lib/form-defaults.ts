@@ -35,10 +35,13 @@ export function defaultOwner(module?: string): number | undefined {
   return values.owner_mode === "specific_user" ? Number(values.owner_id) || undefined : values.owner_mode === "current_user" ? useAuthStore.getState().user?.id : undefined;
 }
 export function defaultPaymentTerms(module?: string) { const days = defaultNumber("payment_terms_days", module); return days ? `Net ${days}` : "Due on receipt"; }
-export function defaultDateAfter(key: string, module?: string, from = new Date()): string {
+export function defaultToday(module?: string, from = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: defaultText("timezone", module), year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(from);
-  const part = (type: string) => Number(parts.find(item => item.type === type)?.value);
-  const day = new Date(Date.UTC(part("year"), part("month") - 1, part("day")));
+  const part = (type: string) => parts.find(item => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+export function defaultDateAfter(key: string, module?: string, from = new Date()): string {
+  const day = new Date(`${defaultToday(module, from)}T00:00:00Z`);
   day.setUTCDate(day.getUTCDate() + defaultNumber(key, module));
   return day.toISOString().slice(0, 10);
 }

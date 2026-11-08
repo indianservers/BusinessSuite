@@ -4,7 +4,7 @@ from sqlalchemy import event, or_
 from sqlalchemy.orm import with_loader_criteria
 from app.core.reporting_managers import eligible_reporting_manager
 from app.core.deps import get_current_user, get_db
-from app.models.employee import Employee, EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeSkill, EmployeeLifecycleEvent, EmployeeChangeRequest
+from app.models.employee import Employee, EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeSkill, EmployeeCertification, EmployeeLifecycleEvent, EmployeeChangeRequest
 from app.models.company import Branch, Department, Designation
 from app.models.document import EmployeeCertificate, GeneratedDocument, CertificateImportExportBatch, CompanyPolicy, CompanyPolicyVersion, DocumentTemplate
 from app.apps.srm.services.commercial import tenant
@@ -50,7 +50,7 @@ def employee_tenant_scope(request: Request, db=Depends(get_db), user=Depends(get
     criteria.extend([with_loader_criteria(CompanyPolicy,CompanyPolicy.organization_id==company_id,include_aliases=True),with_loader_criteria(DocumentTemplate,DocumentTemplate.organization_id==company_id,include_aliases=True)])
     policies=db.query(CompanyPolicy.id).filter(CompanyPolicy.organization_id==company_id).subquery()
     criteria.append(with_loader_criteria(CompanyPolicyVersion,CompanyPolicyVersion.policy_id.in_(policies.select()),include_aliases=True))
-    for model in (EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeSkill, EmployeeLifecycleEvent, EmployeeChangeRequest, EmployeeCertificate, GeneratedDocument, CertificateImportExportBatch):
+    for model in (EmployeeDocument, EmployeeEducation, EmployeeExperience, EmployeeSkill, EmployeeCertification, EmployeeLifecycleEvent, EmployeeChangeRequest, EmployeeCertificate, GeneratedDocument, CertificateImportExportBatch):
         criteria.append(with_loader_criteria(model, model.employee_id.in_(employee_ids.select()), include_aliases=True))
 
     def restrict(execution):

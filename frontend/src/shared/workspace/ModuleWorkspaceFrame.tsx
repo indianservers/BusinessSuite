@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { isSharedTaskWorkspace } from "@/lib/task-workspace";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
@@ -39,9 +40,9 @@ const pms: WorkspaceView[] = [
 ];
 
 export default function ModuleWorkspaceFrame({module,children}:{module:"crm"|"pms";children:ReactNode}) {
-  const {pathname}=useLocation();const navigate=useNavigate();const user=useAuthStore(state=>state.user);
+  const {pathname,search}=useLocation();const navigate=useNavigate();const user=useAuthStore(state=>state.user);
   // Task execution already owns its full-screen shell and view catalogue.
-  if(module==="pms" && /^\/pms\/tasks(?:\/|$)/.test(pathname))return <>{children}</>;
+  if(isSharedTaskWorkspace(pathname,search) || (module==="pms" && /^\/pms\/tasks(?:\/|$)/.test(pathname)))return <>{children}</>;
   const all=module==="crm"?crm:pms;
   const active=all.find(view=>view.href===pathname)?.id || (pathname===`/${module}`?module==="crm"?"dashboard":"projects":pathname.split("/")[2]);
   const views=all.filter(view=>canAccessRoute(view.href!,user?.role,user?.is_superuser));

@@ -248,3 +248,17 @@ def test_service_currency_is_persisted_and_deal_mismatch_rejected(client, db, su
     saved = client.post("/api/v1/crm/deals", headers=superuser_headers, json=payload)
     assert saved.status_code == 201, saved.text
     assert saved.json()["amount"] == 50
+
+
+def test_close_accepts_company_business_date_after_utc_midnight_boundary(client,db,superuser_headers,monkeypatch):
+    from app.apps.crm import deal_workspace
+    instant=datetime.combine(date.today()-timedelta(days=1),datetime.min.time(),tzinfo=timezone.utc)+timedelta(hours=20)
+    class Clock(datetime):
+        @classmethod
+        def now(cls,tz=None):return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+    monkeypatch.setattr(deal_workspace,"datetime",Clock)
+    record=create(client,db,superuser_headers,amount=100)
+    lost=CRMPipelineStage(name="Lost business date",organization_id=1,pipeline_id=record["pipeline_id"],stage_type="lost",is_lost=True,probability=0,active=True)
+    db.add(lost);db.commit()
+    response=client.post(BASE+f"/{record['id']}/close",headers=superuser_headers,json={"outcome":"Lost","expected_version":1,"reason":"Synthetic business timezone test","actual_close_date":date.today().isoformat(),"actual_value":100,"currency":"INR"})
+    assert response.status_code==200,response.text

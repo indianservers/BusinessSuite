@@ -1,3 +1,4 @@
+import {useModuleAction} from "@/hooks/use-module-action";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
@@ -19,6 +20,7 @@ export function InvoicePaymentForm({
   invoice: Row;
   onSaved?: () => unknown;
 }) {
+  const canCreate=useModuleAction("approve");
   const [method,setMethod]=useState("bank_transfer"),[receiptDate,setReceiptDate]=useState(()=>new Date().toISOString().slice(0,10));
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
@@ -63,7 +65,7 @@ export function InvoicePaymentForm({
         className="flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate();
+          if(canCreate)save.mutate();
         }}
       >
         <div>
@@ -96,7 +98,7 @@ export function InvoicePaymentForm({
           />
         </div>
         <><label className="block text-sm">Payment method<NativeSelect className="block w-full rounded-lg border bg-background p-3" value={method} disabled={save.isPending} onChange={e=>setMethod(e.target.value)}>{["bank_transfer","upi","cash","card","cheque"].map(m=><option key={m} value={m}>{m.replace(/_/g,' ')}</option>)}</NativeSelect></label><label className="block text-sm">Received on<Input type="date" value={receiptDate} required disabled={save.isPending} onChange={e=>setReceiptDate(e.target.value)}/></label></>
-        <Button type="submit" disabled={save.isPending || !amount}>
+        <Button type="submit" disabled={!canCreate||save.isPending || !amount}>
           Record received payment
         </Button>
       </CompactForm>
@@ -117,6 +119,7 @@ export function InvoicePaymentForm({
 }
 
 function CollectionControls({ invoice, onSaved }: { invoice: Row; onSaved?: () => unknown }) {
+  const canEdit=useModuleAction("edit");
   const cache = useQueryClient();
   const [reason, setReason] = useState("");
   const [resumeAt, setResumeAt] = useState("");
@@ -137,16 +140,17 @@ function CollectionControls({ invoice, onSaved }: { invoice: Row; onSaved?: () =
     <p className="text-sm font-medium">{invoice.collection_hold ? "Collections on hold" : "Collection reminders active"}</p>
     {invoice.collection_hold_reason && <p className="text-sm text-muted-foreground">{invoice.collection_hold_reason}</p>}
     {invoice.collection_resume_at && <p className="text-sm">Scheduled resume: {new Date(invoice.collection_resume_at).toLocaleString()}</p>}
-    <form className="mt-2 flex flex-wrap items-end gap-3" onSubmit={e => { e.preventDefault(); control.mutate(); }}>
+    <form className="mt-2 flex flex-wrap items-end gap-3" onSubmit={e => { e.preventDefault(); if(canEdit)control.mutate(); }}>
       <label className="text-sm">Reason<Input required minLength={3} maxLength={500} value={reason} onChange={e=>setReason(e.target.value)} disabled={control.isPending} /></label>
       {!invoice.collection_hold && <label className="text-sm">Resume at (optional)<Input type="datetime-local" value={resumeAt} onChange={e=>setResumeAt(e.target.value)} disabled={control.isPending}/></label>}
-      <Button type="submit" variant="outline" disabled={control.isPending || reason.trim().length < 3}>{invoice.collection_hold ? "Resume reminders" : "Pause collections / dispute"}</Button>
+      <Button type="submit" variant="outline" disabled={!canEdit||control.isPending || reason.trim().length < 3}>{invoice.collection_hold ? "Resume reminders" : "Pause collections / dispute"}</Button>
     </form>
     {control.isError && <p role="alert">{(control.error as any)?.response?.data?.detail || "Unable to update collection controls."}</p>}
   </section>;
 }
 
 export default function ConnectedCollectionsPage() {
+  const canCreate=useModuleAction("approve"),canEdit=useModuleAction("edit");
   const uid = useAuthStore((state) => state.user?.id);
   const query = useQuery({
     queryKey: ["collection-invoices", uid],
@@ -180,10 +184,10 @@ export default function ConnectedCollectionsPage() {
           <InvoiceList
             invoices={query.data.items}
             actions={(row) =>
-              query.data.can_record &&
+              query.data.can_record && (canCreate||canEdit) &&
               row.document_status === "issued" &&
               Number(row.balance_amount) > 0 ? (
-                <><PaymentRequestButton source="srm_invoice" sourceId={Number(row.id)}/><InvoicePaymentForm
+                <>{canCreate&&<PaymentRequestButton source="srm_invoice" sourceId={Number(row.id)}/>}<InvoicePaymentForm
                   key={`${uid}-${row.id}`}
                   invoice={row}
                   onSaved={() => query.refetch()}

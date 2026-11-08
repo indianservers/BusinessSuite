@@ -1,3 +1,4 @@
+import {useModuleAction} from "@/hooks/use-module-action";
 import { PaymentRequestButton } from "@/shared/payments/PaymentRequests";
 import MobilePdfActions from "@/components/mobile/MobilePdfActions";
 import CompactForm from "@/components/forms/CompactForm";
@@ -21,6 +22,7 @@ export default function SharedInvoicePage() {
 }
 
 function InvoiceWorkspace({ id }: { id?: string }) {
+  const allowCreate=useModuleAction("create"),allowEdit=useModuleAction("edit"),allowApprove=useModuleAction("approve"),allowExport=useModuleAction("export");
   const uid = useAuthStore((state) => state.user?.id);
   const [notice, setNotice] = useState("");
   const [cancelReason, setCancelReason] = useState("");
@@ -98,7 +100,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           <p>Outstanding: {r.balance_amount}</p>
         </CardContent>
       </Card>
-      {r.document_status === "draft" && r.can_edit && (
+      {r.document_status === "draft" && r.can_edit && allowEdit && (
         <Card>
           <CardHeader>
             <CardTitle>Customer and seller</CardTitle>
@@ -137,7 +139,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
                 <strong>{l.line_total}</strong>
               </div>
               {r.document_status === "draft" &&
-                r.can_edit &&
+                r.can_edit && allowEdit &&
                 [null, "manual", "external_adjustment"].includes(
                   l.source_type,
                 ) && (
@@ -153,12 +155,12 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              disabled={pdf.isPending}
+              disabled={!allowExport||pdf.isPending}
               onClick={() => pdf.mutate()}
             >
               Preview / download PDF
             </Button>
-            {r.document_status === "draft" && r.can_issue && (
+            {r.document_status === "draft" && r.can_issue && allowApprove && (
               <Button
                 disabled={action.isPending}
                 onClick={() => action.mutate("approve")}
@@ -166,7 +168,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
                 Issue invoice
               </Button>
             )}
-            {r.document_status === "issued" && r.can_edit && (
+            {r.document_status === "issued" && r.can_edit && allowCreate && (
               <Button
                 disabled={
                   action.isPending ||
@@ -195,8 +197,8 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           )}
         </CardContent>
       </Card>
-      {r.can_record_payment && <PaymentRequestButton source="srm_invoice" sourceId={Number(id)}/>}
-      {r.can_record_payment &&
+      {r.can_record_payment && allowApprove && <PaymentRequestButton source="srm_invoice" sourceId={Number(id)}/>}
+      {r.can_record_payment && (allowApprove||allowEdit) &&
         r.document_status === "issued" &&
         Number(r.balance_amount) > 0 && (
           <InvoicePaymentForm invoice={r} onSaved={() => query.refetch()} />
@@ -224,7 +226,7 @@ function InvoiceWorkspace({ id }: { id?: string }) {
           ))}
         </CardContent>
       </Card>
-      {r.can_issue && r.document_status !== "cancelled" && (
+      {r.can_issue && allowCreate && r.document_status !== "cancelled" && (
         <details className="rounded-lg border p-4">
           <summary>Finance adjustments</summary>
           <p className="my-3 text-sm text-muted-foreground">

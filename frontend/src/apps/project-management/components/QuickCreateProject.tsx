@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/store/authStore";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -13,11 +14,20 @@ export default function QuickCreateProject({
   open,
   onClose,
   onCreated,
+  initialStatus = "Active",
+  initialWorkspace,
 }: {
   open: boolean;
+  initialStatus?: PMSProject["status"];
+  initialWorkspace?: number;
   onClose: () => void;
   onCreated: (project: PMSProject) => void;
 }) {
+  const user = useAuthStore(s => s.user);
+  const draftKey = `pms-project-create:${user?.access?.companyId}:${user?.id}`;
+  const [status, setStatus] = useState<PMSProject["status"]>(initialStatus);
+  const [another, setAnother] = useState(false);
+  const [template, setTemplate] = useState("");
   const [workspaces, setWorkspaces] = useState<
     { id: number; name: string; role: string }[]
   >([]);
@@ -33,10 +43,14 @@ export default function QuickCreateProject({
     projectKey = useRef("");
   useEffect(() => {
     if (!open) return;
-    setName("");
-    setDescription("");
-    setDue("");
-    setPriority("Medium");
+    let draft: {name?:string;description?:string;due?:string;priority?:ProjectPriority;workspace?:string;status?:PMSProject["status"];template?:string;another?:boolean} = {};
+    try { draft=JSON.parse(sessionStorage.getItem(draftKey)||"{}"); } catch {}
+    setStatus(draft.status||initialStatus);
+    setTemplate(draft.template||"");setAnother(!!draft.another);
+    setName(draft.name || "");
+    setDescription(draft.description || "");
+    setDue(draft.due || "");
+    setPriority(draft.priority || "Medium");
     setError("");
     projectKey.current = `P${crypto.randomUUID().replace(/-/g, "").slice(0, 9).toUpperCase()}`;
     let active = true;
@@ -45,9 +59,9 @@ export default function QuickCreateProject({
       .get<typeof workspaces>("/project-management/workspaces")
       .then(({ data }) => {
         if (active) {
-          const allowed = data.filter((w) => w.role === "Admin");
+          const allowed = data.filter((w) => ["Owner","Admin"].includes(w.role));
           setWorkspaces(allowed);
-          setWorkspace(String(allowed[0]?.id || ""));
+          setWorkspace(allowed.some(w => w.id === initialWorkspace) ? String(initialWorkspace) : allowed.some(w => String(w.id) === draft.workspace) ? draft.workspace! : String(allowed[0]?.id || ""));
         }
       })
       .catch((e) => {
@@ -59,7 +73,8 @@ export default function QuickCreateProject({
     return () => {
       active = false;
     };
-  }, [open]);
+  }, [open, draftKey, initialStatus, initialWorkspace]);
+  useEffect(() => { if (open) try {sessionStorage.setItem(draftKey,JSON.stringify({name,description,due,priority,workspace,status,template,another}));} catch {} },[open,draftKey,name,description,due,priority,workspace,status,template,another]);
   return (
     <Dialog
       open={open}
@@ -67,14 +82,14 @@ export default function QuickCreateProject({
         if (!v && !busy) onClose();
       }}
     >
-      <DialogContent>
+      <DialogContent className="suite-project-create-dialog">
         <DialogTitle>New project</DialogTitle>
         <p className="text-sm text-muted-foreground">
           Start with a name and workspace. Add the details as your plan takes
           shape.
         </p>
         <form
-          className="space-y-4"
+          className="suite-dialog-form"
           onSubmit={async (e) => {
             e.preventDefault();
             if (working.current) return;
@@ -86,13 +101,16 @@ export default function QuickCreateProject({
                 name: name.trim(),
                 workspace_id: Number(workspace),
                 project_key: projectKey.current,
-                status: "Active",
+                status,
                 priority,
                 due_date: due || undefined,
                 description: description || undefined,
               });
+              sessionStorage.removeItem(draftKey);
               onCreated(p);
-              onClose();
+              setName("");setDescription("");setDue("");setPriority("Medium");setTemplate("");
+              projectKey.current = `P${crypto.randomUUID().replace(/-/g, "").slice(0, 9).toUpperCase()}`;
+              if (!another) onClose();
             } catch (e) {
               setError(workspaceError(e));
             } finally {
@@ -102,6 +120,8 @@ export default function QuickCreateProject({
           }}
         >
           <fieldset disabled={busy} className="space-y-4">
+            <label className="block text-sm">Status<NativeSelect aria-label="New project status" value={status} onChange={e => setStatus(e.target.value as PMSProject["status"])}>{["Draft","Planned","Active","On Hold","Completed","Cancelled","Archived"].map(value => <option key={value}>{value}</option>)}</NativeSelect></label>
+          <label className="grid gap-2 text-sm">Project brief template<NativeSelect aria-label="Project brief template" value={template} onChange={e => {const value=e.target.value;setTemplate(value);setDescription(value === "delivery" ? "Goal:\nScope:\nDeliverables:\nAcceptance criteria:\nRisks:" : value === "launch" ? "Launch objective:\nAudience:\nReadiness checklist:\nSuccess metrics:" : value === "internal" ? "Problem:\nProposed improvement:\nOwner responsibilities:\nDefinition of done:" : "");}}><option value="">Blank brief</option><option value="delivery">Client delivery brief</option><option value="launch">Product launch brief</option><option value="internal">Internal improvement brief</option></NativeSelect></label>
             <label className="grid gap-2 text-sm">
               Project name
               <Input
@@ -176,7 +196,10 @@ export default function QuickCreateProject({
                 {error}
               </p>
             )}
-            <div className="flex justify-between gap-2">
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={another} onChange={e => setAnother(e.target.checked)}/>Create another after saving</label>
+            <p className="text-xs text-muted-foreground">Unfinished details are kept in this browser session.</p>
+          </fieldset>
+            <footer className="flex justify-between gap-2">
               <Button type="button" variant="ghost" asChild>
                 <Link
                   to={`/pms/projects/new${workspace ? `?workspace_id=${workspace}` : ""}`}
@@ -186,14 +209,14 @@ export default function QuickCreateProject({
               </Button>
               <Button
                 type="submit"
+                data-save-action
                 disabled={
                   !name.trim() || !workspace || busy || loadingWorkspaces
                 }
               >
                 {busy ? "Creating…" : "Create project"}
               </Button>
-            </div>
-          </fieldset>
+            </footer>
         </form>
       </DialogContent>
     </Dialog>

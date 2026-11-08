@@ -1,3 +1,4 @@
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
 import RecordLensViews from "@/shared/workspace/RecordLensViews";
 import { PipelineDrawer } from "@/shared/pipeline/PipelineExperience";
@@ -34,6 +35,8 @@ import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { affectsResource, publishGridRecord, removeGridRecords, removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import { crmApi } from "../api";
 import CRMStageDialog from "../CRMStageDialog";
 import { dealError, dealMoney, dealOptions, label } from "./deal-utils";
@@ -125,9 +128,10 @@ const dealViews: WorkspaceView[] = [
  {id:"form",label:"Forms",description:"Capture enquiries and lead requests",category:"Collaborate",href:"/crm/webforms",color:"#9672d7"},
 ];
 
-export default function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | "kanban" }) {
+function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | "kanban" }) {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
   const key = `crm-deal-workspace:${user?.access?.companyId}:${user?.id}`;
   const [gridQuery, setGridQuery] = useState<GridQuery>(() => ({
     ...emptyQuery(),
@@ -261,6 +265,27 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
       ),
     [filters],
   );
+  useEffect(() => {
+    const changed = (event: Event) => {
+      const change=(event as CustomEvent<RecordSaved>).detail;
+      const {url,method,record} = change;
+      if (!affectsResource("/crm/deals",url)&&change.resource!=="/crm/deals") return;
+      const removed=new Set(removedRecordIds(change,"/crm/deals").map(String));
+      if(removed.size){removeGridRecords(queryClient,dealGridSource(params).key,[...removed]);setData(current=>{if(!current)return current;const items=current.items.filter((row:Row)=>!removed.has(String(row.id)));return {...current,items,total:Math.max(0,current.total-(current.items.length-items.length))};});setSelected(current=>current.filter(id=>!removed.has(String(id))));}
+      else if (method !== "delete" && record?.id) {
+        publishGridRecord(queryClient,dealGridSource(params).key,record as Row & {id:number});
+        setData(current => {
+          if (!current) return current;
+          const exists=current.items.some((row:Row)=>row.id===record.id);
+          if(!exists&&(page!==1||Object.values(params).some(Boolean)))return current;
+          return {...current,items:exists?current.items.map((row:Row)=>row.id===record.id?{...row,...record}:row):[record,...current.items],total:current.total+(exists?0:1)};
+        });
+      }
+      setReload(value=>value+1);
+    };
+    window.addEventListener(recordSavedEvent,changed);
+    return () => window.removeEventListener(recordSavedEvent,changed);
+  },[params,page,queryClient]);
   useEffect(() => {
     if (mode === "grid") return;
     const controller = new AbortController();
@@ -688,7 +713,7 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
           open={filtersOpen}
           onToggle={(event) => setFiltersOpen(event.currentTarget.open)}
         >
-          <summary>Filters</summary>
+          <summary>Pipeline &amp; owner filters</summary>
           <div className="ed-filters">
             {[
               ["pipeline_id", "Pipeline", options.pipelines || []],
@@ -1273,3 +1298,5 @@ export default function EnterpriseDealsPage({ initialView = "grid" }: { initialV
     </main>
   );
 }
+
+export default withRecordViewHost(EnterpriseDealsPage);

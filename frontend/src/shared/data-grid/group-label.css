@@ -1,0 +1,12 @@
+.suite-group-badge { display:inline-flex; align-items:center; gap:4px; flex:0 1 auto; max-width:260px; min-width:0; padding:3px 6px; border-radius:4px; background:var(--group-color); color:white; font-size:10px; line-height:14px; font-weight:700; letter-spacing:.015em; text-transform:uppercase; }
+.suite-group-badge > svg { flex:none; }
+.suite-group-badge > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.suite-group-green { --group-color:#21845b; }
+.suite-group-pink { --group-color:#bb1762; }
+.suite-group-brown { --group-color:#946f60; }
+.suite-group-amber { --group-color:#986309; }
+.suite-group-red { --group-color:#c03444; }
+.suite-group-blue { --group-color:#2866bc; }
+.suite-group-purple { --group-color:#7150bf; }
+.suite-group-gray { --group-color:#626977; }
+.suite-group-count { flex:none; font-size:10px; line-height:18px; color:hsl(var(--muted-foreground)); font-variant-numeric:tabular-nums; padding:0 3px; font-weight:500; }

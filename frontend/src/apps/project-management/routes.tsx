@@ -63,6 +63,7 @@ const BacklogPage = React.lazy(() => import("./pages/BacklogPage"));
 const RoadmapPage = React.lazy(() => import("./pages/RoadmapPage"));
 const WorkloadPage = React.lazy(() => import("./pages/WorkloadPage"));
 const FilesPage = React.lazy(() => import("./pages/FilesPage"));
+const ClientsPage = React.lazy(() => import("./pages/ClientsPage"));
 const ClientPortalPage = React.lazy(() => import("./pages/ClientPortalPage"));
 const AdminPage = React.lazy(() => import("./pages/AdminPage"));
 const SettingsPage = React.lazy(() => import("./pages/SettingsPage"));
@@ -223,6 +224,7 @@ export const projectManagementRoutes: FrontendRoute[] = [
   { path: "pms/time-tracking", element: <TimeTrackingPage /> },
   { path: "pms/timesheets", element: <TimesheetsPage /> },
   { path: "pms/reports", element: <ReportsPage /> },
+  { path: "pms/clients", element: <ClientsPage /> },
   { path: "pms/client-portal", element: <ClientPortalPage /> },
   { path: "pms/settings", element: <CentralSettingsRedirect section="pms" /> },
   { path: "pms/admin", element: <ManagementHomePage /> },

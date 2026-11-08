@@ -337,3 +337,26 @@ def anomalies(db: Session = Depends(get_db), current_user: User = Depends(Requir
 def export_audit(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("analytics_admin", "analytics_export"))):
     return _list(db.query(AnalyticsExportAuditLog).order_by(AnalyticsExportAuditLog.created_at.desc()).limit(250).all())
 
+
+
+
+def _schedule_owner(db,row,user):
+    if user.is_superuser:return
+    author=db.get(User,row.created_by) if row.created_by else None
+    if not author or author.organization_id!=user.organization_id:raise HTTPException(404,'Schedule not found')
+
+@router.put('/schedules/{identity}')
+def update_schedule(identity:int,data:SchedulePayload,db:Session=Depends(get_db),user:User=Depends(RequirePermission('analytics_schedule'))):
+    row=db.query(AnalyticsScheduledReport).filter_by(id=identity).with_for_update().first()
+    if not row:raise HTTPException(404,'Schedule not found')
+    _schedule_owner(db,row,user)
+    _require_report(db,row.report_id,user);_require_report(db,data.report_id,user)
+    for key,value in data.model_dump().items():setattr(row,key,int(value) if key=='active' else value)
+    db.commit();return _serialize(row)
+@router.delete('/schedules/{identity}',status_code=204)
+def delete_schedule(identity:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('analytics_schedule'))):
+    row=db.query(AnalyticsScheduledReport).filter_by(id=identity).first()
+    if not row:raise HTTPException(404,'Schedule not found')
+    _schedule_owner(db,row,user)
+    _require_report(db,row.report_id,user);db.delete(row);db.commit()
+

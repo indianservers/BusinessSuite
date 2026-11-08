@@ -73,8 +73,8 @@ class BaseFilters(BaseModel):
 
 
 def fields():
-    labels = {"name": "Deal name", "amount": "Deal value", "currency": "Currency", "probability": "Probability", "weighted": "Weighted value", "pipeline_id": "Pipeline", "stage_id": "Stage", "owner_user_id": "Owner", "company_id": "Company", "expected_close_date": "Expected close", "next_follow_up_at": "Next action", "priority": "Priority", "status": "Status", "created_at": "Created", "updated_at": "Updated", "deal_type": "Deal type", "source": "Source"}
-    kinds = {"amount": "number", "probability": "number", "weighted": "number", "pipeline_id": "id", "stage_id": "id", "owner_user_id": "id", "company_id": "id", "expected_close_date": "date", "next_follow_up_at": "datetime", "created_at": "datetime", "updated_at": "datetime"}
+    labels = {"id": "Record ID", "name": "Deal name", "amount": "Deal value", "currency": "Currency", "probability": "Probability", "weighted": "Weighted value", "pipeline_id": "Pipeline", "stage_id": "Stage", "owner_user_id": "Owner", "company_id": "Company", "expected_close_date": "Expected close", "next_follow_up_at": "Next action", "priority": "Priority", "status": "Status", "created_at": "Created", "updated_at": "Updated", "deal_type": "Deal type", "source": "Source"}
+    kinds = {"id": "id", "amount": "number", "probability": "number", "weighted": "number", "pipeline_id": "id", "stage_id": "id", "owner_user_id": "id", "company_id": "id", "expected_close_date": "date", "next_follow_up_at": "datetime", "created_at": "datetime", "updated_at": "datetime"}
     return {key: GridField(CRMDeal.amount * CRMDeal.probability / 100 if key == "weighted" else getattr(CRMDeal, key), kinds.get(key, "text"), title, key not in {"name", "amount", "weighted", "created_at", "updated_at", "next_follow_up_at", "probability"}) for key, title in labels.items()}
 
 

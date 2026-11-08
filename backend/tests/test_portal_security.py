@@ -11,6 +11,19 @@ def test_portal_sessions_are_separate_from_employee_auth_and_customer_partner_ar
     assert client.get("/api/v1/customer-portal/me", headers={"X-Portal-Session": partner["one_time_session_token"]}).status_code == 403
     assert client.get("/api/v1/partner-portal/dashboard", headers={"X-Portal-Session": customer["one_time_session_token"]}).status_code == 403
 
+
+def test_partner_profile_is_scoped_and_exposes_only_own_permissions(client, db):
+    headers = auth_headers(client, db)
+    invited = invite_portal(client, db, headers, "partner", "profile-partner@example.com", partner_id=912)
+    session = {"X-Portal-Session": invited["one_time_session_token"]}
+    profile = client.get("/api/v1/partner-portal/me", headers=session)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["user"]["email"] == "profile-partner@example.com"
+    assert profile.json()["partner_ids"] == [912]
+    dashboard = client.get("/api/v1/partner-portal/dashboard", headers=session)
+    assert "submit_lead" in dashboard.json()["permissions"]
+    assert client.get("/api/v1/partner-portal/me", headers=headers).status_code == 403
+
 def test_portal_file_capability_is_revoked_with_session(client, db, monkeypatch, tmp_path):
     import pytest
     from urllib.parse import urlsplit, parse_qs

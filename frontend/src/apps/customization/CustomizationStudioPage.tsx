@@ -1,3 +1,5 @@
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import FieldManager from "./FieldManager";
 import RuntimeConfiguration from './RuntimeConfiguration';
 import LayoutArrangement from "./LayoutArrangement";
@@ -54,12 +56,12 @@ export default function CustomizationStudioPage() {
         {active === "modules" ? <Modules /> : null}
         {active === "fields" ? <Fields /> : null}
         {active === "layouts" ? <Layouts /> : null}
-        {active === "views" ? <GenericSection title="List View Builder" description="Saved filters, visible columns, sort order, shared/private and default view metadata." queryKey="customization-views" queryFn={customizationApi.views} action="Create View" mutation={() => customizationApi.createView({ module_name: "partner_projects", name: "Open Projects", filters_json: { status: "open" }, columns_json: ["project_name", "budget"], sort_json: { field: "project_name", direction: "asc" }, shared: true })} /> : null}
-        {active === "kanban" ? <GenericSection title="Kanban Builder" description="Group by picklist/status/stage fields with backend transition validation metadata." queryKey="customization-kanban" queryFn={customizationApi.kanban} action="Create Kanban" mutation={() => customizationApi.createKanban({ module_name: "partner_projects", name: "Project Kanban", group_by_field: "status", card_fields_json: ["project_name", "budget"], shared: true })} /> : null}
+        {active === "views" ? <RuntimeConfiguration kind="views" /> : null}
+        {active === "kanban" ? <RuntimeConfiguration kind="kanban" /> : null}
         {active === "validation-rules" ? <RuntimeConfiguration kind="validation-rules" /> : null}
         {active === "buttons" ? <RuntimeConfiguration kind="buttons" /> : null}
         {active === "related-lists" ? <RuntimeConfiguration kind="related-lists" /> : null}
-        {active === "picklists" ? <GenericSection title="Global Picklists" description="Reusable global value sets for picklist and multi-select fields." queryKey="customization-picklists" queryFn={customizationApi.picklists} action="Create Picklist" mutation={() => customizationApi.createPicklist({ api_name: "project_statuses", label: "Project Statuses", values: [{ value: "open", label: "Open" }, { value: "closed", label: "Closed" }] })} /> : null}
+        {active === "picklists" ? <RuntimeConfiguration kind="picklists" /> : null}
         {active === "formulas" ? <FieldManager /> : null}
         {active === "rollups" ? <FieldManager /> : null}
         {active === "audit" ? <GenericSection title="Customization Audit" description="Metadata and dynamic record changes are captured for diagnostics." queryKey="customization-audit" queryFn={customizationApi.audit} /> : null}
@@ -83,14 +85,16 @@ function Modules() { return <RuntimeConfiguration kind="modules" />; }
 function Fields() { return <FieldManager/>; }
 
 function Layouts() {
+  const canEdit=useDefinitionPermission(["customization_manage","customization_layouts_manage"],"edit");
   const { toast } = useToast();
-  const refresh = useRefresh("customization-layouts");
+  const qc=useQueryClient();
+  const refresh=()=>{void qc.invalidateQueries({queryKey:["customization","layouts"]});void qc.invalidateQueries({queryKey:["layout-arrange"]});};
   const addSection = useMutation({
     mutationFn: (id: number) => customizationApi.addLayoutSection(id, { title: "Commercial Details" }),
     onSuccess: () => { toast({ title: "Layout section added" }); refresh(); },
     onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
-  return <GenericSection title="Layout Builder" description="Sections, field order, required markers, hidden/read-only placeholders." queryKey="customization-layouts" queryFn={customizationApi.layouts} action="Create Layout" mutation={() => customizationApi.createLayout({ module_name: "partner_projects", name: "Default Detail", layout_type: "detail", is_default: true })} actions={(item) => <><Button size="sm" variant="outline" disabled={!item.id || addSection.isPending} onClick={() => addSection.mutate(Number(item.id))}>Add Section</Button><LayoutArrangement layoutId={Number(item.id)} /></>} />;
+  return <RuntimeConfiguration kind="layouts" renderActions={item=><><Button size="sm" variant="outline" disabled={!canEdit||!item.id||addSection.isPending} onClick={()=>addSection.mutate(Number(item.id))}>Add Section</Button><LayoutArrangement layoutId={Number(item.id)}/></>}/>;
 }
 
 function GenericSection({ title, description, queryKey, queryFn, action, mutation, actions }: { title: string; description: string; queryKey: string; queryFn: () => Promise<{ items: CustomizationRecord[]; total: number }>; action?: string; mutation?: () => Promise<unknown>; actions?: (item: CustomizationRecord) => React.ReactNode }) {
@@ -112,9 +116,10 @@ function SectionFrame({ title, description, action, onAction, query, children, a
       {query.isLoading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading customization metadata...</div> : null}
       {query.isError ? <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">Customization metadata could not be loaded.</div> : null}
       {!query.isLoading && !items.length ? <div className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">No records configured yet.</div> : null}
-      <div className="grid gap-3 md:grid-cols-2">
-        {items.map((item) => <Card key={String(item.id)}><CardContent className="space-y-3 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{String(item.name || item.module_label || item.field_label || item.label || item.entity_type || `Record ${item.id}`)}</p><p className="mt-1 text-xs text-muted-foreground">{String(item.module_name || item.module_api_name || item.field_type || item.action || "customization")}</p></div><Badge variant="outline">{String(item.enabled ?? item.active ?? item.visible ?? "ready")}</Badge></div>{actions ? <div className="flex flex-wrap gap-2">{actions(item)}</div> : null}</CardContent></Card>)}
-      </div>
+      <GroupedRecords scope={`customization:${title}`} items={items} gridClassName="grid gap-3 md:grid-cols-2" fields={[
+        {id:"module",label:"Module",value:item=>item.module_name || item.module_api_name || item.entity_type || "General"},
+        {id:"status",label:"Status",value:item=>(item.enabled ?? item.active ?? item.visible) === false ? "Disabled" : "Active"},
+      ]} renderItem={item=><Card key={String(item.id)}><CardContent className="space-y-3 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{String(item.name || item.module_label || item.field_label || item.label || item.entity_type || `Record ${item.id}`)}</p><p className="mt-1 text-xs text-muted-foreground">{String(item.module_name || item.module_api_name || item.field_type || item.action || "customization")}</p></div><Badge variant="outline">{String(item.enabled ?? item.active ?? item.visible ?? "ready")}</Badge></div>{actions ? <div className="flex flex-wrap gap-2">{actions(item)}</div> : null}</CardContent></Card>}/>
     </div>
   );
 }

@@ -633,9 +633,8 @@ def cancel_leave(
     ).first()
     if not req:
         raise HTTPException(status_code=404, detail="Leave request not found")
-    if current_user.employee and req.employee_id != current_user.employee.id:
-        if not current_user.is_superuser:
-            raise HTTPException(status_code=403, detail="Not authorized")
+    if not current_user.is_superuser and (not current_user.employee or req.employee_id != current_user.employee.id):
+        raise HTTPException(status_code=403, detail="Not authorized")
     if req.status not in ["Pending"]:
         raise HTTPException(status_code=400, detail="Can only cancel pending requests")
     cancelled = crud_leave.cancel_leave_request(db, request_id, current_user.id)

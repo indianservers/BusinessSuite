@@ -61,7 +61,7 @@ def test_srm_cross_module_reference_columns_are_operational_not_reused_crm_pms(d
 def test_srm_status_catalogs_match_required_phase_2_flows():
     assert SALES_ORDER_STATUSES == {"draft", "pending_approval", "approved", "confirmed", "cancelled", "closed"}
     assert CONTRACT_STATUSES == {"draft", "under_review", "active", "expired", "terminated", "renewed"}
-    assert ENGAGEMENT_STATUSES == {"created", "project_pending", "project_created", "delivery_in_progress", "billing_in_progress", "completed", "closed"}
+    assert ENGAGEMENT_STATUSES == {"created", "project_pending", "project_created", "delivery_in_progress", "billing_in_progress", "completed", "closed", "cancelled"}
     assert BILLING_PLAN_STATUSES == {"draft", "active", "paused", "completed", "cancelled"}
     assert INVOICE_STATUSES == {"draft", "pending_approval", "approved", "sent", "partially_paid", "paid", "overdue", "cancelled"}
     assert RECEIPT_STATUSES == {"draft", "confirmed", "allocated", "partially_allocated", "cancelled"}

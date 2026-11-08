@@ -2,7 +2,7 @@ import { defaultText } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm, { revealFormField } from "@/components/forms/CompactForm";
 import { useAuthStore } from "@/store/authStore";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Save, Sparkles, FileText, Folder, Type, Users, UserRound, Flag, CalendarDays, Circle, Plus, Copy, ListChecks, Check, X, Bug, Lightbulb, BarChart3, Search, Paperclip } from "lucide-react";
 import RichTextEditor from "@/components/rich-text/LazyRichText";
 import "./task-creation.css";
@@ -25,7 +25,7 @@ function readDraft(key: string): TaskCreationDraft | null {
 }
 
 /** Presentation and browser drafts only. The host owns creation; no service calls. */
-export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, onCreate, onCancel, initialDraft, databaseBacked = false, additionalFields }: { additionalFields?:ReactNode; databaseBacked?: boolean; initialDraft?: TaskCreationDraft; draftKey: string; tasks: LocalTask[]; onCreate: (draft: TaskCreationDraft, createAnother: boolean) => void | Promise<void>; onCancel: () => void }) {
+export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, onCreate, onAutoSave, autoSaveVersion, onCancel, initialDraft, databaseBacked = false, additionalFields }: { onAutoSave?: (draft: TaskCreationDraft) => Promise<void>; autoSaveVersion?: string; additionalFields?:ReactNode; databaseBacked?: boolean; initialDraft?: TaskCreationDraft; draftKey: string; tasks: LocalTask[]; onCreate: (draft: TaskCreationDraft, createAnother: boolean) => void | Promise<void>; onCancel: () => void }) {
   const [saving, setSaving] = useState(false);
   const submitting = useRef(false);
   const [draft, setDraft] = useState(() => initialDraft || blank());
@@ -43,6 +43,37 @@ export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, on
   const form = useRef<HTMLFormElement>(null);
   const assignment = useRef<HTMLDivElement>(null);
   const subtasks = useRef<HTMLInputElement>(null);
+  const baseline = useRef(JSON.stringify([draft, autoSaveVersion]));
+  const latestAutoSave = useRef(onAutoSave);
+  latestAutoSave.current = onAutoSave;
+  useEffect(() => {
+    const snapshot = JSON.stringify([draft, autoSaveVersion]);
+    if (snapshot === baseline.current) return;
+    const timer = window.setTimeout(() => {
+      if (submitting.current) return;
+      try { localStorage.setItem(draftKey, JSON.stringify(draft)); setNotice("Draft automatically saved in this browser."); }
+      catch { setError("Automatic draft saving failed. Browser storage is unavailable or full."); }
+      if (!latestAutoSave.current || !draft.title.trim() || !form.current?.checkValidity() || (draft.start && draft.due && draft.due < draft.start)) return;
+      submitting.current = true; setSaving(true); setError("");
+      void latestAutoSave.current({ ...draft, title: draft.title.trim() }).then(() => {
+        baseline.current = snapshot;
+        try { localStorage.removeItem(draftKey); setAvailable(null); } catch { /* Server save succeeded. */ }
+        setNotice("All changes automatically saved to CRM.");
+      }).catch((e: unknown) => {
+        setError(e instanceof Error ? `Automatic save failed: ${e.message}. Your draft is kept in this browser; use Ctrl+S to retry.` : "Automatic save failed. Use Ctrl+S to retry.");
+      }).finally(() => { submitting.current = false; setSaving(false); });
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [draft, draftKey, autoSaveVersion]);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s" || event.defaultPrevented) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      if (!event.repeat) void submit();
+    };
+    window.addEventListener("keydown", shortcut, true);
+    return () => window.removeEventListener("keydown", shortcut, true);
+  });
   function set<K extends keyof TaskCreationDraft>(key: K, value: TaskCreationDraft[K]) { setDraft(d => ({ ...d, [key]: value })); setError(""); }
   function saveDraft() { try { localStorage.setItem(draftKey, JSON.stringify(draft)); setAvailable(draft); setNotice("Draft saved in this browser."); setError(""); } catch { setError("Could not save the draft. Browser storage is unavailable or full."); } }
   function discardDraft() { try { localStorage.removeItem(draftKey); setAvailable(null); } catch { setError("Could not remove the saved draft. Please try again."); } }

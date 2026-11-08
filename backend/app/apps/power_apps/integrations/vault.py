@@ -5,6 +5,7 @@ import json
 import re
 from datetime import timedelta
 from urllib.parse import urlsplit
+from types import SimpleNamespace
 from cryptography.fernet import InvalidToken
 from fastapi import HTTPException
 from sqlalchemy import or_
@@ -114,6 +115,13 @@ def audit(db, row, user, action, details=None):
 
 
 def hosts_for(conn):
+    from app.apps.power_apps.integrations.marketplace_providers import DYNAMIC, validate_host
+    if conn.connector_id in DYNAMIC:
+        hosts=[validate_host(conn.connector_id, conn.config)]
+        if conn.connector_id=='docusign':
+            from app.apps.power_apps.integrations.marketplace_actions import api_host
+            hosts.append(api_host(conn.config))
+        return hosts
     if conn.connector_id in {"salesforce", "jira", "zoho_crm"}:
         return [conn.config["provider_host"]]
     return PROVIDER_HOSTS.get(conn.connector_id, conn.config.get("hosts", []))
@@ -135,6 +143,9 @@ def policy_for(db, conn):
 
 
 def validate_config(connector_id, auth_type, config, secrets, scopes, writes):
+    from app.apps.power_apps.integrations.marketplace_providers import DYNAMIC, validate_host
+    if connector_id in DYNAMIC:
+        validate_host(connector_id, config)
     from app.apps.power_apps.runtime import safe_data
 
     if (
@@ -177,9 +188,17 @@ def validate_config(connector_id, auth_type, config, secrets, scopes, writes):
         "provider_host",
         "team_member_id",
         "namespace_id",
+        "form_id",
+        "api_host",
+        "account_id",
     }
     if set(config) - permitted:
         raise HTTPException(422, "Unknown public connection setting")
+    if connector_id=='docusign':
+        from app.apps.power_apps.integrations.marketplace_actions import api_host
+        api_host(config)
+    if (connector_id == 'linkedin_lead_forms' or 'form_id' in config) and (connector_id != 'linkedin_lead_forms' or not isinstance(config.get('form_id'),str) or not re.fullmatch(r'[0-9]{1,40}',config['form_id'])):
+        raise HTTPException(422, 'Enter a numeric LinkedIn lead form ID')
     if any(key in config and (connector_id != "dropbox" or not isinstance(config[key], str) or not re.fullmatch(r"[A-Za-z0-9_:-]{1,180}", config[key])) for key in ("team_member_id", "namespace_id")):
         raise HTTPException(422, "Dropbox team and namespace identifiers must be valid nonempty identifiers")
     if connector_id in {"salesforce", "jira", "zoho_crm"}:
@@ -241,8 +260,14 @@ def validate_config(connector_id, auth_type, config, secrets, scopes, writes):
                 "Application databases and application roles cannot be used as connector credentials",
             )
     permitted_scopes = {s for a in REGISTRY[connector_id].actions for s in a.scopes}
+    manifest=REGISTRY[connector_id]
+    permitted_scopes.update(manifest.oauth_scopes+manifest.oauth_write_scopes)
+    if auth_type=='oauth2' and manifest.oauth_scopes and not set(manifest.oauth_scopes)<=set(scopes):
+        raise HTTPException(422,'Authorize the required provider scopes shown in connection setup')
     if connector_id == "outlook" or MODULES.get(connector_id, {}).get("host") == "graph.microsoft.com":
         permitted_scopes.add("offline_access")
+    if not writes and set(scopes).intersection(manifest.oauth_write_scopes):
+        raise HTTPException(422,'Provider write scopes require explicit write opt-in')
     if not set(scopes) <= permitted_scopes:
         raise HTTPException(422, "Requested scopes are outside this connector manifest")
     if not writes and any(
@@ -320,7 +345,7 @@ def create(db, user, environment, data):
         name=data.name,
         auth_type=data.auth_type,
         encrypted_value=CredentialVault.encrypt(secret_values),
-        hosts=([data.config["provider_host"]] if data.connector_id in {"salesforce", "jira", "zoho_crm"} else PROVIDER_HOSTS.get(data.connector_id, data.config.get("hosts", []))),
+        hosts=hosts_for(SimpleNamespace(connector_id=data.connector_id, config=data.config)),
         sharing=data.sharing
     )
     db.add(credential)

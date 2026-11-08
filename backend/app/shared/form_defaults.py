@@ -208,7 +208,16 @@ def capture_document_defaults(db, company_id, module, entity, record_id, actor):
         from app.apps.fam.models import FAMPaymentMode
         mode = db.query(FAMPaymentMode).filter_by(id=values["payment_mode_id"], company_id=company_id, active=True).first()
         if mode: snapshot["payment_method"] = mode.name
-    db.add(ServicePolicy(scope_key=f"form-snapshot:{company_id}:{module}:{entity}:{record_id}", organization_id=company_id, module_key=module, kind="form_snapshot", values_json=snapshot, version=1, updated_by=actor.id))
+    key=f"form-snapshot:{company_id}:{module}:{entity}:{record_id}"
+    # Called only when creating a document. SQLite can reuse a hard-deleted
+    # document ID; replace its orphaned presentation slot in this transaction.
+    policy=db.query(ServicePolicy).filter_by(scope_key=key,organization_id=company_id,kind="form_snapshot").first()
+    if policy:
+        policy.values_json=snapshot
+        policy.updated_by=actor.id
+        policy.version+=1
+    else:
+        db.add(ServicePolicy(scope_key=key, organization_id=company_id, module_key=module, kind="form_snapshot", values_json=snapshot, version=1, updated_by=actor.id))
     return snapshot
 
 

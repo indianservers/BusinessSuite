@@ -1,0 +1,488 @@
+[
+  {
+    "path": "frontend\\src\\components\\ModuleShell.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\platform\\shared.tsx",
+    "native": 1,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\analytics\\AnalyticsOverview.tsx",
+    "native": 1,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\CRMRecordDetailPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\CRMRecordsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\CRMStatisticsWorklist.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\CRMWorkspacePage.tsx",
+    "native": 0,
+    "adapter": 11,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\FollowUpWorkspace.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\GrowthWorkspace.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\MergeWizardModal.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\UniversalContactsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\fam\\FAMWorkspacePage.tsx",
+    "native": 0,
+    "adapter": 4,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\deals\\DealsDataGrid.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\leads\\LeadAnalyticsPanel.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\leads\\LeadManagementPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\product-customers\\ProductCustomersPage.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\apps\\crm\\templates\\IndustryPackOnboarding.tsx",
+    "native": 1,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\analytics\\AdvancedAnalyticsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\attendance\\AttendancePage.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\attendance\\MyAttendancePage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\attendance\\MyRosterPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\attendance\\ShiftRosterPage.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\compliance\\StatutoryCompliancePage.tsx",
+    "native": 0,
+    "adapter": 4,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\employees\\EmployeesPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\employees\\UserAccountsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\interns\\InternManagementPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\interns\\InternTaskProgramsPanel.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\leave\\LeavePage.tsx",
+    "native": 0,
+    "adapter": 3,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\logs\\AdminLogsPage.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\payroll\\FnFSettlementPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\payroll\\GuidedPayroll.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\payroll\\InvestmentDeclarationPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\payroll\\PayrollPage.tsx",
+    "native": 0,
+    "adapter": 9,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\platform\\EnterprisePage.tsx",
+    "native": 0,
+    "adapter": 4,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\profile\\ProfilePage.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\recruitment\\RecruitmentPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\reports\\ReportsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\settings\\SettingsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\hrms\\pages\\timesheets\\TimesheetsPage.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\power-apps\\applications\\automations\\AutomationList.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\power-apps\\applications\\automations\\AutomationRuntimePage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\components\\ProjectOverview.tsx",
+    "native": 1,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\components\\WorkMovementPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\dashboard\\WidgetContent.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\ManagementHomePage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\MyAssignmentsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\MyWorkPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\PortfolioPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\ProjectFinancials.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\ProjectsList.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\RisksPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\TagManagerPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\TaskListPage.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\TasksReferencePage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\TimesheetsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\pages\\WorkspaceWork.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\components\\people\\AddPeopleMemberships.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\components\\people\\DirectoryDestinations.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\project-management\\components\\people\\DirectoryTable.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\apps\\srm\\pages\\SRMWorkspacePage.tsx",
+    "native": 0,
+    "adapter": 6,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\components\\product\\ProductWorkflowCenter.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\components\\workforce\\WorkforceOperationsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\components\\workforce\\WorkforcePersonPreview.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\features\\access\\AiSecurityPage.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\features\\access\\ControlCenter.tsx",
+    "native": 0,
+    "adapter": 5,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\features\\access\\DashboardStudio.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\features\\access\\EnterprisePage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\features\\access\\SharedServicesPage.tsx",
+    "native": 0,
+    "adapter": 6,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\features\\access\\StatisticsAuditPage.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\features\\access\\UsersAccessPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\pages\\ai-agents\\OperatorProviderSettings.tsx",
+    "native": 0,
+    "adapter": 2,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\shared\\accounting\\ConnectedAccounting.tsx",
+    "native": 2,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\shared\\data-grid\\GridTable.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\shared\\data-grid\\LocalRecordGrid.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\shared\\data-grid\\NativeTableTools.tsx",
+    "native": 2,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\shared\\data-transfer\\AccountingSyncPanel.tsx",
+    "native": 1,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\shared\\data-transfer\\ImportWizard.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\shared\\data-transfer\\ImportWorkspace.tsx",
+    "native": 3,
+    "adapter": 0,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\shared\\follow-ups\\FollowUpGrid.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  },
+  {
+    "path": "frontend\\src\\shared\\follow-ups\\FollowUpsPage.tsx",
+    "native": 0,
+    "adapter": 1,
+    "grid": 0
+  },
+  {
+    "path": "frontend\\src\\shared\\master-data\\CompaniesPage.tsx",
+    "native": 0,
+    "adapter": 0,
+    "grid": 1
+  }
+]

@@ -16,3 +16,6 @@ export const authFields: Record<string, Record<string, string>> = {
 export function supportsWrites(connector: Connector) {
   return connector.editor_options?.dynamic_writes || connector.id === "http" || connector.actions.some((a) => a.mutates);
 }
+export function providerScopes(connector: Connector, auth: string, writes: boolean) {
+  return auth === 'oauth2' ? [...(connector.oauth_scopes || []), ...(writes ? connector.oauth_write_scopes || [] : [])] : [];
+}

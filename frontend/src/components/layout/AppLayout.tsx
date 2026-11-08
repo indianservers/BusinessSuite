@@ -1,3 +1,5 @@
+import PageWorkTools from "@/components/app/PageWorkTools";
+import { isSharedTaskWorkspace } from "@/lib/task-workspace";
 import FormDefaultsGate from "@/components/forms/FormDefaultsGate";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import "@/components/visuals/suite-visuals.css";
@@ -40,15 +42,15 @@ function AppLayoutContent() {
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   if (location.pathname === "/power-apps" || location.pathname.startsWith("/power-apps/")) {
-    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /></div>;
+    return <div className="flex h-dvh min-w-0 flex-col overflow-hidden"><SuiteContextBar /><div className="min-h-0 flex-1 overflow-auto"><ErrorBoundary><PageWorkTools /><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /></div>;
   }
 
-  if (location.pathname === "/pms/tasks" || location.pathname === "/pms/tasks/new" || /^\/pms\/tasks\/\d+\/edit$/.test(location.pathname)) {
-    return <div className="mobile-dock-fullscreen mobile-dock-tasks"><ErrorBoundary><Outlet /></ErrorBoundary><SessionTimeoutWarning /><MobileModuleDock /></div>;
+  if (isSharedTaskWorkspace(location.pathname, location.search)) {
+    return <div className="mobile-dock-fullscreen mobile-dock-tasks"><ErrorBoundary><PageWorkTools /><Outlet /></ErrorBoundary><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
   if (["/pms", "/pms/", "/pms/workspaces"].includes(location.pathname)) {
-    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /><MobileModuleDock /></div>;
+    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary><PageWorkTools /><Outlet /></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /><MobileModuleDock /></div>;
   }
 
   return (
@@ -71,12 +73,12 @@ function AppLayoutContent() {
         }`}
       >
         {!mobileLead && <Topbar onMenuClick={() => setSidebarOpen(true)} />}
-        <main id="suite-main" tabIndex={-1} className={`kf-main min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+        <main id="suite-main" tabIndex={-1} className={`kf-main suite-page-surface min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
           {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory ? null : <Breadcrumbs />}
           {!mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <SetupReadiness embedded />
           <ErrorBoundary>
-            <Suspense fallback={<LoadingState label="Loading page data" />}><Outlet /></Suspense>
+            <Suspense fallback={<LoadingState label="Loading page data" />}><PageWorkTools /><Outlet /></Suspense>
           </ErrorBoundary>
         </main>
         {!mobileLead && <BackToTop />}

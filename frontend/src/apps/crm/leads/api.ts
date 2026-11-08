@@ -239,8 +239,13 @@ export const leadsApi = {
       organization_id?:number;
       items: { id: number; name: string; stage: string }[];
     }>(`${root}/bulk/preview`, { ids, patch }),
-  bulkApply: (ids: number[], patch: LeadPatch) =>
-    api.post<{ updated: number }>(`${root}/bulk/apply`, { ids, patch }),
+  bulkApply: async (ids: number[], patch: LeadPatch) => {
+    const response=await api.post<{ updated: number }>(`${root}/bulk/apply`, { ids, patch });
+    // A bulk command returns a count, so it cannot merge changed lead rows or
+    // follow-up ownership into cached CRM views.
+    if(recordCache)await recordCache.invalidateCache("crm");
+    return response;
+  },
   alerts: () =>
     api.post<{ notificationsCreated: number }>(`${root}/alerts/evaluate`, {}),
   captureSettings: () =>

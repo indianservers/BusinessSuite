@@ -62,7 +62,10 @@ export default function DocumentsPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
-  const canChooseEmployee = ["admin", "hr"].includes(roleKey);
+  const grants=user?.access?.grants.hrms;
+  const canChooseEmployee = !!user?.is_superuser || (user?.access ? !!grants?.enabled && grants.permissions.includes("employee_view") : ["admin", "hr"].includes(roleKey));
+  const canUpload=!!user?.is_superuser || !user?.access || !!grants?.enabled && grants.actions.includes("create");
+  const canVerify=!!user?.is_superuser || (user?.access ? !!grants?.enabled && grants.actions.includes("edit") && grants.permissions.includes("employee_update") : ["admin", "hr"].includes(roleKey));
   const [employeeId, setEmployeeId] = useState(user?.employee_id ? String(user.employee_id) : "");
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [branchId, setBranchId] = useState("");
@@ -169,7 +172,7 @@ export default function DocumentsPage() {
 
   function submitUpload(event: FormEvent) {
     event.preventDefault();
-    uploadMutation.mutate();
+    if(canUpload && !uploadMutation.isPending)uploadMutation.mutate();
   }
 
   return (
@@ -332,14 +335,14 @@ export default function DocumentsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Certificate type</Label>
-                  <Input value={certificateType} onChange={(event) => setCertificateType(event.target.value)} required />
+                  <Input aria-label="Certificate type" value={certificateType} onChange={(event) => setCertificateType(event.target.value)} required />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Title</Label>
                 <Input
-                  value={title}
+                  aria-label="Document title" value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Class 10 marksheet, degree certificate, relieving letter..."
                 />
@@ -348,11 +351,11 @@ export default function DocumentsPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Issuing entity</Label>
-                  <Input value={issuingEntity} onChange={(event) => setIssuingEntity(event.target.value)} placeholder="CBSE, University, Previous company" />
+                  <Input aria-label="Issuing entity" value={issuingEntity} onChange={(event) => setIssuingEntity(event.target.value)} placeholder="CBSE, University, Previous company" />
                 </div>
                 <div className="space-y-2">
                   <Label>Certificate number</Label>
-                  <Input value={certificateNumber} onChange={(event) => setCertificateNumber(event.target.value)} />
+                  <Input aria-label="Certificate number" value={certificateNumber} onChange={(event) => setCertificateNumber(event.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Issue date</Label>
@@ -367,14 +370,14 @@ export default function DocumentsPage() {
               <div className="space-y-2">
                 <Label>File</Label>
                 <Input
-                  type="file"
+                  type="file" aria-label="Certificate file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   onChange={(event) => setFile(event.target.files?.[0] || null)}
                   required
                 />
               </div>
 
-              <Button type="submit" disabled={uploadMutation.isPending || !effectiveEmployeeId}>
+              <Button type="submit" disabled={!canUpload || uploadMutation.isPending || !effectiveEmployeeId}>
                 <Upload className="h-4 w-4" />
                 {uploadMutation.isPending ? "Uploading..." : "Upload document"}
               </Button>
@@ -416,8 +419,8 @@ export default function DocumentsPage() {
                       )}
                     </div>
                   </div>
-                  {canChooseEmployee && item.verification_status !== "Verified" && (
-                    <Button variant="outline" size="sm" onClick={() => verifyMutation.mutate(item.id)}>
+                  {canVerify && item.verification_status !== "Verified" && (
+                    <Button variant="outline" size="sm" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate(item.id)}>
                       <ShieldCheck className="h-4 w-4" />
                       Verify
                     </Button>

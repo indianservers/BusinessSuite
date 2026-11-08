@@ -1,3 +1,4 @@
+import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import { defaultText, defaultPaymentTerms } from "@/lib/form-defaults";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import BranchAvailability, { type BranchAvailabilityValue } from "@/shared/BranchAvailability";
@@ -44,23 +45,37 @@ export function CompanyQuickCreate({placement="quick_create",allowSaveNew=true,s
   async function selectExisting(id:number){setBusy(true);setError('');try{const {data}=await api.get<Company>(`/master-data/companies/${id}`,{params:{source}});setRecord(data);setAvailability(undefined);setForm(values(data));setEntityKind(data.entityKind||'Company');setBusinessRoles([...new Set([...(data.roles||[]),...(recordLabel==='company'?[]:roles)])]);setAddresses(data.addresses||[]);setTax(data.taxRegistrations||[]);setPrimaryId(String(data.primaryContactId||''));setChannels(undefined);setFinancial(undefined);setConfirmed(false);setNotice(`Using existing ${data.name}. Saving adds this relationship to the same company.`);}catch(e){setError(dealError(e));}finally{setBusy(false);}}
   const customFieldForm=useCrmFieldForm("companies",record?"edit":placement,record?.id,source);
   const contactFields=useCrmFieldForm("contacts","quick_create",undefined,source);
-  async function save(keepOpen=false){
+  const writeLock=useRef(false);
+  const savedSnapshot=useRef<string>();
+  async function save(keepOpen=false,automatic=false){
+    if(writeLock.current)return false;
     setError('');const valid=companyBasicsSchema.safeParse(form);
-    if(!valid.success){setTab(0);setError(valid.error.issues[0].message);return;}
-    for(const item of tax){const message=registrationError(item.type||'Other',item.number||'',countryIso(item.country||form.country));if(message){setTab(1);setError(message);return;}}
+    if(!valid.success){setTab(0);setError(valid.error.issues[0].message);return false;}
+    for(const item of tax){const message=registrationError(item.type||'Other',item.number||'',countryIso(item.country||form.country));if(message){setTab(1);setError(message);return false;}}
     const financialValues=financial?{...financial,bankAccounts:financial.bankAccounts.filter(b=>[b.holderName,b.bankName,b.accountNumber,b.ifsc,b.micr,b.branch,b.iban,b.bic].some(v=>v?.trim())),upiIds:financial.upiIds.filter(u=>[u.upiId,u.mobile,u.label].some(v=>v?.trim()))}:undefined;
-    for(const bank of financialValues?.bankAccounts||[]){for(const [kind,value] of [['IFSC',bank.ifsc],['IBAN',bank.iban||''],['BIC',bank.bic||'']]){const message=bankCodeError(kind,value,bank.country);if(message){setTab(3);setError(message);return;}}if(!bank.accountNumber){setTab(3);setError('Bank account number is required when adding a bank account');return;}}
-    setBusy(true);
+    for(const bank of financialValues?.bankAccounts||[]){for(const [kind,value] of [['IFSC',bank.ifsc],['IBAN',bank.iban||''],['BIC',bank.bic||'']]){const message=bankCodeError(kind,value,bank.country);if(message){setTab(3);setError(message);return false;}}if(!bank.accountNumber){setTab(3);setError('Bank account number is required when adding a bank account');return false;}}
+    let customFields;
+    try { customFields=customFieldForm.validate(); } catch(error) { setError(error instanceof Error?error.message:"Check the custom fields."); return false; }
+    writeLock.current=true;setBusy(!automatic);
     try{
-      const customFields=customFieldForm.validate();
       const channelValues=channels?.map(c=>c.primary&&c.kind==='phone'?{...c,value:form.phone,countryCode:form.phone_country_code}:c.primary&&c.kind==='email'?{...c,value:form.email}:c);
       const body={...form,customFields,branch_availability:availability,name:form.name.trim(),website:normalizedWebsite(form.website)||null,entityKind,version:record?.version,roles:businessRoles,tags:record?.tags||[],addresses,taxRegistrations:tax,primaryContactId:primaryId?Number(primaryId):null,newPrimaryContact:newContact?{...person,email:person.email||null,customFields:contactFields.validate()}:undefined,confirmShared:confirmed,sharedReason:reason||undefined,financialData:financialValues,communicationChannels:channelValues?transportEntries(channelValues):undefined};
       const {data}=record?await api.patch<Company>(`/master-data/companies/${record.id}`,body,{params:{source}}):await api.post<Company>('/master-data/companies',body,{params:{source}});
-      await Promise.all(['master-companies','master-company','master-channels','universal-contacts','contact-financial','crm','srm','master-company-suggestions'].map(key=>qc.invalidateQueries({queryKey:[key]})));
-      onSaved(data,keepOpen);
+      if(automatic){
+        const version=financialValues?financialValues.version+1:undefined;
+        savedSnapshot.current=JSON.stringify({...draftValue,...(version!==undefined?{financial:{...financial!,version}}:{})});
+        if(version!==undefined)setFinancial(current=>current?{...current,version}:current);
+        setRecord(data);
+      }else{clearDraft();onSaved(data,keepOpen);}
+      void Promise.all(['master-companies','master-company','master-channels','universal-contacts','contact-financial','master-company-suggestions'].map(key=>qc.invalidateQueries({queryKey:[key]})));
       if(keepOpen){customFieldForm.setValues({});setAvailability(undefined);setRecord(undefined);setForm({...values(),country:countryIso(defaults.data?.country),phone_country_code:contract.countries.find(c=>c.iso===countryIso(defaults.data?.country))?.code||'+91'});countryEdited.current=false;phoneCodeEdited.current=false;setEntityKind(defaultEntityKind);setBusinessRoles(roles);setTax([]);setAddresses([]);setChannels(undefined);setFinancial(undefined);setPrimaryId('');contactFields.setValues({});setNewContact(false);setPerson({name:'',email:''});setConfirmed(false);setMatches([]);setTab(0);legalEdited.current=false;defaultsApplied.current=false;setNotice(`${recordLabel} saved. Add another.`);setTimeout(()=>nameRef.current?.focus(),0);}
-    }catch(e){setError(dealError(e));const detail=(e as {response?:{data?:{detail?:{matches?:typeof matches}}}}).response?.data?.detail;setMatches(detail?.matches||[]);}finally{setBusy(false);}
+      return true;
+    }catch(e){setError(dealError(e));const detail=(e as {response?:{data?:{detail?:{matches?:typeof matches}}}}).response?.data?.detail;setMatches(detail?.matches||[]);return false;}finally{writeLock.current=false;setBusy(false);}
   }
+  const draftValue={form,availability,entityKind,businessRoles,addresses,tax,channels,financial,primaryId,newContact,person,confirmed,reason,customValues:customFieldForm.values,contactValues:contactFields.values};
+  const clearDraft=useRecordDraft(`company:${source}:${recordLabel}:new`,draftValue,value=>{setForm(value.form);setAvailability(value.availability);setEntityKind(value.entityKind);setBusinessRoles(value.businessRoles);setAddresses(value.addresses);setTax(value.tax);setChannels(value.channels);setFinancial(value.financial);setPrimaryId(value.primaryId);setNewContact(value.newContact);setPerson(value.person);setConfirmed(value.confirmed);setReason(value.reason);customFieldForm.setValues(value.customValues||{});contactFields.setValues(value.contactValues||{});countryEdited.current=true;phoneCodeEdited.current=true;legalEdited.current=true;},!record&&!customFieldForm.loading&&!contactFields.loading&&!!defaults.data);
+  useEffect(()=>{if(record&&!customFieldForm.loading&&savedSnapshot.current===undefined)savedSnapshot.current=JSON.stringify(draftValue);},[record,customFieldForm.loading,draftValue]);
+  const auto=useRecordAutosave({value:draftValue,enabled:!!record&&!busy&&!customFieldForm.loading&&!newContact,dirty:savedSnapshot.current!==undefined&&savedSnapshot.current!==JSON.stringify(draftValue),save:()=>save(false,true)});
   const vendor=businessRoles.some(r=>r==='Vendor'||r==='Supplier');
   return <Dialog open onOpenChange={open=>{if(!open&&!busy)onClose();}}><DialogContent className="md-quick-dialog md-company-editor" overlayClassName="md-suboverlay"><DialogHeader className="md-editor-header"><DialogTitle><Building2 size={18}/>{initial?'Edit':'Create'} {recordLabel}</DialogTitle><p>Basic details are enough to save. Add optional information when available.</p></DialogHeader>
     <nav className="md-editor-tabs" role="tablist" aria-label="Company form sections">{tabs.map((title,i)=><button key={title} type="button" role="tab" id={`company-tab-${i}`} aria-controls={`company-panel-${i}`} aria-selected={tab===i} tabIndex={tab===i?0:-1} onClick={()=>setTab(i)} onKeyDown={e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();const next=(i+(e.key==='ArrowRight'?1:3))%4;setTab(next);document.getElementById(`company-tab-${next}`)?.focus();}}}>{title}</button>)}</nav>
@@ -103,7 +118,7 @@ export function CompanyQuickCreate({placement="quick_create",allowSaveNew=true,s
         {!!matches.length&&<div className="md-warning">{matches.filter(m=>m.kind==='company').map(m=><button type="button" key={m.id} onClick={()=>void selectExisting(m.id)}>Use existing {m.name||'company'}</button>)}</div>}
         {error&&<p className="md-error" role="alert">{error}</p>}{notice&&<p className="md-message" role="status">{notice}</p>}
       </fieldset>
-      <footer className="md-dialog-footer"><Button variant="outline" type="button" disabled={busy} onClick={onClose}>Cancel</Button>{!initial&&allowSaveNew&&<Button variant="outline" type="button" disabled={busy||!form.name.trim()} onClick={()=>void save(true)}>Save & new</Button>}<Button type="submit" disabled={busy||!form.name.trim()}>{busy?'Saving…':`Save ${recordLabel}`}</Button></footer>
+      <footer className="md-dialog-footer"><span role="status">{record?auto.message:"Draft saved automatically"}</span><Button variant="outline" type="button" disabled={busy} onClick={onClose}>Cancel</Button>{!initial&&allowSaveNew&&<Button variant="outline" type="button" disabled={busy||customFieldForm.loading||(newContact&&contactFields.loading)||!form.name.trim()} onClick={()=>void save(true)}>Save & new</Button>}<Button type="submit" data-save-action disabled={busy||auto.saving||customFieldForm.loading||(newContact&&contactFields.loading)||!form.name.trim()}>{busy?'Saving…':`Save ${recordLabel}`}</Button></footer>
     </form>
   </DialogContent></Dialog>;
 }

@@ -40,7 +40,10 @@ def submissions(submission_id:int|None=None,task_id:int|None=None,status:str="",
     from sqlalchemy import or_
     from app.apps.srm.services.commercial import tenant
     projects=accessible_project_query(db,user).all()
-    approve={p.id for p in projects if can_access_project(db,p,user,"approve")}
+    grants=getattr(user,"_suite_grants",None)
+    grant=(grants or {}).get("project_management",{})
+    can_approve=user.is_superuser or grants is None or grant.get("enabled") and "approve" in grant.get("actions",[])
+    approve={p.id for p in projects if can_approve and can_access_project(db,p,user,"approve")}
     # Scope before count/pagination. Ordinary viewers cannot infer others' evidence.
     q=db.query(PMSWorkSubmission).join(PMSTask,PMSTask.id==PMSWorkSubmission.task_id).join(PMSProject,PMSProject.id==PMSTask.project_id).filter(
         PMSTask.deleted_at.is_(None),PMSProject.deleted_at.is_(None),
@@ -83,6 +86,8 @@ def file(file_id:int,user=Depends(get_current_user),db:Session=Depends(get_db)):
 
 @router.post("/submissions/{submission_id}/review")
 def review(submission_id:int,data:ReviewInput,user=Depends(get_current_user),db:Session=Depends(get_db)):
+    from app.access.service import require_module_action
+    require_module_action(user,"project_management","approve")
     row=work.review(db,submission_id,user,data);return {"id":row.id,"submission_id":row.submission_id,"decision":row.decision,"score":row.score}
 
 

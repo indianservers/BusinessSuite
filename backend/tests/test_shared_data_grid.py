@@ -37,6 +37,21 @@ def query(client, headers, state=None, **extra):
     return client.get(ROOT+"/query", headers=headers, params={"state":json.dumps(state or {}),**extra})
 
 
+def test_personal_record_filter_precedes_pagination_and_preserves_scope(client,db,headers,deals):
+    records=query(client,headers,{"pageSize":200}).json()["rows"]
+    ids=[str(records[-1]["id"]),str(records[0]["id"])]
+    foreign=db.query(CRMDeal).filter_by(organization_id=99).one()
+    response=query(client,headers,{"recordIds":[*ids,str(foreign.id)],"recordOrder":True,"pageSize":1})
+    assert response.status_code==200,response.text
+    assert response.json()["total"]==2
+    assert str(response.json()["rows"][0]["id"])==ids[0]
+    second=query(client,headers,{"recordIds":ids,"recordOrder":True,"pageSize":1,"page":2}).json()
+    assert str(second["rows"][0]["id"])==ids[1]
+    empty=query(client,headers,{"recordIds":[]}).json()
+    assert empty["rows"]==[] and empty["total"]==0
+    assert query(client,headers,{"recordIds":["1 OR 1=1"]}).status_code==422
+
+
 def test_full_filtered_statistics_and_stable_server_pagination(client, db, headers, deals):
     result=query(client,headers,{"pageSize":25,"page":2,"sorting":[{"id":"amount","desc":True},{"id":"name","desc":False}]})
     assert result.status_code==200,result.text

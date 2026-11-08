@@ -309,6 +309,23 @@ def context(db, invoice, user):
     return value
 
 
+def billing_customer_snapshot(db, buyer):
+    """Read the shared billing address without maintaining a second customer master."""
+    from app.shared.master_data_models import CompanyMasterDetails
+    snapshot = {key: getattr(buyer, key) for key in
+                ("id", "name", "address", "city", "state", "country", "email", "phone")}
+    details = db.get(CompanyMasterDetails, buyer.id)
+    if details and details.organization_id == buyer.organization_id:
+        address = next((item for item in details.addresses or []
+                        if str(item.get("type", "")).lower() == "billing"), None)
+        if address:
+            snapshot["address"] = ", ".join(str(address[key]).strip() for key in
+                ("line1", "line2", "city", "state", "postalCode", "country") if address.get(key))
+            for key in ("city", "state", "country"):
+                snapshot[key] = address.get(key) or snapshot[key]
+    return snapshot
+
+
 def issue_snapshot(db, invoice, user):
     ctx = context(db, invoice, user)
     if ctx.issued_at:
@@ -317,19 +334,7 @@ def issue_snapshot(db, invoice, user):
         raise HTTPException(422, "Link a shared customer before issuing the invoice")
     buyer = customer(db, invoice.customer_id, user)
     entity = seller(db, ctx.seller_id, user)
-    ctx.customer_snapshot = {
-        key: getattr(buyer, key)
-        for key in (
-            "id",
-            "name",
-            "address",
-            "city",
-            "state",
-            "country",
-            "email",
-            "phone",
-        )
-    }
+    ctx.customer_snapshot = billing_customer_snapshot(db, buyer)
     ctx.seller_snapshot = {
         key: getattr(entity, key)
         for key in ("id", "name", "legal_name", "address", "gstin", "email", "phone")
@@ -362,7 +367,7 @@ def invoice_document(db, invoice):
     if invoice.status in {"draft", "pending_approval"} and not invoice.approved_at:
         current_buyer = db.get(CRMCompany, invoice.customer_id) if invoice.customer_id else None
         current_seller = db.get(Company, ctx.seller_id if ctx else (invoice.organization_id or 1))
-        buyer = {key: getattr(current_buyer, key) for key in ("name", "address")} if current_buyer else {}
+        buyer = billing_customer_snapshot(db, current_buyer) if current_buyer else {}
         entity = {key: getattr(current_seller, key) for key in ("name", "legal_name", "address", "gstin")} if current_seller else {}
     output = BytesIO()
     pdf = canvas.Canvas(output, pagesize=A4)
@@ -401,6 +406,9 @@ def invoice_document(db, invoice):
     row(f"Customer: {buyer.get('name', invoice.customer_id or 'Not linked')}")
     row(buyer.get("address") or "")
     row(f"Date: {document_date(invoice.issue_date, defaults)}    Due: {document_date(invoice.due_date, defaults)}")
+    if defaults.get("subject"): row(defaults["subject"])
+    if defaults.get("order_number"): row("Order: " + defaults["order_number"])
+    if defaults.get("salesperson_name"): row("Salesperson: " + defaults["salesperson_name"])
     for line in invoice.lines:
         row(
             f"{line.description} | {format(line.quantity.normalize(), 'f')} x {line.unit_price} | discount {line.discount_amount} | tax {line.tax_amount} | {line.line_total}"
@@ -413,6 +421,8 @@ def invoice_document(db, invoice):
         bank = defaults["bank_details"]
         row("Bank: " + " | ".join(str(bank.get(key) or "") for key in ("bank_name", "branch_name", "account_number_masked", "ifsc")))
     if defaults.get("payment_method"): row("Payment method: " + defaults["payment_method"])
+    if defaults.get("customer_notes"): row("Notes: " + defaults["customer_notes"])
+    if defaults.get("terms"): row("Terms: " + defaults["terms"])
     from reportlab.pdfbase.pdfdoc import PDFString
     pdf._doc.Catalog.Lang = PDFString(defaults.get("language", "en"))
     pdf.save()

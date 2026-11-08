@@ -1,3 +1,4 @@
+import {useAiAdministration} from "@/hooks/use-ai-administration";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -12,6 +13,7 @@ import { aiAgentsApi, type AiAgent, type AiApproval, type AiAuditLog, type AiCon
 const filters: Array<AiModule | "ALL"> = ["ALL", "CRM", "PMS", "HRMS", "CROSS"];
 
 export default function AiAgentsDashboard() {
+  const canAdmin=useAiAdministration();
   const [agents, setAgents] = useState<AiAgent[]>([]);
   const [approvals, setApprovals] = useState<AiApproval[]>([]);
   const [logs, setLogs] = useState<AiAuditLog[]>([]);
@@ -104,7 +106,7 @@ export default function AiAgentsDashboard() {
             ))}
           </div>
 
-          <AgentList agents={agents} moduleFilter={filter} onToggleStatus={toggleAgentStatus} />
+          <AgentList agents={agents} moduleFilter={filter} canConfigure={canAdmin} onToggleStatus={canAdmin?toggleAgentStatus:undefined} />
 
           <div className="grid gap-4 xl:grid-cols-2">
             <Card>

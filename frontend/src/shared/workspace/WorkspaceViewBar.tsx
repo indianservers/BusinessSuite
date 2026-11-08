@@ -4,6 +4,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { Activity, BarChart3, CalendarDays, Check, Columns3, FileText, Files, FormInput, GalleryHorizontal, GitBranch, LayoutDashboard, List, Map, MessageSquare, Network, PanelTop, Plus, Search, Star, Table2, Users, X, type LucideIcon } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import "./workspace-views.css";
+import { useRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 
 export const viewIcons: Record<string, LucideIcon> = { list: List, table: Table2, board: Columns3, gallery: GalleryHorizontal, gantt: GitBranch, timeline: Activity, calendar: CalendarDays, dashboard: LayoutDashboard, workload: BarChart3, team: Users, activity: Activity, channel: MessageSquare, docs: FileText, files: Files, form: FormInput, mindmap: Network, whiteboard: PanelTop, map: Map };
 export type WorkspaceView = { id: string; label: string; description: string; icon?: keyof typeof viewIcons; category?: "Work" | "Plan" | "Collaborate" | "Explore"; href?: string; color?: string };
@@ -11,6 +12,9 @@ export type WorkspaceView = { id: string; label: string; description: string; ic
 /** Presentation preferences only. All records, permissions and mutations stay with the owning workspace. */
 export default function WorkspaceViewBar({ scope, active, views, onChange, primary, label = "Workspace views" }: { scope: string; active: string; views: WorkspaceView[]; onChange: (id: string) => void; primary?: string[]; label?: string }) {
   const user = useAuthStore(state => state.user);
+  const recordHost=useRecordViewHost();
+  const recordAliases=["table","grid","list","compact","gallery","cards","profile"];
+  const redundant=(view:WorkspaceView)=>!!recordHost?.registration&&recordAliases.includes(active)&&recordAliases.includes(view.id)&&(recordHost.registration.table||view.id!=="table");
   const key = `suite:workspace-views:v1:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch") || ""}:${scope}`;
   const initialKey = JSON.stringify(primary || views.slice(0, 6).map(view => view.id));
   const initial = useMemo<string[]>(() => JSON.parse(initialKey), [initialKey]);
@@ -20,11 +24,12 @@ export default function WorkspaceViewBar({ scope, active, views, onChange, prima
   const [search, setSearch] = useState("");
   useEffect(() => { try { const saved = JSON.parse(localStorage.getItem(key) || "null"); setPinned(Array.isArray(saved) && saved.every(id => typeof id === "string") ? [...new Set<string>(saved)] : initial); } catch { setPinned(initial); } setReady(key); }, [key, initial]);
   useEffect(() => { if (ready === key) { try { localStorage.setItem(key, JSON.stringify(pinned)); } catch { /* Navigation remains available when storage is unavailable. */ } } }, [key, ready, pinned]);
-  const available = useMemo(() => views.filter(view => `${view.label} ${view.description} ${view.category || "Work"}`.toLowerCase().includes(search.trim().toLowerCase())), [views, search]);
-  const visible = views.filter(view => pinned.includes(view.id) || view.id === active);
+  const available = views.filter(view => `${view.label} ${view.description} ${view.category || "Work"}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const visible = views.filter(view => !redundant(view)&&(pinned.includes(view.id) || view.id === active));
   function choose(view: WorkspaceView) { if (!pinned.includes(view.id)) setPinned(current => [...current, view.id]); setOpen(false); setSearch(""); if (!view.href) onChange(view.id); }
   const icon = (view: WorkspaceView, size = 15) => { const Icon = viewIcons[view.icon || view.id] || PanelTop; return <Icon size={size} aria-hidden="true"/>; };
-  return <div className="wv-bar">
+  return <div className={`wv-bar ${recordHost?"wv-unified-records":""}`}>
+    {recordHost&&<div className="wv-record-slot" ref={recordHost.setHost}/>}
     <nav className="wv-tabs" aria-label={label}>{visible.map(view => view.href ? <Link key={view.id} to={view.href} className={`wv-tab ${active === view.id ? "active" : ""}`} aria-current={active === view.id ? "page" : undefined}>{icon(view)}<span>{view.label}</span></Link> : <button type="button" key={view.id} className={`wv-tab ${active === view.id ? "active" : ""}`} aria-pressed={active === view.id} onClick={() => onChange(view.id)}>{icon(view)}<span>{view.label}</span></button>)}</nav>
     <Popover.Root open={open} onOpenChange={value => {setOpen(value);if(!value)setSearch("");}}><Popover.Trigger asChild><button type="button" className="wv-add" aria-label={`Add ${label.toLowerCase()}`}><Plus size={15}/><span>View</span></button></Popover.Trigger><Popover.Portal><Popover.Content className="wv-catalog" sideOffset={8} align="end" collisionPadding={12} aria-label="View catalogue">
       <header><div><strong>A fresh perspective</strong><p>Same workspace. A better way to see it.</p></div><Popover.Close className="wv-close" aria-label="Close view catalogue"><X size={16}/></Popover.Close></header>

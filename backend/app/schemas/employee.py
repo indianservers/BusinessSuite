@@ -16,7 +16,17 @@ class EmployeeEducationBase(BaseModel):
 
 
 class EmployeeEducationCreate(EmployeeEducationBase):
-    pass
+    degree: str = Field(min_length=1, max_length=100)
+    pass_year: Optional[int] = Field(default=None, ge=1900, le=2200)
+    percentage_cgpa: Optional[Decimal] = Field(default=None, ge=0, le=100)
+
+    @field_validator("degree")
+    @classmethod
+    def require_name(cls, value):
+        if not value.strip():
+            raise ValueError("Name is required")
+        return value.strip()
+
 
 
 class EmployeeEducationSchema(EmployeeEducationBase):
@@ -38,7 +48,22 @@ class EmployeeExperienceBase(BaseModel):
 
 
 class EmployeeExperienceCreate(EmployeeExperienceBase):
-    pass
+    company_name: str = Field(min_length=1, max_length=200)
+
+    @field_validator("company_name")
+    @classmethod
+    def require_name(cls, value):
+        if not value.strip():
+            raise ValueError("Name is required")
+        return value.strip()
+
+    @field_validator("to_date")
+    @classmethod
+    def valid_dates(cls, value, info):
+        start = info.data.get("from_date")
+        if value and start and value < start:
+            raise ValueError("To date must be on or after from date")
+        return value
 
 
 class EmployeeExperienceSchema(EmployeeExperienceBase):
@@ -56,10 +81,59 @@ class EmployeeSkillBase(BaseModel):
 
 
 class EmployeeSkillCreate(EmployeeSkillBase):
-    pass
+    skill_name: str = Field(min_length=1, max_length=100)
+    years_experience: Optional[Decimal] = Field(default=None, ge=0, le=999.9)
+
+    @field_validator("skill_name")
+    @classmethod
+    def require_name(cls, value):
+        if not value.strip():
+            raise ValueError("Name is required")
+        return value.strip()
+
 
 
 class EmployeeSkillSchema(EmployeeSkillBase):
+    id: int
+    employee_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class EmployeeCertificationBase(BaseModel):
+    certification_name: str = Field(min_length=1, max_length=200)
+    issuing_body: Optional[str] = Field(default=None, max_length=200)
+    certification_type: Optional[str] = Field(default=None, max_length=50)
+    certificate_number: Optional[str] = Field(default=None, max_length=100)
+    issue_date: Optional[date] = None
+    expiry_date: Optional[date] = None
+    is_renewable: bool = False
+    score_grade: Optional[str] = Field(default=None, max_length=50)
+    document_url: Optional[str] = Field(default=None, max_length=500)
+    verification_url: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("certification_name")
+    @classmethod
+    def require_name(cls, value):
+        if not value.strip():
+            raise ValueError("Certification name is required")
+        return value.strip()
+
+    @field_validator("expiry_date")
+    @classmethod
+    def valid_dates(cls, value, info):
+        start = info.data.get("issue_date")
+        if value and start and value < start:
+            raise ValueError("Expiry date must be on or after issue date")
+        return value
+
+
+class EmployeeCertificationCreate(EmployeeCertificationBase):
+    pass
+
+
+class EmployeeCertificationSchema(EmployeeCertificationBase):
     id: int
     employee_id: int
 
@@ -391,6 +465,7 @@ class EmployeeSchema(EmployeeBase):
     educations: List[EmployeeEducationSchema] = []
     experiences: List[EmployeeExperienceSchema] = []
     skills: List[EmployeeSkillSchema] = []
+    certifications: List[EmployeeCertificationSchema] = []
     documents: List[EmployeeDocumentSchema] = []
     lifecycle_events: List[EmployeeLifecycleEventSchema] = []
 

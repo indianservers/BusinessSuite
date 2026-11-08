@@ -71,3 +71,11 @@ backend/.secrets/
 
 # Generated local PMS review build
 /frontend/dist-pms-review/
+
+# Generated browser diagnostics and local QA data (may contain test sessions).
+/outputs/*
+!/outputs/*.cjs
+!/outputs/*.json
+*.tsbuildinfo
+/frontend/vite.config.js
+/frontend/vite.config.d.ts

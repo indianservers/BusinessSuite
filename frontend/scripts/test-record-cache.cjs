@@ -138,6 +138,9 @@ window.h={api,client,manager,user,model,disk,changes,counts,age,shareRecordRefer
   assert.equal(await diskless.evaluate(async()=>(await h.api.get('/crm/leads')).data.items.length),100);await diskless.close();
   // A confirmed HRMS edit reconciles the PMS projection of the same person.
   await page.evaluate(async()=>{await h.manager.clear();await h.api.get('/employees/');await h.api.get('/project-management/people-workspace/people');});
+  const beforeUnrelatedMutation=server.calls;
+  await page.evaluate(()=>h.manager.afterMutation('/crm/tasks'));
+  assert.equal(server.calls,beforeUnrelatedMutation,'uncached task writes must not reload unrelated cached lists');
   server.rows[0].phone='cross-module-change';
   await page.evaluate(()=>h.manager.afterMutation('/employees/1001'));
   assert.deepEqual(await page.evaluate(async()=>[(await h.api.get('/employees/')).data.items[0].phone,(await h.api.get('/project-management/people-workspace/people')).data.items[0].phone]),['cross-module-change','cross-module-change']);

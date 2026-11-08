@@ -119,7 +119,7 @@ class Change(BaseModel):
     notes: str = Field(min_length=1, max_length=10000)
 router = APIRouter(prefix='/follow-ups', tags=['Shared follow-ups'])
 
-def access(user, write=False, db=None):
+def access(user, write=False, db=None, action="create"):
     from app.module_registry import is_app_enabled
     from app.apps.business_os.services.module_service import is_module_enabled
     suffixes = ['manage', 'admin', 'activities_manage'] if write else ['view', 'manage', 'admin', 'activities_view', 'activities_manage']
@@ -127,6 +127,11 @@ def access(user, write=False, db=None):
     modules = [module for module in ('crm', 'srm', 'project_management') if is_app_enabled(module) and (db is None or is_module_enabled(db, module, company_id=tenant(user))) and (user.is_superuser or grants is None or (grants.get(module) or {}).get('enabled'))]
     if not modules:
         raise HTTPException(403, 'CRM, Sales or PMS access is required')
+    if write and not user.is_superuser and grants is not None:
+        current = getattr(user, '_suite_current_module', None)
+        candidates = [current] if current in modules else modules
+        if not any(action in (grants.get(module) or {}).get('actions', []) for module in candidates):
+            raise HTTPException(403, f'Follow-up {action} action is required')
     permissions = [f'{module}_{suffix}' for module in modules if module != 'project_management' for suffix in suffixes]
     if 'project_management' in modules:
         permissions += ['pms_manage_tasks', 'pms_manage_projects', 'pms_admin'] + ([] if write else ['pms_view'])
@@ -312,7 +317,7 @@ def detail(ident: int, db=Depends(get_db), user=Depends(get_current_user)):
 
 @router.post('/{ident}/actions')
 def change(ident: int, data: Change, db=Depends(get_db), user=Depends(get_current_user)):
-    access(user, True, db)
+    access(user, True, db, action="assign" if data.action == "assign" else "edit")
     row = visible(db, user).filter(FollowUp.id == ident).with_for_update().first()
     if not row:
         raise HTTPException(404, 'Follow-up not found')
@@ -462,6 +467,15 @@ def start_worker():
             with SessionLocal() as db:
                 dispatch(db)
                 from app.module_registry import is_app_enabled
+                if is_app_enabled('srm'):
+                    from app.apps.srm.services.recurring_jobs import dispatch_due
+                    dispatch_due(db)
+                if is_app_enabled('fam'):
+                    from app.apps.fam.recurring_purchases import dispatch_due as purchase_drafts_due
+                    purchase_drafts_due(db)
+                if is_app_enabled('power_apps'):
+                    from app.apps.power_apps.integrations.marketplace_sync import dispatch_due as connector_sync_due
+                    connector_sync_due(db)
                 if is_app_enabled('crm'):
                     from app.apps.crm.growth import dispatch_relationship_reminders
                     dispatch_relationship_reminders(db)

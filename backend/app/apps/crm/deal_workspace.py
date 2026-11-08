@@ -589,6 +589,9 @@ def secure_detail(db, user, payload):
 
 @router.post("/{ident}/close")
 def close(ident: int, data: CloseDeal, db: Session = Depends(get_db), user: User = Depends(RequirePermission("crm_manage", "crm_admin", "crm_deals_manage"))):
+    from app.access.service import require_module_action
+    require_module_action(user,"crm","edit")
+    if data.onboarding or data.reengagement_date:require_module_action(user,"crm","create")
     crm = lm.core(); record = rows(db, user, "deals", lock=True).filter(CRMDeal.id == ident).first()
     if not record: raise HTTPException(404, "Deal not found")
     if record.status in {"Won", "Lost"}: raise HTTPException(409, "This deal is already closed")
@@ -601,8 +604,15 @@ def close(ident: int, data: CloseDeal, db: Session = Depends(get_db), user: User
         quote = crm._get_record(db, crm._get_resource("quotations"), data.quotation_id, record.organization_id)
         crm._assert_record_visible(db, crm._get_resource("quotations"), quote.id, record.organization_id, user)
         if quote.deal_id != ident: raise HTTPException(422, "Choose a quotation linked to this deal")
-    if data.actual_close_date > datetime.now(timezone.utc).date(): raise HTTPException(422, "Actual closing date cannot be in the future")
-    if data.reengagement_date and data.reengagement_date < datetime.now(timezone.utc).date(): raise HTTPException(422, "Re-engagement date must be today or later")
+    from app.shared.form_defaults import effective
+    from zoneinfo import ZoneInfo
+    branch = getattr(user,"_suite_branch_id",None)
+    context = db.info.get("branch_context")
+    if context is not None:branch=context.branch_id
+    zone = effective(db,record.organization_id,"crm",branch if isinstance(branch,int) else None)["values"]["timezone"]
+    business_today = datetime.now(ZoneInfo(zone)).date()
+    if data.actual_close_date > business_today: raise HTTPException(422, "Actual closing date cannot be in the future")
+    if data.reengagement_date and data.reengagement_date < business_today: raise HTTPException(422, "Re-engagement date must be today or later")
     planning = {**(record.planning or {}), "closure": data.model_dump(mode="json", exclude={"expected_version", "outcome", "actual_value"}, exclude_none=True)}
     corrections = {"stage_id": stage.id, "status": data.outcome, "amount": data.actual_value, "actual_close_date": data.actual_close_date, "planning": planning, "expected_version": data.expected_version, "probability": stage.probability, "win_reason" if data.outcome == "Won" else "lost_reason": data.reason}
     if data.onboarding or data.reengagement_date:

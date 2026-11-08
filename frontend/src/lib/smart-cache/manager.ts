@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosHeaders, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { applyChangedRecords, canonicalView, containsSensitive, hash, policy, splitView, stable, CHECK_INTERVAL, MAX_AGE, MAX_BYTES, MAX_VIEWS, type Delta, type Entry } from './model';
 import * as disk from './storage';
+import { resourcePath } from '../record-changes';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -254,13 +255,17 @@ export class RecordCacheManager {
     } finally { this.optimistic.delete(entity); void this.syncModuleChanges(); }
   }
   async afterMutation(url: string) {
+    url = resourcePath(url);
     const generation = this.generation;
     const path = (url || "").replace(/\/[^/]+$/, '');
     const masterPath = (url || "").split("?")[0];
     const masterEntity = /^\/master-data\/(?:companies|company|company-directory)(?:\/|$)/.test(masterPath) ? "customer" : /^\/master-data\/contact(?:\/|$)/.test(masterPath) ? "contact" : undefined;
-    const affected = masterEntity ? {entity:masterEntity,module:"shared"} : policy(path) || policy(url || "");
+    let affected = masterEntity ? {entity:masterEntity,module:"shared"} : policy(path) || policy(url || "");
+    let parent = path;
+    while (!affected && parent.includes('/')) { parent = parent.replace(/\/[^/]+$/, ''); affected = policy(parent); }
+    if (!affected) return;
     const related = new Set(affected?.entity === 'employee' ? ['employee', 'person', 'assignment', 'team'] : affected?.entity === 'customer' ? ['customer', 'contact', 'lead', 'deal'] : affected?.entity === 'product' || affected?.entity === 'service' || affected?.entity === 'catalog' ? ['product', 'service', 'catalog', 'deal'] : affected?.entity === 'contact' ? ['contact','customer','lead'] : affected ? [affected.entity] : []);
-    const entries = [...this.memory.values()].filter(entry => !affected || related.has(entry.entity) || entry.module === affected.module);
+    const entries = [...this.memory.values()].filter(entry => related.has(entry.entity));
     // Persist the stale marker so another tab cannot mistake a pre-edit snapshot for a fresh result.
     for (const entry of entries) {
       if (generation !== this.generation) return;

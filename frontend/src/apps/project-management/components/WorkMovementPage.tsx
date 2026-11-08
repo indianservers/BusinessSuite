@@ -1,3 +1,4 @@
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, RefreshCw, Search } from "lucide-react";
@@ -20,7 +21,7 @@ const closed = (status:string) => ["Done","Completed","Closed","Cancelled"].incl
 const modes = ["board","list","gallery","gantt","timeline","calendar","workload","team","activity","mindmap","whiteboard"];
 
 /** Launch, delivery and work pipelines share the authorized task source and mutations. */
-export default function WorkMovementPage({title}:{title:string}) {
+function WorkMovementPage({title}:{title:string}) {
   const navigate = useNavigate();
   const {pathname} = useLocation();
   const [params,setParams] = useSearchParams();
@@ -103,3 +104,5 @@ export default function WorkMovementPage({title}:{title:string}) {
     {selectedProject&&<footer className="wm-footer"><span>{total>tasks.length?`Showing the first ${tasks.length} of ${total} tasks.`:`${total} tasks in this project.`}</span><Link to={`/pms/tasks?projectId=${project}`}>Open full task workspace →</Link></footer>}
   </section>;
 }
+
+export default withRecordViewHost(WorkMovementPage);

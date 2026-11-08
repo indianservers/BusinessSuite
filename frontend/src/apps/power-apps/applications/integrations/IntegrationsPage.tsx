@@ -18,8 +18,9 @@ import {
   type Connection,
 } from "./integrationApi";
 import ActionFields from "./ActionFields";
-import { authFields, authLabels, supportsWrites } from "./moduleOptions";
+import { authFields, authLabels, supportsWrites, providerScopes } from "./moduleOptions";
 import "./integrations.css";
+import ConnectorWorkflows from '@/shared/ConnectorWorkflows';
 type Log = {
   id: number;
   connector_id: string;
@@ -31,6 +32,7 @@ type Log = {
 };
 export default function IntegrationsPage() {
   const dialogRef = useRef<HTMLElement>(null);
+  const openedConnector = useRef<string | null>(null);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const environment = params.get("environment") || "development";
@@ -56,13 +58,13 @@ export default function IntegrationsPage() {
     [output, setOutput] = useState<unknown>();
   const load = useCallback(async () => {
     try {
-      const [items, rows] = await Promise.all([
+      const [items, rows] = await Promise.allSettled([
         integrationApi.catalog(),
         integrationApi.connections(environment),
       ]);
-      setCatalog(items);
-      setConnections(rows);
-      setError("");
+      if (items.status === "fulfilled") setCatalog(items.value);
+      if (rows.status === "fulfilled") setConnections(rows.value);
+      setError(items.status === "rejected" ? message(items.reason) : rows.status === "rejected" ? message(rows.reason) : "");
     } catch (e) {
       setError(message(e));
     }
@@ -81,6 +83,19 @@ export default function IntegrationsPage() {
     void load();
     void loadLogs();
   }, [load, loadLogs]);
+  useEffect(() => {
+    const id = params.get("connector");
+    if (id === openedConnector.current) return;
+    const connector = catalog.find(item => item.id === id);
+    if (!connector || id === "incoming_webhook") return;
+    openedConnector.current = id;
+    setSelected(connector);
+    setName(connector.name + " account");
+    setAuth(connector.authentication.find(a => a !== "oauth2" || connector.oauth_ready) || connector.authentication[0]);
+    setSecrets({});
+    setConnectionConfig({});
+    setWrites(false);
+  }, [catalog, params]);
   useEffect(() => {
     if (!selected && !testing) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -134,6 +149,7 @@ export default function IntegrationsPage() {
       };
       if (auth !== "api_key") delete config.header_name;
       const scopes = [
+        ...providerScopes(selected, auth, writes),
         ...new Set(
           selected.actions
             .filter((a) => writes || !a.mutates)
@@ -188,6 +204,7 @@ export default function IntegrationsPage() {
   }
   return (
     <main className="integration-studio">
+      <ConnectorWorkflows environment={environment}/>
       <header className="ic-header">
         <div>
           <Link to="/power-apps">
@@ -196,6 +213,7 @@ export default function IntegrationsPage() {
           </Link>
           <p className="ic-eyebrow">CONNECTIONS, WITH CONTROL</p>
           <h1>Integration Studio</h1>
+          <Link to="/connectors">Common connector catalog</Link>
           <p>
             Connect your tools. Start with a webhook, then build the next
             action.

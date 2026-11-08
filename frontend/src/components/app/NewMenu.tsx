@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ChevronDown, Plus, type LucideIcon } from "lucide-react";
 import "./new-menu.css";
 
-export type NewAction = { label: string; description: string; icon: LucideIcon; onSelect: () => void; disabled?: boolean };
+export type NewAction = { label: string; description: string; icon: LucideIcon; onSelect: () => void; disabled?: boolean; menuPaths?: string[] };
 export default function NewMenu({ actions, disabled }: { actions: NewAction[]; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   if (!actions.length) return null;

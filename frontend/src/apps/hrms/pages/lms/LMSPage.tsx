@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { NativeSelect } from "@/components/ui/native-select";
 import CourseCurriculum from "./CourseCurriculum";
 import { useState } from "react";
@@ -148,7 +150,7 @@ export default function LMSPage() {
         </div>
       </div>
 
-      <details className="rounded-lg border bg-card p-4"><summary>Arrange course sections and lessons</summary><div className="space-y-4 mt-4">{courses?.map(course => <details key={course.id} className="rounded border p-3" onToggle={e=>{if(e.currentTarget.open)setOutlineCourse(course.id);}}><summary>{course.title}</summary>{outlineCourse===course.id&&<CourseCurriculum courseId={course.id} />}</details>)}</div></details>
+      <details className="rounded-lg border bg-card p-4"><summary>Arrange course sections and lessons</summary><GroupedRecords scope="apps/hrms/pages/lms/LMSPage:cards-1" items={(courses) || []} fields={standardRecordGroups((courses) || [])} gridClassName="space-y-4 mt-4" renderItem={course => <details key={course.id} className="rounded border p-3" onToggle={e=>{if(e.currentTarget.open)setOutlineCourse(course.id);}}><summary>{course.title}</summary>{outlineCourse===course.id&&<CourseCurriculum courseId={course.id} />}</details>}/></details>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "Courses", value: courses?.length || 0, icon: GraduationCap },

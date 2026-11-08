@@ -22,6 +22,8 @@ def sample(action):
     )
     if "fields_json" in data:
         data["fields_json"] = '{"Name":"Fixture"}'
+    for key,value in {'cursor':'0','from_date':'2026-01-01','lead_type':'SPONSORED','owner':'(organization:urn:li:organization:123)'}.items():
+        if key in data:data[key]=value
     if "starts_at" in data:
         data.update(
             starts_at="2026-11-01T09:00:00+00:00", ends_at="2026-11-01T10:00:00+00:00"
@@ -38,27 +40,31 @@ def test_every_provider_action_builds_fixed_origin_valid_request(pid, action):
     class Transport:
         def request(self, method, url, **kwargs):
             calls.append((method, url, kwargs))
-            assert url.startswith("https://" + PROFILES[pid]["host"] + "/")
+            host='demo.docusign.net' if pid=='docusign' and action['id']!='test' else PROFILES[pid]['host']
+            assert url.startswith("https://" + host + "/")
             assert method == action["method"]
             if kwargs.get("body") and action["transform"] != "stripe":
                 assert isinstance(json.loads(kwargs["body"]), dict)
-            return Response(200, {}, b'{"id":"fixture-result","ok":true}', 1)
+            result={'id':'fixture-result','ok':True}
+            if action['id']=='sync_page':
+                result=[] if pid=='trello' else {'data':[],'members':[],'contacts':[],'tickets':[],'envelopes':[],'elements':[],'people':[],'responseData':{'data':[]}}
+            return Response(200, {}, json.dumps(result).encode(), 1)
 
     data = sample(action)
     parsed = MODELS[pid, action["id"]].model_validate(data)
     out = execute(
-        NS(connector_id=pid),
+        NS(connector_id=pid, config={'provider_host':PROFILES[pid]['host']}),
         action["id"],
         parsed,
         Transport(),
         {"Authorization": "Bearer fixture-credential"},
-        {"access_token": "fixture-credential"},
+        {"access_token": "fixture-credential", "username":"fixture-key", "password":"fixture-token"},
         "fixed-operation",
     )
     assert (
         len(calls) == 1
         and out["http_status"] == 200
-        and out["data"]["id"] == "fixture-result"
+        and (out['data']['records']==[] if action['id']=='sync_page' else out["data"]["id"] == "fixture-result")
     )
     if action["transform"] in {"chat", "anthropic"}:
         body = json.loads(calls[0][2]["body"])
@@ -79,12 +85,12 @@ def test_every_provider_handles_remote_failure(pid, status):
 
     with pytest.raises(IntegrationFailure) as exc:
         execute(
-            NS(connector_id=pid),
+            NS(connector_id=pid, config={'provider_host':PROFILES[pid]['host']}),
             action["id"],
             sample(action),
             Transport(),
             {},
-            {"access_token": "fixture-credential"},
+            {"access_token": "fixture-credential", "username":"fixture-key", "password":"fixture-token"},
             "fixed-operation",
         )
     assert exc.value.http_status == status

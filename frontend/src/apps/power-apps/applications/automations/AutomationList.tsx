@@ -1,5 +1,7 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GridTable from "@/shared/data-grid/GridTable";
-import CompactActions from "@/components/actions/CompactActions";
+import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import { TelegramAutomations } from './TelegramAutomations';
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -180,14 +182,17 @@ export function AutomationList({
           Loading automations...
         </p>
       ) : view === "templates" ? (
-        <div className="al-templates">
-          {templates
+        <GroupedRecords scope="apps/power-apps/applications/automations/AutomationList:cards-1" items={(templates
             .filter((t) =>
               `${t.name} ${t.description}`
                 .toLowerCase()
                 .includes(query.toLowerCase()),
-            )
-            .map((template) => (
+            )) || []} fields={standardRecordGroups((templates
+            .filter((t) =>
+              `${t.name} ${t.description}`
+                .toLowerCase()
+                .includes(query.toLowerCase()),
+            )) || [])} gridClassName="al-templates" renderItem={(template) => (
               <article key={template.id}>
                 <span>
                   <Sparkles size={22} />
@@ -222,8 +227,7 @@ export function AutomationList({
                   </button>
                 </details>
               </article>
-            ))}
-        </div>
+            )}/>
       ) : rows.length ? (
         <div className="al-table-wrap">
           <GridTable gridId="apps/power-apps/applications/automations/AutomationList:table-1" className="al-table">
@@ -324,13 +328,13 @@ export function AutomationList({
                     </small>
                   </td>
                   <td>
-                    <details className="al-actions">
-                      <summary aria-label={`Actions for ${row.name}`}>
+                    <Dropdown.Root>
+                      <Dropdown.Trigger asChild><button type="button" aria-label={`Workflow actions for ${row.name}`} onClick={event => event.stopPropagation()}>
                         <MoreHorizontal size={19} />
-                      </summary>
-                      <CompactActions>
-                        <button onClick={() => open(row)}>Open workflow</button>
-                        <button
+                      </button></Dropdown.Trigger>
+                      <Dropdown.Portal><Dropdown.Content align="end" sideOffset={6} className="z-[180] min-w-48 rounded-lg border bg-popover p-2 text-popover-foreground shadow-lg [&_button]:flex [&_button]:w-full [&_button]:items-center [&_button]:gap-2 [&_button]:rounded [&_button]:px-3 [&_button]:py-2 [&_button]:text-left [&_button:hover]:bg-muted [&_button:disabled]:opacity-50" onClick={event => event.stopPropagation()}>
+                        <Dropdown.Item asChild><button onClick={() => open(row)}>Open workflow</button></Dropdown.Item>
+                        <Dropdown.Item asChild><button
                           disabled={!can("edit") || Boolean(row.archived_at)}
                           onClick={() => {
                             setRenaming(row.id);
@@ -338,8 +342,8 @@ export function AutomationList({
                           }}
                         >
                           Rename
-                        </button>
-                        <button
+                        </button></Dropdown.Item>
+                        <Dropdown.Item asChild><button
                           disabled={!can("create") || mutating}
                           onClick={() =>
                             void action(async () =>
@@ -351,12 +355,12 @@ export function AutomationList({
                         >
                           <Copy size={13} />
                           Duplicate
-                        </button>
-                        <button onClick={() => open(row, "versions")}>
+                        </button></Dropdown.Item>
+                        <Dropdown.Item asChild><button onClick={() => open(row, "versions")}>
                           <FileClock size={13} />
                           Version history
-                        </button>
-                        <button
+                        </button></Dropdown.Item>
+                        <Dropdown.Item asChild><button
                           disabled={!can("edit") || mutating}
                           onClick={() =>
                             void action(() =>
@@ -370,8 +374,8 @@ export function AutomationList({
                         >
                           <Archive size={13} />
                           {row.archived_at ? "Unarchive" : "Archive draft"}
-                        </button>
-                        <button
+                        </button></Dropdown.Item>
+                        <Dropdown.Item asChild><button
                           className="pa-delete"
                           disabled={!can("delete") || mutating}
                           onClick={() => {
@@ -387,9 +391,9 @@ export function AutomationList({
                         >
                           <Trash2 size={13} />
                           Delete
-                        </button>
-                      </CompactActions>
-                    </details>
+                        </button></Dropdown.Item>
+                      </Dropdown.Content></Dropdown.Portal>
+                    </Dropdown.Root>
                   </td>
                 </tr>
               ))}

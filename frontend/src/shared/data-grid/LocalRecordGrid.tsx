@@ -16,5 +16,6 @@ export default function LocalRecordGrid<T>({ rows, allowExport = false, ...props
     } };
   }, [signature, props.gridId, props.columns, props.getRowId, allowExport]);
   return <SharedDataGrid {...props} dataScope="loaded" dataSource={source} exportFormats={["csv", "clipboard"]}
-    statistics={props.statistics || (result => <div className="udg-statistics"><div><span>Matching loaded records</span><strong>{result.total.toLocaleString()}</strong></div><p className="udg-scope-note">Grid controls apply to loaded records. Use page filters and pagination to load other records.</p></div>)}/>;
+    initialLayout={{rowHeight:42,density:"compact",...props.initialLayout}}
+    statistics={props.statistics || (() => null)}/>;
 }

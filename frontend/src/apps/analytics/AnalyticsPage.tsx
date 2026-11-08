@@ -1,3 +1,11 @@
+import {useModuleAction} from "@/hooks/use-module-action";
+import {api} from "@/services/api";
+import { useCreateIntent } from "@/hooks/use-create-intent";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import {Dialog,DialogContent,DialogTitle} from "@/components/ui/dialog";
+import {NativeSelect} from "@/components/ui/native-select";
+import RecordDefinitionActions, {useDefinitionPermission} from "@/components/RecordDefinitionActions";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -95,6 +103,9 @@ function actionError(error: unknown) {
 
 function ReportBuilder() {
   const { toast } = useToast();
+  const [editing,setEditing]=useState<AnalyticsRecord|null>(null);
+  const canCreate=useDefinitionPermission(["analytics_report_builder","analytics_manage"],"create"),canEdit=useDefinitionPermission(["analytics_report_builder","analytics_manage"],"edit");
+  const saved=useQuery({queryKey:["analytics-reports"],queryFn:analyticsApi.reports}),refresh=useRefresh("analytics-reports");
   const [draft, setDraft] = useState({
     name: "Lead to Cash",
     module_name: "lead_to_cash",
@@ -104,19 +115,20 @@ function ReportBuilder() {
     filters: "{\"status\":\"open\"}",
   });
   const create = useMutation({
-    mutationFn: () => analyticsApi.createReport({
+    mutationFn: () => {const body={...editing,
       name: draft.name,
       module_name: draft.module_name,
       report_type: draft.report_type,
       visibility: draft.visibility,
       fields_json: draft.fields.split(",").map((field) => field.trim()).filter(Boolean),
       filters_json: draft.filters.trim() ? JSON.parse(draft.filters) : {},
-    }),
-    onSuccess: () => toast({ title: "Report saved" }),
+    };return editing?api.put(`/analytics/reports/${editing.id}`,body):analyticsApi.createReport(body);},
+    onSuccess: (result) => {if(editing)setEditing((result as {data:AnalyticsRecord}).data);refresh();toast({ title: "Report saved" });},
     onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
   return (
     <SectionShell title="Report Builder" description="Select data source, fields, filters, grouping, sorting, preview, save, run, and export.">
+      <label>Saved report<NativeSelect aria-label="Saved report" value={String(editing?.id||"")} onChange={event=>{const row=saved.data?.items.find(item=>String(item.id)===event.target.value);setEditing(row||null);if(row)setDraft({name:String(row.name),module_name:String(row.module_name),report_type:String(row.report_type),visibility:String(row.visibility),fields:(row.fields_json as string[]||[]).join(","),filters:JSON.stringify(row.filters_json||{})});}}><option value="">New report</option>{saved.data?.items.map(row=><option key={row.id} value={row.id}>{String(row.name)}</option>)}</NativeSelect></label>{editing&&<RecordDefinitionActions record={editing} endpoint={`/analytics/reports/${editing.id}`} queryKeys={["analytics-reports"]} permissions={["analytics_report_builder","analytics_manage"]} canRename={false} onDeleted={()=>setEditing(null)}/>}
       <div className="grid gap-3 rounded-md border bg-card p-4 md:grid-cols-2">
         <Input aria-label="Report name" value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} />
         <Input aria-label="Data source" value={draft.module_name} onChange={(event) => setDraft((current) => ({ ...current, module_name: event.target.value }))} />
@@ -124,28 +136,30 @@ function ReportBuilder() {
         <Input aria-label="Visibility" value={draft.visibility} onChange={(event) => setDraft((current) => ({ ...current, visibility: event.target.value }))} />
         <Input aria-label="Fields" className="md:col-span-2" value={draft.fields} onChange={(event) => setDraft((current) => ({ ...current, fields: event.target.value }))} />
         <textarea aria-label="Filters JSON" className="min-h-24 rounded-md border bg-background px-3 py-2 font-mono text-sm md:col-span-2" value={draft.filters} onChange={(event) => setDraft((current) => ({ ...current, filters: event.target.value }))} />
-        <Button className="w-fit" disabled={create.isPending || !draft.name.trim()} onClick={() => create.mutate()}>Save Report</Button>
+        <Button className="w-fit" disabled={create.isPending || !draft.name.trim() || !(editing?canEdit:canCreate)} onClick={() => create.mutate()}>Save Report</Button>
       </div>
     </SectionShell>
   );
 }
 
 function Reports({ selectedId }: { selectedId?: string }) {
+  const canRun=useDefinitionPermission(["analytics_view","analytics_report_builder","analytics_manage"],"approve"),canExport=useDefinitionPermission(["analytics_export"],"export");
   const { toast } = useToast();
   const query = useQuery({ queryKey: ["analytics-reports"], queryFn: analyticsApi.reports });
   const refresh = useRefresh("analytics-reports");
   const create = useMutation({ mutationFn: () => analyticsApi.createReport({ name: "Deal to Invoice", module_name: "lead_to_cash", report_type: "table", visibility: "public" }), onSuccess: () => { toast({ title: "Report saved" }); refresh(); } });
-  const reportId = Number(selectedId || query.data?.items?.[0]?.id || 0);
+  const [chosen,setChosen]=useState(0);
+  const reportId = Number(selectedId || chosen || query.data?.items?.[0]?.id || 0);
   const run = useMutation({ mutationFn: () => analyticsApi.runReport(reportId), onSuccess: (data: AnalyticsRecord) => toast({ title: `Run ${String(data.total)} rows` }), onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
   const exportCsv = useMutation({
     mutationFn: () => analyticsApi.exportReport(reportId, { export_type: "csv" }),
-    onSuccess: (data: AnalyticsRecord) => {
+    onSuccess: async (data: AnalyticsRecord) => {
       toast({ title: `Export ${String(data.status)}` });
-      if (data.id) window.open(`/api/v1/analytics/exports/${data.id}/download`, "_blank", "noopener,noreferrer");
+      if (data.id) await analyticsApi.downloadExport(Number(data.id));
     },
     onError: (error) => toast({ title: actionError(error), variant: "destructive" }),
   });
-  return <SectionFrame title="Saved Reports" description="Saved report definitions can be run and exported as real files." action="Create Report" onAction={() => create.mutate()} query={query}><Button variant="outline" disabled={!reportId} onClick={() => run.mutate()}>Run</Button><Button variant="outline" disabled={!reportId} onClick={() => exportCsv.mutate()}>Export CSV</Button></SectionFrame>;
+  return <SectionFrame title="Saved Reports" description="Saved report definitions can be run and exported as real files." action="Create Report" onAction={() => create.mutate()} query={query} actions={item=><RecordDefinitionActions record={item} endpoint={`/analytics/reports/${item.id}`} queryKeys={["analytics-reports"]} permissions={["analytics_manage","analytics_admin"]}/>}><label>Report to run<NativeSelect aria-label="Report to run" value={reportId||""} onChange={event=>setChosen(Number(event.target.value))}><option value="">Choose report</option>{query.data?.items.map(item=><option key={item.id} value={item.id}>{String(item.name)}</option>)}</NativeSelect></label><Button variant="outline" disabled={!canRun||!reportId||run.isPending} onClick={() => run.mutate()}>Run</Button><Button variant="outline" disabled={!canExport||!reportId||exportCsv.isPending} onClick={() => exportCsv.mutate()}>Export CSV</Button></SectionFrame>;
 }
 
 function Dashboards({ selectedId }: { selectedId?: string }) {
@@ -153,23 +167,31 @@ function Dashboards({ selectedId }: { selectedId?: string }) {
   const query = useQuery({ queryKey: ["analytics-dashboards"], queryFn: analyticsApi.dashboards });
   const refresh = useRefresh("analytics-dashboards");
   const create = useMutation({ mutationFn: () => analyticsApi.createDashboard({ name: "Executive Dashboard", visibility: "public" }), onSuccess: () => { toast({ title: "Dashboard saved" }); refresh(); }, onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
-  const id = Number(selectedId || query.data?.items?.[0]?.id || 1);
+  const [chosen,setChosen]=useState(0);
+  const canManage=useDefinitionPermission(["analytics_manage"],"create");
+  const id = Number(selectedId || chosen || query.data?.items?.[0]?.id || 0);
   const widget = useMutation({ mutationFn: () => analyticsApi.addWidget(id, { widget_type: "kpi", title: "Pipeline Value", config_json: { source: "crm_deals" } }), onSuccess: () => toast({ title: "Widget saved" }), onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
-  return <SectionFrame title="Dashboard Builder" description="Add KPI, chart, table, and funnel widgets with role-aware visibility." action="Create Dashboard" onAction={() => create.mutate()} query={query}><Button variant="outline" onClick={() => widget.mutate()}>Add KPI Widget</Button></SectionFrame>;
+  return <SectionFrame title="Dashboard Builder" description="Add KPI, chart, table, and funnel widgets with role-aware visibility." action="Create Dashboard" onAction={() => create.mutate()} query={query} actions={item=><RecordDefinitionActions record={item} endpoint={`/analytics/dashboards/${item.id}`} queryKeys={["analytics-dashboards"]} permissions={["analytics_manage","analytics_admin"]}/>}><label>Dashboard to edit<NativeSelect aria-label="Dashboard to edit" value={id||""} onChange={event=>setChosen(Number(event.target.value))}><option value="">Choose dashboard</option>{query.data?.items.map(item=><option key={item.id} value={item.id}>{String(item.name)}</option>)}</NativeSelect></label><Button variant="outline" disabled={!canManage||!id||widget.isPending} onClick={() => widget.mutate()}>Add KPI Widget</Button></SectionFrame>;
 }
 
 function Schedules() {
-  const { toast } = useToast();
-  const query = useQuery({ queryKey: ["analytics-schedules"], queryFn: analyticsApi.schedules });
-  const refresh = useRefresh("analytics-schedules");
-  const create = useMutation({ mutationFn: async () => { const report = await analyticsApi.createReport({ name: "Weekly Forecast", module_name: "crm_deals", report_type: "summary" }); return analyticsApi.createSchedule({ report_id: report.id, name: "Weekly Forecast", frequency: "weekly", recipients_json: ["owner@example.com"], active: true }); }, onSuccess: () => { toast({ title: "Schedule saved" }); refresh(); }, onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
-  const firstId = Number(query.data?.items?.[0]?.id || 0);
-  const run = useMutation({ mutationFn: () => analyticsApi.runSchedule(firstId), onSuccess: (data: AnalyticsRecord) => toast({ title: `Schedule run ${data.status}` }), onError: (error) => toast({ title: actionError(error), variant: "destructive" }) });
-  return <SectionFrame title="Scheduled Reports" description="Schedules are sync-run ready now and async-ready for larger reports." action="Create Schedule" onAction={() => create.mutate()} query={query}><Button variant="outline" disabled={!firstId} onClick={() => run.mutate()}>Run Now</Button></SectionFrame>;
+  const {toast}=useToast(),refresh=useRefresh("analytics-schedules");
+  const query=useQuery({queryKey:["analytics-schedules"],queryFn:analyticsApi.schedules}),reports=useQuery({queryKey:["analytics-reports"],queryFn:analyticsApi.reports});
+  const [editing,setEditing]=useState<AnalyticsRecord|null>(null);
+  const canEdit=useDefinitionPermission(["analytics_schedule"],"edit");
+  const [open,setOpen]=useState(false),[error,setError]=useState(""),[selected,setSelected]=useState(0),[draft,setDraft]=useState({name:"",report_id:"",frequency:"weekly",recipients:""});
+  const allowed=useDefinitionPermission(["analytics_schedule"],"create"),canRun=useDefinitionPermission(["analytics_schedule"],"approve");
+  useCreateIntent(kind => { if (kind === "schedule" && allowed) { setError(""); setOpen(true); } });
+  const create=useMutation({mutationFn:()=>{const body={name:draft.name.trim(),report_id:Number(draft.report_id),frequency:draft.frequency,recipients_json:draft.recipients.split(",").map(value=>value.trim()).filter(Boolean),active:true};return editing?api.put(`/analytics/schedules/${editing.id}`,body):analyticsApi.createSchedule(body);},onSuccess:()=>{setOpen(false);refresh();toast({title:"Schedule saved"});},onError:error=>setError(actionError(error))});
+  const id=selected||Number(query.data?.items[0]?.id||0);const run=useMutation({mutationFn:()=>analyticsApi.runSchedule(id),onSuccess:(data:AnalyticsRecord)=>toast({title:`Schedule run ${data.status}`}),onError:error=>toast({title:actionError(error),variant:"destructive"})});
+  return <><SectionFrame title="Scheduled Reports" description="Choose the report, recipients and frequency before creating a schedule." action="Create Schedule" onAction={()=>{setEditing(null);setDraft({name:"",report_id:"",frequency:"weekly",recipients:""});setError("");setOpen(true);}} query={query} actions={item=><><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${item.name}`} onClick={()=>{setEditing(item);setDraft({name:String(item.name),report_id:String(item.report_id),frequency:String(item.frequency),recipients:(item.recipients_json as string[]||[]).join(",")});setOpen(true);}}>Edit schedule</Button><RecordDefinitionActions record={item} endpoint={`/analytics/schedules/${item.id}`} queryKeys={["analytics-schedules"]} permissions={["analytics_schedule"]} canRename={false}/></>}><label>Schedule to run<NativeSelect aria-label="Schedule to run" value={id||""} onChange={event=>setSelected(Number(event.target.value))}><option value="">Choose schedule</option>{query.data?.items.map(item=><option key={item.id} value={item.id}>{String(item.name)}</option>)}</NativeSelect></label><Button variant="outline" disabled={!canRun||!id||run.isPending} onClick={()=>run.mutate()}>Run Now</Button></SectionFrame>
+  <Dialog open={open} onOpenChange={value=>{if(!create.isPending)setOpen(value);}}><DialogContent><DialogTitle>{editing?"Edit":"Create"} report schedule</DialogTitle><form className="space-y-3" onSubmit={event=>{event.preventDefault();create.mutate();}}><label>Schedule name<Input aria-label="Schedule name" required value={draft.name} onChange={event=>setDraft({...draft,name:event.target.value})}/></label><label>Report<NativeSelect aria-label="Schedule report" required value={draft.report_id} onChange={event=>setDraft({...draft,report_id:event.target.value})}><option value="">Choose saved report</option>{reports.data?.items.map(item=><option key={item.id} value={item.id}>{String(item.name)}</option>)}</NativeSelect></label><label>Frequency<NativeSelect aria-label="Schedule frequency" value={draft.frequency} onChange={event=>setDraft({...draft,frequency:event.target.value})}>{["daily","weekly","monthly"].map(value=><option key={value}>{value}</option>)}</NativeSelect></label><label>Recipients<Input aria-label="Schedule recipients" required type="email" multiple value={draft.recipients} onChange={event=>setDraft({...draft,recipients:event.target.value})}/></label>{error&&<p role="alert">{error}</p>}<Button type="submit" disabled={!(editing?canEdit:allowed)||create.isPending}>Save schedule</Button></form></DialogContent></Dialog></>;
 }
 
 function ExportAudit() {
-  return <GenericSection title="Export Audit Logs" description="Every export completion, failure, and download is auditable." queryKey="analytics-export-audit" queryFn={analyticsApi.exportAudit} actions={(item) => item.id ? <Button size="sm" variant="outline" onClick={() => window.open(`/api/v1/analytics/exports/${item.id}/download`, "_blank", "noopener,noreferrer")}>Download</Button> : null} />;
+  const canExport=useModuleAction("export");
+  const {toast}=useToast();const download=useMutation({mutationFn:analyticsApi.downloadExport,onError:error=>toast({title:actionError(error),variant:"destructive"})});
+  return <GenericSection title="Export Audit Logs" description="Every export completion, failure, and download is auditable." queryKey="analytics-export-audit" queryFn={analyticsApi.exportAudit} actions={item=>item.id?<Button size="sm" variant="outline" disabled={!canExport||download.isPending} onClick={()=>download.mutate(Number(item.id))}>Download</Button>:null}/>;
 }
 
 function DataSection({ title, queryKey, queryFn }: { title: string; queryKey: string; queryFn: () => Promise<unknown> }) {
@@ -187,19 +209,18 @@ function SectionShell({ title, description, children }: { title: string; descrip
 }
 
 function SectionFrame({ title, description, action, onAction, query, children, actions }: { title: string; description: string; action?: string; onAction?: () => void; query: ReturnType<typeof useQuery<AnalyticsList>>; children?: React.ReactNode; actions?: (item: AnalyticsRecord) => React.ReactNode }) {
+  const canCreate=useDefinitionPermission(["analytics_manage","analytics_schedule","analytics_report_builder"],"create");
   const items = useMemo(() => query.data?.items || [], [query.data]);
   return (
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div><h2 className="text-lg font-semibold">{title}</h2><p className="text-sm text-muted-foreground">{description}</p></div>
-        <div className="flex flex-wrap gap-2">{children}{action ? <Button onClick={onAction}>{action}</Button> : null}</div>
+        <div className="flex flex-wrap gap-2">{children}{action ? <Button disabled={!canCreate} onClick={onAction}>{action}</Button> : null}</div>
       </div>
       {query.isLoading ? <div className="rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground">Loading analytics data...</div> : null}
       {query.isError ? <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">Analytics data could not be loaded.</div> : null}
       {!query.isLoading && !items.length ? <div className="rounded-md border bg-card px-4 py-6 text-sm text-muted-foreground">No analytics records yet.</div> : null}
-      <div className="grid gap-3 md:grid-cols-2">
-        {items.map((item) => <Card key={String(item.id)}><CardContent className="space-y-3 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{String(item.name || item.title || item.report_id || item.invoice_number || `Record ${item.id}`)}</p><p className="mt-1 text-xs text-muted-foreground">{String(item.module_name || item.report_type || item.export_type || item.status || "analytics")}</p></div><Badge variant="outline">{String(item.status || item.visibility || "ready")}</Badge></div>{actions ? <div className="flex flex-wrap gap-2">{actions(item)}</div> : null}</CardContent></Card>)}
-      </div>
+      <GroupedRecords scope="apps/analytics/AnalyticsPage:cards-1" items={(items) || []} fields={standardRecordGroups((items) || [])} gridClassName="grid gap-3 md:grid-cols-2" renderItem={(item) => <Card key={String(item.id)}><CardContent className="space-y-3 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{String(item.name || item.title || item.report_id || item.invoice_number || `Record ${item.id}`)}</p><p className="mt-1 text-xs text-muted-foreground">{String(item.module_name || item.report_type || item.export_type || item.status || "analytics")}</p></div><Badge variant="outline">{String(item.status || item.visibility || "ready")}</Badge></div>{actions ? <div className="flex flex-wrap gap-2">{actions(item)}</div> : null}</CardContent></Card>}/>
     </div>
   );
 }

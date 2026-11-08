@@ -9,6 +9,7 @@ import {
 } from "./applications/automations/studioApi";
 import { Empty } from "./shared/EmptyState";
 import { ActivityList } from "./shared/ActivityList";
+import WorkspaceTools from "./applications/WorkspaceTools";
 import { PlannedApplication } from "./shared/PlannedApplication";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -23,6 +24,7 @@ import {
   ShieldCheck,
   Sparkles,
   Workflow,
+  FileText,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -64,8 +66,11 @@ export default function PowerAppsPage() {
   const [busy, setBusy] = useState(true);
   const [refresh, setRefresh] = useState(0);
   const [saving, setSaving] = useState(false);
-  const can = (permission: string) =>
-    catalog?.permissions.includes(`power_apps_${permission}`) ?? false;
+  const can = (permission: string) => {
+    const action=({activity_view:"view",approval_submit:"create",execute:"create",publish:"configure",manage_credentials:"configure",manage_environment:"configure"} as Record<string,string>)[permission]||permission;
+    const grant=user?.access?.grants.power_apps;
+    return !!catalog?.permissions.includes(`power_apps_${permission}`) && (!!user?.is_superuser || !user?.access?.managed || !!grant?.enabled&&grant.actions.includes(action));
+  };
   useEffect(() => {
     let active = true;
     setBusy(true);
@@ -147,7 +152,10 @@ export default function PowerAppsPage() {
           Master Suite
         </Link>
         <nav aria-label="Power Apps" className="pa-categorized-navigation">
-          <ModuleNavigation modulePath="/power-apps" customItems={toolkitItems} onNavigate={() => {}} />
+          <ModuleNavigation modulePath="/power-apps" customItems={toolkitItems} quickActions={[
+            ...(can("create") ? [{label:"Automation",description:"Open a new automation draft",icon:Workflow,menuPaths:["/power-apps/automations"],onSelect:()=>navigate(studioPath("/power-apps/automations/new",environment))}] : []),
+            ...(can("approval_submit") ? [{label:"Approval request",description:"Prepare a request for approval",icon:FileText,menuPaths:["/power-apps/approvals"],onSelect:()=>navigate(studioPath("/power-apps/approvals/new",environment))}] : []),
+          ]} onNavigate={() => {}} />
         </nav>
         <div className="pa-sidebar-note">
           <ShieldCheck size={20} />
@@ -430,7 +438,8 @@ export default function PowerAppsPage() {
                     Ask your administrator for permission to view activity logs.
                   </Empty>
                 ))}
-              {section &&
+              {["forms","tables","app-builder","notifications"].includes(section) && <WorkspaceTools kind={section} environment={environment} can={can}/> }
+              {section && !["forms","tables","app-builder","notifications"].includes(section) &&
                 section !== "automations" &&
                 section !== "activity" && !isReference && (
                   <PlannedApplication

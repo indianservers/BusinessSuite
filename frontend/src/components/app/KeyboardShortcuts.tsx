@@ -25,7 +25,7 @@ export default function KeyboardShortcuts({ open: controlledOpen, onOpenChange }
         else if (window.location.pathname.startsWith("/pms")) go("/pms");
         else go("/dashboard");
       }
-      if (event.altKey && event.key.toLowerCase() === "a") {
+      if (event.altKey && !event.shiftKey && event.key.toLowerCase() === "a") {
         event.preventDefault();
         if (window.location.pathname.startsWith("/crm")) go("/crm/tickets");
         else if (window.location.pathname.startsWith("/hrms")) go("/hrms/leave-requests");
@@ -45,9 +45,10 @@ export default function KeyboardShortcuts({ open: controlledOpen, onOpenChange }
         if (window.location.pathname.startsWith("/pms")) go("/pms/projects/new");
       }
       if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "c" && window.location.pathname.startsWith("/pms")) go("/pms/projects/new");
-      if (event.key === "/" && window.location.pathname.startsWith("/pms")) {
-        event.preventDefault();
-        go("/pms/issue-navigator-pro");
+      if (event.key === "/") {
+        const search=document.querySelector<HTMLInputElement>('main input[type="search"],main input[aria-label*="Search"],main input[placeholder*="Search"]');
+        if(search){event.preventDefault();search.focus();}
+        else if(window.location.pathname.startsWith("/pms")){event.preventDefault();go("/pms/issue-navigator-pro");}
       }
       if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "a" && window.location.pathname.startsWith("/pms")) go("/pms/enterprise-engine");
       if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "m" && window.location.pathname.startsWith("/pms")) go("/pms/backlog-grooming");
@@ -71,12 +72,14 @@ export default function KeyboardShortcuts({ open: controlledOpen, onOpenChange }
                 ["Cmd/Ctrl + K", "Global search"],
                 ["?", "Open this help"],
                 ["Esc", "Close dialogs"],
+                ["Ctrl / Cmd + S", "Save the active editor"],
                 ["Alt + H", "Go dashboard"],
                 ["Alt + A", "Open approvals or assigned work"],
                 ["Alt + R", "Open reports"],
                 ["N", "Create in current module"],
                 ["PMS: C", "Create project/work item"],
-                ["PMS: /", "Open issue navigator"],
+                ["/", "Focus page search (PMS: issue navigator if unavailable)"],
+                ["Alt + Shift + A", "Open page actions"],
                 ["PMS: A", "Assign/open enterprise engine"],
                 ["PMS: M", "Move/groom backlog"],
               ].map(([key, desc]) => (

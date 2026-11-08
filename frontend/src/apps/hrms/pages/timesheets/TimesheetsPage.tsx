@@ -1,3 +1,4 @@
+import RecordMaintenance from "@/components/RecordMaintenance";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -66,9 +67,11 @@ export default function TimesheetsPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
-  const canManageProjects = roleKey === "admin" || roleKey === "hr";
-  const canApprove = roleKey === "admin" || roleKey === "hr" || roleKey === "manager";
-  const canCreateSheet = roleKey === "employee" || roleKey === "admin";
+  const grant=user?.access?.grants.hrms,managed=!!user?.access?.managed;
+  const granted=(permission:string,action:string)=>!!user?.is_superuser||!!(grant?.enabled&&grant.permissions.includes(permission)&&grant.actions.includes(action));
+  const canManageProjects=managed?granted("timesheet_manage","create"):roleKey==="admin"||roleKey==="hr";
+  const canApprove=managed?granted("timesheet_approve","approve"):roleKey==="admin"||roleKey==="hr"||roleKey==="manager";
+  const canCreateSheet=!!user?.employee_id&&(!managed||granted("timesheet_view","create"));
   const [selectedSheetId, setSelectedSheetId] = useState<number | null>(null);
   const [projectForm, setProjectForm] = useState({ code: "", name: "", client_name: "" });
   const [sheetForm, setSheetForm] = useState({
@@ -161,6 +164,7 @@ export default function TimesheetsPage() {
       toast({ title: "Timesheet submitted" });
       qc.invalidateQueries({ queryKey: ["timesheets"] });
     },
+    onError:()=>toast({title:"Could not submit timesheet",description:"Your entries are retained. Check the status and try again.",variant:"destructive"}),
   });
 
   const reviewSheet = useMutation({
@@ -170,6 +174,7 @@ export default function TimesheetsPage() {
       toast({ title: `Timesheet ${variables.status.toLowerCase()}` });
       qc.invalidateQueries({ queryKey: ["timesheets"] });
     },
+    onError:()=>toast({title:"Could not review timesheet",description:"The previous status is retained. Refresh and retry.",variant:"destructive"}),
   });
 
   const totals = useMemo(() => {
@@ -225,16 +230,16 @@ export default function TimesheetsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Code</Label>
-                    <Input value={projectForm.code} onChange={(e) => setProjectForm({ ...projectForm, code: e.target.value })} />
+                    <Input aria-label="Timesheet project code" value={projectForm.code} onChange={(e) => setProjectForm({ ...projectForm, code: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Client</Label>
-                    <Input value={projectForm.client_name} onChange={(e) => setProjectForm({ ...projectForm, client_name: e.target.value })} />
+                    <Input aria-label="Timesheet project client" value={projectForm.client_name} onChange={(e) => setProjectForm({ ...projectForm, client_name: e.target.value })} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Name</Label>
-                  <Input value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} />
+                  <Input aria-label="Timesheet project name" value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} />
                 </div>
                 <Button
                   className="w-full"
@@ -243,7 +248,7 @@ export default function TimesheetsPage() {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Project
-                </Button>
+                </Button><details><summary>Manage timesheet projects</summary>{projects.map(project=><div key={project.id} className="flex items-center justify-between gap-2 border-t py-2"><span>{project.name}</span><RecordMaintenance record={project as unknown as Record<string,unknown>} name={project.name} endpoint={`/timesheets/projects/${project.id}`} fields={[{key:"code",label:"Project code",required:true},{key:"name",label:"Project name",required:true}]} queryKeys={["timesheet-projects"]} canEdit={canManageProjects} canDelete={canManageProjects} mergeRecord/></div>)}</details>
               </CardContent>
             </Card>
           )}
@@ -260,7 +265,7 @@ export default function TimesheetsPage() {
                 <div className="space-y-1.5">
                   <Label>Project</Label>
                   <NativeSelect
-                    value={sheetForm.project_id}
+                    aria-label="Timesheet project" value={sheetForm.project_id}
                     onChange={(e) => setSheetForm({ ...sheetForm, project_id: e.target.value })}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
@@ -273,11 +278,11 @@ export default function TimesheetsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Start</Label>
-                    <Input type="date" value={sheetForm.period_start} onChange={(e) => setSheetForm({ ...sheetForm, period_start: e.target.value })} />
+                    <Input aria-label="Timesheet period start" type="date" value={sheetForm.period_start} onChange={(e) => setSheetForm({ ...sheetForm, period_start: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>End</Label>
-                    <Input type="date" value={sheetForm.period_end} onChange={(e) => setSheetForm({ ...sheetForm, period_end: e.target.value })} />
+                    <Input aria-label="Timesheet period end" type="date" value={sheetForm.period_end} onChange={(e) => setSheetForm({ ...sheetForm, period_end: e.target.value })} />
                   </div>
                 </div>
                 <Button
@@ -376,7 +381,7 @@ export default function TimesheetsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Hours</Label>
-                  <Input type="number" step="0.25" min="0.25" max="24" value={entryForm.hours} onChange={(e) => setEntryForm({ ...entryForm, hours: e.target.value })} />
+                  <Input aria-label="Timesheet entry hours" type="number" step="0.25" min="0.25" max="24" value={entryForm.hours} onChange={(e) => setEntryForm({ ...entryForm, hours: e.target.value })} />
                 </div>
                 <label className="flex h-10 items-center gap-2 rounded-md border px-3 text-sm">
                   <input type="checkbox" checked={entryForm.is_billable} onChange={(e) => setEntryForm({ ...entryForm, is_billable: e.target.checked })} />
@@ -384,7 +389,7 @@ export default function TimesheetsPage() {
                 </label>
                 <div className="space-y-1.5">
                   <Label>Task</Label>
-                  <Input value={entryForm.task_name} onChange={(e) => setEntryForm({ ...entryForm, task_name: e.target.value })} />
+                  <Input aria-label="Timesheet work description" value={entryForm.task_name} onChange={(e) => setEntryForm({ ...entryForm, task_name: e.target.value })} />
                 </div>
                 <Button onClick={() => addEntry.mutate()} disabled={!selectedSheet || addEntry.isPending}>
                   <Plus className="h-4 w-4 mr-2" />

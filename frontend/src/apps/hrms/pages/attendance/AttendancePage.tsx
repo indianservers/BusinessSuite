@@ -1,3 +1,4 @@
+import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -73,6 +74,7 @@ export default function AttendancePage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const hasEmployeeProfile = Boolean(user?.employee_id);
+  const canManageAttendance=useDefinitionPermission(["attendance_manage"],"edit");
   const today = new Date();
   const [selectionParams]=useSearchParams();
   const [viewMonth, setViewMonth] = useHRSession("attendance-month",Number(selectionParams.get("month"))||today.getMonth()+1);
@@ -113,6 +115,7 @@ export default function AttendancePage() {
 
   const { data: monthLocks } = useQuery({
     queryKey: ["attendance-locks", viewMonth, viewYear],
+    enabled:canManageAttendance,
     queryFn: () => attendanceApi.locks({ month: viewMonth, year: viewYear }).then((r) => r.data),
   });
 
@@ -370,10 +373,10 @@ export default function AttendancePage() {
             <Input value={lockReason} onChange={(event) => setLockReason(event.target.value)} placeholder="Lock reason" />
             <Input value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} placeholder="Unlock reason" />
           </div>
-          <Button onClick={() => lockMonthMutation.mutate()} disabled={lockMonthMutation.isPending || activeLock?.status === "Locked"}>
+          <Button onClick={() => lockMonthMutation.mutate()} disabled={!canManageAttendance || lockMonthMutation.isPending || activeLock?.status === "Locked"}>
             Lock Month
           </Button>
-          <Button variant="outline" onClick={() => unlockMonthMutation.mutate()} disabled={unlockMonthMutation.isPending || activeLock?.status !== "Locked"}>
+          <Button variant="outline" onClick={() => unlockMonthMutation.mutate()} disabled={!canManageAttendance || unlockMonthMutation.isPending || activeLock?.status !== "Locked"}>
             Unlock
           </Button>
         </CardContent>
@@ -422,13 +425,13 @@ export default function AttendancePage() {
             <NativeSelect id="bulk-attendance-status" value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
               {REGISTER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
             </NativeSelect>
-            <Button variant="outline" onClick={applyBulkStatus}>Apply to selected</Button>
-            <Button onClick={() => saveRegisterRows(true)} disabled={saveRegisterMutation.isPending || !selectedRegisterIds.length}>
+            <Button variant="outline" disabled={!canManageAttendance} onClick={applyBulkStatus}>Apply to selected</Button>
+            <Button onClick={() => saveRegisterRows(true)} disabled={!canManageAttendance || saveRegisterMutation.isPending || !selectedRegisterIds.length}>
               Save Selected
             </Button>
             <span className="text-xs text-muted-foreground">{selectedRegisterIds.length} selected</span>
             </>}
-            <Button variant="secondary" onClick={() => saveRegisterRows(false)} disabled={saveRegisterMutation.isPending || !registerRows.length}>
+            <Button variant="secondary" onClick={() => saveRegisterRows(false)} disabled={!canManageAttendance || saveRegisterMutation.isPending || !registerRows.length}>
               Save All Visible
             </Button>
           </div>

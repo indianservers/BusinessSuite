@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import CRMNotesWorkspace from "./CRMNotesWorkspace";
-import CRMTasksWorkspace from "./CRMTasksWorkspace";
+import TaskExperiencePage from "@/apps/project-management/pages/TaskExperiencePage";
 
 export default function CRMActivitiesWorkspace() {
   const user = useAuthStore(state => state.user);
@@ -10,5 +10,5 @@ export default function CRMActivitiesWorkspace() {
   const storageKey = `productivity:crm:${user?.id ?? "anonymous"}:v1`;
   const changeKind = (next: "task" | "note") => { const query = new URLSearchParams(params); query.set("operation", "/crm/tasks"); query.set("workspaceView", next === "note" ? "notes" : "tasks"); setParams(query, { replace: true }); };
   if (kind === "note") return <CRMNotesWorkspace userId={user?.id} key={storageKey} legacyKey={storageKey} onTasks={()=>changeKind("task")}/>;
-  return <CRMTasksWorkspace key={storageKey} legacyKey={storageKey} onNotes={() => changeKind("note")}/>;
+  return <TaskExperiencePage />;
 }

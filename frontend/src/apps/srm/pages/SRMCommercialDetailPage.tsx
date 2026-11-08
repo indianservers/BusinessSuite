@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { srmApi } from "../api";
 import type { SRMRecord } from "../types";
+import RecurringSchedule from "../components/RecurringSchedule";
+import { useAuthStore } from "@/store/authStore";
 
 type DetailKind = "salesOrder" | "contract" | "engagement" | "billingPlan";
 
@@ -122,14 +124,23 @@ function EngagementLifecycle({record,onChanged}:{record:SRMRecord;onChanged:()=>
 }
 
 function BillingMilestones({record,onChanged}:{record:SRMRecord;onChanged:()=>unknown}) {
+  const user = useAuthStore(state => state.user);
+  const grant = user?.access?.grants.srm;
+  const canManage = !!user?.is_superuser || (user?.access?.managed ? !!grant?.enabled && grant.permissions.some(p => ["srm_manage", "srm_admin"].includes(p)) : ["admin", "super_admin", "srm_admin", "srm_sales_manager"].includes(user?.role || ""));
   const [from,setFrom]=useState(new Date().toISOString().slice(0,10));
   const [to,setTo]=useState(new Date().toISOString().slice(0,10));
   const id=Number(record.id);
   const activate=useMutation({mutationFn:()=>api.post(`/srm/billing-plans/${id}/activate`),onSuccess:()=>onChanged()});
+  const lifecycle = useMutation({ mutationFn: (action: "pause" | "activate" | "complete") => api.post(`/srm/billing-plans/${id}/${action}`), onSuccess: () => onChanged() });
   const eligibility=useMutation({mutationFn:async()=>(await api.get(`/srm/billing-plans/${id}/eligibility`,{params:{date_from:from,date_to:to}})).data});
   return <Card><CardHeader><CardTitle>Billing milestones</CardTitle></CardHeader><CardContent className="space-y-4">
     <p>Plan total: {String(record.total_amount)} {String(record.currency)} · {String(record.status)}</p>
-    {record.status==="draft" && <Button disabled={activate.isPending} onClick={()=>activate.mutate()}>Activate billing plan</Button>}
+    {canManage && record.status==="draft" && <Button disabled={activate.isPending} onClick={()=>activate.mutate()}>Activate billing plan</Button>}
+    {canManage && record.status === "active" && <Button variant="outline" disabled={lifecycle.isPending} onClick={() => lifecycle.mutate("pause")}>Pause billing plan</Button>}
+    {canManage && record.status === "paused" && <Button disabled={lifecycle.isPending} onClick={() => lifecycle.mutate("activate")}>Resume billing plan</Button>}
+    {canManage && record.status === "active" && <Button variant="outline" disabled={lifecycle.isPending} onClick={() => lifecycle.mutate("complete")}>Complete billing plan</Button>}
+    {lifecycle.isError && <p role="alert">{actionError(lifecycle.error)}</p>}
+    {canManage && !!record.recurrence_rule && !["completed", "cancelled"].includes(String(record.status)) && <RecurringSchedule plans={[record]} onSaved={() => { void onChanged(); }} />}
     {activate.isError && <p role="alert">{actionError(activate.error)}</p>}
     <div className="flex flex-wrap items-end gap-2"><label>Eligibility from<Input type="date" aria-label="Eligibility from" value={from} onInput={event=>{setFrom(event.currentTarget.value);eligibility.reset();}} onChange={event=>{setFrom(event.target.value);eligibility.reset();}}/></label><label>Eligibility to<Input type="date" aria-label="Eligibility to" value={to} onInput={event=>{setTo(event.currentTarget.value);eligibility.reset();}} onChange={event=>{setTo(event.target.value);eligibility.reset();}}/></label><Button variant="outline" disabled={eligibility.isPending || !from || !to} onClick={()=>eligibility.mutate()}>Check billing eligibility</Button></div>
     {eligibility.data && <p role="status">{eligibility.data.milestones.length} eligible milestones in this period.</p>}

@@ -595,3 +595,13 @@ def isolated_run_context(function):
             release_run_context(db)
 
     return wrapped
+
+
+def require_module_action(user, module, action):
+    """Authorize body-selected commands after the authenticated request resolved grants."""
+    grants = getattr(user, "_suite_grants", None)
+    if user.is_superuser or grants is None:
+        return
+    grant = grants.get(module, {})
+    if not grant.get("enabled") or action not in grant.get("actions", []):
+        raise HTTPException(403, f"This operation requires the {module} {action} action")

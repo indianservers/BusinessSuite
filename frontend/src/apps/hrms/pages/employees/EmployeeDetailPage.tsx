@@ -39,6 +39,7 @@ const TABS = [
   { id: "education", label: "Education", icon: GraduationCap },
   { id: "experience", label: "Experience", icon: Briefcase },
   { id: "skills", label: "Skills", icon: Star },
+  { id: "certifications", label: "Certifications", icon: GraduationCap },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "payroll", label: "Payroll", icon: Banknote },
   { id: "account", label: "Account", icon: Link2 },
@@ -152,6 +153,8 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   const [editErrors,setEditErrors]=useState<Record<string,string>>({});
   const [educationForm, setEducationForm] = useState<Record<string, any>>({});
   const [experienceForm, setExperienceForm] = useState<Record<string, any>>({});
+  const [certificationForm, setCertificationForm] = useState<Record<string, any>>({});
+  const [editingRecord, setEditingRecord] = useState<{section: string; id: number} | null>(null);
   const [skillForm, setSkillForm] = useState<Record<string, any>>({});
   const [salaryForm, setSalaryForm] = useState<Record<string, any>>({
     structure_id: "",
@@ -232,9 +235,10 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   const educationMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => employeeApi.addEducation(Number(id), payload),
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "education" ? employeeApi.updateProfileRecord(Number(id), "education", editingRecord.id, payload) : employeeApi.addEducation(Number(id), payload),
     onSuccess: () => {
-      toast({ title: "Education added" });
+      toast({ title: editingRecord?.section === "education" ? "Education updated" : "Education added" });
+      setEditingRecord(null);
       setEducationForm({});
       qc.invalidateQueries({ queryKey: ["employee", id] });
     },
@@ -246,9 +250,10 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   const experienceMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => employeeApi.addExperience(Number(id), payload),
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "experience" ? employeeApi.updateProfileRecord(Number(id), "experience", editingRecord.id, payload) : employeeApi.addExperience(Number(id), payload),
     onSuccess: () => {
-      toast({ title: "Experience added" });
+      toast({ title: editingRecord?.section === "experience" ? "Experience updated" : "Experience added" });
+      setEditingRecord(null);
       setExperienceForm({});
       qc.invalidateQueries({ queryKey: ["employee", id] });
     },
@@ -260,9 +265,10 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
   });
 
   const skillMutation = useMutation({
-    mutationFn: (payload: Record<string, any>) => employeeApi.addSkill(Number(id), payload),
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "skills" ? employeeApi.updateProfileRecord(Number(id), "skills", editingRecord.id, payload) : employeeApi.addSkill(Number(id), payload),
     onSuccess: () => {
-      toast({ title: "Skill added" });
+      toast({ title: editingRecord?.section === "skills" ? "Skill updated" : "Skill added" });
+      setEditingRecord(null);
       setSkillForm({});
       qc.invalidateQueries({ queryKey: ["employee", id] });
     },
@@ -272,6 +278,42 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       variant: "destructive",
     }),
   });
+
+  const certificationMutation = useMutation({
+    mutationFn: (payload: Record<string, any>) => editingRecord?.section === "certifications"
+      ? employeeApi.updateProfileRecord(Number(id), "certifications", editingRecord.id, payload)
+      : employeeApi.addCertification(Number(id), payload),
+    onSuccess: () => {
+      toast({ title: editingRecord ? "Certification updated" : "Certification added" });
+      setCertificationForm({}); setEditingRecord(null);
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: (err: unknown) => toast({ title: "Could not save certification", description: getApiErrorMessage(err), variant: "destructive" }),
+  });
+  const deleteRecordMutation = useMutation({
+    mutationFn: ({section, recordId}: {section: string; recordId: number}) => employeeApi.deleteProfileRecord(Number(id), section, recordId),
+    onSuccess: () => {
+      toast({ title: "Record deleted" });
+      setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});
+      qc.invalidateQueries({ queryKey: ["employee", id] });
+    },
+    onError: (err: unknown) => toast({ title: "Could not delete record", description: getApiErrorMessage(err), variant: "destructive" }),
+  });
+  const recordActions = (section: string, record: Record<string, any>, setForm: (form: Record<string, any>) => void) => (
+    <div className="mt-3 flex gap-2">
+      <Button type="button" variant="outline" size="sm" disabled={deleteRecordMutation.isPending} onClick={() => {
+        setForm({ ...record }); setEditingRecord({section, id: record.id}); setParams({edit: "true"});
+        requestAnimationFrame(() => document.getElementById(`profile-${({education: "degree", experience: "company_name", skills: "skill_name", certifications: "certification_name"} as Record<string, string>)[section]}`)?.focus());
+      }}>Edit record</Button>
+      <Button type="button" variant="outline" size="sm" disabled={deleteRecordMutation.isPending} onClick={() => {
+        if (window.confirm("Delete this employee profile record?")) deleteRecordMutation.mutate({section, recordId: record.id});
+      }}>Delete record</Button>
+    </div>
+  );
+  useEffect(() => {
+    setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});
+  }, [activeTab, id]);
+  useEffect(() => { if (!editing) {setEditingRecord(null); setEducationForm({}); setExperienceForm({}); setSkillForm({}); setCertificationForm({});} }, [editing]);
 
   const linkUserMutation = useMutation({
     mutationFn: (userId: number | null) => employeeApi.linkUser(Number(id), userId),
@@ -610,7 +652,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       <RecordSectionNav value={activeTab} onChange={setActiveTab} label="Employee information" groups={[
         {label:"Overview", sections:TABS.filter(t=>["360","profile"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
         {label:"Personal", sections:TABS.filter(t=>["personal","family","health","bank"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
-        {label:"Work", sections:TABS.filter(t=>["job","education","experience","skills","documents"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
+        {label:"Work", sections:TABS.filter(t=>["job","education","experience","skills","certifications","documents"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
         {label:"Pay & access", sections:TABS.filter(t=>["payroll","account"].includes(t.id)).map(t=>({value:t.id,label:t.label}))},
       ]}/>
 
@@ -690,7 +732,8 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 setForm={setEducationForm}
                 onSubmit={(payload) => educationMutation.mutate(payload)}
                 saving={educationMutation.isPending}
-                submitLabel="Add Education"
+                submitLabel={editingRecord?.section === "education" ? "Save Education" : "Add Education"}
+                onCancelEdit={editingRecord?.section === "education" ? () => {setEditingRecord(null); setEducationForm({});} : undefined}
                 requiredFields={["degree"]}
               />
             )}
@@ -702,13 +745,15 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                   ["designation", "Designation"],
                   ["from_date", "From Date", "date"],
                   ["to_date", "To Date", "date"],
+                  ["is_current", "Current Employment", "checkbox"],
                   ["responsibilities", "Responsibilities", "textarea"],
                 ]}
                 form={experienceForm}
                 setForm={setExperienceForm}
                 onSubmit={(payload) => experienceMutation.mutate(payload)}
                 saving={experienceMutation.isPending}
-                submitLabel="Add Experience"
+                submitLabel={editingRecord?.section === "experience" ? "Save Experience" : "Add Experience"}
+                onCancelEdit={editingRecord?.section === "experience" ? () => {setEditingRecord(null); setExperienceForm({});} : undefined}
                 requiredFields={["company_name"]}
               />
             )}
@@ -724,8 +769,20 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                 setForm={setSkillForm}
                 onSubmit={(payload) => skillMutation.mutate(payload)}
                 saving={skillMutation.isPending}
-                submitLabel="Add Skill"
+                submitLabel={editingRecord?.section === "skills" ? "Save Skill" : "Add Skill"}
+                onCancelEdit={editingRecord?.section === "skills" ? () => {setEditingRecord(null); setSkillForm({});} : undefined}
                 requiredFields={["skill_name"]}
+              />
+            )}
+
+            {activeTab === "certifications" && (
+              <AddRecordForm
+                fields={[["certification_name", "Certification Name *"], ["issuing_body", "Issuing Body"], ["certification_type", "Certification Type"], ["certificate_number", "Certificate Number"], ["issue_date", "Issue Date", "date"], ["expiry_date", "Expiry Date", "date"], ["is_renewable", "Renewable", "checkbox"], ["score_grade", "Score / Grade"], ["verification_url", "Verification URL", "url"], ["document_url", "Document URL", "url"]]}
+                form={certificationForm} setForm={setCertificationForm}
+                onSubmit={payload => certificationMutation.mutate(payload)} saving={certificationMutation.isPending}
+                submitLabel={editingRecord?.section === "certifications" ? "Save Certification" : "Add Certification"}
+                requiredFields={["certification_name"]}
+                onCancelEdit={editingRecord?.section === "certifications" ? () => {setEditingRecord(null);setCertificationForm({});} : undefined}
               />
             )}
 
@@ -840,11 +897,11 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         <Card>
           <CardHeader><CardTitle>Education</CardTitle></CardHeader>
           <CardContent>
-            {emp.educations?.length === 0 ? (
+            {!emp.educations?.length ? (
               <p className="text-muted-foreground text-sm">No education records</p>
             ) : (
               <div className="space-y-4">
-                {emp.educations?.map((edu: { id: number; degree: string; institution?: string; specialization?: string; pass_year?: number; percentage_cgpa?: number }) => (
+                {emp.educations?.map((edu: { id: number; degree: string; institution?: string; board_university?: string; specialization?: string; pass_year?: number; percentage_cgpa?: number }) => (
                   <div key={edu.id} className="flex items-start gap-4 p-4 rounded-lg border">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                       <GraduationCap className="h-5 w-5" />
@@ -853,7 +910,9 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
                       <p className="font-medium">{edu.degree}</p>
                       {edu.specialization && <p className="text-sm text-muted-foreground">{edu.specialization}</p>}
                       <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                      <p className="text-xs text-muted-foreground">{edu.pass_year} · {edu.percentage_cgpa}%</p>
+                      {edu.board_university && <p className="text-sm text-muted-foreground">{edu.board_university}</p>}
+                      <p className="text-xs text-muted-foreground">{[edu.pass_year, edu.percentage_cgpa != null ? `Percentage / CGPA: ${edu.percentage_cgpa}` : null].filter(value => value != null).join(" · ")}</p>
+                      {recordActions("education", edu, setEducationForm)}
                     </div>
                   </div>
                 ))}
@@ -867,18 +926,19 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         <Card>
           <CardHeader><CardTitle>Experience</CardTitle></CardHeader>
           <CardContent>
-            {emp.experiences?.length === 0 ? (
+            {!emp.experiences?.length ? (
               <p className="text-muted-foreground text-sm">No experience records</p>
             ) : (
               <div className="space-y-4">
-                {emp.experiences?.map((exp: { id: number; company_name: string; designation?: string; from_date?: string; to_date?: string; responsibilities?: string }) => (
+                {emp.experiences?.map((exp: { id: number; company_name: string; designation?: string; from_date?: string; to_date?: string; is_current?: boolean; responsibilities?: string }) => (
                   <div key={exp.id} className="rounded-lg border p-4">
                     <p className="font-medium">{exp.company_name}</p>
                     {exp.designation && <p className="text-sm text-muted-foreground">{exp.designation}</p>}
                     <p className="text-xs text-muted-foreground">
-                      {exp.from_date ? formatDate(exp.from_date) : "—"} - {exp.to_date ? formatDate(exp.to_date) : "Present"}
+                      {exp.from_date ? formatDate(exp.from_date) : "—"} - {exp.is_current ? "Present" : exp.to_date ? formatDate(exp.to_date) : "—"}
                     </p>
                     {exp.responsibilities && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{exp.responsibilities}</p>}
+                    {recordActions("experience", exp, setExperienceForm)}
                   </div>
                 ))}
               </div>
@@ -892,19 +952,34 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
           <CardHeader><CardTitle>Skills</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {emp.skills?.length === 0 ? (
+              {!emp.skills?.length ? (
                 <p className="text-muted-foreground text-sm">No skills added</p>
               ) : (
-                emp.skills?.map((skill: { id: number; skill_name: string; proficiency?: string }) => (
-                  <Badge key={skill.id} variant="secondary" className="text-sm">
+                emp.skills?.map((skill: { id: number; skill_name: string; proficiency?: string; years_experience?: number | string }) => (
+                  <div key={skill.id} className="rounded-lg border p-3"><Badge variant="secondary" className="text-sm">
                     {skill.skill_name}
                     {skill.proficiency && <span className="ml-1 text-xs opacity-70">· {skill.proficiency}</span>}
                   </Badge>
+                  {skill.years_experience != null && <p className="mt-2 text-sm">{skill.years_experience} years of experience</p>}
+                  {recordActions("skills", skill, setSkillForm)}</div>
                 ))
               )}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {activeTab === "certifications" && (
+        <Card><CardHeader><CardTitle>Certifications</CardTitle></CardHeader><CardContent className="space-y-4">
+          {!emp.certifications?.length ? <p className="text-sm text-muted-foreground">No certifications added</p> : emp.certifications.map((cert: Record<string, any>) => (
+            <div key={cert.id} className="rounded-lg border p-4 break-words">
+              <p className="font-medium">{cert.certification_name}</p>
+              {[["Issuing Body", cert.issuing_body], ["Type", cert.certification_type], ["Certificate Number", cert.certificate_number], ["Issued", cert.issue_date ? formatDate(cert.issue_date) : null], ["Expires", cert.expiry_date ? formatDate(cert.expiry_date) : "No expiry"], ["Renewable", cert.is_renewable ? "Yes" : "No"], ["Score / Grade", cert.score_grade]].filter(([, value]) => value != null && value !== "").map(([label, value]) => <p key={label} className="text-sm text-muted-foreground">{label}: {value}</p>)}
+              {[["Verification", cert.verification_url], ["Document", cert.document_url]].filter(([, url]) => /^https?:\/\//i.test(url || "")).map(([label, url]) => <a key={label} href={url} target="_blank" rel="noopener noreferrer" className="mr-3 text-sm underline">{label}</a>)}
+              {recordActions("certifications", cert, setCertificationForm)}
+            </div>
+          ))}
+        </CardContent></Card>
       )}
 
       {activeTab === "documents" && (
@@ -1110,6 +1185,7 @@ function AddRecordForm({
   saving,
   submitLabel,
   requiredFields = [],
+  onCancelEdit,
 }: {
   fields: Array<[string, string, string?]>;
   form: Record<string, any>;
@@ -1118,6 +1194,7 @@ function AddRecordForm({
   saving: boolean;
   submitLabel: string;
   requiredFields?: string[];
+  onCancelEdit?: () => void;
 }) {
   return (
     <CompactForm
@@ -1129,6 +1206,7 @@ function AddRecordForm({
           if (payload[key] === "") payload[key] = null;
           if (["pass_year", "years_experience", "percentage_cgpa"].includes(key) && payload[key] != null) payload[key] = Number(payload[key]);
         });
+        if (payload.is_current) payload.to_date = null;
         const missingField = requiredFields.find((key) => !String(payload[key] || "").trim());
         if (missingField) {
           const label = fields.find(([key]) => key === missingField)?.[1]?.replace(" *", "") || "Required field";
@@ -1149,30 +1227,40 @@ function AddRecordForm({
           });
           return;
         }
+        for (const [key, value] of Object.entries(payload)) {
+          if (typeof value === "string") payload[key] = value.trim() || null;
+        }
+        if ((payload.from_date && payload.to_date && payload.to_date < payload.from_date) || (payload.issue_date && payload.expiry_date && payload.expiry_date < payload.issue_date)) {
+          toast({title: "End date must be on or after start date", variant: "destructive"}); return;
+        }
         onSubmit(payload);
       }}
     >
       {fields.map(([key, label, type]) => (
         <div key={key} className={`space-y-2 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
-          <Label>{label}</Label>
-          {type === "textarea" ? (
-            <textarea
+          <Label htmlFor={`profile-${key}`}>{label}</Label>
+          {type === "checkbox" ? <input id={`profile-${key}`} type="checkbox" checked={!!form[key]} onChange={e => setForm({...form, [key]: e.target.checked})}/> : type === "textarea" ? (
+            <textarea id={`profile-${key}`}
               value={form[key] ?? ""}
               onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-              rows={3}
+              required={requiredFields.includes(key)} rows={3}
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           ) : (
-            <Input
-              type={type === "date" || type === "number" ? type : "text"}
-              step={type === "number" ? "0.1" : undefined}
+            <Input id={`profile-${key}`}
+              type={type === "date" || type === "number" || type === "url" ? type : "text"}
+              required={requiredFields.includes(key)}
+              min={type === "number" ? (key === "pass_year" ? 1900 : 0) : undefined}
+              max={key === "pass_year" ? 2200 : key === "percentage_cgpa" ? 100 : key === "years_experience" ? 999.9 : undefined}
+              step={type === "number" ? (key === "pass_year" ? "1" : key === "percentage_cgpa" ? "0.01" : "0.1") : undefined}
               value={form[key] ?? ""}
               onChange={(e) => setForm({ ...form, [key]: e.target.value })}
             />
           )}
         </div>
       ))}
-      <div className="sm:col-span-2 flex justify-end">
+      <div className="sm:col-span-2 flex justify-end gap-2">
+        {onCancelEdit && <Button type="button" variant="outline" disabled={saving} onClick={onCancelEdit}>Cancel record edit</Button>}
         <Button type="submit" disabled={saving}>
           <Save className="mr-2 h-4 w-4" />
           {saving ? "Saving..." : submitLabel}

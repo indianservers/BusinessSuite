@@ -205,6 +205,10 @@ def invoke(
         db.add(op)
         db.flush()
     credential, values = vault.credential_values(db, user, conn)
+    if credential.auth_type=='oauth2' and mutates:
+        needed=set(REGISTRY[conn.connector_id].oauth_write_scopes)
+        if not needed<=set(conn.scopes):
+            raise IntegrationFailure('scope','Reconnect with the required provider write scopes before running this workflow')
     values = oauth.access_values(db, conn, credential, values)
     # Refresh can commit: recheck revocation and permission before dispatch.
     conn = vault.connection(db, user, conn.environment, conn.id, lock=True)
@@ -267,7 +271,7 @@ def invoke(
             elif (conn.connector_id, action_id) in automation_catalog.INSTALLED:
                 output = automation_catalog.execute(conn, action_id, parsed, transport, headers, values, operation_key)
             elif conn.connector_id in PROFILES:
-                output = provider_execute(conn, action_id, parsed, transport, headers, values, operation_key)
+                output = provider_execute(conn, action_id, parsed, transport, headers, values, operation_key, auth_type=credential.auth_type)
             else:
                 output = adapters.provider_action(
                     conn, action_id, parsed, transport, headers, values, operation_key

@@ -1,3 +1,4 @@
+import GridTable from "@/shared/data-grid/GridTable";
 import AdminVerification, { administratorStepUp } from "@/features/access/AdminVerification";
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -52,7 +53,7 @@ export default function IndustryPackOnboarding({ packKey, open, close, onInstall
           <Button variant="outline" disabled={busy || effective.status !== 'Enabled'} onClick={async () => { setBusy(true); setError(''); try { const { data } = await api.post<{ ids: number[]; created: boolean }>(`/industry-packs/${packKey}/sample-data`, {}, await verifiedHeaders()); setNotice(`${data.ids.length} labelled sample records ${data.created ? 'added' : 'already exist'}. They do not trigger staff workflows.`); } catch (err) { setError(errorMessage(err)); } finally { setBusy(false); } }}>Add optional sample records</Button></>}
       </div>
       {effective && <section className="space-y-3"><h3 className="font-medium">Installed reports</h3><div className="flex flex-wrap gap-2">{effective.assets.filter(a => a.kind === 'report').map(asset => <Button key={asset.id} size="sm" variant="outline" disabled={busy || effective.status !== 'Enabled'} onClick={async () => { setBusy(true); setError(''); try { const { data } = await api.post(`/analytics/reports/${asset.id}/run`, { page: 1, page_size: 20 }); setReport(data); } catch (err) { setError(errorMessage(err)); } finally { setBusy(false); } }}>{pack.reports[Number(asset.key)]}</Button>)}</div>
-        {report && <div className="max-w-full overflow-x-auto"><p className="text-xs text-muted-foreground">{report.total} results · first 20 shown</p><table className="w-full text-left text-sm"><thead><tr>{report.fields.map(field => <th className="border-b p-2" key={field}>{field}</th>)}</tr></thead><tbody>{report.items.map((item, index) => <tr key={index}>{report.fields.map(field => <td className="border-b p-2" key={field}>{String(item[field] ?? '—')}</td>)}</tr>)}</tbody></table></div>}
+        {report && <div className="max-w-full overflow-x-auto"><p className="text-xs text-muted-foreground">{report.total} results · first 20 shown</p><GridTable gridId="apps/crm/templates/IndustryPackOnboarding:table-1" className="w-full text-left text-sm"><thead><tr>{report.fields.map(field => <th className="border-b p-2" key={field}>{field}</th>)}</tr></thead><tbody>{report.items.map((item, index) => <tr key={index}>{report.fields.map(field => <td className="border-b p-2" key={field}>{String(item[field] ?? '—')}</td>)}</tr>)}</tbody></GridTable></div>}
       </section>}
     </>}
   </DialogContent></Dialog>;

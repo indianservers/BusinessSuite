@@ -647,6 +647,9 @@ function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = 
   if (normalizedPath === "/fam/settings") return isFamAdminRole(role, isSuperuser);
   if (["/fam/vouchers/new", "/fam/purchase-bills/new", "/fam/expenses/new"].includes(normalizedPath)) return isFamOperationalRole(role, isSuperuser);
   if (normalizedPath === "/fam/audit") return isFamAuditRole(role, isSuperuser);
+  if (normalizedPath === "/fam/financial-statements") return isFamReadOnlyRole(role, isSuperuser);
+  if (normalizedPath === "/fam/recurring-purchases") return isFamReadOnlyRole(role, isSuperuser);
+  if (normalizedPath === "/fam/bank-rules") return isFamReadOnlyRole(role, isSuperuser);
   if (normalizedPath === "/fam/inventory" || normalizedPath.startsWith("/fam/inventory/")) {
     return isFamReadOnlyRole(role, isSuperuser);
   }
@@ -656,7 +659,7 @@ function canAccessFamPath(pathname: string, role?: string | null, isSuperuser = 
   if (["/fam/day-book", "/fam/ledger-entries"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`)) || /^\/fam\/ledgers\/[^/]+\/entries$/.test(normalizedPath)) {
     return isFamReadOnlyRole(role, isSuperuser);
   }
-  if (["/fam/parties", "/fam/customers", "/fam/vendors", "/fam/ar", "/fam/ap", "/fam/bill-references", "/fam/bill-allocations", "/fam/integrations/srm", "/fam/posting-jobs", "/fam/banking", "/fam/bank-accounts", "/fam/payment-modes", "/fam/bank-statements", "/fam/bank-reconciliation", "/fam/bank-book", "/fam/cash-book", "/fam/contra", "/fam/bank-charges", "/fam/gst", "/fam/gst/settings", "/fam/gst/registrations", "/fam/gst/rates", "/fam/gst/hsn-sac", "/fam/gst/sales-register", "/fam/gst/purchase-register", "/fam/gst/gstr1", "/fam/gst/gstr3b", "/fam/gst/reconciliation", "/fam/gst/einvoice", "/fam/gst/ewaybill", "/fam/purchases", "/fam/purchase-bills", "/fam/expenses", "/fam/tds", "/fam/purchase-register", "/fam/expense-register", "/fam/vendor-payments", "/fam/payables/dashboard"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
+  if (["/fam/parties", "/fam/customers", "/fam/vendors", "/fam/ar", "/fam/ap", "/fam/bill-references", "/fam/bill-allocations", "/fam/integrations/srm", "/fam/posting-jobs", "/fam/banking", "/fam/bank-accounts", "/fam/payment-modes", "/fam/bank-statements", "/fam/bank-reconciliation", "/fam/bank-book", "/fam/cash-book", "/fam/contra", "/fam/bank-charges", "/fam/transaction-locking", "/fam/uae-tax", "/fam/gst", "/fam/gst/settings", "/fam/gst/registrations", "/fam/gst/rates", "/fam/gst/hsn-sac", "/fam/gst/sales-register", "/fam/gst/purchase-register", "/fam/gst/gstr1", "/fam/gst/gstr3b", "/fam/gst/reconciliation", "/fam/gst/einvoice", "/fam/gst/ewaybill", "/fam/purchases", "/fam/purchase-bills", "/fam/expenses", "/fam/tds", "/fam/purchase-register", "/fam/expense-register", "/fam/vendor-payments", "/fam/payables/dashboard"].some((path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`))) {
     return isFamOperationalRole(role, isSuperuser) || isFamReadOnlyRole(role, isSuperuser);
   }
   if (normalizedPath === "/fam/posting-rules" || normalizedPath.startsWith("/fam/posting-rules/")) return isFamAdminRole(role, isSuperuser) || ["finance_manager", "fam_finance_manager"].includes(normalizeRole(role));
@@ -1057,6 +1060,11 @@ const famNav: RoleNavItem[] = [
   { label: "Contra", icon: RefreshCw, to: "/fam/contra", group: "Banking" },
   { label: "Bank Charges", icon: DollarSign, to: "/fam/bank-charges", group: "Banking" },
   { label: "India GST", icon: ShieldCheck, to: "/fam/gst", group: "GST" },
+  { label: "UAE tax", icon: ShieldCheck, to: "/fam/uae-tax", group: "GST" },
+  { label: "Transaction locking", icon: LockKeyhole, to: "/fam/transaction-locking", group: "Accounting" },
+  { label: "Financial statements", icon: BookOpen, to: "/fam/financial-statements", group: "Accounting" },
+  { label: "Recurring bills & expenses", icon: RefreshCw, to: "/fam/recurring-purchases", group: "Purchases" },
+  { label: "Bank transaction rules", icon: Settings, to: "/fam/bank-rules", group: "Banking" },
   { label: "GST Settings", icon: Settings, to: "/fam/gst/settings", group: "GST" },
   { label: "Registrations", icon: Landmark, to: "/fam/gst/registrations", group: "GST" },
   { label: "GST Rates", icon: DollarSign, to: "/fam/gst/rates", group: "GST" },
@@ -1192,6 +1200,7 @@ export function getRoleNav(role?: string | null, isSuperuser = false, pathname =
   const root = pathname.split("/")[1];
   if (["crm", "srm", "hrms", "pms", "fam"].includes(root) && available.length && canAccessRoute(`/${root}`, role, isSuperuser)) {
     available.push({label:"Import data",icon:Upload,to:`/${root}/import-data`,group:"Settings & administration"});
+    available.push({label:"Connectors & authorization",icon:KeyRound,to:`/${root}/connectors`,group:"Settings & administration"});
   }
   return categorizeNavigation(available, getActiveModule(pathname));
 }
@@ -1376,6 +1385,8 @@ const routeAccess: Record<string, RoleKey[]> = {
 };
 
 export function canAccessRoute(pathname: string, role?: string | null, isSuperuser = false) {
+  if (pathname === "/connectors") return true;
+  if (/^\/(crm|srm|hrms|pms|fam)\/connectors\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
   if (pathname === "/admin/signup-requests") return Boolean(isSuperuser);
   if (/^\/(crm|srm|hrms|pms|fam)\/import-data\/?$/.test(pathname)) return canAccessRoute("/"+pathname.split("/")[1],role,isSuperuser);
   if (pathname === "/settings" || pathname.startsWith("/settings/")) return true;

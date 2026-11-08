@@ -1,3 +1,4 @@
+import {useModuleAction} from "@/hooks/use-module-action";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, Download, FileSpreadsheet, X } from "lucide-react";
@@ -24,6 +25,7 @@ export default function DataExportButton({
   description?: string;
   disabled?: boolean;
 }) {
+  const canExport=useModuleAction("export");
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -33,6 +35,7 @@ export default function DataExportButton({
     [columns, setColumns] = useState<string[]>([]),
     [format, setFormat] = useState("xlsx");
   async function begin() {
+    if(!canExport)return;
     setOpen(true);
     setBusy(true);
     setError("");
@@ -66,6 +69,7 @@ export default function DataExportButton({
     }
   }
   async function save() {
+    if(!canExport)return;
     if (!file || !columns.length) return;
     setBusy(true);
     setError("");
@@ -112,7 +116,7 @@ export default function DataExportButton({
     <>
       <Button
         variant="outline"
-        disabled={disabled}
+        disabled={disabled||!canExport}
         onClick={() => void begin()}
       >
         <Download size={16} />
@@ -230,7 +234,7 @@ export default function DataExportButton({
               </Button>
               <span />
               <Button
-                disabled={busy || !file || !columns.length}
+                disabled={!canExport || busy || !file || !columns.length}
                 onClick={() => void save()}
               >
                 <Download size={15} />

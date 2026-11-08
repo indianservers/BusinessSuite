@@ -34,6 +34,9 @@ export type GridFilter = {
 };
 export type GridPath = { field: string; value: string | number | null }[];
 export type GridQuery = {
+  recordIds?: string[];
+  recordOrder?: boolean;
+  recordIdentity?: "id" | "key";
   search: string;
   filters: GridFilter;
   sorting: SortingState;
@@ -86,6 +89,8 @@ export type GridExportRequest = {
   query: GridQuery;
 };
 export type GridDataSource<T> = {
+  localRows?: T[];
+  personalIdentity?: "id" | "key";
   key: string;
   load: (query: GridQuery, signal?: AbortSignal) => Promise<GridResult<T>>;
   facets?: (
@@ -156,6 +161,10 @@ export type GridAction<T> = {
   run: (row: T) => void | Promise<void>;
 };
 export type SharedDataGridProps<T> = {
+  personalViews?: boolean;
+  personalScope?: string;
+  viewMode?: GridLayout["view"];
+  collectionGroup?: string;
   gridId: string;
   title?: string;
   columns: GridColumn<T>[];
@@ -197,6 +206,8 @@ export type SharedDataGridProps<T> = {
   renderDetails?: (row: T) => ReactNode;
   detailsEnabled?: boolean;
   dataScope?: "all" | "loaded";
+  hideSearch?: boolean;
+  externalPagination?: boolean;
   bulkToolbar?: ReactNode;
   bulkActions?: {
     id: string;

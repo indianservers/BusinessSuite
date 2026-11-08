@@ -23,6 +23,7 @@ export default function FollowUpGrid({
   const source = useMemo<GridDataSource<Row>>(
     () => ({
       key: "shared-follow-ups",
+    personalIdentity: "id",
       load: async (query, signal) =>
         (
           await api.get("/follow-ups/grid/query", {

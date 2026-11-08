@@ -1,3 +1,6 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import {useAiAdministration,AiAdministrativeNotice} from "@/hooks/use-ai-administration";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -8,6 +11,7 @@ import { aiAgentsApi, type AiAgentConfigRow, type AiModule } from "@/services/ai
 const filters: Array<AiModule | "ALL"> = ["ALL", "CRM", "PMS", "HRMS", "CROSS"];
 
 export default function AiAgentConfigPage() {
+  const canAdmin=useAiAdministration();
   const [rows, setRows] = useState<AiAgentConfigRow[]>([]);
   const [filter, setFilter] = useState<AiModule | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
@@ -16,13 +20,14 @@ export default function AiAgentConfigPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if(!canAdmin){setLoading(false);return;}
     setLoading(true);
     aiAgentsApi
       .getAgentConfig()
       .then((response) => setRows(response.data))
       .catch((err) => setError(err?.response?.data?.detail || "AI Agent configuration could not be loaded."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [canAdmin]);
 
   const updateRow = (next: AiAgentConfigRow) => {
     setRows((items) => items.map((item) => item.agent.id === next.agent.id ? next : item));
@@ -42,6 +47,7 @@ export default function AiAgentConfigPage() {
 
   const visibleRows = filter === "ALL" ? rows : rows.filter((row) => row.agent.module === filter);
 
+  if(!canAdmin)return <AiAdministrativeNotice/>;
   return (
     <div className="space-y-5">
       <div>
@@ -64,11 +70,9 @@ export default function AiAgentConfigPage() {
       </div>
       {initialLoading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Configuration loading...</div> : null}
       {!initialLoading ? (
-        <div className="space-y-3">
-          {visibleRows.map((row) => (
+        <GroupedRecords scope="pages/ai-agents/AiAgentConfigPage:cards-1" items={(visibleRows) || []} fields={standardRecordGroups((visibleRows) || [])} gridClassName="space-y-3" renderItem={(row) => (
             <AgentConfigForm key={row.agent.id} row={row} onChange={updateRow} onSave={save} saving={savingId === row.agent.id} />
-          ))}
-        </div>
+          )}/>
       ) : null}
     </div>
   );

@@ -1,0 +1,364 @@
+{
+  "date": "2026-11-07",
+  "source": "Authenticated Zoho Books reports directory and individual report pages",
+  "report_count": 71,
+  "primary_settings_previously_reviewed": 55,
+  "scope": "Report headings, columns, filters and empty/unavailable states inspected; this does not claim every report calculation or all nested settings actions have parity.",
+  "reports": [
+    {
+      "name": "Profit and Loss",
+      "category": "Business Overview",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Cash Flow Statement",
+      "category": "Business Overview",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Balance Sheet",
+      "category": "Business Overview",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Business Performance Ratios",
+      "category": "Business Overview",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Movement of Equity",
+      "category": "Business Overview",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Sales by Customer",
+      "category": "Sales",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Sales by Item",
+      "category": "Sales",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Sales by Salesperson",
+      "category": "Sales",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Sales Summary",
+      "category": "Sales",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Sales Channel Integrations Sync Summary",
+      "category": "Sales",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "AR Aging Summary",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "AR Aging Details",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Invoice Details",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Delivery Challan Details",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Quote Details",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Quote Item Details",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Customer Balance Summary",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Receivable Summary",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Receivable Details",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Progress Invoice Summary",
+      "category": "Receivables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Renewal Failures",
+      "category": "Retention",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Payments Received",
+      "category": "Payments Received",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Time to Get Paid",
+      "category": "Payments Received",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Credit Note Details",
+      "category": "Payments Received",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Refund History",
+      "category": "Payments Received",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Recurring Invoice Details",
+      "category": "Recurring Invoices",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Vendor Balance Summary",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "AP Aging Summary",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "AP Aging Details",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Bill Details",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Vendor Credit Details",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Payments Made",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Refund History",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Payable Summary",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Payable Details",
+      "category": "Payables",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Purchases by Vendor",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Purchases by Item",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Expense Details",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Expenses by Category",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Expenses by Customer",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Expenses by Project",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Expenses by Employee",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Billable Expense Details",
+      "category": "Purchases and Expenses",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "VAT Audit Report",
+      "category": "Taxes",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Excise Tax Audit Report",
+      "category": "Taxes",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Reconciliation Status",
+      "category": "Banking",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Timesheet Details",
+      "category": "Projects and Timesheet",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Timesheet Profitability Summary",
+      "category": "Projects and Timesheet",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Project Summary",
+      "category": "Projects and Timesheet",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Project Details",
+      "category": "Projects and Timesheet",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Projects Cost Summary",
+      "category": "Projects and Timesheet",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Projects Revenue Summary",
+      "category": "Projects and Timesheet",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Projects Performance Summary",
+      "category": "Projects and Timesheet",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Account Transactions",
+      "category": "Accountant",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Account Type Summary",
+      "category": "Accountant",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "General Ledger",
+      "category": "Accountant",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Detailed General Ledger",
+      "category": "Accountant",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Journal Report",
+      "category": "Accountant",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Trial Balance",
+      "category": "Accountant",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Realized Gain or Loss",
+      "category": "Currency",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Unrealized Gain or Loss",
+      "category": "Currency",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "System Mails",
+      "category": "Activity",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Activity Logs & Audit Trail",
+      "category": "Activity",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Exception Report",
+      "category": "Activity",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Portal Activities",
+      "category": "Activity",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Customer Reviews",
+      "category": "Activity",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "API Usage",
+      "category": "Activity",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Scheduled Date Based Workflow Rules",
+      "category": "Automation",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Scheduled Time Based Workflow Actions",
+      "category": "Automation",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "Workflow Execution Logs",
+      "category": "Automation",
+      "loaded_and_inspected": true
+    },
+    {
+      "name": "E-Invoice Report",
+      "category": "E-Invoice",
+      "loaded_and_inspected": true
+    }
+  ]
+}

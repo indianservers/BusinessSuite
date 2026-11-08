@@ -32,6 +32,8 @@ class Manifest(Strict):
         "Available", "Requires Configuration", "In Development", "Unsupported"
     ] = "Requires Configuration"
     authentication: list[str]
+    oauth_scopes: list[str] = Field(default_factory=list)
+    oauth_write_scopes: list[str] = Field(default_factory=list)
     actions: list[ActionSpec] = Field(default_factory=list)
     triggers: list[dict] = Field(default_factory=list)
     rate_per_minute: int = 30

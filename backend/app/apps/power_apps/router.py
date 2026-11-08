@@ -57,10 +57,10 @@ def overview(environment: str = "development", db: Session = Depends(get_db), us
     from app.models.approval_os import ApprovalRequest
     pending_approvals=db.query(ApprovalRequest).filter(ApprovalRequest.organization_id==organization(user),ApprovalRequest.source_module=='power_apps',ApprovalRequest.id.in_(visible_ids(db,user,environment)),ApprovalRequest.status.in_(['Pending','Changes Requested','Resolution Required'])).count()
     counts = {"total_apps": resources.filter(PowerResource.application_id == "app-builder").count(),
-        "active_automations": active, "pending_approvals": pending_approvals, "form_submissions": 0,
+        "active_automations": active, "pending_approvals": pending_approvals, "form_submissions": sum(len(row.definition.get("entries",[])) for row in resources.filter(PowerResource.application_id=="forms").all()),
         "workflow_executions": runs.count(), "failed_runs": runs.filter(PowerExecution.status == "failed").count()}
     return {"counts": counts, "recent": [serialize(row) for row in resources.order_by(PowerResource.updated_at.desc(), PowerResource.id.desc()).limit(8)],
-        "unsupported_metrics": ["form_submissions"], "execution_enabled": True}
+        "unsupported_metrics": [], "execution_enabled": True}
 
 @router.get("/activity")
 def activity(environment: str = "development", limit: int = Query(30, ge=1, le=100), db: Session = Depends(get_db), user=Depends(RequirePermission("power_apps_activity_view"))):
@@ -165,3 +165,6 @@ def delete_draft(resource_id: int, expected_version: int = Query(ge=1), environm
     db.delete(row)
     db.commit()
 
+
+from .workspaces import router as workspace_router
+router.include_router(workspace_router)

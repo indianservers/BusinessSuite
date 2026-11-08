@@ -225,3 +225,10 @@ def return_asset(assignment_id: int, condition_at_return: Optional[str] = None, 
     db.commit()
     db.refresh(assignment)
     return assignment
+
+
+@router.delete('/{asset_id}',status_code=204)
+def delete_unused_asset(asset_id:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('asset_manage'))):
+    asset=_asset(db,asset_id,user,lock=True)
+    if db.query(AssetAssignment).filter_by(asset_id=asset.id).first():raise HTTPException(409,'Assets with custody history must be retained; change their status instead')
+    db.delete(asset);db.commit()

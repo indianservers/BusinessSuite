@@ -32,6 +32,7 @@ export function dealGridSource(
   const baseJson = JSON.stringify(base);
   return {
     key: `crm-deals:${baseJson}`,
+    personalIdentity: "id",
     load: async (query, signal) =>
       (
         await api.get<GridResult<Deal>>("/crm/deal-workspace/grid/query", {

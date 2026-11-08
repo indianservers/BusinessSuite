@@ -36,6 +36,7 @@ export type Process = {
 };
 export type Policy = {
   id: number;
+  owner_user_id: number;
   name: string;
   version: number;
   enabled: boolean;
@@ -105,8 +106,8 @@ export type Analytics = {
 export type Person = { id: number; label: string };
 export const root = "/power-apps/approvals";
 export const approvalApi = {
-  get: async <T>(p: string, e: string, params: Record<string, unknown> = {}) =>
-    (await api.get<T>(root + p, { params: { environment: e, ...params } }))
+  get: async <T>(p: string, e: string, params: Record<string, unknown> = {}, fresh=false) =>
+    (await api.get<T>(root + p, { params: { environment: e, ...params },...(fresh?{recordCache:false}:{}) }))
       .data,
   post: async <T>(
     p: string,

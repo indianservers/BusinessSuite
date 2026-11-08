@@ -9,6 +9,8 @@ import { useAuthStore } from "@/store/authStore";
 import TaskCreationForm, { type TaskCreationDraft } from "@/shared/productivity/TaskCreationForm";
 import { richTextPlainText } from "@/components/rich-text/content";
 import TaskSavedViews from "./TaskSavedViews";
+import { affectsResource, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
+import { usePageRefresh } from "@/lib/page-refresh";
 
 type Task = { id: number; title: string; description?: string; status: string; priority: string; dueDate?: string; ownerId?: number; task_details?: Partial<TaskCreationDraft> };
 type LegacyTask = { id: string; kind: string; title: string; content: string; status: string; due: string; taskDetails?: Partial<TaskCreationDraft> };
@@ -40,6 +42,23 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(0);
   const [refresh, setRefresh] = useState(0);
+  usePageRefresh(() => { setRefresh(value => value + 1); });
+  useEffect(() => {
+    const changed = (event: Event) => {
+      const { url, method, record } = (event as CustomEvent<RecordSaved>).detail;
+      if (!affectsResource("/crm/tasks", url)) return;
+      // Show confirmed writes immediately while rechecking filters/order/counts.
+      if (method !== "delete" && record && typeof record.id === "number" && typeof record.title === "string") {
+        const task = record as unknown as Task;
+        setTasks(current => current.some(row => row.id === task.id)
+          ? current.map(row => row.id === task.id ? task : row)
+          : page === 1 && !search && queue === "all" && taskStatus === "all" && priority === "all" && !mine ? [task, ...current].slice(0, 25) : current);
+      }
+      setRefresh(value => value + 1);
+    };
+    window.addEventListener(recordSavedEvent, changed);
+    return () => window.removeEventListener(recordSavedEvent, changed);
+  }, [page, search, queue, taskStatus, priority, mine]);
   const [editing, setEditing] = useState<Task | "new" | null>(null);
   const customFieldForm=useCrmFieldForm("tasks",editing&&editing!=="new"?"edit":"create",editing&&editing!=="new"?editing.id:undefined);
   const [detailTask,setDetailTask]=useState<Task|null>(null);
@@ -53,7 +72,7 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
   useEffect(() => {
     let active = true;
     setLoading(true); setError("");
-    api.get<{ items: Task[]; pages: number; total: number }>("/crm/tasks", { params: { page, per_page: 25, search, task_queue: queue, timezone, status: taskStatus, priority, owner_id: mine ? user?.id : undefined, sort_by: sort.split(":")[0], sort_order: sort.split(":")[1] } })
+    api.get<{ items: Task[]; pages: number; total: number }>("/crm/tasks", { progress: false, params: { page, per_page: 25, search, task_queue: queue, timezone, status: taskStatus, priority, owner_id: mine ? user?.id : undefined, sort_by: sort.split(":")[0], sort_order: sort.split(":")[1] } })
       .then(({ data }) => { if (active) { setTasks(data.items); setTotal(data.total ?? data.items.length); setPages(data.pages); if (page > Math.max(1, data.pages)) setPage(Math.max(1, data.pages)); } })
       .catch(e => { if (active) setError(errorMessage(e)); })
       .finally(() => { if (active) setLoading(false); });
@@ -93,6 +112,12 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
     setMessage("Task saved to CRM."); setRefresh(v => v + 1);
     if (!another) setEditing(null);
   }
+  async function autoSave(draft: TaskCreationDraft) {
+    if (!editing || editing === "new") return;
+    const data = { ...payload(draft), customFields: customFieldForm.validate() };
+    await api.patch(`/crm/tasks/${editing.id}`, data);
+    setRefresh(value => value + 1);
+  }
   async function remove() {
     if (!deleting || busyRef.current) return;
     busyRef.current = true; setBusy(true); setError("");
@@ -116,7 +141,7 @@ export default function CRMTasksWorkspace({ legacyKey, onNotes }: { legacyKey: s
     } catch (e) { setError(errorMessage(e)); }
     finally { setRefresh(v => v + 1); busyRef.current = false; setBusy(false); }
   }
-  if (editing) return <TaskCreationForm additionalFields={<CrmRecordFields state={customFieldForm}/>}  key={editing === "new" ? "new" : editing.id} databaseBacked draftKey={`${legacyKey}:task-draft${editing === "new" ? "" : `:${editing.id}`}`} initialDraft={editing === "new" ? undefined : toDraft(editing)} tasks={tasks.filter(t => editing === "new" || t.id !== editing.id).map(t => ({ id: String(t.id), title: t.title, content: t.description || "" }))} onCreate={save} onCancel={() => setEditing(null)}/>;
+  if (editing) return <TaskCreationForm additionalFields={<CrmRecordFields state={customFieldForm}/>}  key={editing === "new" ? "new" : editing.id} databaseBacked onAutoSave={editing !== "new" ? autoSave : undefined} autoSaveVersion={JSON.stringify([customFieldForm.loading,customFieldForm.values])} draftKey={`${legacyKey}:task-draft${editing === "new" ? "" : `:${editing.id}`}`} initialDraft={editing === "new" ? undefined : toDraft(editing)} tasks={tasks.filter(t => editing === "new" || t.id !== editing.id).map(t => ({ id: String(t.id), title: t.title, content: t.description || "" }))} onCreate={save} onCancel={() => setEditing(null)}/>;
   return <section className="space-y-4" aria-label="CRM tasks workspace">
     <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">CRM tasks</h1><p className="text-sm text-muted-foreground">Saved to CRM. Access your tasks from any device.</p></div><button className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground" onClick={() => setEditing("new")}><Plus size={16}/>New task</button></header>
     <div className="flex gap-2"><button className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-primary-foreground" aria-pressed="true"><ListChecks size={16}/>Tasks</button><button className="inline-flex items-center gap-2 rounded-md border px-3 py-2" onClick={onNotes}><FileText size={16}/>Notes</button></div>

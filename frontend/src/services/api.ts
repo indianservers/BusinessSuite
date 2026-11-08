@@ -5,6 +5,7 @@ import { getApiBaseUrl } from "@/config/runtime";
 import { beginProgress } from "@/lib/async-progress";
 import { trackPageRefreshRead } from "@/lib/page-refresh";
 import { selectedBranch } from "@/lib/branch-context";
+import { confirmedMutation, recordSavedEvent } from "@/lib/record-changes";
 
 declare module "axios" {
   interface AxiosRequestConfig {
@@ -14,12 +15,14 @@ declare module "axios" {
     uploadLimitBytes?: number;
     _finishProgress?: (success?: boolean, error?: string) => void;
     _finishPageRefresh?: (success?: boolean) => void;
+    _recordMutationScope?: string;
   }
 }
 
 const BASE_URL = getApiBaseUrl();
 type RefreshResponse = { access_token: string; refresh_token: string };
 let refreshPromise: Promise<RefreshResponse> | null = null;
+const mutationScope = () => JSON.stringify([useAuthStore.getState().user?.id, useAuthStore.getState().user?.access?.companyId, sessionStorage.getItem("suite-tenant"), sessionStorage.getItem("suite-organization"), selectedBranch()]);
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -45,6 +48,7 @@ api.interceptors.request.use((config) => {
   }
   if (organization && !config.headers["X-Suite-Organization"]) config.headers["X-Suite-Organization"] = organization;
   const branch = selectedBranch();
+  config._recordMutationScope ??= mutationScope();
   if (branch && !config.headers["X-Suite-Branch"]) config.headers["X-Suite-Branch"] = branch;
   if (!config.headers["X-Request-ID"]) config.headers["X-Request-ID"] = globalThis.crypto?.randomUUID?.() || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   if (config.data instanceof FormData) {
@@ -80,6 +84,7 @@ api.interceptors.response.use(
     const method=(response.config.method||"get").toLowerCase();
     if(!["get","head","options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url||"")) window.dispatchEvent(new Event("suite:metrics-changed"));
     if (!["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent("suite:record-mutated", { detail: response.config.url }));
+    if (response.config._recordMutationScope === mutationScope() && !["get", "head", "options"].includes(method) && !/\/(auth|metrics\/audits)(\/|$)/.test(response.config.url || "")) window.dispatchEvent(new CustomEvent(recordSavedEvent, { detail: confirmedMutation(response.config.url||"",method,response.config.data,response.data) }));
     return response;
   },
   async (error: AxiosError) => {
@@ -253,6 +258,9 @@ export const employeeApi = {
   count: () => api.get("/employees/count"),
   addEducation: (id: number, data: unknown) => api.post(`/employees/${id}/education`, data),
   addExperience: (id: number, data: unknown) => api.post(`/employees/${id}/experience`, data),
+  addCertification: (id: number, data: unknown) => api.post(`/employees/${id}/certifications`, data),
+  updateProfileRecord: (id: number, section: string, recordId: number, data: unknown) => api.put(`/employees/${id}/${section}/${recordId}`, data),
+  deleteProfileRecord: (id: number, section: string, recordId: number) => api.delete(`/employees/${id}/${section}/${recordId}`),
   addSkill: (id: number, data: unknown) => api.post(`/employees/${id}/skills`, data),
   uploadDocument: (id: number, formData: FormData) =>
     api.post(`/employees/${id}/documents`, formData, {

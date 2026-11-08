@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class AssetCategoryCreate(BaseModel):
@@ -14,7 +14,14 @@ class AssetCategorySchema(AssetCategoryCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AssetCreate(BaseModel):
+class AssetSerialInput(BaseModel):
+    @field_validator("serial_number", mode="before", check_fields=False)
+    @classmethod
+    def normalize_serial(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+
+class AssetCreate(AssetSerialInput):
     asset_tag: str
     name: str
     category_id: Optional[int] = None
@@ -30,7 +37,7 @@ class AssetCreate(BaseModel):
     description: Optional[str] = None
 
 
-class AssetUpdate(BaseModel):
+class AssetUpdate(AssetSerialInput):
     name: Optional[str] = None
     category_id: Optional[int] = None
     brand: Optional[str] = None

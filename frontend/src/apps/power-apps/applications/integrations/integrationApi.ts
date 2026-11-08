@@ -28,6 +28,8 @@ export type Connector = {
   description: string;
   authentication: string[];
   oauth_ready?: boolean;
+  oauth_scopes?: string[];
+  oauth_write_scopes?: string[];
   actions: Action[];
   triggers?: {
     id: string;

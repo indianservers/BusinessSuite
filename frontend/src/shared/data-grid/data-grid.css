@@ -1182,3 +1182,44 @@
 .udg-card-actions{display:flex;gap:6px;margin-top:10px}.udg-card-actions button{display:grid;place-items:center;width:32px;height:32px;border:1px solid hsl(var(--border));border-radius:8px;color:hsl(var(--primary));background:hsl(var(--background))}.udg-card-actions button:disabled{opacity:.4;cursor:not-allowed}
 
 .udg-action-cell .udg-hover-action{width:29px;height:29px;border:1px solid var(--udg-border);border-radius:7px;margin-right:4px;color:hsl(var(--primary));background:hsl(var(--background))}.udg-action-cell .udg-hover-action[data-action=whatsapp]{color:#16854d;background:#edf9f2}.udg-action-cell .udg-hover-action:disabled{opacity:.38;cursor:not-allowed}.udg-hover-action:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:2px}.dark .udg-action-cell .udg-hover-action[data-action=whatsapp]{color:#6ee7a0;background:#143322}
+
+.udg-pane-resizer { position:absolute; top:0; bottom:0; left:0; width:6px; cursor:col-resize; touch-action:none; }
+.udg-pane-resizer:focus-visible { background:hsl(var(--primary)/.3); outline:2px solid hsl(var(--primary)); }
+
+/* Compact record workspace: keep controls available without competing with records. */
+.udg-table-adapter > .udg { border:0; border-radius:0; box-shadow:none; }
+.udg-table-adapter .udg-toolbar { padding:7px 12px; gap:6px; }
+.udg-table-adapter .udg-grouping { padding:6px 12px; min-height:38px; }
+.udg-table-adapter .udg-cell { font-size:12px; }
+.udg-table-adapter .udg-adapted-cell :is(button, a) { white-space:nowrap; flex-shrink:0; }
+.udg-table-adapter .udg-adapted-cell .suite-action { width:auto; min-width:max-content; padding:4px 8px; min-height:28px; height:28px; }
+.udg-table-adapter .udg-adapted-cell .suite-action span { white-space:nowrap; word-break:normal; overflow-wrap:normal; }
+.udg-table-adapter .udg-adapted-cell .suite-action svg { width:13px; height:13px; flex:none; }
+.udg-table-adapter .udg-adapted-cell select { border-color:transparent; background:transparent; min-height:28px; font-size:11px; max-width:100%; text-overflow:ellipsis; }
+.udg-table-adapter .udg-adapted-cell select:hover, .udg-table-adapter .udg-adapted-cell select:focus { background:hsl(var(--muted)); border-color:hsl(var(--border)); }
+.udg-table-adapter .udg-row { background:var(--udg-bg); }
+.udg-table-adapter .udg-row:hover { background:color-mix(in srgb,var(--udg-accent) 3%,var(--udg-bg)); }
+.udg-group-row { background:var(--udg-bg); }
+.udg-group-row > button { min-width:0; flex:0 1 auto; max-width:65%; }
+.udg-table-adapter .udg-group-row { border-bottom-color:color-mix(in srgb,var(--udg-border) 65%,transparent); }
+.suite-record-status { display:inline-flex; align-items:center; justify-content:center; flex:none; width:20px; height:20px; color:var(--group-color); vertical-align:middle; }
+.udg-native { border-radius:8px; }
+@media(max-width:640px) { .udg-table-adapter .udg-adapted-cell .suite-action { min-height:36px; height:36px; } }
+.udg .udg-group-toggle { padding:4px; min-height:27px; min-width:27px; border-color:transparent; }
+.udg-table-adapter .udg-summary-footer { padding:7px 12px; font-size:10px; }
+.udg-table-adapter .udg-pagination { padding:7px 12px; min-height:40px; font-size:10px; }
+/* Keep header labels readable; expose tools on hover or keyboard focus. */
+.udg-table-adapter .udg-th { padding:0 10px; border-right-color:transparent; background:var(--udg-bg); }
+.udg-table-adapter .udg-header { background:var(--udg-bg); }
+.udg-table-adapter .udg-sort-button { gap:4px; }
+.udg-table-adapter .udg-sort-hint { display:none; }
+.udg-table-adapter .udg-th > :is(.udg-column-grip,.udg-column-more,.udg-header-filter) { position:absolute; opacity:0; background:var(--udg-bg); }
+.udg-table-adapter .udg-column-grip { left:0; }
+.udg-table-adapter .udg-column-more { right:4px; }
+.udg-table-adapter .udg-header-filter { right:24px; }
+.udg-table-adapter .udg-th:is(:hover,:focus-within) > :is(.udg-column-grip,.udg-column-more,.udg-header-filter), .udg-table-adapter .udg-th > .udg-header-filter.is-active { opacity:1; }
+.udg-table-adapter .udg-th:has(input[type="checkbox"]) > :is(.udg-column-grip,.udg-column-more) { display:none; }
+
+/* Keep row selection clickable where pinned action and selection columns meet. */
+.udg-select-cell{z-index:11}
+.udg-header>.udg-select-cell{z-index:37}

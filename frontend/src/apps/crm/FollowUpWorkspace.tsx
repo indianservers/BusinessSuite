@@ -93,7 +93,7 @@ export default function FollowUpWorkspace() {
 
   const owners = useQuery({ queryKey: ["followup-owners", user?.id, user?.access?.companyId, context], queryFn: async () => (await api.get<{ owners: Owner[] }>("/crm/lead-management/settings")).data.owners, staleTime: 60000 });
 
-  const source = useMemo<GridDataSource<Relationship>>(() => { const adapter: GridDataSource<Relationship> = {
+  const source = useMemo<GridDataSource<Relationship>>(() => { const adapter: GridDataSource<Relationship> = { personalIdentity:"key",
 
     key: JSON.stringify([user?.id, user?.access?.companyId, context, entity, bucket, scope, kind, item, owner, from, to]),
 

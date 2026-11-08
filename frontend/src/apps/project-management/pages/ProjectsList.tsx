@@ -1,8 +1,14 @@
+import {useModuleAction} from "@/hooks/use-module-action";
+import { removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
+import { useInitialLoading } from "@/hooks/use-initial-loading";
+import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
+import { savedWithUndo } from "@/components/actions/undo-feedback";
+import GridRecordPane from "@/shared/data-grid/GridRecordPane";
 import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
 import RecordLensViews from "@/shared/workspace/RecordLensViews";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   AlertCircle,
@@ -10,6 +16,7 @@ import {
   CheckCircle2,
   Download,
   Eye,
+  ExternalLink,
   FolderKanban,
   LayoutGrid,
   List,
@@ -25,6 +32,7 @@ import {
 
 import { csvText, downloadBlob } from "@/shared/data-transfer/transfer";
 import GridTable from "@/shared/data-grid/GridTable";
+import { RecordStatusIcon } from "@/shared/data-grid/GroupLabel";
 
 import { Button } from "@/components/ui/button";
 
@@ -84,6 +92,8 @@ const statuses = [
 ];
 
 const priorities = ["Low", "Medium", "High", "Critical"];
+const attention = (p: PMSProject) => !p.is_archived && !["Completed","Cancelled","Archived"].includes(p.status) && (health(p) !== "On Track" || !p.owner_user_id && !p.manager_user_id || !p.due_date);
+const endOfWeek = () => {const date=new Date();date.setDate(date.getDate()+(7-date.getDay())%7);return date.toLocaleDateString("en-CA");};
 
 const progress = (p: PMSProject) =>
   p.calculated_progress ?? p.progress_percent ?? 0;
@@ -137,6 +147,7 @@ const defaults = {
   view: "list",
   rules: "[]",
   match: "all",
+  focus: "",
 };
 
 type Filters = typeof defaults;
@@ -173,8 +184,10 @@ const tabs = [
   "Archived",
 ];
 
-export default function ProjectsList() {
+function ProjectsList() {
   const navigate = useNavigate();
+  const [urlParams] = useSearchParams();
+  const workspaceScope = urlParams.get("workspace") || "all";
   const previewTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(previewTimer.current), []);
   function openProject(id: number) {
@@ -207,18 +220,25 @@ export default function ProjectsList() {
   );
   const quickActions = (p: PMSProject) => (
     <div className="portfolio-quick-actions" role="group" aria-label={`Quick actions for ${p.name}`}>
-      <Link to={`/pms/projects/${p.id}`}>Open</Link>
-      {p.can_manage_tasks && <Link to={`/pms/tasks/new?projectId=${p.id}`}>+ Add task</Link>}
-      <Link to={`/pms/projects/${p.id}/board`}>Task board</Link>
+      {actionChoices.includes("open") && <Link to={`/pms/projects/${p.id}`}>Open</Link>}
+      {actionChoices.includes("task") && canCreateProject && p.can_manage_tasks && <Link to={`/pms/tasks/new?projectId=${p.id}`}>+ Add task</Link>}
+      {actionChoices.includes("board") && <Link to={`/pms/projects/${p.id}/board`}>Task board</Link>}
+      {actionChoices.includes("copy") && <button type="button" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}/pms/projects/${p.id}`).then(() => setNotice("Project link copied"), () => setError("Could not copy project link"))}>Copy link</button>}
+      {actionChoices.includes("duplicate") && canCreateProject && p.can_edit_project && <button type="button" onClick={() => setDuplicate(p)}>Duplicate</button>}
     </div>
   );
   const uid = useAuthStore((s) => s.user?.id);
+  const actor=useAuthStore(s=>s.user),moduleGrant=actor?.access?.grants.project_management;
+  const canEditProject=useModuleAction("edit");
+  const canCreateProject=!!actor?.is_superuser||!!actor?.access&&!actor.access.managed||!!moduleGrant?.enabled&&moduleGrant.actions.includes("create");
+  const canExportProject=!!actor?.is_superuser||!!actor?.access&&!actor.access.managed||!!moduleGrant?.enabled&&moduleGrant.actions.includes("export");
   const companyId = useAuthStore((s) => s.user?.access?.companyId);
   const generation = useRef(0);
 
-  const key = `pms-project-portfolio:${companyId}:${uid || "anonymous"}`;
+  const key = `pms-project-portfolio:${companyId}:${uid || "anonymous"}:${workspaceScope}`;
 
-  const { projects, setProjects } = useProjectStore();
+  const { projects: allProjects, setProjects } = useProjectStore();
+  const projects = useMemo(() => workspaceScope === "all" ? allProjects : allProjects.filter(project => String(project.workspace_id) === workspaceScope), [allProjects, workspaceScope]);
 
   const [filters, setFilters] = useState<Filters>(() => ({
     ...restoreFilters(read(key, {})),
@@ -262,8 +282,8 @@ export default function ProjectsList() {
         const values = data.preferences.module_filters;
         const preferLocal =
           read<number>(`${key}:modified`, 0) > Number(values?.modified || 0);
-        if (values?.portfolio && !preferLocal) {
-          const f = restoreFilters(values.portfolio);
+        if (values?.[`portfolio:${workspaceScope}`] && !preferLocal) {
+          const f = restoreFilters(values[`portfolio:${workspaceScope}`]);
           setFilters({ ...defaults, ...f });
           setSearch(f.query || "");
         }
@@ -277,7 +297,7 @@ export default function ProjectsList() {
       active = false;
       generation.current++;
     };
-  }, [uid, companyId]);
+  }, [uid, companyId, workspaceScope]);
 
   useEffect(() => {
     if (!preferencesReady) return;
@@ -296,7 +316,7 @@ export default function ProjectsList() {
           `${preferencesBase}/preferences`,
           {
             module_filters: {
-              portfolio: JSON.stringify(filters),
+              [`portfolio:${workspaceScope}`]: JSON.stringify(filters),
               stars: JSON.stringify(stars),
               modified: String(preferencesModified.current),
             },
@@ -306,7 +326,7 @@ export default function ProjectsList() {
         .catch((e) => setError(workspaceError(e)));
     }, 300);
     return () => clearTimeout(timer);
-  }, [filters, stars, preferencesReady]);
+  }, [filters, stars, preferencesReady, workspaceScope]);
 
   async function saveView() {
     const name = viewName;
@@ -333,6 +353,7 @@ export default function ProjectsList() {
   const [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const initialLoading = useInitialLoading(loading);
 
   const [busy, setBusy] = useState(false),
     [advanced, setAdvanced] = useState(false),
@@ -344,7 +365,19 @@ export default function ProjectsList() {
   const [confirmation, setConfirmation] = useState<"archive" | "trash">();
   const [savingView, setSavingView] = useState(false);
   const saveViewLock = useRef(false);
-  const [previewWidth, setPreviewWidth] = useState(600);
+  const preferenceContext = useRef(key);
+  const [previewWidth, setPreviewWidth] = useState(() => read<number>(`${key}:preview-width`, 600));
+  const [pinnedPreview, setPinnedPreview] = useState(false);
+  const [recentProjects, setRecentProjects] = useState<number[]>(() => read(`${key}:recent`, []));
+  const [editedProjects, setEditedProjects] = useState<number[]>(() => read(`${key}:edited`, []));
+  const [pendingBulk, setPendingBulk] = useState<{patch: Parameters<typeof projectsAPI.update>[1]; message: string}>();
+  const [bulkDue, setBulkDue] = useState("");
+  const [retryEdit, setRetryEdit] = useState<{project: PMSProject; patch: Parameters<typeof projectsAPI.update>[1]}>();
+  const [createStatus, setCreateStatus] = useState<PMSProject["status"]>("Active");
+  const [actionChoices, setActionChoices] = useState<string[]>(() => read(`${key}:actions`, ["open", "task", "board", "copy", "duplicate"]));
+  useEffect(() => { if(preferenceContext.current !== key)return; try { localStorage.setItem(`${key}:preview-width`, JSON.stringify(previewWidth)); localStorage.setItem(`${key}:actions`, JSON.stringify(actionChoices)); } catch {} }, [key, previewWidth, actionChoices]);
+  useEffect(() => { if (!previewId || preferenceContext.current !== key) return; setRecentProjects(current => { const next = [previewId, ...current.filter(id => id !== previewId)].slice(0,20); try { localStorage.setItem(`${key}:recent`, JSON.stringify(next)); } catch {} return next; }); }, [previewId, key]);
+  useEffect(() => { setPreviewWidth(read(`${key}:preview-width`,600)); setActionChoices(read(`${key}:actions`,["open","task","board","copy","duplicate"])); setRecentProjects(read(`${key}:recent`,[])); setEditedProjects(read(`${key}:edited`,[])); setPreviewId(undefined); preferenceContext.current=key; }, [key]);
   const [resizing, setResizing] = useState(false);
   useEffect(() => {
     if (!resizing) return;
@@ -396,6 +429,22 @@ export default function ProjectsList() {
       /* Browser storage can be disabled. */
     }
   }, [key, filters, stars, saved, hidden]);
+
+  useEffect(()=>{
+    const changed=(event:Event)=>{
+      const change=(event as CustomEvent<RecordSaved>).detail;
+      const {url,method,record}=change;
+      if(!/^\/project-management\/projects(?:\/\d+)?$/.test(url))return;
+      const removed=new Set(removedRecordIds(change,"/project-management/projects").map(String));
+      if(removed.size){generation.current+=1;setProjects(useProjectStore.getState().projects.filter(row=>!removed.has(String(row.id))));setPreviewId(current=>current&&removed.has(String(current))?undefined:current);setSelected(current=>current.filter(id=>!removed.has(String(id))));return;}
+      if(method==="delete"||!record?.id)return;
+      const project=record as unknown as PMSProject;
+      generation.current+=1;
+      setProjects([project,...useProjectStore.getState().projects.filter(row=>row.id!==project.id)]);
+    };
+    window.addEventListener(recordSavedEvent,changed);
+    return()=>window.removeEventListener(recordSavedEvent,changed);
+  },[setProjects]);
 
   async function load() {
     const request = ++generation.current;
@@ -477,7 +526,9 @@ export default function ProjectsList() {
       projects
         .filter(
           (p) =>
+            (!workspaceScope || workspaceScope === "all" || String(p.workspace_id) === workspaceScope) &&
             matches(p, filters.tab) &&
+            (!filters.focus || (filters.focus === "attention" ? attention(p) : filters.focus === "week" ? !!p.due_date && !["Completed","Cancelled","Archived"].includes(p.status) && p.due_date.slice(0,10) >= today() && p.due_date.slice(0,10) <= endOfWeek() : filters.focus === "recent" ? recentProjects.includes(p.id) : editedProjects.includes(p.id))) &&
             matchesRules(p, readRules(filters.rules), filters.match) &&
             (!filters.status || p.status === filters.status) &&
             (!filters.priority || p.priority === filters.priority) &&
@@ -502,7 +553,7 @@ export default function ProjectsList() {
                     a.updated_at || a.created_at,
                   ),
         ),
-    [projects, filters, uid, stars],
+    [projects, filters, uid, stars, workspaceScope, recentProjects, editedProjects],
   );
 
   useEffect(() => {
@@ -542,8 +593,10 @@ export default function ProjectsList() {
     p: PMSProject,
     patch: Parameters<typeof projectsAPI.update>[1],
   ) {
+    if (busy || !(canEditProject&&p.can_edit_project)) return false;
     setBusy(true);
     setError("");
+    setNotice(`Saving ${p.name}…`);
 
     try {
       const updated = await projectsAPI.update(p.id, patch);
@@ -579,9 +632,17 @@ export default function ProjectsList() {
             : row,
         ),
       );
+      setRetryEdit(undefined);
+      setEditedProjects(current => { const next = [...new Set([p.id, ...current])]; try { localStorage.setItem(`${key}:edited`, JSON.stringify(next)); } catch {} return next; });
+      if (patch.status !== undefined || patch.owner_user_id !== undefined) {
+        const inverse = { ...(patch.status !== undefined ? {status: p.status} : {}), ...(patch.owner_user_id !== undefined ? {owner_user_id: p.owner_user_id ?? p.manager_user_id ?? null} : {}) };
+        savedWithUndo(`${p.name} updated`, async () => { await projectsAPI.update(p.id, inverse); await load(); });
+      }
       setNotice(`${p.name} updated`);
       return true;
     } catch (e) {
+      setRetryEdit({project:p, patch});
+      setNotice("Save failed. Your edit is kept for retry.");
       setError(workspaceError(e));
       return false;
     } finally {
@@ -589,6 +650,7 @@ export default function ProjectsList() {
     }
   }
 
+  function setPendingBulkAction(patch: Parameters<typeof projectsAPI.update>[1], message: string) { setPendingBulk({patch, message}); }
   async function bulk(
     patch: Parameters<typeof projectsAPI.update>[1],
     message: string,
@@ -600,7 +662,7 @@ export default function ProjectsList() {
 
     for (const id of selected) {
       const p = projects.find((row) => row.id === id);
-      if (!p?.can_edit_project) {
+      if (!(canEditProject&&p?.can_edit_project)) {
         failures.push(`${p?.name || id}: no edit permission`);
         continue;
       }
@@ -655,7 +717,7 @@ export default function ProjectsList() {
     let done = 0;
     for (const id of selected) {
       const p = projects.find((p) => p.id === id);
-      if (!p?.can_edit_project) {
+      if (!(canEditProject&&p?.can_edit_project)) {
         failures.push(`${p?.name || id}: no edit permission`);
         continue;
       }
@@ -675,6 +737,7 @@ export default function ProjectsList() {
     setBusy(false);
   }
   async function exportCSV() {
+    if(!canExportProject)return;
     setError("");
 
     const fields = [
@@ -775,11 +838,144 @@ export default function ProjectsList() {
     </button>
   );
 
+  const previewContent = preview && (
+            <>
+              <h2 className="text-lg font-semibold">{preview.name}</h2>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Preview navigation">
+                <Button variant="outline" disabled={filtered.findIndex(p => p.id === preview.id) <= 0} onClick={() => setPreviewId(filtered[filtered.findIndex(p => p.id === preview.id)-1]?.id)}>Previous project</Button>
+                <Button variant="outline" disabled={filtered.findIndex(p => p.id === preview.id) < 0 || filtered.findIndex(p => p.id === preview.id) >= filtered.length-1} onClick={() => setPreviewId(filtered[filtered.findIndex(p => p.id === preview.id)+1]?.id)}>Next project</Button>
+                <Button variant="outline" onClick={() => setPinnedPreview(p => !p)}>{pinnedPreview ? "Use modal preview" : "Keep preview open"}</Button>
+              </div>
+              {(canEditProject&&preview.can_edit_project) && <div className="flex flex-wrap gap-2">
+                <label>Status <NativeSelect aria-label="Preview status" disabled={busy} value={preview.status} onChange={e => void update(preview,{status:e.target.value as PMSProject["status"]})}>{statuses.map(v => <option key={v}>{v}</option>)}</NativeSelect></label>
+                <label>Priority <NativeSelect aria-label="Preview priority" disabled={busy} value={preview.priority} onChange={e => void update(preview,{priority:e.target.value as PMSProject["priority"]})}>{priorities.map(v => <option key={v}>{v}</option>)}</NativeSelect></label>
+                <label>Owner <NativeSelect aria-label="Preview owner" disabled={busy} value={preview.owner_user_id || preview.manager_user_id || ""} onChange={e => void update(preview,{owner_user_id:Number(e.target.value)||null})}><option value="">Unassigned</option>{preview.team?.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</NativeSelect></label>
+                <InlineProjectDate label="Preview deadline" value={preview.due_date} disabled={busy} overdue={overdue(preview)} onSave={value => update(preview,{due_date:value})}/>
+              </div>}
+              <p className="text-sm text-muted-foreground">
+                {preview.project_key} ·{" "}
+                {preview.client_name || "No client linked"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge className={statusColor(preview.status)}>
+                  {preview.status}
+                </Badge>
+                <Badge variant="outline">{preview.priority}</Badge>
+                <Badge variant="outline">{health(preview)}</Badge>
+                <p className="text-xs text-muted-foreground">{preview.blocked_task_count ? `${preview.blocked_task_count} blocked tasks` : overdue(preview) ? "Project deadline has passed" : preview.overdue_task_count ? `${preview.overdue_task_count} overdue tasks` : ["At Risk","Critical","Blocked"].includes(preview.health) ? `Reported health: ${preview.health}` : "No delivery warnings"}</p>
+              </div>
+              <RichTextContent
+                value={preview.description || "No description added yet."}
+              />
+              {progressBar(preview)}
+              <dl className="portfolio-preview-facts">
+                <div>
+                  <dt>Owner</dt>
+                  <dd>{preview.owner_name || "Unassigned"}</dd>
+                </div>
+                <div>
+                  <dt>Timeline</dt>
+                  <dd>
+                    {formatDate(preview.start_date || null)} →{" "}
+                    {formatDate(preview.due_date || null)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Tasks</dt>
+                  <dd>
+                    {preview.completed_task_count || 0} complete /{" "}
+                    {preview.task_count || 0} total
+                  </dd>
+                </div>
+                <div>
+                  <dt>Delivery issues</dt>
+                  <dd>
+                    {preview.overdue_task_count || 0} overdue ·{" "}
+                    {preview.blocked_task_count || 0} blocked
+                  </dd>
+                </div>
+                <div>
+                  <dt>Milestones</dt>
+                  <dd>
+                    {preview.completed_milestone_count || 0} complete /{" "}
+                    {preview.milestone_count || 0} total
+                  </dd>
+                </div>
+                <div>
+                  <dt>Team</dt>
+                  <dd>
+                    {preview.team
+                      ?.map((m) => `${m.name} (${m.role})`)
+                      .join(", ") || "No members assigned"}
+                  </dd>
+                </div>
+              </dl>
+              <ProjectPreviewDetails key={preview.id} projectId={preview.id} canManage={!!preview.can_manage_tasks} onChanged={load} />
+              <div className="flex flex-wrap gap-2">
+                {preview.can_manage_tasks && (
+                  <Button variant="outline" asChild>
+                    <Link to={`/pms/tasks/new?projectId=${preview.id}`}>
+                      Add Task
+                    </Link>
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(
+                        `${window.location.origin}/pms/projects/${preview.id}`,
+                      )
+                      .then(() =>
+                        setNotice(
+                          "Project link copied. Recipients still need project access.",
+                        ),
+                      )
+                      .catch(() => setError("Unable to copy project link."));
+                  }}
+                >
+                  Copy link
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to={`/pms/projects/${preview.id}/billing`}>
+                    Financials
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to={`/pms/projects/${preview.id}`}>Open Project</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to={`/pms/projects/${preview.id}/board`}>
+                    Task board
+                  </Link>
+                </Button>
+                {(canEditProject&&preview.can_edit_project) && (
+                  <Button variant="outline" asChild>
+                    <Link to={`/pms/projects/${preview.id}/edit`}>
+                      Edit Project
+                    </Link>
+                  </Button>
+                )}
+                {(canEditProject&&preview.can_edit_project) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setDuplicate(preview)}
+                  >
+                    Duplicate
+                  </Button>
+                )}
+                <Button variant="outline" asChild>
+                  <Link to={`/pms/projects/${preview.id}/members`}>Team</Link>
+                </Button>
+              </div>
+            </>
+          );
+
   return (
     <main
       className={`project-portfolio ${advanced ? "portfolio-filters-expanded" : ""}`}
     >
-      <p className="portfolio-interaction-hint">Click a project to preview · Double-click to open · Use Open on touch devices</p>
+
       <header className="portfolio-header">
         <div className="portfolio-heading">
           <span className="portfolio-logo">
@@ -803,7 +999,7 @@ export default function ProjectsList() {
             title="Export filtered projects as CSV"
             variant="outline"
             onClick={exportCSV}
-            disabled={loading}
+            disabled={!canExportProject||loading}
           >
             <Download size={15} />
             Export
@@ -814,7 +1010,7 @@ export default function ProjectsList() {
               Trash
             </Link>
           </Button>
-          <Button aria-label="New Project" onClick={() => setCreating(true)}>
+          <Button aria-label="New Project" disabled={!canCreateProject} onClick={() => {setCreateStatus("Active");setCreating(true);}}>
             <Plus size={16} />
             <span className="portfolio-new-desktop">New Project</span>
             <span className="portfolio-new-mobile" aria-hidden="true">
@@ -887,7 +1083,7 @@ export default function ProjectsList() {
             </span>
             <span>
               <small>{label}</small>
-              <strong>{loading ? "—" : value}</strong>
+              <strong>{initialLoading ? "—" : value}</strong>
             </span>
           </button>
         ))}
@@ -953,7 +1149,7 @@ export default function ProjectsList() {
           >
             <option value="">Status</option>
             {statuses.map((s) => (
-              <option key={s}>{s}</option>
+              <option key={s} value={s}>{s} ({projects.filter(p => p.status === s).length})</option>
             ))}
           </NativeSelect>
           <NativeSelect
@@ -1027,6 +1223,13 @@ export default function ProjectsList() {
             <option value="due">Due date</option>
             <option value="progress">Progress</option>
           </NativeSelect>
+          <details className="portfolio-view-options"><summary><SlidersHorizontal size={14}/>View options</summary><div className="portfolio-shortcuts flex flex-wrap items-center gap-2 py-2">
+          <label>Focus <NativeSelect aria-label="Project focus" value={filters.focus} onChange={e => filter("focus", e.target.value)}>
+            <option value="">All projects</option><option value="attention">Needs attention ({projects.filter(attention).length})</option><option value="week">Due this week</option><option value="recent">Recently viewed ({recentProjects.length})</option><option value="edited">Updated by me in this browser ({editedProjects.length})</option>
+          </NativeSelect></label>
+          <details><summary>Quick action buttons</summary><div className="flex flex-wrap gap-3 p-2">{["open","task","board","copy","duplicate"].map(action => <label key={action}><input type="checkbox" checked={actionChoices.includes(action)} onChange={e => setActionChoices(current => e.target.checked ? [...current,action] : current.filter(a => a !== action))}/> {action}</label>)}</div></details>
+          {!!saved.length && <div role="group" aria-label="Saved view shortcuts">{saved.slice(0,5).map(view => <button type="button" key={view.id} className="rounded border px-2 py-1" onClick={() => {const f=restoreFilters(view.preferences.module_filters.portfolio);setFilters(f);setSearch(f.query);setPage(0);setSelected([]);}}>{view.name}</button>)}</div>}
+        </div></details>
         </div>
 
         {advanced && (
@@ -1214,18 +1417,20 @@ export default function ProjectsList() {
         {notice && (
           <p className="portfolio-notice" role="status">
             {notice}
+            {retryEdit && <button type="button" disabled={busy} onClick={() => void update(retryEdit.project,retryEdit.patch)}>Retry saved edit</button>}
           </p>
         )}
 
         {!!selected.length && (
           <div className="portfolio-bulk">
             <b>{selected.length} selected</b>
+            <label>New deadline <Input aria-label="Bulk deadline" type="date" value={bulkDue} onChange={e => setBulkDue(e.target.value)}/></label><Button variant="outline" disabled={busy || !bulkDue} onClick={() => setPendingBulk({patch:{due_date:bulkDue},message:"Deadline updated"})}>Review deadline change</Button>
             <NativeSelect
               aria-label="Bulk owner"
               value=""
               disabled={busy}
               onChange={(e) =>
-                void bulk(
+                setPendingBulkAction(
                   { owner_user_id: Number(e.target.value) },
                   "Owner updated",
                 )
@@ -1249,7 +1454,7 @@ export default function ProjectsList() {
               disabled={busy}
               value=""
               onChange={(e) =>
-                void bulk(
+                setPendingBulkAction(
                   { status: e.target.value as CreateProjectInput["status"] },
                   "Status updated",
                 )
@@ -1267,7 +1472,7 @@ export default function ProjectsList() {
               value=""
               disabled={busy}
               onChange={(e) =>
-                void bulk(
+                setPendingBulkAction(
                   {
                     priority: e.target.value as CreateProjectInput["priority"],
                   },
@@ -1280,7 +1485,7 @@ export default function ProjectsList() {
                 <option key={s}>{s}</option>
               ))}
             </NativeSelect>
-            <Button variant="outline" disabled={busy} onClick={exportCSV}>
+            <Button variant="outline" disabled={!canExportProject||busy} onClick={exportCSV}>
               Export selected
             </Button>
             <Button
@@ -1295,7 +1500,7 @@ export default function ProjectsList() {
                 variant="outline"
                 disabled={busy}
                 onClick={() =>
-                  void bulk(
+                  setPendingBulkAction(
                     { is_archived: false, status: "Active" },
                     "Restored",
                   )
@@ -1321,11 +1526,11 @@ export default function ProjectsList() {
           </div>
         )}
 
-        {loading ? (
+        {initialLoading ? (
           <div className="p-12 text-center text-muted-foreground" role="status">
             Loading your project portfolio…
           </div>
-        ) : projectLenses.includes(filters.view) ? <RecordLensViews scope="pms-projects" view={filters.view} records={filtered.map(project => ({id:String(project.id),title:project.name,subtitle:project.client_name || "Internal project",status:project.status,owner:project.owner_name || "Unassigned",progress:progress(project),start:project.start_date,due:project.due_date,updated:project.updated_at,tags:[health(project),project.priority]}))} statuses={statuses} canMove={record => !busy && !!filtered.find(project => String(project.id) === record.id)?.can_edit_project} onMove={(record,status) => {const project=filtered.find(project => String(project.id) === record.id);if(project?.can_edit_project && !busy)void update(project,{status:status as PMSProject["status"]});}} onOpen={record => setPreviewId(Number(record.id))}/> : filters.view === "analytics" ? (
+        ) : projectLenses.includes(filters.view) ? <RecordLensViews scope="pms-projects" view={filters.view} records={filtered.map(project => ({id:String(project.id),title:project.name,subtitle:project.client_name || "Internal project",status:project.status,owner:project.owner_name || "Unassigned",progress:progress(project),start:project.start_date,due:project.due_date,updated:project.updated_at,tags:[health(project),project.priority]}))} statuses={statuses} canMove={record => canEditProject && !busy && !!filtered.find(project => String(project.id) === record.id)?.can_edit_project} onMove={(record,status) => {const project=filtered.find(project => String(project.id) === record.id);if(project?.can_edit_project && !busy)void update(project,{status:status as PMSProject["status"]});}} onOpen={record => setPreviewId(Number(record.id))}/> : filters.view === "analytics" ? (
           <div className="portfolio-analytics">
             <div>
               <h2>Projects by status</h2>
@@ -1381,6 +1586,9 @@ export default function ProjectsList() {
               <GridTable
                 gridId="pms-project-portfolio"
                 variant="matrix"
+                defaultGroupBy="Status"
+                defaultHiddenColumns={["Start date","Health"]}
+                groupCreate={canShare ? {field:"Status",label:"Add project",onCreate:value => {setCreateStatus(value as PMSProject["status"]);setCreating(true);}} : undefined}
                 className="portfolio-table"
               >
                 <thead>
@@ -1390,16 +1598,16 @@ export default function ProjectsList() {
                         aria-label="Select visible editable projects"
                         type="checkbox"
                         checked={
-                          rows.some((p) => p.can_edit_project) &&
+                          rows.some((p) => (canEditProject&&p.can_edit_project)) &&
                           rows
-                            .filter((p) => p.can_edit_project)
+                            .filter((p) => (canEditProject&&p.can_edit_project))
                             .every((p) => selected.includes(p.id))
                         }
                         onChange={(e) =>
                           setSelected(
                             e.target.checked
                               ? rows
-                                  .filter((p) => p.can_edit_project)
+                                  .filter((p) => (canEditProject&&p.can_edit_project))
                                   .map((p) => p.id)
                               : [],
                           )
@@ -1431,7 +1639,8 @@ export default function ProjectsList() {
                       <td>
                         <input
                           aria-label={`Select ${p.name}`}
-                          disabled={!p.can_edit_project || busy}
+                          title={!(canEditProject&&p.can_edit_project) ? "You do not have permission to edit this project" : busy ? "Wait for the current save" : "Select project for bulk changes"}
+                          disabled={!(canEditProject&&p.can_edit_project) || busy}
                           type="checkbox"
                           checked={selected.includes(p.id)}
                           onChange={(e) =>
@@ -1445,9 +1654,7 @@ export default function ProjectsList() {
                       </td>
                       <td>
                         <div className="portfolio-project-cell">
-                          <span className="portfolio-project-icon">
-                            <FolderKanban size={19} />
-                          </span>
+                          <span aria-hidden="true"><RecordStatusIcon label={p.status} field="Status"/></span>
                           <div>
                             {renaming === p.id ? (
                               <form
@@ -1493,7 +1700,7 @@ export default function ProjectsList() {
                             ) : (
                               <>
                                 {projectName(p)}
-                                {p.can_edit_project && (
+                                {(canEditProject&&p.can_edit_project) && (
                                   <button
                                     className="portfolio-rename"
                                     title="Rename project"
@@ -1513,7 +1720,8 @@ export default function ProjectsList() {
                       </td>
                       <td>{p.client_name || "—"}</td>
                       <td>
-                        {p.can_edit_project ? (
+                        <div className="portfolio-owner-assignment"><span className="portfolio-owner-avatar" aria-hidden="true" title={p.owner_name || "Unassigned"}>{(p.owner_name || "?").slice(0,1).toUpperCase()}</span>
+                        {(canEditProject&&p.can_edit_project) ? (
                           <NativeSelect
                             className="portfolio-owner"
                             aria-label={`Owner for ${p.name}`}
@@ -1548,10 +1756,11 @@ export default function ProjectsList() {
                           </NativeSelect>
                         ) : (
                           <span className="portfolio-owner">
-                            {p.owner_name || "Unassigned"}
+                            {p.owner_name || "Unassigned · owner needed"}
                           </span>
                         )}
-                        <div className="portfolio-avatars">
+                        </div>
+                        <div className="portfolio-avatars" aria-hidden="true">
                           {p.team?.slice(0, 3).map((m) => (
                             <Link
                               key={m.id}
@@ -1575,8 +1784,8 @@ export default function ProjectsList() {
                       </td>
                       <td>{progressBar(p)}</td>
                       {(["start_date", "due_date"] as const).map((field) => (
-                        <td key={field}>
-                          {p.can_edit_project ? (
+                        <td key={field} title={!p[field] ? field === "due_date" ? "No deadline set" : "No start date set" : undefined}>
+                          {(canEditProject&&p.can_edit_project) ? (
                             <InlineProjectDate
                               label={`${field === "due_date" ? "Due" : "Start"} date for ${p.name}`}
                               value={p[field]}
@@ -1587,13 +1796,15 @@ export default function ProjectsList() {
                           ) : (
                             formatDate(p[field] || null)
                           )}
+                          {field === "due_date" && !!p.overdue_task_count && <small className="portfolio-date-warning" title={`${p.overdue_task_count} overdue tasks`}>{p.overdue_task_count} overdue</small>}
                         </td>
                       ))}
                       <td>
                         <NativeSelect
                           aria-label={`Priority for ${p.name}`}
                           className={`portfolio-priority priority-${p.priority.toLowerCase()}`}
-                          disabled={!p.can_edit_project || busy}
+                          disabled={!(canEditProject&&p.can_edit_project) || busy}
+                          title={!(canEditProject&&p.can_edit_project) ? "Project editing permission required" : busy ? "Saving project" : "Set project priority"}
                           value={p.priority}
                           onChange={(e) =>
                             void update(p, {
@@ -1609,6 +1820,7 @@ export default function ProjectsList() {
                       </td>
                       <td>
                         <span
+                          title={p.blocked_task_count ? `${p.blocked_task_count} blocked tasks` : overdue(p) ? "Project deadline has passed" : p.overdue_task_count ? `${p.overdue_task_count} overdue tasks` : `Reported health: ${p.health}`}
                           className={`portfolio-health health-${health(p).toLowerCase().replace(" ", "-")}`}
                         >
                           {health(p)}
@@ -1619,7 +1831,8 @@ export default function ProjectsList() {
                           aria-label={`Status for ${p.name}`}
                           className={`portfolio-status ${statusColor(p.status)}`}
                           value={p.status}
-                          disabled={!p.can_edit_project || busy}
+                          disabled={!(canEditProject&&p.can_edit_project) || busy}
+                          title={!(canEditProject&&p.can_edit_project) ? "Project editing permission required" : busy ? "Saving project" : "Set project status"}
                           onChange={(e) =>
                             void update(p, {
                               status: e.target.value as PMSProject["status"],
@@ -1652,7 +1865,7 @@ export default function ProjectsList() {
                       })}
                       <td>
                         <div className="portfolio-row-actions">
-                          {quickActions(p)}
+                          <Link className="portfolio-open-icon" to={`/pms/projects/${p.id}`} title="Open project" aria-label={`Open ${p.name}`}><ExternalLink size={14}/></Link>
                           {favorite(p)}
                           <button
                             title="Preview project"
@@ -1663,10 +1876,16 @@ export default function ProjectsList() {
                           </button>
                           <RecordActions
                             kind="project"
+                            extraActions={[
+                              ...(actionChoices.includes("task") && canCreateProject && p.can_manage_tasks ? [{label:"Add task",run:()=>navigate(`/pms/tasks/new?projectId=${p.id}`)}] : []),
+                              ...(actionChoices.includes("duplicate") && canCreateProject && p.can_edit_project ? [{label:"Duplicate project",run:()=>setDuplicate(p)}] : []),
+                            ]}
                             canEdit={p.can_edit_project === true}
                             record={{ ...p, title: p.name, key: p.project_key }}
-                            onChanged={async () => {
+                            onChanged={async (deleted) => {
+                              if (deleted) setProjects(useProjectStore.getState().projects.filter(project => project.id !== p.id));
                               await load();
+                              if (deleted) setProjects(useProjectStore.getState().projects.filter(project => project.id !== p.id));
                             }}
                           >
                             {(menu) => <span>{menu}</span>}
@@ -1690,7 +1909,7 @@ export default function ProjectsList() {
                 <article key={p.id} data-testid={`project-card-${p.id}`} {...surfaceInteraction(p.id)}>
                   <div className="flex items-center justify-between">
                     <div className="portfolio-card-identity">
-                      {p.can_edit_project && (
+                      {(canEditProject&&p.can_edit_project) && (
                         <input
                           type="checkbox"
                           aria-label={`Select ${p.name}`}
@@ -1716,17 +1935,19 @@ export default function ProjectsList() {
                   <div className="flex justify-between">
                     <Badge className={statusColor(p.status)}>{p.status}</Badge>
                     <span
-                      className={`portfolio-health health-${health(p).toLowerCase().replace(" ", "-")}`}
+                      title={p.blocked_task_count ? `${p.blocked_task_count} blocked tasks` : overdue(p) ? "Project deadline has passed" : p.overdue_task_count ? `${p.overdue_task_count} overdue tasks` : `Reported health: ${p.health}`}
+                          className={`portfolio-health health-${health(p).toLowerCase().replace(" ", "-")}`}
                     >
                       {health(p)}
                     </span>
                   </div>
                   {progressBar(p)}
                   {quickActions(p)}
+                  <RecordActions kind="project" canEdit={p.can_edit_project === true} record={{...p,title:p.name,key:p.project_key}} onChanged={load}>{menu => <div className="portfolio-mobile-more" aria-label={`More actions for ${p.name}`}>{menu}</div>}</RecordActions>
                   <footer>
-                    <span>{p.owner_name || "Unassigned"}</span>
+                    <span>{p.owner_name || "Unassigned · owner needed"}</span>
                     <span className={overdue(p) ? "is-overdue" : ""}>
-                      {formatDate(p.due_date || null)}
+                      {p.due_date ? `${formatDate(p.due_date)} · ${Math.ceil((new Date(p.due_date.slice(0,10) + "T00:00:00").getTime() - new Date(today() + "T00:00:00").getTime()) / 86400000)} days` : "No deadline"}
                     </span>
                   </footer>
                   <button
@@ -1787,8 +2008,10 @@ export default function ProjectsList() {
         </footer>
       </section>
 
+      {preview && pinnedPreview && <div className="portfolio-pinned-preview" style={{width:previewWidth,maxWidth:"100%"}}><GridRecordPane title={preview.name} close={() => setPreviewId(undefined)} expand={() => openProject(preview.id)}>{previewContent}</GridRecordPane></div>}
+      <Dialog open={!!pendingBulk} onOpenChange={v => {if(!v && !busy)setPendingBulk(undefined);}}><DialogContent><DialogTitle>Review bulk change</DialogTitle><p>{pendingBulk?.message} for {selected.length} selected projects.</p><ul>{projects.filter(p => selected.includes(p.id)).map(p => <li key={p.id}>{p.name} · {Object.entries(pendingBulk?.patch || {}).map(([field,value]) => `${field}: ${String(p[field as keyof PMSProject] ?? "unset")} → ${String(value)}`).join(", ")}</li>)}</ul><Button disabled={busy} onClick={() => {if(pendingBulk)void bulk(pendingBulk.patch,pendingBulk.message).then(() => setPendingBulk(undefined));}}>Apply changes</Button><Button variant="outline" disabled={busy} onClick={() => setPendingBulk(undefined)}>Cancel</Button></DialogContent></Dialog>
       <Dialog
-        open={!!preview}
+        open={!!preview && !pinnedPreview}
         onOpenChange={(open) => {
           if (!open) setPreviewId(undefined);
         }}
@@ -1823,126 +2046,8 @@ export default function ProjectsList() {
             }}
           />
 
-          {preview && (
-            <>
-              <DialogTitle>{preview.name}</DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                {preview.project_key} ·{" "}
-                {preview.client_name || "No client linked"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Badge className={statusColor(preview.status)}>
-                  {preview.status}
-                </Badge>
-                <Badge variant="outline">{preview.priority}</Badge>
-                <Badge variant="outline">{health(preview)}</Badge>
-              </div>
-              <RichTextContent
-                value={preview.description || "No description added yet."}
-              />
-              {progressBar(preview)}
-              <dl className="portfolio-preview-facts">
-                <div>
-                  <dt>Owner</dt>
-                  <dd>{preview.owner_name || "Unassigned"}</dd>
-                </div>
-                <div>
-                  <dt>Timeline</dt>
-                  <dd>
-                    {formatDate(preview.start_date || null)} →{" "}
-                    {formatDate(preview.due_date || null)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Tasks</dt>
-                  <dd>
-                    {preview.completed_task_count || 0} complete /{" "}
-                    {preview.task_count || 0} total
-                  </dd>
-                </div>
-                <div>
-                  <dt>Delivery issues</dt>
-                  <dd>
-                    {preview.overdue_task_count || 0} overdue ·{" "}
-                    {preview.blocked_task_count || 0} blocked
-                  </dd>
-                </div>
-                <div>
-                  <dt>Milestones</dt>
-                  <dd>
-                    {preview.completed_milestone_count || 0} complete /{" "}
-                    {preview.milestone_count || 0} total
-                  </dd>
-                </div>
-                <div>
-                  <dt>Team</dt>
-                  <dd>
-                    {preview.team
-                      ?.map((m) => `${m.name} (${m.role})`)
-                      .join(", ") || "No members assigned"}
-                  </dd>
-                </div>
-              </dl>
-              <ProjectPreviewDetails key={preview.id} projectId={preview.id} />
-              <div className="flex flex-wrap gap-2">
-                {preview.can_manage_tasks && (
-                  <Button variant="outline" asChild>
-                    <Link to={`/pms/tasks/new?projectId=${preview.id}`}>
-                      Add Task
-                    </Link>
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    void navigator.clipboard
-                      .writeText(
-                        `${window.location.origin}/pms/projects/${preview.id}`,
-                      )
-                      .then(() =>
-                        setNotice(
-                          "Project link copied. Recipients still need project access.",
-                        ),
-                      )
-                      .catch(() => setError("Unable to copy project link."));
-                  }}
-                >
-                  Copy link
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to={`/pms/projects/${preview.id}/billing`}>
-                    Financials
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link to={`/pms/projects/${preview.id}`}>Open Project</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to={`/pms/projects/${preview.id}/board`}>
-                    Task board
-                  </Link>
-                </Button>
-                {preview.can_edit_project && (
-                  <Button variant="outline" asChild>
-                    <Link to={`/pms/projects/${preview.id}/edit`}>
-                      Edit Project
-                    </Link>
-                  </Button>
-                )}
-                {preview.can_edit_project && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setDuplicate(preview)}
-                  >
-                    Duplicate
-                  </Button>
-                )}
-                <Button variant="outline" asChild>
-                  <Link to={`/pms/projects/${preview.id}/members`}>Team</Link>
-                </Button>
-              </div>
-            </>
-          )}
+          <DialogTitle className="sr-only">{preview?.name}</DialogTitle>
+          {previewContent}
         </DialogContent>
       </Dialog>
 
@@ -1993,8 +2098,12 @@ export default function ProjectsList() {
       </Dialog>
       <QuickCreateProject
         open={creating}
+        initialStatus={createStatus}
+        initialWorkspace={workspaceScope === "all" ? undefined : Number(workspaceScope)}
         onClose={() => setCreating(false)}
-        onCreated={() => {
+        onCreated={(project) => {
+          generation.current += 1;
+          setProjects([project,...allProjects.filter(row=>row.id!==project.id)]);
           void load().catch((e) => setError(workspaceError(e)));
           setNotice("Project created");
         }}
@@ -2009,3 +2118,5 @@ export default function ProjectsList() {
     </main>
   );
 }
+
+export default withRecordViewHost(ProjectsList);

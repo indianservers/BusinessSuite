@@ -1,9 +1,11 @@
+import { useModuleAction } from "@/hooks/use-module-action";
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { useParams } from "react-router-dom";
 import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
-import { Upload, FolderPlus, Download, Search, LayoutGrid, Folder, Files, HardDrive } from "lucide-react";
+import { Upload, FolderPlus, Download, Search, LayoutGrid, Folder, Files, HardDrive, Trash2 } from "lucide-react";
 import { api } from "@/services/api";
 import MoveBoard from "@/components/interaction/MoveBoard";
 import { Button } from "@/components/ui/button";
@@ -61,10 +63,12 @@ export default function FilesPage() {
     void load().catch(() => setError("Unable to load files."));
   }, [projectId]);
   usePageRefresh(() => load());
-  const canEdit = !!projects.find((p) => String(p.id) === projectId)
+  const allowCreate=useModuleAction("create"),allowEdit=useModuleAction("edit"),allowDelete=useModuleAction("delete");
+  const canManage = !!projects.find((p) => String(p.id) === projectId)
     ?.can_upload_files && (!routeProjectId || projectId === routeProjectId);
+  const canCreate=canManage&&allowCreate,canEdit=canManage&&allowEdit,canDelete=canManage&&allowDelete;
   async function upload(selected: File[]) {
-    if (!selected.length || !projectId || busy || !canEdit) return;
+    if (!selected.length || !projectId || busy || !canCreate) return;
     setBusy(true);
     setError("");
     let completed = 0;
@@ -110,6 +114,8 @@ export default function FilesPage() {
       setError("Unable to download this file.");
     }
   }
+  async function removeFile(file:PMSFileAsset){if(!canDelete||busy||String(file.visibility)==="Work Evidence")return;if(!window.confirm(`Move ${file.original_name} to deleted files? Its history will be retained.`))return;setBusy(true);setError("");try{await filesAPI.deleteAttachment(file.id);await load();setNotice("File deleted; history retained.");}catch(error){const detail=(error as {response?:{data?:{detail?:unknown}}}).response?.data?.detail;setError(typeof detail==="string"?detail:"Could not delete this file. It is retained for retry.");}finally{setBusy(false);}}
+  function fileActions(file:PMSFileAsset){return <><button type="button" aria-label={`Download ${file.original_name}`} disabled={busy} onClick={()=>void download(file)}><Download size={15}/></button>{canDelete&&String(file.visibility)!=="Work Evidence"&&<button type="button" aria-label={`Delete ${file.original_name}`} disabled={busy} onClick={()=>void removeFile(file)}><Trash2 size={15}/></button>}</>;}
   async function moveFile(file: PMSFileAsset, folderId: string) {
     if (!canEdit || busy || String(file.visibility) === "Work Evidence") return;
     setBusy(true); setError("");
@@ -120,7 +126,7 @@ export default function FilesPage() {
     finally { setBusy(false); }
   }
   async function createFolder() {
-    if (!folder.trim() || !canEdit || busy) return;
+    if (!folder.trim() || !canCreate || busy) return;
     setBusy(true); setError("");
     try { await api.post("/project-management/file-folders", { project_id: Number(projectId), name: folder.trim() }); setFolder(""); await load(); setNotice("Folder created"); }
     catch { setError("Unable to create the folder."); }
@@ -131,11 +137,11 @@ export default function FilesPage() {
   if (routeProjectId) return <div className="pd-files space-y-4">
     <div className="pd-file-stats"><div><Files /><span><strong>{files.length}</strong><small>Loaded files</small></span></div><div><Folder /><span><strong>{folders.length}</strong><small>Project folders</small></span></div><div><HardDrive /><span><strong>{totalBytes >= 1048576 ? `${(totalBytes / 1048576).toFixed(1)} MB` : `${Math.ceil(totalBytes / 1024)} KB`}</strong><small>Loaded file size</small></span></div></div>
     {error && <p role="alert" className="move-error">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
-    <div className={`pd-file-drop ${over ? "is-over" : ""}`} onDragOver={e => { if (canEdit && e.dataTransfer.types.includes("Files")) { e.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)} onDrop={e => { e.preventDefault(); setOver(false); void upload(Array.from(e.dataTransfer.files)); }}><Upload /><div><p>{busy ? "Saving your files…" : "Drop project files here"}</p><small>{canEdit ? "Designs, documents, and deliverables — organized in one place." : "You have read-only access to this project’s files."}</small></div><input ref={fileInput} className="sr-only" type="file" multiple aria-label="Upload project files" disabled={busy || !canEdit} onChange={e => { void upload(Array.from(e.target.files || [])); e.target.value = ""; }} /><Button disabled={busy || !canEdit} onClick={() => fileInput.current?.click()}><Upload size={15} />Upload files</Button></div>
-    <div className="pd-file-toolbar"><label className="pd-file-search"><Search size={17} /><input aria-label="Search project files" value={fileQuery} onChange={e => setFileQuery(e.target.value)} placeholder="Search files by name…" /></label><NativeSelect aria-label="Filter files by folder" value={folderFilter} onChange={e => setFolderFilter(e.target.value)}><option value="all">All folders</option><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect><NativeSelect aria-label="Upload folder" disabled={busy || !canEdit} value={target} onChange={e => setTarget(e.target.value)}><option value="">Upload to: Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>Upload to: {f.name}</option>)}</NativeSelect><div className="pd-file-views" aria-label="File layout"><button aria-pressed={fileView === "library"} onClick={() => setFileView("library")}><LayoutGrid size={15} />Library</button><button aria-pressed={fileView === "folders"} onClick={() => setFileView("folders")}><Folder size={15} />Folders</button></div></div>
-    {fileView === "library" ? <div className="pd-file-grid">{visibleFiles.map(file => <article className="pd-file-card" key={file.id}><div className="pd-file-preview"><SuiteFileIcon name={file.original_name} /></div><h3>{file.original_name}</h3><small>{Math.max(1, Math.ceil(file.size_bytes / 1024))} KB · {file.visibility} · v{file.version_number}</small><div className="pd-file-card-footer"><NativeSelect aria-label={`Move ${file.original_name} to folder`} disabled={busy || !canEdit || String(file.visibility) === "Work Evidence"} value={file.folder_id || "root"} onChange={e => void moveFile(file, e.target.value)}><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect><button aria-label={`Download ${file.original_name}`} disabled={busy} onClick={() => void download(file)}><Download size={17} /></button></div></article>)}</div> : <MoveBoard label="Project file folders" reorder={false} disabled={busy || !canEdit} groups={[{ id: "root", label: "Unfiled" }, ...folders.map(f => ({ id: String(f.id), label: f.name }))]} items={visibleFiles.map(file => ({ id: file.id, label: file.original_name, group: file.folder_id ? String(file.folder_id) : "root", disabled: String(file.visibility) === "Work Evidence", content: <div className="flex justify-between text-xs"><span>{Math.ceil(file.size_bytes / 1024)} KB · {file.visibility}</span><button aria-label={`Download ${file.original_name}`} onClick={() => void download(file)}><Download size={15} /></button></div> }))} onMove={async ({ item, group }) => { const file = files.find(f => f.id === item.id); if (file) await moveFile(file, group); }} />}
+    <div className={`pd-file-drop ${over ? "is-over" : ""}`} onDragOver={e => { if (canCreate && e.dataTransfer.types.includes("Files")) { e.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)} onDrop={e => { e.preventDefault(); setOver(false); void upload(Array.from(e.dataTransfer.files)); }}><Upload /><div><p>{busy ? "Saving your files…" : "Drop project files here"}</p><small>{canCreate ? "Designs, documents, and deliverables — organized in one place." : "You have read-only access to this project’s files."}</small></div><input ref={fileInput} className="sr-only" type="file" multiple aria-label="Upload project files" disabled={busy || !canCreate} onChange={e => { void upload(Array.from(e.target.files || [])); e.target.value = ""; }} /><Button disabled={busy || !canCreate} onClick={() => fileInput.current?.click()}><Upload size={15} />Upload files</Button></div>
+    <div className="pd-file-toolbar"><label className="pd-file-search"><Search size={17} /><input aria-label="Search project files" value={fileQuery} onChange={e => setFileQuery(e.target.value)} placeholder="Search files by name…" /></label><NativeSelect aria-label="Filter files by folder" value={folderFilter} onChange={e => setFolderFilter(e.target.value)}><option value="all">All folders</option><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect><NativeSelect aria-label="Upload folder" disabled={busy || !canCreate} value={target} onChange={e => setTarget(e.target.value)}><option value="">Upload to: Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>Upload to: {f.name}</option>)}</NativeSelect><div className="pd-file-views" aria-label="File layout"><button aria-pressed={fileView === "library"} onClick={() => setFileView("library")}><LayoutGrid size={15} />Library</button><button aria-pressed={fileView === "folders"} onClick={() => setFileView("folders")}><Folder size={15} />Folders</button></div></div>
+    {fileView === "library" ? <GroupedRecords scope="pms-file-library" items={(visibleFiles) || []} fields={[{id:"visibility",label:"Visibility",value:file=>file.visibility},{id:"folder",label:"Folder",value:file=>folders.find(folder=>folder.id===file.folder_id)?.name || "Unfiled"}]} gridClassName="pd-file-grid" renderItem={file => <article className="pd-file-card" key={file.id}><div className="pd-file-preview"><SuiteFileIcon name={file.original_name} /></div><h3>{file.original_name}</h3><small>{Math.max(1, Math.ceil(file.size_bytes / 1024))} KB · {file.visibility} · v{file.version_number}</small><div className="pd-file-card-footer"><NativeSelect aria-label={`Move ${file.original_name} to folder`} disabled={busy || !canEdit || String(file.visibility) === "Work Evidence"} value={file.folder_id || "root"} onChange={e => void moveFile(file, e.target.value)}><option value="root">Unfiled</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</NativeSelect>{fileActions(file)}</div></article>}/> : <MoveBoard label="Project file folders" reorder={false} disabled={busy || !canEdit} groups={[{ id: "root", label: "Unfiled" }, ...folders.map(f => ({ id: String(f.id), label: f.name }))]} items={visibleFiles.map(file => ({ id: file.id, label: file.original_name, group: file.folder_id ? String(file.folder_id) : "root", disabled: String(file.visibility) === "Work Evidence", content: <div className="flex justify-between text-xs"><span>{Math.ceil(file.size_bytes / 1024)} KB · {file.visibility}</span>{fileActions(file)}</div> }))} onMove={async ({ item, group }) => { const file = files.find(f => f.id === item.id); if (file) await moveFile(file, group); }} />}
     {!visibleFiles.length && <p className="pd-files-empty">{files.length ? "No files match your search. Try another name or folder." : "No files yet. Upload the first project document to get started."}</p>}
-    {canEdit && <form className="pd-folder-create" onSubmit={e => { e.preventDefault(); void createFolder(); }}><FolderPlus size={17} /><input aria-label="Folder name" placeholder="New folder name" value={folder} onChange={e => setFolder(e.target.value)} maxLength={120} /><Button variant="outline" disabled={!folder.trim() || busy}>Create folder</Button></form>}
+    {canCreate && <form className="pd-folder-create" onSubmit={e => { e.preventDefault(); void createFolder(); }}><FolderPlus size={17} /><input aria-label="Folder name" placeholder="New folder name" value={folder} onChange={e => setFolder(e.target.value)} maxLength={120} /><Button variant="outline" disabled={!folder.trim() || busy}>Create folder</Button></form>}
     <p className="text-xs text-muted-foreground">Showing up to 100 files available to you in this project.</p>
   </div>;
   return (
@@ -151,6 +157,7 @@ export default function FilesPage() {
           Project{" "}
           <NativeSelect
             className="input"
+            aria-label="File project"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
             disabled={busy || !!routeProjectId}
@@ -166,6 +173,7 @@ export default function FilesPage() {
           Upload folder{" "}
           <NativeSelect
             className="input"
+            aria-label="Upload folder"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             disabled={busy}
@@ -207,7 +215,7 @@ export default function FilesPage() {
           aria-label="Upload project files"
           type="file"
           multiple
-          disabled={busy || !canEdit}
+          disabled={busy || !canCreate}
           onChange={(e) => {
             void upload(Array.from(e.target.files || []));
             e.target.value = "";
@@ -222,8 +230,8 @@ export default function FilesPage() {
           value={folder}
           onChange={(e) => setFolder(e.target.value)}
         />
-        <Button available={!!(canEdit)}
-          disabled={!folder.trim() || busy || !canEdit}
+        <Button available={!!(canCreate)}
+          disabled={!folder.trim() || busy || !canCreate}
           onClick={async () => {
             setBusy(true);
             setError("");
@@ -263,13 +271,7 @@ export default function FilesPage() {
               <SuiteFileIcon name={f.original_name}/><span>
                 {Math.ceil(f.size_bytes / 1024)} KB · {f.visibility}
               </span>
-              <button
-                type="button"
-                aria-label={`Download ${f.original_name}`}
-                onClick={() => void download(f)}
-              >
-                <Download size={14} />
-              </button>
+              {fileActions(f)}
             </div>
           ),
         }))}

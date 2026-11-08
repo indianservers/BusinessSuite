@@ -1,0 +1,1780 @@
+[
+  {
+    "file": "frontend/src/apps/admin-security/AdminSecurityPage.tsx",
+    "line": 326,
+    "base": "items",
+    "class": "className=\"grid gap-3 md:grid-cols-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/ai-copilot/AICopilotPage.tsx",
+    "line": 132,
+    "base": "(query.data?.items || [])",
+    "class": "className=\"grid gap-3 md:grid-cols-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/ai-copilot/AICopilotPage.tsx",
+    "line": 149,
+    "base": "(query.data?.items || [])",
+    "class": "className=\"grid gap-3 md:grid-cols-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/ai-copilot/AICopilotPage.tsx",
+    "line": 160,
+    "base": "(query.data?.items || [])",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/analytics/AnalyticsOverview.tsx",
+    "line": 87,
+    "base": "(data ? cards : [{ key: \"all\", name: \"All records\", label: \"\" }, ...[\"CRM\", \"HRMS\", \"PMS\", \"Sales\", \"Finance\"].map((name) => ({ key: name.toLowerCase(), name, l",
+    "class": "className=\"analytics-metrics business-metrics\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/analytics/AnalyticsOverview.tsx",
+    "line": 109,
+    "base": "data?.modules",
+    "class": "className=\"business-module-grid\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/analytics/AnalyticsPage.tsx",
+    "line": 209,
+    "base": "items",
+    "class": "className=\"grid gap-3 md:grid-cols-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/automation/AutomationStudioPage.tsx",
+    "line": 107,
+    "base": "items",
+    "class": "className=\"grid gap-3 md:grid-cols-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSAdminPage.tsx",
+    "line": 154,
+    "base": "rules",
+    "class": "className=\"grid gap-3\"",
+    "param": "rule"
+  },
+  {
+    "file": "frontend/src/apps/business-os/BusinessOSWorkspacePage.tsx",
+    "line": 111,
+    "base": "reports",
+    "class": "className=\"grid gap-3 md:grid-cols-2 xl:grid-cols-3\"",
+    "param": "report"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/CampaignWorkspace.tsx",
+    "line": 26,
+    "base": "eligible",
+    "class": "className=\"cc-audience-list\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/CampaignWorkspace.tsx",
+    "line": 26,
+    "base": "excluded",
+    "class": "className=\"cc-audience-list\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/DeliveryWorkspace.tsx",
+    "line": 16,
+    "base": "rows",
+    "class": "className=\"space-y-3\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/GuidedTools.tsx",
+    "line": 25,
+    "base": "records.data?.items",
+    "class": "className=\"cc-library-grid\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/shared.tsx",
+    "line": 28,
+    "base": "records.data",
+    "class": "className=\"cc-picker-results\" aria-label=\"Matching CRM records\"",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/apps/communication/center/TimelineExplorer.tsx",
+    "line": 11,
+    "base": "items",
+    "class": "className=\"space-y-3\"",
+    "param": "event"
+  },
+  {
+    "file": "frontend/src/apps/communication/CommunicationSendReview.tsx",
+    "line": 67,
+    "base": "entries",
+    "class": "className=\"wac-review-list\"",
+    "param": "entry"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 887,
+    "base": "recipients.data?.items.filter((r:Row)=>(r.name+' '+r.phone+' '+r.email+' '+r.role).toLowerCase().includes(audienceSearch.toLowerCase()))",
+    "class": "className=\"max-h-48 overflow-auto\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/apps/communication/CustomerCommunications.tsx",
+    "line": 1140,
+    "base": "shipments.data?.items",
+    "class": "className=\"space-y-3\"",
+    "param": "s"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/Composer.tsx",
+    "line": 122,
+    "base": "placeholders",
+    "class": "className=\"wa-variable-grid\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/Composer.tsx",
+    "line": 137,
+    "base": "approved.slice(0,3)",
+    "class": "",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/communication/whatsapp/TemplatesPanel.tsx",
+    "line": 30,
+    "base": "filtered",
+    "class": "className=\"cc-library-grid\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/apps/communication/WhatsAppCommunicationWorkspace.tsx",
+    "line": 240,
+    "base": "savedFilters",
+    "class": "className=\"wac-saved-filters\"",
+    "param": "f"
+  },
+  {
+    "file": "frontend/src/apps/communication/WhatsAppCommunicationWorkspace.tsx",
+    "line": 290,
+    "base": "['accepted','sent','delivered','read','queued','failed']",
+    "class": "className=\"wac-result-counts\"",
+    "param": "status"
+  },
+  {
+    "file": "frontend/src/apps/communication/WhatsAppCommunicationWorkspace.tsx",
+    "line": 290,
+    "base": "displayedResults",
+    "class": "className=\"wac-result-list\"",
+    "param": "result"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 800,
+    "base": "mentions",
+    "class": "className=\"mt-2 flex flex-wrap gap-2\"",
+    "param": "mention"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 1068,
+    "base": "options",
+    "class": "className=\"absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-lg\"",
+    "param": "user"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 1078,
+    "base": "mentions",
+    "class": "className=\"mt-2 flex flex-wrap gap-2\"",
+    "param": "user"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMRecordDetailPage.tsx",
+    "line": 1288,
+    "base": "history.slice(0, 3)",
+    "class": "className=\"mt-2 space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMReportDirectory.tsx",
+    "line": 20,
+    "base": "filtered",
+    "class": "className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-3\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 914,
+    "base": "pipelineStages",
+    "class": "className=\"grid gap-2 md:grid-cols-2 2xl:grid-cols-5\"",
+    "param": "stage"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 973,
+    "base": "briefingRows",
+    "class": "className=\"space-y-2\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 1008,
+    "base": "sourceData.slice(0, 5)",
+    "class": "className=\"space-y-2\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 1132,
+    "base": "rows",
+    "class": "className=\"space-y-1\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 1726,
+    "base": "filteredTemplates",
+    "class": "className=\"space-y-2\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 1861,
+    "base": "template.stages",
+    "class": "className=\"grid auto-cols-[17rem] grid-flow-col gap-3 overflow-x-auto bg-slate-100/70 p-3 pb-40\"",
+    "param": "stage"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 2650,
+    "base": "events",
+    "class": "className=\"space-y-1\"",
+    "param": "event"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 2760,
+    "base": "events",
+    "class": "className=\"divide-y rounded-lg border\"",
+    "param": "event"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 5452,
+    "base": "visibleContacts",
+    "class": "className=\"space-y-3 sm:col-span-2\"",
+    "param": "person"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 5992,
+    "base": "rows.slice(0, 6)",
+    "class": "className=\"grid gap-3 lg:grid-cols-3\"",
+    "param": "product"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 7178,
+    "base": "destinations",
+    "class": "className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-3\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/crm/CRMWorkspacePage.tsx",
+    "line": 8159,
+    "base": "createDealStages",
+    "class": "className=\"border-l-2 border-l-emerald-400 py-1\"",
+    "param": "stage"
+  },
+  {
+    "file": "frontend/src/apps/crm/deals/EnterpriseDealsPage.tsx",
+    "line": 1047,
+    "base": "rows",
+    "class": "className=\"ed-list\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/crm/FollowUpHistory.tsx",
+    "line": 51,
+    "base": "query.data.items",
+    "class": "className={view === \"history\" ? \"fuh-timeline\" : \"fuh-cards\"}",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/crm/GrowthWorkspace.tsx",
+    "line": 80,
+    "base": "Object.values(selected)",
+    "class": "aria-label=\"Selected recipients\" className=\"flex max-h-32 flex-wrap gap-2 overflow-y-auto\"",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/apps/crm/GrowthWorkspace.tsx",
+    "line": 86,
+    "base": "review.items",
+    "class": "className=\"max-h-[500px] space-y-3 overflow-y-auto\"",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadManagementPage.tsx",
+    "line": 765,
+    "base": "result.items",
+    "class": "className=\"lm-compact\"",
+    "param": "lead"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadWorkflow.tsx",
+    "line": 310,
+    "base": "lanes",
+    "class": "className=\"lm-board\"",
+    "param": "lane"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadWorkflow.tsx",
+    "line": 677,
+    "base": "members",
+    "class": "className=\"lm-team-members\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/apps/crm/leads/LeadWorkflow.tsx",
+    "line": 738,
+    "base": "lead.timeline\r\n          ?.filter((e) => e.event_type === \"team_note\")",
+    "class": "className=\"lm-team-thread\"",
+    "param": "e"
+  },
+  {
+    "file": "frontend/src/apps/crm/MergeWizardModal.tsx",
+    "line": 62,
+    "base": "records",
+    "class": "className=\"grid gap-3 sm:grid-cols-2 lg:grid-cols-3\"",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/apps/crm/product-customers/ProductCustomersPage.tsx",
+    "line": 114,
+    "base": "row.offerings",
+    "class": "className=\"pc-row-chips\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/crm/product-customers/RelationshipDetail.tsx",
+    "line": 26,
+    "base": "record.offerings",
+    "class": "className=\"pc-row-chips\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/CalendarSyncControls.tsx",
+    "line": 81,
+    "base": "([\"local\", \"remote\"] as const)",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "keep"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/IndustryPackOnboarding.tsx",
+    "line": 55,
+    "base": "effective.assets.filter(a => a.kind === 'report')",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "asset"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/TemplateGallery.tsx",
+    "line": 28,
+    "base": "entries",
+    "class": "className=\"tg-grid\"",
+    "param": "entry"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/TemplateStudio.tsx",
+    "line": 183,
+    "base": "presets(category)",
+    "class": "className=\"ts-preset-grid\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/crm/templates/TemplateStudio.tsx",
+    "line": 185,
+    "base": "filtered",
+    "class": "className=\"ts-saved-grid\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/crm/UniversalContactsPage.tsx",
+    "line": 311,
+    "base": "rows",
+    "class": "className=\"uc-cards\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/customization/ModuleRecords.tsx",
+    "line": 58,
+    "base": "actions.data",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "a"
+  },
+  {
+    "file": "frontend/src/apps/customization/ModuleRecords.tsx",
+    "line": 76,
+    "base": "fields.data?.filter(f => fieldShown(controlField(f), editing ? 'edit' : 'create'))",
+    "class": "className=\"grid gap-4 sm:grid-cols-2\"",
+    "param": "f"
+  },
+  {
+    "file": "frontend/src/apps/fam/FAMWorkspacePage.tsx",
+    "line": 825,
+    "base": "rows",
+    "class": "className=\"grid gap-3 lg:grid-cols-2\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/analytics/AdvancedAnalyticsPage.tsx",
+    "line": 128,
+    "base": "metricCards",
+    "class": "className=\"grid gap-4 lg:grid-cols-6\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/documents/DocumentStudioPage.tsx",
+    "line": 1076,
+    "base": "(\r\n                        [\r\n                          [\"logo_asset_id\", \"Logo\", \"logo\"],\r\n                          [\r\n                            \"background",
+    "class": "className=\"grid gap-4 sm:grid-cols-3\"",
+    "param": "[key, label, assetKind]"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 845,
+    "base": "emp.educations",
+    "class": "className=\"space-y-4\"",
+    "param": "edu"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 872,
+    "base": "emp.experiences",
+    "class": "className=\"space-y-4\"",
+    "param": "exp"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDetailPage.tsx",
+    "line": 916,
+    "base": "emp.documents",
+    "class": "className=\"space-y-3\"",
+    "param": "doc"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/EmployeeDirectoryPage.tsx",
+    "line": 277,
+    "base": "suggestions",
+    "class": "className=\"absolute z-20 mt-1 w-full rounded-md border bg-background shadow\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/employees/UserAccountsPage.tsx",
+    "line": 142,
+    "base": "permissions",
+    "class": "className=\"max-h-60 space-y-2 overflow-auto rounded border p-3\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/engagement/EngagementPage.tsx",
+    "line": 202,
+    "base": "[\"clap\", \"star\", \"heart\"]",
+    "class": "className=\"mt-3 flex flex-wrap gap-2\"",
+    "param": "emoji"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/helpdesk/HelpdeskPage.tsx",
+    "line": 372,
+    "base": "[1, 2, 3, 4, 5]",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "rating"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternApplicationsPage.tsx",
+    "line": 450,
+    "base": "list",
+    "class": "className=\"space-y-3\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 841,
+    "base": "(d.distribution || [])",
+    "class": "className=\"im-bars\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 1286,
+    "base": "batchRows",
+    "class": "className=\"im-recipient-list\"",
+    "param": "b"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 1471,
+    "base": "preview.sample",
+    "class": "className=\"im-recipient-list\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 1884,
+    "base": "(batchAnalytics || [])",
+    "class": "className=\"im-bars big\"",
+    "param": "b"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 2421,
+    "base": "[\"Reviewed\", \"Correction Requested\"]",
+    "class": "className=\"im-actions\"",
+    "param": "v"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternManagementPage.tsx",
+    "line": 2553,
+    "base": "[\"Approved\", \"Improvements Requested\", \"Incomplete\"]",
+    "class": "className=\"im-actions\"",
+    "param": "v"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/interns/InternTaskProgramsPanel.tsx",
+    "line": 922,
+    "base": "roster.data.items.slice(0, 500)",
+    "class": "className=\"max-h-80 space-y-2 overflow-auto\"",
+    "param": "person"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/leave/LeavePage.tsx",
+    "line": 671,
+    "base": "pendingEncashments",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/leave/LeavePage.tsx",
+    "line": 793,
+    "base": "calendarDays",
+    "class": "className=\"grid gap-2 sm:grid-cols-2 lg:grid-cols-7\"",
+    "param": "day"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/lms/LMSPage.tsx",
+    "line": 151,
+    "base": "courses",
+    "class": "className=\"space-y-4 mt-4\"",
+    "param": "course"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/onboarding/OnboardingPage.tsx",
+    "line": 86,
+    "base": "templates.data",
+    "class": "className=\"mt-4 space-y-2\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/InvestmentDeclarationPage.tsx",
+    "line": 268,
+    "base": "categories.data",
+    "class": "className=\"space-y-2\"",
+    "param": "category"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 1196,
+    "base": "(runs as PayrollRun[] | undefined || []).slice(0, 8)",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "run"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2142,
+    "base": "(runs as PayrollRun[] | undefined || []).slice(0, 10)",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "run"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2536,
+    "base": "(salaryAdvances as { id: number; employee_id: number; requested_amount: number; approved_amount?: number; status: string }[] | undefined || []).slice(0, 5)",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2550,
+    "base": "(payslipQueries as { id: number; subject: string; status: string; priority?: string }[] | undefined || []).slice(0, 5)",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2812,
+    "base": "(payGroups as { id: number; name: string; code: string; pay_frequency: string }[] | undefined)",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 2842,
+    "base": "(salaryTemplates as { id: number; name: string; code: string; components?: unknown[] }[] | undefined || [])",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx",
+    "line": 3090,
+    "base": "[\n            {\n              title: \"New Joiner Proration\",\n              detail: \"Employee joins mid-month. Payroll should calculate paid days from joining da",
+    "class": "className=\"grid gap-4 lg:grid-cols-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 514,
+    "base": "(session.participants || []).slice(0, 6)",
+    "class": "className=\"mt-3 grid gap-2 sm:grid-cols-3\"",
+    "param": "participant"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/performance/PerformancePage.tsx",
+    "line": 592,
+    "base": "(role.successors || [])",
+    "class": "className=\"mt-3 grid gap-2 sm:grid-cols-2\"",
+    "param": "candidate"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/profile/ProfilePage.tsx",
+    "line": 411,
+    "base": "completionNudges",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/settings/SettingsPage.tsx",
+    "line": 212,
+    "base": "sections.filter(item => !section || item.key === section)",
+    "class": "className=\"space-y-3\"",
+    "param": "section"
+  },
+  {
+    "file": "frontend/src/apps/hrms/pages/settings/SettingsPage.tsx",
+    "line": 492,
+    "base": "permissions",
+    "class": "className=\"grid max-h-72 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2\"",
+    "param": "permission"
+  },
+  {
+    "file": "frontend/src/apps/hrms/workbench/HRTransfer.tsx",
+    "line": 16,
+    "base": "people",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/hrms/workbench/HRTransfer.tsx",
+    "line": 16,
+    "base": "Object.entries(fields)",
+    "class": "className=\"grid gap-3 sm:grid-cols-2\"",
+    "param": "[key,label]"
+  },
+  {
+    "file": "frontend/src/apps/inventory/InventoryBridgePage.tsx",
+    "line": 136,
+    "base": "group.features",
+    "class": "className=\"grid gap-3 sm:grid-cols-2 xl:grid-cols-4\"",
+    "param": "feature"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/approvals/ApprovalsPage.tsx",
+    "line": 407,
+    "base": "templates",
+    "class": "className=\"ap-template-grid\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/AutomationList.tsx",
+    "line": 182,
+    "base": "templates\r\n            .filter((t) =>\r\n              `${t.name} ${t.description}`\r\n                .toLowerCase()\r\n                .includes(query.toLowerCase()",
+    "class": "className=\"al-templates\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/AutomationRuntimePage.tsx",
+    "line": 1210,
+    "base": "report.events",
+    "class": "className=\"rt-events\"",
+    "param": "e"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/AutomationBuilder.tsx",
+    "line": 2250,
+    "base": "graph.groups\r\n                      .filter((g) => selected.has(g.id))",
+    "class": "className=\"as-aux-scroll\"",
+    "param": "g"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/AutomationBuilder.tsx",
+    "line": 2642,
+    "base": "graph.nodes",
+    "class": "className=\"as-overview-nodes\"",
+    "param": "node"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/IntelligencePanels.tsx",
+    "line": 804,
+    "base": "items\r\n          .filter(\r\n            (i) =>\r\n              (category === \"All\" || i.category === category) &&\r\n              `${i.name} ${i.description}`\r\n   ",
+    "class": "className=\"ai-template-grid\"",
+    "param": "i"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/IntelligencePanels.tsx",
+    "line": 1048,
+    "base": "entries",
+    "class": "",
+    "param": "e"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/automations/builder/IntelligencePanels.tsx",
+    "line": 1383,
+    "base": "items",
+    "class": "className=\"ai-template-grid\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "line": 241,
+    "base": "[\r\n          [\"webhook-sheets-email\", \"Webhook > Sheets > Email\"],\r\n          [\"webhook-groq-slack\", \"Webhook > Groq > Slack\"],\r\n          [\"forms-responses-ema",
+    "class": "className=\"ic-quickstarts\" aria-label=\"Webhook workflow starters\"",
+    "param": "[id, label]"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "line": 303,
+    "base": "visible",
+    "class": "className=\"ic-grid\"",
+    "param": "c"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/applications/integrations/IntegrationsPage.tsx",
+    "line": 316,
+    "base": "c.actions.slice(0, 3)",
+    "class": "className=\"ic-card-actions\"",
+    "param": "a"
+  },
+  {
+    "file": "frontend/src/apps/power-apps/PowerAppsPage.tsx",
+    "line": 319,
+    "base": "available",
+    "class": "className=\"pa-catalog\"",
+    "param": "app"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/BlueprintCatalog.tsx",
+    "line": 44,
+    "base": "visible.slice(0, limit)",
+    "class": "className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-3\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/CustomFields.tsx",
+    "line": 46,
+    "base": "data?.fields.filter(f=>fieldShown(f,\"detail\"))",
+    "class": "className=\"grid gap-4 sm:grid-cols-2\"",
+    "param": "f"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/CustomFields.tsx",
+    "line": 51,
+    "base": "fields.filter(f=>fieldShown(f,placement))",
+    "class": "className=\"grid gap-4 sm:grid-cols-2\"",
+    "param": "f"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/people/AddExistingPeopleDialog.tsx",
+    "line": 45,
+    "base": "people.filter(p => `${p.name} ${p.email} ${p.role}`.toLowerCase().includes(query.toLowerCase()))",
+    "class": "className=\"mt-2 max-h-72 space-y-2 overflow-auto\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/people/DirectoryDestinations.tsx",
+    "line": 76,
+    "base": "destinations.data?.items",
+    "class": "className=\"pd-drop-list\"",
+    "param": "destination"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/people/DirectoryDestinations.tsx",
+    "line": 90,
+    "base": "destination.avatars",
+    "class": "className=\"pd-destination-avatars\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/people/DirectoryImport.tsx",
+    "line": 136,
+    "base": "rows",
+    "class": "className=\"pd-import-preview\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/people/PersonManagementHost.tsx",
+    "line": 106,
+    "base": "([\"suspend\", \"reactivate\", \"offboard\", \"terminate\"] as const)",
+    "class": "className=\"grid gap-3 sm:grid-cols-2\"",
+    "param": "kind"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/people/PersonManagementHost.tsx",
+    "line": 111,
+    "base": "candidates.filter(p => `${p.name} ${p.email} ${p.role}`.toLowerCase().includes(search.toLowerCase()))",
+    "class": "className=\"mt-2 max-h-48 overflow-auto\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/ProjectCommunication.tsx",
+    "line": 147,
+    "base": "files",
+    "class": "className=\"pc-uploads\"",
+    "param": "file"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/TaskViewPicker.tsx",
+    "line": 29,
+    "base": "filtered",
+    "class": "className=\"grid max-h-80 gap-2 overflow-y-auto sm:grid-cols-2\"",
+    "param": "view"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/TaskWorkspaceViews.tsx",
+    "line": 18,
+    "base": "Array.from(new Set([...states,...tasks.map(task=>task.status)])).filter(status=>status!==\"Cancelled\" || tasks.some(task=>task.status===status))",
+    "class": "className=\"tr-board\" aria-label=\"Task board\"",
+    "param": "status"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/TaskWorkspaceViews.tsx",
+    "line": 29,
+    "base": "dates",
+    "class": "className=\"tr-calendar-days\"",
+    "param": "date"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/TaskWorkspaceViews.tsx",
+    "line": 36,
+    "base": "work",
+    "class": "",
+    "param": "task"
+  },
+  {
+    "file": "frontend/src/apps/project-management/components/TemplateLibrary.tsx",
+    "line": 56,
+    "base": "visible",
+    "class": "className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-3\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/apps/project-management/dashboard/DashboardWizard.tsx",
+    "line": 254,
+    "base": "catalog.templates",
+    "class": "className=\"db-template-grid\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/project-management/dashboard/WidgetContent.tsx",
+    "line": 434,
+    "base": "rows",
+    "class": "className=\"db-progress-list\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/dashboard/WidgetContent.tsx",
+    "line": 462,
+    "base": "rows",
+    "class": "className=\"db-deadlines\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/dashboard/WidgetContent.tsx",
+    "line": 487,
+    "base": "rows",
+    "class": "className=\"db-activity\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/dashboard/WidgetContent.tsx",
+    "line": 507,
+    "base": "rows",
+    "class": "className=\"db-progress-list\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/dashboard/WidgetContent.tsx",
+    "line": 621,
+    "base": "original",
+    "class": "className=\"db-donut-legend\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/dashboard/WidgetContent.tsx",
+    "line": 649,
+    "base": "series",
+    "class": "className=\"db-heatmap\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/AdminPage.tsx",
+    "line": 115,
+    "base": "adminSections",
+    "class": "className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-3\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/AIOperatorPage.tsx",
+    "line": 187,
+    "base": "tasks",
+    "class": "className=\"max-h-64 overflow-auto space-y-2\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/AssistantStudio.tsx",
+    "line": 158,
+    "base": "[{title:'Build a launch plan',text:'Start with milestones, tasks and dependencies.',icon:GitBranch,go:()=>{setKickoff(true);setTab('plan');}},{title:'Find the r",
+    "class": "className=\"as-three\"",
+    "param": "a"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/AssistantStudio.tsx",
+    "line": 188,
+    "base": "projectItems('playbook')",
+    "class": "className=\"as-two\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/AssistantStudio.tsx",
+    "line": 194,
+    "base": "context.tasks",
+    "class": "className=\"as-task-picker\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/ClientsPage.tsx",
+    "line": 18,
+    "base": "rows.data",
+    "class": "className=\"divide-y rounded border\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/CustomFieldManagerPage.tsx",
+    "line": 37,
+    "base": "fields",
+    "class": "className=\"divide-y\"",
+    "param": "f"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/DashboardsPage.tsx",
+    "line": 749,
+    "base": "filtered",
+    "class": "className={`db-library db-library-${view}`}",
+    "param": "d"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/DashboardsPage.tsx",
+    "line": 1318,
+    "base": "catalogData?.widgets\r\n            .filter(\r\n              (w) =>\r\n                (category === \"All\" || w.category === category) &&\r\n                w.title.to",
+    "class": "className=\"db-gallery\"",
+    "param": "s"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/FilesPage.tsx",
+    "line": 138,
+    "base": "visibleFiles",
+    "class": "className=\"pd-file-grid\"",
+    "param": "file"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/GanttPage.tsx",
+    "line": 271,
+    "base": "rows",
+    "class": "className=\"sticky left-0 z-20 bg-background\"",
+    "param": "{ task }"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/MemberManagementPage.tsx",
+    "line": 116,
+    "base": "members",
+    "class": "className={pid ? \"pd-team-grid\" : \"\"}",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/MilestonesPage.tsx",
+    "line": 104,
+    "base": "milestones",
+    "class": "className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-3\"",
+    "param": "milestone"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/MyAssignmentsPage.tsx",
+    "line": 223,
+    "base": "[true, false]",
+    "class": "className=\"flex gap-3\"",
+    "param": "draft"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/MyWorkPage.tsx",
+    "line": 741,
+    "base": "saved",
+    "class": "className=\"mw-chips\"",
+    "param": "s"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/NotesPage.tsx",
+    "line": 110,
+    "base": "templates.slice(1,5)",
+    "class": "className=\"notes-empty-template-links\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/NotesPage.tsx",
+    "line": 120,
+    "base": "templates.slice(1,5)",
+    "class": "className=\"notes-empty-template-links\" aria-label=\"Start a note from a template\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/NotesPage.tsx",
+    "line": 134,
+    "base": "allNotes",
+    "class": "className=\"notes-link-list\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/NotesPage.tsx",
+    "line": 137,
+    "base": "templates",
+    "class": "className=\"notes-template-grid\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/PeopleManagementDirectory.tsx",
+    "line": 780,
+    "base": "people.data?.items",
+    "class": "className=\"pd-card-grid\"",
+    "param": "person"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/PeopleManagementDirectory.tsx",
+    "line": 843,
+    "base": "([\"filtered\",\"page\",\"selected\"] as const)",
+    "class": "className=\"pd-dialog-actions\"",
+    "param": "scope"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/PlannerPage.tsx",
+    "line": 1245,
+    "base": "days",
+    "class": "className=\"planner-date-grid\"",
+    "param": "day"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/PlansPage.tsx",
+    "line": 19,
+    "base": "capabilityTiers.filter(group => !tier || group.name === tier)",
+    "class": "className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-4\"",
+    "param": "group"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/ProjectsList.tsx",
+    "line": 1205,
+    "base": "saved.slice(0,5)",
+    "class": "role=\"group\" aria-label=\"Saved view shortcuts\"",
+    "param": "view"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/ProjectsList.tsx",
+    "line": 1873,
+    "base": "rows",
+    "class": "className={\r\n                filters.view === \"grid\"\r\n                  ? \"portfolio-cards\"\r\n                 ",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/ReportsPage.tsx",
+    "line": 170,
+    "base": "distribution.by_status",
+    "class": "className=\"space-y-2 mt-3\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/RoadmapPage.tsx",
+    "line": 169,
+    "base": "scheduledEpics",
+    "class": "",
+    "param": "epic"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/RoadmapPage.tsx",
+    "line": 306,
+    "base": "(epic.tasks || [])",
+    "class": "className=\"absolute left-0 right-0 top-16 space-y-1 px-3\"",
+    "param": "task"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskDetail.tsx",
+    "line": 1252,
+    "base": "mentions",
+    "class": "className=\"flex flex-wrap gap-2\"",
+    "param": "user"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskDetail.tsx",
+    "line": 1543,
+    "base": "logs",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskDetail.tsx",
+    "line": 1697,
+    "base": "files",
+    "class": "className=\"space-y-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskListPage.tsx",
+    "line": 769,
+    "base": "taskGroups",
+    "class": "className={layout === \"gallery\" ? \"grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3\" : \"space-y-3 p-4 lg:hidden\"}",
+    "param": "group"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TasksReferencePage.tsx",
+    "line": 617,
+    "base": "[\r\n                  {id:\"all\",label:\"All tasks\"}, {id:\"mine\",label:\"My tasks\"}, {id:\"created\",label:\"Created by me\"}, {id:\"today\",label:\"Today\"}, {id:\"upcoming",
+    "class": "className=\"tr-quick-tabs\" role=\"group\" aria-label=\"Quick task filters\"",
+    "param": "tab"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TasksReferencePage.tsx",
+    "line": 1025,
+    "base": "task.tags",
+    "class": "className=\"tr-task-labels\"",
+    "param": "tag"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskStudioPage.tsx",
+    "line": 348,
+    "base": "value",
+    "class": "className=\"ts-chips\"",
+    "param": "id"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskStudioPage.tsx",
+    "line": 1442,
+    "base": "[\r\n                    {\r\n                      key: \"people\" as const,\r\n                      title: \"Person\",\r\n                      sub: \"Assign to individua",
+    "class": "className=\"ts-assignment-cards\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskTypesPage.tsx",
+    "line": 45,
+    "base": "visible",
+    "class": "className=\"grid gap-4 md:grid-cols-2\"",
+    "param": "type"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskWorkspacePage.tsx",
+    "line": 436,
+    "base": "entry.file_ids",
+    "class": "className=\"tw-file-links\"",
+    "param": "fileId"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TaskWorkspacePage.tsx",
+    "line": 876,
+    "base": "files",
+    "class": "className=\"tw-file-links\"",
+    "param": "file"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/TrashPage.tsx",
+    "line": 44,
+    "base": "visible",
+    "class": "className=\"space-y-3\"",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WhatsAppTasksPage.tsx",
+    "line": 231,
+    "base": "query.data?.filters.projects",
+    "class": "className=\"wa-projects\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkflowSchemesPage.tsx",
+    "line": 53,
+    "base": "transitions",
+    "class": "className=\"space-y-3\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspaceBoardChrome.tsx",
+    "line": 14,
+    "base": "workspaceColors",
+    "class": "",
+    "param": "c"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspacePlanning.tsx",
+    "line": 23,
+    "base": "filtered.filter(t => !t.due_date && !t.start_date)",
+    "class": "className=\"ws-planning-tasks\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspacePlanning.tsx",
+    "line": 26,
+    "base": "members.filter(m => m.role !== \"Guest\")",
+    "class": "className=\"ws-workload-grid\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspacePlanning.tsx",
+    "line": 29,
+    "base": "work",
+    "class": "className=\"ws-planning-tasks\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspacePlanning.tsx",
+    "line": 31,
+    "base": "filtered.filter(t => !taskAssignees(t).length && taskBucket(t.status) !== \"Done\")",
+    "class": "className=\"ws-planning-tasks\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspacesPage.tsx",
+    "line": 254,
+    "base": "members.slice(0, 4)",
+    "class": "className=\"ws-small-avatars\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspaceToolsPage.tsx",
+    "line": 124,
+    "base": "[[\"board\", \"Board\"], [\"gantt\", \"Gantt and dependencies\"], [\"reports\", \"Reports\"]]",
+    "class": "className=\"flex flex-wrap gap-4\"",
+    "param": "[path, label]"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspaceToolsPage.tsx",
+    "line": 140,
+    "base": "tool.task_ids",
+    "class": "className=\"flex flex-wrap gap-3\"",
+    "param": "id"
+  },
+  {
+    "file": "frontend/src/apps/project-management/pages/WorkspaceWork.tsx",
+    "line": 117,
+    "base": "lanes",
+    "class": "className=\"ws-board\"",
+    "param": "lane"
+  },
+  {
+    "file": "frontend/src/apps/project-management/ProjectManagementHomePage.tsx",
+    "line": 140,
+    "base": "workflows",
+    "class": "className=\"divide-y divide-gray-100 rounded-xl border bg-card px-5\"",
+    "param": "workflow"
+  },
+  {
+    "file": "frontend/src/apps/project-management/ProjectManagementHomePage.tsx",
+    "line": 247,
+    "base": "projects.slice(0, 6)",
+    "class": "className=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6\"",
+    "param": "project"
+  },
+  {
+    "file": "frontend/src/apps/saas/PortalPage.tsx",
+    "line": 86,
+    "base": "cards",
+    "class": "className=\"grid gap-4 md:grid-cols-3\"",
+    "param": "card"
+  },
+  {
+    "file": "frontend/src/apps/saas/SaaSWorkspacePage.tsx",
+    "line": 148,
+    "base": "items",
+    "class": "className=\"grid gap-3 md:grid-cols-2\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+    "line": 868,
+    "base": "filteredProducts",
+    "class": "className=\"space-y-2\"",
+    "param": "product"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+    "line": 889,
+    "base": "filteredProducts",
+    "class": "className={`grid gap-2 ${tileDensity === \"compact\" ? \"grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-",
+    "param": "product"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+    "line": 1017,
+    "base": "paymentRows",
+    "class": "className=\"space-y-2\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMPOSPage.tsx",
+    "line": 1280,
+    "base": "profiles",
+    "class": "className=\"space-y-3\"",
+    "param": "profile"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 377,
+    "base": "asList(data.collection_alerts).slice(0,5)",
+    "class": "className=\"divide-y rounded-lg border bg-card\"",
+    "param": "invoice"
+  },
+  {
+    "file": "frontend/src/apps/srm/pages/SRMWorkspacePage.tsx",
+    "line": 1356,
+    "base": "reportDefinitions",
+    "class": "className=\"grid gap-3 md:grid-cols-2\"",
+    "param": "report"
+  },
+  {
+    "file": "frontend/src/components/ai-agents/ApprovalPanel.tsx",
+    "line": 15,
+    "base": "approvals",
+    "class": "className=\"grid gap-4 xl:grid-cols-2\"",
+    "param": "approval"
+  },
+  {
+    "file": "frontend/src/components/ai-agents/AuditLogTable.tsx",
+    "line": 18,
+    "base": "logs",
+    "class": "className=\"divide-y\"",
+    "param": "log"
+  },
+  {
+    "file": "frontend/src/components/ai-agents/ToolCallPreview.tsx",
+    "line": 22,
+    "base": "toolCalls",
+    "class": "className=\"mt-3 space-y-2\"",
+    "param": "call"
+  },
+  {
+    "file": "frontend/src/components/forms/CompactForm.tsx",
+    "line": 7,
+    "base": "sections",
+    "class": "role=\"tablist\" aria-label={label} className=\"suite-form-tabs\" onKeyDown={event => { const index = sections.fin",
+    "param": "section"
+  },
+  {
+    "file": "frontend/src/components/interaction/MoveBoard.tsx",
+    "line": 131,
+    "base": "groups",
+    "class": "className=\"move-columns\"",
+    "param": "group"
+  },
+  {
+    "file": "frontend/src/components/PeopleDirectoryPage.tsx",
+    "line": 70,
+    "base": "people",
+    "class": "className=\"grid gap-2.5 lg:grid-cols-2 xl:grid-cols-3\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/components/PersonPreviewDialog.tsx",
+    "line": 13,
+    "base": "tabs",
+    "class": "className=\"wfp-tabs\" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }} role=\"tablist\" ",
+    "param": "tab"
+  },
+  {
+    "file": "frontend/src/components/RecordQuickPreview.tsx",
+    "line": 152,
+    "base": "tabs",
+    "class": "className=\"min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 sm:px-7\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/components/suite/BranchRoleAssignments.tsx",
+    "line": 62,
+    "base": "module.permissions.filter(p=>ceiling?.permissions.includes(p.name))",
+    "class": "className=\"grid gap-2 sm:grid-cols-2\"",
+    "param": "permission"
+  },
+  {
+    "file": "frontend/src/components/suite/PremiumLauncher.tsx",
+    "line": 55,
+    "base": "applications",
+    "class": "",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/components/suite/PremiumLauncher.tsx",
+    "line": 74,
+    "base": "visible",
+    "class": "className=\"launcher-grid\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/features/access/DashboardStudio.tsx",
+    "line": 324,
+    "base": "widgets",
+    "class": "className=\"ec-dashboard-grid\"",
+    "param": "widget"
+  },
+  {
+    "file": "frontend/src/features/access/StatisticsAuditPage.tsx",
+    "line": 50,
+    "base": "filteredDefinitions",
+    "class": "className=\"grid gap-3 lg:grid-cols-2\"",
+    "param": "d"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 151,
+    "base": "modules",
+    "class": "className=\"ua-module-editor\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/features/access/UsersAccessPage.tsx",
+    "line": 251,
+    "base": "m.permissions",
+    "class": "className=\"ua-permission-list\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/features/forms/FormBuilder.tsx",
+    "line": 437,
+    "base": "([\"min\", \"max\"] as const)",
+    "class": "className=\"form-grid-two\"",
+    "param": "key"
+  },
+  {
+    "file": "frontend/src/features/forms/FormsPage.tsx",
+    "line": 1054,
+    "base": "catalog\n              .filter((f) =>\n                `${f.label} ${f.module_name} ${f.api_name}`\n                  .toLowerCase()\n                  .includes(se",
+    "class": "className=\"forms-card-grid\"",
+    "param": "f"
+  },
+  {
+    "file": "frontend/src/features/forms/FormsPage.tsx",
+    "line": 1095,
+    "base": "forms\n              .filter(matches)\n              .filter((f) => page !== \"responses\" || !f.read_only)\n              .filter((f) => page !== \"published\" || !!f",
+    "class": "className=\"forms-card-grid\"",
+    "param": "f"
+  },
+  {
+    "file": "frontend/src/features/profiles/UnifiedProfile.tsx",
+    "line": 901,
+    "base": "[\"approve\", \"reject\"]",
+    "class": "className=\"up-actions\"",
+    "param": "action"
+  },
+  {
+    "file": "frontend/src/pages/ai-agents/AiAgentConfigPage.tsx",
+    "line": 70,
+    "base": "visibleRows",
+    "class": "className=\"space-y-3\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/pages/ai-agents/AIWorkspacePanel.tsx",
+    "line": 56,
+    "base": "connectors",
+    "class": "className=\"ai-connector-list\"",
+    "param": "c"
+  },
+  {
+    "file": "frontend/src/pages/ai-agents/SuiteOperatorPage.tsx",
+    "line": 83,
+    "base": "memories",
+    "class": "className=\"mt-3 max-h-60 space-y-3 overflow-auto\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/pages/ai-agents/SuiteOperatorPage.tsx",
+    "line": 83,
+    "base": "tasks",
+    "class": "className=\"max-h-56 space-y-2 overflow-auto\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/pages/ai-agents/SuiteOperatorPage.tsx",
+    "line": 95,
+    "base": "analytics?.logs?.slice(0,25)",
+    "class": "className=\"mt-4 space-y-3\"",
+    "param": "l"
+  },
+  {
+    "file": "frontend/src/pages/CompanyAdminPage.tsx",
+    "line": 13,
+    "base": "entries",
+    "class": "className=\"grid gap-4 md:grid-cols-2\"",
+    "param": "entry"
+  },
+  {
+    "file": "frontend/src/pages/settings/FilesStorageSettings.tsx",
+    "line": 41,
+    "base": "draft.providers",
+    "class": "className=\"grid gap-4 md:grid-cols-2 xl:grid-cols-4\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/pages/settings/HomepageBannerSettings.tsx",
+    "line": 59,
+    "base": "[{ image: defaultBanner.image, title: \"Glass office\" }, { image: \"/images/karya-login-hero.webp\", title: \"City workspace\" }]",
+    "class": "className=\"banner-gallery\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/pages/settings/SettingsDirectory.tsx",
+    "line": 41,
+    "base": "recent.map(id=>matches.find(o=>o.id===id)).filter((o):o is SettingsOption=>!!o)",
+    "class": "",
+    "param": "o"
+  },
+  {
+    "file": "frontend/src/pages/SuiteAccountPage.tsx",
+    "line": 56,
+    "base": "profiles",
+    "class": "className=\"suite-inline-actions\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/pages/SuiteNotificationsPage.tsx",
+    "line": 134,
+    "base": "items",
+    "class": "className=\"suite-notification-list\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/platform/Customers.tsx",
+    "line": 63,
+    "base": "r.history",
+    "class": "className=\"po-timeline\"",
+    "param": "h"
+  },
+  {
+    "file": "frontend/src/platform/Signups.tsx",
+    "line": 162,
+    "base": "row.records?.filter((r: Data) => r.kind === \"note\")",
+    "class": "className=\"po-timeline\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/platform/Signups.tsx",
+    "line": 163,
+    "base": "row.history",
+    "class": "className=\"po-timeline\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/platform/Workspaces.tsx",
+    "line": 61,
+    "base": "[...filtered].sort((a, b) => String(a.data.due_at || \"9999\").localeCompare(String(b.data.due_at || \"9999\")))",
+    "class": "className=\"po-timeline\"",
+    "param": "r"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogLinesEditor.tsx",
+    "line": 32,
+    "base": "items",
+    "class": "className=\"sc-picker-grid\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogMultiSelect.tsx",
+    "line": 22,
+    "base": "([\"product\", \"service\"] as const)",
+    "class": "className=\"pc-offering-options\" onKeyDown={event => { if (![\"ArrowDown\", \"ArrowUp\", \"Home\", \"End\"].includes(ev",
+    "param": "kind"
+  },
+  {
+    "file": "frontend/src/shared/catalog/CatalogPage.tsx",
+    "line": 43,
+    "base": "data.items",
+    "class": "className=\"sc-grid\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/shared/communication/collaboration.tsx",
+    "line": 44,
+    "base": "[\"👍\", \"❤️\", \"🎉\", \"👀\", \"✅\", \"🙏\", \"💡\", \"🚀\"]",
+    "class": "className=\"ce-emoji\" aria-label=\"Add reaction\"",
+    "param": "emoji"
+  },
+  {
+    "file": "frontend/src/shared/communication/collaboration.tsx",
+    "line": 83,
+    "base": "participants.slice(0,12)",
+    "class": "className=\"ce-participants\"",
+    "param": "p"
+  },
+  {
+    "file": "frontend/src/shared/custom-fields/CrmRecordFields.tsx",
+    "line": 40,
+    "base": "fields",
+    "class": "className=\"grid gap-4 sm:grid-cols-2\"",
+    "param": "field"
+  },
+  {
+    "file": "frontend/src/shared/data-grid/SharedDataGrid.tsx",
+    "line": 2122,
+    "base": "rowActions.filter(action=>action.quick&&(!action.visible||action.visible(r)))",
+    "class": "className=\"udg-card-actions\"",
+    "param": "action"
+  },
+  {
+    "file": "frontend/src/shared/master-data/BirthdaysPage.tsx",
+    "line": 14,
+    "base": "query.data?.items",
+    "class": "className=\"grid gap-3 md:grid-cols-2 xl:grid-cols-3\"",
+    "param": "row"
+  },
+  {
+    "file": "frontend/src/shared/master-data/CompanyEditor.tsx",
+    "line": 104,
+    "base": "matches.filter(m=>m.kind==='company')",
+    "class": "className=\"md-warning\"",
+    "param": "m"
+  },
+  {
+    "file": "frontend/src/shared/pipeline/PipelineBoard.tsx",
+    "line": 80,
+    "base": "stages",
+    "class": "className=\"pipeline-lanes\"",
+    "param": "stage"
+  },
+  {
+    "file": "frontend/src/shared/pipeline/PipelineBoard.tsx",
+    "line": 82,
+    "base": "actions",
+    "class": "className=\"pipeline-drop-actions\"",
+    "param": "a"
+  },
+  {
+    "file": "frontend/src/shared/pipeline/PipelineStageEditor.tsx",
+    "line": 39,
+    "base": "(hiring?[{name:\"Standard hiring\",stages:[\"Applied\",\"Screening\",\"Interview\",\"Assessment\",\"Offer\",\"Hired\",\"Rejected\",\"Withdrawn\"]},{name:\"Executive hiring\",stages",
+    "class": "className=\"pipeline-template-grid\"",
+    "param": "template"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NoteSearchFilters.tsx",
+    "line": 13,
+    "base": "saved",
+    "class": "className=\"notes-saved-searches\" aria-label=\"Saved searches\"",
+    "param": "value"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesExplorer.tsx",
+    "line": 32,
+    "base": "projects.filter(p=>!search||p.name.toLowerCase().includes(search.toLowerCase())||(tasks[p.id]||[]).some(t=>t.title.toLowerCase().includes(search.toLowerCase()))",
+    "class": "role=\"group\"",
+    "param": "project"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesWorkspace.tsx",
+    "line": 79,
+    "base": "noteTemplates.slice(1,5)",
+    "class": "className=\"notes-empty-template-links\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/shared/productivity/NotesWorkspace.tsx",
+    "line": 87,
+    "base": "noteTemplates",
+    "class": "className=\"rn-templates\"",
+    "param": "t"
+  },
+  {
+    "file": "frontend/src/shared/records/Record360Workspace.tsx",
+    "line": 32,
+    "base": "items",
+    "class": "className=\"r360-work-list\"",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/shared/records/SmartRecordPicker.tsx",
+    "line": 43,
+    "base": "ranked",
+    "class": "role=\"listbox\" id={`${id}-list`} aria-label={`${name} suggestions`} aria-busy={!!loading}",
+    "param": "item"
+  },
+  {
+    "file": "frontend/src/shared/workspace/CalendarLens.tsx",
+    "line": 17,
+    "base": "dates",
+    "class": "className=\"rl-calendar-grid\"",
+    "param": "date"
+  },
+  {
+    "file": "frontend/src/shared/workspace/CalendarLens.tsx",
+    "line": 19,
+    "base": "unscheduled",
+    "class": "",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/shared/workspace/RecordLensViews.tsx",
+    "line": 24,
+    "base": "[...new Set([...(statuses || []),...records.map(record=>record.status)])]",
+    "class": "className=\"rl-board\"",
+    "param": "status"
+  },
+  {
+    "file": "frontend/src/shared/workspace/RecordLensViews.tsx",
+    "line": 29,
+    "base": "owners",
+    "class": "className=\"rl-team\"",
+    "param": "owner"
+  },
+  {
+    "file": "frontend/src/shared/workspace/RecordLensViews.tsx",
+    "line": 32,
+    "base": "groups",
+    "class": "className=\"rl-map-branches\"",
+    "param": "name"
+  },
+  {
+    "file": "frontend/src/shared/workspace/RecordLensViews.tsx",
+    "line": 32,
+    "base": "byGroup(name)",
+    "class": "",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/shared/workspace/RecordLensViews.tsx",
+    "line": 49,
+    "base": "records",
+    "class": "style={{width:maxX,height:maxY,transform:`scale(${zoom})`,transformOrigin:\"top left\"}}",
+    "param": "record"
+  },
+  {
+    "file": "frontend/src/shared/workspace/WorkspaceViewBar.tsx",
+    "line": 32,
+    "base": "items",
+    "class": "className=\"wv-catalog-grid\"",
+    "param": "view"
+  }
+]

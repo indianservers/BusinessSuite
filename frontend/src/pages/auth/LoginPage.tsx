@@ -64,7 +64,7 @@ export default function LoginPage() {
       : localStorage.getItem("suite-remember-session") === "true",
   );
   const [showPassword, setShowPassword] = useState(false);
-  const [workspace, setWorkspace] = useState(() => new URLSearchParams(window.location.search).get("tenant") || sessionStorage.getItem("suite-tenant") || "");
+  const workspace = params.get("tenant") || "";
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -146,6 +146,8 @@ export default function LoginPage() {
         return;
       }
       setRememberSession(remember);
+      sessionStorage.removeItem("suite-organization");
+      sessionStorage.removeItem("suite-branch");
       qc.clear();
       setTokens(data.access_token, data.refresh_token);
       setUser({
@@ -566,8 +568,6 @@ export default function LoginPage() {
                   login.mutate(data);
                 })}
               >
-                <label htmlFor="workspace">Company workspace</label>
-                <input id="workspace" value={workspace} onChange={event => setWorkspace(event.target.value)} placeholder="company-123 (blank for existing shared accounts)" autoComplete="organization" />
                 <label htmlFor="email">Email address</label>
                 <div className="suite-email-field"><Mail size={20} aria-hidden="true"/><input
                   id="email"
@@ -705,7 +705,7 @@ export default function LoginPage() {
                           onClick={() => void socialSignIn(provider)}
                         >
                           <ProviderMark provider={provider}/>Continue with{" "}
-                          {provider === "google" ? "Google" : "Microsoft"}
+                          {provider === "google" ? "Google" : "Microsoft / Outlook"}
                         </button>
                       ))}
                 </div>

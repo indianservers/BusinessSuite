@@ -1,3 +1,5 @@
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
+import RecordMaintenance from "@/components/RecordMaintenance";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import HiringCandidateDetails from "./HiringCandidateDetails";
 import PipelineStageEditor, { type EditableStage } from "@/shared/pipeline/PipelineStageEditor";
@@ -68,7 +70,8 @@ const CANDIDATE_STATUSES = [
 export default function RecruitmentPage() {
   usePageTitle("Recruitment");
   const user = useAuthStore(s=>s.user);
-  const canManage = !!user?.is_superuser || !!user?.access?.grants?.hrms?.permissions?.includes("recruitment_manage") || (!user?.access?.managed && ["admin","super_admin","hr_admin","hr_manager","hr"].includes(String(user?.role)));
+  const canCreate=useDefinitionPermission(["recruitment_manage"],"create"),canManage=useDefinitionPermission(["recruitment_manage"],"edit"),canDelete=useDefinitionPermission(["recruitment_manage"],"delete");
+  const canConfigure=useDefinitionPermission(["recruitment_manage"],"configure"),canConvert=useDefinitionPermission(["employee_create"],"create");
   const [candidateView,setCandidateView] = useState<"board"|"list">("board");
   const [pendingMove,setPendingMove] = useState<{id:number;name:string;status:string}>();
   const qc = useQueryClient();
@@ -139,7 +142,7 @@ export default function RecruitmentPage() {
     },
   });
 
-  const candidateToolbar=<><PipelineViewSwitch view={candidateView} onChange={setCandidateView}/><div className="pipeline-toolbar-end"><NativeSelect aria-label="Hiring job" value={selectedJob} onChange={e=>setSelectedJob(e.target.value?Number(e.target.value):"")}><option value="">All Jobs</option>{(jobs as Job[])?.map(job=><option key={job.id} value={job.id}>{job.title}</option>)}</NativeSelect><NativeSelect aria-label="Candidate status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="">All Statuses</option>{CANDIDATE_STATUSES.map(status=><option key={status} value={status}>{status}</option>)}</NativeSelect><button type="button" className="pipeline-icon-button" aria-label="Refresh candidates" onClick={()=>void refetchCandidates()}><RefreshCw size={15}/></button>{!!selectedJob&&canManage&&<button type="button" onClick={()=>setConfigure(true)}>Customize pipeline</button>}</div></>;
+  const candidateToolbar=<><PipelineViewSwitch view={candidateView} onChange={setCandidateView}/><div className="pipeline-toolbar-end"><NativeSelect aria-label="Hiring job" value={selectedJob} onChange={e=>setSelectedJob(e.target.value?Number(e.target.value):"")}><option value="">All Jobs</option>{(jobs as Job[])?.map(job=><option key={job.id} value={job.id}>{job.title}</option>)}</NativeSelect><NativeSelect aria-label="Candidate status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="">All Statuses</option>{CANDIDATE_STATUSES.map(status=><option key={status} value={status}>{status}</option>)}</NativeSelect><button type="button" className="pipeline-icon-button" aria-label="Refresh candidates" onClick={()=>void refetchCandidates()}><RefreshCw size={15}/></button>{!!selectedJob&&canConfigure&&<button type="button" onClick={()=>setConfigure(true)}>Customize pipeline</button>}</div></>;
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -156,7 +159,7 @@ export default function RecruitmentPage() {
             defaultPrompt="Screen this candidate against the job requirement."
           />
           {activeTab === "jobs" && (
-            <Button size="sm" onClick={() => setShowJobForm((v) => !v)}>
+            <Button size="sm" disabled={!canCreate} onClick={() => setShowJobForm((v) => !v)}>
               <Plus className="h-4 w-4 mr-2" />
               Post Job
             </Button>
@@ -209,7 +212,7 @@ export default function RecruitmentPage() {
             >
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Job Title *</Label>
-                <Input {...registerJob("title", { required: "Required" })} placeholder="e.g. Senior Software Engineer" />
+                <Input aria-label="Job title" {...registerJob("title", { required: "Required" })} placeholder="e.g. Senior Software Engineer" />
                 {jobErrors.title && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={jobErrors.title.message}/></div>}
               </div>
               <div className="space-y-1.5">
@@ -240,7 +243,7 @@ export default function RecruitmentPage() {
                 <Controller name="requirements" control={editorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Requirements" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
               </div>
               <div className="sm:col-span-2 flex gap-3">
-                <Button type="submit" disabled={createJobMutation.isPending}>
+                <Button type="submit" disabled={!canCreate || createJobMutation.isPending}>
                   {createJobMutation.isPending ? "Posting..." : "Post Job"}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowJobForm(false)}>Cancel</Button>
@@ -269,7 +272,7 @@ export default function RecruitmentPage() {
               <Card key={job.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-sm leading-tight">{job.title}</h3>
+                    <h3 className="font-semibold text-sm leading-tight">{job.title}</h3><RecordMaintenance record={job as unknown as Record<string,unknown>} name={job.title} endpoint={`/recruitment/jobs/${job.id}`} fields={[{key:"title",label:"Job title",required:true},{key:"description",label:"Description"},{key:"openings",label:"Openings",type:"number",required:true}]} queryKeys={["jobs"]} canEdit={canManage} canDelete={canDelete}/>
                     <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(job.status)}`}>
                       {job.status}
                     </span>
@@ -302,10 +305,10 @@ export default function RecruitmentPage() {
       {activeTab === "candidates" && (
         <div className="space-y-4">
           {candidateView === "list"&&<div className="flex flex-wrap items-center gap-3">{candidateToolbar}</div>}
-          {candidateView === "board" && <PipelineBoard toolbar={candidateToolbar} title={hiringConfig.data?.name||"Hiring pipeline"} description="Bring the right people forward. Keep every candidate, conversation and hiring stage connected." label="Hiring pipeline" viewState={{job:String(selectedJob||""),status:statusFilter}} onApplyView={v=>{setSelectedJob(Number(v.job)||"");setStatusFilter(String(v.status||""));}} renderDetails={record=><HiringCandidateDetails candidate={((candidates||[]) as Candidate[]).find(c=>c.id===Number(record.id))!} canManage={canManage} onSaved={()=>{void refetchCandidates();void qc.invalidateQueries({queryKey:["employees"]});}}/>} context={{module:"hrms",scope:`job:${selectedJob||"all"}`,kind:"candidate"}} onAdd={canManage&&selectedJob?stage=>{setQuickStage(stage);setCandidateError("");}:undefined} loading={loadingCandidates} disabled={!canManage || updateStatusMutation.isPending} reorder={false}
+          {candidateView === "board" && <PipelineBoard toolbar={candidateToolbar} title={hiringConfig.data?.name||"Hiring pipeline"} description="Bring the right people forward. Keep every candidate, conversation and hiring stage connected." label="Hiring pipeline" viewState={{job:String(selectedJob||""),status:statusFilter}} onApplyView={v=>{setSelectedJob(Number(v.job)||"");setStatusFilter(String(v.status||""));}} renderDetails={record=><HiringCandidateDetails candidate={((candidates||[]) as Candidate[]).find(c=>c.id===Number(record.id))!} canManage={canManage} onSaved={()=>{void refetchCandidates();void qc.invalidateQueries({queryKey:["employees"]});}}/>} context={{module:"hrms",scope:`job:${selectedJob||"all"}`,kind:"candidate"}} onAdd={canCreate&&selectedJob?stage=>{setQuickStage(stage);setCandidateError("");}:undefined} loading={loadingCandidates} disabled={(!canManage&&!canCreate) || updateStatusMutation.isPending} reorder={false}
             notice="Showing loaded candidates for the selected job and status. Hired is a status change; employee conversion remains a separate action."
             stages={hiringConfig.data?.stages?.length?hiringConfig.data.stages.map(s=>({id:s.name,name:s.name,canAdd:!s.require_interview&&!s.require_offer&&!(s.required||[]).includes("resume_url"),wipLimit:s.wip_limit||undefined,agingDays:s.aging_days||14})): [...new Set([...CANDIDATE_STATUSES,...((candidates||[]) as Candidate[]).map(c=>c.status==="Offered"?"Offer":c.status)])].map(status=>({id:status,name:status}))}
-            records={((candidates||[]) as Candidate[]).map(c=>({id:String(c.id),stageId:c.status==="Offered"&&!hiringConfig.data?.stages.some(s=>s.name==="Offered")?"Offer":c.status,title:c.name,isClosed:["Hired","Rejected","Withdrawn"].includes(c.status),subtitle:c.job?.title||c.email,value:c.source||"Applicant"}))}
+            records={((candidates||[]) as Candidate[]).map(c=>({id:String(c.id),disabled:!canManage,stageId:c.status==="Offered"&&!hiringConfig.data?.stages.some(s=>s.name==="Offered")?"Offer":c.status,title:c.name,isClosed:["Hired","Rejected","Withdrawn"].includes(c.status),subtitle:c.job?.title||c.email,value:c.source||"Applicant"}))}
             onOpen={record=>setSelectedCandidate(((candidates||[]) as Candidate[]).find(c=>c.id===Number(record.id))||null)}
             onMove={({record,stageId})=>setPendingMove({id:Number(record.id),name:record.title,status:stageId})}
             actions={canManage?[{id:"reject",label:"Reject",tone:"danger",onAction:record=>setPendingMove({id:Number(record.id),name:record.title,status:"Rejected"})},{id:"withdraw",label:"Withdraw",onAction:record=>setPendingMove({id:Number(record.id),name:record.title,status:"Withdrawn"})}]:[]}
@@ -362,6 +365,7 @@ export default function RecruitmentPage() {
                             <div className="flex flex-wrap items-center gap-2">
                               <NativeSelect
                                 value={c.status}
+                                aria-label={`Hiring status for ${c.name}`}
                                 disabled={!canManage || updateStatusMutation.isPending}
                                 onChange={(e) => updateStatusMutation.mutate({ id: c.id, status: e.target.value })}
                                 className="text-xs h-7 rounded border border-input bg-background px-2"
@@ -374,7 +378,7 @@ export default function RecruitmentPage() {
                                 size="sm"
                                 variant="outline"
                                 className="h-7 text-xs"
-                                disabled={!canManage || c.status !== "Hired" || convertCandidateMutation.isPending}
+                                disabled={!canConvert || c.status !== "Hired" || convertCandidateMutation.isPending}
                                 onClick={() => setConverting(c)}
                               >
                                 Convert

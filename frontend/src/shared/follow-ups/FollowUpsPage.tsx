@@ -1,3 +1,5 @@
+import {useModuleAction} from "@/hooks/use-module-action";
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
 import { useRecordScope } from "@/shared/records/Record360Workspace";
 import GridTable from "@/shared/data-grid/GridTable";
 import PhoneActions from "@/components/PhoneActions";
@@ -57,6 +59,8 @@ type Row = {
 const load = (url: string, params = {}) =>
   api.get(url, { params }).then((r) => r.data);
 export default function FollowUpsPage() {
+  const canExport=useModuleAction("export");
+  const canCreate=useDefinitionPermission(["crm_manage","crm_admin","crm_activities_manage","srm_manage","srm_admin","pms_manage_tasks","pms_admin"],"create"),canEdit=useDefinitionPermission(["crm_manage","crm_admin","crm_activities_manage","srm_manage","srm_admin","pms_manage_tasks","pms_admin"],"edit");
   const { id } = useParams();
   const scope=useRecordScope();
   const location = useLocation();
@@ -232,7 +236,7 @@ export default function FollowUpsPage() {
             and Sales
           </p>
         </div>
-        <Button onClick={() => setCreating((v) => !v)}>
+        <Button disabled={!canCreate} onClick={() => setCreating((v) => !v)}>
           <Plus className="mr-2 h-4 w-4" />
           Schedule follow-up
         </Button>
@@ -277,7 +281,7 @@ export default function FollowUpsPage() {
             </label>
           ))}
       </details>
-      {creating && (
+      {creating && canCreate && (
         <CompactForm
           className="space-y-3 rounded-xl border bg-card p-4"
           onSubmit={(e) => {
@@ -409,7 +413,7 @@ export default function FollowUpsPage() {
             employees={options.data?.employees}
             teams={options.data?.teams}
           />
-          <Button disabled={busy || !schedule.required}>Save follow-up</Button>
+          <Button disabled={!canCreate || busy || !schedule.required}>Save follow-up</Button>
         </CompactForm>
       )}
       {(query.isError || detail.isError || stats.isError) && (
@@ -478,11 +482,11 @@ export default function FollowUpsPage() {
             onChange={(e) => setNotes(e.target.value)}
           />
           <ActionToolbar label="Follow-up actions" actions={[
-            {id:"complete",kind:"complete",label:"Complete",prominent:true,primary:true,disabled:busy,onSelect:()=>run(()=>action(Number(id),"complete"))},
-            {id:"contact",kind:"call",label:"Log customer contact",prominent:true,disabled:busy || !notes.trim(),disabledReason:!notes.trim() ? "Enter a comment or reason before logging contact" : undefined,onSelect:()=>run(()=>action(Number(id),"contact"))},
-            {id:"next",kind:"followup",label:"Create next follow-up",prominent:true,onSelect:()=>{setSchedule({...detail.data!.configuration,required:true});setCustomer(String(detail.data!.customer_id));setTitle(detail.data!.title);setCreating(true);}},
-            {id:"comment",kind:"note",label:"Add comment",disabled:busy || !notes.trim(),disabledReason:!notes.trim() ? "Enter a comment first" : undefined,onSelect:()=>run(()=>action(Number(id),"comment"))},
-            {id:"cancel",kind:"reject",label:"Cancel follow-up",danger:true,disabled:busy,confirm:{title:"Cancel this follow-up?",description:"This follow-up will be marked as cancelled. Its activity history will be retained.",label:"Cancel follow-up"},onSelect:()=>run(()=>action(Number(id),"cancel"))},
+            {id:"complete",kind:"complete",label:"Complete",prominent:true,primary:true,disabled:busy||!canEdit||["Completed","Cancelled"].includes(detail.data!.status),onSelect:()=>run(()=>action(Number(id),"complete"))},
+            {id:"contact",kind:"call",label:"Log customer contact",prominent:true,disabled:busy||!canEdit||["Completed","Cancelled"].includes(detail.data!.status) || !notes.trim(),disabledReason:!notes.trim() ? "Enter a comment or reason before logging contact" : undefined,onSelect:()=>run(()=>action(Number(id),"contact"))},
+            {id:"next",kind:"followup",label:"Create next follow-up",prominent:true,disabled:!canCreate,onSelect:()=>{setSchedule({...detail.data!.configuration,required:true});setCustomer(String(detail.data!.customer_id));setTitle(detail.data!.title);setCreating(true);}},
+            {id:"comment",kind:"note",label:"Add comment",disabled:busy||!canEdit || !notes.trim(),disabledReason:!notes.trim() ? "Enter a comment first" : undefined,onSelect:()=>run(()=>action(Number(id),"comment"))},
+            {id:"cancel",kind:"reject",label:"Cancel follow-up",danger:true,disabled:busy||!canEdit||["Completed","Cancelled"].includes(detail.data!.status),confirm:{title:"Cancel this follow-up?",description:"This follow-up will be marked as cancelled. Its activity history will be retained.",label:"Cancel follow-up"},onSelect:()=>run(()=>action(Number(id),"cancel"))},
           ]}/>
 
           <div className="flex flex-wrap gap-2">
@@ -495,7 +499,7 @@ export default function FollowUpsPage() {
             />
             <Button
               variant="outline"
-              disabled={busy || !reschedule || !notes.trim()}
+              disabled={!canEdit || ["Completed","Cancelled"].includes(detail.data!.status) || busy || !reschedule || !notes.trim()}
               onClick={() =>
                 void run(() =>
                   action(Number(id), "reschedule", {
@@ -512,7 +516,7 @@ export default function FollowUpsPage() {
             <Input
               aria-label="Upload follow-up attachment"
               type="file"
-              disabled={busy}
+              disabled={!canCreate||busy}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file)
@@ -689,7 +693,7 @@ export default function FollowUpsPage() {
                 <option value="status">Group by status</option>
                 <option value="assigned_to">Group by employee</option>
               </NativeSelect>
-              <Button variant="outline" onClick={exportRows}>
+              <Button variant="outline" disabled={!canExport} onClick={exportRows}>
                 <Download className="mr-2 h-4 w-4" />
                 Export page
               </Button>
@@ -803,7 +807,7 @@ export default function FollowUpsPage() {
                           const ident = Number(
                             e.dataTransfer.getData("text/plain"),
                           );
-                          if (ident)
+                          if (ident&&canEdit)
                             void run(() =>
                               action(ident, "reschedule", {
                                 due_at: new Date(
@@ -843,7 +847,7 @@ export default function FollowUpsPage() {
                           )
                           .map((r) => (
                             <Link
-                              draggable
+                              draggable={canEdit&&!["Completed","Cancelled"].includes(r.status)}
                               onDragStart={(e) =>
                                 e.dataTransfer.setData(
                                   "text/plain",

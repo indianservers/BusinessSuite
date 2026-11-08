@@ -1344,8 +1344,24 @@ def detail(
     return result
 
 
+def require_patch_actions(user, payload, lead=None, previous=None):
+    from app.access.service import require_module_action
+    values = payload.values
+    details = payload.details.model_dump(exclude_unset=True)
+    required = set()
+    if "owner_user_id" in values and (lead is None or values["owner_user_id"] != lead.owner_user_id):
+        required.add("assign")
+    if "archived" in details and (previous is None or details["archived"] != previous.get("archived", False)):
+        required.add("delete")
+    if set(values)-{"owner_user_id"} or set(details)-{"archived","archiveReason","assignmentReason"} or payload.customFields:
+        required.add("edit")
+    for action in required or {"edit"}:
+        require_module_action(user, "crm", action)
+
+
 def apply_patch(db, user, lead, payload, settings):
     row = state(db, lead, False)
+    require_patch_actions(user,payload,lead,row.data_json if row else {})
     if payload.version is not None and payload.version != (row.version if row else 0):
         raise HTTPException(
             409, "This lead changed since you opened it. Refresh before saving"
@@ -1390,7 +1406,7 @@ def apply_patch(db, user, lead, payload, settings):
         check_owner(db, user, data["owner_user_id"])
     core()._assert_write_scope(
         core()._get_resource("leads"),
-        {"owner_user_id": data.get("owner_user_id", lead.owner_user_id)},
+        data,
         user,
         db,
     )
@@ -2159,6 +2175,7 @@ def bulk_preview(
     db: Session = Depends(get_db),
     user: User = Depends(RequirePermission(*WRITE)),
 ):
+    require_patch_actions(user,payload.patch)
     leads = [lead_record(db, user, ident, True) for ident in set(payload.ids)]
     owner_id=payload.patch.values.get("owner_user_id")
     workload=None
@@ -2178,6 +2195,7 @@ def bulk_apply(
     db: Session = Depends(get_db),
     user: User = Depends(RequirePermission(*WRITE)),
 ):
+    require_patch_actions(user,payload.patch)
     settings = config(db, core()._organization_id(db, user))
     with db.begin_nested():
         leads = [

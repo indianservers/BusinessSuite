@@ -1,5 +1,7 @@
 from __future__ import annotations
 from app.services.metrics.queries import count_rows_before_page
+from app.apps.fam.uae_tax import router as uae_tax_router
+from app.apps.fam.transaction_locks import router as transaction_locks_router, check_lock, check_existing
 
 import csv
 import hashlib
@@ -292,7 +294,10 @@ def audit(db: Session, request: Request, user: User, company_id: int, record_typ
 def bootstrap(db: Session, user: User) -> int:
     company_id = company_id_for(user)
     ensure_fam_seed_data(db, company_id)
-    db.commit()
+    if db.info.get('fam_recurring_transaction'):
+        db.flush()
+    else:
+        db.commit()
     return company_id
 
 
@@ -370,6 +375,7 @@ def validate_voucher_payload(db: Session, company_id: int, payload: VoucherPaylo
     voucher_type = db.query(FAMVoucherType).filter(FAMVoucherType.company_id == company_id, FAMVoucherType.id == payload.voucher_type_id, FAMVoucherType.active == True).first()
     if not voucher_type:
         raise HTTPException(status_code=404, detail="Voucher type not found")
+    check_lock(db, company_id, voucher_type.category, payload.voucher_date)
     fy = db.query(FAMFinancialYear).filter(FAMFinancialYear.company_id == company_id, FAMFinancialYear.id == payload.financial_year_id).first() if payload.financial_year_id else find_financial_year_for_date(db, company_id, payload.voucher_date)
     if not fy:
         raise HTTPException(status_code=404, detail="Financial year not found")
@@ -793,6 +799,7 @@ def create_and_post_voucher(
     source_module: str = "srm",
 ) -> FAMVoucher:
     voucher_type = voucher_type_by_code(db, company_id, voucher_type_code)
+    check_lock(db, company_id, voucher_type.category, voucher_date)
     fy = find_financial_year_for_date(db, company_id, voucher_date)
     period = find_period_for_date(db, fy, voucher_date)
     debit_total = sum(Decimal(str(line.get("debit_amount") or 0)) for line in lines)
@@ -913,6 +920,9 @@ def post_srm_invoice_to_fam(db: Session, request: Request, user: User, company_i
     if mapped and job.status == "posted":
         voucher = db.query(FAMVoucher).filter(FAMVoucher.id == mapped.fam_record_id).first()
         return {"status": "posted", "idempotent": True, "postingJob": serialize(job), "voucher": serialize(voucher), "accountingStatus": source_status(db, company_id, "invoice", invoice.id)}
+    financial_settings = db.query(FAMCompanyFinancialSettings).filter_by(company_id=company_id).first()
+    if financial_settings and (invoice.currency or "").upper() != (financial_settings.base_currency or "INR").upper():
+        raise HTTPException(422, "Convert the invoice to the company base currency before FAM posting; exchange-rate posting is not configured")
     party = ensure_srm_customer_party(db, company_id, invoice.customer_id, "invoice", invoice.id)
     sales = (Decimal(invoice.subtotal or 0) - Decimal(invoice.discount_amount or 0)) or (Decimal(invoice.total_amount or 0) - Decimal(invoice.tax_amount or 0))
     tax = Decimal(invoice.tax_amount or 0)
@@ -923,9 +933,17 @@ def post_srm_invoice_to_fam(db: Session, request: Request, user: User, company_i
         {"ledger_id": ledger_by_code(db, company_id, "SALES").id, "debit_amount": Decimal("0"), "credit_amount": sales, "narration": f"SRM invoice {invoice.invoice_number} sales"},
     ]
     if tax > 0:
-        half_tax = (tax / Decimal("2")).quantize(Decimal("0.01"))
-        lines.append({"ledger_id": ledger_by_code(db, company_id, "OUTPUT-CGST").id, "debit_amount": Decimal("0"), "credit_amount": half_tax, "narration": "Output CGST"})
-        lines.append({"ledger_id": ledger_by_code(db, company_id, "OUTPUT-SGST").id, "debit_amount": Decimal("0"), "credit_amount": tax - half_tax, "narration": "Output SGST"})
+        financial_settings = db.query(FAMCompanyFinancialSettings).filter_by(company_id=company_id).first()
+        country = (financial_settings.country_code or "IN").upper() if financial_settings else "IN"
+        if country in {"AE", "UAE"}:
+            from app.apps.fam.uae_tax import output_vat_ledger
+            lines.append({"ledger_id": output_vat_ledger(db, company_id).id, "debit_amount": Decimal("0"), "credit_amount": tax, "narration": "Output UAE VAT"})
+        elif country == "IN":
+            half_tax = (tax / Decimal("2")).quantize(Decimal("0.01"))
+            lines.append({"ledger_id": ledger_by_code(db, company_id, "OUTPUT-CGST").id, "debit_amount": Decimal("0"), "credit_amount": half_tax, "narration": "Output CGST"})
+            lines.append({"ledger_id": ledger_by_code(db, company_id, "OUTPUT-SGST").id, "debit_amount": Decimal("0"), "credit_amount": tax - half_tax, "narration": "Output SGST"})
+        else:
+            raise HTTPException(422, "Tax posting is configured only for India GST and UAE VAT")
     voucher = create_and_post_voucher(db, request, user, company_id, "SV", invoice_date, invoice.invoice_number, f"SRM sales invoice {invoice.invoice_number}", "invoice", invoice.id, lines)
     add_mapping(db, company_id, "invoice", invoice.id, "voucher", voucher.id)
     bill = create_or_get_bill_reference(db, company_id, party, party.ledger_id, voucher.id, invoice.invoice_number, invoice_date, invoice.due_date or invoice_date + timedelta(days=party.payment_terms_days or 0), "invoice", total, Decimal(invoice.balance_amount if invoice.balance_amount is not None else total), "invoice", invoice.id)
@@ -1134,6 +1152,13 @@ def update_settings(payload: CompanyFinancialSettingsPayload, request: Request, 
     company_id = bootstrap(db, current_user)
     assert_tax_format_placeholders(payload)
     item = db.query(FAMCompanyFinancialSettings).filter(FAMCompanyFinancialSettings.company_id == company_id).first()
+    if (payload.country_code.upper(),payload.base_currency.upper()) != ((item.country_code or '').upper(),(item.base_currency or '').upper()):
+        from sqlalchemy import select
+        # Company-wide configuration cannot reinterpret postings in another branch.
+        has_entries=db.connection().execute(select(FAMLedgerEntry.id).where(FAMLedgerEntry.company_id==company_id).limit(1)).first()
+        has_openings=db.connection().execute(select(FAMOpeningBalance.id).where(FAMOpeningBalance.company_id==company_id,FAMOpeningBalance.posted.is_(True)).limit(1)).first()
+        if has_entries or has_openings:
+            raise HTTPException(409,'Country and base currency cannot change after posting. Use a separate company or a reviewed accounting migration.')
     old = serialize(item)
     for key, value in payload.model_dump().items():
         setattr(item, key, value)
@@ -1556,6 +1581,7 @@ def update_voucher(id: int, payload: VoucherUpdatePayload, request: Request, db:
         raise HTTPException(status_code=404, detail="Voucher not found")
     if voucher.status != "draft":
         raise HTTPException(status_code=409, detail="Posted/cancelled/reversed vouchers cannot be silently edited")
+    check_existing(db, company_id, voucher)
     old = serialize_voucher(db, voucher)
     fy, period, voucher_type, debit, credit = validate_voucher_payload(db, company_id, payload, for_posting=False)
     voucher.financial_year_id = fy.id
@@ -1638,6 +1664,7 @@ def cancel_voucher(id: int, payload: VoucherCancelPayload, request: Request, db:
         raise HTTPException(status_code=404, detail="Voucher not found")
     if voucher.status not in {"draft", "posted"}:
         raise HTTPException(status_code=409, detail="Only draft or posted vouchers can be cancelled")
+    check_existing(db, company_id, voucher)
     old = serialize_voucher(db, voucher)
     voucher.status = "cancelled"
     voucher.cancelled_by = current_user.id
@@ -1657,6 +1684,7 @@ def reverse_voucher(id: int, request: Request, db: Session = Depends(get_db), cu
         raise HTTPException(status_code=404, detail="Voucher not found")
     if voucher.status != "posted":
         raise HTTPException(status_code=409, detail="Only posted vouchers can be reversed")
+    check_existing(db, company_id, voucher)
     existing = db.query(FAMVoucher).filter(FAMVoucher.company_id == company_id, FAMVoucher.reversed_voucher_id == voucher.id).first()
     if existing:
         return serialize_voucher(db, existing)
@@ -1715,6 +1743,7 @@ def clone_voucher(id: int, payload: VoucherClonePayload | None = None, db: Sessi
         raise HTTPException(status_code=404, detail="Voucher not found")
     voucher_type = db.query(FAMVoucherType).filter(FAMVoucherType.id == voucher.voucher_type_id, FAMVoucherType.company_id == company_id).first()
     clone_date = payload.voucher_date if payload and payload.voucher_date else voucher.voucher_date
+    check_lock(db, company_id, voucher_type.category, clone_date)
     fy = find_financial_year_for_date(db, company_id, clone_date)
     period = find_period_for_date(db, fy, clone_date)
     clone = FAMVoucher(company_id=company_id, financial_year_id=fy.id, accounting_period_id=period.id if period else None, branch_id=voucher.branch_id, voucher_type_id=voucher.voucher_type_id, voucher_number=next_voucher_number(voucher_type), voucher_date=clone_date, narration=(payload.narration if payload and payload.narration else f"Clone of {voucher.voucher_number}"), total_debit=voucher.total_debit, total_credit=voucher.total_credit, status="draft", source_module="fam", source_record_type="voucher_clone", source_record_id=str(voucher.id))
@@ -1824,7 +1853,8 @@ def update_party(id: int, payload: PartyPayload, request: Request, db: Session =
     old = serialize_party(db, party)
     for key, value in payload.model_dump(exclude={"contacts", "create_ledger"}).items():
         setattr(party, key, value)
-    db.query(FAMPartyContact).filter(FAMPartyContact.party_id == party.id).delete()
+    for contact in db.query(FAMPartyContact).filter(FAMPartyContact.party_id == party.id).all():
+        db.delete(contact)
     for contact in payload.contacts:
         db.add(FAMPartyContact(party_id=party.id, **contact.model_dump()))
     audit(db, request, current_user, company_id, "party", party.id, "UPDATE", old, serialize_party(db, party))
@@ -2744,6 +2774,21 @@ def tax_ledger_by_keyword(db: Session, company_id: int, keyword: str) -> FAMLedg
     return first_ledger_by(db, company_id, ledger_type="tax")
 
 
+def purchase_input_tax(db, company_id, amount, tds=Decimal("0")):
+    settings = db.query(FAMCompanyFinancialSettings).filter_by(company_id=company_id).first()
+    country = (settings.country_code or "IN").upper() if settings else "IN"
+    if country in {"AE", "UAE"}:
+        if Decimal(tds or 0) != 0:
+            raise HTTPException(422, "India TDS cannot be applied to a UAE purchase")
+        if Decimal(amount or 0) != 0:
+            from app.apps.fam.uae_tax import input_vat_ledger
+            return input_vat_ledger(db, company_id), "Recoverable input VAT"
+        return None, "Recoverable input VAT"
+    if country != "IN" and Decimal(amount or 0) != 0:
+        raise HTTPException(422, "Configure country-specific input tax posting before posting this purchase")
+    return (tax_ledger_by_keyword(db, company_id, "input") if Decimal(amount or 0) != 0 else None), "Input GST"
+
+
 def calculate_purchase_lines(payload: PurchaseBillPayload) -> tuple[list[dict[str, Any]], Decimal, Decimal, Decimal, Decimal]:
     lines: list[dict[str, Any]] = []
     subtotal = gst_total = tds_total = Decimal("0")
@@ -2785,7 +2830,10 @@ def create_purchase_bill(payload: PurchaseBillPayload, request: Request, db: Ses
         db.add(FAMPurchaseBillLine(purchase_bill_id=bill.id, **line))
     purchase_audit(db, current_user, company_id, "purchase_bill", bill.id, "CREATE", None, serialize(bill))
     audit(db, request, current_user, company_id, "purchase_bill", bill.id, "CREATE", None, serialize(bill))
-    db.commit()
+    if db.info.get("fam_recurring_transaction"):
+        db.flush()
+    else:
+        db.commit()
     db.refresh(bill)
     return serialize(bill)
 
@@ -2838,8 +2886,8 @@ def post_purchase_bill(id: int, request: Request, db: Session = Depends(get_db),
         raise HTTPException(status_code=409, detail="Only draft purchase bills can be posted")
     vendor = db.query(FAMParty).filter(FAMParty.company_id == company_id, FAMParty.id == bill.vendor_id).first()
     create_party_ledger(db, company_id, vendor)
-    input_gst_ledger = tax_ledger_by_keyword(db, company_id, "input")
-    tds_ledger = tax_ledger_by_keyword(db, company_id, "tds")
+    input_gst_ledger, input_tax_label = purchase_input_tax(db, company_id, bill.gst_total, bill.tds_amount)
+    tds_ledger = tax_ledger_by_keyword(db, company_id, "tds") if Decimal(bill.tds_amount or 0) > 0 else None
     lines = db.query(FAMPurchaseBillLine).filter(FAMPurchaseBillLine.purchase_bill_id == bill.id).all()
     voucher_lines: list[dict[str, Any]] = []
     for line in lines:
@@ -2851,7 +2899,7 @@ def post_purchase_bill(id: int, request: Request, db: Session = Depends(get_db),
             ledger_id = line.expense_ledger_id
         voucher_lines.append({"ledger_id": ledger_id, "debit_amount": Decimal(line.taxable_value or 0), "credit_amount": Decimal("0"), "narration": line.description})
     if Decimal(bill.gst_total or 0) > 0:
-        voucher_lines.append({"ledger_id": input_gst_ledger.id, "debit_amount": Decimal(bill.gst_total or 0), "credit_amount": Decimal("0"), "narration": "Input GST"})
+        voucher_lines.append({"ledger_id": input_gst_ledger.id, "debit_amount": Decimal(bill.gst_total or 0), "credit_amount": Decimal("0"), "narration": input_tax_label})
     if Decimal(bill.grand_total or 0) > 0:
         voucher_lines.append({"ledger_id": vendor.ledger_id, "debit_amount": Decimal("0"), "credit_amount": Decimal(bill.grand_total or 0), "narration": f"Vendor payable {bill.bill_number}"})
     if Decimal(bill.tds_amount or 0) > 0:
@@ -2905,7 +2953,10 @@ def create_expense(payload: ExpenseClaimPayload, request: Request, db: Session =
         db.add(FAMExpenseLine(expense_claim_id=claim.id, **{**raw.model_dump(), "line_total": line_total}))
     purchase_audit(db, current_user, company_id, "expense_claim", claim.id, "CREATE", None, serialize(claim))
     audit(db, request, current_user, company_id, "expense_claim", claim.id, "CREATE", None, serialize(claim))
-    db.commit()
+    if db.info.get("fam_recurring_transaction"):
+        db.flush()
+    else:
+        db.commit()
     return serialize(claim)
 
 
@@ -2918,11 +2969,11 @@ def post_expense(id: int, request: Request, db: Session = Depends(get_db), curre
     if claim.status != "draft":
         raise HTTPException(status_code=409, detail="Only draft expenses can be posted")
     payable = ledger_or_404(db, company_id, claim.payable_ledger_id or first_ledger_by(db, company_id, nature="liability").id, "Payable ledger not found")
-    input_gst = tax_ledger_by_keyword(db, company_id, "input")
+    input_gst, input_tax_label = purchase_input_tax(db, company_id, claim.gst_total)
     lines = db.query(FAMExpenseLine).filter(FAMExpenseLine.expense_claim_id == claim.id).all()
     voucher_lines = [{"ledger_id": line.expense_ledger_id, "debit_amount": Decimal(line.taxable_value or 0), "credit_amount": Decimal("0"), "narration": line.description} for line in lines]
     if Decimal(claim.gst_total or 0) > 0:
-        voucher_lines.append({"ledger_id": input_gst.id, "debit_amount": Decimal(claim.gst_total or 0), "credit_amount": Decimal("0"), "narration": "Input GST"})
+        voucher_lines.append({"ledger_id": input_gst.id, "debit_amount": Decimal(claim.gst_total or 0), "credit_amount": Decimal("0"), "narration": input_tax_label})
     voucher_lines.append({"ledger_id": payable.id, "debit_amount": Decimal("0"), "credit_amount": Decimal(claim.grand_total or 0), "narration": f"Expense payable {claim.claim_number}"})
     voucher = create_and_post_voucher(db, request, current_user, company_id, "PV", claim.claim_date, claim.claim_number, f"Expense {claim.claim_number}", "expense_claim", claim.id, voucher_lines, source_module="fam")
     claim.voucher_id = voucher.id
@@ -3290,7 +3341,7 @@ def inventory_accounting_dashboard(db: Session = Depends(get_db), current_user: 
 @router.get("/inventory/stock-groups")
 def list_stock_groups(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    items = db.query(FAMStockGroup).filter(FAMStockGroup.company_id == company_id).order_by(FAMStockGroup.group_name).all()
+    items = db.query(FAMStockGroup).filter(FAMStockGroup.company_id == company_id, FAMStockGroup.active.is_(True)).order_by(FAMStockGroup.group_name).all()
     return {"items": [serialize(item) for item in items], "total": len(items)}
 
 
@@ -3309,7 +3360,7 @@ def create_stock_group(payload: InventoryGroupPayload, request: Request, db: Ses
 @router.get("/inventory/units")
 def list_inventory_units(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    items = db.query(FAMUnitOfMeasure).filter(FAMUnitOfMeasure.company_id == company_id).order_by(FAMUnitOfMeasure.unit_name).all()
+    items = db.query(FAMUnitOfMeasure).filter(FAMUnitOfMeasure.company_id == company_id, FAMUnitOfMeasure.active.is_(True)).order_by(FAMUnitOfMeasure.unit_name).all()
     return {"items": [serialize(item) for item in items], "total": len(items)}
 
 
@@ -3327,7 +3378,7 @@ def create_inventory_unit(payload: InventoryUnitPayload, request: Request, db: S
 @router.get("/inventory/warehouses")
 def list_warehouses(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_INVENTORY_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    items = db.query(FAMWarehouse).filter(FAMWarehouse.company_id == company_id).order_by(FAMWarehouse.warehouse_name).all()
+    items = db.query(FAMWarehouse).filter(FAMWarehouse.company_id == company_id, FAMWarehouse.active.is_(True)).order_by(FAMWarehouse.warehouse_name).all()
     return {"items": [serialize(item) for item in items], "total": len(items)}
 
 
@@ -4270,7 +4321,7 @@ def validate_import_job(job: FAMImportJob) -> dict[str, Any]:
     return {"status": "validated" if not errors else "failed", "row_count": len(rows), "errors": errors}
 
 
-def export_rows(db: Session, company_id: int, export_type: str) -> tuple[str, list[dict[str, Any]]]:
+def export_rows(db: Session, company_id: int, export_type: str, filters: dict | None = None) -> tuple[str, list[dict[str, Any]]]:
     if export_type == "chart_of_accounts":
         return "ready", [serialize(item) for item in db.query(FAMLedgerGroup).filter(FAMLedgerGroup.company_id == company_id).all()] + [serialize(item) for item in db.query(FAMLedger).filter(FAMLedger.company_id == company_id).all()]
     if export_type == "ledgers":
@@ -4312,7 +4363,10 @@ def export_rows(db: Session, company_id: int, export_type: str) -> tuple[str, li
     if export_type == "audit_trail":
         return "ready", [serialize(item) for item in db.query(FAMAuditLog).filter(FAMAuditLog.company_id == company_id).all()]
     if export_type in {"trial_balance", "ledger_report", "profit_and_loss", "balance_sheet"}:
-        return "ready", [serialize(item) for item in db.query(FAMLedger).filter(FAMLedger.company_id == company_id, FAMLedger.active == True).all()]
+        from app.apps.fam.statements import statement
+        filters = filters or {}
+        result = statement(db, company_id, export_type, filters.get('from_date'), filters.get('to_date'))
+        return "ready", result['items'] + [{'ledger_name':key, 'amount':value, 'currency':result['currency'], 'row_type':'summary'} for key,value in result['summary'].items()]
     if export_type in {"receivables_aging", "payables_aging"}:
         bill_types = ["invoice", "debit_note", "opening"] if export_type == "receivables_aging" else ["bill", "credit_note", "opening"]
         rows = db.query(FAMBillReference).filter(FAMBillReference.company_id == company_id, FAMBillReference.bill_type.in_(bill_types)).order_by(FAMBillReference.due_date, FAMBillReference.bill_number).all()
@@ -4451,7 +4505,7 @@ def import_errors(import_id: int, db: Session = Depends(get_db), current_user: U
 @router.post("/exports", status_code=201)
 def create_export(payload: FAMExportPayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(*FAM_EXPORT_VIEW_PERMISSIONS))):
     company_id = bootstrap(db, current_user)
-    status_value, rows = export_rows(db, company_id, payload.export_type)
+    status_value, rows = export_rows(db, company_id, payload.export_type, payload.filters_json)
     content = rows_to_csv(rows) if status_value == "ready" and payload.export_format == "csv" else None
     job = FAMExportJob(company_id=company_id, export_type=payload.export_type, export_format=payload.export_format, status=status_value, file_name=f"{payload.export_type}.csv" if content else None, file_content=content, result_json={"row_count": len(rows), "filters": payload.filters_json}, error_json=None if status_value == "ready" else {"message": "Export type is unsupported"}, created_by=current_user.id)
     db.add(job)
@@ -4580,3 +4634,47 @@ def final_certification(db: Session = Depends(get_db), current_user: User = Depe
     results = fam_integrity_results(db, company_id)
     blockers = [item for item in results if item["status"] == "failed" and item["severity"] == "critical"]
     return {"status": "passed" if not blockers else "blocked", "critical_blockers": blockers, "integrity_checks": results, "recommendation": "FAM can proceed only after critical blockers are zero." if blockers else "FAM India accounts hardening is ready for controlled production rollout."}
+
+router.include_router(uae_tax_router)
+router.include_router(transaction_locks_router)
+from app.apps.fam.statements import router as statements_router
+router.include_router(statements_router)
+from app.apps.fam.recurring_purchases import router as recurring_purchases_router
+router.include_router(recurring_purchases_router)
+from app.apps.fam.bank_rules import router as bank_rules_router
+router.include_router(bank_rules_router)
+
+
+# Inventory masters retire instead of breaking historical stock references.
+def _inventory_master_actions(path,model,payload_model):
+    @router.put('/inventory/'+path+'/{identity}')
+    def edit_master(identity:int,payload:dict,request:Request,db:Session=Depends(get_db),user:User=Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
+        company=bootstrap(db,user);row=db.query(model).filter_by(id=identity,company_id=company,active=True).with_for_update().first()
+        if not row:raise HTTPException(404,'Inventory master not found')
+        from pydantic import ValidationError
+        try:values=payload_model.model_validate({**serialize(row),**payload}).model_dump()
+        except ValidationError:raise HTTPException(422,'Check the inventory master fields') from None
+        if model==FAMStockGroup and values.get('parent_group_id'):
+            parent=db.query(model).filter_by(id=values['parent_group_id'],company_id=company,active=True).first()
+            if not parent or parent.id==row.id:raise HTTPException(422,'Choose another active group in this company')
+        before=serialize(row)
+        for key,value in values.items():setattr(row,key,value)
+        inventory_audit(db,request,user,company,path,row.id,'UPDATE',before,serialize(row));db.commit();return serialize(row)
+    @router.delete('/inventory/'+path+'/{identity}',status_code=204)
+    def retire_master(identity:int,request:Request,db:Session=Depends(get_db),user:User=Depends(RequirePermission(*FAM_INVENTORY_MANAGE_PERMISSIONS))):
+        company=bootstrap(db,user);row=db.query(model).filter_by(id=identity,company_id=company,active=True).with_for_update().first()
+        if not row:raise HTTPException(404,'Inventory master not found')
+        before=serialize(row);row.active=False;inventory_audit(db,request,user,company,path,row.id,'RETIRE',before,serialize(row));db.commit()
+_inventory_master_actions('stock-groups',FAMStockGroup,InventoryGroupPayload)
+_inventory_master_actions('units',FAMUnitOfMeasure,InventoryUnitPayload)
+_inventory_master_actions('warehouses',FAMWarehouse,InventoryWarehousePayload)
+
+
+def _retire_finance_master(path,model,permissions):
+    @router.delete('/'+path+'/{identity}',status_code=204)
+    def retire(identity:int,request:Request,db:Session=Depends(get_db),user:User=Depends(RequirePermission(*permissions))):
+        company=bootstrap(db,user);row=db.query(model).filter_by(id=identity,company_id=company,active=True).with_for_update().first()
+        if not row:raise HTTPException(404,'Finance master not found')
+        before=serialize(row);row.active=False;audit(db,request,user,company,path,row.id,'RETIRE',before,serialize(row));db.commit()
+_retire_finance_master('parties',FAMParty,FAM_PARTIES_MANAGE_PERMISSIONS)
+_retire_finance_master('bank-accounts',FAMBankAccount,FAM_BANKING_MANAGE_PERMISSIONS)

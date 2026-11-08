@@ -3,12 +3,14 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { safeSuiteDestination } from "@/lib/suiteNavigation";
 
 export type SuitePreferences = {
+  menuItems?: Record<string, { label?: string; color?: string; icon?: string }>;
   favorites: string[];
   recent: string[];
   compact: boolean;
   groups: Record<string, boolean>;
 };
 const defaults: SuitePreferences = {
+  menuItems: {},
   favorites: [],
   recent: [],
   compact: false,

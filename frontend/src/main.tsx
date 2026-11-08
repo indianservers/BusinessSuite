@@ -2,6 +2,8 @@ import "./pages/settings/settingsNavigationGuard";
 import "./components/forms/compact-forms.css";
 import RecordQuickPreview from "./components/RecordQuickPreview";
 import React from "react";
+import SaveShortcut from "./components/app/SaveShortcut";
+import { installRecordListRefresh } from "./lib/record-changes";
 import { recoverChunkLoad } from "./lib/chunk-recovery";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -15,6 +17,7 @@ import {useAuthStore} from "./store/authStore";
 import AsyncProgress from "./components/app/AsyncProgress";
 import "./index.css";
 import "./design-system/premium.css";
+import "./shared/data-grid/suite-list-surface.css";
 import { applyTheme, useThemeStore } from "./store/themeStore.ts";
 
 const { theme } = useThemeStore.getState();
@@ -44,6 +47,7 @@ const queryClient = new QueryClient({
 });
 
 installRecordCache(api, queryClient);
+installRecordListRefresh(queryClient);
 
 // Statistics caches must not survive an identity, tenant or permission-context switch.
 const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,u?.primary_role??u?.role,u?.is_superuser,u?.access?.grants])};
@@ -56,7 +60,7 @@ window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statist
 function PortalRoot() {
   const {pathname} = useLocation();
   if (pathname.startsWith("/platform")) return <PlatformApp/>;
-  return <><AsyncProgress/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
+  return <><SaveShortcut/><AsyncProgress/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -1,3 +1,4 @@
+import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -11,6 +12,7 @@ type Layout = {
   arrange_version: string;
 };
 export default function LayoutArrangement({ layoutId }: { layoutId: number }) {
+  const canEdit=useDefinitionPermission(["customization_manage","customization_layouts_manage"],"edit");
   const [open, setOpen] = useState(false);
   const query = useQuery({
     queryKey: ["layout-arrange", layoutId],
@@ -29,6 +31,7 @@ export default function LayoutArrangement({ layoutId }: { layoutId: number }) {
         .then((r) => r.data.items),
   });
   async function save(sections: Section[], fields: Placement[]) {
+    if(!canEdit)return;
     try {
       await api.post(`/customization/layouts/${layoutId}/arrange`, {
         version: query.data?.arrange_version,
@@ -50,13 +53,13 @@ export default function LayoutArrangement({ layoutId }: { layoutId: number }) {
       {open && query.data && (
         <div className="space-y-4 pt-3">
           <OrderedList
-            label="Page sections"
+            label="Page sections" disabled={!canEdit}
             items={query.data.sections}
             title={(s) => s.title}
             onReorder={(ordered) => save(ordered, query.data!.fields)}
           />
           <MoveBoard
-            label="Layout fields"
+            label="Layout fields" disabled={!canEdit}
             groups={[
               { id: "root", label: "No section" },
               ...query.data.sections.map((s) => ({

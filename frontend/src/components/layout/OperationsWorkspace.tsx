@@ -1,4 +1,5 @@
 import { LoadingState } from "@/components/ui/state";
+import { isSharedTaskWorkspace } from "@/lib/task-workspace";
 import { Suspense, useContext, useEffect, useState } from "react";
 import { Navigate, UNSAFE_LocationContext as LocationContext, useLocation, useNavigate } from "react-router-dom";
 import type { FrontendRoute } from "@/appRegistry";
@@ -44,12 +45,18 @@ export default function OperationsWorkspace({ route, routes }: { route: Frontend
     return params.size ? `?${params}` : "";
   };
   if (pathname !== canonical) return <Navigate replace to={`${canonical}${searchFor(selected)}`} />;
+  // The shared task workspace supplies the complete PMS shell itself.
+  if (isSharedTaskWorkspace(selected, location.search)) return <ErrorBoundary><Suspense fallback={<LoadingState label="Loading tasks" />}>
+    <LocationContext.Provider value={{ ...locationContext, location: { ...location, pathname: selected } }}>
+      {pages.find(page => page.path === selected)?.element}
+    </LocationContext.Provider>
+  </Suspense></ErrorBoundary>;
   const select = (path: string) => {
     setVisited(current => current.includes(path) ? current : [...current, path]);
     navigate({ pathname: canonical, search: searchFor(path) });
   };
   return <section aria-label={`${workspace.label} workspace`}>
-    {pages.length > 1 && workspace.label !== "Deals" && <div className={`mb-5 border-b border-border pb-3 ${/^\/(crm|pms)(\/|$)/.test(pathname) ? "ws-operation-navigation" : ""}`}>
+    {pages.length > 1 && workspace.label !== "Deals" && <div className={`suite-operation-navigation mb-5 border-b border-border pb-3 ${/^\/(crm|pms)(\/|$)/.test(pathname) ? "ws-operation-navigation" : ""}`}>
       <h1 className="mb-3 text-xl font-semibold">{workspace.label}</h1>
       <div role="tablist" aria-label={`${workspace.label} operations`} className="flex flex-wrap gap-2">
         {pages.map(page => <button key={page.path} id={`operation-tab-${page.path}`} type="button" role="tab"

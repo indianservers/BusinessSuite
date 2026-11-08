@@ -15,12 +15,19 @@ const initialLead = { id: 1, full_name: "Nisha Rao", email: "nisha@example.com",
   details: {}, signals: { overdue: true, slaBreached: true, stale: true, active: true, slaDeadline: "2026-10-13T10:00:00Z", ageDays: 13, nextAction: "Contact now: first-response deadline missed", priority: 170, followUpLabel: "Overdue" },
   timeline: [{ id: 1, title: "Lead captured", event_type: "created", actor_user_id: 100, occurred_at: "2026-10-12T10:00:00Z" }], activities: [], scoreReasons: [{ name: "Email available", matched: true, points: 20 }] };
 
-async function setup(page: Page, canManage = true) {
+async function setup(page: Page, canManage = true, phoneCountryCode = initialLead.phone_country_code, listDelay = 0) {
   await authenticateCrm(page);
-  let lead = structuredClone(initialLead);
+  await page.route("**/api/v1/access/settings/defaults/effective", route => route.fulfill({json:{values:{},modules:{},companyId:1,branchId:1}}));
+  await page.route("**/api/v1/accounting-sync/customer-360/**", route => route.fulfill({json:{balances:[],links:[],invoices:[],payments:[],sources:[]}}));
+  let lead = { ...structuredClone(initialLead), phone_country_code: phoneCountryCode };
   let captured: typeof initialLead | undefined;
   let capture = { enabled: false, path: "", ownerId: 100 };
   const mutations: { path: string; data: unknown }[] = [];
+  await page.route("**/api/v1/record-360/lead/**", route => {
+    const path = new URL(route.request().url()).pathname;
+    const summary = {id:lead.id,kind:"lead",name:lead.full_name,status:lead.status,fields:{},projects:[],allowed_actions:[],sections:{}};
+    return route.fulfill({json:/\/(work|events)$/.test(path) ? {items:[],total:0,per_page:20,sections:{}} : summary});
+  });
   await page.route("**/api/v1/crm/lead-management/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname.split("/lead-management")[1];
@@ -28,7 +35,7 @@ async function setup(page: Page, canManage = true) {
     let body: unknown;
     if (method !== "GET" && !request.headers()["content-type"]?.includes("multipart")) mutations.push({ path, data: request.postDataJSON() });
     if (path === "/settings") body = method === "GET" ? { settings, owners: [{ id: 100, name: "admin@example.com" }, { id: 101, name: "Priya Shah (EMP-101)", employeeId: 501, employeeCode: "EMP-101", kind: "employee" }], unavailableEmployees: [{ employeeId: 502, employeeCode: "EMP-102", name: "Unlinked Employee", reason: "Needs an active login account" }], canManage, canAdmin: canManage, userId: 100 } : { settings: request.postDataJSON() };
-    else if (path === "/leads" && method === "GET") body = { items: [lead], total: 1, page: 1, perPage: 40, truncated: false, limit: 5000, summary: { total: 1, active: 1, overdue: 1, slaBreached: 1, stale: 1 }, byStage: { [lead.status]: 1 }, bySource: { Referral: 1 }, convertedBySource: {}, lostReasons: {} };
+    else if (path === "/leads" && method === "GET") body = { items: [lead, ...(captured ? [captured] : [])], total: captured ? 2 : 1, page: 1, perPage: 40, truncated: false, limit: 5000, summary: { total: 1, active: 1, overdue: 1, slaBreached: 1, stale: 1 }, byStage: { [lead.status]: 1 }, bySource: { Referral: 1 }, convertedBySource: {}, lostReasons: {} };
     else if (path === "/leads" && method === "POST") { const data = request.postDataJSON(); captured = { ...lead, id: 2, ...data.values }; body = captured; }
     else if (path === "/leads/1" && method === "PATCH") { const data = request.postDataJSON(); lead = { ...lead, ...data.values, details: { ...lead.details, ...data.details }, version: lead.version + 1 }; body = lead; }
     else if (path === "/leads/1") body = lead;
@@ -47,9 +54,16 @@ async function setup(page: Page, canManage = true) {
     else if (path === "/bulk/apply") body = { updated: 1 };
     else if (path === "/excel/export" || path === "/excel/template") { await route.fulfill({ contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", body: Buffer.from("workbook-mock"), headers: { "Content-Disposition": "attachment; filename=leads.xlsx" } }); return; }
     else body = {};
+    if(listDelay&&path==="/leads"&&method==="GET"&&mutations.length)await new Promise(resolve=>setTimeout(resolve,listDelay));
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
   });
   await page.goto("/crm/leads");
+  await page.evaluate(async () => {
+    const path = "/src/store/authStore.ts";
+    const { useAuthStore } = await import(path);
+    // The cache uses the session claim to distinguish authenticated identities.
+    useAuthStore.setState({accessToken:`qa.${btoa(JSON.stringify({sid:"lead-workbench-qa"}))}.signature`});
+  });
   await expect(page.getByRole("heading", { name: /Lead workbench/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Nisha Rao", exact: true })).toBeVisible();
   return mutations;
@@ -76,8 +90,11 @@ test("desktop queues, layouts, preview drawer and stage history", async ({ page 
   expect(errors).toEqual([]);
 });
 
-test("capture lead and save a stage change inline", async ({ page }) => {
+test("capture lead closes once and updates the list without opening a preview", async ({ page }) => {
   const mutations = await setup(page);
+  const prompts: string[] = [];
+  page.on("dialog", async dialog => { prompts.push(dialog.message()); await dialog.dismiss(); });
+  const heading = await page.getByRole("heading", {name:/Lead workbench/}).elementHandle();
   await page.getByRole("button", { name: "Add lead", exact: true }).click();
   await page.getByRole("textbox", {name:/^(Full name|Lead Name)/i}).fill("New Prospect");
   await page.getByRole("tab", {name:"Contact Info",exact:true}).click();
@@ -89,7 +106,70 @@ test("capture lead and save a stage change inline", async ({ page }) => {
   const created = mutations.find(m => m.path === "/leads")?.data as { values: { full_name: string; owner_user_id: string } };
   expect(created.values.full_name).toBe("New Prospect");
   expect(Number(created.values.owner_user_id)).toBe(101);
-  await expect(page.getByRole("heading", { name: "New Prospect", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "New Prospect", exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.has("lead")).toBe(false);
+  expect(await heading!.evaluate(element => element.isConnected)).toBe(true);
+  expect(mutations.filter(m => m.path === "/leads")).toHaveLength(1);
+  expect(prompts).toEqual([]);
+});
+
+test("untouched lead with no phone code closes without a discard prompt", async ({ page }) => {
+  await setup(page, true, "");
+  const prompts: string[] = [];
+  page.on("dialog", async dialog => { prompts.push(dialog.message()); await dialog.dismiss(); });
+  await page.getByRole("button", {name:"Nisha Rao",exact:true}).click();
+  await expect(page.getByRole("button", {name:"Save changes",exact:true})).toBeVisible();
+  await expect(page.getByRole("button", {name:"Save changes",exact:true})).toBeDisabled();
+  await page.getByRole("button", {name:"Close dialog",exact:true}).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(prompts).toEqual([]);
+});
+
+test("lead save controls stay visible and successful edits clear the discard warning", async ({ page }) => {
+  const mutations = await setup(page, true, "");
+  const prompts: string[] = [];
+  page.on("dialog", async dialog => { prompts.push(dialog.message()); await dialog.dismiss(); });
+  await page.getByRole("button", {name:"Nisha Rao",exact:true}).click();
+  const save = page.getByRole("button", {name:"Save changes",exact:true});
+  await expect(save).toBeVisible();
+  await page.getByRole("button", {name:"Edit lead",exact:true}).click();
+  await page.getByLabel("Name", {exact:true}).fill("Nisha updated");
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect.poll(()=>mutations.some(m=>m.path==="/leads/1")).toBe(true);
+  await expect(save).toBeDisabled();
+  await page.getByRole("button", {name:"Close dialog",exact:true}).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(prompts).toEqual([]);
+});
+
+test("failed lead save retains edits and still protects genuine unsaved work", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/v1/crm/lead-management/leads/1", route => route.request().method() === "PATCH"
+    ? route.fulfill({status:503,json:{detail:"Save temporarily unavailable"}}) : route.fallback());
+  const prompts: string[] = [];
+  page.on("dialog", async dialog => { prompts.push(dialog.message()); await dialog.dismiss(); });
+  await page.getByRole("button", {name:"Nisha Rao",exact:true}).click();
+  await page.getByRole("button", {name:"Edit lead",exact:true}).click();
+  await page.getByLabel("Name", {exact:true}).fill("Keep this edit");
+  await page.getByRole("button", {name:"Save changes",exact:true}).click();
+  await expect(page.getByRole("alert")).toContainText("Save temporarily unavailable");
+  await expect(page.getByLabel("Name", {exact:true})).toHaveValue("Keep this edit");
+  await page.getByRole("button", {name:"Close dialog",exact:true}).click();
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  expect(prompts).toEqual(["Discard unsaved changes to this lead?"]);
+});
+
+test("Ctrl+S creates a lead once and closes the capture form", async ({ page }) => {
+  const mutations = await setup(page);
+  await page.getByRole("button", {name:"Add lead",exact:true}).click();
+  await page.getByRole("textbox", {name:/^Lead Name/}).fill("Keyboard prospect");
+  await expect(page.getByRole("button", {name:"Create lead",exact:true})).toBeEnabled();
+  await page.keyboard.press("Control+s");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", {name:"Keyboard prospect",exact:true})).toBeVisible();
+  expect(mutations.filter(m=>m.path==="/leads")).toHaveLength(1);
 });
 
 test("employee assignment is available on the full lead record", async ({ page }) => {
@@ -291,4 +371,15 @@ test("unsaved team updates request confirmation before leaving", async ({ page }
   page.once("dialog", dialog => dialog.dismiss());
   await page.getByRole("button", { name: "overview", exact: true }).click();
   await expect(page.getByLabel("Team update", { exact: true })).toHaveValue("Keep this handoff draft");
+});
+
+test("lead edits and archive update visible rows before delayed list responses",async({page})=>{
+ await setup(page,true,"",2500);const prompts:string[]=[];
+ page.on('dialog',async d=>{if(d.type()==='prompt')await d.accept('QA archive reason');else{prompts.push(d.message());await d.dismiss();}});
+ const heading=await page.getByRole('heading',{name:/Lead workbench/}).elementHandle();
+ await page.getByRole('button',{name:'Nisha Rao',exact:true}).click();await page.getByRole('button',{name:'Edit lead',exact:true}).click();await page.getByLabel('Name',{exact:true}).fill('Nisha immediate');await page.getByRole('button',{name:'Save changes',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Save changes',exact:true})).toBeDisabled({timeout:1200});await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Nisha immediate',exact:true})).toBeVisible({timeout:1200});
+ await page.getByLabel('Select Nisha immediate',{exact:true}).check();await page.getByLabel('Bulk action',{exact:true}).selectOption('archive');await page.getByRole('button',{name:'Preview changes',exact:true}).click();await page.getByRole('button',{name:'Apply to 1 leads',exact:true}).click();
+ await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:1200});await expect(page.getByRole('button',{name:'Nisha immediate',exact:true})).toHaveCount(0,{timeout:1200});expect(prompts).toEqual([]);expect(await heading!.evaluate(el=>el.isConnected)).toBe(true);
 });

@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import CompactActions from "@/components/actions/CompactActions";
 import PersonRecordPreview from "@/components/PersonRecordPreview";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -778,8 +780,7 @@ export default function PeopleManagementDirectory() {
               ))}
             </div>
           ) : layout === "list" ? <DirectoryTable columnsValue={params.get("columns") ?? undefined} onColumnsChange={value=>change("columns",value)} people={people.data?.items || []} selected={selected} onSelect={selectPerson} onTogglePage={togglePage} backTo={backTo} sort={params.get("sort") || "name"} onSort={value => change("sort",value)} /> : (
-            <div className="pd-card-grid">
-              {people.data?.items.map((person) => (
+            <GroupedRecords scope="apps/project-management/pages/PeopleManagementDirectory:cards-1" items={(people.data?.items) || []} fields={standardRecordGroups((people.data?.items) || [])} gridClassName="pd-card-grid" renderItem={(person) => (
                 <DirectoryPersonCard
                   key={person.id}
                   person={person}
@@ -803,8 +804,7 @@ export default function PeopleManagementDirectory() {
                     navigate(directoryTaskHref("people", [person.id]))
                   }
                 />
-              ))}
-            </div>
+              )}/>
           )}
           {people.data && !people.data.items.length && (
             <div className="pd-empty">

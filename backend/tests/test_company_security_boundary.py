@@ -750,3 +750,23 @@ def test_internal_invoice_counter_bootstraps_globally_without_exposing_foreign_i
         assert next_invoice_number(db, "AUD") == "AUD-010001"
     finally:
         cleanup()
+
+
+@pytest.mark.parametrize('orphan',[False,True])
+def test_deleted_legacy_ids_can_be_recreated_without_inheriting_owner(db,tenants,orphan):
+    from app.apps.admin_security.models import AdminProfile
+    from app.models.security_boundary import SecurityResourceOwnership
+    from sqlalchemy import select
+    actor1,actor2=tenants['users'][:2]
+    db.info['shared_actor']=(actor1.id,1)
+    first=AdminProfile(name='Delete recreate ownership');db.add(first);db.flush();identity=first.id
+    if orphan:
+        db.connection().execute(AdminProfile.__table__.delete().where(AdminProfile.__table__.c.id==identity));db.expunge(first)
+    else:
+        db.delete(first);db.flush()
+        assert db.connection().execute(select(SecurityResourceOwnership.__table__.c.company_id).where(SecurityResourceOwnership.__table__.c.resource_table==AdminProfile.__tablename__,SecurityResourceOwnership.__table__.c.resource_id==identity)).scalar() is None
+    db.info['shared_actor']=(actor2.id,2)
+    replacement=AdminProfile(id=identity,name='New company resource');db.add(replacement);db.flush()
+    owned=SecurityResourceOwnership.__table__
+    assert db.connection().execute(select(owned.c.company_id).where(owned.c.resource_table==AdminProfile.__tablename__,owned.c.resource_id==identity)).scalar()==2
+    db.info.pop('shared_actor',None)

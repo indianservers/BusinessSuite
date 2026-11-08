@@ -1,3 +1,4 @@
+import {useAuthStore} from "@/store/authStore";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -5,7 +6,7 @@ import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
-import { Fragment, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Fragment, type FormEvent, type ReactNode, cloneElement, isValidElement, useId, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertTriangle, Edit2, Plus, ShieldAlert, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,8 @@ const emptyForm: CreateRiskInput = {
 
 export default function RisksPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants.project_management;
+  const permits=(action:string)=>!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes(action);
   const [filters, setFilters] = useState<Filters>({ ...defaultFilters, projectId: projectId || "" });
   const [projects, setProjects] = useState<PMSProject[]>([]);
   const [users, setUsers] = useState<PMSMentionUser[]>([]);
@@ -180,7 +183,7 @@ export default function RisksPage() {
           <h1 className="page-title">Risk Register</h1>
           <p className="page-description">Track project-level probability, impact, mitigation plans, owners, and delivery health risk.</p>
         </div>
-        <Button onClick={() => setShowForm(true)}><Plus className="h-4 w-4" />Add risk</Button>
+        <Button disabled={!permits("create")} onClick={() => setShowForm(true)}><Plus className="h-4 w-4" />Add risk</Button>
       </div>
 
       <Card>
@@ -283,7 +286,7 @@ export default function RisksPage() {
                 <RichTextField data-legacy-format="markdown" className="input min-h-24" value={form.contingency_plan || ""} onChange={(event) => setForm((current) => ({ ...current, contingency_plan: event.target.value }))} />
               </Field>
               <div className="flex gap-2 lg:col-span-2">
-                <Button type="submit" disabled={saving || !form.title.trim() || !form.project_id}>{saving ? "Saving..." : editing ? "Update risk" : "Create risk"}</Button>
+                <Button type="submit" disabled={saving || !permits(editing?"edit":"create") || !form.title.trim() || !form.project_id}>{saving ? "Saving..." : editing ? "Update risk" : "Create risk"}</Button>
                 <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
               </div>
             </CompactForm>
@@ -349,8 +352,8 @@ export default function RisksPage() {
                         </td>
                         <td className="p-3">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => startEdit(risk)}><Edit2 className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => remove(risk)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
+                            <Button disabled={!permits("edit")} aria-label={`Edit ${risk.title}`} variant="ghost" size="sm" onClick={() => startEdit(risk)}><Edit2 className="h-4 w-4" /></Button>
+                            <Button disabled={!permits("delete")} aria-label={`Delete ${risk.title}`} variant="ghost" size="sm" onClick={() => remove(risk)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
                           </div>
                         </td>
                       </tr>
@@ -377,10 +380,12 @@ function Filter({ label, value, onChange, children, disabled = false }: { label:
 }
 
 function Field({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+  const id=useId();
+  const control=isValidElement(children)?cloneElement(children as React.ReactElement<{id?:string;"aria-label"?:string}>,{id,"aria-label":label}):children;
   return (
     <div className={cn("space-y-1", wide && "lg:col-span-2")}>
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={id}>{label}</Label>
+      {control}
     </div>
   );
 }

@@ -1,10 +1,11 @@
+import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { api } from "@/services/api";
 import { type FieldRecord, fieldPath } from "../components/CustomFields";
 import { CustomFieldsForm, type FieldDraft } from "../components/CustomFields";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ export default function CreateProjectPage() {
   const { projectId } = useParams();
   const editing = Boolean(projectId);
   const [loading, setLoading] = useState(editing);
+  const [customReady,setCustomReady]=useState(!editing);
   const [canEdit, setCanEdit] = useState(!editing);
   const [searchParams] = useSearchParams();
   const workspaceId = Number(searchParams.get("workspace_id")) || undefined;
@@ -40,7 +42,7 @@ export default function CreateProjectPage() {
     projectsAPI.get(Number(projectId)).then(project => {
       if (!active) return;
       setCanEdit(project.can_edit_project === true);
-      api.get<FieldRecord>(fieldPath("project",Number(projectId))).then(({data})=>{if(active)setCustomValues(Object.fromEntries(data.fields.map(f=>[f.id,{value:f.value??null,...(f.country_code?{country_code:f.country_code}:{})}])));}).catch(()=>undefined);
+      api.get<FieldRecord>(fieldPath("project",Number(projectId))).then(({data})=>{if(active)setCustomValues(Object.fromEntries(data.fields.map(f=>[f.id,{value:f.value??null,...(f.country_code?{country_code:f.country_code}:{})}])));}).catch(()=>undefined).finally(()=>{if(active)setCustomReady(true);});
       setName(project.name); setProjectKey(project.project_key); setDescription(project.description || "");
       setStatus(project.status); setPriority(project.priority); setStartDate(project.start_date?.slice(0,10) || "");
       setDueDate(project.due_date?.slice(0,10) || ""); setBudget(String(project.budget_amount ?? ""));
@@ -50,16 +52,18 @@ export default function CreateProjectPage() {
     return ()=>{active=false;};
   }, [projectId]);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (loading || !canEdit || submitting) return;
-    if (!name.trim()) return setError("Project name is required.");
-    if (!editing && !/^[A-Z0-9]{2,10}$/.test(projectKey)) return setError("Project key must be uppercase and 2-10 characters.");
-    if (startDate && dueDate && startDate > dueDate) return setError("Start date cannot be after due date.");
-    if (Number(budget || 0) < 0) return setError("Budget cannot be negative.");
+  const writing=useRef(false);
+  const savedSnapshot=useRef<string>();
+  const submit = async (event?: FormEvent,automatic=false) => {
+    event?.preventDefault();
+    if (loading || !canEdit || submitting || writing.current) return false;
+    if (!name.trim()) {setError("Project name is required.");return false;}
+    if (!editing && !/^[A-Z0-9]{2,10}$/.test(projectKey)) {setError("Project key must be uppercase and 2-10 characters.");return false;}
+    if (startDate && dueDate && startDate > dueDate) {setError("Start date cannot be after due date.");return false;}
+    if (Number(budget || 0) < 0) {setError("Budget cannot be negative.");return false;}
 
     try {
-      setSubmitting(true);
+      writing.current=true;setSubmitting(!automatic);
       setError(null);
       const payload = {
         workspace_id: workspaceId,
@@ -76,14 +80,19 @@ export default function CreateProjectPage() {
       const project = editing
         ? await projectsAPI.update(Number(projectId), {...payload, start_date:startDate || null, due_date:dueDate || null, budget_amount:Number(budget || 0)})
         : await projectsAPI.create(payload);
-      navigate(`/pms/projects/${project.id}`);
+      if(automatic)savedSnapshot.current=JSON.stringify(snapshot);
+      if(!automatic){clearDraft();navigate(`/pms/projects/${project.id}`);}return true;
     } catch (err: any) {
-      setError(err?.response?.data?.detail || err?.message || "Failed to create project.");
+      setError(err?.response?.data?.detail || err?.message || "Failed to create project.");return false;
     } finally {
-      setSubmitting(false);
+      writing.current=false;setSubmitting(false);
     }
   };
 
+  const snapshot={name,projectKey,description,status,priority,startDate,dueDate,budget,customValues};
+  const clearDraft=useRecordDraft(`project:${workspaceId||"default"}:new`,snapshot,d=>{setName(d.name);setProjectKey(d.projectKey);setDescription(d.description);setStatus(d.status);setPriority(d.priority);setStartDate(d.startDate);setDueDate(d.dueDate);setBudget(d.budget);setCustomValues(d.customValues);},!editing);
+  useEffect(()=>{if(editing&&!loading&&customReady&&savedSnapshot.current===undefined)savedSnapshot.current=JSON.stringify(snapshot);},[editing,loading,customReady,snapshot]);
+  const auto=useRecordAutosave({value:snapshot,enabled:editing&&canEdit&&!loading&&customReady&&!submitting,dirty:savedSnapshot.current!==undefined&&savedSnapshot.current!==JSON.stringify(snapshot),save:()=>submit(undefined,true)});
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Button type="button" variant="ghost" onClick={() => navigate("/pms/projects")}>
@@ -142,7 +151,7 @@ export default function CreateProjectPage() {
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => navigate("/pms/projects")}>Cancel</Button>
-              <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : editing ? "Save changes" : "Create project"}</Button>
+              <span role="status">{editing?auto.message:"Draft saved automatically"}</span><Button type="submit" data-save-action disabled={submitting||auto.saving}>{submitting ? "Saving…" : editing ? "Save changes" : "Create project"}</Button>
             </div>
           </fieldset></CompactForm>
         </CardContent>

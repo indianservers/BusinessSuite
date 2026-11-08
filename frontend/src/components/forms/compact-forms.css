@@ -14,5 +14,10 @@
 .suite-compact-dialog>.suite-dialog-footer{flex-shrink:0;background:hsl(var(--card));}
 @media(max-width:640px){.suite-form-tabs{flex-wrap:wrap;}.suite-form-tabs button{padding:8px 10px;font-size:12px;}[role=dialog].suite-compact-dialog{max-height:calc(100dvh - 24px);}[role=dialog] form.suite-compact-form{max-height:calc(100dvh - 9rem);}}
 .suite-auto-form-tabs{grid-column:1/-1;}
+[role=dialog].suite-project-create-dialog{display:flex;flex-direction:column;overflow:hidden;max-height:calc(100dvh - 2rem);}
+.suite-dialog-form{display:flex;flex-direction:column;min-height:0;overflow:hidden;flex:1;}
+.suite-dialog-form>fieldset{min-height:0;overflow-y:auto;padding-right:4px;}
+.suite-dialog-form>footer{flex-shrink:0;border-top:1px solid hsl(var(--border));background:hsl(var(--background));padding-top:12px;margin-top:12px;}
+.pipeline-quick-task-footer{position:sticky;bottom:0;z-index:3;display:flex;flex-wrap:wrap;gap:8px;background:hsl(var(--background));border-top:1px solid hsl(var(--border));padding:12px 0;}
 .suite-auto-form-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));min-width:0;}
 [role=dialog] form.suite-compact-form>.flex.justify-end:has(button[type=submit]),[role=dialog] form.suite-compact-form>.border-t:has(button[type=submit]){position:sticky;bottom:0;z-index:5;background:hsl(var(--background));padding-top:12px;padding-bottom:12px;}

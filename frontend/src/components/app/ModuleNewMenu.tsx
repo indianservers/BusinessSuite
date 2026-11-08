@@ -1,5 +1,5 @@
-import {useQueryClient} from "@tanstack/react-query";
-import {lazy,Suspense,useState,useEffect} from "react";
+
+import {lazy,Suspense,useState,useEffect,type ReactNode} from "react";
 const HRQuickAdd=lazy(()=>import("@/apps/hrms/workbench/shared").then(m=>({default:m.HRQuickAdd})));
 const CRMQuickCreate=lazy(()=>import("@/apps/crm/SalesActions").then(m=>({default:m.CRMQuickCreate})));
 import { Bell, Building2, CalendarDays, CheckCircle2, FileText, LifeBuoy, Receipt, ShoppingBag, UserPlus, Users, Wallet } from "lucide-react";
@@ -9,27 +9,27 @@ import { canAccessRoute, getRoleKey } from "@/lib/roles";
 import NewMenu, { type NewAction } from "./NewMenu";
 import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMenu";
 
-export default function ModuleNewMenu() {
+export default function ModuleNewMenu({ children }: { children?: (actions: NewAction[]) => ReactNode } = {}) {
   const { pathname } = useLocation();
   const [crmQuick,setCRMQuick]=useState("");
   const [hrQuick,setHRQuick]=useState(false);
   useEffect(() => { setCRMQuick(""); setHRQuick(false); }, [pathname]);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+
   const user = useAuthStore(s => s.user);
   const role = String(user?.role || "").toLowerCase();
   const hrRole = getRoleKey(user?.role, user?.is_superuser);
   const privileged = !!user?.is_superuser || ["super_admin", "admin"].includes(role);
   const moduleKey = ({crm:"crm",hrms:"hrms",srm:"srm",fam:"fam",pms:"project_management"} as Record<string,string>)[pathname.split("/")[1]];
   const moduleGrant = user?.access?.grants[moduleKey];
-  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return null;
+  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return children ? <>{children([])}</> : null;
   const actions: NewAction[] = [];
   const add = (label: string, description: string, icon: NewAction["icon"], path: string, allowed = true, disabled = false) => {
-    if (allowed && canAccessRoute(path.split(/[?#]/)[0], user?.role, user?.is_superuser)) actions.push({ label, description, icon, disabled, onSelect: () => navigate(path) });
+    if (allowed && (!moduleGrant || user?.is_superuser || moduleGrant.actions.includes("create") || ["Apply Leave", "Support ticket", "Correct Attendance", "Generate Letter"].includes(label)) && canAccessRoute(path.split(/[?#]/)[0], user?.role, user?.is_superuser)) actions.push({ label, description, icon, disabled, menuPaths: label === "Correct Attendance" ? [] : [path.split(/[?#]/)[0].replace(/\/(new|create)$/, "")], onSelect: () => navigate(path) });
   };
   if (pathname.startsWith("/crm")) {
     const manages = !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged || ["crm_super_admin", "crm_org_admin", "crm_sales_manager", "crm_sales_executive"].includes(role));
-    const quick=(label:string,type:string,icon:NewAction["icon"],path:string)=>{if(manages&&(user?.is_superuser||!moduleGrant||moduleGrant.permissions.some(p=>["crm_admin","crm_manage",`crm_${({lead:"leads",customer:"companies",reminder:"activities",contact:"contacts",company:"companies",deal:"deals",task:"activities",activity:"activities"} as Record<string,string>)[type]}_manage`].includes(p)))&&canAccessRoute(path,user?.role,user?.is_superuser))actions.push({label,description:`Quick capture ${label.toLowerCase()}`,icon,onSelect:()=>setCRMQuick(type)});};
+    const quick=(label:string,type:string,icon:NewAction["icon"],path:string)=>{if(manages&&(user?.is_superuser||!moduleGrant||moduleGrant.permissions.some(p=>["crm_admin","crm_manage",`crm_${({lead:"leads",customer:"companies",reminder:"activities",contact:"contacts",company:"companies",deal:"deals",task:"activities",activity:"activities"} as Record<string,string>)[type]}_manage`].includes(p)))&&canAccessRoute(path,user?.role,user?.is_superuser))actions.push({label,description:`Quick capture ${label.toLowerCase()}`,icon,menuPaths:[path],onSelect:()=>setCRMQuick(type)});};
     quick("Add Lead","lead",UserPlus,"/crm/leads");quick("Add Customer","customer",Users,"/crm/customers");quick("Reminder","reminder",Bell,"/crm/tasks");quick("Contact","contact",Users,"/crm/contacts");quick("Company","company",Building2,"/crm/companies");quick("Deal","deal",Wallet,"/crm/deals");quick("Task","task",CheckCircle2,"/crm/tasks");quick("Activity","activity",CalendarDays,"/crm/activities");
     add("Product", "Manage the CRM product catalog", ShoppingBag, "/crm/products?new=products", manages && (!moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
     add("Service", "Manage the CRM service catalog", ShoppingBag, "/crm/services?new=services", manages && (!moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
@@ -50,11 +50,40 @@ export default function ModuleNewMenu() {
     add("Purchase bill", "Capture a vendor bill draft", FileText, "/fam/purchase-bills/new", manages);
     add("Expense claim", "Record an expense for review", Wallet, "/fam/expenses/new", manages);
   } else if (pathname.startsWith("/hrms")) {
-    if((user?.is_superuser || (moduleGrant ? moduleGrant.actions.includes("create") && moduleGrant.permissions.includes("employee_create") : ["admin","hr"].includes(hrRole)))&&canAccessRoute("/hrms/employees/new",user?.role,user?.is_superuser))actions.push({label:"Add Employee",description:"Quick employee capture; finish details later",icon:UserPlus,onSelect:()=>setHRQuick(true)});
+    if((user?.is_superuser || (moduleGrant ? moduleGrant.actions.includes("create") && moduleGrant.permissions.includes("employee_create") : ["admin","hr"].includes(hrRole)))&&canAccessRoute("/hrms/employees/new",user?.role,user?.is_superuser))actions.push({label:"Add Employee",description:"Quick employee capture; finish details later",icon:UserPlus,menuPaths:["/hrms/employees"],onSelect:()=>setHRQuick(true)});
     add("Correct Attendance", "Review missing punches and incomplete shifts", CalendarDays, "/hrms/daily-work?view=attendance", ["admin","hr","manager"].includes(hrRole));
     add("Generate Letter", "Open employee letters and certificates", FileText, "/hrms/letters-certificates", ["admin","hr"].includes(hrRole));
     add("Apply Leave", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
     add("Support ticket", user?.employee_id ? "Ask your support team for help" : "Link an employee profile to raise tickets", LifeBuoy, "/hrms/helpdesk?new=ticket", true, !user?.employee_id);
   }
-  return pathname.startsWith("/pms") ? <PMSQuickAddMenu /> : <><NewMenu actions={actions} />{hrQuick&&<Suspense fallback={<p role="status">Loading employee capture…</p>}><HRQuickAdd close={()=>setHRQuick(false)} saved={id=>{setHRQuick(false);navigate(`/hrms/employees/${id}`);}}/></Suspense>}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>{window.dispatchEvent(new CustomEvent("crm:records-changed"));void Promise.all([queryClient.invalidateQueries({queryKey:["shared-grid"]}),queryClient.invalidateQueries({queryKey:["master-companies"]}),queryClient.invalidateQueries({queryKey:["universal-contacts"]})]);}}/></Suspense>}</>;
+  // Only expose creation destinations with a real form/intent; reports and audit pages stay navigation-only.
+  const definitionCreate = (permissions: string[]) => !!user?.is_superuser || (user?.access
+    ? Object.values(user.access.grants).some(grant => grant.enabled && grant.actions.includes("create") && permissions.some(permission => grant.permissions.includes(permission)))
+    : privileged);
+  if (["crm", "srm", "fam", "hrms", "pms"].includes(pathname.split("/")[1])) {
+    const root = "/" + pathname.split("/")[1];
+    add("Form", "Open a blank form draft", FileText, `${root}/forms/new`, !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged));
+  }
+  if (pathname.startsWith("/srm")) {
+    const manages = !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged || ["srm_admin", "srm_sales_manager", "srm_sales_executive"].includes(role));
+    add("Customer", "Create a customer", UserPlus, "/srm/customers?new=company", manages);
+    add("Vendor", "Create a vendor", Building2, "/srm/vendors?new=company", manages);
+    add("Catalog item", "Add a product or service", ShoppingBag, "/srm/inventory/products?new=item", manages);
+    const catalogAction = actions.find(action => action.label === "Catalog item");
+    if (catalogAction) catalogAction.menuPaths = ["/srm/inventory/products", "/srm/inventory/items", "/srm/products", "/srm/products-services", "/srm/services", "/srm/pos/products"];
+  }
+  if (pathname.startsWith("/hrms")) add("Asset", "Register company equipment", ShoppingBag, "/hrms/assets#new-record", definitionCreate(["asset_manage", "hr_asset_manage"]));
+  if (pathname.startsWith("/crm")) add("Email", "Open the email composer", FileText, "/crm/emails", definitionCreate(["communication_email_send"]));
+  if (pathname.startsWith("/analytics")) {
+    add("Report", "Open the report builder", FileText, "/analytics/report-builder", definitionCreate(["analytics_manage", "analytics_admin"]));
+    if (actions.length) actions[actions.length - 1].menuPaths = ["/analytics/reports", "/analytics/report-builder"];
+    add("Report schedule", "Choose report, recipients and frequency", CalendarDays, "/analytics/scheduled-reports?new=schedule", definitionCreate(["analytics_schedule"]));
+  }
+  if (pathname.startsWith("/admin/customization")) add("Field", "Configure a new custom field", FileText, "/admin/customization/fields?new=field", definitionCreate(["customization_manage", "customization_fields_manage"]));
+  if (pathname.startsWith("/admin/customization")) {
+    for (const [kind, label] of [["modules", "Module"], ["buttons", "Record action"], ["validation-rules", "Validation rule"], ["related-lists", "Related list"], ["layouts", "Layout"], ["views", "Saved view"], ["kanban", "Kanban board"], ["picklists", "Picklist"]]) {
+      add(label, `Configure a new ${label.toLowerCase()}`, FileText, `/admin/customization/${kind}?new=${kind}`, definitionCreate(["customization_manage", "customization_admin"]));
+    }
+  }
+  return pathname.startsWith("/pms") ? <PMSQuickAddMenu>{children ? pmsActions => children([...pmsActions, ...actions]) : undefined}</PMSQuickAddMenu> : <>{children ? children(actions) : <NewMenu actions={actions} />}{hrQuick&&<Suspense fallback={<p role="status">Loading employee capture…</p>}><HRQuickAdd close={()=>setHRQuick(false)} saved={id=>{setHRQuick(false);navigate(`/hrms/employees/${id}`);}}/></Suspense>}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>{window.dispatchEvent(new CustomEvent("crm:records-changed"));}}/></Suspense>}</>;
 }

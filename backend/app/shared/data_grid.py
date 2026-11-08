@@ -13,7 +13,7 @@ import json
 
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, func, case, cast, String
 
 
 class Rule(BaseModel):
@@ -59,6 +59,9 @@ class GridQuery(BaseModel):
     path: list[GroupKey] = Field(default_factory=list, max_length=4)
     page: int = Field(default=1, ge=1, le=10000000)
     pageSize: int = Field(default=50, ge=1, le=200)
+    recordIds: list[str] | None = Field(default=None, max_length=300)
+    recordOrder: bool = False
+    recordIdentity: Literal["id", "key"] = "id"
 
     @model_validator(mode="after")
     def unique(self):
@@ -135,6 +138,11 @@ def filter_expression(group, fields):
 
 
 def apply_filters(query, state, fields):
+    if state.recordIds is not None:
+        identity = field_for(fields, state.recordIdentity)
+        if any(len(value) > 180 for value in state.recordIds):
+            raise HTTPException(422, "Invalid personal record identifier")
+        query = query.filter(identity.expression.in_([typed(identity, value) for value in state.recordIds]))
     for name in state.grouping:
         if not field_for(fields, name).groupable: raise HTTPException(422, "That column cannot be grouped")
     for sort in state.sorting: field_for(fields, sort.id)
@@ -149,6 +157,9 @@ def apply_path(query, state, fields):
 
 
 def apply_sort(query, state, fields, fallback):
+    if state.recordOrder and state.recordIds:
+        identity = field_for(fields, state.recordIdentity).expression
+        return query.order_by(None).order_by(case({value: index for index, value in enumerate(state.recordIds)}, value=cast(identity, String), else_=len(state.recordIds)), fallback.asc())
     orders = [(field_for(fields, s.id).expression.desc() if s.desc else field_for(fields, s.id).expression.asc()).nullslast() for s in state.sorting]
     return query.order_by(None).order_by(*orders, fallback.asc())
 

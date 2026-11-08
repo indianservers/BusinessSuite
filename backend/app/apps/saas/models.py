@@ -296,3 +296,16 @@ class MobileSalesVisitCheckIn(Base):
     status = Column(String(30), default="checked_in", index=True)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class PartnerCommissionClaim(Base):
+    __tablename__ = "partner_commission_claims"
+    id = Column(Integer, primary_key=True)
+    organization_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    portal_user_id = Column(Integer, ForeignKey("portal_users.id"), nullable=False, index=True)
+    reference = Column(String(180), nullable=False)
+    amount = Column(String(40), nullable=False)
+    currency = Column(String(3), nullable=False)
+    notes = Column(Text, nullable=False, default="")
+    version = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

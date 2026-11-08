@@ -1,3 +1,4 @@
+import {useModuleAction} from "@/hooks/use-module-action";
 import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import {
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 type Row = Record<string, any>;
 export default function MyAssignmentsPage() {
+  const canExecute=useModuleAction("create");
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number>();
@@ -41,6 +43,7 @@ export default function MyAssignmentsPage() {
     !locked &&
     !["Done", "In Review", "Cancelled"].includes(task.status);
   async function action(operation: () => Promise<any>) {
+    if(!canExecute)return;
     setBusy(true);
     setMessage("");
     try {
@@ -143,7 +146,7 @@ export default function MyAssignmentsPage() {
           {editable ? (
             <>
               <Button
-                disabled={busy}
+                disabled={busy||!canExecute}
                 onClick={() =>
                   action(() =>
                     api.post(`/project-management/work/tasks/${task.id}/start`),
@@ -174,7 +177,7 @@ export default function MyAssignmentsPage() {
                 />
               </label>
               <Button
-                disabled={busy}
+                disabled={busy||!canExecute}
                 onClick={() =>
                   action(() =>
                     api.post(
@@ -201,7 +204,7 @@ export default function MyAssignmentsPage() {
                   aria-label="Upload evidence"
                   type="file"
                   multiple
-                  disabled={busy}
+                  disabled={busy||!canExecute}
                   onChange={async (e) => {
                     for (const file of Array.from(e.target.files || [])) {
                       await action(async () => {
@@ -224,7 +227,7 @@ export default function MyAssignmentsPage() {
                 {[true, false].map((draft) => (
                   <Button
                     key={String(draft)}
-                    disabled={busy || !notes.trim()}
+                    disabled={busy || !canExecute || !notes.trim()}
                     onClick={() =>
                       action(() =>
                         api.post(

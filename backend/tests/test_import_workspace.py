@@ -31,12 +31,12 @@ def action(client, headers, batch, name):
     return client.post(f"/api/v1/imports/{batch['module']}/batches/{batch['id']}/{name}",headers=headers,json={"version":batch["version"]})
 
 
-def test_import_catalog_three_types_per_module_and_real_templates(client, import_headers):
+def test_import_catalog_supported_types_and_real_templates(client, import_headers):
     from openpyxl import load_workbook
     for module in ("crm","srm","hrms","pms","fam"):
         response=client.get(f"/api/v1/imports/{module}/catalog",headers=import_headers)
         assert response.status_code==200,response.text
-        assert len(response.json())==3
+        assert len(response.json())==(5 if module=="crm" else 3)
         for spec in response.json():
             template=client.get(f"/api/v1/imports/{module}/template/{spec['key']}",headers=import_headers)
             assert template.status_code==200,template.text

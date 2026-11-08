@@ -1,3 +1,7 @@
+import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
+import {useModuleAction} from "@/hooks/use-module-action";
+import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
+import { affectsResource, removedRecordIds, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import {useId as useFieldId,cloneElement as cloneFieldElement,isValidElement as isFieldElement} from "react";
 import { canAccessRoute } from "@/lib/roles";
 import { GitBranch } from "lucide-react";
@@ -578,6 +582,8 @@ const customFieldTypes = [
 ];
 
 const listInlineEditConfig: Partial<Record<CRMPageKind, Record<string, InlineEditConfig>>> = {
+  quotations: {quote:{type:"text",apiField:"quote_number"},issueDate:{type:"date",apiField:"issue_date"},expiryDate:{type:"date",apiField:"expiry_date"},total:{type:"number",apiField:"grand_total"}},
+  tickets: {subject:{type:"text",apiField:"subject"},priority:{type:"select",apiField:"priority",options:["Low","Normal","High","Urgent"]},status:{type:"select",apiField:"status",options:["Open","In Progress","Resolved","Closed"]}},
   leads: {
     name: { type: "text", apiField: "full_name" },
     company: { type: "text", apiField: "company_name" },
@@ -3032,7 +3038,7 @@ function CRMLeadsPage() {
     Promise.all(selectedRows.map((lead) => crmApi.delete("leads", lead.id)))
       .then(() => {
         const deletedIds = new Set(selectedRows.map((lead) => lead.id));
-        setState((current) => ({ ...current, rows: current.rows.filter((lead) => !deletedIds.has(lead.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setState((current) => ({ ...current, rows: current.rows.filter((lead) => !deletedIds.has(lead.id)), total: Math.max(0, current.total - current.rows.filter((row) => deletedIds.has(row.id)).length) }));
         setSelected((current) => current && deletedIds.has(current.id) ? null : current);
         setSelectedIds({});
         toast({ title: "Selected leads deleted" });
@@ -3200,6 +3206,7 @@ function LeadSelect({ label, value, values, onChange }: { label: string; value: 
 }
 
 function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, ownerNames, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMLead[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; ownerNames: Map<number, string>; onSort: (sort: SortState) => void; onSelect: (lead: CRMLead) => void; onEdit: (lead: CRMLead) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (lead: CRMLead, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const canExport=useModuleAction("export");
   const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => {
     onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
@@ -3477,7 +3484,7 @@ function buildLeadDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord) {
   return Object.fromEntries(Array.from(keys).flatMap((key) => {
     const nextValue = next[key];
     const previousValue = previous[key];
-    if (String(nextValue ?? "") === String(previousValue ?? "")) return [];
+    if (JSON.stringify(nextValue ?? null) === JSON.stringify(previousValue ?? null)) return [];
     return [[key, nextValue ?? null]];
   }));
 }
@@ -3579,9 +3586,11 @@ const contactSortableColumns: Record<string, string> = {
 };
 
 export function CRMContactsPage() {
+  const canExport=useModuleAction("export");
   const [messageDraft,setMessageDraft]=useState<{record:CRMContact;channel:"email"|"whatsapp"}>();
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
+  const canCreate=useDefinitionPermission(["crm_contacts_manage","crm_manage","crm_admin"],"create"),canEdit=useDefinitionPermission(["crm_contacts_manage","crm_manage","crm_admin"],"edit"),canDelete=useDefinitionPermission(["crm_contacts_manage","crm_manage","crm_admin"],"delete");
   const [search, setSearch] = useMobileSessionState("crm:contacts:search", "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [view, setView] = useState<ContactViewKey>("all");
@@ -3625,6 +3634,26 @@ export function CRMContactsPage() {
   const stageOptions = useMemo(() => contactOptionValues(state.rows, "stage", ["Lead", "Subscriber", "Customer", "Evangelist", "Inactive"]), [state.rows]);
   const statusOptions = useMemo(() => contactOptionValues(state.rows, "status", ["Active", "Inactive", "Do Not Contact"]), [state.rows]);
   const sourceOptions = useMemo(() => contactOptionValues(state.rows, "source", leadSourceOptions()), [state.rows]);
+  useEffect(() => {
+    const changed = (event: Event) => {
+      const change=(event as CustomEvent<RecordSaved>).detail;
+      const {url,method,record}=change;
+      if (!affectsResource("/crm/contacts",url)) return;
+      const removed=new Set(removedRecordIds(change,"/crm/contacts").map(String));
+      if(removed.size){
+        setState(current=>{const rows=current.rows.filter(row=>!removed.has(String(row.id)));return {...current,rows,total:Math.max(0,current.total-(current.rows.length-rows.length))};});
+        setSelected(current=>current&&removed.has(String(current.id))?null:current);
+        setSelectedIds(current=>Object.fromEntries(Object.entries(current).filter(([id])=>!removed.has(id))));
+      } else if (method !== "delete" && record?.id) {
+        const contact=recordToContact(normalizeApiRecord("contacts",record as CRMApiRecord),companyNames,ownerNames);
+        setState(current=>{const exists=current.rows.some(row=>row.id===contact.id);if(!exists&&(page!==1||debouncedSearch||activeFilters||view!=="all"))return current;return {...current,rows:exists?current.rows.map(row=>row.id===contact.id?contact:row):[contact,...current.rows],total:current.total+(exists?0:1)};});
+        setSelected(current=>current?.id===contact.id?contact:current);
+      }
+      setRefreshKey(value=>value+1);
+    };
+    window.addEventListener(recordSavedEvent,changed);
+    return () => window.removeEventListener(recordSavedEvent,changed);
+  },[page,debouncedSearch,activeFilters,view,companyNames,ownerNames]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -3657,7 +3686,7 @@ export function CRMContactsPage() {
         const normalized = response.data.items.map((item) => recordToContact(normalizeApiRecord("contacts", item), companyNames, ownerNames));
         setState({ rows: normalized, total: response.data.total, page: response.data.page, pages: response.data.pages, loading: false, error: null });
         setSelected((current) => {
-          if (!current) return normalized[0] || null;
+          if (!current) return null;
           return normalized.find((contact) => Number(contact.id) === Number(current.id)) || current;
         });
       })
@@ -3680,11 +3709,13 @@ export function CRMContactsPage() {
 
   const refresh = () => setRefreshKey((value) => value + 1);
   const openCreate = () => {
+    if(!canCreate)return;
     setFormError(null);
     setEditingContact(null);
     setFormMode("create");
   };
   const openEdit = (contact: CRMContact) => {
+    if(!canEdit)return;
     setFormError(null);
     setEditingContact(contact);
     setFormMode("edit");
@@ -3699,9 +3730,9 @@ export function CRMContactsPage() {
     setState((current) => ({
       ...current,
       rows: [contact, ...current.rows.filter((item) => Number(item.id) !== Number(contact.id))],
-      total: formMode === "create" ? current.total + 1 : current.total,
+      total: current.total + (current.rows.some(row=>row.id===contact.id) ? 0 : 1),
     }));
-    setSelected(contact);
+    if (formMode === "edit") setSelected(current=>current?.id===contact.id?contact:current);
   };
   const prepareMerge = async () => {
     if (selectedRows.length < 2) return;
@@ -3713,19 +3744,21 @@ export function CRMContactsPage() {
       toast({ title: "Could not load selected contacts", description: "Refresh the list and select the contacts again.", variant: "destructive" });
     } finally { setPreparingMerge(false); }
   };
-  const saveContact = (draft: CRMApiRecord, dirtyPayload: CRMApiRecord) => {
-    setFormSaving(true);
+  const saveContact = (draft: CRMApiRecord, dirtyPayload: CRMApiRecord, automatic = false) => {
+    if(!(formMode==="edit"?canEdit:canCreate))return;
+    setFormSaving(!automatic);
     setFormError(null);
     const request = formMode === "edit" && editingContact
       ? crmApi.update<CRMApiRecord>("contacts", editingContact.id, dirtyPayload)
       : crmApi.create<CRMApiRecord>("contacts", draft);
-    request
+    return request
       .then((response) => {
         const contact = recordToContact(normalizeApiRecord("contacts", response.data), companyNames, ownerNames);
         upsertContact(contact);
-        closeForm();
+        if(!automatic)closeForm();
         refresh();
-        toast({ title: formMode === "edit" ? "Contact updated" : "Contact created", description: contact.name });
+        if(!automatic)toast({ title: formMode === "edit" ? "Contact updated" : "Contact created", description: contact.name });
+        return response.data;
       })
       .catch((err) => setFormError(dealError(err)))
       .finally(() => setFormSaving(false));
@@ -3743,12 +3776,13 @@ export function CRMContactsPage() {
       .finally(() => setBulkSaving(false));
   };
   const deleteSelected = () => {
+    if(!canDelete)return;
     if (!selectedRows.length || !window.confirm(`Delete ${selectedRows.length} selected contact${selectedRows.length === 1 ? "" : "s"}?`)) return;
     setBulkSaving(true);
     Promise.all(selectedRows.map((contact) => crmApi.delete("contacts", contact.id)))
       .then(() => {
         const deletedIds = new Set(selectedRows.map((contact) => contact.id));
-        setState((current) => ({ ...current, rows: current.rows.filter((contact) => !deletedIds.has(contact.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setState((current) => ({ ...current, rows: current.rows.filter((contact) => !deletedIds.has(contact.id)), total: Math.max(0, current.total - current.rows.filter((row) => deletedIds.has(row.id)).length) }));
         setSelected((current) => current && deletedIds.has(current.id) ? null : current);
         setSelectedIds({});
         toast({ title: "Selected contacts deleted" });
@@ -3776,7 +3810,7 @@ export function CRMContactsPage() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">Manage people, lifecycle stages, follow-up dates, and account links.</p>
             </div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=contact")}><GitMerge className="h-4 w-4"/>Review duplicates & merge</Button><Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=contact")}><GitMerge className="h-4 w-4"/>Review duplicates & merge</Button><Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" disabled={!canCreate} onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button></div>
           </div>
 
           <section className="rounded-md border border-border bg-card">
@@ -3822,7 +3856,7 @@ export function CRMContactsPage() {
               onSort={setSort}
               onSelect={setSelected}
               onMessage={(record,channel)=>setMessageDraft({record,channel})}
-              onEdit={openEdit}
+              onEdit={canEdit?openEdit:undefined}
               onToggleAll={(checked) => setSelectedIds(checked ? Object.fromEntries(rows.map((row) => [String(row.id), true])) : {})}
               onToggleRow={(contact, checked) => setSelectedIds((current) => ({ ...current, [String(contact.id)]: checked }))}
               onPage={setPage}
@@ -3834,12 +3868,12 @@ export function CRMContactsPage() {
             <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/95 px-3 py-2 text-sm shadow-lg backdrop-blur">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />{selectedRows.length} contact{selectedRows.length === 1 ? "" : "s"} selected</div>
               <CompactActions className="flex flex-wrap gap-2">
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
-                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-card">{stage}</option>)}</NativeSelect></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><Users className="h-3.5 w-3.5" /><span className="sr-only">Assign owner</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving||!canEdit} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ ownerId: Number(event.target.value) }, "Owner assigned"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Assign owner</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)} className="bg-card">{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></label>
+                <label className="flex h-8 items-center gap-2 rounded-md border border-border px-2 text-foreground"><RefreshCcw className="h-3.5 w-3.5" /><span className="sr-only">Change lifecycle stage</span><NativeSelect className="h-7 bg-transparent text-sm outline-none" disabled={bulkSaving||!canEdit} defaultValue="" onChange={(event) => { if (event.target.value) bulkPatch({ lifecycle_stage: event.target.value }, "Lifecycle stage changed"); event.currentTarget.value = ""; }}><option value="" className="bg-card">Change stage</option>{stageOptions.map((stage) => <option key={stage} value={stage} className="bg-card">{stage}</option>)}</NativeSelect></label>
                 <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => navigate("/crm/tasks")}><CalendarDays className="h-3.5 w-3.5" />Add task</Button>
-                {selectedRows.length > 1 && <Button size="sm" disabled={preparingMerge || bulkSaving} onClick={() => void prepareMerge()}><GitMerge className="h-3.5 w-3.5"/>{preparingMerge ? "Loading records…" : `Merge selected (${selectedRows.length})`}</Button>}
-                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" onClick={() => exportRows("selected-contacts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
-                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
+                {selectedRows.length > 1 && <Button size="sm" disabled={preparingMerge || bulkSaving || !canEdit || !canDelete} onClick={() => void prepareMerge()}><GitMerge className="h-3.5 w-3.5"/>{preparingMerge ? "Loading records…" : `Merge selected (${selectedRows.length})`}</Button>}
+                <Button size="sm" variant="outline" className="h-8 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canExport} onClick={() => exportRows("selected-contacts.csv", selectedRows as unknown as CRMRecord[])}><Download className="h-3.5 w-3.5" />Export selected</Button>
+                <Button size="sm" variant="outline" className="h-8 border-red-400/30 bg-transparent text-red-700 dark:text-red-200 hover:bg-red-500/10" disabled={bulkSaving||!canDelete} onClick={deleteSelected}>{bulkSaving ? "Saving..." : "Delete"}</Button>
                 <Button size="sm" variant="ghost" className="h-8 text-muted-foreground hover:bg-accent" onClick={() => setSelectedIds({})} aria-label="Clear contact selection"><X className="h-4 w-4" /></Button>
               </CompactActions>
             </div>
@@ -3850,7 +3884,7 @@ export function CRMContactsPage() {
           onMessage={(record,channel)=>setMessageDraft({record,channel})}
           contact={selected}
           onClose={() => setSelected(null)}
-          onEdit={openEdit}
+          onEdit={canEdit?openEdit:undefined}
           onOpenActivities={() => navigate("/crm/activities")}
           onAddTask={() => navigate("/crm/tasks")}
         />
@@ -3878,6 +3912,8 @@ export function CRMContactsPage() {
 }
 
 function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColumns, onSearch, onView, onFilters, onColumns, onColumnToggle, onExport, onImport }: { search: string; view: ContactViewKey; activeFilters: number; showColumns: boolean; visibleColumns: Record<string, boolean>; onSearch: (value: string) => void; onView: (value: ContactViewKey) => void; onFilters: () => void; onColumns: () => void; onColumnToggle: (key: string) => void; onExport: () => void; onImport: () => void }) {
+  const canExport=useModuleAction("export");
+  const canImport=useDefinitionPermission(["crm_contacts_manage","crm_manage","crm_admin"],"create");
   const views: Array<{ key: ContactViewKey; label: string }> = [
     { key: "all", label: "All contacts" },
     { key: "mine", label: "My contacts" },
@@ -3913,8 +3949,8 @@ function ContactsToolbar({ search, view, activeFilters, showColumns, visibleColu
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onFilters}><Filter className="h-4 w-4" />Filters{activeFilters ? <Badge className="ml-1 bg-emerald-500 text-white">{activeFilters}</Badge> : null}</Button>
         <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onColumns}><LayoutGrid className="h-4 w-4" />Columns</Button>
-        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
-        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" onClick={onExport}><Download className="h-4 w-4" />Export</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canImport} onClick={onImport}><Upload className="h-4 w-4" />Import</Button>
+        <Button size="sm" variant="outline" className="h-9 border-border bg-transparent text-foreground hover:bg-accent" disabled={!canExport} onClick={onExport}><Download className="h-4 w-4" />Export</Button>
       </div>
       </div>
       {showColumns ? (
@@ -3945,7 +3981,8 @@ function ContactFilterPanel({ filters, owners, companies, statuses, stages, sour
   );
 }
 
-function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onMessage, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMContact[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (contact: CRMContact) => void; onEdit: (contact: CRMContact) => void; onMessage:(record:CRMContact,channel:"email"|"whatsapp")=>void; onToggleAll: (checked: boolean) => void; onToggleRow: (contact: CRMContact, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onMessage, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMContact[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (contact: CRMContact) => void; onEdit?: (contact: CRMContact) => void; onMessage:(record:CRMContact,channel:"email"|"whatsapp")=>void; onToggleAll: (checked: boolean) => void; onToggleRow: (contact: CRMContact, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const canExport=useModuleAction("export");
   const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => {
     onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
@@ -3985,7 +4022,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 {visibleColumns.owner ? <td className="px-3 py-3 text-muted-foreground"><span className="inline-flex items-center gap-2"><SuiteAvatar name={contact.owner || "Unassigned"} kind="employee" size={24}/>{contact.owner || "Unassigned"}</span></td> : null}
                 {visibleColumns.nextFollowUp ? <td className="px-3 py-3"><FollowUpCell value={contact.nextFollowUp} /></td> : null}
                 {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{contact.updatedAt ? formatDate(contact.updatedAt) : "-"}</td> : null}
-                <td className="sticky right-0 z-10 bg-card px-2 py-3 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]" onClick={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={()=>onEdit(contact)}/></td>
+                <td className="sticky right-0 z-10 bg-card px-2 py-3 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]" onClick={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={onEdit?()=>onEdit(contact):undefined}/></td>
               </tr>
             ))}
             {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
@@ -4005,7 +4042,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
   );
 }
 
-function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivities, onAddTask }: { contact: CRMContact | null; onClose: () => void; onEdit: (contact: CRMContact) => void; onMessage:(contact:CRMContact,channel:"email"|"whatsapp")=>void; onOpenActivities: () => void; onAddTask: () => void }) {
+function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivities, onAddTask }: { contact: CRMContact | null; onClose: () => void; onEdit?: (contact: CRMContact) => void; onMessage:(contact:CRMContact,channel:"email"|"whatsapp")=>void; onOpenActivities: () => void; onAddTask: () => void }) {
   const [timeline, setTimeline] = useState<CRMApiRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -4023,47 +4060,77 @@ function ContactDetailDrawer({ contact, onClose, onEdit, onMessage, onOpenActivi
       .finally(() => setLoading(false));
   }, [contact?.id]);
   if (!contact) return <aside className="hidden border-l border-border bg-card p-4 text-sm text-muted-foreground xl:block">Select a contact to inspect details.</aside>;
-  return <aside className="p-4"><Button variant="ghost" onClick={onClose}>Close</Button><Record360Workspace key={contact.id} kind="contact" id={contact.id} actions={<Button variant="outline" onClick={()=>onEdit(contact)}>Edit</Button>}/></aside>;
+  return <aside className="p-4"><Button variant="ghost" onClick={onClose}>Close</Button><Record360Workspace key={contact.id} kind="contact" id={contact.id} actions={<Button variant="outline" disabled={!onEdit} onClick={()=>onEdit?.(contact)}>Edit</Button>}/></aside>;
 }
 
-export function ContactFormModal({ mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
+export function CRMContactQuickCreate({close,saved}:{close:()=>void;saved:()=>void}) {
+  const [companies,setCompanies]=useState<CRMRecord[]>([]),[owners,setOwners]=useState<CRMRecord[]>([]);
+  const [saving,setSaving]=useState(false),[error,setError]=useState<string|null>(null);
+  const lock=useRef(false);
+  useEffect(()=>{let active=true;void Promise.all([crmApi.list("companies",{per_page:100}),crmApi.list("owners",{per_page:100})]).then(([a,b])=>{if(active){setCompanies(a.data.items.map(item=>normalizeApiRecord("companies",item)));setOwners(b.data.items);}}).catch(()=>{});return()=>{active=false;};},[]);
+  return createPortal(<ContactFormModal mode="create" contact={null} saving={saving} error={error} companies={companies} owners={owners} statuses={["Active","Inactive","Do Not Contact"]} stages={["Lead","Prospect","Customer"]} sources={leadSourceOptions()} onClose={close} onSave={async payload=>{
+    if(lock.current)return;lock.current=true;setSaving(true);setError(null);
+    try{const response=await crmApi.create("contacts",payload);saved();close();return response.data;}catch(error){setError(dealError(error));}finally{lock.current=false;setSaving(false);}
+  }}/>,document.body);
+}
+
+export function ContactFormModal({ mode, contact, saving, error, owners, companies, statuses, stages, sources, onClose, onSave }: { mode: ContactFormMode; contact: CRMContact | null; saving: boolean; error: string | null; owners: CRMRecord[]; companies: CRMRecord[]; statuses: string[]; stages: string[]; sources: string[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord, automatic?:boolean) => Promise<CRMApiRecord|void>|void }) {
+  const allowed=useDefinitionPermission(["crm_contacts_manage","crm_manage","crm_admin"],mode==="edit"?"edit":"create");
   const customFieldForm=useCrmFieldForm("contacts",mode === "edit" ? "edit" : "create",mode === "edit" ? contact?.id : undefined);
   const [customDirty,setCustomDirty]=useState(false);
   const [customError,setCustomError]=useState("");
-  const [initial] = useState(() => contactFormInitial(mode === "edit" ? contact : null));
+  const [initial,setInitial] = useState(() => contactFormInitial(mode === "edit" ? contact : null));
   const [availability, setAvailability] = useState<BranchAvailabilityValue>();
   const [catalogLines, setCatalogLines] = useState<CatalogLine[]>([]);
   const [draft, setDraft] = useState<CRMApiRecord>(initial);
   const [contactTab, setContactTab] = useState("basic");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const dirty = customDirty || availability !== undefined || JSON.stringify(draft) !== JSON.stringify(initial) || catalogLines.length > 0;
+  const [savedCustom,setSavedCustom]=useState<CRMApiRecord>();
+  const [savedAvailability,setSavedAvailability]=useState<BranchAvailabilityValue>();
+  const dirty = (savedCustom?JSON.stringify(customFieldForm.values)!==JSON.stringify(savedCustom):customDirty) || JSON.stringify(availability)!==JSON.stringify(savedAvailability) || JSON.stringify(draft) !== JSON.stringify(initial) || catalogLines.length > 0;
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
-    if (dirty && !window.confirm("Discard unsaved contact changes?")) return;
+    if (mode==="edit" && dirty && !window.confirm("Discard unsaved contact changes?")) return;
     onClose();
   };
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || saving) return;
       event.preventDefault();
-      if (!dirty || window.confirm("Discard unsaved contact changes?")) onClose();
+      if (mode==="create" || !dirty || window.confirm("Discard unsaved contact changes?")) onClose();
     };
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+  return () => document.removeEventListener("keydown", closeOnEscape);
   }, [dirty, saving, onClose]);
-  const submit = () => {
+  const submit = async (automatic=false) => {
+    if(!allowed)return false;
     const validation = validateContactDraft(draft);
     setFieldErrors(validation);
-    if (Object.keys(validation).length) { setContactTab(validation.name ? "basic" : "contact"); return; }
-    let customValues:CRMApiRecord;try{customValues=customFieldForm.validate();setCustomError("");}catch(e){setCustomError(e instanceof Error?e.message:"Check custom fields");return;}
+    if (Object.keys(validation).length) { setContactTab(validation.name ? "basic" : "contact"); return false; }
+    let customValues:CRMApiRecord;try{customValues=customFieldForm.validate();setCustomError("");}catch(e){setCustomError(e instanceof Error?e.message:"Check custom fields");return false;}
     const fullPayload = buildContactPayload(draft);
     fullPayload.customFields=customValues;
     if (mode === "create") fullPayload.catalog_lines = catalogLines.map(linePayload);
     const dirtyPayload = buildContactDirtyPayload(draft, initial);
-    if(Object.keys(customValues).length)dirtyPayload.customFields=customValues;
+    if(customDirty||Object.keys(customValues).length)dirtyPayload.customFields=customValues;
     if (availability) { fullPayload.branch_availability = availability as unknown as CRMApiRecord; dirtyPayload.branch_availability = availability as unknown as CRMApiRecord; }
-    onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
+    const saved=await onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload,automatic);
+    if(!saved?.id)return false;
+    if(automatic){
+      const baseline={...draft};
+      const financial=draft.financialData as unknown as FinancialData|undefined;
+      const financialVersion=financial&&dirtyPayload.financialData?financial.version+1:undefined;
+      const communicationVersion=draft.communicationChannels?String(saved.updated_at||saved.updatedAt||draft.communicationVersion||""):undefined;
+      if(financialVersion!==undefined)baseline.financialData={...financial!,version:financialVersion} as unknown as CRMApiRecord;
+      if(communicationVersion)baseline.communicationVersion=communicationVersion;
+      if(financialVersion!==undefined||communicationVersion)setDraft(current=>({...current,...(financialVersion!==undefined&&current.financialData?{financialData:{...(current.financialData as CRMApiRecord),version:financialVersion}}:{}),...(communicationVersion?{communicationVersion}:{})}));
+      setInitial(baseline);setSavedCustom(customFieldForm.values);setSavedAvailability(availability);setCustomDirty(false);
+    }
+    clearDraft();return true;
   };
+  const draftValue={draft,availability,catalogLines,customValues:customFieldForm.values};
+  const clearDraft=useRecordDraft("crm-contact:new",draftValue,value=>{setDraft(value.draft);setAvailability(value.availability);setCatalogLines(value.catalogLines||[]);customFieldForm.setValues(value.customValues||{});},mode==="create"&&!customFieldForm.loading);
+  const auto=useRecordAutosave({value:draftValue,enabled:mode==="edit"&&allowed&&!saving&&!customFieldForm.loading,dirty,save:()=>submit(true)});
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div role="dialog" aria-modal="true" aria-label={mode === "edit" ? "Edit contact" : "Create contact"} className="suite-compact-dialog w-full max-w-4xl overflow-hidden rounded-md border border-border bg-card text-foreground shadow-2xl">
@@ -4085,7 +4152,7 @@ export function ContactFormModal({ mode, contact, saving, error, owners, compani
             <LeadFormField label="Notes" wide><RichTextField className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" value={valueText(draft.notes)} onChange={(event) => patch("notes", event.target.value)} placeholder="Add notes" maxLength={1000} /></LeadFormField>
           </LeadFormSection>)},{id:"products",label:"Products & services",content:(<>{mode === "create" ? <CatalogLinesEditor selectionOnly value={catalogLines} onChange={setCatalogLines} disabled={saving}/> : contact && <CatalogAssociations source="crm" target="contact" id={contact.id}/>}</>)}]} />
         </div>
-        <div className="suite-dialog-footer flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create contact"}</Button></div>
+        <div className="suite-dialog-footer flex justify-end gap-2 border-t border-border px-5 py-3"><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><span role="status">{auto.message|| (mode==="create"?"Draft saved automatically":"")}</span><Button data-save-action className="bg-emerald-500 text-white hover:bg-emerald-400" disabled={!allowed || saving || auto.saving || customFieldForm.loading || (mode === "edit" && !dirty)} onClick={()=>void submit()}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create contact"}</Button></div>
       </div>
     </div>
   );
@@ -4153,7 +4220,7 @@ function buildContactDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord) {
   return Object.fromEntries(Array.from(keys).flatMap((key) => {
     const nextValue = next[key];
     const previousValue = previous[key];
-    if (String(nextValue ?? "") === String(previousValue ?? "")) return [];
+    if (JSON.stringify(nextValue ?? null) === JSON.stringify(previousValue ?? null)) return [];
     return [[key, nextValue ?? null]];
   }));
 }
@@ -4411,7 +4478,7 @@ function CRMAccountsPage() {
     Promise.all(selectedRows.map((account) => crmApi.delete("companies", account.id)))
       .then(() => {
         const deletedIds = new Set(selectedRows.map((account) => account.id));
-        setState((current) => ({ ...current, rows: current.rows.filter((account) => !deletedIds.has(account.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setState((current) => ({ ...current, rows: current.rows.filter((account) => !deletedIds.has(account.id)), total: Math.max(0, current.total - current.rows.filter((row) => deletedIds.has(row.id)).length) }));
         setSelected((current) => current && deletedIds.has(current.id) ? null : current);
         setSelectedIds({});
         toast({ title: "Selected accounts deleted" });
@@ -4581,6 +4648,7 @@ function AccountFilterPanel({ filters, owners, territories, industries, types, s
 }
 
 function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMAccount[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (account: CRMAccount) => void; onEdit: (account: CRMAccount) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (account: CRMAccount, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const canExport=useModuleAction("export");
   const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
   const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
@@ -4829,7 +4897,7 @@ function buildAccountDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord) {
   return Object.fromEntries(Array.from(keys).flatMap((key) => {
     const nextValue = next[key];
     const previousValue = previous[key];
-    if (String(nextValue ?? "") === String(previousValue ?? "")) return [];
+    if (JSON.stringify(nextValue ?? null) === JSON.stringify(previousValue ?? null)) return [];
     return [[key, nextValue ?? null]];
   }));
 }
@@ -5053,7 +5121,7 @@ function CRMDealsPage() {
     Promise.all(selectedRows.map((deal) => crmApi.delete("deals", deal.id)))
       .then(() => {
         const deletedIds = new Set(selectedRows.map((deal) => deal.id));
-        setState((current) => ({ ...current, rows: current.rows.filter((deal) => !deletedIds.has(deal.id)), total: Math.max(0, current.total - deletedIds.size) }));
+        setState((current) => ({ ...current, rows: current.rows.filter((deal) => !deletedIds.has(deal.id)), total: Math.max(0, current.total - current.rows.filter((row) => deletedIds.has(row.id)).length) }));
         setSelected((current) => current && deletedIds.has(current.id) ? null : current);
         setSelectedIds({});
         toast({ title: "Selected deals deleted" });
@@ -5164,6 +5232,7 @@ function DealFilterSelect({ label, value, options, onChange }: { label: string; 
 }
 
 function DealTable({ rows, loading, error, selectedId, selectedIds, allSelected, sort, page, pages, pageSize, total, visibleColumns, onSort, onSelect, onEdit, onToggleAll, onToggleRow, onPage, onPageSize }: { rows: CRMDealRow[]; loading: boolean; error: string | null; selectedId?: number; selectedIds: Record<string, boolean>; allSelected: boolean; sort: SortState; page: number; pages: number; pageSize: number; total: number; visibleColumns: Record<string, boolean>; onSort: (sort: SortState) => void; onSelect: (deal: CRMDealRow) => void; onEdit: (deal: CRMDealRow) => void; onToggleAll: (checked: boolean) => void; onToggleRow: (deal: CRMDealRow, checked: boolean) => void; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+  const canExport=useModuleAction("export");
   const initialLoading = useInitialLoading(Boolean(loading));
   const sortButton = (key: string, label: string) => <button type="button" className="inline-flex items-center gap-1 text-left" onClick={() => onSort(sort?.key === key ? { key, direction: sort.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" })}>{label}<ArrowUpDown className="h-3 w-3 text-muted-foreground" /></button>;
   return (
@@ -5314,27 +5383,28 @@ export function QuickDealDialog({placement="create",close, saved, dealId, initia
     return () => {active = false;};
   }, [reload, dealId]);
   if (!lookups) return createPortal(<div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-label={dealId ? "Edit deal" : "Create deal"} className="rounded-lg bg-card p-6 text-foreground">{error ? <><p role="alert">{error}</p><Button onClick={() => setReload(v => v + 1)}>Retry</Button></> : <div role="status" className="animate-pulse space-y-3"><p>Loading deal form...</p><div className="h-10 w-72 rounded bg-muted"/><div className="h-10 w-72 rounded bg-muted"/></div>}<Button variant="outline" onClick={close}>Cancel</Button></div></div>, document.body);
-  return <DealFormModal placement={placement} draftScope={draftScope} initialValues={!dealId?{...initialValues,...(initialStageId?{stageId:initialStageId}:{}),...(initialPipelineId?{pipelineId:initialPipelineId}:{})}:undefined} canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} teams={lookups["deal-workspace/teams"]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload) => {
+  return <DealFormModal autoSaveEnabled placement={placement} draftScope={draftScope} initialValues={!dealId?{...initialValues,...(initialStageId?{stageId:initialStageId}:{}),...(initialPipelineId?{pipelineId:initialPipelineId}:{})}:undefined} canManualProbability={canManualProbability} mode={dealId ? "edit" : "create"} deal={record} saving={saving} error={error} companies={lookups.companies} contacts={lookups.contacts} owners={lookups.owners} territories={lookups.territories} pipelines={lookups.pipelines} stages={lookups["pipeline-stages"]} products={[...lookups.products, ...lookups.services.map(item => ({...item, catalogKind: "service"}))]} teams={lookups["deal-workspace/teams"]} customFields={lookups["custom-fields"]} onClose={close} onSave={async (payload, dirtyPayload, automatic=false) => {
     if(saveLock.current)return;saveLock.current=true;
-    setSaving(true);setError(null);
+    setSaving(!automatic);setError(null);
     try {
-      if (dealId) await crmApi.update("deals", dealId, {...dirtyPayload, expected_version: dirtyPayload.expected_version ?? record?.version});
-      else await crmApi.create("deals", payload);
+      const response=dealId?await crmApi.update("deals", dealId, {...dirtyPayload, expected_version: dirtyPayload.expected_version ?? record?.version}):await crmApi.create("deals", payload);
+      if(automatic&&record)setRecord({...record,...recordToDealRow(response.data,{companyNames:new Map(),contactNames:new Map(),ownerNames:new Map(),territoryNames:new Map(),stageNames:new Map(),pipelineNames:new Map(),stages:lookups["pipeline-stages"]})});
       sessionStorage.removeItem(`crm-deal-draft:${user?.access?.companyId}:${user?.id}:${dealId || "new"}${draftScope?":"+draftScope:""}`);
-      saved();close();
+      saved();if(!automatic)close();return response.data;
     } catch(err) {setError(dealError(err));} finally {saveLock.current=false;setSaving(false);}
   }}/>;
 }
 
-function DealFormModal({ placement="create", initialValues, draftScope, canManualProbability = false, teams = [], mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { placement?:"create"|"quick_create";initialValues?:CRMApiRecord;draftScope?:string;canManualProbability?: boolean; teams?: CRMRecord[]; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord) => void }) {
-  const initial = useMemo(() => ({...dealFormInitial(deal),...initialValues}), [deal?.id,initialValues?.stageId,initialValues?.pipelineId]);
-  const initialCustomValues = useMemo(() => dealCustomFieldInitial(deal), [deal?.id]);
+function DealFormModal({ autoSaveEnabled=false, placement="create", initialValues, draftScope, canManualProbability = false, teams = [], mode, deal, saving, error, companies, contacts, owners, territories, pipelines, stages, products, customFields, onClose, onSave }: { autoSaveEnabled?:boolean;placement?:"create"|"quick_create";initialValues?:CRMApiRecord;draftScope?:string;canManualProbability?: boolean; teams?: CRMRecord[]; mode: DealFormMode; deal: CRMDealRow | null; saving: boolean; error: string | null; companies: CRMRecord[]; contacts: CRMRecord[]; owners: CRMRecord[]; territories: CRMRecord[]; pipelines: CRMRecord[]; stages: CRMRecord[]; products: CRMRecord[]; customFields: CRMRecord[]; onClose: () => void; onSave: (payload: CRMApiRecord, dirtyPayload: CRMApiRecord, automatic?:boolean) => Promise<CRMApiRecord|void>|void }) {
+  const [initial,setInitial] = useState(() => ({...dealFormInitial(deal),...initialValues}));
+  const [initialCustomValues,setInitialCustomValues] = useState(() => dealCustomFieldInitial(deal));
   const user = useAuthStore(state => state.user);
   const draftKey = `crm-deal-draft:${user?.access?.companyId}:${user?.id}:${deal?.id || "new"}${draftScope?":"+draftScope:""}`;
   const restored = useMemo(() => {try {return JSON.parse(sessionStorage.getItem(draftKey) || "null");} catch {return null;}}, [draftKey]);
+  const [baseVersion,setBaseVersion]=useState<number|undefined>(restored?.baseVersion||deal?.version);
   const [draft, setDraft] = useState<CRMApiRecord>({...(restored?.draft||initial),...initialValues});
   const [customValues, setCustomValues] = useState<CRMApiRecord>(restored?.customValues || initialCustomValues);
-  const initialLines = useMemo<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({name: String(line.name || ""), key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0), pricingId: line.pricing_id ? String(line.pricing_id) : null})), [deal?.id]);
+  const [initialLines,setInitialLines] = useState<DealLineItem[]>(() => (deal?.catalogItems || []).map((line, index) => ({name: String(line.name || ""), key: String(index), productId: `${line.kind}:${line.item_id}`, unitPrice: String(line.unit_price), quantity: String(line.quantity), discount: String(line.discount || 0), pricingId: line.pricing_id ? String(line.pricing_id) : null})));
   const [lines, setLines] = useState<DealLineItem[]>(restored?.lines || initialLines);
   const [addedCompanies, setAddedCompanies] = useState<CRMRecord[]>([]);
   const [addedContacts, setAddedContacts] = useState<CRMRecord[]>([]);
@@ -5362,7 +5432,7 @@ function DealFormModal({ placement="create", initialValues, draftScope, canManua
   const [advancedTab, setAdvancedTab] = useState(0);
   const [duplicate, setDuplicate] = useState<CRMApiRecord[]>([]);
   const [draftNotice, setDraftNotice] = useState("");
-  useEffect(() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: restored?.baseVersion || deal?.version}));}, [draftKey, draft, customValues, lines]);
+  useEffect(() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));}, [draftKey, draft, customValues, lines,baseVersion]);
   useEffect(() => {let active = true;const timer = setTimeout(() => {if (String(draft.name || "").trim().length < 2) {setDuplicate([]);return;}void crmApi.list("deal-workspace/duplicates", {name: String(draft.name), company_id: draft.companyId ? Number(draft.companyId) : undefined, exclude_id: deal?.id}).then(response => {if (active) setDuplicate(response.data.items || []);}).catch(() => {});}, 400);return () => {active = false;clearTimeout(timer);};}, [draft.name, draft.companyId, deal?.id]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const visibleCustomFields = useMemo(() => customFields.filter((field) => fieldShown(field, mode === "create" ? placement : "edit") && fieldInPipeline(field, draft.pipelineId)), [customFields, mode, placement, draft.pipelineId]);
@@ -5376,18 +5446,18 @@ function DealFormModal({ placement="create", initialValues, draftScope, canManua
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial) || JSON.stringify(customValues) !== JSON.stringify(initialCustomValues) || JSON.stringify(lines) !== JSON.stringify(initialLines);
   const patch = (key: string, value: CRMApiValue) => setDraft((current) => ({ ...current, [key]: value }));
   const requestClose = () => {
-    if (dirty && !window.confirm("Discard unsaved deal changes?")) return;
+    if (mode==="edit" && dirty && !window.confirm("Discard unsaved deal changes?")) return;
     onClose();
   };
   const setStage = (stageId: string) => {
     const stage = stages.find((item) => String(item.id) === stageId);
     setDraft((current) => ({ ...current, stageId, pipelineId: stage ? Number(stage.pipelineId || stage.pipeline_id || current.pipelineId || 0) : current.pipelineId, probability: stage ? Number(stage.probability || current.probability || 0) : current.probability, status: stage ? inferDealStatusFromStage(stage) : current.status }));
   };
-  const submit = () => {
+  const submit = async (automatic=false) => {
     const validation = { ...validateDealDraft(draft), ...validateDealCustomFields(visibleCustomFields, customValues) };
     setFieldErrors(validation);
-    if (Object.keys(validation).length) {setAdvancedTab(0);setQuickSection("details");setTimeout(()=>document.querySelector<HTMLElement>('[data-custom-field-error], [aria-invalid="true"]')?.focus(),0);return;}
-    if (lines.some(line => !line.productId || !Number.isFinite(Number(line.unitPrice)) || Number(line.unitPrice) < 0 || !Number.isInteger(Number(line.quantity)) || Number(line.quantity) < 1 || !Number.isFinite(Number(line.discount)) || Number(line.discount) < 0 || Number(line.discount) > 100)) {setFieldErrors({...validation, catalog: "Choose a product/service for each line, a nonnegative price, a whole quantity of at least 1, and a discount from 0 to 100."});return;}
+    if (Object.keys(validation).length) {setAdvancedTab(0);setQuickSection("details");setTimeout(()=>document.querySelector<HTMLElement>('[data-custom-field-error], [aria-invalid="true"]')?.focus(),0);return false;}
+    if (lines.some(line => !line.productId || !Number.isFinite(Number(line.unitPrice)) || Number(line.unitPrice) < 0 || !Number.isInteger(Number(line.quantity)) || Number(line.quantity) < 1 || !Number.isFinite(Number(line.discount)) || Number(line.discount) < 0 || Number(line.discount) > 100)) {setFieldErrors({...validation, catalog: "Choose a product/service for each line, a nonnegative price, a whole quantity of at least 1, and a discount from 0 to 100."});return false;}
     setAdvancedTab(0);
     const allowedCustomKeys = new Set(visibleCustomFields.flatMap(field => [String(field.id), String(field.fieldKey || field.field_key || field.id)]));
     const scopedCustomValues = Object.fromEntries(Object.entries(customValues).filter(([key]) => allowedCustomKeys.has(key)));
@@ -5395,9 +5465,13 @@ function DealFormModal({ placement="create", initialValues, draftScope, canManua
     const dirtyPayload = buildDealDirtyPayload(draft, initial, effectiveAmount, scopedCustomValues, initialCustomValues);
     const catalogItems = lines.map(line => {const [kind, id] = line.productId.split(":");return {kind, item_id: Number(id), unit_price: Number(line.unitPrice), quantity: Number(line.quantity), discount: Number(line.discount), ...(line.pricingId ? {pricing_id: line.pricingId} : {})};});
     if (mode === "create" || JSON.stringify(lines) !== JSON.stringify(initialLines)) {fullPayload.catalog_items = catalogItems;dirtyPayload.catalog_items = catalogItems;}
-    if (mode === "edit") dirtyPayload.expected_version = restored?.baseVersion || deal?.version;
-    onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload);
+    if (mode === "edit") dirtyPayload.expected_version = baseVersion ?? deal?.version ?? null;
+    const response=await onSave(fullPayload, mode === "edit" ? dirtyPayload : fullPayload,automatic);
+    if(automatic){if(!response?.id)return false;setInitial(draft);setInitialCustomValues(customValues);setInitialLines(lines);setBaseVersion(Number(response.version));}
+    return !!response?.id;
+
   };
+  const auto=useRecordAutosave({value:{draft,customValues,lines},enabled:autoSaveEnabled&&mode==="edit"&&!saving&&!inlineKind,dirty,save:()=>submit(true)});
   return createPortal(
     <DealDialog.Root open modal={!inlineKind} onOpenChange={open => {if (!open && !saving) requestClose();}}>
     <DealDialog.Content asChild aria-describedby={undefined} onInteractOutside={e => {if (inlineKind) e.preventDefault();}} onEscapeKeyDown={e => {if (document.activeElement?.matches('[data-record-picker][aria-expanded="true"]')) {e.preventDefault();return;} if (inlineKind) {e.preventDefault();if (!inlineSaving) setInlineKind(null);}}}>
@@ -5459,7 +5533,7 @@ function DealFormModal({ placement="create", initialValues, draftScope, canManua
             <div className="rounded-md border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-900 dark:text-blue-100"><p className="font-semibold">Advanced mode includes</p><p className="mt-2 text-blue-800 dark:text-blue-100/80">Owner, source, probability, territory, follow-up, and custom pipeline controls.</p></div>
           </aside>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: restored?.baseVersion || deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{dirty ? "Unsaved changes" : ""}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || (mode === "edit" && !dirty)} onClick={submit}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 border-t border-border px-5 py-3"><Button type="button" variant="outline" onClick={() => {sessionStorage.setItem(draftKey, JSON.stringify({draft, customValues, lines, baseVersion: baseVersion ?? deal?.version}));setDraftNotice("Draft saved in this browser session");}}>Save draft</Button>{draftNotice && <span role="status" className="text-xs">{draftNotice}</span>}<div className="flex items-center gap-3"><span className="text-xs text-amber-700 dark:text-amber-300">{auto.message || (dirty ? "Unsaved changes" : "")}</span><Button variant="outline" className="border-border bg-transparent text-foreground hover:bg-accent" onClick={requestClose} disabled={saving}>Cancel</Button><Button data-save-action className="bg-primary text-primary-foreground hover:bg-primary/90" disabled={saving || auto.saving || (mode === "edit" && !dirty)} onClick={()=>void submit()}><Save className="h-4 w-4" />{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create Deal"}</Button></div></div>
       </div>
     </div>
     </DealDialog.Content>
@@ -5616,7 +5690,7 @@ function buildDealDirtyPayload(draft: CRMApiRecord, initial: CRMApiRecord, amoun
   const previous = buildDealPayload(initial, Number(initial.amount || 0));
   const keys = new Set([...Object.keys(next), ...Object.keys(previous)]);
   const payload = Object.fromEntries(Array.from(keys).flatMap((key) => JSON.stringify(next[key] ?? null) === JSON.stringify(previous[key] ?? null) ? [] : [[key, next[key] ?? null]]));
-  const customDirty = cleanCustomFieldValues(Object.fromEntries(Object.entries(customValues || {}).filter(([key, value]) => JSON.stringify(value ?? null) !== JSON.stringify(initialCustomValues?.[key] ?? null))));
+  const customDirty = Object.fromEntries(Object.entries(customValues || {}).filter(([key, value]) => JSON.stringify(value ?? null) !== JSON.stringify(initialCustomValues?.[key] ?? null)).map(([key,value])=>[key,value??null]));
   if (Object.keys(customDirty).length) payload.customFields = customDirty;
   return payload;
 }
@@ -5700,6 +5774,10 @@ function selectedStageName(stages: CRMRecord[], stageId: CRMApiValue) {
 }
 
 function CRMListPage({ kind }: { kind: CRMPageKind }) {
+  const actor=useAuthStore(state=>state.user),grant=actor?.access?.grants.crm;
+  const permission=kind==='tickets'?'crm_tickets_manage':['quotations','quotes'].includes(kind)?'crm_quotes_manage':undefined;
+  const permits=(action:string)=>!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes(action)&&(!permission||[permission,'crm_manage','crm_admin'].some(name=>grant.permissions.includes(name)));
+  const canCreate=permits('create'),canEdit=permits('edit'),canDelete=permits('delete');
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedView, setSelectedView] = useState(savedViews[0]);
@@ -5712,7 +5790,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
   const [localRows, setLocalRows] = useState<CRMRecord[]>([]);
   const [contacts, setContacts] = useState<CRMRecord[]>([]);
   const [showCreate, setShowCreate] = useState(false);
-  useCreateIntent(request => { if (request === kind) setShowCreate(true); });
+  useCreateIntent(request => { if (request === kind && canCreate) setShowCreate(true); });
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [importExportError, setImportExportError] = useState<string | null>(null);
@@ -5729,6 +5807,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
   }, [kind]);
 
   const createRecord = (draft: CRMRecord, customFields?: CRMApiRecord) => {
+    if(!canCreate || createSaving)return;
     const nextId = records.length + 1;
     const title = pageTitles[kind].replace("CRM ", "").replace(/s$/, "");
     const record = { id: nextId, ...defaultRecordFor(kind, nextId, title), ...draft };
@@ -5761,7 +5840,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
     setLocalRows(nextRows);
     setSelectedRecord((current) => (current && Number(current.id) === Number(row.id) ? { ...current, [key]: value } : current));
     const payloadValue = normalizeInlineValue(config, value);
-    return crmApi.update(apiEntity, Number(row.id), { [config.apiField]: payloadValue }).catch((err) => {
+    return crmApi.update(apiEntity, Number(row.id), { [config.apiField]: payloadValue, ...(["quotes","quotations"].includes(kind)&&key==="issueDate"?{quote_date:payloadValue}:{}), ...(["quotes","quotations"].includes(kind)&&key==="expiryDate"?{valid_until:payloadValue}:{}) }).catch((err) => {
       setLocalRows(previous);
       setSelectedRecord((current) => (current && Number(current.id) === Number(row.id) ? row : current));
       throw new Error(err?.response?.data?.detail || "Inline update failed.");
@@ -5810,7 +5889,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={pageTitles[kind]} description={descriptionFor(kind)} action={actionFor(kind)} onAction={() => setShowCreate(true)} />
+      <PageHeader title={pageTitles[kind]} description={descriptionFor(kind)} action={actionFor(kind)} actionDisabled={!canCreate} onAction={() => {if(canCreate)setShowCreate(true);}} />
       <Toolbar
         search={search}
         onSearch={setSearch}
@@ -5819,7 +5898,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
         onToggleFilters={() => setShowFilters((value) => !value)}
         contacts={contacts}
         importEntity={apiEntity || undefined}
-        onImportContacts={importRows}
+        onImportContacts={canCreate?importRows:undefined}
         onExportServer={exportServerRows}
         importLabel={`Import ${pageTitles[kind].replace("CRM ", "")}`}
         exportLabel={`Export ${pageTitles[kind].replace("CRM ", "")}`}
@@ -5838,7 +5917,7 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
       ) : null}
       <div className="grid gap-4 xl:grid-cols-[1fr_22rem]">
         {kind === "tasks" && <MoveBoard label="CRM task priorities" reorder={false} groups={["Urgent","High","Medium","Low"].map(p=>({id:p,label:p}))} items={rows.map(row=>({id:Number(row.id),label:String(row.subject||row.title||row.name||"Task"),group:String(row.priority||"Medium"),content:<p className="text-xs text-muted-foreground">{String(row.owner||"Unassigned")} · {String(row.status||"")}</p>}))} onMove={async({item,group})=>{await crmApi.update("tasks",Number(item.id),{priority:group});setLocalRows(records.map(r=>Number(r.id)===Number(item.id)?{...r,priority:group}:r));}}/>}
-      <SmartCRMTable rows={rows} title={pageTitles[kind]} kind={kind} onSelect={setSelectedRecord} onOpen={detailPathFor(kind) ? (row) => navigate(`${detailPathFor(kind)}/${row.id}`) : undefined} onInlineSave={saveInlineCell} onBulkDelete={apiEntity ? (selectedRows) => Promise.all(selectedRows.map((row) => crmApi.delete(apiEntity, Number(row.id)))).then(() => {
+      <SmartCRMTable rows={rows} title={pageTitles[kind]} kind={kind} onSelect={setSelectedRecord} onOpen={detailPathFor(kind) ? (row) => navigate(`${detailPathFor(kind)}/${row.id}`) : undefined} onInlineSave={canEdit?saveInlineCell:undefined} onBulkDelete={apiEntity && canDelete ? (selectedRows) => Promise.all(selectedRows.map((row) => crmApi.delete(apiEntity, Number(row.id)))).then(() => {
           const selectedIds = new Set(selectedRows.map((row) => Number(row.id)));
           setLocalRows(records.filter((row) => !selectedIds.has(Number(row.id))));
           setSelectedRecord(null);
@@ -5851,6 +5930,9 @@ function CRMListPage({ kind }: { kind: CRMPageKind }) {
 }
 
 function ProductCatalogPage() {
+  const catalogActor = useAuthStore(state => state.user);
+  const catalogGrant = catalogActor?.access?.grants.crm;
+  const canCreate = !!catalogActor?.is_superuser || !catalogActor?.access?.managed || !!catalogGrant?.enabled && catalogGrant.actions.includes("create") && ["crm_products_manage", "crm_manage", "crm_admin"].some(permission => catalogGrant.permissions.includes(permission));
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedView, setSelectedView] = useState(savedViews[0]);
@@ -7497,7 +7579,7 @@ const preferredGridColumns: Partial<Record<CRMPageKind, string[]>> = {
   products: ["name", "sku", "category", "price", "status", "owner"],
   services: ["serviceCode", "name", "category", "billingType", "price", "status"],
   priceBooks: ["name", "currency", "region", "segment", "status"],
-  quotations: ["quote", "name", "company", "status", "total", "issueDate", "expiryDate"],
+  quotations: ["quote", "company", "status", "total", "issueDate", "expiryDate"],
   quotes: ["quote", "name", "company", "status", "total", "issueDate", "expiryDate"],
   tickets: ["number", "subject", "priority", "status", "company", "owner", "nextFollowUp"],
   files: ["fileName", "name", "type", "size", "visibility", "owner"],
@@ -7505,6 +7587,7 @@ const preferredGridColumns: Partial<Record<CRMPageKind, string[]>> = {
 };
 
 function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBulkDelete, loading, error }: { rows: CRMRecord[]; title: string; kind: CRMPageKind; onSelect: (row: CRMRecord) => void; onOpen?: (row: CRMRecord) => void; onInlineSave?: (row: CRMRecord, key: string, value: string | number | boolean | null) => Promise<unknown>; onBulkDelete?: (rows: CRMRecord[]) => Promise<unknown>; loading?: boolean; error?: string | null }) {
+  const canExport=useModuleAction("export"),canEditAction=useModuleAction("edit"),canDeleteAction=useModuleAction("delete");
   const initialLoading = useInitialLoading(Boolean(loading));
   const [sort, setSort] = useState<SortState>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
@@ -7590,7 +7673,7 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
     setSelectedIds((current) => ({ ...current, [String(row.id)]: checked }));
   };
   const bulkDelete = () => {
-    if (!onBulkDelete || !selectedRows.length) return;
+    if (!canDeleteAction || !onBulkDelete || !selectedRows.length) return;
     if (!window.confirm(`Delete ${selectedRows.length} selected ${title.toLowerCase()} record${selectedRows.length === 1 ? "" : "s"}?`)) return;
     setBulkSaving(true);
     setBulkError(null);
@@ -7609,8 +7692,8 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
         </div>
         <div className="flex flex-wrap gap-2">
           {columns.length > visibleColumns.length ? <Badge variant="outline" className="h-8 rounded-md px-2.5">Showing {visibleColumns.length} of {columns.length} fields</Badge> : null}
-          {onBulkDelete && selectedRows.length ? <Button variant="outline" size="sm" onClick={bulkDelete} disabled={bulkSaving}>{bulkSaving ? "Deleting..." : "Delete selected"}</Button> : null}
-          <Button variant="outline" size="sm" onClick={() => exportRows(`${title.toLowerCase().replace(/\s+/g, "-")}.csv`, visibleRows)}>
+          {onBulkDelete && selectedRows.length ? <Button variant="outline" size="sm" onClick={bulkDelete} disabled={!canDeleteAction||bulkSaving}>{bulkSaving ? "Deleting..." : "Delete selected"}</Button> : null}
+          <Button variant="outline" size="sm" disabled={!canExport} onClick={() => exportRows(`${title.toLowerCase().replace(/\s+/g, "-")}.csv`, visibleRows)}>
             <Download className="h-4 w-4" />Export Grid
           </Button>
         </div>
@@ -7651,7 +7734,7 @@ function SmartCRMTable({ rows, title, kind, onSelect, onOpen, onInlineSave, onBu
                   </td>
                   {visibleColumns.map((key) => (
                     <td key={key} style={{ width: widths[key] || undefined }} className="px-3 py-3">
-                      <InlineTableCell row={row} fieldKey={key} kind={kind} value={row[key]} onSelect={onSelect} onOpen={onOpen} onSave={onInlineSave} />
+                      <InlineTableCell row={row} fieldKey={key} kind={kind} value={row[key]} onSelect={onSelect} onOpen={onOpen} onSave={canEditAction?onInlineSave:undefined} />
                     </td>
                   ))}
                 </tr>
@@ -7718,10 +7801,7 @@ function InlineTableCell({ row, fieldKey, kind, value, onSelect, onOpen, onSave 
     );
   }
   return (
-    <button type="button" className="group flex w-full items-center justify-between gap-2 truncate text-left" onClick={() => onSelect(row)} onDoubleClick={() => onOpen?.(row)}>
-      <span className="truncate">{renderCell(fieldKey, value)}</span>
-      {config ? <span className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100" onClick={(event) => { event.stopPropagation(); setEditing(true); }}><Edit3 className="h-3.5 w-3.5" /></span> : null}
-    </button>
+    <div className="group flex w-full items-center gap-2"><button type="button" className="min-w-0 flex-1 truncate text-left" onClick={() => onSelect(row)} onDoubleClick={() => onOpen?.(row)}><span className="truncate">{renderCell(fieldKey, value)}</span></button>{config&&onSave&&<button type="button" aria-label={`Edit ${fieldKey} for record ${row.id}`} className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted focus:opacity-100" onClick={event=>{event.stopPropagation();setEditing(true);}}><Edit3 className="h-3.5 w-3.5"/></button>}</div>
   );
 }
 
@@ -8662,7 +8742,7 @@ function createPayloadForKind(kind: CRMPageKind, record: CRMRecord): CRMApiRecor
   if (kind === "products") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), name: record.name, product_code: record.productCode || record.sku, sku: record.sku || record.productCode, category: record.category, list_price: record.price || 0, unit_price: record.price || 0, cost_price: record.cost || 0, status: record.status || "Active", active: record.status !== "Inactive" };
   if (kind === "services") return { currency: String(record.currency || defaultText("currency", "crm")).toUpperCase(), service_code: record.serviceCode || `SVC-${Date.now()}`, name: record.name, category: record.category, billing_type: record.billingType || "fixed", default_rate: record.price || 0, default_cost: record.cost || 0, active: record.status !== "Inactive" };
   if (kind === "priceBooks") return { name: record.name, currency: record.currency || defaultText("currency", "crm"), region: record.region, customer_segment: record.segment, status: record.status || "active", active: record.status !== "inactive" };
-  if (kind === "quotations" || kind === "quotes") return { currency: record.currency || defaultText("currency", "crm"), quote_number: record.quote || `QT-${Date.now()}`, quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), status: record.status || "Draft", grand_total: Number(record.total || 0) };
+  if (kind === "quotations" || kind === "quotes") return { currency: record.currency || defaultText("currency", "crm"), quote_number: record.quote || `QT-${Date.now()}`, issue_date: record.issueDate || new Date().toISOString().slice(0, 10), expiry_date: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), quote_date: record.issueDate || new Date().toISOString().slice(0, 10), valid_until: record.expiryDate || defaultDateAfter("quote_validity_days", "crm"), status: record.status || "Draft", grand_total: Number(record.total || 0) };
   if (kind === "cpq") return { name: record.name || "CPQ Rule", rule_type: record.type || "recommendation", condition: { minAmount: Number(record.amount || 0) }, action: { message: "Review recommended configuration" }, active: true };
   if (kind === "guidedSelling") return { name: record.name || "Guided Selling Flow", questions: [], recommendations: [], active: true };
   if (kind === "campaigns") return { name: record.name, campaign_type: record.type || "Email", status: record.status || "Planned", start_date: record.startDate || new Date().toISOString().slice(0, 10), end_date: record.endDate || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), budget_amount: record.budget || 0, expected_revenue: record.expectedRevenue || 0, ownerId };

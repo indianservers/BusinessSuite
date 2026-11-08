@@ -392,6 +392,12 @@ def reorder_layout_fields(layout_id: int, data: LayoutReorderPayload, db: Sessio
     return {"status": "updated", "count": len(data.fields)}
 
 
+def _configuration_owner(db,item,user):
+    if user.is_superuser:return
+    author=db.get(User,item.created_by) if item.created_by else None
+    if not author or author.organization_id!=user.organization_id:raise HTTPException(404,'Configuration not found')
+
+
 def _crud_collection(model, payload_model, permission: str, entity_type: str):
     @customization_router.get(f"/{entity_type}")
     def list_items(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_view", "customization_manage"))):
@@ -439,6 +445,32 @@ def _crud_collection(model, payload_model, permission: str, entity_type: str):
         _audit(db, current_user, entity_type, item.id, "created", after=payload)
         db.commit()
         return _serialize(item)
+
+
+    if entity_type in {"kanban", "validation-rules", "related-lists", "buttons"}:
+        @customization_router.put(f"/{entity_type}/{{item_id}}")
+        def update_item(item_id: int, data: dict[str, Any], db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(permission, "customization_manage"))):
+            item = db.query(model).filter(model.id == item_id).with_for_update().first()
+            if not item: raise HTTPException(404, "Configuration not found")
+            _configuration_owner(db,item,current_user)
+            merged = {**_serialize(item), **data}
+            try: payload = payload_model.model_validate(merged).model_dump()
+            except ValidationError as exc: raise HTTPException(422, [{'loc': e['loc'], 'msg': e['msg'], 'type': e['type']} for e in exc.errors()]) from None
+            if entity_type == "validation-rules": validate_rule_condition(payload["condition_json"])
+            if entity_type == "buttons" and payload["action_type"] not in SAFE_ACTION_TYPES: raise HTTPException(422, "Unsupported action")
+            before = _serialize(item)
+            for key, value in payload.items(): setattr(item, key, value)
+            _audit(db, current_user, entity_type, item.id, "updated", before=before, after=payload)
+            db.commit()
+            return _serialize(item)
+
+        @customization_router.delete(f"/{entity_type}/{{item_id}}", status_code=204)
+        def delete_item(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission(permission, "customization_manage"))):
+            item = db.query(model).filter(model.id == item_id).with_for_update().first()
+            if not item: raise HTTPException(404, "Configuration not found")
+            _configuration_owner(db,item,current_user)
+            _audit(db, current_user, entity_type, item.id, "deleted", before=_serialize(item))
+            db.delete(item); db.commit()
 
 
 _crud_collection(CustomizationView, ViewPayload, "customization_views_manage", "views")
@@ -501,7 +533,7 @@ def execute_button(button_id: int, data: ButtonExecutePayload, db: Session = Dep
 @customization_router.get("/picklists")
 def list_picklists(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("customization_view", "customization_manage"))):
     items = db.query(CustomizationGlobalPicklist).order_by(CustomizationGlobalPicklist.label).all()
-    return {"items": [_serialize(item) for item in items], "total": len(items)}
+    return {"items": [{**_serialize(item), "values": [_serialize(v) for v in db.query(CustomizationGlobalPicklistValue).filter_by(picklist_id=item.id).order_by(CustomizationGlobalPicklistValue.order_index).all()]} for item in items], "total": len(items)}
 
 
 @customization_router.post("/picklists", status_code=201)
@@ -619,6 +651,45 @@ def _validate_owner(db, identifier):
     if identifier is not None and not db.query(User).filter_by(id=identifier, is_active=True).first():
         raise HTTPException(422, 'Choose an active owner in your company')
 
+
+
+
+@customization_router.delete("/layouts/{layout_id}", status_code=204)
+def delete_layout(layout_id: int, db: Session = Depends(get_db), user: User = Depends(RequirePermission("customization_layouts_manage", "customization_manage"))):
+    item = db.query(CustomizationLayout).filter_by(id=layout_id).with_for_update().first()
+    if not item: raise HTTPException(404, "Layout not found")
+    _configuration_owner(db,item,user)
+    for model in [CustomizationLayoutField, CustomizationLayoutSection]:
+        for child in db.query(model).filter_by(layout_id=layout_id).all(): db.delete(child)
+    _audit(db, user, "layout", item.id, "deleted", before=_serialize(item))
+    db.delete(item); db.commit()
+
+
+@customization_router.put("/picklists/{item_id}")
+def update_picklist(item_id: int, data: PicklistPayload, db: Session = Depends(get_db), user: User = Depends(RequirePermission("customization_fields_manage", "customization_manage"))):
+    item = db.query(CustomizationGlobalPicklist).filter_by(id=item_id).with_for_update().first()
+    if not item: raise HTTPException(404, "Picklist not found")
+    _configuration_owner(db,item,user)
+    if data.api_name != item.api_name: raise HTTPException(422, "Picklist identifier cannot be changed")
+    before = _serialize(item)
+    values = [value.get('value') for value in data.values]
+    if any(not isinstance(value,str) or not value.strip() or len(value)>160 for value in values) or len(set(values)) != len(values): raise HTTPException(422,"Use unique, nonempty picklist values")
+    for key,value in data.model_dump(exclude={'values'}).items(): setattr(item,key,value)
+    for child in db.query(CustomizationGlobalPicklistValue).filter_by(picklist_id=item.id).all(): db.delete(child)
+    db.flush()
+    for index,value in enumerate(data.values): db.add(CustomizationGlobalPicklistValue(picklist_id=item.id,value=value['value'],label=value.get('label') or value['value'],order_index=index,active=value.get('active',True)))
+    _audit(db,user,'picklist',item.id,'updated',before=before,after=data.model_dump());db.commit()
+    return {**_serialize(item),'values':data.values}
+
+
+@customization_router.delete("/picklists/{item_id}", status_code=204)
+def delete_picklist(item_id: int, db: Session = Depends(get_db), user: User = Depends(RequirePermission("customization_fields_manage", "customization_manage"))):
+    item = db.query(CustomizationGlobalPicklist).filter_by(id=item_id).with_for_update().first()
+    if not item: raise HTTPException(404,"Picklist not found")
+    _configuration_owner(db,item,user)
+    if db.query(CustomizationField).filter(CustomizationField.options_source.in_([item.api_name,'picklist:'+item.api_name])).first(): raise HTTPException(409,"This picklist is used by a field; remove its reference first")
+    for child in db.query(CustomizationGlobalPicklistValue).filter_by(picklist_id=item.id).all(): db.delete(child)
+    _audit(db,user,'picklist',item.id,'deleted',before=_serialize(item));db.delete(item);db.commit()
 
 router.include_router(customization_router)
 router.include_router(dynamic_router)

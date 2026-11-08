@@ -151,3 +151,27 @@ def test_default_price_list_changes_picker_prices_only_when_requested(client,db,
 def test_defaults_version_is_a_strict_nonnegative_integer(client,db,version):
     headers,_=actor(db,superuser=True)
     assert client.put(URL,headers=headers,json={'version':version,'values':{}}).status_code==422
+
+
+def test_quote_creation_after_hard_delete_does_not_conflict_with_snapshot(client, db):
+    headers,user=actor(db,superuser=True)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db,user);db.commit()
+    def create(number):
+        return client.post('/api/v1/crm/quotations',headers=headers,json={'quote_number':number,'issue_date':'2026-11-07','expiry_date':'2026-11-21'})
+    first=create('SNAP-ONE')
+    assert first.status_code==201,first.text
+    assert client.delete(f"/api/v1/crm/quotations/{first.json()['id']}",headers=headers).status_code==200
+    second=create('SNAP-TWO')
+    assert second.status_code==201,second.text
+    assert second.json()['issue_date']=='2026-11-07'
+
+
+def test_optional_asset_serial_can_be_blank_on_multiple_registrations(client, db):
+    headers,user=actor(db,superuser=True)
+    from test_identity_utils import attach_workflow_branch
+    attach_workflow_branch(db,user);db.commit()
+    for tag in ['BLANK-SERIAL-ONE','BLANK-SERIAL-TWO']:
+        response=client.post('/api/v1/assets/',headers=headers,json={'name':tag,'asset_tag':tag,'serial_number':'   '})
+        assert response.status_code==201,response.text
+        assert response.json()['serial_number'] is None

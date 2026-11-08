@@ -105,7 +105,15 @@ def create_job(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("recruitment_manage")),
 ):
-    job = Job(**data.model_dump())
+    values = data.model_dump()
+    if not current_user.is_superuser and not values.get("branch_id"):
+        branch = getattr(current_user, "_suite_branch_id", None)
+        if not isinstance(branch, int):
+            branch = current_user.employee.branch_id if current_user.employee else None
+        if not branch:
+            raise HTTPException(422, "Select a branch before posting a job")
+        values["branch_id"] = branch
+    job = Job(**values)
     db.add(job)
     db.commit()
     db.refresh(job)
@@ -401,3 +409,11 @@ def update_offer_status(
         offer.accepted_at = datetime.now(timezone.utc)
     db.commit()
     return {"message": f"Offer {status}"}
+
+
+@router.delete('/jobs/{job_id}',status_code=204)
+def delete_job(job_id:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('recruitment_manage'))):
+    job=db.query(Job).filter_by(id=job_id).first()
+    if not job:raise HTTPException(404,'Job not found')
+    if db.query(Candidate).filter_by(job_id=job.id).first():raise HTTPException(409,'Jobs with applicants must be retained; close the job instead')
+    db.delete(job);db.commit()

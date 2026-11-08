@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text, select, func
 
@@ -172,6 +172,11 @@ def _portal_permission(db, user, permission):
         raise HTTPException(403, "Portal action has not been granted")
 
 
+def _portal_permissions(db, user):
+    grants = db.query(PortalAccessGrant).filter_by(portal_user_id=user.id, resource_type="portal_permissions", resource_id=0, active=True).all()
+    return sorted({permission for grant in grants for permission in (grant.permissions_json or [])})
+
+
 def _customer_ids(db: Session, user: PortalUser) -> list[int]:
     from app.apps.crm.models import CRMCompany, CRMAccount
     linked = [row.customer_id for row in db.query(PortalCustomerLink).filter(PortalCustomerLink.portal_user_id == user.id, PortalCustomerLink.active.is_(True)).all()]
@@ -277,7 +282,7 @@ def create_portal_user(data: PortalUserPayload, db: Session = Depends(get_db), c
 
 @router.post("/portals/invite", status_code=201)
 def invite_portal_user(data: PortalInvitePayload, request: Request, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("portal_manage", "tenant_admin"))):
-    allowed = {"view", "submit_lead", "accept_quote"}
+    allowed = {"view", "submit_lead", "accept_quote", "manage_commissions"}
     permissions = set(data.permissions or ["view"])
     if not permissions.issubset(allowed):
         raise HTTPException(422, "Unsupported portal permission")
@@ -309,7 +314,7 @@ def invite_portal_user(data: PortalInvitePayload, request: Request, db: Session 
 def customer_me(db: Session = Depends(get_db), portal_user: PortalUser = Depends(_customer_user)):
     _portal_log(db, portal_user, "customer_portal_profile_viewed")
     db.commit()
-    return {"user": _serialize(portal_user), "customer_ids": _customer_ids(db, portal_user)}
+    return {"user": {**_serialize(portal_user), "permissions_json": _portal_permissions(db, portal_user)}, "customer_ids": _customer_ids(db, portal_user)}
 
 
 @router.get("/customer-portal/quotes")
@@ -390,10 +395,17 @@ def submit_partner_lead(data: PartnerLeadPayload, db: Session = Depends(get_db),
     return _serialize(lead)
 
 
+@router.get("/partner-portal/me")
+def partner_me(db: Session = Depends(get_db), portal_user: PortalUser = Depends(_partner_user)):
+    _portal_log(db, portal_user, "partner_portal_profile_viewed")
+    db.commit()
+    return {"user": {**_serialize(portal_user), "permissions_json": _portal_permissions(db, portal_user)}, "partner_ids": _partner_ids(db, portal_user)}
+
+
 @router.get("/partner-portal/dashboard")
 def partner_dashboard(db: Session = Depends(get_db), portal_user: PortalUser = Depends(_partner_user)):
     leads = partner_leads(db, portal_user)["items"]
-    return {"submitted_leads": len(leads), "open_deals": 0, "commission_status": "placeholder", "message": "Commission tracking placeholder; no fake payouts are generated."}
+    return {"submitted_leads": len(leads), "open_deals": 0, "permissions": _portal_permissions(db, portal_user), "commission_status": "Claims tracking", "message": "Commission claims are partner-reported amounts, not approved earnings or payouts."}
 
 
 @router.post("/mobile/check-in", status_code=201)
@@ -667,3 +679,43 @@ def portal_fingerprint(db, user):
     customers = [(row.customer_id, row.active) for row in db.query(PortalCustomerLink).filter_by(portal_user_id=user.id).order_by(PortalCustomerLink.id).all()]
     partners = [(row.partner_id, row.active) for row in db.query(PortalPartnerLink).filter_by(portal_user_id=user.id).order_by(PortalPartnerLink.id).all()]
     return hashlib.sha256(json.dumps([grants, customers, partners], sort_keys=True).encode()).hexdigest()
+
+
+from pydantic import BaseModel, Field, field_validator
+from decimal import Decimal
+from app.apps.saas.models import PartnerCommissionClaim
+class CommissionClaimPayload(BaseModel):
+    reference: str = Field(min_length=1,max_length=180)
+    amount: Decimal = Field(gt=0,le=Decimal('9999999999.99'),decimal_places=2)
+    currency: str = Field(pattern=r'^[A-Z]{3}$')
+    notes: str = Field(default='',max_length=4000)
+    expected_version: int|None = Field(default=None,ge=1)
+    @field_validator('reference')
+    @classmethod
+    def nonblank(cls,v):
+        if not v.strip():raise ValueError('Reference is required')
+        return v.strip()
+def commission_query(db,user):
+    if not _partner_ids(db,user):raise HTTPException(403,'Partner link required')
+    return db.query(PartnerCommissionClaim).filter_by(organization_id=user.organization_id,portal_user_id=user.id)
+@router.get('/partner-portal/commissions')
+def commission_claims(db:Session=Depends(get_db),user:PortalUser=Depends(_partner_user)):
+    return _items(commission_query(db,user).order_by(PartnerCommissionClaim.id.desc()).all())
+@router.post('/partner-portal/commissions',status_code=201)
+def create_commission(data:CommissionClaimPayload,db:Session=Depends(get_db),user:PortalUser=Depends(_partner_user)):
+    _portal_permission(db,user,'manage_commissions');commission_query(db,user)
+    row=PartnerCommissionClaim(organization_id=user.organization_id,portal_user_id=user.id,reference=data.reference,amount=str(data.amount),currency=data.currency,notes=data.notes)
+    db.add(row);db.flush();_portal_log(db,user,'commission_claim_created','commission_claim',row.id);db.commit();db.refresh(row);return _serialize(row)
+@router.put('/partner-portal/commissions/{identity}')
+def update_commission(identity:int,data:CommissionClaimPayload,db:Session=Depends(get_db),user:PortalUser=Depends(_partner_user)):
+    _portal_permission(db,user,'manage_commissions');query=commission_query(db,user).filter_by(id=identity)
+    if not query.first():raise HTTPException(404,'Claim not found')
+    if not data.expected_version:raise HTTPException(422,'Expected version required')
+    if not query.filter_by(version=data.expected_version).update({'reference':data.reference,'amount':str(data.amount),'currency':data.currency,'notes':data.notes,'version':PartnerCommissionClaim.version+1},synchronize_session=False):raise HTTPException(409,'Claim changed; refresh before saving')
+    _portal_log(db,user,'commission_claim_updated','commission_claim',identity);db.commit();return _serialize(query.populate_existing().one())
+@router.delete('/partner-portal/commissions/{identity}',status_code=204)
+def delete_commission(identity:int,expected_version:int=Query(ge=1),db:Session=Depends(get_db),user:PortalUser=Depends(_partner_user)):
+    _portal_permission(db,user,'manage_commissions');query=commission_query(db,user).filter_by(id=identity)
+    if not query.first():raise HTTPException(404,'Claim not found')
+    if not query.filter_by(version=expected_version).delete(synchronize_session=False):raise HTTPException(409,'Claim changed; refresh before deleting')
+    _portal_log(db,user,'commission_claim_deleted','commission_claim',identity);db.commit()

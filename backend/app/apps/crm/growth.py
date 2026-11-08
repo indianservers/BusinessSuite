@@ -156,7 +156,7 @@ def records(entity:Literal['all','leads','contacts','customers','customers_compa
             timeline=select(func.max(CRMTimelineEvent.occurred_at)).where(CRMTimelineEvent.organization_id==org,CRMTimelineEvent.record_type.in_([sales.record_kind(resource_name),resource_name,'account' if resource_name=='companies' else sales.record_kind(resource_name)]),CRMTimelineEvent.record_id==model.id).correlate(model).scalar_subquery()
             # CASE is portable to both SQLite and PostgreSQL, including null dates.
             last_contact=case((recent.is_(None),timeline),(timeline.is_(None),recent),(recent>=timeline,recent),else_=timeline)
-        expressions={'entity':literal(resource_name),'id':model.id,'name':getattr(model,'full_name',getattr(model,'name',literal(None,String))),
+        expressions={'key':literal(resource_name+':')+cast(model.id,String),'entity':literal(resource_name),'id':model.id,'name':getattr(model,'full_name',getattr(model,'name',literal(None,String))),
             'status':getattr(model,'status',literal(None,String)),'email':getattr(model,'email',literal(None,String)),
             'phone':getattr(model,'phone',literal(None,String)),'company':getattr(model,'company_name',getattr(model,'name',literal(None,String))),
             'due':due,'owner_id':func.coalesce(pending_owner,getattr(model,'owner_user_id',literal(None))),
@@ -200,6 +200,8 @@ def records(entity:Literal['all','leads','contacts','customers','customers_compa
     selection=union_all(*combined).subquery()
     total=db.scalar(select(func.count()).select_from(selection)) or 0
     sorting=[(selection.c[sort.id].desc() if sort.desc else selection.c[sort.id].asc()).nullslast() for sort in parsed.sorting] if parsed else []
+    if parsed and parsed.recordOrder and parsed.recordIds:
+        sorting=[case({value:index for index,value in enumerate(parsed.recordIds)},value=selection.c.key,else_=len(parsed.recordIds))]
     found=db.execute(select(selection).order_by(*sorting,selection.c.due.is_(None),selection.c.due,selection.c.entity,selection.c.id).offset((page-1)*per_page).limit(per_page)).all()
     items=[]
     for name in queries:

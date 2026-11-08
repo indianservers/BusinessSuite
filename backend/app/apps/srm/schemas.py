@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -572,3 +573,21 @@ class SRMResponse(BaseModel):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class SRMRecurringScheduleInput(BaseModel):
+    start_date: date
+    amount: Decimal = Field(ge=Decimal('0.01'), le=Decimal('99999999999'), decimal_places=2)
+    occurrences: int = Field(ge=1, le=120)
+    payment_terms_days: int = Field(default=30, ge=0, le=365)
+    automatic_drafts: bool = False
+    notify_on_creation: bool = True
+    never_expires: bool = False
+    interval: int = Field(default=1, ge=1, le=120)
+    payment_mode_id: int | None = Field(default=None, gt=0)
+    salesperson_id: int | None = Field(default=None, gt=0)
+    order_number: str = Field(default='', max_length=80)
+    end_date: date | None = None
+    invoice_template: Literal['standard', 'compact', 'detailed'] = 'standard'
+    subject: str = Field(default='', max_length=180)
+    customer_notes: str = Field(default='', max_length=4000)
+    terms: str = Field(default='', max_length=4000)

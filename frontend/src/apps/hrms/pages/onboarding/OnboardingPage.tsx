@@ -1,3 +1,5 @@
+import GroupedRecords from "@/shared/data-grid/GroupedRecords";
+import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import TemplateSteps from "./TemplateSteps";
@@ -83,9 +85,7 @@ export default function OnboardingPage() {
                 <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Engineering joining checklist" required />
                 <Button type="submit"><Plus className="h-4 w-4" />Add</Button>
               </CompactForm>
-              <div className="mt-4 space-y-2">
-                {templates.data?.map((t: any) => <TemplateSteps key={t.id} template={t} refresh={() => templates.refetch()} />)}
-              </div>
+              <GroupedRecords scope="apps/hrms/pages/onboarding/OnboardingPage:cards-1" items={(templates.data) || []} fields={standardRecordGroups((templates.data) || [])} gridClassName="mt-4 space-y-2" renderItem={(t: any) => <TemplateSteps key={t.id} template={t} refresh={() => templates.refetch()} />}/>
             </CardContent>
           </Card>
 

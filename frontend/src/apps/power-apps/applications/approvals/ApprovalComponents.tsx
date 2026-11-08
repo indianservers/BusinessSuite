@@ -1,3 +1,5 @@
+import { useModuleAction } from "@/hooks/use-module-action";
+import {useAuthStore} from "@/store/authStore";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useCallback, useEffect, useState, useRef } from "react";
@@ -343,7 +345,9 @@ export function ApprovalDecisionPanel({
 }) {
   const [reason, setReason] = useState(""),
     [busy, setBusy] = useState(false);
-  const task = request.assignments.find((a) => a.can_decide);
+  const actor=useAuthStore(s=>s.user),grant=actor?.access?.grants.power_apps;
+  const canApprove=!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes("approve");
+  const task = canApprove?request.assignments.find((a) => a.can_decide):undefined;
   if (!task)
     return <p className="ap-muted">You have no active decision assignment.</p>;
   const decide = async (decision: string) => {
@@ -412,6 +416,7 @@ export function ApprovalDetailsDrawer({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const canCreate=useModuleAction("create"),canAssign=useModuleAction("assign");
   const [r, setRequest] = useState<Detail | null>(null),
     [error, setError] = useState(""),
     [comment, setComment] = useState(""),
@@ -447,15 +452,22 @@ export function ApprovalDetailsDrawer({
     };
   }, []);
   const dirtyFields = useRef(false);
+  const pendingReads=useRef(new Set<string>());
+  const currentRequest=useRef("");currentRequest.current=`${environment}:${id}`;
   const load = useCallback(() => {
+    const key=`${environment}:${id}`;
+    if(pendingReads.current.has(key))return;
+    pendingReads.current.add(key);
     api
-      .get<Detail>(`/requests/${id}`, environment)
+      .get<Detail>(`/requests/${id}`, environment, {}, true)
       .then((r) => {
+        if(currentRequest.current!==key)return;
         setRequest(r);
         if (!dirtyFields.current)
           setFields(JSON.stringify(r.state.fields, null, 2));
       })
-      .catch((e) => setError(errorMessage(e)));
+      .catch((e) => {if(currentRequest.current===key)setError(errorMessage(e));})
+      .finally(()=>pendingReads.current.delete(key));
   }, [id, environment]);
   useEffect(load, [load]);
   useEffect(() => {
@@ -595,7 +607,7 @@ export function ApprovalDetailsDrawer({
                 <p className="ap-muted">No supporting documents.</p>
               )}
             </section>
-            {r.can_resubmit && (
+            {r.can_resubmit && canCreate && (
               <section>
                 <h3>Revise and resubmit</h3>
                 <label>
@@ -627,7 +639,7 @@ export function ApprovalDetailsDrawer({
                 </button>
               </section>
             )}
-            {r.can_reassign && (
+            {r.can_reassign && canAssign && (
               <section>
                 <h3>Administrative resolution</h3>
                 {r.status === "Resolution Required" && (
@@ -684,7 +696,7 @@ export function ApprovalDetailsDrawer({
                 />
               </label>
               <button
-                disabled={!comment.trim()}
+                disabled={!canCreate||!comment.trim()}
                 onClick={() => void post("comments", { text: comment })}
               >
                 Add comment
@@ -700,7 +712,7 @@ export function ApprovalDetailsDrawer({
               </p>
               <ApprovalTimeline request={r} />
             </section>
-            {r.can_cancel &&
+            {r.can_cancel && canCreate &&
               ![
                 "Approved",
                 "Rejected",

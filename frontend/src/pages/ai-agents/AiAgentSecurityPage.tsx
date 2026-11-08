@@ -1,3 +1,4 @@
+import {useAiAdministration,AiAdministrativeNotice} from "@/hooks/use-ai-administration";
 import { useEffect, useState } from "react";
 import { AlertTriangle, Power, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -17,12 +18,14 @@ const defaultSettings: AiSecuritySettings = {
 };
 
 export default function AiAgentSecurityPage() {
+  const canAdmin=useAiAdministration();
   const [summary, setSummary] = useState<any>({});
   const [events, setEvents] = useState<any[]>([]);
   const [settings, setSettings] = useState<AiSecuritySettings>(defaultSettings);
   const [saving, setSaving] = useState(false);
 
   const load = () => {
+    if(!canAdmin)return;
     Promise.all([aiAgentsApi.getSecuritySummary(), aiAgentsApi.getSecurityEvents(), aiAgentsApi.getSecuritySettings()])
       .then(([summaryResponse, eventsResponse, settingsResponse]) => {
         setSummary(summaryResponse.data);
@@ -32,19 +35,11 @@ export default function AiAgentSecurityPage() {
       .catch((err) => toast({ title: "Security dashboard unavailable", description: err?.response?.data?.detail, variant: "destructive" }));
   };
 
-  useEffect(load, []);
+  useEffect(load, [canAdmin]);
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      await aiAgentsApi.updateSecuritySettings(settings);
-      toast({ title: "AI security settings saved" });
-      load();
-    } finally {
-      setSaving(false);
-    }
-  };
+  const save = async () => {if(saving||!canAdmin)return;setSaving(true);try{await aiAgentsApi.updateSecuritySettings(settings);toast({title:"AI security settings saved"});load();}catch(error){const detail=(error as {response?:{data?:{detail?:unknown}}}).response?.data?.detail;toast({title:"Could not save security controls",description:typeof detail==="string"?detail:"Your controls are kept for retry.",variant:"destructive"});}finally{setSaving(false);}};
 
+  if(!canAdmin)return <AiAdministrativeNotice/>;
   return (
     <div className="space-y-6">
       <div>

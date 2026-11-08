@@ -38,7 +38,7 @@ def profile(
     )
 
 
-def a(id, label, method, path, fields="", *, body=None, query=None, transform=None):
+def a(id, label, method, path, fields="", *, body=None, query=None, transform=None, defaults=None, read_only=False, force_write=False):
     return dict(
         id=id,
         label=label,
@@ -48,6 +48,7 @@ def a(id, label, method, path, fields="", *, body=None, query=None, transform=No
         body=body or {},
         query=query or {},
         transform=transform,
+        defaults=defaults or {}, read_only=read_only, force_write=force_write,
     )
 
 
@@ -716,6 +717,24 @@ profile(
 )
 
 
+profile('calendly', 'Calendly', 'Productivity', 'api.calendly.com',
+    'https://developer.calendly.com/docs/authentication/how-to-authenticate-with-personal-access-tokens',
+    [a('test', 'Verify account', 'GET', '/users/me')])
+profile('zoom', 'Zoom Meetings', 'Collaboration', 'api.zoom.us',
+    'https://developers.zoom.us/docs/api/using-zoom-apis/',
+    [a('test', 'Verify user', 'GET', '/v2/users/me'),
+     a('list_meetings', 'Read meetings', 'GET', '/v2/users/me/meetings')])
+profile('pandadoc', 'PandaDoc', 'Productivity', 'api.pandadoc.com',
+    'https://developers.pandadoc.com/reference/auth-overview',
+    [a('test', 'Read documents', 'GET', '/public/v1/documents')], prefix='API-Key')
+
+
+from app.apps.power_apps.integrations.marketplace_providers import install as install_marketplace, SETUP as MARKETPLACE_SETUP
+install_marketplace(profile, a)
+from app.apps.power_apps.integrations.marketplace_actions import extend as extend_marketplace_actions
+extend_marketplace_actions(PROFILES, a)
+
+
 def install(add, action):
     for p in PROFILES.values():
         entries = []
@@ -724,7 +743,8 @@ def install(add, action):
                 key: (
                     str,
                     Field(
-                        min_length=1,
+                        default=spec.get('defaults',{}).get(key,...),
+                        min_length=0 if key in spec.get('defaults',{}) else 1,
                         max_length=(
                             4096 if p["id"] == "telegram" and key == "text"
                             else 16000 if key in {"text", "prompt", "fields_json"} else 1000
@@ -736,7 +756,7 @@ def install(add, action):
             model = create_model(p["id"] + "_" + spec["id"], __base__=Strict, **fields)
             MODELS[p["id"], spec["id"]] = model
             # GraphQL/auth probes are POST but read-only; every actual creation is a write.
-            mutates = spec["method"] not in {"GET", "HEAD"} and spec["id"] != "test"
+            mutates = spec.get('force_write',False) or (spec["method"] not in {"GET", "HEAD"} and spec["id"] != "test" and not spec.get('read_only'))
             scopes = p["scopes"]
             if scopes:
                 if p["id"] == "google_forms":
@@ -773,7 +793,7 @@ def install(add, action):
             (["oauth2", "service_account", "bearer"] if p["scopes"] else [p["auth"]]),
             entries,
             p["documentation"],
-            [
+            MARKETPLACE_SETUP.get(p['id'], []) + [
                 "Create a provider credential with only the required scopes",
                 "Save the credential in the encrypted connection vault",
                 "Enable writes only for intended external actions",
@@ -782,11 +802,12 @@ def install(add, action):
         )
 
 
-def execute(conn, action_id, parsed, transport, headers, secrets, operation_key):
+def execute(conn, action_id, parsed, transport, headers, secrets, operation_key, auth_type=None):
     from app.apps.power_apps.integrations.adapters import status_error, decode
     from app.apps.power_apps.integrations.transport import encode_request
 
     p = PROFILES[conn.connector_id]
+    from app.apps.power_apps.integrations.marketplace_actions import origin
     spec = next(x for x in p["actions"] if x["id"] == action_id)
     data = (
         MODELS[conn.connector_id, action_id]
@@ -796,6 +817,9 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key)
         .model_dump()
     )
     path = spec["path"]
+    if '{subscriber_hash}' in path:
+        import hashlib
+        data['subscriber_hash']=hashlib.md5(data['email'].strip().lower().encode()).hexdigest()
     for slot in re.findall(r"\{([a-z_]+)\}", path):
         value = (
             secrets.get("access_token", "")
@@ -813,17 +837,24 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key)
         path = path.replace("{" + slot + "}", quote(value, safe=""))
     headers = {**headers, "Accept": "application/json", **p["headers"]}
     special = headers.pop("credential_header", None)
-    if special:
+    if auth_type=='oauth2':
+        headers['Authorization']='Bearer '+secrets['access_token']
+    elif special:
         headers.pop("Authorization", None)
         headers[special] = secrets["access_token"]
     elif p["auth"] == "bearer":
         headers["Authorization"] = (p["prefix"] + " " if p["prefix"] else "") + secrets[
             "access_token"
         ]
+    if conn.connector_id == 'trello' and auth_type!='oauth2':
+        headers['Authorization'] = 'OAuth oauth_consumer_key="' + quote(secrets['username'],safe='') + '", oauth_token="' + quote(secrets['password'],safe='') + '"'
     if conn.connector_id == "telegram":
         headers.pop("Authorization", None)
     body = {remote: data[local] for remote, local in spec["body"].items()}
     t = spec["transform"]
+    if t and t.startswith('marketplace_'):
+        from app.apps.power_apps.integrations.marketplace_actions import build
+        path, body = build(conn, action_id, data, path, body)
     if t in {"chat", "anthropic"}:
         body = {
             "model": data["model"],
@@ -929,7 +960,13 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key)
             "TextBody": data["text"],
         }
     if spec["query"]:
-        path += "?" + urlencode(spec["query"])
+        query = {}
+        for key, value in spec['query'].items():
+            if isinstance(value, str):
+                for slot in re.findall(r'\{([a-z_]+)\}', value):
+                    value = value.replace('{'+slot+'}', str(data[slot]))
+            query[key] = value
+        path += "?" + urlencode(query)
     content = None
     if spec["method"] not in {"GET", "HEAD"}:
         if t == "stripe":
@@ -942,16 +979,18 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key)
         headers["Idempotency-Key"] = operation_key
     response = transport.request(
         spec["method"],
-        "https://" + p["host"] + path,
+        "https://" + (origin(conn,action_id) or p['host']) + path,
         headers=headers,
         body=content,
         timeout=15,
     )
-    mutates = spec["method"] not in {"GET", "HEAD"} and action_id != "test"
+    mutates = spec.get('force_write',False) or (spec["method"] not in {"GET", "HEAD"} and action_id != "test" and not spec.get('read_only'))
     status_error(response, mutates)
     result = decode(response, [*secrets.values(), *headers.values()])
     if isinstance(result, dict) and (
         result.get("ok") is False
+        or result.get('error')
+        or result.get('is_logged_in') is False
         or result.get("errors")
         or result.get("success") is False
         or result.get("ErrorCode", 0) != 0
@@ -966,6 +1005,9 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key)
         raise IntegrationFailure(
             "remote", "Provider rejected the action", uncertain=mutates
         )
+    if action_id=='sync_page':
+        from app.apps.power_apps.integrations.marketplace_actions import page_result
+        result=page_result(conn,data,result)
     text = None
     if t in {"chat", "anthropic"} and isinstance(result, dict):
         if isinstance(result.get("choices"), list) and result["choices"]:

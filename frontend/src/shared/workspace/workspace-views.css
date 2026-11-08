@@ -2,3 +2,5 @@
 
 .wv-catalog>header,.wv-catalog>.wv-search,.wv-catalog>footer{flex-shrink:0}
 .wv-catalog[role="dialog"][data-state="open"]{max-height:min(740px,85dvh,var(--radix-popover-content-available-height,85dvh))}@media(max-width:600px){.wv-catalog[role="dialog"][data-state="open"]{max-height:min(80dvh,var(--radix-popover-content-available-height,80dvh))}}
+/* One compact strip for record and workspace views. */
+.wv-unified-records{gap:2px;padding:0 6px;align-items:flex-start;overflow-x:auto;scrollbar-width:thin;position:relative}.wv-unified-records .wv-record-slot{flex:0 0 auto;min-width:0}.wv-unified-records .wv-tabs{flex:0 0 auto;overflow:visible}.wv-unified-records .wv-tab{min-height:34px;padding:7px 9px;font-size:11px;gap:5px}.wv-unified-records .wv-add{margin-top:3px}.wv-unified-records .suite-record-view-tools{border:0}.wv-unified-records .suite-record-view-tabs{padding:0;overflow:visible}.wv-unified-records .suite-record-view-tools>small{padding:2px 6px;font-size:10px;line-height:1.2}.wv-unified-records .wv-record-slot:empty{display:none}

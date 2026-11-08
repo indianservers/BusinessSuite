@@ -1,3 +1,4 @@
+import {downloadBlob} from "@/shared/data-transfer/transfer";
 import { api } from "@/services/api";
 
 export type AnalyticsRecord = Record<string, unknown> & { id?: number; name?: string; status?: string };
@@ -38,5 +39,6 @@ export const analyticsApi = {
   campaigns: () => list("/analytics/campaigns"),
   anomalies: () => api.get("/analytics/anomalies").then((res) => res.data),
   exportAudit: () => list("/analytics/export-audit"),
+  downloadExport: async(id:number) => {const response=await api.get<Blob>(`/analytics/exports/${id}/download`,{responseType:"blob"});const disposition=String(response.headers["content-disposition"]||"");const filename=disposition.match(/filename="?([^";]+)"?/i)?.[1]||`analytics-export-${id}.csv`;downloadBlob(response.data,filename);},
 };
 

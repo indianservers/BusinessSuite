@@ -1013,3 +1013,13 @@ def review_merit_recommendation(recommendation_id: int, data: MeritRecommendatio
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.delete('/goals/{goal_id}',status_code=204)
+def delete_goal(goal_id:int,db:Session=Depends(get_db),user:User=Depends(RequirePermission('performance_manage'))):
+    goal=db.query(PerformanceGoal).filter_by(id=goal_id).first()
+    if not goal:raise HTTPException(404,'Goal not found')
+    employee=_employee_or_404(db,goal.employee_id)
+    if not _can_write_goal(user,employee):raise HTTPException(403,'Not allowed to delete this goal')
+    if db.query(GoalCheckIn).filter_by(goal_id=goal.id).first():raise HTTPException(409,'Goals with check-in history must be retained; complete the goal instead')
+    db.delete(goal);db.commit()
