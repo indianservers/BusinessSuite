@@ -95,7 +95,7 @@ export default function NativeTableTools({ children, scope, attributes, defaultG
   const renderRow = (row: Element) => {
     const cells = nodes(row.props.children);
     const status = statusIndex >= 0 ? gridCellText(cells[statusIndex]).trim() : "";
-    const priorityIndex=labels.findIndex(label=>/^priority$/i.test(label.trim()));
+    const priorityIndex=labels.findIndex(label=>/\bpriority\b/i.test(label.trim()));
     const priority=priorityIndex>=0?cellPriority(cells[priorityIndex]):undefined;
     return cloneElement(row, {"data-priority-row":priority?true:row.props["data-priority-row"],"data-priority":priority||row.props["data-priority"],onClickCapture:(event:any)=>capture(row,event)}, [...visible.map(i => {
       const cell = cells[i], content = columnValue(labels[i], cell.props.children);

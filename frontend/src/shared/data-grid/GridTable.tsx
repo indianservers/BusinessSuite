@@ -39,7 +39,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
     && !headers.some(h => h.props.colSpan > 1 || h.props.rowSpan > 1);
   const scope = `suite-table:${location.pathname}:${gridId}`;
   const rowMap = new Map(rows.map((row, i) => [String(row.key ?? i), row]));
-  const records: RecordRow[] = rows.map((row, i) => ({ id: String(row.key ?? i), values: elements(row.props.children).map((cell,index) => /^priority$/i.test(gridHeaderText(headers[index]?.props.children).trim()) ? cellPriority(cell) || gridCellText(cell).trim() : gridCellText(cell).trim()) }));
+  const records: RecordRow[] = rows.map((row, i) => ({ id: String(row.key ?? i), values: elements(row.props.children).map((cell,index) => /\bpriority\b/i.test(gridHeaderText(headers[index]?.props.children).trim()) ? cellPriority(cell) || gridCellText(cell).trim() : gridCellText(cell).trim()) }));
   const hasSelection = headers.some(h => contains(h.props.children, checkbox)) || rows.some(row => contains(row.props.children, checkbox));
   const titles = headers.map(header => gridHeaderText(header.props.children));
   const statusIndex = titles.findIndex(title => /^(status|stage|state|approval status|billing status|employment status)$/i.test(title));

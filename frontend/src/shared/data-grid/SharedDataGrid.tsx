@@ -1144,7 +1144,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     }
   }
   function priorityFor(record:T) {
-    const column=columns.find(column=>/^priority$/i.test(column.title.trim()));
+    const column=columns.find(column=>/\bpriority\b/i.test(column.title.trim()));
     return recordPriority(record) || (column ? normalizePriority(textFor(record,column)) : undefined);
   }
   function renderCollectionRecord(record:T) {

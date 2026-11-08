@@ -33,7 +33,7 @@ export function ColumnHeadingIcon({ title }: { title: string }) {
 
 /** Upgrade explicit percentages only. Existing editors and domain renderers stay intact. */
 export function columnValue(title: string, content: ReactNode): ReactNode {
-  if (/^priority$/i.test(title.trim()) && (typeof content === "string" || typeof content === "number")) {
+  if (/\bpriority\b/i.test(title.trim()) && (typeof content === "string" || typeof content === "number")) {
     const priority=normalizePriority(content);
     return priority ? <span data-priority-badge data-priority={priority}>{content}</span> : content;
   }
