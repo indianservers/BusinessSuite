@@ -1,0 +1,31 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const ts = require('typescript');
+const source = fs.readFileSync('src/apps/crm/dateTime.ts', 'utf8');
+const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const mod = { exports: {} };
+new Function('exports', 'module', output)(mod.exports, mod);
+const { crmTimestamp } = mod.exports;
+const instant = '2026-11-12T06:15:00.000Z';
+for (const value of ['2026-11-12T06:15:00', '2026-11-12 06:15:00', '2026-11-12T06:15:00Z', '2026-11-12T11:45:00+05:30', new Date(instant)]) {
+  assert.equal(crmTimestamp(value).toISOString(), instant);
+}
+assert.equal(crmTimestamp('2026-11-12T06:15:00.123456').toISOString(), '2026-11-12T06:15:00.123Z');
+assert.equal(crmTimestamp('2026-11-12T06:15:00').toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }), '11:45');
+assert.equal(Number.isNaN(crmTimestamp('invalid').getTime()), true);
+const { crmLocalDateTime } = mod.exports;
+const originalZone = process.env.TZ;
+process.env.TZ = 'Asia/Kolkata';
+assert.equal(crmLocalDateTime('2026-11-12T06:15:00'), '2026-11-12T11:45');
+assert.equal(crmLocalDateTime('2026-11-12T11:45:00+05:30'), '2026-11-12T11:45');
+assert.equal(crmLocalDateTime(''), '');
+assert.equal(crmLocalDateTime('invalid'), '');
+const { crmTaskDate, crmTaskDueValue } = mod.exports;
+assert.equal(crmTaskDate('2026-11-09T19:45:00'), '2026-11-10');
+assert.equal(crmTaskDate('2026-11-10'), '2026-11-10');
+assert.equal(crmTaskDueValue('2026-11-10', '2026-11-09T19:45:00'), '2026-11-09T19:45:00');
+assert.equal(crmTaskDueValue('2026-11-11', '2026-11-09T19:45:00'), '2026-11-10T19:45:00.000Z');
+assert.equal(crmTaskDueValue('', '2026-11-09T19:45:00'), null);
+assert.equal(crmTaskDueValue('2026-11-10'), '2026-11-10T12:00:00Z');
+if (originalZone === undefined) delete process.env.TZ; else process.env.TZ = originalZone;
+console.log('18 CRM timestamp regression scenarios passed');

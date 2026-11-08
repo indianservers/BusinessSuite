@@ -234,6 +234,20 @@ def get_note(note_id: int, db: Session = Depends(get_db), user: User = Depends(g
     return result(db, readable(db, note_id, user), user)
 
 
+def versioned_owned_update(db, row, version, values):
+    """Claim the version atomically; flush relationships through branch validation."""
+    model = type(row)
+    count = db.execute(update(model).where(model.id == row.id, model.owner_id == row.owner_id,
+        model.version == version).values(version=version + 1).execution_options(synchronize_session=False)).rowcount
+    if count != 1:
+        return False
+    db.refresh(row)
+    for key, value in values.items():
+        setattr(row, key, value)
+    db.flush()
+    return True
+
+
 @router.put("/notes/{note_id}")
 def save_note(note_id: int, data: NoteSave, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     note = owned(db, note_id, user)
@@ -244,9 +258,7 @@ def save_note(note_id: int, data: NoteSave, db: Session = Depends(get_db), user:
     # scalar compare-and-swap so concurrent saves still reject stale versions.
     values = data.model_dump(exclude={"version", "project_id", "task_id", "folder_id"})
     values.update(title=data.title.strip() or "Untitled note", version=data.version + 1, updated_at=datetime.now(timezone.utc))
-    count = db.execute(update(PMSNote).where(PMSNote.id == note_id, PMSNote.owner_id == user.id,
-        PMSNote.version == data.version, PMSNote.deleted_at.is_(None)).values(**values).execution_options(synchronize_session=False)).rowcount
-    if count != 1:
+    if not versioned_owned_update(db, note, data.version, values):
         db.rollback()
         raise HTTPException(409, "This note changed in another tab. Your draft is kept. Reload the latest note before saving.")
     db.refresh(note)
@@ -364,8 +376,8 @@ def create_folder(data: FolderInput, db: Session = Depends(get_db), user: User =
 def save_folder(folder_id: int, data: FolderSave, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     folder = folder_owned(db, folder_id, user)
     check_parent(db, data, user, folder)
-    count = db.execute(update(PMSNoteFolder).where(PMSNoteFolder.id == folder.id, PMSNoteFolder.version == data.version).values(**data.model_dump(exclude={"version"}), version=data.version+1).execution_options(synchronize_session=False)).rowcount
-    if count != 1: db.rollback(); raise HTTPException(409, "Folder changed. Reload before trying again.")
+    if not versioned_owned_update(db, folder, data.version, data.model_dump(exclude={"version"})):
+        db.rollback(); raise HTTPException(409, "Folder changed. Reload before trying again.")
     db.commit(); db.expire_all()
     return folder_result(folder_owned(db, folder_id, user))
 
@@ -481,8 +493,8 @@ def bulk_notes(data: BulkInput, db: Session = Depends(get_db), user: User = Depe
         if data.action == "move": values.update(folder_id=data.folder_id, project_id=data.project_id, task_id=data.task_id)
         elif data.action in {"archive", "unarchive"}: values["archived"] = data.action == "archive"
         else: values["deleted_at"] = datetime.now(timezone.utc) if data.action == "trash" else None
-        count = db.execute(update(PMSNote).where(PMSNote.id == note.id, PMSNote.owner_id == user.id, PMSNote.version == version).values(**values).execution_options(synchronize_session=False)).rowcount
-        if count != 1: db.rollback(); raise HTTPException(409, "A selected note changed. No notes were updated.")
+        if not versioned_owned_update(db, note, version, values):
+            db.rollback(); raise HTTPException(409, "A selected note changed. No notes were updated.")
         db.expire(note); db.refresh(note); revision(db, note)
         db.add(PMSNoteEvent(note_id=note.id, actor_id=user.id, action=data.action))
     db.commit(); return {"updated": len(rows), "items": [{"id": note.id, "version": version+1} for note, version in rows]}
@@ -517,9 +529,7 @@ def undo_note_action(data: NoteUndoInput, db: Session = Depends(get_db), user: U
         values = item.model_dump(exclude={"id", "version", "trashed"})
         values.update(version=item.version + 1, updated_at=datetime.now(timezone.utc),
                       deleted_at=datetime.now(timezone.utc) if item.trashed else None)
-        count = db.execute(update(PMSNote).where(PMSNote.id == note.id, PMSNote.owner_id == user.id,
-            PMSNote.version == item.version).values(**values).execution_options(synchronize_session=False)).rowcount
-        if count != 1:
+        if not versioned_owned_update(db, note, item.version, values):
             db.rollback()
             raise HTTPException(409, "A note changed since that action. Undo made no changes.")
         db.refresh(note)

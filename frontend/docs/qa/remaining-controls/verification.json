@@ -1,0 +1,294 @@
+{
+  "date": "2026-11-07",
+  "complete": false,
+  "environment": "Isolated loopback QA at 127.0.0.1:1569; generated records explicitly approved as disposable",
+  "initial_route_inventory": "../workspace-completion/routes-desktop.json",
+  "initial_routes": 192,
+  "initial_controls": 14765,
+  "interaction_checks_recorded": 595,
+  "check_results": {
+    "passed": 583,
+    "fixed-and-passed": 12
+  },
+  "route_workspace_panels": "workspace-panels.json",
+  "validation": {
+    "custom_fields_reset_recovery_backend_tests": 31,
+    "shared_identity_company_boundary_backend_tests": 37,
+    "typescript": "passed",
+    "changed_component_lint": "passed",
+    "production_build": "passed",
+    "management_backend_tests": 7,
+    "contact_picker_response_scenarios": 11,
+    "record_sync_backend_tests": 21,
+    "sync_payload_scenarios": 8,
+    "backend_total_this_audit": 124,
+    "private_notes_backend_tests": 28,
+    "editor_production_build": "passed",
+    "editor_typecheck": "passed",
+    "editor_changed_component_lint": "passed",
+    "task_landmark_build": "passed",
+    "task_landmark_lint": "passed",
+    "shared_block_selection_regression_scenarios": 6,
+    "shared_editor_typecheck": "passed",
+    "shared_editor_changed_component_lint": "passed",
+    "shared_editor_production_build": "passed",
+    "tooltip_production_build": "passed",
+    "form_boundary_typecheck": "passed",
+    "form_boundary_changed_component_lint": "passed",
+    "form_boundary_production_build": "passed",
+    "crm_detail_typecheck": "passed",
+    "crm_detail_changed_component_lint": "passed",
+    "crm_detail_production_build": "passed",
+    "catalog_layout_production_build": "passed",
+    "catalog_layout_changed_component_lint": "passed",
+    "crm_timestamp_regression_scenarios": 18,
+    "crm_growth_typecheck": "passed",
+    "crm_growth_lint": "passed",
+    "crm_growth_production_build": "passed",
+    "record_360_work_backend_tests": 38,
+    "quick_action_typecheck": "passed",
+    "quick_action_lint": "passed",
+    "quick_action_production_build": "passed",
+    "crm_task_date_typecheck": "passed",
+    "crm_task_date_lint": "passed",
+    "crm_task_date_production_build": "passed",
+    "shared_form_validation_typecheck": "passed",
+    "shared_form_validation_lint": "passed",
+    "shared_form_validation_production_build": "passed"
+  },
+  "coverage_limits": [
+    "This is a continuing audit, not certification that every button on all 192 pages has been exercised.",
+    "Individual checks are recorded in checks.json. A check verifies only its described action and observed outcome.",
+    "Workspace-panel checks are recorded per route and do not certify the other controls on that route.",
+    "Record-specific actions, uploads, live integrations, and additional control states remain pending unless explicitly recorded.",
+    "Browser viewport changed during the session from952x466to1920x889; individual page checks are not a fresh full responsive-layout audit.",
+    "Disposable QA fixture reset after sync-protocol fix. Earlier evidence reflects the previous generated fixture; no production data touched.",
+    "Note folder color persistence remains unverified; file chooser upload is blocked by browser extension configuration."
+  ],
+  "route_pass_status": "All192destination headings verified before workspace-panel actions;172panels passed and20notexposedinthecurrentlayout. Preliminary batches excluded.",
+  "filter_option_checks": {
+    "file": "filter-options.json",
+    "results": {
+      "passed": 944,
+      "superseded-by-scoped-recheck": 17,
+      "disabled-in-current-state": 2,
+      "loading-placeholder-only": 1
+    },
+    "limitation": "Selected control values only; does not assert backend filtering, exhaustive popover UX, or all combinations."
+  },
+  "grid_control_checks": {
+    "file": "grid-controls.json",
+    "results": {
+      "passed": 121,
+      "superseded-by-recheck": 13,
+      "superseded-by-manual-recheck": 1,
+      "superseded-by-tooltip-fix": 3,
+      "superseded-by-complete-fixture-recheck": 1
+    },
+    "limitation": "Company/vendor/customer column controls exercised individually. Customer grouping options, all12namefilteroperators and all10filterablecolumns checked; saved view restored changed column visibility. Remaining grids and row actions are not certified. Advanced task grid columns, saved view visibility restore and display options also checked individually. Record equivalence and all row actions not certified.",
+    "advanced_tasks": "All7 grouping choices rendered/expanded/collapsed/removed; all12 task-key operators and other6 filterable columns matched expected identifiers across25loaded records, including virtualized rows. Filters cleared and Status grouping restored."
+  },
+  "form_option_checks": {
+    "file": "form-options.json",
+    "results": {
+      "passed": 1165,
+      "superseded-by-fix": 14,
+      "fixed-and-passed": 161
+    },
+    "limitation": "Currency options checked via visible search and pointer selection. Native selections verify controlled value only; do not certify saved validation for each value."
+  },
+  "note_move_checks": {
+    "file": "note-controls.json",
+    "passed": 38,
+    "evidence": "Each destination moved the saved note, advanced its visible version, and Undo restored original project/folder/content with another version advance."
+  },
+  "project_file_choices": {
+    "file": "project-file-options.json",
+    "passed": 36,
+    "evidence": "Every project selection displayed its uniquely named prepared attachment fixture. Fixtures were prepared by API; upload UI is not certified."
+  },
+  "attachment_checks": {
+    "project_files": "PNG and text downloads matched generated fixtures; folder move and keyboard move back persisted.",
+    "private_note": "PNG rendered at 480x240; text preview matched content; removal, Undo removal and reload/restore passed.",
+    "upload_ui": "Retried after user enabled file access; Chrome extension still rejected fileChooser.setFiles. Not certified.",
+    "private_note_download": "PNG (2565 bytes) and text (69 bytes) downloaded via note buttons; SHA256 matched original generated fixtures."
+  },
+  "note_save_fix": "Saving and folder rename passed after branch-safe ORM update fix. Real typing, draft recovery, Save, reload and 85-character persisted content verified.",
+  "note_template_checks": {
+    "file": "note-template-controls.json",
+    "passed": 6,
+    "limitation": "Each template created and autosaved expected content. Not every template editing operation certified."
+  },
+  "note_format_checks": {
+    "file": "note-formatting-controls.json",
+    "passed": 19,
+    "limitation": "Paragraph styles and font sizes checked resulting markup; bold/italic/underline/strike added and removed. Five block toggles separately verified after fixes."
+  },
+  "additional_note_checks": {
+    "history_restore": "Version 1 empty content restored as new version81; version80 original content restored as new version82.",
+    "favorites": "Favorited, reload retained Favorites1, removed and count returned0.",
+    "archive_undo": "Archive confirmation shown, Undo restored Archive note action and content at version86.",
+    "editor_width": "Standard\u2192wide\u2192narrow\u2192standard options verified.",
+    "trash": "Native confirm interrupted command; no delete recorded. Unverified.",
+    "copy_note_link": "Clipboard bridge reported removed; clipboard result unverified.",
+    "find_replace": "Next selected formatting; Replace all produced QA list verified; absent phrase showed No matches found; Close find removed panel.",
+    "links": "javascript URL rejected with validation message; HTTPS link markup applied then removed. No destination visited.",
+    "focus_mode": "Full-screen focus class appeared; Exit removed it.",
+    "alignment_indent": "All four text-align styles verified on document; increase indent set data-indent=1; decrease removed it."
+  },
+  "note_table_checks": {
+    "file": "note-table-controls.json",
+    "evidence": "3x3 insertion retained trailing paragraph; row and column addition/removal verified exact dimensions; header toggled 0\u21923 header cells; table removal verified.",
+    "merge_split": "Single cell: Merge and Split disabled. Shift-selected two header cells: Merge enabled, cells 9\u21928 and colspan2; Split enabled, cells8\u21929 and colspan removed."
+  },
+  "note_block_toggle_checks": {
+    "file": "note-block-toggle-controls.json",
+    "fixed_and_passed": 5,
+    "evidence": "All-document selection: each creates exactly one block and second click restores exact original paragraph."
+  },
+  "note_list_checks": {
+    "file": "note-list-controls.json",
+    "passed": 9,
+    "unverified": 1,
+    "limitation": "Date inputs not certified. Shortcut help verified, not every shortcut execution."
+  },
+  "task_inline_checks": {
+    "file": "task-inline-controls.json",
+    "passed": 20,
+    "limitation": "Specific actions on synthetic taskBS036-5 only. Not certification of every task record, due date editor or assignments. Blocked validation checked without required execution details."
+  },
+  "task_workspace_checks": {
+    "file": "task-workspace-controls.json",
+    "results": {
+      "unverified": 2,
+      "passed": 10,
+      "fixed-and-passed": 1
+    },
+    "limitation": "Only explicitly recorded controls certified; native deletion and blob tab content unverified."
+  },
+  "task_blocker_options": {
+    "file": "task-blocker-options.json",
+    "passed": 9,
+    "limitation": "Each native option selected; one Technical/High record saved with responsibleAdmin and assistance. All combinations not tested."
+  },
+  "task_comment_formatting": {
+    "file": "task-comment-formatting.json",
+    "passed": 18,
+    "evidence": "All5font families,5paragraphstyles,8font sizes applied document markup."
+  },
+  "shared_block_toggles": {
+    "task_comment": "task-comment-block-toggles.json",
+    "notes_recheck": "note-shared-selection-recheck.json",
+    "passed_after_fixes": 10,
+    "limitation": "Specific whole-document fixtures; not every rich-text instance on192pages certified."
+  },
+  "update_template_fix": "Daily work note and QA test report render expected prompts; Blank update now clears text and disables empty Post Update. Rechecked in browser.",
+  "tooltip_fix": "Visible global text tooltip overlapped task-column restore arrow and intercepted pointer events, dismissing manager. After pointer-events:none, hit test reached arrow while tooltip visible; pointer restore retained manager; full column controls passed.",
+  "lead_create_checks": {
+    "file": "lead-create-controls.json",
+    "results": {
+      "passed": 26,
+      "fixed-and-passed": 2
+    },
+    "limitation": "Per-option selection and explicitly described saved flows only. Not every lead record, phone country or remaining detail action certified."
+  },
+  "catalog_quick_create_checks": {
+    "file": "catalog-quick-create-controls.json",
+    "results": {
+      "passed": 47
+    },
+    "limitation": "All162currency selections recorded separately. Saved base/monthly plan/image/custom-field persistence verified on QA service. Image upload, automatic follow-up generation and all saved pricing combinations not certified."
+  },
+  "crm_inline_checks": {
+    "file": "crm-inline-controls.json",
+    "results": {
+      "fixed-and-passed": 3,
+      "passed": 15,
+      "unverified": 1
+    },
+    "limitation": "Specific synthetic lead6 only. Invalid-phone draft retention remains unverified; other CRM record kinds and all structured value shapes not certified."
+  },
+  "catalog_page_checks": {
+    "file": "catalog-page-controls.json",
+    "results": {
+      "passed": 86,
+      "unverified": 1,
+      "fixed-and-passed": 2,
+      "superseded-by-settled-count-recheck": 1,
+      "superseded-by-selector-recheck": 6
+    },
+    "routes": [
+      "crm/products",
+      "crm/products-services",
+      "pms/products",
+      "pms/products-services"
+    ],
+    "evidence": "Each of four routes: four sorts and 12 filter results; three active record previews, title/edit/cancel actions, individual/page selection and all three bulk reuse modes checked. Single-branch fixture prevented actual sharing. Export 22 columns and XLSX/CSV/JSON downloads separately verified."
+  },
+  "catalog_fixture_state": "Three active generated offerings with distinct names/codes/categories/prices; one archived service copy. Earlier option/form checks predate sorting fixture.",
+  "catalog_page_control_results": {
+    "passed": 86,
+    "unverified": 1,
+    "fixed-and-passed": 2,
+    "superseded-by-settled-count-recheck": 1,
+    "superseded-by-selector-recheck": 6
+  },
+  "catalog_export_controls": "catalog-export-controls.json",
+  "catalog_export_control_results": {
+    "passed": 25,
+    "passed-ui-feedback": 1,
+    "unverified": 1
+  },
+  "relationship_detail_controls": "relationship-detail-controls.json",
+  "relationship_detail_controls_results": {
+    "passed": 4,
+    "fixed-and-passed": 2,
+    "passed-selected-state": 2
+  },
+  "followup_workspace_controls": "followup-workspace-controls.json",
+  "followup_workspace_controls_results": {
+    "passed-selected-state": 31,
+    "passed": 15,
+    "fixed-and-passed": 2
+  },
+  "greetings_controls": "greetings-controls.json",
+  "greetings_control_results": {
+    "passed-selected-state": 16,
+    "passed": 24
+  },
+  "record_360_controls": "record-360-controls.json",
+  "record_360_controls_results": {
+    "passed": 15,
+    "fixed-and-passed": 1
+  },
+  "record_template_controls": "record-template-controls.json",
+  "record_template_controls_results": {
+    "passed": 13,
+    "unverified": 1
+  },
+  "calls_workspace_controls": "calls-workspace-controls.json",
+  "calls_workspace_controls_results": {
+    "passed-selected-state": 41,
+    "passed": 15
+  },
+  "crm_task_controls": "crm-task-controls.json",
+  "crm_task_controls_results": {
+    "passed": 25,
+    "passed-selected-state": 4,
+    "fixed-and-passed": 4
+  },
+  "crm_task_fixture_state": "Two open generated CRM tasks remain: original task with Nov 9 deadline and comprehensive High-priority task with Nov 9 start, Nov 11 due and two subtask labels. Call-created follow-up and copied task were deleted after UI checks. One call and one scheduled meeting remain. Older counts reflect their recorded fixture states.",
+  "last_updated": "2026-11-08",
+  "audit_dates": [
+    "2026-11-07",
+    "2026-11-08"
+  ],
+  "crm_task_form_controls": "crm-task-form-controls.json",
+  "crm_task_form_control_results": {
+    "passed-selected-state": 29,
+    "passed": 9,
+    "unverified": 1,
+    "fixed-and-passed": 3
+  },
+  "crm_task_form_limitations": "Only recorded controls are certified. Assignment modes store detail labels. Attachments are filename-only UI; direct file selection remains blocked by extension. AI generation is disabled. This is not certification of every editor formatting control or all task records."
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "control": "Tag create, duplicate and persistence",
+    "result": "passed",
+    "evidence": "QA-verified normalized to qa-verified; duplicate left one chip; reload retained tag at Version9."
+  },
+  {
+    "control": "Tag filter",
+    "result": "passed",
+    "evidence": "Selected qa-verified; waited other records detached; one matching note remained."
+  },
+  {
+    "control": "Has attachments filter",
+    "result": "passed",
+    "evidence": "Waited nonmatching note detached; only QA attachment preview and download remained."
+  },
+  {
+    "control": "Edited from / through",
+    "result": "unverified",
+    "evidence": "CUA date fill left empty native value; no date filtering certified."
+  },
+  {
+    "control": "Title sort",
+    "result": "passed",
+    "evidence": "Actual 10-title sequence matched alphabetical order."
+  },
+  {
+    "control": "Created sort",
+    "result": "passed",
+    "evidence": "Actual sequence matched notes10..1 creation order, with QA blank template near end."
+  },
+  {
+    "control": "Modified sort",
+    "result": "passed",
+    "evidence": "Recently edited QA blank template moved ahead of older template records."
+  },
+  {
+    "control": "Saved search save, apply, reload and remove",
+    "result": "passed",
+    "evidence": "QA tagged notes restored qa-verified filter and single result; persisted after reload; own search removed."
+  },
+  {
+    "control": "Note view cycle",
+    "result": "passed",
+    "evidence": "DOM classes cycled notes-list-list, notes-list-compact, notes-list-cards; all10 articles retained."
+  },
+  {
+    "control": "Shortcut help open/close",
+    "result": "passed",
+    "evidence": "Keyboard shortcuts dialog listed actual editor/list shortcuts and Close dialog dismissed it. Shortcut execution not implied."
+  }
+]

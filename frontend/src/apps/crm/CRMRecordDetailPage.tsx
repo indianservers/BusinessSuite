@@ -1,3 +1,5 @@
+import { leadSourceOptions } from "@/lib/form-defaults";
+import { crmLocalDateTime } from "./dateTime";
 import RecordTemplatePicker from '@/shared/template-design/RecordTemplatePicker';
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import FieldControl, { fieldShown } from "@/shared/custom-fields/FieldControl";
@@ -581,23 +583,25 @@ function InlineField({ fieldKey, value, countryCode, config, onSave, saving }: {
       {editing ? (
         <div className="mt-2 space-y-1">
           <div className="flex gap-2">
-            {["notes","description","body","message","requirements"].includes(fieldKey) ? <RichTextEditor legacyFormat="plain" value={draft} onChange={setDraft} onBlur={commit} label={labelFor(fieldKey)} variant="compact" disabled={saving}/> : phoneFields.has(fieldKey) ? <PhoneInput label={labelFor(fieldKey)} value={draft} countryCode={code} onChange={setDraft} onCountryCodeChange={setCode} /> : <DetailInlineEditor config={config || { type: "text" }} value={draft} onChange={setDraft} onCommit={commit} onCancel={() => { setDraft(valueText(value)); setEditing(false); setError(null); }} />}
-            <Button size="sm" onClick={commit} disabled={saving}><Save className="h-4 w-4" /></Button>
+            {["notes","description","body","message","requirements"].includes(fieldKey) ? <RichTextEditor legacyFormat="plain" value={draft} onChange={setDraft} onBlur={commit} label={labelFor(fieldKey)} variant="compact" disabled={saving}/> : phoneFields.has(fieldKey) ? <PhoneInput label={labelFor(fieldKey)} value={draft} countryCode={code} onChange={setDraft} onCountryCodeChange={setCode} /> : <DetailInlineEditor label={labelFor(fieldKey)} config={config && fieldKey === "source" ? { ...config, options: leadSourceOptions() } : config || { type: "text" }} value={draft} onChange={setDraft} onCommit={commit} onCancel={() => { setDraft(valueText(value)); setEditing(false); setError(null); }} />}
+            <Button size="sm" aria-label={`Save ${labelFor(fieldKey)}`} onClick={commit} disabled={saving}><Save className="h-4 w-4" /></Button>
           </div>
           {error ? <p className="text-xs text-destructive">{error}</p> : null}
         </div>
-      ) : (
-        <button type="button" className={`mt-1 flex w-full items-center justify-between gap-2 truncate text-left font-medium ${config ? "hover:text-primary" : ""}`} onClick={() => config && setEditing(true)}>
+      ) : config ? (
+        <button type="button" className="mt-1 flex w-full items-center justify-between gap-2 truncate text-left font-medium hover:text-primary" onClick={() => setEditing(true)}>
           <span className="truncate">{renderValue(fieldKey, value)}</span>
           {config ? <Edit3 className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100" /> : null}
         </button>
+      ) : (
+        <div className="mt-1 min-w-0 break-words font-medium">{renderValue(fieldKey, value)}</div>
       )}
     </div>
   );
 }
 
 function FullDetails({ kind, record, onSave, group }: { kind: DetailKind; record: DetailRecord; group?: string; onSave: (key: string, value: string | number | boolean | null, extra?: CRMApiRecord) => Promise<unknown> }) {
-  const entries = Object.entries(record).filter(([key]) => !readOnlyKeys.has(key) && !key.endsWith("Id") && (!group || (/company|industry|website|revenue|business|employees|designation|job_title|source|products|services/i.test(key) ? "Business" : /name|email|phone|mobile|address|city|state|country|postal|zip/i.test(key) ? "Contact" : "CRM") === group));
+  const entries = Object.entries(record).filter(([key, value]) => (key !== "phone_validation_issues" || (value !== null && typeof value === "object" && Object.keys(value).length > 0)) && !readOnlyKeys.has(key) && !key.endsWith("Id") && (!group || (/company|industry|website|revenue|business|employees|designation|job_title|source|products|services/i.test(key) ? "Business" : /name|email|phone|mobile|address|city|state|country|postal|zip/i.test(key) ? "Contact" : "CRM") === group));
   return (
     <Card>
       <CardHeader><CardTitle>Full Details</CardTitle></CardHeader>
@@ -687,9 +691,10 @@ function CommunicationTimeline({ recordType, recordId }: { recordType: string; r
   );
 }
 
-function DetailInlineEditor({ config, value, onChange, onCommit, onCancel }: { config: DetailInlineConfig; value: string; onChange: (value: string) => void; onCommit: () => void; onCancel: () => void }) {
+function DetailInlineEditor({ label, config, value, onChange, onCommit, onCancel }: { label: string; config: DetailInlineConfig; value: string; onChange: (value: string) => void; onCommit: () => void; onCancel: () => void }) {
   const common = {
     value,
+    "aria-label": label,
     autoFocus: true,
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onChange(event.target.value),
     onKeyDown: (event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -699,14 +704,19 @@ function DetailInlineEditor({ config, value, onChange, onCommit, onCancel }: { c
     onBlur: onCommit,
   };
   if (config.type === "select") {
+    const options = config.options || [];
+    const choices = value && !options.includes(value) ? [value, ...options] : options;
     return (
-      <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...common}>
-        {(config.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+      <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...common}
+        onBlur={undefined}
+        onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onCancel(); } }}>
+        {/* The searchable picker takes focus; choice edits commit through Save. */}
+        {choices.map((option) => <option key={option} value={option}>{label === "Source" && option === "Manual" ? "Manual Entry" : option}</option>)}
       </NativeSelect>
     );
   }
   const type = config.type === "number" ? "number" : config.type === "date" ? "date" : config.type === "datetime" ? "datetime-local" : "text";
-  return <Input type={type} value={inputValueForType(config.type, value)} autoFocus onChange={(event) => onChange(event.target.value)} onKeyDown={common.onKeyDown} onBlur={onCommit} />;
+  return <Input aria-label={label} type={type} value={inputValueForType(config.type, value)} autoFocus onChange={(event) => onChange(event.target.value)} onKeyDown={common.onKeyDown} onBlur={onCommit} />;
 }
 
 function normalizeDetailInlineValue(config: DetailInlineConfig, value: string | number | boolean | null) {
@@ -985,6 +995,7 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
   const saveLock=useRef(false);
   const [saving, setSaving] = useState(false);
   const targetEntity = actionEntity(action);
+  const dateTimeFields = new Set(["due_date", "reminder_at", "call_time", "start_time", "end_time"]);
   const submit = () => {
     if(saveLock.current)return;saveLock.current=true;
     setSaving(true);
@@ -997,7 +1008,7 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
   };
   return (
     <div role="dialog" aria-modal="true" aria-label={quickActionTitle(action)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <Card className="w-full max-w-xl">
+      <Card className="max-h-[90dvh] w-full max-w-xl overflow-y-auto">
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle>{quickActionTitle(action)}</CardTitle>
           <Button variant="ghost" size="sm" disabled={saving} onClick={onClose}><X className="h-4 w-4" /></Button>
@@ -1015,7 +1026,7 @@ export function QuickActionModal({ action, kind, record, entity, recordId, onClo
                     onMentionsChange={setMentions}
                   />
                 ) : (
-                  <Input value={valueText(value)} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />
+                  dateTimeFields.has(key) ? <Input aria-label={labelFor(key)} type="datetime-local" value={crmLocalDateTime(valueText(value))} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value ? new Date(event.target.value).toISOString() : "" }))} onInput={event => { const next = event.currentTarget.value; setDraft(current => ({ ...current, [key]: next ? new Date(next).toISOString() : "" })); }} /> : <Input aria-label={labelFor(key)} type={["issue_date", "expiry_date"].includes(key) ? "date" : "text"} value={valueText(value)} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />
                 )}
               </Field>
             ))}
@@ -1064,7 +1075,7 @@ function MentionTextarea({ value, onChange, mentions, onMentionsChange }: { valu
 
   return (
     <div className="relative md:col-span-2">
-      <RichTextField value={value} onChange={(event) => updateValue(event.target.value)} rows={5} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+      <RichTextField aria-label="Body" value={value} onChange={(event) => updateValue(event.target.value)} rows={5} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
       {open && options.length ? (
         <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-lg">
           {options.map((user) => (
@@ -1473,9 +1484,18 @@ function valueText(value: unknown) {
   return String(value);
 }
 
+function detailValueText(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.map(detailValueText).join(", ") || "-";
+  if (typeof value === "object") return Object.entries(value).map(([key, item]) => `${labelFor(key)}: ${detailValueText(item)}`).join("; ") || "-";
+  return String(value);
+}
+
 function renderValue(key: string, value: unknown) {
   if (["notes","description","body","message","requirements"].includes(key)) return <RichTextContent legacyFormat="plain" value={String(value || "")}/>;
   if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "object" || typeof value === "boolean") return detailValueText(value);
   if (key === "lead_score") return `${Number(value)} / ${leadScoreLabel(Number(value))}`;
   if (key.toLowerCase().includes("amount") || key.toLowerCase().includes("revenue") || key === "total") return formatCurrency(Number(value));
   if (key.toLowerCase().includes("date") || key.toLowerCase().includes("_at")) return formatDate(String(value));

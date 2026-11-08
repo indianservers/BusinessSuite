@@ -205,3 +205,29 @@ def test_existing_crm_followups_meetings_and_calls_are_reused(db):
     assert {'crm_activity','crm_meeting'}.issubset({item['source'] for item in work['items']})
     assert events('company',company.id,'crm',1,25,'call',db,user)['items'][0]['title']=='Reached customer'
     assert events('company',company.id,'crm',1,25,'meeting',db,user)['items'][0]['title']=='Existing meeting'
+
+
+def test_related_task_timeline_copy_is_history_not_duplicate_work(db):
+    from datetime import datetime, timedelta, timezone
+    from app.apps.crm.models import CRMActivity
+    user, _, company, *_ = seeded(db)
+    due = datetime.now(timezone.utc) + timedelta(days=2)
+    task = CRMTask(organization_id=1, company_id=company.id, title='Native task',
+                   status='To Do', due_date=due, owner_user_id=user.id)
+    db.add(task)
+    db.flush()
+    mirror = CRMActivity(organization_id=1, company_id=company.id, subject='Native task',
+                         title='Native task', activity_type='task', status='To Do',
+                         activity_date=datetime.now(timezone.utc),
+                         metadata_json={'sourceEntity': 'tasks', 'sourceId': task.id})
+    native = CRMActivity(organization_id=1, company_id=company.id, subject='Native follow-up',
+                         activity_type='call', status='Pending', due_date=due)
+    db.add_all([mirror, native])
+    db.commit()
+    work = record_work('company', company.id, 'crm', 1, 25, db, user)['items']
+    assert len([item for item in work if item['title'] == 'Native task']) == 1
+    assert any(item['source'] == 'crm_task' and item['source_id'] == task.id for item in work)
+    assert any(item['source'] == 'crm_activity' and item['source_id'] == native.id for item in work)
+    assert not any(item['source'] == 'crm_activity' and item['source_id'] == mirror.id for item in work)
+    history = events('company', company.id, 'crm', 1, 25, 'activity', db, user)['items']
+    assert any(item['source_id'] == mirror.id and item['title'] == 'Native task' for item in history)

@@ -7244,25 +7244,32 @@ function LeadToCashPage() {
 function SalesAutomationPage() {
   const navigate = useNavigate();
   const user = useAuthStore(state => state.user);
-  const available = (path: string) => canAccessRoute(path, user?.role, user?.is_superuser);
-  const destinations = [
-    { title: "Follow-up reminders", description: "Schedule customer commitments and manage reminder preferences.", path: "/crm/follow-ups", action: "Manage follow-ups", icon: Bell },
-    { title: "Lead assignment", description: "Review lead ownership, qualification and assignment controls.", path: "/crm/leads", action: "Open lead workbench", icon: Users },
-    { title: "Approval workflows", description: "Configure saved approval rules and review approval requests.", path: "/crm/approval-settings", action: "Configure approvals", icon: CheckCircle2 },
-    { title: "Event integrations", description: "Manage signed webhook subscriptions, delivery logs and explicit retries.", path: "/crm/webhooks", action: "Manage webhooks", icon: GitBranch },
-    { title: "Message responses", description: "Configure saved response rules in the communication workspace.", path: "/crm/auto-responses", action: "Manage response rules", icon: Mail },
-    { title: "Pipeline stages", description: "Maintain pipelines and the stages used by your sales team.", path: "/crm/pipeline-settings", action: "Configure pipelines", icon: Target },
-  ].filter(item => available(item.path));
-  return <div className="space-y-6">
-    <PageHeader title="Sales Automation" description="Configure reminders, approvals, assignment and integrations in their saved workspaces."
-      action={available("/admin/automation/workflows") ? "Open workflow studio" : undefined}
-      onAction={() => navigate("/admin/automation/workflows")} />
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{destinations.map(item => {
-      const Icon = item.icon;
-      return <Card key={item.path}><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Icon className="h-5 w-5 text-primary" />{item.title}</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm text-muted-foreground">{item.description}</p><Button variant="outline" onClick={() => navigate(item.path)}>{item.action}</Button></CardContent></Card>;
-    })}</div>
-    {!destinations.length && <p className="rounded-md border p-4 text-sm text-muted-foreground">No automation configuration pages are available for your role.</p>}
-  </div>;
+  const canConfigure = canAccessRoute("/admin/automation/workflows", user?.role, user?.is_superuser);
+  const tools: [string, string, string, React.ElementType][] = [
+    ["Workflows", "workflows", "Create guarded triggers and actions, test rules, and manage activation.", Sparkles],
+    ["Blueprints", "blueprints", "Define stages, required fields, and transition checks.", GitMerge],
+    ["Approvals", "approvals", "Review approval requests and configure approval rules.", FileCheck2],
+    ["Assignment rules", "assignment-rules", "Configure and test how records are routed to owners.", Users],
+    ["Cadences", "cadences", "Manage follow-up sequences, enrollment, and pause or resume controls.", CalendarDays],
+    ["Webhooks", "webhooks", "Manage signed event destinations and test deliveries.", Activity],
+    ["Execution logs", "logs", "Inspect automation outcomes and retry eligible failed executions.", ListFilter],
+  ];
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Sales Automation" description="Manage saved automation rules and inspect their execution in Automation Studio." action="Create rule" onAction={canConfigure ? () => navigate("/admin/automation/workflows") : undefined} />
+      {!canConfigure && <p className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">An automation administrator can configure these tools. Contact your workspace administrator for access.</p>}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {tools.map(([title, section, detail, Icon]) => (
+          <Card key={section} className="flex flex-col">
+            <CardContent className="flex flex-1 flex-col gap-4 p-5">
+              <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div><div><h2 className="font-semibold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{detail}</p></div></div>
+              <Button className="mt-auto self-start" variant="outline" disabled={!canConfigure} onClick={() => navigate(`/admin/automation/${section}`)}>Open {title.toLowerCase()}</Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ForecastingPage() {

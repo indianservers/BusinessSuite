@@ -1,0 +1,102 @@
+[
+  {
+    "control": "Status Backlog",
+    "result": "passed",
+    "evidence": "Selected inline; reloaded table; BS036-5 retained Backlog."
+  },
+  {
+    "control": "Status To Do",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; hard reload retained value."
+  },
+  {
+    "control": "Status In Progress",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; hard reload retained value."
+  },
+  {
+    "control": "Status In Review",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; hard reload retained value."
+  },
+  {
+    "control": "Status Blocked without execution details",
+    "result": "passed",
+    "evidence": "Validation required blocked reason, responsible person and next review date; previous In Review status retained."
+  },
+  {
+    "control": "Status Done",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; waited save control enabled; hard reload retained value."
+  },
+  {
+    "control": "Status Cancelled",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; waited save control enabled; hard reload retained value."
+  },
+  {
+    "control": "Status To Do",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; waited save control enabled; hard reload retained value."
+  },
+  {
+    "control": "Priority Urgent",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; waited save control enabled; hard reload retained value."
+  },
+  {
+    "control": "Priority High",
+    "result": "passed",
+    "evidence": "Selected High; observed Task saved; hard reload retained High."
+  },
+  {
+    "control": "Priority Low",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; waited Task saved confirmation; hard reload retained value."
+  },
+  {
+    "control": "Priority Medium",
+    "result": "passed",
+    "evidence": "Selected on task BS036-5; waited Task saved confirmation; hard reload retained value."
+  },
+  {
+    "control": "Progress invalid \"-1\"",
+    "result": "passed",
+    "evidence": "Blur restored stored 0; out-of-range/noninteger/empty input not saved."
+  },
+  {
+    "control": "Progress invalid \"101\"",
+    "result": "passed",
+    "evidence": "Blur restored stored 0; out-of-range/noninteger/empty input not saved."
+  },
+  {
+    "control": "Progress invalid \"1.5\"",
+    "result": "passed",
+    "evidence": "Blur restored stored 0; out-of-range/noninteger/empty input not saved."
+  },
+  {
+    "control": "Progress invalid \"\"",
+    "result": "passed",
+    "evidence": "Blur restored stored 0; out-of-range/noninteger/empty input not saved."
+  },
+  {
+    "control": "Progress 50",
+    "result": "passed",
+    "evidence": "Progress saved confirmation; hard reload retained50."
+  },
+  {
+    "control": "Progress 100",
+    "result": "passed",
+    "evidence": "Progress saved confirmation; hard reload retained100."
+  },
+  {
+    "control": "Progress 0 restore",
+    "result": "passed",
+    "evidence": "Progress saved and hard reload retained0."
+  },
+  {
+    "control": "Inline title Escape and Enter",
+    "result": "passed",
+    "evidence": "Escape canceled replacement; Enter saved QA inline title regression and hard reload retained it."
+  }
+]

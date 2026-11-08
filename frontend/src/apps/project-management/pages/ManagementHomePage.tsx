@@ -3,8 +3,8 @@ import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
-import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,10 @@ type Result={id:number;ok:boolean;error?:string;warnings?:string[]};
 const statuses=["Backlog","To Do","In Progress","In Review","Blocked","Done"],projectStatuses=["Draft","Planned","Active","On Hold","Completed","Cancelled"];
 const today=()=>new Date().toLocaleDateString("en-CA");
 export default function ManagementHomePage({mine=false,initialView}:{mine?:boolean;initialView?:string}){
- const [params,setParams]=useSearchParams();const uid=useAuthStore(s=>s.user?.id);
+ const [params,setParams]=useSearchParams();
+ const location=useLocation();const pendingParams=useRef(params),observedSearch=useRef(location.search);
+ if(observedSearch.current!==location.search){observedSearch.current=location.search;pendingParams.current=params;}
+const uid=useAuthStore(s=>s.user?.id);
  const [data,setData]=useState<Home>();const [error,setError]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
  const [selected,setSelected]=useState<number[]>([]);const [field,setField]=useState("status"),[value,setValue]=useState("");const [results,setResults]=useState<Result[]>([]);const [running,setRunning]=useState(false);const [operationCount,setOperationCount]=useState(0);
  const [panel,setPanel]=useState<Task>();const [panelDirty,setPanelDirty]=useState(false);const [duplicate,setDuplicate]=useState<Project>();
@@ -35,7 +38,7 @@ export default function ManagementHomePage({mine=false,initialView}:{mine?:boole
  const load=async()=>{const {data}=await api.get<Home>(`${managementBase}/home`,{params:{workspace_id:ws||undefined,project_id:project||undefined,mine:mine||undefined}});setData(data);setError("");};
  useEffect(()=>{void load().catch(e=>setError(workspaceError(e)));},[ws,project,mine]);
  useEffect(()=>{if(!quickProject&&data?.projects.length)setQuickProject(String(data.projects.find(p=>p.can_manage_tasks&&!p.is_archived)?.id||""));},[data,quickProject]);
- function filter(key:string,v:string){const next=new URLSearchParams(params);if(v)next.set(key,v);else next.delete(key);setParams(next,{replace:true});setSelected([]);setResults([]);}
+ function filter(key:string,v:string){const next=new URLSearchParams(pendingParams.current);if(v)next.set(key,v);else next.delete(key);if(key==="view"){const projectView=v==="projects"||v==="ownerless";const allowed=projectView?projectStatuses:statuses;if(next.has("status")&&!allowed.includes(next.get("status")!))next.delete("status");if(!projectView)next.delete("health");}pendingParams.current=next;setParams(next,{replace:true});setSelected([]);setResults([]);}
  const projectRows=useMemo(()=>data?.projects.filter(p=>!p.is_task_collection&&(view!=="ownerless"||!p.owner_user_id)&&(!owner||String(p.owner_user_id)===owner)&&(!status||p.status===status)&&(!health||p.health===health)&&(!due||!!p.due_date&&p.due_date<=due)&&`${p.name} ${p.project_key}`.toLowerCase().includes(q.toLowerCase()))||[],[data,view,owner,status,health,due,q]);
  const taskRows=useMemo(()=>data?.tasks.filter(t=>{const open=!['Done','Completed','Closed','Cancelled'].includes(t.status);return (!owner||t.assignee_user_ids.includes(Number(owner)))&&(!status||t.status===status)&&(!due||!!t.due_date&&t.due_date<=due)&&`${t.title} ${t.task_key}`.toLowerCase().includes(q.toLowerCase())&&(view==="overdue"?open&&!!t.due_date&&t.due_date<today():view==="unassigned"?open&&!t.assignee_user_ids.length:view==="blocked"?t.status==="Blocked":view==="reviews"?t.status==="In Review":view==="my-work"?open&&(t.assignee_user_ids.includes(uid||0)||t.review_for_me):true);})||[],[data,view,owner,status,due,q,uid]);
  const people=data?.people||[];const person=(id:number|null)=>people.find(p=>p.id===id);const projectName=(id:number)=>data?.projects.find(p=>p.id===id)?.name||`Project ${id}`;

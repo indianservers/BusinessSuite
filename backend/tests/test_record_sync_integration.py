@@ -16,7 +16,9 @@ def test_authenticated_employee_pilot_preserves_route_authorization(client, supe
     replacement = Role(name="sync_replacement_role", description="Role change test")
     db.add(replacement); db.flush(); actor.role_id = replacement.id; db.commit()
     changed = client.get("/api/v1/employees/", headers={**headers, "If-None-Match": first.headers["etag"], "X-Suite-Sync-Cursor": first.headers["x-suite-sync-cursor"]}, params={"page": 1, "per_page": 25})
-    assert changed.status_code == 304
+    assert changed.status_code == 200
+    assert changed.headers["x-suite-sync-mode"] == "full"
+    assert "items" in changed.json()
     assert changed.headers["x-suite-sync-scope"] != first.headers["x-suite-sync-scope"]
     denied = client.get("/api/v1/employees/", headers={"X-Suite-Sync": "1", "If-None-Match": first.headers["etag"], "X-Suite-Sync-Cursor": first.headers["x-suite-sync-cursor"]})
     assert denied.status_code in (401, 403)

@@ -3,3 +3,7 @@
 .sc-form .follow-up-toggle{display:flex;align-items:center;gap:8px;flex-direction:row}.sc-form .follow-up-toggle input[type=checkbox]{width:16px;height:16px;min-height:0;margin:0;flex-shrink:0}
 
 .sc-form .sc-branch-choice{display:flex;flex-direction:row;align-items:center;gap:8px}.sc-form .sc-branch-choice input{width:16px;height:16px;padding:0;flex-shrink:0}
+
+/* Fixed overflow actions must escape the card clipping and hover containing block. */
+.sc-card:has(.suite-compact-actions details[open]){overflow:visible;transform:none;transition:box-shadow .18s}
+.sc-card-cover{border-radius:14px 14px 0 0}

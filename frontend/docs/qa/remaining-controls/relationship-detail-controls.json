@@ -1,0 +1,42 @@
+[
+  {
+    "control": "Catalog service related-record link",
+    "result": "passed",
+    "evidence": "Card link opened product-customers with service 1 selected and only linked QA lead 6 in results."
+  },
+  {
+    "control": "Five relationship detail tabs",
+    "result": "passed",
+    "evidence": "Overview, Products & Services, Deals, Follow-ups, Activity History opened with expected content; both linked offerings visible."
+  },
+  {
+    "control": "Internal note save/reload",
+    "result": "passed",
+    "evidence": "QA relationship activity control verification saved; draft cleared and note visible after reload."
+  },
+  {
+    "control": "Activity details disclosures",
+    "result": "fixed-and-passed",
+    "evidence": "11 raw activity payloads now collapsed initially; every disclosure individually expanded and collapsed through UI."
+  },
+  {
+    "control": "Schedule/reschedule/complete",
+    "result": "passed",
+    "evidence": "Created follow-up 4 on lead 6 for Nov 10, rescheduled to Nov 12 with new purpose, completed Resolved; no open follow-ups after reload. No external messages sent."
+  },
+  {
+    "control": "Follow-up channels",
+    "result": "passed-selected-state",
+    "evidence": "All 5 channel options selected and DOM values checked. Meeting persisted with scheduled follow-up."
+  },
+  {
+    "control": "Follow-up outcomes",
+    "result": "passed-selected-state",
+    "evidence": "All 6 outcome options selected and checked; Resolved persisted through completion."
+  },
+  {
+    "control": "Relationship workspace main landmark",
+    "result": "fixed-and-passed",
+    "evidence": "One main landmark after browser reload; inner page now named section."
+  }
+]

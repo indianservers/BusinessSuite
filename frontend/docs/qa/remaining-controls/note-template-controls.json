@@ -1,0 +1,36 @@
+[
+  {
+    "template": "Blank note",
+    "result": "passed",
+    "evidence": "Blank editor empty; title entry autosaved as new version 1; new note ID2."
+  },
+  {
+    "template": "Meeting notes",
+    "result": "passed",
+    "evidence": "Created note3, autosaved Version1, 4 outline headings, 11 words/81 characters."
+  },
+  {
+    "template": "Project plan",
+    "result": "passed",
+    "url": "http://127.0.0.1:1569/pms/notes?note=4",
+    "content": "Project plan\nObjective\n\n\n\n\nMilestones\n\nMilestone\n\n\t\n\nOwner\n\n\t\n\nDue date\n\n\n\n\n\n\n\n\t\n\n\n\n\n\t\n\n\n\n\nRisks\n\n\n"
+  },
+  {
+    "template": "Research",
+    "result": "passed",
+    "url": "http://127.0.0.1:1569/pms/notes?note=5",
+    "content": "Research\nResearch question\n\n\n\n\nKey findings\n\n\n\n\nSources\n\n\n\n\nNext questions\n\n\n"
+  },
+  {
+    "template": "Daily journal",
+    "result": "passed",
+    "url": "http://127.0.0.1:1569/pms/notes?note=6",
+    "content": "Daily journal\n\nDate:\n\nToday’s priorities\n\n\n\n\nNotes & reflections\n\n\n\n\nGratitude\n\n\n"
+  },
+  {
+    "template": "Decision log",
+    "result": "passed",
+    "url": "http://127.0.0.1:1569/pms/notes?note=7",
+    "content": "Decision log\nContext\n\n\n\n\nOptions considered\n\n\n\n\nDecision\n\n\n\n\nFollow-up\n\n\n"
+  }
+]

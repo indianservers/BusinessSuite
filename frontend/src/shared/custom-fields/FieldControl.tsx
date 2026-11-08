@@ -1,5 +1,5 @@
 import { api } from "@/services/api";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Root as Popover, Content as PopoverContent, Trigger as PopoverTrigger } from "@radix-ui/react-popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,15 +37,16 @@ export default function FieldControl({ field, value, onChange, disabled = false 
   const label = String(field.fieldName || field.field_label || field.label || field.name || "Custom field");
   const type = String(field.fieldType || field.field_type || "text").toLowerCase().replace(/ /g,"_");
   const lookup = type === "user" || type === "owner" || type === 'user_lookup';
+  const peopleLabels = useRef<Record<string, string>>({});
   const [people,setPeople]=useState<{value:string;label:string}[]>([]),[lookupError,setLookupError]=useState("");
   useEffect(()=>{
     if(!lookup)return;
     const controller=new AbortController();
-    const timer=setTimeout(()=>{api.get<{items:Record<string,unknown>[]}>(type === "user_lookup" ? "/customization/users" : "/crm/owners",{params:{per_page:100,search:query},signal:controller.signal}).then(({data})=>{setPeople((data.items||[]).map(p=>({value:String(p.id),label:String(p.name||p.full_name||p.email||p.id)})));setLookupError("");}).catch(()=>{if(!controller.signal.aborted)setLookupError("People could not be loaded. Try searching again.");});},200);
+    const timer=setTimeout(()=>{api.get<{items:Record<string,unknown>[]}>(type === "owner" ? "/crm/owners" : "/users/search",{params:type === "owner" ? {per_page:100,search:query} : {q:query,limit:25},signal:controller.signal}).then(({data})=>{const choices=(data.items||[]).map(p=>({value:String(p.id),label:String(p.displayName||p.name||p.full_name||p.email||p.id)})); for (const person of choices) peopleLabels.current[`${type}:${person.value}`]=person.label; setPeople(choices);setLookupError("");}).catch(()=>{if(!controller.signal.aborted)setLookupError("People could not be loaded. Try searching again.");});},200);
     return()=>{clearTimeout(timer);controller.abort();};
   },[lookup,query,type]);
   const options = lookup ? people.map(p=>p.value) : fieldOptions(field.options ?? field.options_json);
-  const optionLabel=(option:string)=>lookup ? people.find(p=>p.value===option)?.label || `User #${option}` : option;
+  const optionLabel=(option:string)=>lookup ? people.find(p=>p.value===option)?.label || peopleLabels.current[`${type}:${option}`] || `User #${option}` : option;
   const required = Boolean(field.isRequired ?? field.is_required ?? field.required);
   const locked = disabled || field.editable === false;
   const cls = "min-h-10 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60";

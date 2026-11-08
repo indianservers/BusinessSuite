@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosHeaders, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
-import { applyChangedRecords, canonicalView, containsSensitive, hash, policy, splitView, stable, CHECK_INTERVAL, MAX_AGE, MAX_BYTES, MAX_VIEWS, type Delta, type Entry } from './model';
+import { resolveSyncPayload, canonicalView, containsSensitive, hash, policy, splitView, stable, CHECK_INTERVAL, MAX_AGE, MAX_BYTES, MAX_VIEWS, type Delta, type Entry } from './model';
 import * as disk from './storage';
 import { resourcePath } from '../record-changes';
 
@@ -158,18 +158,15 @@ export class RecordCacheManager {
         if (generation !== this.generation || scope !== this.activeScope || !this.env.identity()) throw new axios.CanceledError('Cache context changed');
         let mode = response.headers['x-suite-sync-mode'];
         let data = response.data;
-        if (mode === 'unchanged' && response.status === 304 && old) data = old.data;
-        else if (mode === 'delta' && old) {
-          try { data = applyChangedRecords(old.data, response.data as Delta); }
-          catch {
-            headers.delete('If-None-Match'); headers.delete('X-Suite-Sync-Cursor');
-            this.report({ requests: this.status.requests + 1 });
-            response = await this.api.request({ ...config, headers, signal: undefined, _recordSyncBypass: true, _recordSyncBackground: true, progress: false, _finishProgress: undefined, _finishPageRefresh: undefined });
-            if (generation !== this.generation || scope !== this.activeScope || !this.env.identity()) throw new axios.CanceledError('Cache context changed');
-            mode = response.headers['x-suite-sync-mode'];
-            if (mode !== 'full') throw new Error('Server could not reset the sync baseline');
-            data = response.data;
-          }
+        try { data = resolveSyncPayload(mode, data, old?.data); }
+        catch {
+          headers.delete('If-None-Match'); headers.delete('X-Suite-Sync-Cursor');
+          this.report({ requests: this.status.requests + 1 });
+          response = await this.api.request({ ...config, headers, signal: undefined, _recordSyncBypass: true, _recordSyncBackground: true, progress: false, _finishProgress: undefined, _finishPageRefresh: undefined });
+          if (generation !== this.generation || scope !== this.activeScope || !this.env.identity()) throw new axios.CanceledError('Cache context changed');
+          mode = response.headers['x-suite-sync-mode'];
+          if (mode !== 'full') throw new Error('Server could not reset the sync baseline');
+          data = response.data;
         }
         const info = policy(config.url || '')!;
         const approved = ['persist', 'memory'].includes(response.headers['x-suite-cache']) && !String(response.headers['cache-control'] || '').includes('no-store') && splitView(data) && !containsSensitive(data);

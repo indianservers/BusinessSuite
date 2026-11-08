@@ -1,0 +1,47 @@
+[
+  {
+    "control": "Category Other",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Category Technical",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Category Access",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Category Dependency",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Category Requirements",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Severity Low",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Severity Medium",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Severity High",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  },
+  {
+    "control": "Severity Critical",
+    "result": "passed",
+    "evidence": "Controlled selected value verified; saved record only tested separately."
+  }
+]

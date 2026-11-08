@@ -50,6 +50,15 @@ export function applyChangedRecords(data: unknown, delta: Delta): unknown {
   if (delta.order.some(id => !rows.has(String(id)))) throw new Error('Incomplete sync delta');
   return joinView({ key: delta.key, rows: delta.order.map(id => rows.get(String(id))!), meta: delta.meta });
 }
+/** Browsers can merge a 304 into a 200 response with the cached wire body. */
+export function resolveSyncPayload(mode: unknown, data: unknown, baseline?: unknown): unknown {
+  if (mode === 'unchanged') {
+    if (!splitView(baseline)) throw new Error('Missing sync baseline');
+    return baseline;
+  }
+  if (mode === 'delta') return applyChangedRecords(baseline, data as Delta);
+  return data;
+}
 export function stable(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${stable(v)}`).join(',')}}`;

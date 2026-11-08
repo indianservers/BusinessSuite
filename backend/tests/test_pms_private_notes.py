@@ -16,6 +16,75 @@ from app.apps.project_management.recovery import workspace_export
 
 
 @pytest.fixture
+def branch_notes_client(db, notes_client):
+    from app.models.company import Company, Branch
+    from app.apps.project_management.models import PMSNoteFolder
+    from app.branches.models import BranchOwnership
+    from app.branches.boundary import install
+    from app.branches.service import context
+    from tests.tenant_test_utils import assign_company
+    client, owner, *_ = notes_client
+    if not db.get(Company, 1):
+        db.add(Company(id=1, name="Notes branch regression", is_active=True))
+    owner.is_superuser = True
+    db.flush(); assign_company(db, owner, 1)
+    a = Branch(company_id=1, name="Notes A", code="NOTES-A")
+    b = Branch(company_id=1, name="Notes B", code="NOTES-B")
+    db.add_all([a, b]); db.flush()
+    hidden = PMSNoteFolder(owner_id=owner.id, name="Other branch folder")
+    db.add(hidden); db.flush()
+    db.add(BranchOwnership(resource_table="pms_note_folders", resource_key=str(hidden.id), company_id=1, branch_id=b.id, source="test-fixture"))
+    db.commit()
+    hidden_id = hidden.id
+    previous = client.app.dependency_overrides[get_db]
+    def scoped_db():
+        cleanup = install(db, owner, context(db, owner, 1, str(a.id)))
+        try:
+            yield db
+        finally:
+            cleanup()
+    client.app.dependency_overrides[get_db] = scoped_db
+    try:
+        yield client, hidden_id
+    finally:
+        client.app.dependency_overrides[get_db] = previous
+
+
+def test_selected_branch_note_save_and_folder_edit_keep_version_conflicts(branch_notes_client):
+    client, _ = branch_notes_client
+    note = client.post("/notes", json={"title": "Branch note", "content": "Before"}).json()
+    saved = client.put(f'/notes/{note["id"]}', json={"title": "Edited", "content": "After", "version": note["version"]})
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["content"] == "After"
+    assert saved.json()["version"] == note["version"] + 1
+    assert client.put(f'/notes/{note["id"]}', json={"content": "Stale", "version": note["version"]}).status_code == 409
+    folder = client.post("/note-folders", json={"name": "Original"}).json()
+    changed = client.put(f'/note-folders/{folder["id"]}', json={"name": "Renamed", "version": folder["version"]})
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["name"] == "Renamed"
+    assert client.put(f'/note-folders/{folder["id"]}', json={"name": "Stale", "version": folder["version"]}).status_code == 409
+
+
+def test_selected_branch_note_move_undo_and_hidden_folder_rejection(branch_notes_client):
+    client, hidden_id = branch_notes_client
+    note = client.post("/notes", json={"title": "Move safely", "content": "Retained"}).json()
+    folder = client.post("/note-folders", json={"name": "Destination"}).json()
+    moved = client.post("/note-actions/bulk", json={"items": [{"id": note["id"], "version": note["version"]}], "action": "move", "folder_id": folder["id"]})
+    assert moved.status_code == 200, moved.text
+    current = client.get(f'/notes/{note["id"]}').json()
+    assert current["folder_id"] == folder["id"]
+    undo = {"items": [{"id": note["id"], "version": current["version"], "project_id": None, "task_id": None, "folder_id": None, "archived": False, "trashed": False}]}
+    restored = client.post("/note-actions/undo", json=undo)
+    assert restored.status_code == 200, restored.text
+    current = client.get(f'/notes/{note["id"]}').json()
+    assert current["folder_id"] is None and current["content"] == "Retained"
+    assert client.post("/note-actions/undo", json=undo).status_code == 409
+    denied = client.post("/note-actions/bulk", json={"items": [{"id": note["id"], "version": current["version"]}], "action": "move", "folder_id": hidden_id})
+    assert denied.status_code == 404, denied.text
+    assert client.get(f'/notes/{note["id"]}').json()["version"] == current["version"]
+
+
+@pytest.fixture
 def db():
     # Real per-request commit/rollback behavior, independent of the suite's outer transaction.
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)

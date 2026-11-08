@@ -1,0 +1,22 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const ts = require('typescript');
+const source = fs.readFileSync(path.join(__dirname, '../src/lib/smart-cache/model.ts'), 'utf8');
+const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+const exported = {};
+vm.runInNewContext(compiled, { exports: exported, URL, crypto: require('node:crypto').webcrypto });
+const resolve = exported.resolveSyncPayload;
+const baseline = { items: [{ id: 1, name: 'Before' }], total: 1 };
+const delta = { schema: 1, key: 'items', order: ['1'], upserts: [{ id: 1, name: 'After' }], removed: [], meta: { total: 1 } };
+assert.equal(resolve('full', baseline), baseline);
+// Chrome can present a cached delta body with HTTP 200 and mode=unchanged.
+assert.equal(resolve('unchanged', delta, baseline), baseline);
+assert.equal(resolve('unchanged', '', baseline), baseline);
+assert.throws(() => resolve('unchanged', delta), /Missing sync baseline/);
+assert.throws(() => resolve('unchanged', delta, delta), /Missing sync baseline/);
+assert.equal(resolve('delta', delta, baseline).items[0].name, 'After');
+assert.throws(() => resolve('delta', delta), /Invalid sync baseline/);
+assert.equal(resolve(undefined, baseline), baseline);
+console.log('8 sync-payload regression scenarios passed');

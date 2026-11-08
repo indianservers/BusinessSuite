@@ -1174,7 +1174,10 @@ export function CaptureDialog({
   const captureTabs = ["Basic Details", "Contact Info", "Company Details", "Additional", "Products & services"];
   const priority = values.capture_priority || "Medium";
   const setPriority = (priority: string) => setValues(v => ({...v, capture_priority: priority}));
-  const update = (name: string, value: string) => setValues(v => ({...v, [name]: value}));
+  const update = (name: string, value: string) => {
+    setValues(v => ({...v, [name]: value}));
+    if (name === "full_name") setError("");
+  };
   const field = (name: string, label: string, placeholder = "", type = "text") => <label className="lead-create-field">{label}<span className="lead-create-control"><UserRound size={19}/><input aria-label={label} autoFocus={name === "full_name"} required={name === "full_name"} type={type} maxLength={name === "full_name" ? 220 : 180} placeholder={placeholder} value={values[name] || ""} onChange={e => update(name, e.target.value)}/></span></label>;
   return <Dialog open onOpenChange={open => {if (!open) dismiss();}}>
     <DialogContent className="lead-create-dialog" overlayClassName="lead-create-overlay">

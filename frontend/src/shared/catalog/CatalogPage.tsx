@@ -43,6 +43,7 @@ export default function CatalogPage({ source }: { source: CatalogSource }) {
   const projectionKey=JSON.stringify([source,personal.scope,query,kind,status,category,tag,sort,direction,page,perPage,itemKeys,personal.view==="frequent"]);
   const requestKey=JSON.stringify([projectionKey,revision]);
   const ready=dataKey===projectionKey,items=ready?data.items:[],isLoading=!ready;
+  useEffect(()=>{setSelected(current=>current.flatMap(item=>{const fresh=data.items.find(value=>catalogItemKey(value)===catalogItemKey(item));return fresh?[fresh]:[];}));},[data.items]);
 
   useEffect(()=>{setKind(location.pathname.includes("services")&&!location.pathname.includes("products-services")?"service":"");setPage(1);},[location.pathname]);
   const refresh=useCallback(()=>setRevision(value=>value+1),[]);

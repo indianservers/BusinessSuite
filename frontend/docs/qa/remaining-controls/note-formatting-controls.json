@@ -1,0 +1,97 @@
+[
+  {
+    "control": "Heading 1",
+    "result": "passed",
+    "tag": "h1"
+  },
+  {
+    "control": "Heading 2",
+    "result": "passed",
+    "tag": "h2"
+  },
+  {
+    "control": "Heading 3",
+    "result": "passed",
+    "tag": "h3"
+  },
+  {
+    "control": "Heading 4",
+    "result": "passed",
+    "tag": "h4"
+  },
+  {
+    "control": "Heading 5",
+    "result": "passed",
+    "tag": "h5"
+  },
+  {
+    "control": "Heading 6",
+    "result": "passed",
+    "tag": "h6"
+  },
+  {
+    "control": "Paragraph",
+    "result": "passed",
+    "tag": "p"
+  },
+  {
+    "control": "Font 12",
+    "result": "passed",
+    "style": "font-size: 12px;"
+  },
+  {
+    "control": "Font 14",
+    "result": "passed",
+    "style": "font-size: 14px;"
+  },
+  {
+    "control": "Font 16",
+    "result": "passed",
+    "style": "font-size: 16px;"
+  },
+  {
+    "control": "Font 18",
+    "result": "passed",
+    "style": "font-size: 18px;"
+  },
+  {
+    "control": "Font 20",
+    "result": "passed",
+    "style": "font-size: 20px;"
+  },
+  {
+    "control": "Font 24",
+    "result": "passed",
+    "style": "font-size: 24px;"
+  },
+  {
+    "control": "Font 32",
+    "result": "passed",
+    "style": "font-size: 32px;"
+  },
+  {
+    "control": "Font 40",
+    "result": "passed",
+    "style": "font-size: 40px;"
+  },
+  {
+    "control": "Bold (Ctrl+B)",
+    "result": "passed",
+    "evidence": "Selected all text; corresponding markup added and removed."
+  },
+  {
+    "control": "Italic (Ctrl+I)",
+    "result": "passed",
+    "evidence": "Selected all text; corresponding markup added and removed."
+  },
+  {
+    "control": "Underline (Ctrl+U)",
+    "result": "passed",
+    "evidence": "Selected all text; corresponding markup added and removed."
+  },
+  {
+    "control": "Strikethrough",
+    "result": "passed",
+    "evidence": "Selected all text; corresponding markup added and removed."
+  }
+]

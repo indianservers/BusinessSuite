@@ -1,0 +1,72 @@
+[
+  {
+    "control": "Template A useful first conversation",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template Discovery without the homework",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template Permission to reconnect",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template Your enquiry, acknowledged",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template See it working for your team",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template After the first demonstration",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template A useful introduction",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template A gentle final check-in",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template An invitation to learn together",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template A fresh start for your business",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template A simple personal introduction",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template Letter \u00c2\u00b7 Modern",
+    "result": "passed",
+    "evidence": "Selected, missing details supplied, export enabled, live preview contains QA lead name."
+  },
+  {
+    "control": "Template categories and search",
+    "result": "passed",
+    "evidence": "Email 11, Mail merge 1, All 12; absent search empty, cleared search restores choices."
+  },
+  {
+    "control": "HTML download and Print/PDF",
+    "result": "unverified",
+    "evidence": "Export HTML clicked after resolving company; expected download file not found. All 12 live previews verified, but exported HTML contents and native print flow are not certified."
+  }
+]

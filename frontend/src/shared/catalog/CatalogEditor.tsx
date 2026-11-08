@@ -53,7 +53,7 @@ export default function CatalogEditor({ source, initial, defaultKind = "product"
   useEffect(() => { let active = true; api.get("/project-management/workspaces", { progress: false }).then(r => { if (active) setWorkspaces(r.data); }).catch(() => {}); return () => { active = false; }; }, []);
   const patch = <K extends keyof typeof draft>(key: K, value: typeof draft[K]) => setDraft(v => ({ ...v, [key]: value }));
   async function submit(event?: React.FormEvent,automatic=false) {
-    event?.preventDefault(); if (submitting.current || uploading) return false;
+    event?.preventDefault(); event?.stopPropagation(); if (submitting.current || uploading) return false;
     if (!initial && (!branchReady || !destination)) { setError("No writable destination branch is available. Check your branch access."); return false; }
     submitting.current = true; setBusy(!automatic); setError("");
     try { const response = await catalogApi.save(source, { ...draft, tags: parseCatalogTags(tagText), price: priceIncludesTax ? Math.round(draft.price / (1 + draft.tax / 100) * 100) / 100 : draft.price }, destination); catalogChanged(); if(automatic){savedSnapshot.current=JSON.stringify({draft:watchedDraft,tagText,priceIncludesTax});setDraft(current=>({...current,version:response.data.version}));}else{clearDraft();saved(response.data);}return true; }
