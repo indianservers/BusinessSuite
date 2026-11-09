@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { defaultSuitePreferences, useSuitePreferences } from "@/store/suitePreferences";
@@ -7,6 +7,7 @@ export function useFavoriteSync(scope: string, enabled: boolean) {
   const client = useQueryClient();
   const [failedScope, setFailedScope] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const writes = useRef<Promise<unknown>>(Promise.resolve());
   const preferences = useSuitePreferences(s => s.contexts[scope] || defaultSuitePreferences);
   const remote = useQuery({ queryKey: ["launcher-favorites", scope], enabled,
     queryFn: () => api.get<{ favorites: string[] | null }>("/access/launcher-preferences", { progress: false }).then(r => r.data),
@@ -18,7 +19,7 @@ export function useFavoriteSync(scope: string, enabled: boolean) {
     if (remote.data.favorites === null) {
       useSuitePreferences.getState().update(scope, { favoritesDirty: true });
     } else if (JSON.stringify(current.favorites) !== JSON.stringify(remote.data.favorites)) {
-      useSuitePreferences.getState().update(scope, { favorites: remote.data.favorites });
+      useSuitePreferences.getState().update(scope, { favorites: remote.data.favorites, favoritesDirty: false });
     }
   }, [enabled, scope, remote.data]);
   useEffect(() => {
@@ -26,7 +27,9 @@ export function useFavoriteSync(scope: string, enabled: boolean) {
     let cancelled = false;
     const favorites = [...preferences.favorites];
     const timer = window.setTimeout(() => {
-      void api.put("/access/launcher-preferences", { favorites }, { progress: false }).then(() => {
+      writes.current = writes.current.catch(() => {}).then(async () => {
+        if (cancelled) return;
+        await api.put("/access/launcher-preferences", { favorites }, { progress: false });
         if (cancelled) return;
         const latest = useSuitePreferences.getState().contexts[scope];
         if (JSON.stringify(latest?.favorites) === JSON.stringify(favorites)) {

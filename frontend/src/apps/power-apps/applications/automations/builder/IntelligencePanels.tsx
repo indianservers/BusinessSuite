@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState, useId } from "react";
 import { X, Sparkles, Pause, Play, Download } from "lucide-react";
@@ -315,7 +316,7 @@ export function AIWorkflowDesigner(props: Props) {
                 .map((i, index) => (
                   <p key={index}>{i.message}</p>
                 ))}
-              <button
+              <Button type="submit" variant="outline"
                 disabled={props.readOnly || !result.validation?.valid}
                 onClick={() => {
                   if (
@@ -338,7 +339,7 @@ export function AIWorkflowDesigner(props: Props) {
                 }}
               >
                 Approve and apply proposal
-              </button>
+              </Button>
             </>
           )}
         </>
@@ -567,7 +568,7 @@ export function DataMappingStudio(props: Props) {
               </button>
             </div>
           ))}
-          <button
+          <Button type="submit" variant="default"
             disabled={mapping.operations.length >= 12}
             onClick={() =>
               change({
@@ -580,7 +581,7 @@ export function DataMappingStudio(props: Props) {
             }
           >
             Add transformation
-          </button>
+          </Button>
           <details>
             <summary>Operator examples</summary>
             <pre>
@@ -725,7 +726,7 @@ export function DataMappingStudio(props: Props) {
           maxLength={80}
         />
       </label>
-      <button
+      <Button type="submit" variant="outline"
         disabled={
           props.readOnly ||
           !checked ||
@@ -743,7 +744,7 @@ export function DataMappingStudio(props: Props) {
         }
       >
         Save mapping preset
-      </button>
+      </Button>
       {(props.document.definition.mapping_presets || []).map((p, i) => (
         <button
           key={i}
@@ -862,7 +863,7 @@ export function WorkflowImportExport(props: Props) {
         links are stripped; node IDs and internal references are remapped.
         Review missing configuration before use.
       </p>
-      <button
+      <Button type="submit" variant="outline"
         onClick={async () => {
           try {
             const portable = await props.services.portable(
@@ -878,7 +879,7 @@ export function WorkflowImportExport(props: Props) {
         }}
       >
         Export portable workflow
-      </button>
+      </Button>
       <label>
         Choose workflow JSON
         <input
@@ -984,7 +985,7 @@ export function WorkflowDocumentation({ analysis }: { analysis: Analysis }) {
       <p>
         Generated from the definition; operational behavior is not verified.
       </p>
-      <button
+      <Button type="submit" variant="outline"
         onClick={() =>
           download(
             "workflow-documentation.md",
@@ -994,7 +995,7 @@ export function WorkflowDocumentation({ analysis }: { analysis: Analysis }) {
         }
       >
         Export documentation
-      </button>
+      </Button>
       <pre>{analysis.documentation}</pre>
     </section>
   );
@@ -1087,7 +1088,7 @@ export function WorkflowDebugger({
           </div>
         )}
       </div>
-      <button
+      <Button type="submit" variant="outline"
         disabled={!allowExport}
         onClick={() =>
           onExport
@@ -1102,7 +1103,7 @@ export function WorkflowDebugger({
       >
         <Download size={13} />
         Export debug report
-      </button>
+      </Button>
       <p>
         {mode === "runtime"
           ? "Read-only persisted steps from the version used by this run."
@@ -1371,13 +1372,13 @@ export function ReusableBlockLibrary(props: Props) {
           onChange={setRaw}
         />
       )}
-      <button disabled={props.readOnly} onClick={() => void save()}>
+      <Button type="submit" variant="outline" disabled={props.readOnly} onClick={() => void save()}>
         {editing ? "Save block draft version" : "Save selection as block"}
-      </button>
+      </Button>
       {editing && (
-        <button disabled={props.readOnly} onClick={() => void save(true)}>
+        <Button type="submit" variant="outline" disabled={props.readOnly} onClick={() => void save(true)}>
           Duplicate block
-        </button>
+        </Button>
       )}
       {error && <p role="alert">{error}</p>}
       <div className="ai-template-grid">
@@ -1482,7 +1483,7 @@ export function ReusableBlockLibrary(props: Props) {
           >
             Insert pinned block version
           </button>
-          <button
+          <Button type="submit" variant="outline"
             disabled={props.readOnly}
             onClick={() => {
               setEditing(selected);
@@ -1500,8 +1501,8 @@ export function ReusableBlockLibrary(props: Props) {
             }}
           >
             Edit block draft
-          </button>
-          <button
+          </Button>
+          <Button type="submit" variant="outline"
             disabled={props.readOnly}
             onClick={async () => {
               try {
@@ -1517,7 +1518,7 @@ export function ReusableBlockLibrary(props: Props) {
             }}
           >
             Duplicate selected block
-          </button>
+          </Button>
           <button
             disabled={props.readOnly || usage.length > 0}
             onClick={async () => {

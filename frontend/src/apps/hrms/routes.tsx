@@ -141,7 +141,7 @@ const moduleRoutes: FrontendRoute[] = [
 
 function LegacyHrmsRedirect() {
   const location = useLocation();
-  return <Navigate to={`/hrms${location.pathname}${location.search}${location.hash}`} replace />;
+  return <Navigate to={`/hrms${location.pathname}${location.search}${location.hash}`} replace state={{suiteCanonicalRedirect:true}} />;
 }
 
 const BirthdaysPage = lazyRoute(()=>import("@/shared/master-data/BirthdaysPage"));

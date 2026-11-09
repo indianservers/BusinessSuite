@@ -9,3 +9,8 @@
  .suite-mobile-tools-fields .kf-module-switch select{width:100%;min-width:0}
  .mobile-experience-sheet:has(.suite-mobile-tools-fields){max-height:calc(90dvh - var(--mobile-keyboard-inset,0px));overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 }
+@media(max-width:480px){
+ .suite-mobile-tools-fields .suite-company{display:flex;align-items:center;gap:8px}
+ .suite-mobile-tools-fields .suite-company select{width:100%;min-width:0}
+ .suite-mobile-tools-fields :is(.suite-company,.kf-module-switch)>svg{flex-shrink:0}
+}

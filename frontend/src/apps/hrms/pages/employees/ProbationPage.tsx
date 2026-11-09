@@ -1,6 +1,10 @@
+import {useMobile} from "@/components/mobile/useMobile";
+import {MobileDisclosure} from "@/components/mobile/MobilePrimitives";
+import "./probation-mobile.css";
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, CheckCircle2, Download, FileText, RefreshCw, Send, TimerReset, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +53,8 @@ const badgeTone = (status?: string) => {
 
 export default function ProbationPage() {
   usePageTitle("Probation Management");
+  const phone=useMobile(480),reviewFields=useRef<HTMLDivElement>(null);
+  const [reviewSaved,setReviewSaved]=useState(0);
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [review, setReview] = useState({
@@ -84,6 +90,7 @@ export default function ProbationPage() {
       }),
     onSuccess: () => {
       toast({ title: "Probation review submitted" });
+      if(phone)setReviewSaved(value=>value+1);
       refresh();
     },
     onError: () => toast({ title: "Could not submit review", variant: "destructive" }),
@@ -129,7 +136,7 @@ export default function ProbationPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="hrms-probation-page space-y-5">
       <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Employee lifecycle</p>
@@ -142,13 +149,13 @@ export default function ProbationPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-5">
+      <div className="hrms-probation-kpis grid gap-3 md:grid-cols-5">
         {[
-          ["On probation", dashboard.data?.onProbation ?? 0],
-          ["Extended", dashboard.data?.extended ?? 0],
-          ["Due soon", dashboard.data?.dueSoon ?? 0],
-          ["Overdue", dashboard.data?.overdue ?? 0],
-          ["Pending reviews", dashboard.data?.pendingReviews ?? 0],
+          ["On probation", dashboard.data?.onProbation ?? (phone?"—":0)],
+          ["Extended", dashboard.data?.extended ?? (phone?"—":0)],
+          ["Due soon", dashboard.data?.dueSoon ?? (phone?"—":0)],
+          ["Overdue", dashboard.data?.overdue ?? (phone?"—":0)],
+          ["Pending reviews", dashboard.data?.pendingReviews ?? (phone?"—":0)],
         ].map(([label, value]) => (
           <Card key={label}>
             <CardContent className="p-4">
@@ -159,8 +166,11 @@ export default function ProbationPage() {
         ))}
       </div>
 
+      {phone&&(dashboard.isError||dueList.isError)&&<p role="alert" className="text-sm text-destructive">Probation information could not load. <Button variant="outline" onClick={refresh} disabled={dashboard.isFetching||dueList.isFetching}>Retry probation</Button></p>}
+      {phone&&dueList.isPending&&<p role="status">Loading probation employees…</p>}
+      {phone&&selected&&<label className="hrms-probation-selector">Employee<NativeSelect aria-label="Probation employee" value={String(selected.employeeId)} onChange={e=>setSelectedId(Number(e.target.value))}>{dueList.data?.map(employee=><option key={employee.employeeId} value={employee.employeeId}>{employee.employeeName} · {employee.employeeCode}</option>)}</NativeSelect></label>}
       <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-        <Card>
+        <MobileDisclosure title="Employees due for confirmation" maxWidth={480}><Card>
           <CardHeader>
             <CardTitle className="text-base">Due confirmation list</CardTitle>
             <CardDescription>{dueList.data?.length ?? 0} employee(s) due in the next 90 days.</CardDescription>
@@ -186,9 +196,9 @@ export default function ProbationPage() {
                 </div>
               </button>
             ))}
-            {!dueList.isLoading && !dueList.data?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No probation confirmations due.</p>}
+            {!dueList.isLoading && (!phone||!dueList.isError) && !dueList.data?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No probation confirmations due.</p>}
           </CardContent>
-        </Card>
+        </Card></MobileDisclosure>
 
         <div className="space-y-5">
           {selected ? (
@@ -210,29 +220,31 @@ export default function ProbationPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <SmartCreateSection title="Submit probation review" mobileSheet={phone} completionRevision={phone?reviewSaved:0}><Card className="hrms-probation-review">
                 <CardHeader>
                   <CardTitle className="text-base">Manager review</CardTitle>
                   <CardDescription>Managers can review direct reports; HR can submit on behalf when needed.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid gap-3 md:grid-cols-4">
-                    <div className="space-y-2"><Label>Performance</Label><Input type="number" min="1" max="5" value={review.performanceRating} onChange={(event) => setReview({ ...review, performanceRating: event.target.value })} /></div>
-                    <div className="space-y-2"><Label>Conduct</Label><Input type="number" min="1" max="5" value={review.conductRating} onChange={(event) => setReview({ ...review, conductRating: event.target.value })} /></div>
-                    <div className="space-y-2"><Label>Attendance</Label><Input type="number" min="1" max="5" value={review.attendanceRating} onChange={(event) => setReview({ ...review, attendanceRating: event.target.value })} /></div>
+                <CardContent ref={reviewFields} className="space-y-3">
+                  {phone&&<p className="text-sm font-medium">Reviewing {selected.employeeName} · {selected.employeeCode}. Managers can review direct reports; HR can submit on behalf when needed.</p>}
+                  <div className="hrms-probation-ratings grid gap-3 md:grid-cols-4">
+                    <div className="space-y-2"><Label>Performance</Label><Input aria-label="Performance" type="number" min="1" max="5" value={review.performanceRating} onChange={(event) => setReview({ ...review, performanceRating: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Conduct</Label><Input aria-label="Conduct" type="number" min="1" max="5" value={review.conductRating} onChange={(event) => setReview({ ...review, conductRating: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Attendance</Label><Input aria-label="Attendance" type="number" min="1" max="5" value={review.attendanceRating} onChange={(event) => setReview({ ...review, attendanceRating: event.target.value })} /></div>
                     <div className="space-y-2">
                       <Label>Recommendation</Label>
-                      <NativeSelect value={review.recommendation} onChange={(event) => setReview({ ...review, recommendation: event.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <NativeSelect aria-label="Review recommendation" value={review.recommendation} onChange={(event) => setReview({ ...review, recommendation: event.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                         <option value="confirm">Confirm</option>
                         <option value="extend">Extend</option>
                         <option value="terminate">Terminate</option>
                       </NativeSelect>
                     </div>
                   </div>
-                  <div className="space-y-2"><Label>Comments</Label><Input value={review.comments} onChange={(event) => setReview({ ...review, comments: event.target.value })} /></div>
-                  <Button onClick={() => submitReview.mutate()} disabled={submitReview.isPending}><Send className="h-4 w-4" /> Submit review</Button>
+                  <div className="space-y-2"><Label>Comments</Label><Input aria-label="Review comments" value={review.comments} onChange={(event) => setReview({ ...review, comments: event.target.value })} /></div>
+                  {phone&&submitReview.isError&&<p role="alert" className="text-destructive">Could not submit review. Your ratings and comments are retained.</p>}
+                  <Button data-save-action={phone?"":undefined} onClick={() => {if(phone){for(const input of reviewFields.current?.querySelectorAll<HTMLInputElement>('input[type="number"]')||[]){if(!input.reportValidity())return;}}submitReview.mutate();}} disabled={submitReview.isPending}><Send className="h-4 w-4" /> Submit review</Button>
                 </CardContent>
-              </Card>
+              </Card></SmartCreateSection>
 
               <Card>
                 <CardHeader>
@@ -241,10 +253,11 @@ export default function ProbationPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid gap-3 md:grid-cols-3">
-                    <div className="space-y-2"><Label>Effective date</Label><Input type="date" value={action.effectiveDate} onChange={(event) => setAction({ ...action, effectiveDate: event.target.value })} /></div>
-                    <div className="space-y-2"><Label>Extended until</Label><Input type="date" value={action.extendedUntil} onChange={(event) => setAction({ ...action, extendedUntil: event.target.value })} /></div>
-                    <div className="space-y-2"><Label>Remarks</Label><Input value={action.remarks} onChange={(event) => setAction({ ...action, remarks: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Effective date</Label><Input aria-label="Effective date" type="date" value={action.effectiveDate} onChange={(event) => setAction({ ...action, effectiveDate: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Extended until</Label><Input aria-label="Extended until" type="date" value={action.extendedUntil} onChange={(event) => setAction({ ...action, extendedUntil: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Remarks</Label><Input aria-label="Probation remarks" value={action.remarks} onChange={(event) => setAction({ ...action, remarks: event.target.value })} /></div>
                   </div>
+                  {phone&&processAction.isError&&<p role="alert" className="text-destructive">Could not process action. Your dates and remarks are retained.</p>}
                   <CompactActions className="flex flex-wrap gap-2">
                     <Button onClick={() => processAction.mutate("confirm")} disabled={processAction.isPending}><CheckCircle2 className="h-4 w-4" /> Confirm</Button>
                     <Button variant="outline" onClick={() => processAction.mutate("extend")} disabled={processAction.isPending}><TimerReset className="h-4 w-4" /> Extend</Button>

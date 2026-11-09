@@ -631,9 +631,9 @@ function LeadWorkbench() {
               <option key={v.name} value={v.name}>Personal: {v.name}</option>
             ))}{sharedViews.map(v=><option key={`shared:${v.name}`} value={`shared:${v.name}`}>Shared: {v.name}</option>)}
           </NativeSelect>
-          <button onClick={() => setShowViewSave((v) => !v)}>
+          <Button type="submit" variant="outline" onClick={() => setShowViewSave((v) => !v)}>
             Save current view
-          </button>
+          </Button>
           {showViewSave && (
             <>
               <input
@@ -643,7 +643,7 @@ function LeadWorkbench() {
                 value={viewName}
                 onChange={(e) => setViewName(e.target.value)}
               />
-              <button disabled={!viewName.trim()} onClick={saveView}>Save personal view</button>{bootstrap?.canAssign&&<SmartCreateAction title="Publish shared view"><button disabled={!viewName.trim()} onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button></SmartCreateAction>}
+              <Button type="submit" variant="outline" disabled={!viewName.trim()} onClick={saveView}>Save personal view</Button>{bootstrap?.canAssign&&<SmartCreateAction title="Publish shared view"><button disabled={!viewName.trim()} onClick={()=>{void api.post("/crm/productivity/shared-views",{name:viewName,search,stage,owner,queue,view}).then(()=>{setSharedViews(v=>[...v,{name:viewName,search,stage,owner,queue,view}]);setShowViewSave(false);setViewName("");toast({title:"Shared lead view saved"});}).catch(report);}}>Publish shared view</button></SmartCreateAction>}
             </>
           )}
           {view === "table" && <details>

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {useAuthStore} from "@/store/authStore";
 import {moduleActionAllowed} from "@/hooks/use-module-action";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -367,9 +368,9 @@ export default function AutomationRuntimePage() {
             />{" "}
             Live refresh
           </label>
-          <button onClick={() => setRefresh((v) => v + 1)}>
+          <Button type="submit" variant="outline" onClick={() => setRefresh((v) => v + 1)}>
             <RefreshCw size={15} /> Refresh
-          </button>
+          </Button>
           <Link
             to={studioPath("/power-apps/automations/executions", environment)}
           >
@@ -993,7 +994,7 @@ export default function AutomationRuntimePage() {
                   />
                 )}
                 <div className="rt-actions">
-                  <button
+                  <Button type="submit" variant="outline"
                     disabled={busy || !can("publish")}
                     onClick={() =>
                       void action(async () => {
@@ -1016,7 +1017,7 @@ export default function AutomationRuntimePage() {
                     }
                   >
                     Save trigger policy
-                  </button>
+                  </Button>
                   {(triggerKind === "webhook" ||
                     (triggerKind === "connector" &&
                       triggers.some(
@@ -1095,7 +1096,7 @@ export default function AutomationRuntimePage() {
               </div>
               <div className="rt-actions">
                 <CompactActions>
-                  <button
+                  <Button type="submit" variant="outline"
                     disabled={!report.can_export || !moduleActionAllowed(actor,location.pathname,"export") || busy}
                     onClick={() =>
                       void action(async () => {
@@ -1104,7 +1105,7 @@ export default function AutomationRuntimePage() {
                     }
                   >
                     <Download size={14} /> Export sanitized report
-                  </button>
+                  </Button>
                   {can("execute") && (
                     <>
                       <button

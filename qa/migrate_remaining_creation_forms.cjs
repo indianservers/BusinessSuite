@@ -35,7 +35,7 @@ const cards={
  'frontend/src/apps/hrms/pages/lms/LMSPage.tsx':/Publish Course/,
  'frontend/src/apps/hrms/pages/payroll/PayrollPage.tsx':/^(LOP Adjustment|Overtime Pay|Leave Encashment|Legal Entity|Pay Group|Salary Components|Salary Structure|Statutory Profiles|Pay Groups and Calendar|Salary Templates|Tax Declarations|Proof Workflow)$/,
 };
-const selected=rows.filter(r=>!r.protected && ((['form','CompactForm'].includes(r.kind)&&forms[r.file]?.test(r.actions.join(' | '))) || (r.kind==='CardContent'&&cards[r.file]?.test(r.title)&& (r.title||r.actions.join('')==='Create'))));
+const selected=rows.filter(r=>!r.protected && !r.hasNestedCreationSurface && ((['form','CompactForm'].includes(r.kind)&&forms[r.file]?.test(r.actions.join(' | '))) || (r.kind==='CardContent'&&cards[r.file]?.test(r.title)&& (r.title||r.actions.join('')==='Create'))));
 const log=[];
 for(const file of new Set(selected.map(r=>r.file))){
  let text=fs.readFileSync(file,'utf8');const sf=ts.createSourceFile(file,text,99,true,4),edits=[];

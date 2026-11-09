@@ -54,7 +54,7 @@ export default function VerificationCasePanel({record, documents, canManage, bus
     </form></details>}
     {record.reviewed_at && <p className="rounded border p-3 text-sm">Reviewed by {record.reviewer_name || "HR reviewer"} on {formatDate(record.reviewed_at)} · {record.review_notes}</p>}
     <Button size="sm" variant="ghost" onClick={() => setShowHistory(!showHistory)}>{showHistory ? "Hide" : "Show"} case history</Button>
-    {showHistory && <div className="space-y-2 text-xs">{events.isPending && <p>Loading history…</p>}{events.isError && <p role="alert">Could not load history. <button className="underline" onClick={() => events.refetch()}>Retry</button></p>}{events.data?.map(event => <details key={event.id}><summary className="cursor-pointer">{formatDate(event.received_at)} · {event.event_type}</summary><pre className="overflow-auto whitespace-pre-wrap p-2">{JSON.stringify(event.payload_json, null, 2)}</pre></details>)}</div>}
+    {showHistory && <div className="space-y-2 text-xs">{events.isPending && <p>Loading history…</p>}{events.isError && <p role="alert">Could not load history. <Button type="submit" variant="outline" className="underline" onClick={() => events.refetch()}>Retry</Button></p>}{events.data?.map(event => <details key={event.id}><summary className="cursor-pointer">{formatDate(event.received_at)} · {event.event_type}</summary><pre className="overflow-auto whitespace-pre-wrap p-2">{JSON.stringify(event.payload_json, null, 2)}</pre></details>)}</div>}
   </section>;
 }
 

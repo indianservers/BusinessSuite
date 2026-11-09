@@ -1,3 +1,7 @@
+import {MobileChartZoom} from "@/components/mobile/MobileChartZoom";
+import {expandedResponsiveChartContent} from "@/components/mobile/expanded-chart-content";
+import {useMobile} from "@/components/mobile/useMobile";
+import "./hrms-reports-mobile.css";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -76,7 +80,7 @@ export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>(searchParams.has("report_id") ? "Saved Reports" : "Overview Dashboard");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 hrms-reports-workspace">
       <div>
         <h1 className="page-title">Reports & Analytics</h1>
         <p className="page-description">Live workforce dashboards, statutory insights, and configurable report output.</p>
@@ -406,13 +410,14 @@ function Kpi({ title, value, icon: Icon, className, loading }: { title: string; 
 }
 
 function ChartCard({ title, query, children }: { title: string; query: { isLoading: boolean; isError: boolean }; children: ReactNode }) {
+  const phone = useMobile(480);
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
       <CardContent>
         {query.isLoading ? <div className="h-[280px] animate-pulse rounded bg-muted" /> : query.isError ? (
           <p className="py-10 text-center text-sm text-muted-foreground">Could not load data</p>
-        ) : children}
+        ) : <MobileChartZoom title={title} minWidth={title === "Gender Distribution" ? 320 : 680} expandedContent={phone ? expandedResponsiveChartContent(children) : children}>{children}</MobileChartZoom>}
       </CardContent>
     </Card>
   );

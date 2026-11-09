@@ -12,6 +12,7 @@ useAuthStore.setState({
   accessToken: "fixture",
   user: { id: 1, email: "qa@example.test", role: "admin", is_superuser: true },
 });
+sessionStorage.setItem("suite-branch", "1");
 localStorage.setItem("pms-workspace-1", "2");
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

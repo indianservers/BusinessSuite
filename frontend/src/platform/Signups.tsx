@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { platformApi as api } from "@/services/platform-api";
@@ -10,6 +11,7 @@ export default function Signups() {
     const [filters, setFilters] = useState(fresh);
     const [page, setPage] = useState(1);
     const [create, setCreate] = useState(false);
+    const [viewOpen,setViewOpen] = useState(false);
     const [selected, setSelected] = useState<number[]>([]);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
@@ -24,7 +26,7 @@ export default function Signups() {
     function filter(k: string, v: string) { setFilters(f => ({ ...f, [k]: v })); setPage(1); setSelected([]); }
     async function saveView(e: React.FormEvent<HTMLFormElement>) { e.preventDefault(); const f = new FormData(e.currentTarget); try {
         await api.post("/platform/records/view", { title: f.get("title"), data: { filters, shared: f.get("shared") === "on" } });
-        views.refresh();
+        views.refresh();setViewOpen(false);
         setNotice("View saved.");
     }
     catch (err) {
@@ -37,7 +39,7 @@ export default function Signups() {
     <details><summary>More filters and saved views</summary><div className="po-filters"><label>Source<input value={filters.source} onChange={e => filter("source", e.target.value)}/></label><label>Application<select value={filters.module} onChange={e => filter("module", e.target.value)}><option value="">All applications</option>{me.modules.map((m: Data) => <option key={m.key} value={m.key}>{m.label}</option>)}</select></label><label>Priority<select data-priority-badge data-priority={filters.priority} value={filters.priority} onChange={e => filter("priority", e.target.value)}><option value="">All</option>{["low", "normal", "high"].map(x => <option key={x}>{x}</option>)}</select></label><label>From<input type="date" value={filters.start} onChange={e => filter("start", e.target.value)}/></label><label>Through<input type="date" value={filters.end} onChange={e => filter("end", e.target.value)}/></label></div><div className="po-filters"><label>Saved view<select defaultValue="" onChange={e => { const view = views.data?.find(r => r.id === Number(e.target.value)); if (view) {
         setFilters({ ...fresh, ...view.data.filters });
         setPage(1);
-    } }}><option value="">Choose a saved view</option>{views.data?.filter(v => v.state !== "archived").map(v => <option key={v.id} value={v.id}>{v.title}{v.data.shared ? " · shared" : ""}</option>)}</select></label><form className="po-actions" onSubmit={saveView}><input name="title" required minLength={2} placeholder="Name this view"/>{me.role === "owner" && <label className="po-check"><input type="checkbox" name="shared"/>Share with team</label>}<button>Save view</button></form><button onClick={() => { setFilters(fresh); setPage(1); }}>Reset filters</button></div></details></section>
+    } }}><option value="">Choose a saved view</option>{views.data?.filter(v => v.state !== "archived").map(v => <option key={v.id} value={v.id}>{v.title}{v.data.shared ? " · shared" : ""}</option>)}</select></label><button onClick={()=>setViewOpen(true)}>Save view</button>{viewOpen && <SmartCreateSection title="Create saved view" autoOpen onClose={()=>setViewOpen(false)}><form className="po-actions" onSubmit={saveView}><input name="title" required minLength={2} placeholder="Name this view"/>{me.role === "owner" && <label className="po-check"><input type="checkbox" name="shared"/>Share with team</label>}<button>Save view</button></form></SmartCreateSection>}<button onClick={() => { setFilters(fresh); setPage(1); }}>Reset filters</button></div></details></section>
     {!!selected.length && <div className="po-panel po-actions"><strong>{selected.length} selected</strong>{["assign", "under_review", "archive", "restore"].map(action => <button key={action} onClick={() => setBulk({ action, ids: selected, reason: "", assigned_to: null })}>{action.split("_").join(" ")}</button>)}<button onClick={() => setSelected([])}>Clear selection</button></div>}
     <section className="po-panel"><Loading busy={rows.busy} error={rows.error}/>{rows.data && <><Table rows={rows.data.items} columns={[{ label: "Select", render: r => <input type="checkbox" aria-label={`Select ${r.company_name || r.name}`} checked={selected.includes(r.id)} onChange={e => setSelected(ids => e.target.checked ? [...ids, r.id] : ids.filter(i => i !== r.id))}/> }, { label: "Applicant", render: r => <><button className="po-link" onClick={() => setParams({ selected: String(r.id) })}>{r.company_name || r.name}</button><small>{r.name} · {r.applicant_type}</small><small>{r.email}</small></> }, { label: "Review", render: r => <><Badge>{r.status}</Badge>{r.overdue && <small>Over SLA · {r.age_hours} business hours</small>}{!!r.duplicates.length && <small>{r.duplicates.length} possible matches</small>}</> }, { label: "Apps", render: r => <small>{r.requested_modules.map((k: string) => me.modules.find((m: Data) => m.key === k)?.label || k).join(", ")}</small> }, { label: "Owner / source", render: r => <>{staff.data?.find(a => a.id === r.assigned_to)?.name || "Unassigned"}<small>{r.source}{r.campaign && ` · ${r.campaign}`}</small></> }, { label: "Submitted", render: r => date(r.created_at) }]}/><footer className="po-pagination"><button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button><span>Page {page} · {rows.data.total} requests</span><button disabled={page * rows.data.page_size >= rows.data.total} onClick={() => setPage(p => p + 1)}>Next</button></footer></>}</section>
     {create && <CreateSignup onClose={() => setCreate(false)} onSaved={() => { setCreate(false); rows.refresh(); }}/>}{chosen > 0 && <SignupDetail ident={chosen} staff={staff.data || []} onClose={() => setParams({})} onSaved={rows.refresh}/>}
@@ -84,6 +86,7 @@ function DetailForm({ row, staff, refresh, onPurged }: {
 }) {
     const { me } = useOwner();
     const [tab, setTab] = useState("details");
+    const [noteOpen,setNoteOpen] = useState(false);
     const [draft, setDraft] = useState<Data>({ ...row, priority: row.workflow.priority || "normal", checklist: row.workflow.checklist || {} });
     const [modules, setModules] = useState<string[]>(row.requested_modules);
     const [error, setError] = useState("");
@@ -153,13 +156,13 @@ function DetailForm({ row, staff, refresh, onPurged }: {
             catch (err) {
                 setError(message(err));
             } }}>Request more information</button></div></form></> : <p>This application has no pending review action.</p>}{row.records?.filter((r: Data) => r.kind === "provisioning").map((r: Data) => <section key={r.id} className="po-note"><h3>{r.title} · {r.state}</h3>{r.data.steps && <div className="po-progress">{r.data.steps.map((x: string) => <span key={x}>{x}</span>)}</div>}{r.data.error && <p>{r.data.error}</p>}</section>)}</div>}
-    {tab === "notes" && <><form className="po-form" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); try {
+    {tab === "notes" && <><button className="po-primary" onClick={()=>setNoteOpen(true)}>Add internal note</button>{noteOpen && <SmartCreateSection title="Add internal note" autoOpen onClose={()=>setNoteOpen(false)}><form className="po-form" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); try {
         await api.post("/platform/records/note", { title: f.get("title"), signup_id: row.id, data: { body: f.get("body") } });
-        refresh();
+        refresh();setNoteOpen(false);
     }
     catch (err) {
         setError(message(err));
-    } }}><label>Note title<input name="title" required minLength={2}/></label><label>Note<textarea name="body" required/></label><button>Add internal note</button></form><div className="po-timeline">{row.records?.filter((r: Data) => r.kind === "note").map((r: Data) => <article key={r.id}><strong>{r.title}</strong><p>{r.data.body}</p><small>{date(r.created_at)}</small></article>)}</div></>}
+    } }}><label>Note title<input name="title" required minLength={2}/></label><label>Note<textarea name="body" required/></label><button data-save-action>Add internal note</button></form></SmartCreateSection>}<div className="po-timeline">{row.records?.filter((r: Data) => r.kind === "note").map((r: Data) => <article key={r.id}><strong>{r.title}</strong><p>{r.data.body}</p><small>{date(r.created_at)}</small></article>)}</div></>}
     {tab === "activity" && <div className="po-timeline">{row.history?.map((r: Data) => <article key={r.id}><strong>{r.action.split(".").join(" · ")}</strong><small> · {date(r.created_at)}</small><p>{r.reason}</p>{Object.keys(r.after || {}).filter(k => JSON.stringify(r.after[k]) !== JSON.stringify(r.before?.[k])).map(key => <small key={key}>{key.split("_").join(" ")}: {typeof r.after[key] === "object" ? JSON.stringify(r.after[key]) : String(r.after[key] ?? "—")}<br /></small>)}</article>)}</div>}
   </>;
 }

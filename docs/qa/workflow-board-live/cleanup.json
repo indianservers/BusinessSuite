@@ -1,0 +1,45 @@
+{
+  "run": "WFV1794138560767",
+  "removedBillReferences": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "softDeleted": [
+    {
+      "deal": 263
+    },
+    {
+      "task": 2455
+    },
+    {
+      "task": 2454
+    },
+    {
+      "project": 88
+    },
+    {
+      "workspace": 9
+    },
+    {
+      "order": 246
+    },
+    {
+      "engagement": 241
+    }
+  ],
+  "revokedUsers": [
+    631,
+    632,
+    633
+  ],
+  "disabledFixturePolicies": [
+    1,
+    2
+  ],
+  "retainedApprovalEvidence": 2,
+  "removedCandidate": 218,
+  "remainingAuditBillReferences": 0
+}

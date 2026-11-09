@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import GridTable from "@/shared/data-grid/GridTable";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -70,9 +71,9 @@ export default function DirectoryDestinations({ selected, dragging, request, onC
       {action==="transfer"&&<><label>Find source<input value={sourceQ} onChange={e=>setSourceQ(e.target.value)}/></label><label>Source<NativeSelect loading={sourceOptions.isFetching} error={sourceOptions.isError} value={source} onChange={e=>setSource(Number(e.target.value))}><option value={0}>Choose source</option>{sourceOptions.data?.items.filter(d=>d.can_manage).map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</NativeSelect></label></>}
       {action==="role"&&<label>New role<NativeSelect value={role} onChange={e=>setRole(e.target.value as "Member"|"Viewer")}><option>Member</option><option>Viewer</option></NativeSelect></label>}
     </div>
-    <div className="pd-selection-slot">{!!selected.length&&<details className="pd-selection-workload"><summary>{selected.length} selected · workload & membership comparison</summary>{selection.isLoading&&<p role="status">Loading workload…</p>}{selection.data?.people.map(person=><div key={person.id}><strong>{person.name}</strong><small>{person.workload.pending} open · {person.workload.overdue} overdue</small></div>)}{selection.isError&&<p role="alert">Could not load comparison. <button onClick={()=>selection.refetch()}>Retry</button></p>}</details>}</div>
+    <div className="pd-selection-slot">{!!selected.length&&<details className="pd-selection-workload"><summary>{selected.length} selected · workload & membership comparison</summary>{selection.isLoading&&<p role="status">Loading workload…</p>}{selection.data?.people.map(person=><div key={person.id}><strong>{person.name}</strong><small>{person.workload.pending} open · {person.workload.overdue} overdue</small></div>)}{selection.isError&&<p role="alert">Could not load comparison. <Button type="submit" variant="outline" onClick={()=>selection.refetch()}>Retry</Button></p>}</details>}</div>
     {error&&<p role="alert" className="pd-error">{error}</p>}
-    {destinations.isLoading&&<p role="status">Loading destinations…</p>}{destinations.isError&&<p role="alert">Could not load destinations. <button onClick={()=>destinations.refetch()}>Retry</button></p>}
+    {destinations.isLoading&&<p role="status">Loading destinations…</p>}{destinations.isError&&<p role="alert">Could not load destinations. <Button type="submit" variant="outline" onClick={()=>destinations.refetch()}>Retry</Button></p>}
     <div className="pd-drop-list">{destinations.data?.items.map(destination=>{
       const key=`${kind}:${destination.id}`,already=selection.data?.people.filter(p=>p.memberships[kind].includes(destination.id)).length||0;
       const eligible=selection.data?.people.filter(p=>p.status==="active"&&(kind!=="batches"||destination.batch_type!=="Intern"||p.classification==="Intern")).length||0;

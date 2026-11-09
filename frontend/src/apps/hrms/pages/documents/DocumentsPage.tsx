@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -204,7 +205,7 @@ export default function DocumentsPage() {
       )}
 
       <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card>
+        <SmartCreateSection title="Upload document" size="large"><Card>
           <CardHeader>
             <CardTitle className="text-base">Upload softcopy</CardTitle>
             <CardDescription>Allowed files: PDF, DOC, DOCX, JPG, JPEG, PNG</CardDescription>
@@ -380,13 +381,13 @@ export default function DocumentsPage() {
                 />
               </div>
 
-              <Button type="submit" disabled={!canUpload || uploadMutation.isPending || !effectiveEmployeeId}>
+              <Button data-save-action type="submit" disabled={!canUpload || uploadMutation.isPending || !effectiveEmployeeId}>
                 <Upload className="h-4 w-4" />
                 {uploadMutation.isPending ? "Uploading..." : "Upload document"}
               </Button>
             </CompactForm>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
 
         <Card>
           <CardHeader>

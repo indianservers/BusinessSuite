@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { BadgeDollarSign, CheckCircle2, Circle, CircleDashed, Clock3, Flag, Layers, PauseCircle, PlayCircle, UserRound, XCircle } from "lucide-react";
 import "./group-label.css";
 
@@ -17,15 +18,15 @@ export function groupAppearance(label: string, field = "") {
   if (/^new$/.test(value)) return { tone: "purple", Icon: Circle };
   let hash = 0;
   for (const char of value) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return { tone: ["blue", "purple", "brown", "pink", "green", "amber"][hash % 6], Icon: /owner|assignee|employee|team/i.test(field) ? UserRound : /priority/i.test(field) ? Flag : Layers };
+  return { color: `hsl(${(hash % 36000) / 100} 58% 40%)`, tone: ["blue", "purple", "brown", "pink", "green", "amber"][hash % 6], Icon: /owner|assignee|employee|team/i.test(field) ? UserRound : /priority/i.test(field) ? Flag : Layers };
 }
 
 export default function GroupLabel({ label, field, count }: { label: string; field?: string; count: number }) {
-  const { tone, Icon } = groupAppearance(label, field);
-  return <><span className={`suite-group-badge suite-group-${tone}`} title={field ? `${field}: ${label}` : label}><Icon size={12} strokeWidth={2.3} aria-hidden="true"/><span>{label.replace(/_/g, " ")}</span></span><span className="suite-group-count" aria-label={`${count} records`}>{count.toLocaleString()}</span></>;
+  const { tone, Icon, color } = groupAppearance(label, field);
+  return <><span className={`suite-group-badge suite-group-${tone}`} style={color ? {"--group-color":color} as CSSProperties : undefined} title={field ? `${field}: ${label}` : label}><Icon size={12} strokeWidth={2.3} aria-hidden="true"/><span>{label.replace(/_/g, " ")}</span></span><span className={`suite-group-count suite-group-${tone}`} style={color ? {"--group-color":color} as CSSProperties : undefined} aria-label={`${count} records`}>{count.toLocaleString()}</span></>;
 }
 
 export function RecordStatusIcon({ label, field }: { label: string; field?: string }) {
-  const { tone, Icon } = groupAppearance(label, field);
-  return <span className={`suite-record-status suite-group-${tone}`} title={label}><Icon size={15} strokeWidth={2} aria-hidden="true"/><span className="sr-only">{label}</span></span>;
+  const { tone, Icon, color } = groupAppearance(label, field);
+  return <span className={`suite-record-status suite-group-${tone}`} style={color ? {"--group-color":color} as CSSProperties : undefined} title={label}><Icon size={15} strokeWidth={2} aria-hidden="true"/><span className="sr-only">{label}</span></span>;
 }

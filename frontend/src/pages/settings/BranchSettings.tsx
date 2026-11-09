@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import CompactForm from "@/components/forms/CompactForm";
 import BranchLifecycleSettings from "./BranchLifecycleSettings";
 import { useState } from "react";
@@ -22,11 +24,11 @@ export default function BranchSettings() {
   const [error, setError] = useState("");
   const context = useQuery({ queryKey: ["settings-branches"], queryFn: () => api.get<Context>("/branches/context").then(r => r.data), staleTime: 0 });
   if (context.isPending) return <p role="status">Loading branches…</p>;
-  if (context.isError) return <p role="alert">Unable to load branches. <button onClick={() => void context.refetch()}>Retry</button></p>;
+  if (context.isError) return <p role="alert">Unable to load branches. <Button type="submit" variant="outline" onClick={() => void context.refetch()}>Retry</Button></p>;
   return <div className="settings-stack">
     <section className="settings-panel"><h2>Create a branch</h2>
       <p>Each branch has its own customers, sales and other business records. Creating a branch does not give existing users access automatically.</p>
-      {context.data.manage_access ? <CompactForm onSubmit={async e => {
+      {context.data.manage_access ? <SmartCreateSection title="Create branch" size="standard"><div className="space-y-3"><CompactForm onSubmit={async e => {
         e.preventDefault(); setSaving(true); setError(""); setMessage("");
         try {
           await api.post("/branches", { name: name.trim(), code: code.trim(), reason: reason.trim() });
@@ -42,7 +44,7 @@ export default function BranchSettings() {
           <label>Reason for creating branch *<input required minLength={5} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. New Chennai office" /></label>
         </div>
         <button className="settings-primary" disabled={saving || !name.trim() || reason.trim().length < 5}>{saving ? "Creating…" : "Create branch"}</button>
-      </CompactForm> : <p>You need branch administration access to create branches.</p>}
+      </CompactForm>{error && <p role="alert">{error}</p>}</div></SmartCreateSection> : <p>You need branch administration access to create branches.</p>}
       {error && <p role="alert">{error}</p>}{message && <p role="status">{message}</p>}
     </section>
     <BranchLifecycleSettings/>

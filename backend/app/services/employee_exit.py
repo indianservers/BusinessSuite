@@ -20,6 +20,12 @@ def scoped_exit(db, user, ident):
     return row
 
 
+def validate_exit_dates(person, values):
+    last_working_date = values.get('last_working_date')
+    if last_working_date and person.date_of_joining and last_working_date < person.date_of_joining:
+        raise HTTPException(422, 'Last working date cannot precede the joining date')
+
+
 def create_exit(db, user, values):
     person = employee_records(db, user, include_archived=True).filter(Employee.id == values["employee_id"]).with_for_update().first()
     if not person: raise HTTPException(404, "Employee not found in your permitted scope")
@@ -30,8 +36,7 @@ def create_exit(db, user, values):
             raise HTTPException(409, "An exit case already exists for this employment period; open its existing checklist")
     if values.get("status", "Initiated") != "Initiated":
         raise HTTPException(422, "New exit records must start as Initiated")
-    if values.get("last_working_date") and values["last_working_date"] < person.date_of_joining:
-        raise HTTPException(422, "Last working date cannot precede the joining date")
+    validate_exit_dates(person, values)
     row = ExitRecord(**values)
     db.add(row); db.flush()
     for name, role in DEFAULT_EXIT_CHECKLIST:

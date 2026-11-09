@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useState, type FormEvent } from "react";
 import { isAxiosError } from "axios";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 
 export default function RecurringSchedule({ plans, onSaved }: { plans: SRMRecord[]; onSaved: () => void }) {
+  const [completionRevision, setCompletionRevision] = useState(0);
   const [plan, setPlan] = useState("");
   const [start, setStart] = useState("");
   const [amount, setAmount] = useState("");
@@ -30,13 +32,13 @@ export default function RecurringSchedule({ plans, onSaved }: { plans: SRMRecord
   const eligible = plans.filter(p => p.recurrence_rule && !["completed", "cancelled"].includes(String(p.status)));
   const mutation = useMutation({
     mutationFn: () => srmApi.createRecurringSchedule(Number(plan), { start_date: start, amount, occurrences: Number(count), payment_terms_days: Number(terms), automatic_drafts: automatic, notify_on_creation: notify, never_expires: ongoing, interval: Number(interval), end_date: ongoing ? undefined : end || undefined, invoice_template: template, payment_mode_id: paymentMode ? Number(paymentMode) : undefined, salesperson_id: salesperson ? Number(salesperson) : undefined, order_number: orderNumber, subject, customer_notes: notes, terms: conditions }),
-    onSuccess: result => { setMessage(`${result.created} occurrences created; ${result.skipped} existing dates skipped. ${result.created === 0 ? "Existing occurrences were preserved." : automatic ? "Due occurrences will become invoice drafts while the plan is active." : "Approve milestones before invoicing."}`); onSaved(); },
+    onSuccess: result => { setCompletionRevision(value=>value+1); setMessage(`${result.created} occurrences created; ${result.skipped} existing dates skipped. ${result.created === 0 ? "Existing occurrences were preserved." : automatic ? "Due occurrences will become invoice drafts while the plan is active." : "Approve milestones before invoicing."}`); onSaved(); },
     onError: error => setMessage(isAxiosError(error) && typeof error.response?.data?.detail === "string" ? error.response.data.detail : "Schedule could not be created. Check the plan's recurrence, dates, amount, and your permissions."),
   });
   function submit(event: FormEvent) { event.preventDefault(); setMessage(""); mutation.mutate(); }
   return <details className="rounded-lg border p-4"><summary className="cursor-pointer font-medium">Recurring billing schedule</summary>
     <p className="my-3 text-sm text-muted-foreground">Create dated milestones in an existing recurring plan. Existing dates are skipped. Automatic drafts require an active plan; invoices retain the usual approval process.</p>
-    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <SmartCreateSection nested title="Create recurring schedule" size="large" completionRevision={completionRevision}><form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <label className="text-sm">Billing plan<NativeSelect className="block h-10 w-full rounded-md border bg-background px-3" required value={plan} onChange={e => setPlan(e.target.value)}><option value="">Select recurring plan</option>{eligible.map(p => <option key={String(p.id)} value={String(p.id)}>{String(p.name)} · {String(p.recurrence_rule)}</option>)}</NativeSelect></label>
       <label className="text-sm">First billing date<Input required type="date" value={start} onChange={e => setStart(e.target.value)}/></label>
       <label className="text-sm">Repeat interval<Input required type="number" min="1" max="120" step="1" value={interval} onChange={e => setRepeatInterval(e.target.value)} title="Use 2 with a monthly plan to repeat every two months."/></label>
@@ -55,6 +57,6 @@ export default function RecurringSchedule({ plans, onSaved }: { plans: SRMRecord
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={automatic} onChange={e => setAutomatic(e.target.checked)}/>Create invoice drafts automatically when due</label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={notify} onChange={e => setNotify(e.target.checked)}/>Notify me in the app when a draft is created</label>
       <Button className="self-end" disabled={mutation.isPending || !plan} type="submit">{mutation.isPending ? "Creating…" : "Create schedule"}</Button>
-    </form><p role="status" className="mt-3 text-sm">{message}</p>
+    </form></SmartCreateSection><p role="status" className="mt-3 text-sm">{message}</p>
   </details>;
 }

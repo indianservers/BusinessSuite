@@ -1,3 +1,4 @@
+import SalesDashboard from "./SalesDashboard";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { columnValue } from "@/shared/data-grid/column-presentation";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
@@ -308,101 +309,7 @@ function PageHeader({ meta, isFetching, onRefresh }: { meta: ViewMeta; isFetchin
   return <SuiteHeading title={meta.title} icon={meta.icon} description={<RichTextContent legacyFormat="plain" value={meta.description}/>} actions={onRefresh ? <><Button variant="outline" onClick={() => { window.location.href = "/ai/copilot?module_name=srm"; }}><Sparkles className="h-4 w-4"/>AI Copilot</Button><Button variant="outline" onClick={onRefresh} disabled={isFetching}>Refresh</Button></> : null}/>;
 }
 
-function DashboardView() {
-  type ReportingPeriod = "all" | "3" | "12" | "custom";
-  const [selectedPeriod,setSelectedPeriod]=useState<ReportingPeriod>("all");
-  const [startDate,setStartDate]=useState("");
-  const [endDate,setEndDate]=useState("");
-  const [range,setRange]=useState<{period:ReportingPeriod;start?:string;end?:string}>({period:"all"});
-  const {period}=range;
-  const query = useQuery({ queryKey: ["srm", "dashboard", period, range.start, range.end], queryFn: () => srmApi.dashboard(period,range.start,range.end) });
-  const periodLabel = period === "custom" ? `${range.start} to ${range.end}` : period === "all" ? "All time" : `Last ${period} calendar months through today`;
-  const invalidDates = !!(startDate && endDate && startDate > endDate);
-  const data = (query.data || {}) as SRMRecord;
-  const canManage = useCanManageRevenue();
-  const recentOrders = asList(data.recent_sales_orders);
-  const recentInvoices = asList(data.recent_invoices);
-  const [chosenCurrency,setChosenCurrency]=useState("");const [chosenType,setChosenType]=useState("");
-  const series=asList(data.revenue_time_series);
-  const currencies=[...new Set(series.map(row=>String(row.currency||"Unknown")))];const eventTypes=[...new Set(series.map(row=>String(row.event_type)))];
-  const seriesCurrency=chosenCurrency||currencies[0]||"",seriesType=chosenType||eventTypes[0]||"";
-  const revenueTrend=useMemo(()=>buildRevenueTrend(series.filter(row=>row.currency===seriesCurrency&&row.event_type===seriesType)),[data.revenue_time_series,seriesCurrency,seriesType]);
-  const groupedMoney=(key:string)=>{const rows=asList((data.currency_totals as SRMRecord|undefined)?.[key]);return rows.length?rows.map((row,index)=><span className="block break-words" key={`${row.currency}-${index}`}><span className="mr-2 text-sm font-medium text-muted-foreground">{String(row.currency || "Unknown")}</span>{Number(row.amount).toLocaleString(undefined,{maximumFractionDigits:2})}</span>):"0 (no invoice records)"};
-  const orderPipeline = useMemo(() => buildOrderPipeline(data), [data]);
-  const totalInvoiced = numberValue(data.total_invoiced_value);
-  const collected = numberValue(data.total_collected_value);
-  const outstanding = numberValue(data.outstanding_value);
-  const overdue = numberValue(data.overdue_value);
-  const collectionPercent = data.total_invoiced_value!=null && data.total_collected_value!=null && totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : null;
-  const latestDate = [...recentOrders, ...recentInvoices, ...asList(data.revenue_trend)]
-    .map(recordDate)
-    .filter(Boolean)
-    .sort()
-    .at(-1);
-  const meta = {
-    ...viewMeta.dashboard,
-    title: "Sales Revenue Management",
-    description: "Orders, billing, collections and revenue performance",
-    icon: BarChart3,
-  };
-  return (
-    <div className="space-y-4">
-      <PageHeader meta={meta} isFetching={query.isFetching} onRefresh={() => query.refetch()} />
-      <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
-        {query.dataUpdatedAt > 0 && <span className="text-xs text-muted-foreground">Last refreshed: {new Date(query.dataUpdatedAt).toLocaleTimeString()}</span>}
-        {latestDate ? <Badge variant="outline" className="h-9 rounded-md px-3 text-sm">Latest transaction: {formatDate(latestDate)}</Badge> : null}
-        {canManage ? (
-          <Button asChild variant="outline" size="sm" className="h-9">
-            <Link to="/srm/sales-orders"><Plus className="h-4 w-4" />Create order</Link>
-          </Button>
-        ) : null}
-        <Button asChild variant="outline" size="sm" className="h-9">
-          <Link to="/srm/pos/terminal"><Store className="h-4 w-4" />Open POS</Link>
-        </Button>
-      </div>
-      <form className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3" onSubmit={event=>{event.preventDefault();if(startDate&&endDate&&!invalidDates)setRange({period:"custom",start:startDate,end:endDate});}}>
-        <label className="grid gap-1 text-sm">Reporting period<NativeSelect className="rounded border bg-background p-2" value={selectedPeriod} onChange={event=>{const value=event.target.value as ReportingPeriod;setSelectedPeriod(value);if(value!=="custom")setRange({period:value});}}><option value="all">All time</option><option value="3">Last 3 calendar months</option><option value="12">Last 12 calendar months</option><option value="custom">Custom date range</option></NativeSelect></label>
-        {selectedPeriod==="custom"&&<>
-          <label className="grid gap-1 text-sm">Start date<input className="min-w-0 rounded border bg-background p-2" type="date" required value={startDate} max={endDate||undefined} onChange={event=>setStartDate(event.target.value)}/></label>
-          <label className="grid gap-1 text-sm">End date<input className="min-w-0 rounded border bg-background p-2" type="date" required value={endDate} min={startDate||undefined} onChange={event=>setEndDate(event.target.value)}/></label>
-          <Button type="submit" disabled={!startDate||!endDate||invalidDates}>Apply date range</Button>
-          {invalidDates&&<p role="alert" className="w-full text-sm text-destructive">Start date must be on or before end date.</p>}
-          <p className="w-full text-xs text-muted-foreground">Both dates are included. Apply to update totals and revenue charts. Currently showing: {periodLabel}.</p>
-        </>}
-      </form>
-      <SectionState label="dashboard" isLoading={query.isLoading} isError={query.isError} onRetry={() => query.refetch()} />
-      {!query.isLoading && !query.isError ? (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <DashboardMetricCard icon={IndianRupee} label="Total invoiced" value={groupedMoney("total_invoiced_value")} detail={periodLabel} />
-            <DashboardMetricCard icon={Wallet} label="Collected" value={groupedMoney("total_collected_value")} detail={collectionPercent !== null ? `${collectionPercent}% of invoiced · ${periodLabel}` : periodLabel} tone={collectionPercent === 100 ? "success" : "default"} />
-            <DashboardMetricCard icon={BarChart3} label="Outstanding" value={groupedMoney("outstanding_value")} detail={periodLabel} />
-            <DashboardMetricCard icon={AlertTriangle} label="Overdue" value={groupedMoney("overdue_value")} detail={periodLabel} tone={asList((data.currency_totals as SRMRecord|undefined)?.overdue_value).some(row=>numberValue(row.amount)>0) ? "danger" : "default"} />
-          </div>
-<ModuleWorkflowBoard module="srm" />
-<p className="text-xs text-muted-foreground">{periodLabel}. KPI totals use invoice issue dates; paid and outstanding balances are current. {String(data.currency_policy||"Currency units unavailable")}</p>
-<section aria-labelledby="collection-priorities" className="space-y-3">
-  <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="collection-priorities" className="text-base font-semibold">Collection priorities</h2><Button asChild variant="outline" size="sm"><Link to="/srm/collections">Open collections</Link></Button></div>
-  {asList(data.collection_alerts).length ? <div className="divide-y rounded-lg border bg-card">{asList(data.collection_alerts).slice(0,5).map((invoice,index)=><div key={String(invoice.id||index)} className="flex flex-wrap items-center justify-between gap-3 p-3"><div><Link className="text-sm font-medium underline" to={invoice.id ? `/srm/invoices/${invoice.id}` : "/srm/invoices"}>{String(invoice.invoice_number||"Overdue invoice")}</Link><p className="text-xs text-muted-foreground">{String(invoice.customer_name || `Customer #${invoice.customer_id || "—"}`)} · {String(invoice.overdue_days ?? "—")} days overdue</p></div><strong className="text-sm text-destructive">{currencyMoney(invoice.balance_amount,invoice.currency)}</strong></div>)}</div> : <p className="rounded-lg border p-4 text-sm text-muted-foreground">No overdue invoices in your permitted scope.</p>}
-</section>
-<section aria-label="Revenue events and order pipeline" className="space-y-3"><h2 className="text-base font-semibold">Revenue events and order pipeline</h2><div className="flex flex-wrap gap-3 text-sm"><label>Event currency<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesCurrency} onChange={e=>setChosenCurrency(e.target.value)}>{currencies.map(code=><option key={code}>{code}</option>)}</NativeSelect></label><label>Event type<NativeSelect loading={query.isFetching} error={query.isError} className="ml-2 rounded border bg-background p-2" value={seriesType} onChange={e=>setChosenType(e.target.value)}>{eventTypes.map(code=><option key={code}>{code}</option>)}</NativeSelect></label></div><p className="text-xs">Monthly totals for the selected period, event type and currency. The order pipeline uses order creation dates in the same period. KPI totals include invoices issued in the reporting period, with current paid and outstanding balances; overdue is assessed today. Event currency and type filter the chart only. Different commercial events are not combined into accounting revenue.</p>
-          <div className="grid gap-4 xl:grid-cols-12">
-            <RevenuePerformanceCard records={revenueTrend} currency={seriesCurrency} />
-            <OrderPipelineCard items={orderPipeline} total={numberValue(data.total_sales_orders)} />
-          </div>
-
-</section>
-          <div className="grid gap-4 xl:grid-cols-12">
-            <SalesOrdersCard records={recentOrders} />
-            <InvoicesCard records={recentInvoices} />
-            {data.total_invoiced_value==null?<Card className="xl:col-span-4 p-5 space-y-3"><h2 className="font-semibold">Collection health by currency</h2><p>Outstanding: {groupedMoney("outstanding_value")}</p><p>Overdue: {groupedMoney("overdue_value")}</p><p className="text-sm text-muted-foreground">A combined percentage is unavailable across different or unknown currencies.</p></Card>:<CollectionHealthCard collectionPercent={collectionPercent} outstanding={outstanding} overdue={overdue} overdueInvoices={asList(data.collection_alerts)} currency={String(asList((data.currency_totals as SRMRecord|undefined)?.total_invoiced_value)[0]?.currency||"Unknown")} />}
-          </div>
-        </>
-      ) : null}
-      <details className="rounded-lg border"><summary className="cursor-pointer p-3 text-sm font-medium">Explore revenue workflows</summary><div className="p-3 pt-0"><ModuleWorkflows module="srm" /></div></details>
-    </div>
-  );
-}
+function DashboardView() { return <SalesDashboard/>; }
 
 type DashboardMetricTone = "default" | "success" | "danger";
 
@@ -704,7 +611,7 @@ function MetricCard({ label, value }: { label: string; value: unknown }) {
   return <Card><SuiteMetric label={label} value={formatValue(value)} icon={BarChart3}/></Card>;
 }
 
-function RecordList({ title, records, primaryKey, secondaryKey, amountKey }: { title: string; records: SRMRecord[]; primaryKey: string; secondaryKey: string; amountKey: string }) {
+function RecordList({ title, records, primaryKey, secondaryKey, amountKey, recordHref }: { title: string; records: SRMRecord[]; primaryKey: string; secondaryKey: string; amountKey: string; recordHref?: (record: SRMRecord) => string | undefined }) {
   return (
     <Card>
       <CardHeader>
@@ -714,7 +621,7 @@ function RecordList({ title, records, primaryKey, secondaryKey, amountKey }: { t
         {records.length ? records.slice(0, 6).map((record, index) => (
           <div key={`${title}-${record.id || index}`} className="flex items-center justify-between gap-3 rounded-lg border p-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{formatValue(record[primaryKey] || record.name || record.title || `Record ${index + 1}`)}</p>
+              <p className="truncate text-sm font-medium">{recordHref?.(record) ? <Link className="text-primary hover:underline" to={recordHref(record)!}>{formatValue(record[primaryKey] || record.name || record.title || `Record ${index + 1}`)}</Link> : formatValue(record[primaryKey] || record.name || record.title || `Record ${index + 1}`)}</p>
               <p className="truncate text-xs text-muted-foreground">{formatValue(record[secondaryKey] || record.customer_id || record.created_at)}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -967,7 +874,7 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
 
   useEffect(()=>onBusyChange?.(create.isPending),[create.isPending,onBusyChange]);
   return (
-    <Card ref={createRef} id="new-record">
+    <SmartCreateSection title="Create invoice" size="large"><Card ref={createRef} id="new-record">
       <CardHeader>
         <CardTitle className="text-base">Invoice Template and Preview</CardTitle>
       </CardHeader>
@@ -1073,12 +980,12 @@ export function ManualInvoiceComposer({ onCreated, initialCustomerId, initialCon
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={create.isPending || !!savedInvoice}>{create.isPending ? "Creating..." : "Create Invoice"}</Button>
-            {savedInvoice && <><Link className="text-primary underline" to={`/srm/invoices/${savedInvoice.id}`}>Open {String(savedInvoice.invoice_number)}</Link><Button type="button" variant="outline" onClick={() => { setSavedInvoice(null); setRequestId(crypto.randomUUID()); setLines([createInvoiceLineDraft()]); setMessage(""); }}>Create another invoice</Button></>}
+            {savedInvoice && <><Button asChild variant="outline"><Link className="text-primary underline" to={`/srm/invoices/${savedInvoice.id}`}>Open {String(savedInvoice.invoice_number)}</Link></Button><Button type="button" variant="outline" onClick={() => { setSavedInvoice(null); setRequestId(crypto.randomUUID()); setLines([createInvoiceLineDraft()]); setMessage(""); }}>Create another invoice</Button></>}
             <ActionMessage message={message} />
           </div>
         </CompactForm>
       </CardContent>
-    </Card>
+    </Card></SmartCreateSection>
   );
 }
 
@@ -1146,7 +1053,7 @@ function InvoiceDraftsView() {
         </>
       ) : null}
       <div className="grid gap-4 xl:grid-cols-2">
-        <RecordList title="Invoice Drafts" records={records} primaryKey="source_type" secondaryKey="status" amountKey="total_amount" />
+        <RecordList title="Invoice Drafts" records={records} primaryKey="invoice_number" secondaryKey="source_type" amountKey="total_amount" recordHref={record => record.invoice_id ? `/srm/invoices?invoice_id=${record.invoice_id}` : undefined} />
         <SummaryCard title="Source Evidence" data={{ sales_order: "Supported", engagement: "Supported", billing_milestone: "Duplicate guarded", pms_milestone: "Client approval required", timesheets: "Approved billable logs only", manual: "Source-tagged lines" }} />
       </div>
     </div>
@@ -1158,7 +1065,9 @@ function InvoicesView() {
   const accountingCustomer=Number(invoiceSearchParams.get("accounting_customer"))||undefined;
   const canManage = useCanManageRevenue(),canCreate=useCanManageRevenue("create"),canEdit=useCanManageRevenue("edit"),canApprove=useCanManageRevenue("approve"),canExport=useModuleAction("export");
   const list = useQuery({ queryKey: ["srm", "invoices"], queryFn: srmApi.invoices });
-  const [selectedInvoice, setSelectedInvoice] = useState("");
+  const requestedInvoice = invoiceSearchParams.get("invoice_id") || "";
+  const [selectedInvoice, setSelectedInvoice] = useState(requestedInvoice);
+  useEffect(() => setSelectedInvoice(requestedInvoice), [requestedInvoice]);
   const invoiceId = Number(selectedInvoice || asList(list.data)[0]?.id || 0);
   const detail = useQuery({ queryKey: ["srm", "invoice", invoiceId], queryFn: () => srmApi.invoice(invoiceId), enabled: invoiceId > 0 });
   const action = useRevenueAction();
@@ -1773,15 +1682,17 @@ function POSReturnsView() {
 }
 
 export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onSaved?: () => void }) {
+  const [creationParams] = useSearchParams();
+  const contextId = (key: string) => /^\d+$/.test(creationParams.get(key) || "") ? creationParams.get(key)! : "";
   const draftUser = useAuthStore(state => state.user);
-  const draftKey = `srm-order-draft:${draftUser?.id}:${sessionStorage.getItem("suite-organization") || draftUser?.access?.companyId || 1}:${sessionStorage.getItem("suite-branch") || "default"}`;
+  const draftKey = `srm-order-draft:${draftUser?.id}:${sessionStorage.getItem("suite-organization") || draftUser?.access?.companyId || 1}:${sessionStorage.getItem("suite-branch") || "default"}${contextId("customer_id") ? `:customer:${contextId("customer_id")}` : ""}`;
   const createRef = useNewRecordFocus();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [salesOrder, setSalesOrder] = useState(() => {
     const defaults = {
     title: "",
-    customer_id: "",
+    customer_id: contextId("customer_id"),
     currency: defaultText("currency", "srm"),
     expected_start_date: "",
     expected_end_date: "",
@@ -1805,8 +1716,8 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
   }, [draftKey, kind, salesOrder]);
   const [contract, setContract] = useState({
     title: "",
-    sales_order_id: "",
-    customer_id: "",
+    sales_order_id: contextId("sales_order_id"),
+    customer_id: contextId("customer_id"),
     contract_type: "services",
     effective_date: "",
     expiry_date: "",
@@ -1816,9 +1727,9 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
   });
   const [engagement, setEngagement] = useState({
     name: "",
-    sales_order_id: "",
-    contract_id: "",
-    customer_id: "",
+    sales_order_id: contextId("sales_order_id"),
+    contract_id: contextId("contract_id"),
+    customer_id: contextId("customer_id"),
     billing_type: "fixed_fee",
     budget_amount: "0",
     currency: defaultText("currency", "srm"),
@@ -1826,7 +1737,7 @@ export function CommercialCreateCard({ kind, onSaved }: { kind: SRMViewKind; onS
     planned_end_date: "",
   });
   const [billingPlan, setBillingPlan] = useState({
-    engagement_id: "",
+    engagement_id: contextId("engagement_id"),
     name: "",
     billing_type: "fixed_fee",
     currency: defaultText("currency", "srm"),
@@ -2095,7 +2006,7 @@ function GenericRouteView({ kind, meta }: { kind: SRMViewKind; meta: ViewMeta })
       {canCreate && boardSupported && showCreate && <SmartCreateModal definition={{ entity: kind, title: `Create ${meta.title.replace(/s$/, "")}`, presentation: "page", size: "large" }} onClose={() => setShowCreate(false)}><CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /></SmartCreateModal>}
       {canCreate && !boardSupported ? <CommercialCreateCard kind={kind} onSaved={() => {void query.refetch();setShowCreate(false);}} /> : null}
       <SectionState label={meta.title} isError={query.isError} onRetry={() => query.refetch()} />
-      {boardSupported && <div className="flex items-center gap-3"><WorkspaceViewBar scope={`srm-${kind}`} label="Sales views" active={recordView} views={[{id:"list",label:"Table",description:"Commercial records"},{id:"board",label:"Board",description:"Sales pipeline"}]} onChange={id=>setRecordView(id as "board"|"list")} primary={["list","board"]}/>{canCreate&&<button type="button" className="pipeline-primary" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</button>}</div>}
+      {boardSupported && <div className="flex items-center gap-3"><WorkspaceViewBar scope={`srm-${kind}`} label="Sales views" active={recordView} views={[{id:"list",label:"Table",description:"Commercial records"},{id:"board",label:"Board",description:"Sales pipeline"}]} onChange={id=>setRecordView(id as "board"|"list")} primary={["list","board"]}/>{canCreate&&<Button type="button" className="srm-create-record" onClick={()=>setShowCreate(v=>!v)}><Plus size={14}/>{showCreate?"Close form":"Add record"}</Button>}</div>}
       {boardSupported && recordView === "board" && !query.isError && <SalesPipeline kind={kind} onCreate={canCreate?()=>setShowCreate(true):undefined} records={records} canManage={canManage} loading={query.isLoading} onAction={async(name,id)=>{await action.mutateAsync({name,id});await query.refetch();}}/>}
       {!query.isError && (!boardSupported || recordView === "list") ? (
         <Card>

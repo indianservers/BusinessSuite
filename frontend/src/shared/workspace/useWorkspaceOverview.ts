@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
+import { useWorkspaceContext } from "./useWorkspaceContext";
 import { usePageRefresh } from "@/lib/page-refresh";
 import { BookOpenCheck, CalendarCheck2, ContactRound, FileCheck2, Handshake, ListTodo, ShieldCheck, Users } from "lucide-react";
 import type { DirectoryMetric } from "./WorkspaceDirectory";
@@ -15,10 +16,11 @@ const record = (value: unknown): Data => value && typeof value === "object" && !
  * reconstruct totals or combine monetary values across currencies. */
 export function useWorkspaceOverview(module: Module) {
   const qc = useQueryClient();
+  const context = useWorkspaceContext();
   const user = useAuthStore(s => s.user);
   const scope = [user?.id, user?.access?.companyId, sessionStorage.getItem("suite-organization"), sessionStorage.getItem("suite-branch"), JSON.stringify([user?.role, user?.is_superuser, user?.access?.grants[module]])];
   const path = module === "hrms" ? "/employees/workbench/home?scope=organization" : `/${module}/dashboard`;
-  const enabled = Boolean(user && canAccessRoute(module === "hrms" ? "/hrms/daily-work" : `/${module}/dashboard`, user.role, user.is_superuser));
+  const enabled = context.ready && Boolean(user && canAccessRoute(module === "hrms" ? "/hrms/daily-work" : `/${module}/dashboard`, user.role, user.is_superuser));
   const query = useQuery({ queryKey: ["workspace-overview", module, ...scope], enabled, queryFn: ({ signal }) => api.get<Data>(path, { signal }).then(response => response.data), staleTime: 30_000, retry: false });
   usePageRefresh(() => enabled ? query.refetch() : undefined);
   useEffect(() => {

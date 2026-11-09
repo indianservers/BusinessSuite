@@ -1,0 +1,18 @@
+@media(max-width:480px){
+ .suite-report-schedules,.suite-report-delivery{min-width:0;max-width:100%;overflow-wrap:anywhere}
+ .suite-report-schedules :is(button,a),.suite-report-delivery button{min-height:44px}
+ .suite-report-schedules a[download]{display:inline-flex;align-items:center;white-space:normal}
+ .suite-report-schedules>div{min-width:0}
+ .suite-report-schedules select{min-width:0;max-width:100%;min-height:44px;font-size:16px}
+ .suite-report-schedule-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .suite-report-schedule-form>label,.suite-report-delivery-form label{min-width:0;font-size:14px;line-height:1.45}
+ .suite-report-schedule-form>label:nth-child(1),.suite-report-schedule-form>label:nth-child(2),.suite-report-schedule-form>label:nth-child(5),.suite-report-schedule-form>button{grid-column:1/-1}
+ .suite-report-schedule-form :is(input,select),.suite-report-delivery-form :is(input:not([type=checkbox]),select){width:100%;min-width:0;max-width:100%;font-size:16px;min-height:44px}
+ .suite-report-delivery-form>fieldset{grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;gap:10px}
+ .suite-report-delivery-form>fieldset>label:first-child,.suite-report-delivery-form>fieldset>label:nth-child(n+4),.suite-report-delivery-form>fieldset>button{grid-column:1/-1}
+ .suite-report-delivery-form input[type=checkbox]{width:20px;height:20px;flex-shrink:0}
+ .suite-report-delivery-form label:has(input[type=checkbox]){min-height:44px}
+ .suite-report-delivery-form button{min-height:44px}
+}
+@media(max-width:480px){.suite-report-delivery:has(.suite-report-delivery-form)>[role=alert]{display:none}}
+@media(max-width:480px){.suite-report-delivery-form :is([role=alert],[role=status]){overflow-wrap:anywhere;font-size:14px;line-height:1.45}}

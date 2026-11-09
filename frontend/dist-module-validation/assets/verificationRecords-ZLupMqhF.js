@@ -1,0 +1,1 @@
+function s(t){var i,n;const a=(n=(i=t==null?void 0:t.response)==null?void 0:i.data)==null?void 0:n.detail;return typeof a=="string"?a:Array.isArray(a)?a.map(e=>e.msg||"Invalid value").join("; "):"Could not save. Please retry."}export{s as v};

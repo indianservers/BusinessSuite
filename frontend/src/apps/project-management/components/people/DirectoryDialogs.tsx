@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useState, type ReactNode } from "react";
@@ -390,9 +391,9 @@ export function TeamEditor({
             </NativeSelect>
           </label>
           <div className="pd-dialog-actions">
-            <button type="button" className="pd-button" onClick={onClose}>
+            <Button variant="outline" type="button" className="pd-button" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
             <button className="pd-primary" disabled={!wid}>
               {busy ? "Saving…" : "Save team"}
             </button>
@@ -524,9 +525,9 @@ export function AddPeopleToTeam({
         </div>
       )}
       <div className="pd-dialog-actions">
-        <button className="pd-button" onClick={onClose}>
+        <Button type="submit" variant="outline" className="pd-button" onClick={onClose}>
           Cancel
-        </button>
+        </Button>
         <button
           className="pd-primary"
           disabled={!team || busy}

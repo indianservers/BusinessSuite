@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -320,7 +321,7 @@ export default function GanttPage() {
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" />Dependencies</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <CompactForm onSubmit={event => { event.preventDefault(); void createDependency(); }}><fieldset disabled={readOnly || saving} className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
+            <SmartCreateSection title="Add dependency">{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<CompactForm onSubmit={event => { event.preventDefault(); void createDependency(); }}><fieldset disabled={readOnly || saving} className="grid gap-2 md:grid-cols-[1fr_1fr_11rem_6rem_auto]">
               <NativeSelect aria-label="Source task" value={sourceTaskId} onChange={(event) => { setSourceTaskId(event.target.value); setTargetTaskId(""); }} className="h-11 rounded-md border bg-background px-3 text-sm">
                 <option value="">Source task</option>
                 {tasks.filter(task => canEditProject(task.project_id)).map((task) => <option key={task.id} value={task.id}>{task.task_key} - {task.title}</option>)}
@@ -333,8 +334,8 @@ export default function GanttPage() {
                 {dependencyTypes.map((item) => <option key={item}>{item}</option>)}
               </NativeSelect>
               <input aria-label="Lag days" type="number" step="1" value={lagDays} onChange={(event) => setLagDays(event.target.value)} className="h-11 rounded-md border bg-background px-3 text-sm" placeholder="Lag" />
-              <Button type="submit" disabled={saving || !sourceTaskId || !targetTaskId}>Add dependency</Button>
-            </fieldset></CompactForm>{readOnly && <p className="text-sm text-muted-foreground">You have read-only access to this timeline.</p>}
+              <Button data-save-action type="submit" disabled={saving || !sourceTaskId || !targetTaskId}>Add dependency</Button>
+            </fieldset></CompactForm></SmartCreateSection>{readOnly && <p className="text-sm text-muted-foreground">You have read-only access to this timeline.</p>}
             <div className="space-y-2">
               {dependencies.map((dependency) => <DependencyRow key={dependency.id} dependency={dependency} canEdit={!saving && canEditProject(tasks.find(t => t.id === (dependency.source_task_id ?? dependency.depends_on_task_id))?.project_id)} onDelete={() => deleteDependency(dependency.id)} />)}
               {!dependencies.length ? <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">No dependencies for the visible tasks.</p> : null}

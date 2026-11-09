@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import "./integrations.css";
 import { useEffect, useRef, useState } from "react";
@@ -106,7 +107,7 @@ export default function ConnectorNodeEditor({
       >
         Manage connections / add account
       </Link>
-      <button
+      <Button variant="outline"
         type="button"
         onClick={() =>
           integrationApi
@@ -116,7 +117,7 @@ export default function ConnectorNodeEditor({
         }
       >
         Refresh connections
-      </button>
+      </Button>
       {connector && (
         <>
           <label className="as-basic-field">

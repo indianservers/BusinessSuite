@@ -2815,9 +2815,11 @@ def create_pms_project(engagement_id: int, db: Session = Depends(get_db), curren
         try:
             from app.apps.project_management.models import PMSProject
 
-            existing_project = db.query(PMSProject).filter(PMSProject.id == engagement.pms_project_id, PMSProject.deleted_at == None).first()
+            existing_project = db.query(PMSProject).filter(PMSProject.id == engagement.pms_project_id, PMSProject.organization_id == engagement.organization_id, PMSProject.deleted_at == None).first()
         except Exception:
             existing_project = None
+        if not existing_project:
+            raise HTTPException(409, "Linked delivery project is no longer available. Review the engagement link before retrying.")
         _audit(db, current_user, "engagement", engagement.id, "pms_project_idempotent", after={"pms_project_id": engagement.pms_project_id})
         db.commit()
         return {"idempotent": True, "engagement": _serialize(engagement), "project": _serialize(existing_project)}
@@ -3508,7 +3510,9 @@ def manual_invoice(data: SRMManualInvoiceCreate, db: Session = Depends(get_db), 
 
 @router.get("/invoice-drafts")
 def list_invoice_drafts(db: Session = Depends(get_db), current_user: User = Depends(RequirePermission("srm_invoice_view", "srm_invoice_create", "srm_invoice_approve", "srm_admin"))):
-    return [_serialize(item) for item in db.query(SRMInvoiceDraft).filter(scoped(SRMInvoiceDraft.organization_id, current_user)).order_by(SRMInvoiceDraft.id.desc()).limit(200).all()]
+    drafts = db.query(SRMInvoiceDraft).filter(scoped(SRMInvoiceDraft.organization_id, current_user)).order_by(SRMInvoiceDraft.id.desc()).limit(200).all()
+    invoices = {item.invoice_draft_id: item for item in authorized_invoice_query(db, current_user).filter(SRMInvoice.invoice_draft_id.in_([draft.id for draft in drafts])).all()} if drafts else {}
+    return [{**_serialize(item), "invoice_id": invoices[item.id].id, "invoice_number": invoices[item.id].invoice_number, "invoice_status": invoices[item.id].status} for item in drafts if item.id in invoices]
 
 
 @router.get("/invoices")
@@ -4260,6 +4264,8 @@ def upsert_setting(key: str, data: SRMSettingUpsert, db: Session = Depends(get_d
 
 from app.apps.srm.commercial_api import router as commercial_router
 router.include_router(commercial_router)
+from app.apps.srm.dashboard_workspace import router as dashboard_workspace_router
+router.include_router(dashboard_workspace_router)
 
 
 @router.put('/inventory/warehouses/{identity}')

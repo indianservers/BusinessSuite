@@ -1,5 +1,6 @@
 import { Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useMemo, useRef, useState, type FormEvent, type FormHTMLAttributes, type ReactElement, type ReactNode } from "react";
 import "./compact-forms.css";
+import { useMobile } from "@/components/mobile/useMobile";
 
 type Section = { id: string; label: string; content: ReactNode };
 export function FormSectionTabs({ sections, active, onChange, label = "Form sections" }: { sections: Section[]; active: string; onChange: (id: string) => void; label?: string }) {
@@ -27,7 +28,13 @@ function category(label: string) {
   if (/date|time|priority|status|stage|schedule|due/i.test(label)) return "Planning & ownership";
   return "Additional details";
 }
-function analyse(children: ReactNode) {
+// Feedback is not an input, even when it has a label for its loading message.
+function isFormFeedback(element: ReactElement<ElementProps>) {
+  const name = componentName(element), props = element.props;
+  return props['data-form-feedback'] === true || props.role === 'status' || props.role === 'alert'
+    || name === 'LoadingState' || (name === 'State' && ('isLoading' in props || 'isError' in props));
+}
+function analyse(children: ReactNode, phone = false) {
   const units = new Map<string, { label: string; section: string }>();
   const linkedLabels = new Map<string, {label:string;path:string}>(); const linkedInputs = new Map<string,string>();
   function labels(nodes:ReactNode,path:string) { Children.toArray(nodes).forEach((node,index) => { const element=asElement(node); if(!element)return; const key=`${path}.${index}`; if(typeof element.props.htmlFor === 'string') linkedLabels.set(element.props.htmlFor,{label:text(element.props.children),path:key}); if(typeof element.props.children !== 'function')labels(element.props.children,key); }); }
@@ -37,7 +44,7 @@ function analyse(children: ReactNode) {
     Children.toArray(nodes).forEach((node, index) => {
       const element = asElement(node); if (!element || element.props.hidden) return;
       const key = `${path}.${index}`, name = componentName(element), props = element.props;
-      if (name === "aside") return;
+      if (name === "aside" || (phone && isFormFeedback(element))) return;
       if (props.role === "tablist" || /(?:tabs|steps|wizard)/i.test(String(props.className || "")) || /(?:Tabs|FormSectionTabs|CompactForm)/.test(name) || name === "form") { existingNavigation = true; return; }
       if (name === "table") { sectionCount++; units.set(key, {label:"Line items",section:section || "Line items"}); return; }
       const sectionTitle = typeof props['data-form-section-label'] === "string" ? String(props['data-form-section-label']) : heading(element);
@@ -71,9 +78,52 @@ function analyse(children: ReactNode) {
 
 /** Native form semantics, refs and payloads are retained; only long unsectioned forms gain navigation. */
 const CompactForm = forwardRef<HTMLFormElement, FormHTMLAttributes<HTMLFormElement> & { compactTabs?: boolean; renderAs?: "form" | "div" }>(({ children, className, compactTabs = true, renderAs = "form", onInvalidCapture, onInputCapture, onChangeCapture, onSubmit, ...props }, ref) => {
-  const plan = useMemo(() => analyse(children), [children]); const [active, setActive] = useState(0); const [validation, setValidation] = useState(""); const handlingInvalid = useRef(false); const id = useId(); const nativeForm = useRef<HTMLFormElement | null>(null);
+  const phone = useMobile(480);
+  const plan = useMemo(() => analyse(children, phone), [children, phone]); const [active, setActive] = useState(0); const [validation, setValidation] = useState(""); const handlingInvalid = useRef(false); const id = useId(); const nativeForm = useRef<HTMLFormElement | null>(null);
   const enabled = compactTabs && plan.enabled, current = Math.min(active, Math.max(0, plan.groups.length - 1));
   const invalidField = useRef<HTMLInputElement | null>(null);
+  const embeddedRoot = useRef<HTMLDivElement | null>(null);
+  const [serverErrors, setServerErrors] = useState<number[]>([]);
+  const groupSignature = plan.groups.join("\0");
+  useEffect(() => {
+    const root = renderAs === "div" ? embeddedRoot.current : nativeForm.current;
+    if (!phone || !enabled || !root) { setServerErrors(previous => previous.length ? [] : previous); return; }
+    let previousErrors = new Map<HTMLElement, string>();
+    const scan = () => {
+      const errors = [...root.querySelectorAll<HTMLElement>('[aria-invalid="true"], [role="alert"]')].filter(node =>
+        node.closest('[data-compact-form]') === root && node.closest('[data-form-section]')
+        && (node.getAttribute('aria-invalid') === 'true' || !!(node.textContent?.trim() || node.getAttribute('aria-label'))));
+      const describedAlerts = new Set<HTMLElement>();
+      for (const node of errors) if (node.getAttribute('aria-invalid') === 'true') {
+        for (const id of (node.getAttribute('aria-describedby') || '').split(/\s+/)) {
+          const message = id ? document.getElementById(id) : null;
+          if (message && root.contains(message) && message.getAttribute('role') === 'alert') describedAlerts.add(message);
+        }
+      }
+      const counts: number[] = [], nextErrors = new Map<HTMLElement, string>();
+      let firstNew: { node: HTMLElement; group: number } | undefined;
+      for (const node of errors) {
+        const section = node.closest<HTMLElement>('[data-form-section]')!;
+        const group = Number(section.dataset.formSection);
+        const signature = `${group}:${node.getAttribute('aria-invalid')}:${node.textContent}:${node.getAttribute('aria-label')}`;
+        nextErrors.set(node, signature);
+        if (!describedAlerts.has(node)) counts[group] = (counts[group] || 0) + 1;
+        if (!firstNew && previousErrors.get(node) !== signature) firstNew = { node, group };
+      }
+      previousErrors = nextErrors;
+      setServerErrors(previous => previous.join(',') === counts.join(',') ? previous : counts);
+      if (firstNew) {
+        setActive(firstNew.group);
+        // Expose an error inside an optional section without opening the keyboard.
+        for (let ancestor = firstNew.node.parentElement; ancestor && ancestor !== root; ancestor = ancestor.parentElement)
+          if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+      }
+    };
+    scan();
+    const observer = new MutationObserver(scan);
+    observer.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-invalid', 'aria-describedby', 'aria-label', 'role', 'data-form-section'] });
+    return () => observer.disconnect();
+  }, [phone, enabled, renderAs, groupSignature]);
   function clearResolvedValidation() {
     const field = invalidField.current;
     if (field && (!field.isConnected || field.validity.valid)) {
@@ -82,14 +132,25 @@ const CompactForm = forwardRef<HTMLFormElement, FormHTMLAttributes<HTMLFormEleme
     }
   }
   useEffect(() => {
-    const form = nativeForm.current; if (!form || !enabled) return;
-    const reveal = (event: Event) => { const field = (event as CustomEvent<HTMLElement>).detail; const section = field.closest<HTMLElement>('[data-form-section]'); if (section && form.contains(section)) setActive(Number(section.dataset.formSection)); };
-    form.addEventListener('suite:reveal-form-field', reveal); return () => form.removeEventListener('suite:reveal-form-field', reveal);
-  }, [enabled, plan.groups]);
-  function render(nodes: ReactNode, path: string): { nodes: ReactNode; groups: Set<number> } {
+    const root = renderAs === "div" && phone ? embeddedRoot.current : nativeForm.current;
+    if (!root || !enabled) return;
+    const target = root.closest('form') || root;
+    const reveal = (event: Event) => {
+      const field = (event as CustomEvent<HTMLElement>).detail;
+      if (!(field instanceof HTMLElement) || !root.contains(field)) return;
+      if (renderAs === "div" && field.closest('[data-compact-form]') !== root) return;
+      const section = field.closest<HTMLElement>('[data-form-section]');
+      if (section && root.contains(section)) setActive(Number(section.dataset.formSection));
+    };
+    target.addEventListener('suite:reveal-form-field', reveal);
+    return () => target.removeEventListener('suite:reveal-form-field', reveal);
+  }, [enabled, phone, renderAs, plan.groups]);
+  function render(nodes: ReactNode, path: string): { nodes: ReactNode; groups: Set<number>; feedback: boolean } {
     const groups = new Set<number>();
+    let feedback = false;
     const result = Children.toArray(nodes).map((node, index) => {
       const element = asElement(node); if (!element) return node;
+      if (phone && isFormFeedback(element)) { feedback = true; return element; }
       const key = `${path}.${index}`, group = plan.assignments.get(key);
       if (group !== undefined) {
         groups.add(group); const hidden = group !== current;
@@ -98,29 +159,33 @@ const CompactForm = forwardRef<HTMLFormElement, FormHTMLAttributes<HTMLFormEleme
       }
       if (!element.props.children || typeof element.props.children === "function") return element;
       const child = render(element.props.children, key); child.groups.forEach(value => groups.add(value));
+      feedback ||= child.feedback;
       if (!child.groups.size) return element;
       const nextChildren = !Array.isArray(element.props.children) && Children.count(element.props.children) === 1 ? Children.toArray(child.nodes)[0] : child.nodes;
       const copy = cloneElement(element, { children: nextChildren });
-      if (child.groups.size && typeof element.type !== "string") return <div key={element.key || key} style={{ display: child.groups.has(current) ? "contents" : "none" }}>{copy}</div>;
-      if (child.groups.size && !child.groups.has(current)) return cloneElement(copy, { hidden: true, style: { ...element.props.style, display: "none" } });
+      if (child.groups.size && typeof element.type !== "string") return <div key={element.key || key} style={{ display: (child.feedback || child.groups.has(current)) ? "contents" : "none" }}>{copy}</div>;
+      if (child.groups.size && !child.feedback && !child.groups.has(current)) return cloneElement(copy, { hidden: true, style: { ...element.props.style, display: "none" } });
       return copy;
     });
-    return { nodes: result, groups };
+    return { nodes: result, groups, feedback };
   }
-  function invalid(event: FormEvent<HTMLFormElement>) {
-    onInvalidCapture?.(event); if (!enabled || event.defaultPrevented) return;
-    const field = event.target as HTMLInputElement, section = field.closest<HTMLElement>('[data-form-section]'); if (!section || field.form !== nativeForm.current) return;
+  function invalid(event: FormEvent<HTMLElement>) {
+    onInvalidCapture?.(event as FormEvent<HTMLFormElement>); if (!enabled || event.defaultPrevented) return;
+    const field = event.target as HTMLInputElement, section = field.closest<HTMLElement>('[data-form-section]');
+    const root = renderAs === "div" && phone ? embeddedRoot.current : nativeForm.current;
+    if (!section || !root?.contains(field)) return;
+    if (renderAs === "div" ? field.closest('[data-compact-form]') !== root : field.form !== nativeForm.current) return;
     event.preventDefault(); if (handlingInvalid.current) return;
     handlingInvalid.current = true; invalidField.current = field; const index = Number(section.dataset.formSection); setActive(index); setValidation(`Check ${plan.groups[index]}: ${field.validationMessage || "complete the highlighted field"}`);
     requestAnimationFrame(() => { field.focus(); handlingInvalid.current = false; });
   }
-  const content = <>{enabled && <><nav className="suite-form-tabs suite-auto-form-tabs" aria-label="Form sections">{plan.groups.map((label, index) => <button key={`${id}-${label}`} type="button" aria-pressed={current === index} onClick={() => { setActive(index); setValidation(""); }}>{label}</button>)}</nav>{validation && <p role="alert" className="suite-form-validation">{validation}</p>}</>}{enabled ? render(children, "root").nodes : children}</>;
-  if (renderAs === "div") return <div className={`${className || ""} suite-compact-form`} data-compact-form="true">{content}</div>;
+  const content = <>{enabled && <><nav className="suite-form-tabs suite-auto-form-tabs" aria-label="Form sections">{plan.groups.map((label, index) => <button key={`${id}-${label}`} type="button" aria-pressed={current === index} onClick={() => { setActive(index); setValidation(""); }}>{label}{phone && serverErrors[index] > 0 && <span className="suite-form-error-count" aria-label={`${serverErrors[index]} errors`}>{serverErrors[index]}</span>}</button>)}</nav>{validation && <p role="alert" className="suite-form-validation">{validation}</p>}</>}{enabled ? render(children, "root").nodes : children}</>;
+  if (renderAs === "div") return <div ref={embeddedRoot} className={`${className || ""} suite-compact-form`} data-compact-form="true" onInvalidCapture={phone ? invalid : undefined} onInputCapture={phone ? () => queueMicrotask(clearResolvedValidation) : undefined} onChangeCapture={phone ? () => queueMicrotask(clearResolvedValidation) : undefined}>{content}</div>;
   return <form {...props} ref={element => { nativeForm.current = element; if (typeof ref === "function") ref(element); else if (ref) ref.current = element; }} className={`${className || ""} suite-compact-form`} data-compact-form="true" onSubmit={event => { if (event.target === event.currentTarget) onSubmit?.(event); }} onInputCapture={event => { onInputCapture?.(event); queueMicrotask(clearResolvedValidation); }} onChangeCapture={event => { onChangeCapture?.(event); queueMicrotask(clearResolvedValidation); }} onInvalidCapture={invalid}>{content}</form>;
 });
 CompactForm.displayName = "CompactForm";
 export function CompactFields({children,className,enabled=true}:{children:ReactNode;className?:string;enabled?:boolean}) { return <CompactForm renderAs="div" compactTabs={enabled} className={className}>{children}</CompactForm>; }
 export function isEditorDialog(children:ReactNode):boolean { return Children.toArray(children).some(child => {const element=asElement(child);if(!element)return false;const name=componentName(element);if (/DialogTitle|^h[12]$/.test(name) && /^(create|edit|new|add|invite|configure)\b/i.test(text(element.props.children)))return true;return isEditorDialog(element.props.children);}); }
-export function revealFormField(field:HTMLElement|null) { if (!field) return; field.closest('form')?.dispatchEvent(new CustomEvent('suite:reveal-form-field',{detail:field})); requestAnimationFrame(() => { field.scrollIntoView({behavior:'smooth',block:'center'}); (field.matches('input,select,textarea,button') ? field : field.querySelector<HTMLElement>('input,select,textarea,button') || field).focus(); }); }
+export function revealFormField(field:HTMLElement|null) { if (!field) return; (field.closest('form') || (window.matchMedia('(max-width: 480px)').matches ? field.closest('[data-compact-form]') : null))?.dispatchEvent(new CustomEvent('suite:reveal-form-field',{detail:field})); requestAnimationFrame(() => { field.scrollIntoView({behavior:'smooth',block:'center'}); (field.matches('input,select,textarea,button') ? field : field.querySelector<HTMLElement>('input,select,textarea,button') || field).focus(); }); }
 export default CompactForm;
 

@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test:workspace-redesign": "node scripts/test-universal-workspaces.cjs && node scripts/test-workspace-directory.cjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p interns-hub/tsconfig.json",
+    "test:workspace-redesign": "node scripts/test-workspace-management.cjs && node scripts/test-universal-workspaces.cjs && node scripts/test-workspace-directory.cjs",
     "test:background-refresh": "node scripts/test-background-refresh.cjs",
     "test:defaults": "node scripts/test-form-defaults.cjs && node scripts/test-currency-selector.cjs && node scripts/test-phone-selector.cjs",
     "test:record-360": "node scripts/test-record-360.cjs && node scripts/test-task-record-links.cjs",

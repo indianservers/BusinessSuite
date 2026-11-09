@@ -352,3 +352,36 @@ def test_failed_automation_does_not_send_earlier_queued_email(db):
     db.commit()
     assert result.status == "failed"
     assert db.query(EmailOutbox).filter_by(subject="Do not send").count() == 0
+
+
+def test_broadcast_checkpoint_with_global_owner_outside_company_directory(db, monkeypatch):
+    from app.common.models import CommonPerson
+    from app.models.company import Company
+    from app.models.engagement import EngagementSurvey
+    from app.models.security_boundary import SecurityResourceOwnership
+    from app.services.email_schedules import prepare_engagement_email
+    monkeypatch.setattr(settings, "EMAIL_NOTIFICATIONS_ENABLED", False)
+    for ident, name in [(1, "Broadcast company"), (2, "Owner directory")]:
+        if not db.get(Company, ident):
+            db.add(Company(id=ident, name=name, is_active=True))
+    db.flush()
+    owner = User(email="global-broadcast@example.com", hashed_password="unused", is_active=True, is_superuser=True)
+    db.add(owner); db.flush()
+    db.add(CommonPerson(user_id=owner.id, organization_id=2, display_name="Global owner"))
+    survey = EngagementSurvey(title="Published survey", status="Active", created_by=owner.id)
+    db.add(survey); db.flush()
+    db.add(SecurityResourceOwnership(resource_table="engagement_surveys", resource_id=survey.id, company_id=1))
+    checkpoint = queue_email(db, recipient=owner.email, user_id=owner.id, organization_id=1,
+        module="hrms", subject="Checkpoint", body="Not deliverable", event_key=f"broadcast:engagement_surveys:{survey.id}")
+    checkpoint.status = "broadcast"
+    foreign = queue_email(db, recipient=owner.email, user_id=owner.id, organization_id=2,
+        module="hrms", subject="Other checkpoint", body="Not deliverable", event_key="broadcast:engagement_surveys:other")
+    foreign.status = "broadcast"
+    db.commit()
+    monkeypatch.setattr(settings, "EMAIL_NOTIFICATIONS_ENABLED", True)
+    assert prepare_engagement_email(db) == 0
+    db.refresh(checkpoint); db.refresh(foreign)
+    assert checkpoint.status == "expanded"
+    assert checkpoint.recipient_user_id == owner.id
+    assert foreign.status == "broadcast"
+    assert prepare_engagement_email(db) == 0

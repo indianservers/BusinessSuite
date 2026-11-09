@@ -1,3 +1,6 @@
+import { businessGroupColumn } from "./business-grouping";
+import { groupAppearance } from "./GroupLabel";
+import "./record-group.css";
 import { cellPriority } from "@/shared/priority/priority-cell";
 import CollectionOverview from "./CollectionOverview";
 import { ColumnHeadingIcon, columnValue } from "./column-presentation";
@@ -8,14 +11,14 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { writeClipboard } from "@/lib/clipboard";
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Columns3, Layers, Plus, GripVertical, Pin } from "lucide-react";
 import GroupLabel, { RecordStatusIcon } from "./GroupLabel";
-import { Children, Fragment, cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode, type TableHTMLAttributes } from "react";
+import { Children, Fragment, cloneElement, isValidElement, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode, type TableHTMLAttributes } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { gridCellText, gridHeaderText, hasRecordStatusIcon, hasRecordOpenControl } from "./cell-content";
 import "./native-table-tools.css";
 
 type Element = ReactElement<Record<string, any>>;
 const nodes = (children: ReactNode): Element[] => Children.toArray(children).flatMap(child => !isValidElement(child) ? [] : child.type === Fragment ? nodes((child.props as {children?: ReactNode}).children) : [child as Element]);
-type PersonalLayout = { hidden?: number[]; order?: number[]; density?: string; group?: string; widths?: Record<number, number>; pinned?: number[] };
+type PersonalLayout = { hidden?: number[]; order?: number[]; density?: string; group?: string; widths?: Record<number, number>; pinned?: number[]; businessGrouping?: boolean };
 type Props = { children: ReactNode; scope: string; attributes: TableHTMLAttributes<HTMLTableElement>; staticLayout?: boolean; defaultGroupBy?: string; defaultHiddenColumns?: string[]; groupCreate?: { field: string; label: string; onCreate: (value: string) => void } };
 
 /** Preserves page-owned cells, permissions, and editors while sharing list controls. */
@@ -30,9 +33,12 @@ export default function NativeTableTools({ children, scope, attributes, defaultG
     try {
       const value = JSON.parse(localStorage.getItem(key) || "{}");
       if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-      return {widths: value.widths && typeof value.widths === "object" ? Object.fromEntries(Object.entries(value.widths).filter(([key, width]) => /^\d+$/.test(key) && typeof width === "number" && Number.isFinite(width) && width >= 32 && width <= 800).map(([key,width]) => [key, Number(width)])) : {}, pinned: Array.isArray(value.pinned) ? value.pinned.filter(Number.isInteger) : [], hidden:Array.isArray(value.hidden)?value.hidden.filter(Number.isInteger):undefined,order:Array.isArray(value.order)?value.order.filter(Number.isInteger):undefined,density:["compact","comfortable","spacious"].includes(value.density)?value.density:undefined,group:typeof value.group==="string"?value.group:undefined};
+      return {businessGrouping: value.businessGrouping === true, widths: value.widths && typeof value.widths === "object" ? Object.fromEntries(Object.entries(value.widths).filter(([key, width]) => /^\d+$/.test(key) && typeof width === "number" && Number.isFinite(width) && width >= 32 && width <= 800).map(([key,width]) => [key, Number(width)])) : {}, pinned: Array.isArray(value.pinned) ? value.pinned.filter(Number.isInteger) : [], hidden:Array.isArray(value.hidden)?value.hidden.filter(Number.isInteger):undefined,order:Array.isArray(value.order)?value.order.filter(Number.isInteger):undefined,density:["compact","comfortable","spacious"].includes(value.density)?value.density:undefined,group:typeof value.group==="string"?value.group:undefined};
     } catch { return {}; }
   }, [key]);
+  const businessColumn = businessGroupColumn(labels.map((title,index)=>({id:String(index),title,groupable:!/^select$|^actions?$/i.test(title)})),scope);
+  const businessDefault = defaultGroupBy && !/priority/i.test(defaultGroupBy) ? defaultGroupBy : businessColumn?.title || "";
+  const initialGroup = !initial.businessGrouping && (!initial.group || /priority/i.test(initial.group)) ? businessDefault : initial.group ?? businessDefault;
   const [loadedKey, setLoadedKey] = useState(key);
   const [widths, setWidths] = useState<Record<number, number>>(initial.widths || {});
   const [pinned, setPinned] = useState<number[]>(initial.pinned || []);
@@ -41,12 +47,12 @@ export default function NativeTableTools({ children, scope, attributes, defaultG
   const [hidden, setHidden] = useState<number[]>(initial.hidden || defaultHidden);
   const [order, setOrder] = useState<number[]>(initial.order || []);
   const [density, setDensity] = useState(initial.density || "compact");
-  const [group, setGroup] = useState(initial.group ?? defaultGroupBy ?? "");
+  const [group, setGroup] = useState(initialGroup);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   useEffect(() => {
     setWidths(initial.widths || {}); setPinned(initial.pinned || []);
     setHidden(initial.hidden || defaultHidden); setOrder(initial.order || []); setDensity(initial.density || "compact");
-    setGroup(initial.group ?? defaultGroupBy ?? ""); setCollapsed(new Set()); setLoadedKey(key);
+    setGroup(initialGroup); setCollapsed(new Set()); setLoadedKey(key);
   }, [key]);
   const indices = [...new Set([...order.filter(i => Number.isInteger(i) && i >= 0 && i < headers.length), ...headers.map((_, i) => i)])];
   const visibleIndices = indices.filter(i => !hidden.includes(i) || i === 0);
@@ -62,7 +68,7 @@ export default function NativeTableTools({ children, scope, attributes, defaultG
     ...(labels[index]==="Select"?{paddingLeft:5,paddingRight:5}:{}),
     ...(pinned.includes(index) ? { position: "sticky" as const, left: visible.slice(0, visible.indexOf(index)).filter(i => pinned.includes(i)).reduce((sum, i) => sum + columnWidth(i), 0), zIndex: 2, background: "hsl(var(--card))" } : {}),
   });
-  useEffect(() => { if(loadedKey!==key)return; try { localStorage.setItem(key, JSON.stringify({ hidden, order, density, group, widths, pinned })); } catch { /* Personal layout remains optional. */ } }, [key, loadedKey, hidden, order, density, group, widths, pinned]);
+  useEffect(() => { if(loadedKey!==key)return; try { localStorage.setItem(key, JSON.stringify({ hidden, order, density, group, widths, pinned, businessGrouping:true })); } catch { /* Personal layout remains optional. */ } }, [key, loadedKey, hidden, order, density, group, widths, pinned]);
   const groupable = headers.map((_, i) => i).filter(i => !/^(select|actions?|quick actions|column \d+)$/i.test(labels[i]));
   const groupBy = groupable.find(i => labels[i] === group) ?? -1;
   const bodies = sections.filter(s => s.type === "tbody");
@@ -97,7 +103,12 @@ export default function NativeTableTools({ children, scope, attributes, defaultG
     const status = statusIndex >= 0 ? gridCellText(cells[statusIndex]).trim() : "";
     const priorityIndex=labels.findIndex(label=>/\bpriority\b/i.test(label.trim()));
     const priority=priorityIndex>=0?cellPriority(cells[priorityIndex]):undefined;
-    return cloneElement(row, {"data-priority-row":priority?true:row.props["data-priority-row"],"data-priority":priority||row.props["data-priority"],onClickCapture:(event:any)=>capture(row,event)}, [...visible.map(i => {
+    const colorIndex = groupBy >= 0 && !/priority/i.test(labels[groupBy]) ? groupBy : businessColumn ? Number(businessColumn.id) : -1;
+    const colorValue = colorIndex >= 0 ? gridCellText(cells[colorIndex]).trim() || "Not set" : "";
+    const colorProps = colorIndex >= 0 ? {"data-record-group-tone":groupAppearance(colorValue,labels[colorIndex]).tone,"data-record-group-field":labels[colorIndex],"data-record-group-value":colorValue} : {};
+    const {color} = groupAppearance(colorValue,colorIndex >= 0 ? labels[colorIndex] : "");
+    const colorStyle = color ? {"--record-group-accent":color,"--record-group-bg":`color-mix(in srgb, ${color} 7%, hsl(var(--card)))`,"--record-group-hover":`color-mix(in srgb, ${color} 13%, hsl(var(--card)))`} as CSSProperties : {};
+    return cloneElement(row, {style:{...row.props.style,...colorStyle},...colorProps,"data-priority-row":priority?true:row.props["data-priority-row"],"data-priority":priority||row.props["data-priority"],onClickCapture:(event:any)=>capture(row,event)}, [...visible.map(i => {
       const cell = cells[i], content = columnValue(labels[i], cell.props.children);
       const marked = i === identityIndex && status && !hasRecordStatusIcon(content);
       return cloneElement(cell, {key:i,"data-column-index":i,style:{...cell.props.style,...columnStyle(i)}}, marked ? <div className="native-record-identity"><span aria-hidden="true"><RecordStatusIcon label={status} field={labels[statusIndex]}/></span><div className="native-cell-content">{content}</div></div> : content);
@@ -133,7 +144,7 @@ export default function NativeTableTools({ children, scope, attributes, defaultG
       <details className="native-layout-menu"><summary><Columns3 size={13} aria-hidden="true"/>Columns {visible.length}/{headers.length}</summary><div className="native-column-options">
         <label className="native-density-control">Row density <select aria-label="Row density" value={density} onChange={e => setDensity(e.target.value)}><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></select></label>
         {indices.map((index, at) => <div key={index}><label><input type="checkbox" checked={visible.includes(index)} disabled={index === 0} onChange={e => setHidden(h => e.target.checked ? h.filter(i => i !== index) : [...h, index])}/><ColumnHeadingIcon title={labels[index]}/>{labels[index]}</label><button type="button" aria-label={`Pin ${labels[index]} column`} aria-pressed={pinned.includes(index)} onClick={()=>setPinned(value=>value.includes(index)?value.filter(i=>i!==index):[...value,index])}><Pin size={13} aria-hidden="true"/></button><button type="button" disabled={index === 0 || at <= 1} aria-label={`Move ${labels[index]} left`} onClick={() => move(index, -1)}>←</button><button type="button" disabled={index === 0 || at === indices.length - 1} aria-label={`Move ${labels[index]} right`} onClick={() => move(index, 1)}>→</button></div>)}
-        <button type="button" onClick={() => {setWidths({});setPinned([]);setHidden(defaultHidden);setOrder([]);setDensity("compact");setGroup(defaultGroupBy ?? "");setCollapsed(new Set());}}>Reset table layout</button>
+        <button type="button" onClick={() => {setWidths({});setPinned([]);setHidden(defaultHidden);setOrder([]);setDensity("compact");setGroup(businessDefault);setCollapsed(new Set());}}>Reset table layout</button>
       </div></details>
       <span className="native-loaded-count" title="Grouping applies to the rows loaded on this page">{rows.length.toLocaleString()} loaded</span>
     </div>{notice&&<p role="status" className="suite-record-empty">{notice}</p>}

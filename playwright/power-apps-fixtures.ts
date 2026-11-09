@@ -215,6 +215,14 @@ export async function setupPowerApps(
       environment = url.searchParams.get("environment") || "development";
     const body =
       method === "GET" || method === "DELETE" ? {} : req.postDataJSON();
+    if (path.endsWith("/automations/telegram/bots")) return route.fulfill({ json: { items: [] } });
+    if (path.startsWith("/api/v1/power-apps/workspaces/")) return route.fulfill({ json: { items: [] } });
+    if (path.startsWith("/api/v1/power-apps/integrations/")) return route.fulfill({json:path.endsWith("/sync/catalog")?{targets:{}}:{items:[]}});
+    if (path.startsWith("/api/v1/power-apps/approvals/")) return route.fulfill({json:path.endsWith("/capabilities")?{permissions:[]}:path.endsWith("/analytics")?{stage_times:[],bottlenecks:[],by_department:[],volume_trend:[],sla_compliance:null,counts:{},by_status:{},total:0,rejection_rate:null,workload:[],recent:[]}:{items:[],total:0}});
+    if (path.endsWith("/access/launcher-preferences")) return route.fulfill({ json: { favorites: null } });
+    if (path.endsWith("/homepage-banner")) return route.fulfill({ json: { image: "", mobile_image: "", x: 70, y: 50, mobile_x: 75, mobile_y: 50, zoom: 1, overlay: "#eeedff", opacity: .15 } });
+    if (path.endsWith("/imports/sample-data/status")) return route.fulfill({ status: 204, body: "" });
+    if (path.endsWith("/access/settings/defaults/effective")) return route.fulfill({ json: { values: {}, modules: {}, companyId: 1, branchId: 1 } });
     if (path.endsWith("/access/me")) return route.fulfill({ json: access });
     if (path.endsWith("/branches/context")) return route.fulfill({ json: {
       company_id: 1, selected: 1, all_branches: false, manage_access: false,

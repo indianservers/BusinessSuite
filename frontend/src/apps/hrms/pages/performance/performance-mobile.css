@@ -1,0 +1,49 @@
+@media(max-width:480px){
+ .hrms-performance-page{min-width:0;max-width:100%;font-size:14px}
+ .hrms-performance-page> :not([hidden])~:not([hidden]){margin-top:12px}
+ .hrms-performance-page .page-title{font-size:22px;line-height:1.25}
+ .hrms-performance-page .page-description{font-size:13px;line-height:1.4}
+ .hrms-performance-page .performance-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+ .performance-kpis .kf-card>div{padding:10px 5px}
+ .performance-kpis .text-2xl{font-size:20px;line-height:1.2}
+ .performance-kpis .text-xs{font-size:12px;line-height:1.3}
+ .hrms-performance-page :is(.grid,.flex,.kf-card){min-width:0;max-width:100%}
+ .hrms-performance-page :is(p,span,h3){overflow-wrap:anywhere}
+ .hrms-performance-page :is(button,summary){min-height:44px}
+ .hrms-performance-page :is(input,select){min-height:44px;font-size:16px;min-width:0;max-width:100%}
+ .performance-cycle,.performance-section{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;font-size:14px}
+ .performance-cycle select,.performance-section select{width:100%}
+ .performance-section select{border:1px solid hsl(var(--border));border-radius:8px;padding:8px 12px;background:hsl(var(--background))}
+ .hrms-performance-page .kf-card>div{padding:12px}
+ .hrms-performance-page .performance-kpis .kf-card>div{padding:10px 5px}
+ .hrms-performance-page .performance-goal-card>div>div{display:block}
+ .performance-goal-card .text-xs{font-size:12px;line-height:1.45}
+ .hrms-performance-page .performance-goal-actions{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px}
+ .smart-create-phone-sheet:has(.performance-goal-form) .kf-card{border:0;box-shadow:none;background:transparent}
+ .smart-create-phone-sheet:has(.performance-goal-form) .kf-card>div:first-child{display:none}
+ .smart-create-phone-sheet:has(.performance-goal-form) .kf-card>div+div{padding:0}
+ .smart-create-phone-sheet .performance-goal-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .performance-goal-form>div:nth-child(-n+2){grid-column:1/-1}
+ .smart-create-phone-sheet .performance-goal-form>div:last-child{display:none}
+ .smart-create-phone-sheet :is(.performance-goal-form,.performance-review-form) :is(input:not([type=radio]),select){min-height:44px;font-size:16px;min-width:0;max-width:100%}
+ .smart-create-phone-sheet .performance-review-form>button{display:none}
+ .smart-create-phone-sheet .performance-rating{gap:4px}
+ .smart-create-phone-sheet .performance-rating label{position:relative;display:flex;align-items:center;justify-content:center;width:44px;min-width:44px;height:44px;border:1px solid transparent;border-radius:8px}
+ .smart-create-phone-sheet .performance-rating label:has(input:checked){border-color:hsl(var(--primary));background:hsl(var(--primary)/.06)}
+ .smart-create-phone-sheet .performance-rating label:has(input:focus-visible){outline:2px solid hsl(var(--ring));outline-offset:2px}
+ .performance-rating-status{font-size:13px;line-height:1.4}
+}
+
+@media(max-width:480px){
+ .performance-participant-detail{display:grid;gap:12px;min-width:0}
+ .performance-participant-detail p{overflow-wrap:anywhere}
+ .performance-participant-detail label{display:grid;gap:6px;font-size:14px}
+ .performance-participant-detail select{min-height:44px;font-size:16px;width:100%;min-width:0;border:1px solid hsl(var(--border));padding:8px;border-radius:8px;background:hsl(var(--background))}
+ .performance-participant-ratings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .performance-participant-ratings>div{padding:10px 6px;border:1px solid hsl(var(--border));border-radius:8px;text-align:center}
+ .performance-participant-ratings dt{font-size:12px}
+ .performance-participant-ratings dd{font-size:20px;font-weight:600;margin-top:4px}
+ .performance-participant-notes{white-space:pre-wrap;font-size:14px;line-height:1.5;margin-top:4px}
+ .performance-participant-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .performance-participant-detail button{min-height:44px}
+}

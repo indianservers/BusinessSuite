@@ -1,3 +1,6 @@
+import {expandedChartContent} from "@/components/mobile/expanded-chart-content";
+import {useMobile} from "@/components/mobile/useMobile";
+import {MobileChartZoom} from "@/components/mobile/MobileChartZoom";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { MobileFilters } from "@/components/mobile/MobilePrimitives";
@@ -282,7 +285,9 @@ function TeamPerformance({ data }: { data: PMSTeamPerformanceReport | null }) {
 }
 
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
-  return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="h-96"><ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer></CardContent></Card>;
+  const phone = useMobile(480);
+  const expandedChart = phone ? expandedChartContent(children) : children;
+  return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="h-96"><MobileChartZoom title={title} expandedContent={<ResponsiveContainer width="100%" height="100%">{expandedChart}</ResponsiveContainer>} minWidth={title === "Priority distribution" ? 320 : 640}><ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer></MobileChartZoom></CardContent></Card>;
 }
 
 function ReportMetric({ label, value, suffix }: { label: string; value: number | string; suffix?: string }) {

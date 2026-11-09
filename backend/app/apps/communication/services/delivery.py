@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
+from email.utils import getaddresses
 from typing import Any
 
 from fastapi import HTTPException
@@ -62,7 +63,19 @@ def deliver_email(db: Session, message: CommunicationEmailMessage, current_user:
     provider = configured_email_provider()
     request_json = {"to_email": message.to_email, "subject": message.subject, "related_record_type": message.related_record_type, "related_record_id": message.related_record_id}
 
-    if is_opted_out(db, message.to_email):
+    recipients = [message.to_email]
+    for value in (message.cc, message.bcc):
+        if value:
+            if '\r' in value or '\n' in value:
+                raise HTTPException(422, 'Invalid recipient email')
+            copied = [address for _, address in getaddresses([value])]
+            if not copied:
+                raise HTTPException(422, 'Invalid recipient email')
+            recipients.extend(copied)
+    for recipient in recipients:
+        validate_email(recipient)
+
+    if any(is_opted_out(db, recipient) for recipient in recipients):
         message.status = "blocked"
         message.error_message = "Recipient has opted out of email communication"
         _delivery_log(db, message, provider or "none", "blocked", request_json, error_message=message.error_message)
@@ -86,12 +99,9 @@ def deliver_email(db: Session, message: CommunicationEmailMessage, current_user:
         validate_email(message.to_email)
         mail = EmailMessage()
         mail["To"], mail["Subject"] = message.to_email, message.subject
-        from email.utils import getaddresses
-        recipients = [message.to_email]
         for header, value in (("Cc", message.cc), ("Bcc", message.bcc)):
             if value:
                 mail[header] = value
-                recipients.extend(address for _, address in getaddresses([value]))
         mail["Message-ID"] = f"<businesssuite-{message.id}@{settings.MAIL_FROM.split('@')[-1]}>"
         from app.core.rich_text import email_body_parts
         plain, formatted = email_body_parts(message.body)

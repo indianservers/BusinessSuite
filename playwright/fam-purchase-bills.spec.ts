@@ -5,9 +5,11 @@ test.describe("FAM purchase bills", () => {
   test("lists, creates, opens, posts, and cancels vendor purchase bills", async ({ page }) => {
     await authenticate(page, "fam_admin");
     await expectHealthyFamRoute(page, "/fam/purchase-bills");
-    await expect(page.getByRole("cell", { name: "PB-001" })).toBeVisible();
+    await page.getByRole("button",{name:"Expand loaded groups",exact:true}).click();
+    await expect(page.getByRole("gridcell", { name: "PB-001", exact: true })).toBeVisible();
 
     await expectHealthyFamRoute(page, "/fam/purchase-bills/new");
+    await page.getByText("Bill details",{exact:true}).click();
     await expect(page.getByLabel("vendor id")).toBeVisible();
     await expect(page.getByText("Input GST")).toBeVisible();
     await expect(page.getByText("TDS deduction")).toBeVisible();

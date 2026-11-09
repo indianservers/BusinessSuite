@@ -32,6 +32,8 @@ Offline reads use previously authorized, unexpired snapshots. Permission changes
 
 The service worker uses Cache Storage only for the application shell and bounded immutable assets. Authenticated API requests bypass it. Cache eviction is limited to this application's shell cache names.
 
+Employee portrait downloads (JPG/PNG in the `photos` storage directory) use the browser HTTP cache with `private, no-cache, must-revalidate`. Every reuse still validates the signed token, session and current permissions before ETag comparison; unchanged files return 304 without retransferring photo bytes. This only helps repeat requests for the same signed URL. Renewed URLs require a new download. Other private files retain `no-store`; portraits are not added to the service worker or IndexedDB. Shared avatars decode asynchronously and reserve their display dimensions.
+
 ## Synchronization and mutations
 
 Visible active views check approximately every 45 seconds with jitter. Hidden tabs suspend these checks. Focus and reconnect resume them; failures back off up to five minutes. Per-view promises deduplicate concurrent callers, Web Locks serialize tabs, and a second IndexedDB read inside the lock avoids repeating another tab's successful synchronization. BroadcastChannel carries scoped invalidation notices, not record payloads. Memory-only views cannot reuse another tab's persisted response.

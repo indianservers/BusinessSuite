@@ -4,6 +4,7 @@ import { authenticate } from "./srm-test-utils";
 test.describe("SRM invoice draft UI", () => {
   test("generates invoice drafts from supported sources and shows duplicate prevention errors", async ({ page }) => {
     await authenticate(page, "srm_finance_manager");
+    await page.route("**/api/v1/master-data/companies**",route=>route.fulfill({json:new URL(route.request().url()).pathname.endsWith("/1")?{id:1,name:"QA customer",roles:["Customer"]}:{items:[{id:1,name:"QA customer",roles:["Customer"]}],total:1,canCreate:true}}));
     await page.goto("/srm/invoice-drafts", { waitUntil: "domcontentloaded" });
 
     await expect(page.getByRole("heading", { name: "Invoice Drafts", level: 1 })).toBeVisible();
@@ -19,13 +20,20 @@ test.describe("SRM invoice draft UI", () => {
     await page.getByRole("button", { name: "Draft from Billing Milestone" }).click();
     await expect(page.getByRole("main").getByRole("status")).toContainText("Billing milestone draft completed");
 
-    await page.getByRole("button", { name: "Draft from PMS Milestone" }).click();
+    const sources=page.getByRole("heading",{name:"Generate Invoice From Source",exact:true}).locator("../..");
+    if(!await sources.getByRole("button",{name:"Draft from PMS Milestone",exact:true}).isVisible())await sources.getByRole("button",{name:"More actions",exact:true}).click();
+    await sources.getByRole("button", { name: "Draft from PMS Milestone",exact:true }).click();
     await expect(page.getByRole("main").getByRole("status")).toContainText("PMS milestone draft completed");
 
-    await page.getByRole("button", { name: "Draft from Timesheets" }).click();
+    if(!await sources.getByRole("button",{name:"Draft from Timesheets",exact:true}).isVisible())await sources.getByRole("button",{name:"More actions",exact:true}).click();
+    await sources.getByRole("button", { name: "Draft from Timesheets",exact:true }).click();
     await expect(page.getByRole("main").getByRole("status")).toContainText("Timesheet draft completed");
 
-    await page.getByLabel("Customer ID", { exact: true }).fill("1");
+    const composer=page.getByRole("heading",{name:"Invoice Template and Preview",exact:true}).locator("../..");
+    await composer.getByRole("button",{name:"Additional details",exact:true}).click();
+    await page.getByRole("combobox",{name:"Search shared customer",exact:true}).fill("QA");
+    await page.getByRole("option").filter({hasText:"QA customer"}).click();
+    await composer.getByRole("button",{name:"More details",exact:true}).click();
     await page.getByLabel("Line description", { exact: true }).fill("Implementation service");
     await page.getByLabel("Unit price", { exact: true }).fill("100");
     await page.getByRole("button", { name: "Create Invoice", exact: true }).click();

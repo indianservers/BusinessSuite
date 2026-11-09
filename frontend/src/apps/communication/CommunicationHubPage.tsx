@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import CompactForm from "@/components/forms/CompactForm";
 import RichTextEditor, { richTextPlainText } from "@/components/rich-text/LazyRichText";
 import { contentToHtml, RICH_TEXT_PREFIX } from "@/components/rich-text/content";
@@ -54,6 +55,7 @@ export default function CommunicationHubPage(){
 }
 
 function Templates() {
+ const [templateOpen,setTemplateOpen]=useState(false);
   const qc = useQueryClient();
   const user = useAuthStore(state => state.user);
   const canManage = Boolean(user?.is_superuser || !user?.access?.managed || Object.values(user?.access?.grants || {}).some(grant => grant.enabled && grant.permissions.includes("communication_templates_manage")));
@@ -68,12 +70,12 @@ function Templates() {
     return id ? api.put(`/communication/email-templates/${id}`,payload) : communicationApi.createTemplate(payload);
   },onSuccess:()=>{setNotice("Template saved");setError("");qc.invalidateQueries({queryKey:["communication-templates"]});},onError:(e:any)=>setError(typeof e.response?.data?.detail === "string" ? e.response.data.detail : "Could not save. Your draft is retained.")});
   return <div className="grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)]">
-    <Card><CardContent className="space-y-3 p-4"><h2 className="font-semibold">Email templates</h2><Button available={!!(canManage)} variant="outline" disabled={!canManage} onClick={()=>{setId(null);setDraft({name:"",subject:"",content:"",module_name:"lead"});setNotice("");setError("");}}>New template</Button>
+    <Card><CardContent className="space-y-3 p-4"><h2 className="font-semibold">Email templates</h2><Button available={!!(canManage)} variant="outline" disabled={!canManage} onClick={()=>{setId(null);setTemplateOpen(true);setDraft({name:"",subject:"",content:"",module_name:"lead"});setNotice("");setError("");}}>New template</Button>
       {query.isLoading && <p role="status">Loading templates...</p>}{query.isError && <p role="alert">Could not load templates.</p>}
       <Input aria-label="Search email templates" placeholder="Template name or subject" value={search} onChange={e=>setSearch(e.target.value)}/><label className="flex-row items-center"><input type="checkbox" checked={favoritesOnly} onChange={e=>setFavoritesOnly(e.target.checked)}/>Favourites only</label>
-      {query.data?.items.filter(item=>(String(item.name)+' '+String(item.subject)).toLowerCase().includes(search.toLowerCase())&&(!favoritesOnly||favorites.includes(Number(item.id)))).map(item=><button type="button" key={item.id} className={`block w-full rounded-lg border p-3 text-left text-sm ${id===item.id ? "border-primary bg-primary/5" : "hover:bg-muted"}`} onClick={()=>{setId(item.id!);setDraft({name:String(item.name||""),subject:String(item.subject||""),content:item.body_html ? String(item.body_html) : RICH_TEXT_PREFIX + contentToHtml(String(item.body_text||""), "plain"),module_name:String(item.module_name||"lead")});setNotice("");setError("");}}><strong>{favorites.includes(Number(item.id))?'★ ':''}{String(item.name)}</strong><span className="block text-xs text-muted-foreground">{String(item.subject||"")}</span></button>)}
+      {query.data?.items.filter(item=>(String(item.name)+' '+String(item.subject)).toLowerCase().includes(search.toLowerCase())&&(!favoritesOnly||favorites.includes(Number(item.id)))).map(item=><button type="button" key={item.id} className={`block w-full rounded-lg border p-3 text-left text-sm ${id===item.id ? "border-primary bg-primary/5" : "hover:bg-muted"}`} onClick={()=>{setId(item.id!);setTemplateOpen(true);setDraft({name:String(item.name||""),subject:String(item.subject||""),content:item.body_html ? String(item.body_html) : RICH_TEXT_PREFIX + contentToHtml(String(item.body_text||""), "plain"),module_name:String(item.module_name||"lead")});setNotice("");setError("");}}><strong>{favorites.includes(Number(item.id))?'★ ':''}{String(item.name)}</strong><span className="block text-xs text-muted-foreground">{String(item.subject||"")}</span></button>)}
     </CardContent></Card>
-    <Card><CardContent className="p-5"><CompactForm className="space-y-4" onSubmit={event=>{event.preventDefault();setNotice("");mutation.mutate();}}>
+    <Card><CardContent className="p-5"><SmartCreateSection title={id ? "Edit email template" : "Create email template"} autoOpen={templateOpen} onClose={() => setTemplateOpen(false)} size="large"><CompactForm className="space-y-4" onSubmit={event=>{event.preventDefault();setNotice("");mutation.mutate();}}>
       <h2 className="text-lg font-semibold">{id ? "Edit email template" : "Create email template"}</h2>
       {id&&<Button type="button" variant="ghost" size="sm" onClick={()=>setFavorites(favorites.includes(id)?favorites.filter(value=>value!==id):[...favorites,id])}>{favorites.includes(id)?'Remove from favourites':'Favourite template'}</Button>}
       <p className="text-sm text-muted-foreground">Write a reusable message. Merge fields such as {"{{name}}"} remain available when composing an email.</p>
@@ -81,6 +83,6 @@ function Templates() {
       <RichTextEditor key={id ?? "new"} label="Email template content" legacyFormat="html" variant="document" value={draft.content} onChange={content=>setDraft({...draft,content})} readOnly={!canManage} disabled={mutation.isPending} maxLength={20000}/>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
       <Button available={!!(canManage)} type="submit" disabled={!canManage || mutation.isPending}>{mutation.isPending ? "Saving..." : "Save template"}</Button>
-    </CompactForm></CardContent></Card>
+    </CompactForm></SmartCreateSection></CardContent></Card>
   </div>;
 }

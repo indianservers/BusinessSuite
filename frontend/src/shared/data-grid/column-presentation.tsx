@@ -15,7 +15,7 @@ export function columnIcon(title: string): LucideIcon {
   if (/phone|mobile/i.test(title)) return Phone;
   if (/team|department|members|company|customer|client|vendor|supplier/i.test(title)) return Users;
   if (/owner|assignee|assigned|employee|person|contact|lead|user/i.test(title)) return UserRound;
-  if (/amount|price|cost|balance|debit|credit|total|revenue|payment|salary|value|tax/i.test(title)) return Wallet;
+  if (/currency|amount|price|cost|balance|debit|credit|total|revenue|payment|salary|value|tax/i.test(title)) return Wallet;
   if (/quantity|qty|number|count|score|hours|days|^id$|code|reference/i.test(title)) return Hash;
   if (/product|item|sku|stock|warehouse/i.test(title)) return Package;
   if (/tag|label|category|type/i.test(title)) return Tag;

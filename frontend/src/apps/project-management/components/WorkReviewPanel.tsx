@@ -201,13 +201,13 @@ export default function WorkReviewPanel({
       ))}
       {preview && (
         <div className="rounded-lg border p-3">
-          <a
+          <Button asChild variant="outline"><a
             href={preview}
             download={`pms-evidence-${item.id}`}
             className="text-sm text-primary underline"
           >
             Download opened evidence
-          </a>
+          </a></Button>
           <iframe
             title="Submitted evidence preview"
             src={preview}

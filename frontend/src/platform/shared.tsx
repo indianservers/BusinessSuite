@@ -1,5 +1,6 @@
+import {SmartCreateModal} from "@/shared/creation/SmartCreateModal";
 import GridTable from "@/shared/data-grid/GridTable";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from "react";
 import { platformApi as api } from "@/services/platform-api";
 export type Data = Record<string, any>;
 export const OwnerContext = createContext<{
@@ -41,9 +42,12 @@ export function Dialog({ title, children, onClose }: {
     children: ReactNode;
     onClose: () => void;
 }) {
-    useEffect(() => { const listener = (e: KeyboardEvent) => { if (e.key === "Escape")
-        onClose(); }; window.addEventListener("keydown", listener); return () => window.removeEventListener("keydown", listener); }, [onClose]);
-    return <div className="po-overlay"><section role="dialog" aria-modal="true" aria-label={title} className="po-dialog"><header><h2>{title}</h2><button type="button" aria-label="Close dialog" onClick={onClose}>×</button></header>{children}</section></div>;
+    const nativeDialog = useRef<HTMLElement>(null);
+    const creating = /^(new|create|add|invite|schedule|generate)\b/i.test(title);
+    useEffect(() => { if (creating) return; const listener = (e: KeyboardEvent) => { if (e.key === "Escape" && Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).filter(dialog=>dialog.getClientRects().length>0).at(-1) === nativeDialog.current)
+        onClose(); }; window.addEventListener("keydown", listener); return () => window.removeEventListener("keydown", listener); }, [onClose, creating]);
+    if (creating) return <SmartCreateModal definition={{entity:"platform-record",title,presentation:"page",size:"standard"}} onClose={onClose}>{children}</SmartCreateModal>;
+    return <div className="po-overlay"><section ref={nativeDialog} role="dialog" aria-modal="true" aria-label={title} className="po-dialog"><header><h2>{title}</h2><button type="button" aria-label="Close dialog" onClick={onClose}>×</button></header>{children}</section></div>;
 }
 export function Table({ columns, rows, empty = "No records match this view." }: {
     columns: {

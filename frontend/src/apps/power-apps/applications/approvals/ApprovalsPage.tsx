@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import {useModuleAction} from "@/hooks/use-module-action";
 import {useAuthStore} from "@/store/authStore";
@@ -130,7 +131,7 @@ export function DelegationManager({
         Reason
         <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
       </label>
-      <SmartCreateAction title="Create delegation"><button
+      <SmartCreateAction title="Create delegation"><Button type="submit" variant="default"
         className="ap-primary"
         disabled={!canDelegate||!alternate.length || !start || !end || !reason}
         onClick={async () => {
@@ -149,7 +150,7 @@ export function DelegationManager({
         }}
       >
         Create delegation
-      </button></SmartCreateAction>
+      </Button></SmartCreateAction>
       {<GroupedRecords scope="apps/power-apps/applications/approvals/ApprovalsPage:records-1" items={(rows) || []} fields={standardRecordGroups((rows) || [])} gridClassName="space-y-3" renderItem={(d) => (
         <div className="ap-assignment" key={d.id}>
           <span>
@@ -183,7 +184,7 @@ export function DelegationManager({
     </section>
   );
 }
-export default function ApprovalsPage() {
+export default function ApprovalsPage({ embedded = false }: { embedded?: boolean }) {
   const location = useLocation(),
     navigate = useNavigate();
   const environment =
@@ -228,7 +229,7 @@ export default function ApprovalsPage() {
   const permits=(action:string)=>!!actor?.is_superuser||!actor?.access?.managed||!!grant?.enabled&&grant.actions.includes(action);
   const manage=permissions.includes("power_apps_approval_manage")&&["create","edit","delete","configure"].some(permits),canSubmit=permissions.includes("power_apps_approval_submit")&&permits("create");
   return (
-    <main className="ap-app">
+    <main className={`ap-app${embedded ? " ap-embedded" : ""}`}>
       <aside className="ap-sidebar">
         <Link to="/power-apps" className="ap-suite-link">
           <ArrowLeft size={15} />
@@ -300,10 +301,10 @@ export default function ApprovalsPage() {
                 <RefreshCw size={16} />
               </button>
               {canSubmit && (
-                <Link className="ap-primary" to={path("new")}>
+                <Button asChild variant="default"><Link className="ap-primary" to={path("new")}>
                   <Plus size={16} />
                   New request
-                </Link>
+                </Link></Button>
               )}
             </div>
           </div>

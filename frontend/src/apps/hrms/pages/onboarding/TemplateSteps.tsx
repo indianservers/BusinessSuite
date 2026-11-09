@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { api } from "@/services/api";
 import OrderedList from "@/components/interaction/OrderedList";
@@ -45,7 +46,7 @@ export default function TemplateSteps({
           onChange={(e) => setName(e.target.value)}
           placeholder="Checklist step"
         />
-        <button
+        <Button variant="default"
           type="button"
           disabled={!name.trim()}
           onClick={async () => {
@@ -65,7 +66,7 @@ export default function TemplateSteps({
           }}
         >
           Add step
-        </button>
+        </Button>
       </div>
       {error && <p role="alert">{error}</p>}
     </details>

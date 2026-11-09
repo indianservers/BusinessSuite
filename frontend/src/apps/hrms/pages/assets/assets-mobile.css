@@ -1,0 +1,35 @@
+@media(max-width:480px){
+ .hrms-assets-page{min-width:0;max-width:100%;font-size:14px}
+ .hrms-assets-page>header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .hrms-assets-page>header h1{font-size:22px;line-height:1.25}
+ .hrms-assets-page>header p{font-size:13px;line-height:1.4;margin-top:4px}
+ .hrms-assets-page>nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .hrms-assets-page>nav button{padding:8px;font-size:13px;white-space:normal}
+ .hrms-assets-page :is(button,input,select),.hrms-assets-page a{min-height:44px}
+ .hrms-assets-page :is(input,select){min-width:0;max-width:100%;font-size:16px}
+ .hrms-assets-page :is(p,span,a,small){overflow-wrap:anywhere}
+ .hrms-assets-page .grid,.hrms-assets-page .flex,.hrms-assets-page .flex>div{min-width:0}
+ .hrms-assets-page .kf-card{min-width:0;max-width:100%}
+ .hrms-assets-page .kf-card>div{padding:12px}
+ .hrms-assets-page .kf-card>div+div{padding-top:0}
+ .hrms-assets-page .hrms-asset-assign-card{border:0;box-shadow:none}
+ .hrms-assets-page .hrms-asset-assign-card>div:first-child{display:none}
+ .hrms-assets-page .hrms-asset-assign-card>div+div{padding:0}
+ .hrms-assets-page .smart-create-section{padding:10px;gap:8px}
+ .hrms-assets-page .smart-create-section>div{display:none}
+ .hrms-assets-page .smart-create-section>button{width:100%}
+ .hrms-assets-page .rounded-lg.border.p-4{padding:10px;gap:8px}
+ .hrms-assets-page .rounded-lg.border.p-4 .text-xs{font-size:12px;line-height:1.4}
+ .hrms-assets-page .rounded-lg.border.p-4>.flex{flex-wrap:wrap}
+ .hrms-assets-page .rounded-lg.border.p-4 label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+ .hrms-assets-page .rounded-lg.border.p-4 select{margin-left:0}
+ .smart-create-phone-sheet .hrms-asset-create-form{min-width:0}
+ .smart-create-phone-sheet:has(.hrms-asset-create-form) .kf-card{border:0;box-shadow:none;background:transparent}
+ .smart-create-phone-sheet:has(.hrms-asset-create-form) .kf-card>div{padding:0}
+ .smart-create-phone-sheet:has(.hrms-asset-create-form) .kf-card>div:first-child{display:none}
+ .smart-create-phone-sheet .hrms-asset-create-form :is(input,select){min-height:44px;font-size:16px;min-width:0}
+ .smart-create-phone-sheet .hrms-asset-create-form .hrms-asset-essential{display:grid;gap:10px}
+ .smart-create-phone-sheet .hrms-asset-create-form .hrms-asset-optional{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .smart-create-phone-sheet .hrms-asset-optional>label:nth-child(3),.smart-create-phone-sheet .hrms-asset-optional>label:last-child{grid-column:1/-1}
+ .smart-create-phone-sheet .hrms-asset-create-form>button{display:none}
+}

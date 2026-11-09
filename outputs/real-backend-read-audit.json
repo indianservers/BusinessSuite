@@ -1,0 +1,319 @@
+[
+  {
+    "path": "/access/launcher-preferences",
+    "status": 200,
+    "seconds": 0.09,
+    "shape": [
+      "favorites"
+    ]
+  },
+  {
+    "path": "/access/setup",
+    "status": 200,
+    "seconds": 0.72,
+    "shape": [
+      "companyId",
+      "ready",
+      "items",
+      "moduleItems",
+      "recommendations"
+    ]
+  },
+  {
+    "path": "/power-apps/catalog",
+    "status": 200,
+    "seconds": 0.11,
+    "shape": [
+      "applications",
+      "permissions",
+      "execution_enabled",
+      "components",
+      "templates"
+    ]
+  },
+  {
+    "path": "/power-apps/environments",
+    "status": 200,
+    "seconds": 0.11,
+    "shape": [
+      "items"
+    ]
+  },
+  {
+    "path": "/power-apps/overview?environment=development",
+    "status": 200,
+    "seconds": 0.14,
+    "shape": [
+      "counts",
+      "recent",
+      "unsupported_metrics",
+      "execution_enabled"
+    ]
+  },
+  {
+    "path": "/power-apps/automations?environment=development",
+    "status": 200,
+    "seconds": 0.14,
+    "shape": [
+      "items",
+      "total"
+    ]
+  },
+  {
+    "path": "/power-apps/integrations/catalog",
+    "status": 200,
+    "seconds": 0.16,
+    "shape": [
+      "items",
+      "live_verification"
+    ]
+  },
+  {
+    "path": "/srm/dashboard",
+    "status": 200,
+    "seconds": 0.36,
+    "shape": [
+      "total_sales_orders",
+      "pending_approvals",
+      "confirmed_sales_orders",
+      "active_contracts",
+      "active_engagements",
+      "active_billing_plans",
+      "invoice_drafts_pending",
+      "approved_invoices"
+    ]
+  },
+  {
+    "path": "/srm/sales-orders",
+    "status": 200,
+    "seconds": 0.14,
+    "shape": "list"
+  },
+  {
+    "path": "/srm/contracts",
+    "status": 200,
+    "seconds": 0.12,
+    "shape": "list"
+  },
+  {
+    "path": "/srm/engagements",
+    "status": 200,
+    "seconds": 0.14,
+    "shape": "list"
+  },
+  {
+    "path": "/srm/billing-plans",
+    "status": 200,
+    "seconds": 0.12,
+    "shape": "list"
+  },
+  {
+    "path": "/srm/invoices",
+    "status": 200,
+    "seconds": 0.25,
+    "shape": "list"
+  },
+  {
+    "path": "/srm/receipts",
+    "status": 200,
+    "seconds": 0.2,
+    "shape": "list"
+  },
+  {
+    "path": "/srm/business/collection-invoices",
+    "status": 200,
+    "seconds": 0.17,
+    "error": "{\"detail\":\"Not Found\"}",
+    "shape": [
+      "items",
+      "can_record"
+    ]
+  },
+  {
+    "path": "/srm/customer-360",
+    "status": 200,
+    "seconds": 0.17,
+    "shape": [
+      "matched",
+      "filters",
+      "customer_id",
+      "message",
+      "crm_references",
+      "sales_orders",
+      "contracts",
+      "engagements"
+    ]
+  },
+  {
+    "path": "/fam/dashboard",
+    "status": 200,
+    "seconds": 0.53,
+    "shape": [
+      "baseCurrency",
+      "statisticsContext",
+      "currentFinancialYear",
+      "totalAssets",
+      "totalLiabilities",
+      "totalIncome",
+      "totalExpenses",
+      "cashAndBankBalance"
+    ]
+  },
+  {
+    "path": "/fam/chart-of-accounts",
+    "status": 200,
+    "seconds": 0.3,
+    "shape": [
+      "groups",
+      "ledgers",
+      "totalGroups",
+      "totalLedgers"
+    ]
+  },
+  {
+    "path": "/fam/ledgers",
+    "status": 200,
+    "seconds": 0.28,
+    "shape": [
+      "items",
+      "total"
+    ]
+  },
+  {
+    "path": "/fam/vouchers",
+    "status": 200,
+    "seconds": 0.89,
+    "shape": [
+      "items",
+      "total"
+    ]
+  },
+  {
+    "path": "/fam/purchase-bills",
+    "status": 200,
+    "seconds": 0.2,
+    "shape": [
+      "items",
+      "total"
+    ]
+  },
+  {
+    "path": "/fam/payables/dashboard",
+    "status": 200,
+    "seconds": 0.36,
+    "error": "{\"detail\":\"Not Found\"}",
+    "shape": [
+      "apOutstanding",
+      "apAging",
+      "tdsPayable",
+      "items",
+      "buckets",
+      "totalOutstanding",
+      "draftBills",
+      "postedBills"
+    ]
+  },
+  {
+    "path": "/employees/?page=1&per_page=10",
+    "status": 200,
+    "seconds": 0.3,
+    "shape": [
+      "items",
+      "total",
+      "page",
+      "per_page",
+      "pages"
+    ]
+  },
+  {
+    "path": "/employees/workbench/home",
+    "status": 200,
+    "seconds": 0.33,
+    "shape": [
+      "scope",
+      "refreshed_at",
+      "employee_count",
+      "truncated",
+      "can_manage",
+      "can_create",
+      "pending_counts",
+      "joiner_count"
+    ]
+  },
+  {
+    "path": "/crm/contacts?page=1&per_page=10",
+    "status": 200,
+    "seconds": 0.22,
+    "shape": [
+      "items",
+      "total",
+      "page",
+      "per_page",
+      "pages"
+    ]
+  },
+  {
+    "path": "/master-data/companies?source=crm&page=1&per_page=10",
+    "status": 200,
+    "seconds": 0.42,
+    "shape": [
+      "items",
+      "total",
+      "page",
+      "canCreate"
+    ]
+  },
+  {
+    "path": "/crm/deal-workspace/grid/query",
+    "status": 200,
+    "seconds": 0.33,
+    "shape": [
+      "total",
+      "permissions",
+      "rows",
+      "groups",
+      "page",
+      "pageSize",
+      "aggregates",
+      "context"
+    ]
+  },
+  {
+    "path": "/project-management/workspaces",
+    "status": 200,
+    "seconds": 0.2,
+    "shape": "list"
+  },
+  {
+    "path": "/project-management/projects",
+    "status": 200,
+    "seconds": 0.28,
+    "shape": "list"
+  },
+  {
+    "path": "/project-management/tasks",
+    "status": 200,
+    "seconds": 0.42,
+    "shape": [
+      "items",
+      "total",
+      "group_summaries",
+      "page",
+      "pageSize",
+      "pages",
+      "summary",
+      "activity"
+    ]
+  },
+  {
+    "path": "/catalog/items?source=srm",
+    "status": 200,
+    "seconds": 0.83,
+    "shape": [
+      "items",
+      "total",
+      "pages",
+      "permissions"
+    ]
+  }
+]

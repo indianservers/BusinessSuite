@@ -640,14 +640,14 @@ export default function DocumentStudioPage({ settingsOnly = false }: { settingsO
                         <PdfPreview file={previewFile} />
                       </Suspense>
                     )}
-                    <a
+                    <Button asChild variant="outline"><a
                       className="mt-3 inline-block text-sm underline"
                       href={preview}
                       target="_blank"
                       rel="noreferrer"
                     >
                       Open preview in a new tab
-                    </a>
+                    </a></Button>
                   </>
                 ) : (
                   <div className="flex h-96 flex-col items-center justify-center gap-3 text-center text-muted-foreground">

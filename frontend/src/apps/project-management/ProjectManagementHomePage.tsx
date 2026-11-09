@@ -1,3 +1,5 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import { Button } from "@/components/ui/button";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
 import { LoadingState } from "@/components/ui/state";
 import { useRecordView } from "@/lib/smart-cache/use-record-view";
@@ -113,13 +115,13 @@ const ProjectManagementHomePage: React.FC = () => {
               </div>
             </div>
             {canCreateProject ? (
-              <button
+              <Button type="submit" variant="default"
                 onClick={handleCreateProject}
                 className="bg-primary text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all flex items-center gap-2 font-medium"
               >
                 <Plus size={20} />
                 New Project
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>
@@ -155,7 +157,7 @@ const ProjectManagementHomePage: React.FC = () => {
         <details className="mb-8 rounded-xl border bg-card p-5 shadow-sm">
           <summary className="cursor-pointer text-sm font-semibold text-foreground">Project intake - Submit or review requests</summary>
           <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
-          <CompactForm onSubmit={handleSubmitIntake} className="rounded-xl border bg-card p-5 shadow-sm">
+          <SmartCreateSection title="Submit intake"><CompactForm onSubmit={handleSubmitIntake} className="rounded-xl border bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-bold text-foreground">Project Intake</h2>
@@ -195,7 +197,7 @@ const ProjectManagementHomePage: React.FC = () => {
               <Send className="h-4 w-4" />
               {intakeSaving ? "Submitting..." : "Submit Intake"}
             </button>
-          </CompactForm>
+          </CompactForm></SmartCreateSection>
           <div className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="text-lg font-bold text-foreground">Recent Intakes</h2>
             <div className="mt-3 space-y-3">
@@ -230,13 +232,13 @@ const ProjectManagementHomePage: React.FC = () => {
               Create your first project to get started with KaryaFlow's powerful project management capabilities.
             </p>
             {canCreateProject ? (
-              <button
+              <Button type="submit" variant="default"
                 onClick={handleCreateProject}
                 className="bg-primary text-white px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 font-medium"
               >
                 <Plus size={20} />
                 Create Your First Project
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : (

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -85,13 +86,13 @@ export default function CourseCurriculum({ courseId }: { courseId: number }) {
           onChange={(e) => setSection(e.target.value)}
           placeholder="Section title"
         />
-        <button
+        <Button variant="default"
           type="button"
           disabled={!section.trim() || saving}
           onClick={() => void add("section")}
         >
           Add section
-        </button>
+        </Button>
       </div>
       <OrderedList
         label="Course sections"
@@ -121,13 +122,13 @@ export default function CourseCurriculum({ courseId }: { courseId: number }) {
                 </option>
               ))}
             </NativeSelect>
-            <button
+            <Button variant="default"
               type="button"
               disabled={!lesson.trim() || saving}
               onClick={() => void add("lesson")}
             >
               Add lesson
-            </button>
+            </Button>
           </div>
           <MoveBoard
             label="Course lessons"

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import CompactForm from "@/components/forms/CompactForm";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +22,7 @@ export default function BranchLifecycleSettings() {
   const [error,setError] = useState("");
   const [message,setMessage] = useState("");
   if(branches.isPending) return <section className="settings-panel" role="status">Loading branches and recovery…</section>;
-  if(branches.isError) return <section className="settings-panel" role="alert">Unable to load branch recovery. <button onClick={()=>void branches.refetch()}>Retry</button></section>;
+  if(branches.isError) return <section className="settings-panel" role="alert">Unable to load branch recovery. <Button type="submit" variant="outline" onClick={()=>void branches.refetch()}>Retry</Button></section>;
   const all = branches.data.branches;
   const counts = {active:all.filter(b=>b.state==="active").length,trash:all.filter(b=>["trash","archived"].includes(b.state)).length,protected:all.filter(b=>b.state==="protected").length};
   const visible = all.filter(b=>tab==="trash"?["trash","archived"].includes(b.state):b.state===tab);
@@ -36,7 +37,7 @@ export default function BranchLifecycleSettings() {
     {error && !pending && <p role="alert">{error}</p>}
     <ul className="settings-branch-list">{visible.map(branch=><li key={branch.id}>
       <div><strong>{branch.name}</strong><small>{branch.code} · {branch.state==="protected"?"Protected recovery":branch.state==="trash"?"In Trash":branch.state==="archived"?"Previously archived":"Active"}</small>{branch.retain_until && <small>Protected until at least {date(branch.retain_until)}. Restore remains available.</small>}</div>
-      <div className="settings-branch-actions">{branch.can_manage ? branch.state==="active" ? <><button type="button" onClick={()=>open(branch,"rename")}>Rename</button><button type="button" disabled={!branch.can_trash} title={!branch.can_trash?"Keep at least one active branch":undefined} onClick={()=>open(branch,"trash")}>Move to Trash</button></> : <><button type="button" onClick={()=>open(branch,"restore")}>Restore</button>{branch.state==="trash" && <button type="button" onClick={()=>open(branch,"protect")}>Delete from trash</button>}</> : <span>View only</span>}</div>
+      <div className="settings-branch-actions">{branch.can_manage ? branch.state==="active" ? <><button type="button" onClick={()=>open(branch,"rename")}>Rename</button><Button variant="outline" type="button" disabled={!branch.can_trash} title={!branch.can_trash?"Keep at least one active branch":undefined} onClick={()=>open(branch,"trash")}>Move to Trash</Button></> : <><button type="button" onClick={()=>open(branch,"restore")}>Restore</button>{branch.state==="trash" && <Button variant="outline" type="button" onClick={()=>open(branch,"protect")}>Delete from trash</Button>}</> : <span>View only</span>}</div>
     </li>)}</ul>
     {!visible.length && <p role="status">{tab==="active"?"No active branches available.":tab==="trash"?"Trash is empty.":"No branches in protected recovery."}</p>}
     <Dialog open={!!pending} onOpenChange={value=>{if(!value&&!busy){setPending(null);setError("");}}}><DialogContent className="settings-branch-dialog">
@@ -58,7 +59,7 @@ export default function BranchLifecycleSettings() {
         {pending.action==="restore" && <p>This reactivates the branch and restores access through its existing memberships. Current company permissions and user status still apply.</p>}
         <label>Reason<input required minLength={5} maxLength={1000} value={reason} disabled={busy} onChange={e=>setReason(e.target.value)}/></label>
         {error && <p role="alert">{error}</p>}
-        <div className="settings-branch-actions"><button type="button" disabled={busy} onClick={()=>setPending(null)}>Cancel</button><button className="settings-primary" disabled={busy||reason.trim().length<5||(pending.action==="rename"&&!name.trim())}>{busy?"Saving…":titles[pending.action]}</button></div>
+        <div className="settings-branch-actions"><Button variant="outline" type="button" disabled={busy} onClick={()=>setPending(null)}>Cancel</Button><button className="settings-primary" disabled={busy||reason.trim().length<5||(pending.action==="rename"&&!name.trim())}>{busy?"Saving…":titles[pending.action]}</button></div>
       </CompactForm>}
     </DialogContent></Dialog>
   </section>;

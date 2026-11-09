@@ -25,7 +25,7 @@ from app.apps.crm.models import CRMDeal
 from app.apps.project_management.models import PMSTask, PMSProject, PMSWorkspace
 from app.apps.project_management.workspace_lifecycle import WorkspaceArchive
 from app.apps.fam.models import FAMBillReference, FAMBillAllocation
-from app.apps.srm.models import SRMSalesOrder, SRMEngagement, SRMBillingPlan, SRMInvoice
+from app.apps.srm.models import SRMSalesOrder, SRMEngagement, SRMBillingPlan, SRMBillingMilestone, SRMInvoice
 from app.shared.follow_ups import FollowUp
 from app.access.models import AccessMembership, AccessPolicy
 from app.apps.power_apps.approvals.models import ApprovalPolicy
@@ -35,7 +35,7 @@ state = json.loads((ROOT / ".tmp/workflow-board-live-records.json").read_text())
 run, records = state["run"], state["records"]
 assert run == "WFV1794138560767"
 now = datetime.now(timezone.utc)
-report = {"run": run, "removedBillReferences": [], "softDeleted": [], "revokedUsers": [], "retainedApprovalEvidence": records["approval"]["id"]}
+report = {"run": run, "removedBillReferences": [], "softDeleted": [], "revokedUsers": [], "disabledFixturePolicies": [], "retainedApprovalEvidence": records["approval"]["id"]}
 with SessionLocal() as db:
     for entry in records["bills"]:
         bill = db.get(FAMBillReference, entry["id"])
@@ -65,6 +65,7 @@ with SessionLocal() as db:
             assert task.title == run + " dashboard task"
             task.deleted_at = now
             report["softDeleted"].append({"task": task.id})
+    db.flush()
     project = db.get(PMSProject, records["qaProject"]["id"])
     workspace = db.get(PMSWorkspace, records["qaWorkspace"]["id"])
     assert project.name.startswith(run) and workspace.name.startswith(run)
@@ -90,11 +91,17 @@ with SessionLocal() as db:
         for plan in db.query(SRMBillingPlan).filter_by(engagement_id=engagement.id):
             assert plan.status == "draft"
             plan.status = "cancelled"
+            for milestone in db.query(SRMBillingMilestone).filter_by(billing_plan_id=plan.id):
+                assert milestone.status == "pending"
+                milestone.status = "cancelled"
         report["softDeleted"].append({"engagement": engagement.id})
     for key in ["policy", "qaPolicy"]:
         policy = db.get(ApprovalPolicy, records[key]["id"])
         assert db.get(PowerResource, policy.resource_id).name.startswith(run)
-        assert not policy.enabled, "Disable policy through the live API first"
+        assert policy.organization_id == 1
+        assert policy.owner_user_id == (1 if key == "policy" else state["qaActors"]["requester"]["id"])
+        policy.enabled = False
+        report["disabledFixturePolicies"].append(policy.id)
     for actor in state["qaActors"].values():
         user = db.get(User, actor["id"])
         assert user.email == actor["email"] and user.email.startswith(run.lower()) and not user.is_superuser

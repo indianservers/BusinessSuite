@@ -12,6 +12,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
+  Archive,
+  Clock3,
+  Copy,
+  Layers3,
+  UserRound,
+  Users,
   AlertCircle,
   BarChart3,
   CheckCircle2,
@@ -119,7 +125,7 @@ const health = (p: PMSProject) =>
 const projectLenses = ["board","timeline","gantt","calendar","workload","team","activity","mindmap","whiteboard"];
 const projectViews: WorkspaceView[] = [
  {id:"list",label:"List",description:"Compare projects and edit inline",color:"#8b5cf6"},
- {id:"grid",label:"Gallery",icon:"gallery",description:"A beautiful overview of every project",color:"#d980ac"},
+ {id:"project-cards",label:"Project cards",icon:"gallery",description:"A beautiful overview of every project",color:"#d980ac"},
  {id:"board",label:"Board",description:"See projects by delivery status",color:"#6b8ee8"},
  {id:"gantt",label:"Gantt",description:"Project schedules and delivery windows",category:"Plan",color:"#ed8475"},
  {id:"timeline",label:"Timeline",description:"See your portfolio across time",category:"Plan",color:"#d7a350"},
@@ -221,11 +227,11 @@ function ProjectsList() {
   );
   const quickActions = (p: PMSProject) => (
     <div className="portfolio-quick-actions" role="group" aria-label={`Quick actions for ${p.name}`}>
-      {actionChoices.includes("open") && <Link to={`/pms/projects/${p.id}`}>Open</Link>}
-      {actionChoices.includes("task") && canCreateProject && p.can_manage_tasks && <Link to={`/pms/tasks/new?projectId=${p.id}`}>+ Add task</Link>}
-      {actionChoices.includes("board") && <Link to={`/pms/projects/${p.id}/board`}>Task board</Link>}
-      {actionChoices.includes("copy") && <button type="button" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}/pms/projects/${p.id}`).then(() => setNotice("Project link copied"), () => setError("Could not copy project link"))}>Copy link</button>}
-      {actionChoices.includes("duplicate") && canCreateProject && p.can_edit_project && <button type="button" onClick={() => setDuplicate(p)}>Duplicate</button>}
+      {actionChoices.includes("open") && <Button asChild variant="outline"><Link to={`/pms/projects/${p.id}`} className="project-action-open"><Eye size={17} />Open</Link></Button>}
+      {actionChoices.includes("task") && canCreateProject && p.can_manage_tasks && <Button asChild variant="default"><Link to={`/pms/tasks/new?projectId=${p.id}`} className="project-action-task"><Plus size={17} />Add task</Link></Button>}
+      {actionChoices.includes("board") && <Link to={`/pms/projects/${p.id}/board`} className="project-action-board"><Layers3 size={17} />Task board</Link>}
+      {actionChoices.includes("copy") && <Button variant="outline" type="button" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}/pms/projects/${p.id}`).then(() => setNotice("Project link copied"), () => setError("Could not copy project link"))} className="project-action-copy"><Copy size={17} />Copy link</Button>}
+      {actionChoices.includes("duplicate") && canCreateProject && p.can_edit_project && <Button variant="outline" type="button" onClick={() => setDuplicate(p)} className="project-action-duplicate"><Copy size={17} />Duplicate</Button>}
     </div>
   );
   const uid = useAuthStore((s) => s.user?.id);
@@ -1028,14 +1034,14 @@ function ProjectsList() {
             value: active.length,
             tab: "All Projects",
             Icon: FolderKanban,
-            tone: "violet",
+            tone: "blue",
           },
 
           {
             label: "In Progress",
             value: active.filter((p) => p.status === "Active").length,
             tab: "In Progress",
-            Icon: PlayCircle,
+            Icon: Clock3,
             tone: "blue",
           },
 
@@ -1116,9 +1122,11 @@ function ProjectsList() {
             {tabs.map((tab) => (
               <button
                 key={tab}
+                data-tone={({"All Projects":"neutral","My Projects":"violet","In Progress":"blue","Completed":"green","On Hold":"amber","Overdue":"red","Starred":"violet","Archived":"neutral"} as Record<string,string>)[tab]}
                 className={filters.tab === tab ? "active" : ""}
                 onClick={() => filter("tab", tab)}
               >
+                {(() => { const Icon = ({"All Projects":FolderKanban,"My Projects":UserRound,"In Progress":Clock3,"Completed":CheckCircle2,"On Hold":PauseCircle,"Overdue":AlertCircle,"Starred":Star,"Archived":Archive} as Record<string,typeof Star>)[tab]; return <Icon size={17} aria-hidden="true"/>; })()}
                 {tab}
                 <span>{projects.filter((p) => matches(p, tab)).length}</span>
               </button>
@@ -1127,7 +1135,7 @@ function ProjectsList() {
 
         </div>
 
-        <WorkspaceViewBar scope="pms-projects" label="Portfolio views" active={filters.view} views={projectViews} onChange={view => filter("view", view)} primary={["list","grid","board","gantt","timeline","calendar","analytics"]}/>
+        <WorkspaceViewBar scope="pms-projects" label="Portfolio views" active={filters.view} views={projectViews} onChange={view => filter("view", view)} primary={["list","project-cards","board","gantt","timeline","calendar","analytics"]}/>
         <div className="portfolio-filters">
           <label className="portfolio-search">
             <Search size={17} />
@@ -1224,7 +1232,7 @@ function ProjectsList() {
             <option value="due">Due date</option>
             <option value="progress">Progress</option>
           </NativeSelect>
-          <details className="portfolio-view-options"><summary><SlidersHorizontal size={14}/>View options</summary><div className="portfolio-shortcuts flex flex-wrap items-center gap-2 py-2">
+          <details className="portfolio-view-options"><summary><SlidersHorizontal size={14}/>… View options</summary><div className="portfolio-shortcuts flex flex-wrap items-center gap-2 py-2">
           <label>Focus <NativeSelect aria-label="Project focus" value={filters.focus} onChange={e => filter("focus", e.target.value)}>
             <option value="">All projects</option><option value="attention">Needs attention ({projects.filter(attention).length})</option><option value="week">Due this week</option><option value="recent">Recently viewed ({recentProjects.length})</option><option value="edited">Updated by me in this browser ({editedProjects.length})</option>
           </NativeSelect></label>
@@ -1404,7 +1412,7 @@ function ProjectsList() {
         {(error || custom.error) && (
           <p className="portfolio-error" role="alert">
             {error || custom.error}{" "}
-            <button
+            <Button type="submit" variant="outline"
               onClick={() => {
                 setError("");
                 custom.reload();
@@ -1412,7 +1420,7 @@ function ProjectsList() {
               }}
             >
               Retry
-            </button>
+            </Button>
           </p>
         )}
         {notice && (
@@ -1899,7 +1907,7 @@ function ProjectsList() {
 
             <div
               className={
-                filters.view === "grid"
+                filters.view === "project-cards"
                   ? "portfolio-cards"
                   : "portfolio-mobile-cards"
               }
@@ -1930,7 +1938,7 @@ function ProjectsList() {
                   <h2>
                     {projectName(p)}
                   </h2>
-                  <p>{p.client_name || "No client linked"}</p>
+                  <p className="portfolio-card-client"><Users size={17}/>{p.client_name || "No client linked"}</p>
                   <div className="flex justify-between">
                     <Badge className={statusColor(p.status)}>{p.status}</Badge>
                     <span

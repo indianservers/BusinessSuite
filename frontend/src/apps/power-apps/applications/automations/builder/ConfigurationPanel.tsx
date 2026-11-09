@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -322,12 +323,12 @@ export default function ConfigurationPanel({
             />
           </label>
           {definition.id === "sub_workflow" && onOpenWorkflow && (
-            <button
+            <Button type="submit" variant="outline"
               disabled={!/^\d+$/.test(String(node.config.workflow_id || ""))}
               onClick={() => onOpenWorkflow(String(node.config.workflow_id))}
             >
               Open referenced workflow
-            </button>
+            </Button>
           )}
           {!node.type.startsWith("connector_") && logicEditor}
           <h3>INPUT PARAMETERS</h3>
@@ -557,14 +558,14 @@ export default function ConfigurationPanel({
         </section>
       </div>
       <footer>
-        <button disabled={readOnly} onClick={onDuplicate}>
+        <Button type="submit" variant="outline" disabled={readOnly} onClick={onDuplicate}>
           <Copy size={14} />
           Duplicate
-        </button>
-        <button disabled={readOnly} className="as-danger" onClick={onDelete}>
+        </Button>
+        <Button type="submit" variant="outline" disabled={readOnly} className="as-danger" onClick={onDelete}>
           <Trash2 size={14} />
           Delete node
-        </button>
+        </Button>
       </footer>
     </aside>
   );

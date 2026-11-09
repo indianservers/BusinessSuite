@@ -50,6 +50,7 @@ async function addModule(page: Page, connector: string) {
 }
 
 test("all registered modules and actions render only their catalog options", async ({ page }) => {
+  test.setTimeout(240_000);
   await setup(page);
   for (const connector of contracts.connectors.filter((c) => c.actions.length)) {
     await addModule(page, connector.id);

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
 export type TaskView = { queue: string; status: string; priority: string; mine: boolean; sort: string; search: string };
@@ -27,7 +28,7 @@ export default function TaskSavedViews({ scope, filters, onApply }: { scope: str
     <div className="flex flex-wrap items-center gap-2">
       <label className="text-sm">Saved view <select className="rounded border bg-background p-2" aria-label="Apply saved task view" value="" onChange={e => { const view = views.find(v => v.name === e.target.value); if (view) { onApply(view.filters); setName(view.name); setNotice(`Applied “${view.name}”.`); } }}><option value="">Choose a view…</option>{views.map(view => <option key={view.name}>{view.name}</option>)}</select></label>
       <input className="min-w-0 rounded border bg-background p-2 text-sm" aria-label="Task view name" placeholder="Name this view" maxLength={60} value={name} onChange={e => setName(e.target.value)}/>
-      <button className="rounded border px-3 py-2 text-sm" disabled={!name.trim() || (views.length >= 20 && !views.some(v => v.name === name.trim()))} onClick={() => { const title = name.trim(); if (persist([...views.filter(v => v.name !== title), {name: title, filters}])) setNotice(`Saved “${title}” in this browser.`); }}>Save view</button>
+      <Button type="submit" variant="outline" className="rounded border px-3 py-2 text-sm" disabled={!name.trim() || (views.length >= 20 && !views.some(v => v.name === name.trim()))} onClick={() => { const title = name.trim(); if (persist([...views.filter(v => v.name !== title), {name: title, filters}])) setNotice(`Saved “${title}” in this browser.`); }}>Save view</Button>
       {views.some(v => v.name === name.trim()) && <button className="px-3 py-2 text-sm underline" onClick={() => { if (persist(views.filter(v => v.name !== name.trim()))) { setName(""); setNotice("Saved view removed. Tasks are unchanged."); } }}>Remove saved view</button>}
     </div>
     <p className="text-xs text-muted-foreground">Personal views are saved in this browser for your account and company. Up to 20 views.</p>

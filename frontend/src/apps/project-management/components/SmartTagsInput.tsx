@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useId } from "react";
 import { X } from "lucide-react";
 
@@ -101,14 +102,14 @@ export default function SmartTagsInput({
             }
           }}
         />
-        <button
+        <Button variant="default"
           type="button"
           className="compose-tag-add"
           disabled={disabled || !draft.trim()}
           onClick={() => add()}
         >
           Add
-        </button>
+        </Button>
       </div>
       <datalist id={`${id}-suggestions`}>
         {uniqueTags(suggestions)

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useModuleAction } from "@/hooks/use-module-action";
 import {useAuthStore} from "@/store/authStore";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -380,14 +381,14 @@ export function ApprovalDecisionPanel({
         />
       </label>
       <div className="ap-actions">
-        <button
+        <Button type="submit" variant="outline"
           className="ap-primary"
           disabled={busy}
           onClick={() => void decide("approve")}
         >
           <Check size={14} />
           Approve
-        </button>
+        </Button>
         <button disabled={busy || !reason.trim()} onClick={() => void decide("changes")}>
           Request changes
         </button>
@@ -706,12 +707,12 @@ export function ApprovalDetailsDrawer({
                   onChange={(e) => setComment(e.target.value)}
                 />
               </label>
-              <button
+              <Button type="submit" variant="default"
                 disabled={!canCreate||!comment.trim()}
                 onClick={() => void post("comments", { text: comment })}
               >
                 Add comment
-              </button>
+              </Button>
             </section>
             <section>
               <h3>Decision history</h3>

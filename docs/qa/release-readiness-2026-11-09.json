@@ -1,0 +1,127 @@
+{
+  "assessment_date": "2026-11-09",
+  "target_release_date": "2026-11-12",
+  "timezone": "Asia/Kolkata",
+  "status": "local-critical-gates-passed-production-acceptance-pending",
+  "frozen_scope_manifest": "docs/qa/release-scope-2026-11-12.json",
+  "latest_scope_validation": {
+    "core_backend_passed": 247,
+    "core_backend_skipped": 1,
+    "scope_supplement_passed": 11,
+    "receipt_supplement_passed": 3,
+    "cache_regressions": "passed",
+    "production_build": "passed",
+    "evidence_directory": ".local/release-readiness/20261109T023040714363Z",
+    "result": "No new local failure; linked published deployment remains ERROR and production acceptance is pending. Scope frozen, code candidate not yet frozen."
+  },
+  "workflow_hardening_followup": {
+    "request": "Check and fix highest-impact issues in selling, communications, delivery handoffs and HR operations.",
+    "fixes": [
+      {
+        "area": "Communications",
+        "confirmed_failure": "Copied recipients bypassed email opt-outs; both CC and BCC regression cases returned sent before the fix.",
+        "change": "Validate all envelope recipients and block the complete send if any recipient opted out. Reject invalid copied addresses and header newlines before provider delivery. Preserve valid display-name CC/BCC delivery."
+      },
+      {
+        "area": "HR exit dates",
+        "confirmed_failure": "An exit edit persisted a last-working date before the employee joining date.",
+        "change": "Share date validation between exit creation and update; reject invalid edits before changing any fields. Valid edits remain supported."
+      },
+      {
+        "area": "HR exit record integrity",
+        "confirmed_failure": "Exit edits accepted undocumented statuses such as Finished.",
+        "change": "Restrict status updates to documented states and reject explicit null status/notice-waiver values. Regression tests verify existing values remain unchanged."
+      },
+      {
+        "area": "Commercial delivery handoff",
+        "confirmed_failure": "Retrying an engagement whose linked project was soft-deleted returned HTTP 200 with idempotent=true and project=null.",
+        "change": "Return HTTP 409 for an unavailable linked project, retain the existing link for review, and do not create replacement delivery work. Verify organization when resolving the linked project."
+      }
+    ],
+    "validation": {
+      "combined_suite_passed": 47,
+      "combined_suite_failed": 0,
+      "combined_suite_skipped": 0,
+      "junit": ".local/release-workflows-20261109.xml",
+      "coverage": [
+        "Quote calculation, approval, versioning and role restrictions",
+        "CRM quote-to-sales handoff and delivery-project retry safety",
+        "Email sends, CC/BCC consent, valid provider envelope and invalid recipient rejection",
+        "Employee exit validation and existing operational clearance workflow",
+        "HR workbench, onboarding and attendance punch APIs"
+      ],
+      "additional_initial_checks": "26 existing checks passed for selling, handoffs, collaboration, onboarding and attendance. Runs overlap; do not add counts as unique tests.",
+      "static_checks": "Changed Python files compile; scoped git diff whitespace checks pass."
+    },
+    "repeatable_check_updated": "Critical release runner now includes copied-recipient opt-outs, campaign consent, handoff retries, exit validation and HR workbench regressions.",
+    "scope_limit": "Backend-only fixes. No frontend changes, schema migration, deployment or real provider traffic in this follow-up. Production acceptance remains pending."
+  },
+  "linked_deployment_observation": {
+    "project": "businesssuite",
+    "project_id": "prj_AZ86wc2FbH4Qe10Whg49wJGL38jL",
+    "deployment_id": "dpl_3MLZF3tnqyEoX4P7hGyEdm2Jm9U5",
+    "deployment_url": "businesssuite-oyewugbm4-dsbca.vercel.app",
+    "observed_state": "ERROR",
+    "deployed_commit": "76b7d812b070becb8a8948a44558fdbfdeb45fc4",
+    "build_failure": "PremiumLauncher.tsx was empty in the committed source, causing TS2306 and downstream implicit-any errors.",
+    "working_tree_status": "Existing local changes restore PremiumLauncher; the current production build passes. Those changes have not been published by this batch.",
+    "availability_limit": "A failed deployment does not establish whether a prior production deployment still serves users.",
+    "access": "Connected Vercel account returned not-found; local Vercel CLI could read the exact configured project/team."
+  },
+  "fixes": [
+    {
+      "area": "Inbound customer email",
+      "problem": "A late signed reply crashed when the recipient email had been removed after sending.",
+      "resolution": "Reject unmatched recipients with HTTP 422 without creating a reply or raising an internal server error.",
+      "regression": "Extended signed reply, deduplication and follow-up cancellation test; observed failure before fix and pass after."
+    },
+    {
+      "area": "Shared record cache and communication saves",
+      "problem": "Plain suite:record-mutated events had no URL and triggered repeated unhandled split errors after successful saves.",
+      "resolution": "URL-less mutation notifications revalidate active/recent cached projections through the existing bounded sync path.",
+      "regression": "Verified direct URL-less mutations and plain browser events; observed failure before fix and pass after."
+    },
+    {
+      "area": "Integrated browser verification",
+      "problem": "Existing selectors assumed older creation dialogs and campaign layout.",
+      "resolution": "Scope submit controls to forms, use the current task dialog, select campaign card actions and explicitly confirm discarded editor changes. Keep zero-error and database assertions."
+    }
+  ],
+  "validation": {
+    "critical_backend": {
+      "passed": 220,
+      "skipped": 1,
+      "skip_reason": "PostgreSQL reflection test requires disposable PostgreSQL; local run used SQLite.",
+      "junit": ".local/release-readiness/20261109T020318030025Z/backend.xml"
+    },
+    "record_cache_regressions": "Passed: frontend/scripts/test-record-cache.cjs, including URL-less event regression.",
+    "changed_cache_manager_lint": "Passed with zero warnings.",
+    "production_build": "Passed again after the cache fix; existing dependency annotation, mixed-import and bundle-size warnings remain.",
+    "integrated_browser": {
+      "passed": 1,
+      "junit": ".local/release-readiness/20261109T020318030025Z/browser.xml",
+      "environment": "Production frontend build, isolated real API, disposable SQLite data and simulated provider transport.",
+      "coverage": [
+        "Quoted WhatsApp reply and document upload/send",
+        "Canonical CRM note and conversation status",
+        "Deal, quotation, invoice and linked project task creation",
+        "CRM follow-up scheduling and completion",
+        "Approved template variables",
+        "Signed inbound message deduplication and read receipt",
+        "New customer creation and conversation linking",
+        "Campaign audience preview, scheduled launch deduplication and cancellation",
+        "Analytics and absence of page errors"
+      ]
+    }
+  },
+  "repeatable_local_command": "backend/venv/Scripts/python.exe backend/scripts/check_critical_release.py",
+  "repeatable_command_scope": "Critical backend suite, standalone cache regressions and production build. Browser journey is a separate opt-in integration test requiring a local frontend server.",
+  "remaining_release_gates": [
+    "Validate deployed authentication, permissions and critical workflows on the intended release environment.",
+    "Validate actual SES and WhatsApp provider delivery, callback configuration and monitored job execution using designated test recipients.",
+    "Exercise deployment migrations and critical database behavior on disposable PostgreSQL.",
+    "Demonstrate backup restore and deployment rollback.",
+    "Freeze and revalidate the exact release revision; this shared checkout contains concurrent in-progress work."
+  ],
+  "production_actions": "No deployment, production migration, live provider message or production business-data mutation performed by this batch."
+}

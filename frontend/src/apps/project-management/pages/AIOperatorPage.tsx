@@ -171,7 +171,7 @@ export default function AIOperatorPage() {
     try { rec.start(); setRecording(true); setError(""); } catch { setError("Microphone could not start. Check browser permission."); }
   }
   return <div className="pms-operator-page max-w-6xl space-y-5">
-    <Link className="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium text-primary" to={`/pms/assistant${projectId?`?project=${projectId}`:''}`}>Open the assistant workspace → Plans, memory, agents and insights</Link>
+    <Button asChild variant="outline"><Link className="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-medium text-primary" to={`/pms/assistant${projectId?`?project=${projectId}`:''}`}>Open the assistant workspace → Plans, memory, agents and insights</Link></Button>
     <header><h1 className="page-title">AI task operator</h1><p className="page-description">Give a multi-step command by voice or text. Review the exact plan before applying it.</p><Link className="text-primary underline" to={`/pms/settings/ai/openai${project?.workspace_id ? `?workspace=${project.workspace_id}` : ""}`}>Provider settings and API usage</Link></header>
     <LocalBrainPanel key={uid} ref={brain} projectId={projectId} workspaceId={project?.workspace_id} provider={provider}
       cloudEnabled={available.includes(provider)} allowCloud={routingMode!=='local'} executionMode={executionMode} selected={selection}

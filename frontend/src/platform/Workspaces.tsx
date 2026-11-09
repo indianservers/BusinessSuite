@@ -25,7 +25,7 @@ export function Team() {
     }
     catch (err) {
         setError(message(err));
-    } }}><label>Full name<input name="name" required minLength={2}/></label><label>Staff email<input name="email" type="email" required/></label><label>Platform role<select value={role} onChange={e => setRole(e.target.value)}>{me.roles.map((r: string) => <option key={r}>{r}</option>)}</select></label><label className="po-check"><input type="checkbox" name="assigned_only"/>Restrict to assigned signup and customer records</label><p>Activation is completed using a private link in the local outbox.</p><button className="po-primary">Prepare invitation</button></form></Dialog>}
+    } }}><label>Full name<input name="name" required minLength={2}/></label><label>Staff email<input name="email" type="email" required/></label><label>Platform role<select value={role} onChange={e => setRole(e.target.value)}>{me.roles.map((r: string) => <option key={r}>{r}</option>)}</select></label><label className="po-check"><input type="checkbox" name="assigned_only"/>Restrict to assigned signup and customer records</label><p>Activation is completed using a private link in the local outbox.</p><button className="po-primary" data-save-action>Prepare invitation</button></form></Dialog>}
   {edit && <Dialog title={`Edit access · ${edit.name}`} onClose={() => setEdit(undefined)}><form className="po-form" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); try {
         await api.patch(`/platform/staff/${edit.id}`, { action: "access", reason: f.get("reason"), values: { role: edit.role, is_active: edit.is_active, assigned_only: edit.assigned_only, permissions: edit.permissions } });
         team.refresh();

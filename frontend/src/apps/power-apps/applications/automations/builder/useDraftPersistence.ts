@@ -152,7 +152,7 @@ export function useDraftPersistence(
     } catch {
       /* Storage quotas cannot block server saves. */
     }
-    if (blocked.current || pending.current || recovery || options.paused)
+    if (blocked.current || pending.current || recovery || options.paused || !options.exists)
       return;
     setStatus("dirty");
     const timer = window.setTimeout(() => {
@@ -162,6 +162,7 @@ export function useDraftPersistence(
   }, [
     serialized,
     options.readOnly,
+    options.exists,
     options.paused,
     options.key,
     tick,

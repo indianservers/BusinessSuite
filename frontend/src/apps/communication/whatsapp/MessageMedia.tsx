@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from 'react';
 import { Download, Paperclip } from 'lucide-react';
 import { api } from '@/services/api';
@@ -38,7 +39,7 @@ export default function MessageMedia({id,media}:{id:number;media:Media}) {
       {media.kind==='audio'&&<audio controls preload="metadata" src={url}/>}
       {media.kind==='video'&&<video controls preload="metadata" src={url}/>}
       {media.mimeType==='application/pdf'&&<iframe title={`PDF preview: ${media.filename}`} src={url}/>}
-      <a className="wa-media-download" href={url} download={media.filename||'attachment'}><Download size={13}/>Download {media.filename}</a>
+      <Button asChild variant="outline"><a className="wa-media-download" href={url} download={media.filename||'attachment'}><Download size={13}/>Download {media.filename}</a></Button>
     </>}
   </div>;
 }

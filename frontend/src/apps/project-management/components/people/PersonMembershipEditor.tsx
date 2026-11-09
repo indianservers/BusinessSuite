@@ -33,7 +33,7 @@ export default function PersonMembershipEditor({ person, busy, mutate, remove }:
         <Button size="sm" variant={kind === "workspace" ? "default" : "outline"} disabled={busy} onClick={() => { setKind("workspace"); setDestination(""); setRole("Member"); setSearch(""); }}>Workspace</Button>
         <Button size="sm" variant={kind === "project" ? "default" : "outline"} disabled={busy} onClick={() => { setKind("project"); setDestination(""); setRole("Member"); setSearch(""); }}>Project</Button>
       </div>
-      {options.isError ? <p role="alert" className="text-sm">Could not load available destinations. <button className="underline" onClick={() => void options.refetch()}>Retry</button></p> : <>
+      {options.isError ? <p role="alert" className="text-sm">Could not load available destinations. <Button type="submit" variant="outline" className="underline" onClick={() => void options.refetch()}>Retry</Button></p> : <>
         <Input aria-label="Search assignment destinations" placeholder={`Find a ${kind}…`} value={search} disabled={busy} onChange={e => { setSearch(e.target.value); setDestination(""); }} />
         <div className="flex flex-wrap items-end gap-2">
           <label className="min-w-0 flex-1 text-sm">{kind === "workspace" ? "Workspace" : "Project"}

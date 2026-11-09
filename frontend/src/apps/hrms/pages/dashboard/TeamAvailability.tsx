@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +19,7 @@ export default function TeamAvailability() {
       {day && <div className="space-y-1 rounded border p-3 text-sm"><p className="font-medium">{formatDate(day.date)}</p>{day.holidays.map(h => <p key={h}>{h}</p>)}{day.leaves.map((l, i) => <p key={i}>{l.employee_name} · {l.status}</p>)}{!day.leaves.length && !day.holidays.length && <p className="text-muted-foreground">No leave requests or holidays recorded for this day.</p>}</div>}
       <details><summary className="cursor-pointer text-sm">Today's recorded attendance ({query.data.today.length})</summary>{query.data.today.map(row => <p key={row.employee_id} className="mt-2 text-sm">{row.name} · {row.status}</p>)}</details>
       {query.data.moments.length > 0 && <div><p className="text-sm font-medium">People moments in the next 7 days</p>{query.data.moments.map((row, i) => <p key={i} className="text-sm"><Link className="underline" to={`/hrms/employees/${row.employee_id}`}>{row.name}</Link> · {row.kind} · {formatDate(row.date)}</p>)}</div>}
-      {query.data.probation_due.length > 0 && <div><p className="text-sm font-medium">Probation reviews due within 30 days</p>{query.data.probation_due.map(row => <p key={row.employee_id} className="text-sm"><Link className="underline" to={`/hrms/employees/${row.employee_id}`}>{row.name}</Link> · {formatDate(row.due_date)} · <Link className="underline" to="/hrms/probation">Open review</Link></p>)}</div>}
+      {query.data.probation_due.length > 0 && <div><p className="text-sm font-medium">Probation reviews due within 30 days</p>{query.data.probation_due.map(row => <p key={row.employee_id} className="text-sm"><Link className="underline" to={`/hrms/employees/${row.employee_id}`}>{row.name}</Link> · {formatDate(row.due_date)} · <Button asChild variant="outline"><Link className="underline" to="/hrms/probation">Open review</Link></Button></p>)}</div>}
     </>}
   </CardContent></Card>;
 }

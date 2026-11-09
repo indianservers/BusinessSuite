@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_db, RequirePermission
 from app.models.exit import ExitChecklistItem, ExitInterview, ExitRecord
 from app.models.user import User
-from app.services.employee_exit import scoped_exit, create_exit
+from app.services.employee_exit import scoped_exit, create_exit, validate_exit_dates
 from app.services.metrics.queries import employee_records
 from app.models.employee import Employee
 from app.schemas.exit import (
@@ -54,7 +54,9 @@ def update_exit_record(record_id: int, data: ExitRecordUpdate, db: Session = Dep
         raise HTTPException(409, "Completed exit history cannot be overwritten")
     if data.status == "Completed":
         raise HTTPException(422, "Use the completion action after clearance checks")
-    for key, value in data.model_dump(exclude_unset=True).items():
+    values = data.model_dump(exclude_unset=True)
+    validate_exit_dates(db.get(Employee, record.employee_id), values)
+    for key, value in values.items():
         setattr(record, key, value)
     db.commit()
     db.refresh(record)

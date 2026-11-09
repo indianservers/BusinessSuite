@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -223,14 +224,14 @@ export default function IntegrationsPage() {
         </div>
         <div>
           <span className="ic-env">{environment}</span>
-          <button
+          <Button type="submit" variant="outline"
             onClick={() => {
               void load();
               void loadLogs();
             }}
           >
             Refresh
-          </button>
+          </Button>
         </div>
       </header>
       {error && (

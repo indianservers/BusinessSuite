@@ -89,7 +89,7 @@ function Lane({
     >
       <h2>
         <strong>{title}</strong>
-        <span>{count}</span>
+        <span data-count-badge data-count-tone="purple">{count}</span>
       </h2>
       <p className="lm-lane-value">Pipeline value {value.toLocaleString()}</p>
       {children}

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import CompactForm from "@/components/forms/CompactForm";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
@@ -657,7 +658,7 @@ export default function LoginPage() {
                   Forgot password?
                 </button>
               </CompactForm>
-              <p className="mt-4 text-center text-sm"><Link className="text-violet-700 underline" to="/signup">New here? Request a software trial</Link></p>
+              <p className="mt-4 text-center text-sm"><Button asChild variant="default"><Link className="text-violet-700 underline" to="/signup">New here? Request a software trial</Link></Button></p>
               {hintedProvider && (
                 <p className="suite-login-context">
                   Your organization uses{" "}
@@ -719,14 +720,14 @@ export default function LoginPage() {
                 <p className="suite-login-note" role="status">
                   Some sign-in options could not be loaded. You can use your
                   password or{" "}
-                  <button
+                  <Button type="submit" variant="outline"
                     onClick={() => {
                       void firebase.refetch();
                       void providers.refetch();
                     }}
                   >
                     retry
-                  </button>
+                  </Button>
                   .
                 </p>
               )}

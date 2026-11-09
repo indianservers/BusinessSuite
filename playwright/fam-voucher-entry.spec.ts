@@ -6,7 +6,9 @@ test.describe("FAM voucher entry", () => {
     await authenticate(page, "fam_admin");
     await expectHealthyFamRoute(page, "/fam/vouchers/new");
     await expect(page.getByRole("heading", { name: "New Voucher" })).toBeVisible();
+    await page.getByRole("tab", { name: "Entry lines", exact: true }).click();
     await expect(page.getByText("Debit / Credit lines")).toBeVisible();
+    await page.getByRole("tab", { name: "Review totals", exact: true }).click();
     await expect(page.getByText("Difference")).toBeVisible();
     await expect(page.getByRole("button", { name: /Save draft/i })).toBeVisible();
   });

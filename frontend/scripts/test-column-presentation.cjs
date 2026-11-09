@@ -10,6 +10,17 @@ const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compile
 const loaded = new Module(filename, module);
 loaded.filename = filename;
 loaded.paths = Module._nodeModulePaths(path.dirname(filename));
+loaded.require = function(specifier) {
+  if (specifier === '@/shared/priority/priority') {
+    const helperFile = path.resolve(__dirname, '../src/shared/priority/priority.ts');
+    const helper = new Module(helperFile, module);
+    helper.filename = helperFile;
+    helper.paths = Module._nodeModulePaths(path.dirname(helperFile));
+    helper._compile(ts.transpileModule(fs.readFileSync(helperFile, 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText, helperFile);
+    return helper.exports;
+  }
+  return Module.prototype.require.call(this, specifier);
+};
 loaded._compile(compiled, filename);
 const { columnIcon, columnValue } = loaded.exports;
 assert.equal(columnIcon('Vendor'), icons.Users, 'Vendor must not match the end-date icon');
@@ -17,6 +28,7 @@ assert.equal(columnIcon('Candidate'), icons.Columns3, 'Candidate must not match 
 assert.equal(columnIcon('Due date'), icons.CalendarDays);
 assert.equal(columnIcon('Joined'), icons.CalendarDays);
 assert.equal(columnIcon('Debit'), icons.Wallet);
+assert.equal(columnIcon('Currency'), icons.Wallet);
 for (const value of ['0%', '42.5%', '100%']) {
   const result = columnValue('Completion', value);
   const meter = React.Children.toArray(result.props.children)[0];

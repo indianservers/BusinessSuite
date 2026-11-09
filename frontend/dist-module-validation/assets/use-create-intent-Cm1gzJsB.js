@@ -1,0 +1,1 @@
+import{f as h,h as o,a as c}from"./vendor-DAmT3lX7.js";function i(t){const e=h(),s=o(),n=c.useRef(t);n.current=t,c.useEffect(()=>{const a=new URLSearchParams(e.search),r=a.get("new");r&&(n.current(r),a.delete("new"),s({pathname:e.pathname,search:a.toString(),hash:e.hash},{replace:!0}))},[e.key,e.pathname,e.search,e.hash,s])}export{i as u};

@@ -35,23 +35,26 @@ export function useRecordAutosave<T>({value, enabled, dirty, save, delay=1400}: 
 
 export function recordDraftKey(name:string) {
   const {user}=useAuthStore.getState();
-  return `suite-form-draft:v1:${user?.id}:${user?.access?.companyId||sessionStorage.getItem("suite-organization")}:${sessionStorage.getItem("suite-branch")}:${name}`;
+  let organization = "", branch = "";
+  try { organization = sessionStorage.getItem("suite-organization") || ""; branch = sessionStorage.getItem("suite-branch") || ""; } catch { /* In-memory editing remains available. */ }
+  return `suite-form-draft:v1:${user?.id}:${user?.access?.companyId||organization}:${branch}:${name}`;
 }
 
 /** Preserve the complete React draft, including fields on inactive tabs. Never submit a new record. */
 export function useRecordDraft<T>(name:string,value:T,restore:(value:T)=>void,enabled:boolean) {
   const key=recordDraftKey(name),snapshot=JSON.stringify(value),latest=useRef(restore),skip=useRef(true),restored=useRef<string>();
+  const [status, setStatus] = useState<"idle" | "restored" | "saved" | "unavailable">("idle");
   latest.current=restore;
   useEffect(()=>{
     if(!enabled||restored.current===key)return;
     restored.current=key;
     skip.current=true;
-    try{const saved=sessionStorage.getItem(key);if(saved)latest.current(JSON.parse(saved));}catch{/* Storage may be unavailable. */}
+    try{const saved=sessionStorage.getItem(key);if(saved){latest.current(JSON.parse(saved));setStatus("restored");}}catch{setStatus("unavailable");}
   },[key,enabled]);
   useEffect(()=>{
     if(!enabled)return;
     if(skip.current){skip.current=false;return;}
-    try{sessionStorage.setItem(key,snapshot);}catch{/* The active draft remains in memory. */}
+    try{sessionStorage.setItem(key,snapshot);setStatus(current => current === "restored" ? current : "saved");}catch{setStatus("unavailable");}
   },[key,snapshot,enabled]);
-  return ()=>{try{sessionStorage.removeItem(key);}catch{/* The successful write is still confirmed. */}};
+  return Object.assign(()=>{try{sessionStorage.removeItem(key);}catch{/* The successful write is still confirmed. */}}, { status });
 }

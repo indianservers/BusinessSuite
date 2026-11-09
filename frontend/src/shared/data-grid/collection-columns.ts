@@ -10,7 +10,7 @@ export function collectionColumns<T>(items: T[], fields: CollectionGroupField<T>
   const definition = collectionDefinition(scope);
   const entity = definition.entity;
   const candidates: [string,string,string[]][] = [
-    ["name",entity,["name","title","full_name","employee_name","customer_name","module_label","field_label","display_name","rule_key","metric_key","feature_key","key_prefix","report_id","invoice_number"]],
+    ["name",entity,["name","title","full_name","employee_name","customer_name","module_label","field_label","display_name","rule_key","metric_key","feature_key","key_prefix","report_id","invoice_number","quote_number"]],
     ["code","Code",["code","employee_code","asset_tag","sku","invoice_number","quote_number"]],
     ["status","Status",["status","state"]], ["stage","Stage",["stage_name","stage"]],
     ["priority","Priority",["priority"]], ["company","Company",["company_name"]],

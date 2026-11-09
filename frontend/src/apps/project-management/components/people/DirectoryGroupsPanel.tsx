@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -131,14 +132,14 @@ export default function DirectoryGroupsPanel({
             <h2>
               Teams <span>({teams.data?.total ?? "…"})</span>
             </h2>
-            <button
+            <Button type="submit" variant="default"
               className="pd-button"
               disabled={!reference?.workspaces.some((w) => w.can_manage)}
               onClick={onNewTeam}
             >
               <Plus size={14} />
               New team
-            </button>
+            </Button>
           </header>
           <label className="pd-panel-search">
             <Search size={15} />
@@ -160,7 +161,7 @@ export default function DirectoryGroupsPanel({
           {teams.error && (
             <p role="alert" className="pd-error">
               {workspaceError(teams.error)}
-              <button onClick={() => void teams.refetch()}>Retry</button>
+              <Button type="submit" variant="outline" onClick={() => void teams.refetch()}>Retry</Button>
             </p>
           )}
           {teams.data?.items.map((team, index) => (
@@ -207,14 +208,14 @@ export default function DirectoryGroupsPanel({
             <h2>
               Interns Batches <span>({batches.data?.total ?? "…"})</span>
             </h2>
-            <button
+            <Button type="submit" variant="default"
               className="pd-button"
               disabled={!reference?.can_manage_batches}
               onClick={() => navigate("/hrms/interns/batches?create=batch")}
             >
               <Plus size={14} />
               New batch
-            </button>
+            </Button>
           </header>
           <label className="pd-panel-search">
             <Search size={15} />
@@ -232,7 +233,7 @@ export default function DirectoryGroupsPanel({
           {batches.error && (
             <p className="pd-error" role="alert">
               {workspaceError(batches.error)}
-              <button onClick={() => void batches.refetch()}>Retry</button>
+              <Button type="submit" variant="outline" onClick={() => void batches.refetch()}>Retry</Button>
             </p>
           )}
           {batches.data?.items.map((batch, index) => (
@@ -362,7 +363,7 @@ function GroupDetails({
       {detail && (
         <>
           <div className="pd-detail-actions">
-            <button
+            <Button type="submit" variant="outline"
               className="pd-primary"
               onClick={() => {
                 if (opened)
@@ -370,9 +371,9 @@ function GroupDetails({
               }}
             >
               Assign task
-            </button>
+            </Button>
             {detail.group.can_manage && opened?.kind === "teams" && (
-              <button
+              <Button type="submit" variant="outline"
                 className="pd-button"
                 onClick={() => {
                   onEdit(opened.id, detail.group.workspace_id!);
@@ -380,15 +381,15 @@ function GroupDetails({
                 }}
               >
                 Edit team & members
-              </button>
+              </Button>
             )}
             {opened?.kind === "batches" && (
-              <Link
+              <Button asChild variant="outline"><Link
                 className="pd-button"
                 to={`/hrms/interns/list?batch_id=${opened.id}`}
               >
                 Open InternHub management
-              </Link>
+              </Link></Button>
             )}
           </div>
           {tab === "overview" && (
@@ -533,14 +534,14 @@ function GroupDetails({
               ))}
               {!!selected.length && (
                 <div className="pd-detail-actions">
-                  <button
+                  <Button type="submit" variant="outline"
                     className="pd-primary"
                     onClick={() =>
                       navigate(directoryTaskHref("people", selected))
                     }
                   >
                     Assign selected people
-                  </button>
+                  </Button>
                   {opened?.kind === "teams" && detail.group.can_manage && (
                     <button
                       className="pd-button"

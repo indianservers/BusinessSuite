@@ -153,6 +153,8 @@ export async function installApiStubs(page: Page, user = users.fam_admin) {
 
     if (path.includes("/auth/me")) {
       body = { id: user.id, email: user.email, role: { name: user.role }, is_superuser: user.is_superuser, employee_id: user.employee_id };
+    } else if (path === "/access/settings/defaults/effective") {
+      body = { values: {}, modules: {}, companyId: 1, branchId: 1 };
     } else if (path === "/access/settings" || path.startsWith("/access/settings/")) {
       const options = [["finance", "Finance"], ["financial-years", "Financial years"], ["voucher-types", "Voucher types"], ["payment-modes", "Payment modes"], ["cost-centers", "Cost centers"], ["accounting-branches", "Accounting branches"], ["tax-settings", "Tax settings"]].map(([id,title]) => ({id,title,group:"Configuration",description:title,destination:null,scope:"company",editable:true}));
       body = path === "/access/settings" ? {companyId:1,companyName:"Workflow test company",options} : options.find(option => path.endsWith("/"+option.id));

@@ -108,7 +108,7 @@ export default function MemberManagementPage() {
     </section>
     {error && <p role="alert" className="rounded border border-destructive p-3 text-destructive">{error}</p>}
     {notice && <p role="status" className="rounded border border-emerald-300 bg-emerald-50 p-3 text-emerald-900">{notice}</p>}
-    {loading ? <p role="status">Loading members…</p> : !wid && !pid ? <p>Create or join a workspace to manage its members. <Link className="underline" to="/pms/workspaces">Open workspaces</Link></p> : <>
+    {loading ? <p role="status">Loading members…</p> : !wid && !pid ? <p>Create or join a workspace to manage its members. <Button asChild variant="outline"><Link className="underline" to="/pms/workspaces">Open workspaces</Link></Button></p> : <>
       <section className="space-y-3 rounded-xl border bg-card p-4"><h2 className="text-lg font-semibold"><Users className="mr-2 inline" size={19} />{project?.name || workspace?.name} · {pid ? "Project team" : "Workspace members"} ({members.length})</h2>
         <p className="text-sm text-muted-foreground">{pid ? "Project teams organize responsibility. Workspace members retain their existing access to shared workspace projects." : "Owners and authorized scoped Admin/HR roles manage membership. Only the workspace owner can appoint admins. Members collaborate; guests can view work."}</p>
         {!canManage && <p className="text-sm">Ask a scoped organization Admin/HR or workspace owner/admin to add people or change roles.</p>}

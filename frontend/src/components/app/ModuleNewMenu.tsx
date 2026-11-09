@@ -9,10 +9,23 @@ import NewMenu, { type NewAction } from "./NewMenu";
 import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMenu";
 
 export default function ModuleNewMenu({ children }: { children?: (actions: NewAction[]) => ReactNode } = {}) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [crmQuick,setCRMQuick]=useState("");
   useEffect(() => { setCRMQuick(""); }, [pathname]);
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
+  const navigate = (path: string) => {
+    if (!/^\/(srm|crm)(\/|$)/.test(pathname)) return routerNavigate(path);
+    const destination = new URL(path, window.location.origin), current = new URLSearchParams(search);
+    for (const key of ["customer_id", "company_id", "contact_id", "sales_order_id", "contract_id", "engagement_id"]) {
+      const value = current.get(key);
+      if (value && /^\d+$/.test(value) && !destination.searchParams.has(key)) destination.searchParams.set(key, value);
+    }
+    const record = pathname.match(/^\/srm\/(customers|sales-orders|contracts|engagements)\/(\d+)(?:\/360)?$/);
+    if (record) destination.searchParams.set(({ customers: "customer_id", "sales-orders": "sales_order_id", contracts: "contract_id", engagements: "engagement_id" } as Record<string, string>)[record[1]], record[2]);
+    const crmRecord = pathname.match(/^\/crm\/(companies|customers|contacts)\/(\d+)(?:\/360)?$/);
+    if (crmRecord) destination.searchParams.set(crmRecord[1] === "contacts" ? "contact_id" : "company_id", crmRecord[2]);
+    return routerNavigate(destination.pathname + destination.search + destination.hash);
+  };
 
   const user = useAuthStore(s => s.user);
   const role = String(user?.role || "").toLowerCase();
@@ -29,9 +42,9 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
     const manages = !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged || ["crm_super_admin", "crm_org_admin", "crm_sales_manager", "crm_sales_executive"].includes(role));
     const quick=(label:string,type:string,icon:NewAction["icon"],path:string)=>{if(manages&&(user?.is_superuser||!moduleGrant||moduleGrant.permissions.some(p=>["crm_admin","crm_manage",`crm_${({lead:"leads",customer:"companies",reminder:"activities",contact:"contacts",company:"companies",deal:"deals",task:"activities",activity:"activities"} as Record<string,string>)[type]}_manage`].includes(p)))&&canAccessRoute(path,user?.role,user?.is_superuser))actions.push({label,description:`Quick capture ${label.toLowerCase()}`,icon,menuPaths:[path],onSelect:()=>type === "reminder" ? setCRMQuick(type) : navigate(type === "task" ? "/pms/tasks/new" : `${path}?new=${type === "customer" ? "customers" : type === "company" ? "companies" : type === "activity" ? "activities" : type + "s"}`)});};
     quick("Add Lead","lead",UserPlus,"/crm/leads");quick("Add Customer","customer",Users,"/crm/customers");quick("Reminder","reminder",Bell,"/crm/tasks");quick("Contact","contact",Users,"/crm/contacts");quick("Company","company",Building2,"/crm/companies");quick("Deal","deal",Wallet,"/crm/deals");quick("Task","task",CheckCircle2,"/crm/tasks");quick("Activity","activity",CalendarDays,"/crm/activities");
-    add("Product", "Manage the CRM product catalog", ShoppingBag, "/crm/products?new=products", manages && (!moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
-    add("Service", "Manage the CRM service catalog", ShoppingBag, "/crm/services?new=services", manages && (!moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
-    add("Quote", "Prepare a quote for a customer", FileText, "/crm/quotes?new=quotes", manages && (!moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_quotes_manage"].includes(p))));
+    add("Product", "Manage the CRM product catalog", ShoppingBag, "/crm/products?new=products", manages && (!!user?.is_superuser || !moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
+    add("Service", "Manage the CRM service catalog", ShoppingBag, "/crm/services?new=services", manages && (!!user?.is_superuser || !moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
+    add("Quote", "Prepare a quote for a customer", FileText, "/crm/quotes?new=quotes", manages && (!!user?.is_superuser || !moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_quotes_manage"].includes(p))));
     add("Support ticket", "Record a customer support request", LifeBuoy, "/crm/tickets?new=tickets", manages || role === "crm_support_agent");
     add("Campaign", "Plan a marketing campaign", CalendarDays, "/crm/campaigns?new=campaigns", privileged || ["crm_super_admin", "crm_org_admin", "crm_marketing_user"].includes(role));
   } else if (pathname.startsWith("/srm")) {

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import { KeyRound, ShieldCheck, Loader2 } from "lucide-react";
@@ -85,7 +86,7 @@ export default function ModuleConnectionSettings({ connector, connection, enviro
         </label>)}
         <ActionFields connector={connector.id} action={{ id: "connection_settings", name: "Connection settings", mutates: false, scopes: [], input_schema: configSchema }} value={config} disabled={busy} onChange={setConfig} />
         {writesAvailable && <label className="ic-module-toggle"><input type="checkbox" checked={writes} disabled={busy} onChange={(e) => setWrites(e.target.checked)} />{telegram ? "Allow this connection to send Telegram messages" : `Allow this connection to ${writeLabel}`}</label>}
-        <button type="button" className="as-button-primary" disabled={!canSave} onClick={async () => {
+        <Button variant="outline" type="button" className="as-button-primary" disabled={!canSave} onClick={async () => {
           setBusy(true); setError(""); setStatus(""); setAuthorizationUrl("");
           try {
             const scopes = [...new Set([...providerScopes(connector, auth, writes), ...connector.actions.filter((a) => writes || !a.mutates).flatMap((a) => a.scopes)])];
@@ -97,7 +98,7 @@ export default function ModuleConnectionSettings({ connector, connection, enviro
             if (auth === "oauth2") setAuthorizationUrl(await integrationApi.authorize(environment, saved.id, scopes));
             else await verify(saved);
           } catch (e) { setError(message(e)); } finally { setBusy(false); }
-        }}>{busy ? <Loader2 size={14} className="ic-module-spinner" /> : <ShieldCheck size={14} />}{auth === "oauth2" ? "Save and authorize account" : newVerification ? "Save & verify connection" : "Save connection"}</button>
+        }}>{busy ? <Loader2 size={14} className="ic-module-spinner" /> : <ShieldCheck size={14} />}{auth === "oauth2" ? "Save and authorize account" : newVerification ? "Save & verify connection" : "Save connection"}</Button>
       </>}
       {authorizationUrl && <a href={authorizationUrl} target="_blank" rel="noreferrer">Authorize {connector.name} account</a>}
       {connection && savedVerification && <button type="button" className="ic-module-test" disabled={busy || readOnly} onClick={async () => {

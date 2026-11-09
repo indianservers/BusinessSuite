@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState, useEffect } from "react";
 import type { WorkflowNode, NodeDefinition } from "./types";
@@ -172,7 +173,7 @@ export function ConditionBuilder({
           </button>
         </div>
       ))}
-      <button
+      <Button type="submit" variant="default"
         disabled={value.rules.length >= 30}
         onClick={() =>
           onChange({
@@ -191,8 +192,8 @@ export function ConditionBuilder({
         }
       >
         Add rule
-      </button>
-      <button
+      </Button>
+      <Button type="submit" variant="default"
         disabled={depth >= 7 || value.rules.length >= 30}
         onClick={() =>
           onChange({
@@ -216,7 +217,7 @@ export function ConditionBuilder({
         }
       >
         Add nested group
-      </button>
+      </Button>
       <p>
         Enter numbers, true/false, JSON arrays, or safe property references. No
         implicit type conversion.
@@ -312,7 +313,7 @@ export function SwitchRouterEditor({
           </button>
         </div>
       ))}
-      <button
+      <Button type="submit" variant="default"
         disabled={
           routes.length >= 12 ||
           (!routes.length && usedPorts.some((p) => p.startsWith("route_")))
@@ -335,7 +336,7 @@ export function SwitchRouterEditor({
         }
       >
         Add named branch
-      </button>
+      </Button>
       <p>
         The default output remains available. Disconnect legacy routes before
         switching to named branches.

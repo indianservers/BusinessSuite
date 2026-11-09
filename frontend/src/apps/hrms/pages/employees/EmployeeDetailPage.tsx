@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
 import EmployeeDocumentsPanel from "./EmployeeDocumentsPanel";
 import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
@@ -491,7 +492,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
         </div>
 
         {canChangeRole && !emp.user_id && (
-          <CompactForm
+          <SmartCreateSection title="Create employee login"><CompactForm
             className="rounded-lg border p-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -537,7 +538,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
             <p className="mt-2 text-xs text-muted-foreground">
               Creates an active employee user account and links it to this employee.
             </p>
-          </CompactForm>
+          </CompactForm></SmartCreateSection>
         )}
 
         {userOptions.isError && <p role="alert" className="text-sm text-destructive">Could not load login accounts. <button type="button" className="underline" onClick={() => { void userOptions.refetch(); }}>Retry accounts</button></p>}

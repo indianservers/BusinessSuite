@@ -6,20 +6,21 @@ type MenuItem = { to: string; label: string; group?: string };
 // Root and /dashboard are aliases for a module's landing page, not submenus.
 export function moduleLandingNavigation<T extends MenuItem>(items: readonly T[], moduleKey: string) {
   const root = `/${moduleKey}`;
+  const pathname = (item: T) => item.to.split(/[?#]/)[0].replace(/\/$/, "");
   const primaryPaths = [root, `${root}/dashboard`];
-  const primary = items.find(item => primaryPaths.includes(item.to));
+  const primary = items.find(item => primaryPaths.includes(pathname(item)));
   const direct = primary ? [primary] : [];
   // The PMS dashboard library is a separate destination from its workspace board.
-  const library = items.find(item => item.to === `${root}/dashboards`);
+  const library = items.find(item => pathname(item) === `${root}/dashboards`);
   if (library) direct.push(library);
   // ESS is the authorized HR landing page for employee roles.
   if (!primary && moduleKey === "hrms") {
-    const personal = items.find(item => item.to === "/hrms/ess");
+    const personal = items.find(item => pathname(item) === "/hrms/ess");
     if (personal) direct.unshift(personal);
   }
   return {
     direct,
-    grouped: items.filter(item => !primaryPaths.includes(item.to) && !direct.includes(item)),
+    grouped: items.filter(item => !primaryPaths.includes(pathname(item)) && !direct.includes(item)),
   };
 }
 const labels: Record<string, string> = {

@@ -957,3 +957,6 @@
 .pa-sidebar .pa-categorized-navigation .module-menu-toolbar button { padding: 0; width: 28px; height: 28px; }
 .pa-sidebar .pa-categorized-navigation .module-menu-search button { padding: 4px; }
 @media (max-width: 600px) { .pa-sidebar nav.pa-categorized-navigation { max-height: 290px; } }
+/* Keep the reference label inside its panel so it cannot cover account/menu controls. */
+.pa-integration-reference > .pa-status { position:static; display:inline-flex; margin-bottom:12px; }
+.pa-integration-reference > .kf-button { margin-top:12px; }

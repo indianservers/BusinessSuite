@@ -7,7 +7,12 @@ const save = () => fs.writeFileSync(file, JSON.stringify(state, null, 2));
 const root = 'http://127.0.0.1:1534/api/v1';
 async function apiFor(token, step) {
   return async (url, method = 'GET', data) => {
-    const r = await fetch(root + url, { method, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Suite-Organization': '1', 'X-Suite-Branch': '6', ...(step ? { 'X-Access-Step-Up': step } : {}) }, body: data === undefined ? undefined : JSON.stringify(data) });
+    const options = { method, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Suite-Organization': '1', 'X-Suite-Branch': '6', ...(step ? { 'X-Access-Step-Up': step } : {}) }, body: data === undefined ? undefined : JSON.stringify(data) };
+    // A paused acceptance run can reuse a socket closed by the development API.
+    // Retry reads only; never replay a mutation or an HTTP error response.
+    let r;
+    try { r = await fetch(root + url, options); }
+    catch (error) { if (method !== 'GET') throw error; r = await fetch(root + url, options); }
     const body = r.status === 204 ? null : await r.json();
     if (!r.ok) throw Error(`${method} ${url}: ${r.status} ${JSON.stringify(body)}`);
     return body;

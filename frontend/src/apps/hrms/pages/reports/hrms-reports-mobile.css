@@ -1,0 +1,18 @@
+@media(max-width:480px){
+ .hrms-reports-workspace{min-width:0}
+ .hrms-reports-workspace>.flex{flex-wrap:wrap;gap:8px}
+ .hrms-reports-workspace button{min-height:44px}
+ .hrms-reports-workspace input:not([type=checkbox]):not([type=radio]),.hrms-reports-workspace select{font-size:16px;min-height:44px;max-width:100%}
+ .hrms-reports-workspace .grid.gap-4.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .hrms-reports-workspace .grid.gap-4.sm\:grid-cols-2>div{min-width:0}
+ .hrms-reports-workspace .grid.gap-4.sm\:grid-cols-2>div>div{padding:12px;gap:8px;flex-wrap:wrap}
+ .hrms-reports-workspace .grid.gap-4.sm\:grid-cols-2 .text-2xl{font-size:23px;overflow-wrap:anywhere}
+ .hrms-reports-workspace .suite-mobile-chart{height:auto;min-height:330px}
+ .hrms-reports-workspace .suite-mobile-chart-preview{min-height:280px}
+ .hrms-reports-workspace :is(h1,h2,h3,p){overflow-wrap:anywhere}
+ .hrms-reports-workspace .flex.flex-row.items-center.justify-between{flex-wrap:wrap}
+}
+@media(max-width:480px){
+ .hrms-reports-workspace .grid,.hrms-reports-workspace .grid>*{min-width:0}
+ .hrms-reports-workspace .overflow-x-auto{max-width:100%}
+}

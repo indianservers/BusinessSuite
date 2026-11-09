@@ -133,7 +133,7 @@ export default function DirectoryPersonCard({
           Assign task
         </PeopleAction>
         <Dropdown.Root>
-          <Dropdown.Trigger
+          <Dropdown.Trigger data-overflow-trigger
             className="pd-more"
             aria-label={`More actions for ${person.name}`}
           >

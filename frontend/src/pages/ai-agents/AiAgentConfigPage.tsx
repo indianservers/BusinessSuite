@@ -1,5 +1,6 @@
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
-import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
+import type { GridColumn } from "@/shared/data-grid/types";
+import { Bot, Layers, CircleDot, Zap, BadgeCheck, Shield } from "lucide-react";
 import {useAiAdministration,AiAdministrativeNotice} from "@/hooks/use-ai-administration";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import { useEffect, useState } from "react";
@@ -9,6 +10,14 @@ import { toast } from "@/hooks/use-toast";
 import { aiAgentsApi, type AiAgentConfigRow, type AiModule } from "@/services/aiAgentsApi";
 
 const filters: Array<AiModule | "ALL"> = ["ALL", "CRM", "PMS", "HRMS", "CROSS"];
+const configColumns: GridColumn<AiAgentConfigRow>[] = [
+  {id:"agent",title:"Agent",icon:Bot,accessor:row=>row.agent.name},
+  {id:"module",title:"Module",icon:Layers,accessor:row=>row.agent.module},
+  {id:"status",title:"Status",icon:CircleDot,accessor:row=>row.setting.is_enabled?"Enabled":"Disabled"},
+  {id:"auto_action",title:"Auto action",icon:Zap,accessor:row=>row.setting.auto_action_enabled?"Enabled":"Disabled"},
+  {id:"approval",title:"Approval required",icon:BadgeCheck,accessor:row=>row.setting.approval_required?"Required":"Not required"},
+  {id:"scope",title:"Data access scope",icon:Shield,accessor:row=>row.setting.data_access_scope.replace(/_/g," ")},
+];
 
 export default function AiAgentConfigPage() {
   const canAdmin=useAiAdministration();
@@ -70,7 +79,7 @@ export default function AiAgentConfigPage() {
       </div>
       {initialLoading ? <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">Configuration loading...</div> : null}
       {!initialLoading ? (
-        <GroupedRecords scope="pages/ai-agents/AiAgentConfigPage:cards-1" items={(visibleRows) || []} fields={standardRecordGroups((visibleRows) || [])} gridClassName="space-y-3" renderItem={(row) => (
+        <GroupedRecords scope="pages/ai-agents/AiAgentConfigPage:cards-1" items={visibleRows} tableColumns={configColumns} fields={[{id:"module",label:"Module",value:row=>row.agent.module},{id:"status",label:"Status",value:row=>row.setting.is_enabled?"Enabled":"Disabled"}]} gridClassName="space-y-3" renderItem={(row) => (
             <AgentConfigForm key={row.agent.id} row={row} onChange={updateRow} onSave={save} saving={savingId === row.agent.id} />
           )}/>
       ) : null}

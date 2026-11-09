@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -309,7 +310,7 @@ export default function CalendarSettings({
                 )}
                 {tab === "Accounts" && (
                   <>
-                    <button disabled={accountsLoading || busy} onClick={() => setAccountsRevision(current => current + 1)}>Refresh calendar accounts</button>
+                    <Button type="submit" variant="outline" disabled={accountsLoading || busy} onClick={() => setAccountsRevision(current => current + 1)}>Refresh calendar accounts</Button>
                     {accountsLoading && <p role="status">Loading calendar accounts…</p>}
                     <article className="cal-account">
                       <strong>BusinessSuite calendar</strong>
@@ -366,7 +367,7 @@ export default function CalendarSettings({
                       accounts and conferencing require provider setup.
                     </p>
                     <p role="status" className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Manage automatic sync and import destinations from the connected account page."}</p>
-                    <button onClick={onExport}>Export calendar (.ics)</button>
+                    <Button type="submit" variant="outline" onClick={onExport}>Export calendar (.ics)</Button>
                   </>
                 )}
                 {tab === "Sidebar" && (
@@ -716,7 +717,7 @@ export default function CalendarSettings({
                         into Google Calendar, Outlook or Apple Calendar.
                       </p>
                       <p role="status" className="cal-settings-note">{setup.includes("exported") || setup === "Sync already running" ? setup : "Manage automatic sync and import destinations from the connected account page."}</p>
-                    <button onClick={onExport}>Export calendar (.ics)</button>
+                    <Button type="submit" variant="outline" onClick={onExport}>Export calendar (.ics)</Button>
                     </article>
                     <p className="cal-settings-note">
                       Continuous external sync requires a connected provider.
@@ -734,9 +735,9 @@ export default function CalendarSettings({
                 Reset defaults
               </button>
               <div>
-                <button disabled={busy} onClick={onClose}>
+                <Button type="submit" variant="outline" disabled={busy} onClick={onClose}>
                   Cancel
-                </button>
+                </Button>
                 <button
                   className="cal-primary"
                   disabled={busy}

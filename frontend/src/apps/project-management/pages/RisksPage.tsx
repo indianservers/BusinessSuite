@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import {useAuthStore} from "@/store/authStore";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -221,12 +222,13 @@ export default function RisksPage() {
       </div>
 
       {showForm ? (
-        <Card>
+        <SmartCreateSection title={editing ? "Edit risk" : "Add risk"} autoOpen onClose={resetForm}><Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>{editing ? "Edit risk" : "Add risk"}</CardTitle>
             <Button aria-label="Close risk form" disabled={saving} variant="ghost" size="sm" onClick={resetForm}><X className="h-4 w-4" /></Button>
           </CardHeader>
           <CardContent>
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <CompactForm className="grid gap-4 lg:grid-cols-2" onSubmit={submit}>
               <Field label="Project">
                 <NativeSelect disabled={!!projectId} className="input" value={form.project_id || ""} onChange={(event) => setForm((current) => ({ ...current, project_id: Number(event.target.value), linked_task_id: null }))} required>
@@ -287,12 +289,12 @@ export default function RisksPage() {
                 <RichTextField data-legacy-format="markdown" className="input min-h-24" value={form.contingency_plan || ""} onChange={(event) => setForm((current) => ({ ...current, contingency_plan: event.target.value }))} />
               </Field>
               <div className="flex gap-2 lg:col-span-2">
-                <Button type="submit" disabled={saving || !permits(editing?"edit":"create") || !form.title.trim() || !form.project_id}>{saving ? "Saving..." : editing ? "Update risk" : "Create risk"}</Button>
+                <Button data-save-action type="submit" disabled={saving || !permits(editing?"edit":"create") || !form.title.trim() || !form.project_id}>{saving ? "Saving..." : editing ? "Update risk" : "Create risk"}</Button>
                 <Button type="button" variant="outline" disabled={saving} onClick={resetForm}>Cancel</Button>
               </div>
             </CompactForm>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">

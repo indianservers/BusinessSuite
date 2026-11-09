@@ -9,7 +9,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers['Referrer-Policy'] = 'no-referrer'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
-        if request.url.path.startswith('/api/') and not getattr(request.state, 'record_sync_cacheable', False):
+        if request.url.path.startswith('/api/') and not (
+            getattr(request.state, 'record_sync_cacheable', False)
+            or getattr(request.state, 'private_photo_cacheable', False)
+        ):
             response.headers['Cache-Control'] = 'private, no-store'
         if request.url.scheme == 'https':
             response.headers['Strict-Transport-Security'] = 'max-age=31536000'

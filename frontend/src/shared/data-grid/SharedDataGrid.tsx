@@ -1,3 +1,8 @@
+import { businessGroupColumn, initialBusinessGroups } from "./business-grouping";
+import { hasMobilePreset, mobilePresets, toggleMobilePreset } from "./mobile-presets";
+import { useRouteViewState } from "@/hooks/use-route-view-state";
+import { groupAppearance } from "./GroupLabel";
+import "./record-group.css";
 import { normalizePriority, recordPriority } from "@/shared/priority/priority";
 import CollectionOverview from "./CollectionOverview";
 import {useRecordAutosave} from "@/hooks/use-record-autosave";
@@ -480,7 +485,7 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
       return {...result,rows,groups:[],total:rows.length,pageTotal:rows.length};
     },facets:base.facets?((field:string,search:string,query:GridQuery,signal?:AbortSignal)=>base.facets!(field,search,adapt(query),signal)):undefined,export:base.export&&base.personalIdentity?((request:GridExportRequest)=>base.export!({...request,query:adapt(request.query)})):undefined};
   },[props.dataSource,personalSignature,enabled]);
-  const identity = props.columns.find(column=>/^(name|title|full_name)$/i.test(column.id)) || props.columns.find(column=>/^(name|title|project|employee|lead|deal|company|customer|record|item)( name)?$/i.test(column.title)) || props.columns.find(column=>!/select|action|favorite/i.test(column.title)) || props.columns[0];
+  const identity = props.columns.find(column=>/^(name|title|full_name)$/i.test(column.id)) || props.columns.find(column=>/^(name|title|sales order|billing plan|engagement|task|project|employee|lead|deal|contact|company|customer|account|record|document|file|item|product|invoice|order|contract|campaign)( name)?$/i.test(column.title)) || props.columns.find(column=>!/select|action|favorite/i.test(column.title)) || props.columns[0];
   const titleFor = (row:T) => identity ? String(identity.exportValue?.(row) ?? identity.accessor?.(row) ?? (row as Record<string,unknown>)[identity.id] ?? "Record") : "Record";
   const track = (row:T) => {if(enabled)personal.use(props.getRowId(row));};
   const favoriteColumn:GridColumn<T>={id:"__suite_favorite",title:"Favorite",header:<span className="sr-only">Favorite</span>,width:47,minWidth:40,sortable:false,filterable:false,groupable:false,render:row=><button type="button" className="suite-record-star" data-record-personal aria-label={`${personal.favorites.includes(props.getRowId(row))?"Unfavorite":"Favorite"} ${titleFor(row)}`} title="Toggle favorite" aria-pressed={personal.favorites.includes(props.getRowId(row))} onClick={event=>{event.stopPropagation();personal.toggle(props.getRowId(row));}}><Star size={15} fill={personal.favorites.includes(props.getRowId(row))?"currentColor":"none"}/></button>};
@@ -535,6 +540,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       layout?: GridLayout;
       query?: GridQuery;
       views?: GridSavedView[];
+      businessGrouping?: boolean;
     } = {};
     try {
       saved = JSON.parse(localStorage.getItem(preferenceKey) || "{}");
@@ -551,6 +557,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           ...emptyQuery(),
           ...props.initialQuery,
           ...saved.query,
+          grouping: initialBusinessGroups(columns, `${collectionLocation.pathname}:${gridId}`, saved.query?.grouping ?? props.initialQuery?.grouping, saved.businessGrouping === true),
           ...props.queryState,
           page: props.queryState?.page || 1,
           path: [],
@@ -577,20 +584,25 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const [storedLayout, setLayout] = useState(initial.layout),
     [query, setQuery] = useState<GridQuery>(initial.query),
     [views, setViews] = useState<GridSavedView[]>(initial.views);
-  const layout = props.viewMode ? {...storedLayout,view:props.viewMode} : storedLayout;
   const mobile = useMobile();
+  const [mobileTable, setMobileTable] = useRouteViewState(`grid:${gridId}:mobile-table`, false);
+  const [selecting, setSelecting] = useState(false);
+  const baseLayout = props.viewMode ? {...storedLayout,view:props.viewMode} : storedLayout;
+  const layout = mobile && !mobileTable && baseLayout.view === "grid" ? { ...baseLayout, view: "cards" as const } : baseLayout;
+  const presets = mobilePresets(columns, user?.id);
+  const [expandedCards, setExpandedCards] = useState<string[]>([]);
   const previousCollectionView = useRef<GridLayout["view"]>();
   const preservedGrouping = useRef<string[]>([]);
   useEffect(()=>{
-    if(props.viewMode===previousCollectionView.current)return;
-    if(props.viewMode&&props.viewMode!=="grid"){
+    if(layout.view===previousCollectionView.current)return;
+    if(layout.view!=="grid"){
       preservedGrouping.current=query.grouping;
       setQuery(current=>({...current,grouping:[],path:[],page:1}));
     }else if(previousCollectionView.current&&previousCollectionView.current!=="grid"&&preservedGrouping.current.length){
       setQuery(current=>({...current,grouping:preservedGrouping.current,path:[],page:1}));
     }
-    previousCollectionView.current=props.viewMode;
-  },[props.viewMode]);
+    previousCollectionView.current=layout.view;
+  },[layout.view]);
 
   const effectiveRowHeight = mobile ? Math.max(48, layout.rowHeight) : layout.rowHeight;
   const restoredViewQuery = useRef<string>();
@@ -643,7 +655,10 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   );
   useEffect(() => {
     setLayout(initial.layout);
-    setQuery(initial.query);
+    // Mobile cards must use a flat query even when this workspace starts grouped.
+    // This reset runs after the collection-view effect on mount.
+    if (layout.view !== "grid") preservedGrouping.current = initial.query.grouping;
+    setQuery(layout.view === "grid" ? initial.query : {...initial.query, grouping: [], path: [], page: 1});
     setViews(initial.views);
     setSearch(initial.query.search);
     setChildren({});
@@ -652,14 +667,13 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     selectedCache.current.clear();
   }, [preferenceKey]);
   useEffect(() => {
-    if (
-      props.queryState &&
-      JSON.stringify(props.queryState) !== JSON.stringify(query)
-    ) {
-      setQuery(props.queryState);
-      setSearch(props.queryState.search);
+    if (!props.queryState) return;
+    const next = layout.view === "grid" ? props.queryState : {...props.queryState, grouping: [], path: []};
+    if (JSON.stringify(next) !== JSON.stringify(query)) {
+      setQuery(next);
+      setSearch(next.search);
     }
-  }, [JSON.stringify(props.queryState)]);
+  }, [JSON.stringify(props.queryState), layout.view]);
   useEffect(() => {
     const timer = setTimeout(
       () =>
@@ -674,6 +688,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         preferenceKey,
         JSON.stringify({
           layout,
+          businessGrouping: true,
           query: { ...query, path: [], page: 1 },
           views,
         }),
@@ -1077,9 +1092,9 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     const originalSignature = currentQuery.current;
     try {
       const groups = table.getRowModel().rows.filter(row => row.original.group);
-      for (const row of groups) {
+      for (let index = 0; index < groups.length; index += 3) {
         if (originalSignature !== currentQuery.current) return;
-        if (!children[row.id]) await loadBranch(row.original.group!.path, row.id);
+        await Promise.all(groups.slice(index,index + 3).filter(row=>!children[row.id]).map(row=>loadBranch(row.original.group!.path,row.id)));
       }
       if (originalSignature === currentQuery.current) setExpanded(previous => ({ ...(typeof previous === "object" ? previous : {}), ...Object.fromEntries(groups.map(row => [row.id, true])) }));
     } finally { setExpandingAll(false); }
@@ -1125,6 +1140,10 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     visibleRecords.length > 0 &&
     visibleRecords.every((row) => selection.includes(getRowId(row)));
   const [bulkBusy, setBulkBusy] = useState<string>();
+  const [undoEdit, setUndoEdit] = useState<{ row: string; column: string; before: string; after: string }>();
+  const [undoBusy, setUndoBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<string>();
+  const actionInFlight = useRef(false);
   const selectedRecords = selection.map(id => selectedCache.current.get(id)).filter((row): row is T => row !== undefined);
   async function runBulkAction(action: NonNullable<SharedDataGridProps<T>["bulkActions"]>[number]) {
     if (bulkBusy || selectedRecords.length !== selection.length || action.disabled?.(selectedRecords)) return;
@@ -1135,13 +1154,26 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     finally { setBulkBusy(undefined); }
   }
   async function runAction(action: GridAction<T>, row: T) {
+    if (actionInFlight.current) return;
     if (action.disabled?.(row)) { setActionError(action.disabledReason || "This action is unavailable for this record."); return; }
+    actionInFlight.current = true; setBusyAction(getRowId(row));
     try {
       setActionError("");
       await action.run(row);
     } catch (e) {
       setActionError(errorText(e));
-    }
+    } finally { actionInFlight.current = false; setBusyAction(undefined); }
+  }
+  const rowGroupColumn = columns.find(column => query.grouping.includes(column.id) && !/priority/i.test(column.title)) || businessGroupColumn(columns, `${collectionLocation.pathname}:${gridId}`);
+  function rowGroupStyle(record:T): CSSProperties {
+    if (!rowGroupColumn) return {};
+    const {color} = groupAppearance(textFor(record,rowGroupColumn).trim() || "Not set",rowGroupColumn.title);
+    return color ? {"--record-group-accent":color,"--record-group-bg":`color-mix(in srgb, ${color} 7%, hsl(var(--card)))`,"--record-group-hover":`color-mix(in srgb, ${color} 13%, hsl(var(--card)))`} as CSSProperties : {};
+  }
+  function rowGroup(record:T) {
+    if (!rowGroupColumn) return {};
+    const value = textFor(record, rowGroupColumn).trim() || "Not set";
+    return {"data-record-group-tone":groupAppearance(value, rowGroupColumn.title).tone,"data-record-group-field":rowGroupColumn.title,"data-record-group-value":value};
   }
   function priorityFor(record:T) {
     const column=columns.find(column=>/\bpriority\b/i.test(column.title.trim()));
@@ -1149,10 +1181,23 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   }
   function renderCollectionRecord(record:T) {
     const actions=rowActions.filter(action=>!action.visible||action.visible(record));
-    return <article data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea"))onOpen?.(record);}}>
+    const quick = actions.filter(action => action.quick && (!mobile || !action.danger));
+    if (mobile) quick.sort((a, b) => Number(/preview|open|view/i.test(a.id)) - Number(/preview|open|view/i.test(b.id)));
+    const fields = columns.filter(column => column.id !== "__suite_favorite" && layout.visibility[column.id] !== false && !/^(select|actions?|quick actions)$/i.test(column.title));
+    if (mobile) fields.sort((a, b) => {
+      const rank = (column: GridColumn<T>) => /^(name|title|full_name|fullName|subject)$/i.test(column.id) || /^(name|title|full name|subject|customer|employee|project|deal|lead|contact|company|sales order|invoice|contract|record|item|product)$/i.test(column.title) ? 0 : column.type === "status" ? 1 : /due|next.*(date|action|follow)/i.test(column.title) ? 2 : column.type === "owner" ? 3 : 4;
+      return rank(a) - rank(b);
+    });
+    const more = expandedCards.includes(getRowId(record));
+    const actionFields = columns.filter(column => layout.visibility[column.id] !== false && /^(actions?|quick actions)$/i.test(column.title));
+    return <article data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{props.rowProps?.(record)?.onClick?.(event as any);if(!event.defaultPrevented && !(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))onOpen?.(record);}}>
       {columns.find(column=>column.id==="__suite_favorite")?.render?.(record)}
-      {props.renderCard?.(record)||<div className="udg-record-fields">{[...columns.filter(column=>column.id!=="__suite_favorite"&&layout.visibility[column.id]!==false&&!/^(select|actions?|quick actions)$/i.test(column.title)).slice(0,7),...columns.filter(column=>layout.visibility[column.id]!==false&&/^(actions?|quick actions)$/i.test(column.title))].map(column=><div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record,column)}</div>)}</div>}
-      <div className="udg-card-actions">{actions.filter(action=>action.quick).slice(0,4).map(action=><button type="button" key={action.id} title={action.label} aria-label={action.label} disabled={action.disabled?.(record)} onClick={()=>void runAction(action,record)}>{action.icon&&<action.icon size={15}/>}</button>)}{actions.length>0&&<Dropdown.Root modal={false}><Dropdown.Trigger aria-label="Record quick actions" title="Record quick actions"><MoreHorizontal size={16}/></Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="udg-menu" align="end" collisionPadding={10}>{actions.map(action=><Dropdown.Item key={action.id} disabled={action.disabled?.(record)} onSelect={()=>void runAction(action,record)}>{action.icon&&<action.icon size={14}/>} {action.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}</div>
+      {mobile && (selecting || selection.length > 0) && props.selectionEnabled !== false && <label className="udg-card-select"><input type="checkbox" aria-label={`Select record ${getRowId(record)}`} checked={selection.includes(getRowId(record))} onChange={event => emitSelection(event.target.checked ? [...new Set([...selection, getRowId(record)])] : selection.filter(id => id !== getRowId(record)))} />Select</label>}
+      {mobile && columns.filter(column => /^(select|selection)$/i.test(column.title)).map(column => <div className="udg-card-select" key={column.id}>{displayFor(record, column)}</div>)}
+      {props.renderCard?.(record)||<div className="udg-record-fields">{fields.slice(0, mobile && !more ? 4 : 7).map(column=><div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record,column)}</div>)}{mobile && more && fields.slice(7).map(column => <div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record,column)}</div>)}</div>}
+      {mobile && !props.renderCard && fields.length > 4 && <button type="button" className="udg-card-details" aria-expanded={more} onClick={() => setExpandedCards(ids => more ? ids.filter(id => id !== getRowId(record)) : [...ids, getRowId(record)])}>{more ? "Show less" : "More details"}</button>}
+      {!!actionFields.length && (mobile ? <details className="udg-card-native-actions"><summary>More actions</summary><div>{actionFields.map(column => <div key={column.id}>{displayFor(record, column)}</div>)}</div></details> : actionFields.map(column => <div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record, column)}</div>))}
+      <div className="udg-card-actions">{quick.slice(0,mobile ? 1 : 4).map(action=><button type="button" key={action.id} title={action.label} aria-label={action.label} aria-busy={busyAction === getRowId(record) || undefined} disabled={!!busyAction || action.disabled?.(record)} onClick={()=>void runAction(action,record)}>{action.icon&&<action.icon size={15}/>} {mobile && action.label}</button>)}{mobile && !quick.length && onOpen && <button type="button" onClick={() => onOpen(record)}><Eye size={16} />Open record</button>}{actions.length>0&&<Dropdown.Root modal={false}><Dropdown.Trigger aria-label="Record quick actions" title="Record quick actions"><MoreHorizontal size={16}/></Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="udg-menu" align="end" collisionPadding={10}>{actions.map(action=><Dropdown.Item key={action.id} disabled={!!busyAction || action.disabled?.(record)} onSelect={()=>void runAction(action,record)}>{action.icon&&<action.icon size={14}/>} {action.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}</div>
     </article>;
   }
   function rowMenu(row: T) {
@@ -1216,6 +1261,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     setEdit({ ...edit, busy: true, automatic, error: undefined });
     try {
       await onEdit?.(node.record, def.id, captured.value);
+      setUndoEdit({ row: captured.row, column: def.id, before: captured.original, after: captured.value });
       if(automatic)setEdit(current=>current?.row===captured.row&&current.column===captured.column?{...current,original:captured.value,busy:false,automatic:false}:current);
       else setEdit(undefined);
       void request.refetch();setNotice(`${def.title} saved.`);return true;
@@ -1655,7 +1701,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
             changeQuery(restoredQuery, true);
             // Restoring context can remount the adapter before the persistence effect runs.
             try {
-              localStorage.setItem(preferenceKey, JSON.stringify({ layout: sanitizeLayout(view.layout, columns), query: restoredQuery, views }));
+              localStorage.setItem(preferenceKey, JSON.stringify({ layout: sanitizeLayout(view.layout, columns), query: restoredQuery, views, businessGrouping: true }));
             } catch {
               setNotice("Layout could not be saved in this browser.");
             }
@@ -1686,6 +1732,17 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           />
         </button>
       </GridToolbar>
+      {mobile && <div className="udg-mobile-presets" aria-label="Quick filters">
+        {props.selectionEnabled !== false && <button type="button" aria-pressed={selecting} onClick={() => { setSelecting(value => !value); if (selecting) emitSelection([]); }}>{selecting ? "Done selecting" : "Select records"}</button>}
+        {presets.map(preset => <button type="button" key={preset.label} aria-pressed={hasMobilePreset(query.filters, preset)} onClick={() => changeQuery({ ...query, filters: toggleMobilePreset(query.filters, preset, presets), page: 1 })}>{preset.label}</button>)}
+        {baseLayout.view === "grid" && <button type="button" onClick={() => setMobileTable(value => !value)}>{mobileTable ? "Cards view" : "Table view"}</button>}
+      </div>}
+      {undoEdit && <div className="udg-edit-undo" role="status"><span>Change saved</span><button type="button" disabled={undoBusy || request.isFetching || !!edit || !permissions.edit || !onEdit} onClick={async () => {
+        const row = visibleRecords.find(record => getRowId(record) === undoEdit.row), column = columns.find(column => column.id === undoEdit.column);
+        if (!row || !column || String(column.accessor ? column.accessor(row) ?? "" : (row as Record<string, unknown>)[column.id] ?? "") !== undoEdit.after) { setActionError("This record changed. Open it to review the latest value before editing."); setUndoEdit(undefined); return; }
+        setUndoBusy(true);
+        try { await onEdit?.(row, column.id, undoEdit.before); setUndoEdit(undefined); await request.refetch(); setNotice("Change undone."); } catch (error) { setActionError(errorText(error)); } finally { setUndoBusy(false); }
+      }}>{undoBusy ? "Undoing…" : "Undo"}</button><button type="button" aria-label="Dismiss undo" onClick={() => setUndoEdit(undefined)}>Dismiss</button></div>}
       {(filterRules(query.filters).length > 0 ||
         !!props.externalFilters?.length) && (
         <div className="udg-filter-chips">
@@ -1995,6 +2052,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                         >
                           <div
                             {...props.rowProps?.(record)}
+                            {...rowGroup(record)}
                             data-priority-row={!!priorityFor(record)}
                             data-priority={priorityFor(record)}
                             role="row"
@@ -2005,7 +2063,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                               2
                             }
                             className={`udg-row ${edit?.row === node.id ? "is-editing" : ""} ${virtual.index % 2 ? "udg-row-alt" : ""} ${selection.includes(node.id) ? "is-selected" : ""}`}
-                            style={position}
+                            style={{...position,...rowGroupStyle(record)}}
                             {...recordPreviewProps(record)}
                             onClick={event => {
                               props.rowProps?.(record).onClick?.(event);

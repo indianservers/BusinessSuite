@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {useAuthStore} from "@/store/authStore";
 import { useModuleAction } from "@/hooks/use-module-action";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -433,7 +434,7 @@ export function ApprovalDesigner({
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button
+        <Button type="submit" variant="default"
           onClick={() => {
             setProcess({
               ...process,
@@ -452,10 +453,10 @@ export function ApprovalDesigner({
           }}
         >
           Add approval stage
-        </button>
-        <button className="ap-primary" disabled={!canSave} onClick={() => void save()}>
+        </Button>
+        <Button type="submit" variant="outline" className="ap-primary" disabled={!canSave} onClick={() => void save()}>
           Save version
-        </button>
+        </Button>
         {policy && (
           <button
             disabled={dirty||!allowPublish||!ownsPolicy}
@@ -795,7 +796,7 @@ export function ApprovalDesigner({
             </button>
           </fieldset>
         ))}
-        <button
+        <Button type="submit" variant="default"
           disabled={process.fields.length >= 30}
           onClick={() =>
             setProcess({
@@ -813,7 +814,7 @@ export function ApprovalDesigner({
           }
         >
           Add request field
-        </button>
+        </Button>
         <label className="ap-check">
           <input
             type="checkbox"

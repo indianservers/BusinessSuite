@@ -144,6 +144,11 @@ window.h={api,client,manager,user,model,disk,changes,counts,age,shareRecordRefer
   server.rows[0].phone='cross-module-change';
   await page.evaluate(()=>h.manager.afterMutation('/employees/1001'));
   assert.deepEqual(await page.evaluate(async()=>[(await h.api.get('/employees/')).data.items[0].phone,(await h.api.get('/project-management/people-workspace/people')).data.items[0].phone]),['cross-module-change','cross-module-change']);
+  // A photo upload is a nested employee mutation; both person projections refresh.
+  server.rows[0].profile_photo_url='/portrait-replacement.png';
+  await page.evaluate(()=>h.manager.afterMutation('/employees/1/photo'));
+  assert.deepEqual(await page.evaluate(async()=>[(await h.api.get('/employees/')).data.items[0].profile_photo_url,(await h.api.get('/project-management/people-workspace/people')).data.items[0].profile_photo_url]),['/portrait-replacement.png','/portrait-replacement.png']);
+  delete server.rows[0].profile_photo_url;
   // Leave command URLs refresh every personal/approval alias, retaining unrelated views.
   assert.deepEqual(await page.evaluate(()=>['/leave/requests','/leave/my','/leave/my-requests'].map(url=>h.model.policy(url).entity)),['leave','leave','leave']);
   await page.evaluate(async()=>{await h.manager.clear();for(const url of ['/leave/requests','/leave/my','/leave/my-requests','/crm/leads'])await h.api.get(url);});
@@ -157,6 +162,16 @@ window.h={api,client,manager,user,model,disk,changes,counts,age,shareRecordRefer
   assert.equal(await page.evaluate(()=>h.model.splitView({items:[{id:1,kind:'product'},{id:1,kind:'service'}]}).rows.length),2);
   await page.evaluate(async()=>{await h.manager.clear();await h.api.get('/catalog/items',{params:{source:'crm'}});await h.api.get('/catalog/items',{params:{source:'srm'}});});
   assert.equal(await page.evaluate(()=>new Set([...h.manager.memory.values()].map(e=>e.projection)).size),2);
+  // Legacy communication saves publish a plain Event with no resource URL.
+  // Revalidate active views rather than throwing after the server saved data.
+  server.rows[0].phone='generic-mutation';
+  await page.evaluate(()=>h.manager.afterMutation());
+  assert.equal(await page.evaluate(async()=>(await h.api.get('/catalog/items',{params:{source:'crm'}})).data.items[0].phone),'generic-mutation');
+  server.rows[0].phone='legacy-event';
+  const beforeGenericEvent=server.calls;
+  await page.evaluate(()=>window.dispatchEvent(new Event('suite:record-mutated')));
+  await page.waitForFunction(()=>[...h.manager.memory.values()].every(entry=>entry.data.items[0].phone==='legacy-event'));
+  assert.equal(server.calls,beforeGenericEvent+2,'generic event refreshes only the two cached projections');
   assert.deepEqual(errors,[]);
   console.log('PASS: persistent reload, instant repeat reads, delta updates/inserts/deletes, 304, stable query row references, cross-tab locks, offline/reconnect/backoff, optimistic rollback/conflicts, risky-action gating, permission/scope/user changes, logout race, no-store/secrets, deduplication, eviction, stale delta and storage failure.');
   console.log(`BENCHMARK fixture: first=${first.ms.toFixed(1)}ms, memory repeat=${repeat.toFixed(1)}ms; 8 simultaneous reads -> 1 request; repeat view -> 0 requests. These are local fixture results, not production latency claims.`);

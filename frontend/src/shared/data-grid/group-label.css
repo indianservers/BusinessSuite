@@ -10,3 +10,5 @@
 .suite-group-purple { --group-color:#7150bf; }
 .suite-group-gray { --group-color:#626977; }
 .suite-group-count { flex:none; font-size:10px; line-height:18px; color:hsl(var(--muted-foreground)); font-variant-numeric:tabular-nums; padding:0 3px; font-weight:500; }
+.suite-group-count { display:inline-flex; align-items:center; justify-content:center; min-width:21px; height:21px; padding:0 6px; border-radius:999px; background:#7016df; color:white; font-weight:700; font-variant-numeric:tabular-nums; }
+.suite-group-badge + .suite-group-count { background:var(--group-color,#7016df); }

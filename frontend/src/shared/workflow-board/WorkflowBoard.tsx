@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { CalendarDays, ChevronRight, Layers, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import BranchSwitcher from "@/components/suite/BranchSwitcher";
+import { normalizePriority } from "@/shared/priority/priority";
+import "@/shared/priority/priority.css";
 import { emptyWorkflowFilters, filterWorkflowRecords, formatWorkflowMoney, sortWorkflowRecords, workflowBadges, workflowFacets, workflowTotal, type WorkflowData, type WorkflowFilters, type WorkflowRecord } from "./model";
 import "./workflow-board.css";
 
@@ -67,11 +69,13 @@ export function WorkflowBoard({ data, title, loading, error, onRefresh, onChange
 
 function WorkflowCard({ record, now, onChangeStage }: { record: WorkflowRecord; now: Date; onChangeStage?: Props["onChangeStage"] }) {
   const badges = workflowBadges(record, now);
-  return <article className="workflow-board-card">
+  const priority = normalizePriority(record.priority);
+  return <article className="workflow-board-card" data-priority-row data-priority={priority}>
     <Link to={record.href} className="workflow-board-record">
       <strong title={record.title}>{record.title}</strong>{record.subtitle && <span title={record.subtitle}>{record.subtitle}</span>}
       {record.amount != null && <span>{formatWorkflowMoney(record.amount, record.currency)}</span>}
       {record.effort != null && <span>{record.effort} h estimated</span>}
+      {priority && <span><span data-priority-badge data-priority={priority}>{record.priority}</span></span>}
       {badges.length > 0 && <span className="workflow-board-badges">{badges.map(b => <em key={b} className={b === "Overdue" ? "workflow-badge-overdue" : b === "Blocked" ? "workflow-badge-blocked" : "workflow-badge-approval"}>{b}</em>)}</span>}
       <small><CalendarDays size={12} />{record.date ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(record.date) ? `${record.date}T12:00:00` : record.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "No date"}</small>
       <small title={record.owners.map(o => o.label).join(", ")}>{record.owners.map(o => o.label).join(", ") || "Unassigned"}</small>

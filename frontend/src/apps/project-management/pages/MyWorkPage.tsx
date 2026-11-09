@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -544,22 +545,22 @@ export default function MyWorkPage() {
           >
             <RefreshCw size={16} />
           </button>
-          <Link className="mw-primary" to="/pms/tasks/new" aria-disabled={!canCreateTask} tabIndex={canCreateTask?0:-1} onClick={e=>{if(!canCreateTask)e.preventDefault();}}>
+          <Button asChild variant="default"><Link className="mw-primary suite-task-button" to="/pms/tasks/new" aria-disabled={!canCreateTask} tabIndex={canCreateTask?0:-1} onClick={e=>{if(!canCreateTask)e.preventDefault();}}>
             <Plus size={18} /> Add Task
-          </Link>
+          </Link></Button>
         </div>
       </header>
       {error && (
         <div role="alert" className="mw-error">
           {error}
-          <button
+          <Button type="submit" variant="outline"
             onClick={() => {
               setError("");
               refresh();
             }}
           >
             Retry
-          </button>
+          </Button>
         </div>
       )}
       {notice && (
@@ -686,7 +687,7 @@ export default function MyWorkPage() {
           })}
         </nav>
         <div className="mw-actions">
-          <button onClick={() => setSavingView((v) => !v)}>Save view</button>
+          <Button type="submit" variant="outline" onClick={() => setSavingView((v) => !v)}>Save view</Button>
           <Menu.Root>
             <Menu.Trigger>
               <Columns3 size={15} /> Columns
@@ -736,9 +737,9 @@ export default function MyWorkPage() {
             value={viewName}
             onChange={(e) => setViewName(e.target.value)}
           />
-          <button type="submit" className="mw-primary">
+          <Button variant="outline" type="submit" className="mw-primary">
             Save on this browser
-          </button>
+          </Button>
         </CompactForm>
       )}
       {!!saved.length && (
@@ -864,9 +865,9 @@ export default function MyWorkPage() {
       {!!chosen.length && (
         <section className="mw-bulk" aria-label="Bulk task actions">
           <strong>{chosen.length} selected</strong>
-          <CompactActions><button onClick={() => openAssignment(chosen)}>
+          <CompactActions><Button type="submit" variant="outline" onClick={() => openAssignment(chosen)}>
             <Users size={16} /> Assign people / groups
-          </button>
+          </Button>
 <button
             disabled={busy || !bulkValue}
             onClick={() =>
@@ -878,10 +879,10 @@ export default function MyWorkPage() {
           >
             Apply
           </button>
-<button onClick={() => exportTasks(chosen)}>
+<Button type="submit" variant="outline" onClick={() => exportTasks(chosen)}>
             <Download size={15} /> Export
-          </button>
-<button
+          </Button>
+<Button type="submit" variant="outline"
             disabled={busy}
             onClick={() => {
               if (!window.confirm(`Delete ${chosen.length} selected tasks?`))
@@ -907,7 +908,7 @@ export default function MyWorkPage() {
             }}
           >
             Delete selected
-          </button>
+          </Button>
 <button aria-label="Clear selection" onClick={() => setSelected([])}>
             <X size={16} />
           </button></CompactActions>
@@ -1029,9 +1030,9 @@ export default function MyWorkPage() {
             <ListChecks size={32} />
             <h2>No tasks in this view</h2>
             <p>Adjust your filters or add a task to get started.</p>
-            <Link to="/pms/tasks/new" className="mw-primary" aria-disabled={!canCreateTask} tabIndex={canCreateTask?0:-1} onClick={e=>{if(!canCreateTask)e.preventDefault();}}>
+            <Button asChild variant="default"><Link to="/pms/tasks/new" className="mw-primary suite-task-button" aria-disabled={!canCreateTask} tabIndex={canCreateTask?0:-1} onClick={e=>{if(!canCreateTask)e.preventDefault();}}>
               <Plus size={16} /> Add Task
-            </Link>
+            </Link></Button>
           </div>
         ) : layout === "board" ? (
           <MoveBoard label="My Work status board" groups={statuses.map(s => ({ id: s, label: s }))} disabled={busy} items={[...items].sort((a,b) => (a.position || 0) - (b.position || 0)).map(t => ({ id: t.id, label: t.title, group: t.status, disabled: !editable(t), content: <Link className="text-xs text-primary" to={`/pms/tasks/${t.id}`}>{t.task_key} · {t.project_name}</Link> }))} onMove={async ({ item, group, beforeId }) => { await arrangeTask(Number(item.id), { group_by: "status", status: group, before_id: items.find(t=>t.id===beforeId)?.project_id === items.find(t=>t.id===item.id)?.project_id ? beforeId : undefined }); refresh(); }} />

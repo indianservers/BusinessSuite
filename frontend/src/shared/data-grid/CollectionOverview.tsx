@@ -13,7 +13,7 @@ export default function CollectionOverview<T>({rows,fields,total,onOpen}:{rows:T
   return <div className="suite-collection-overview">
     <div className="suite-collection-counts" aria-label="Collection summary counts">
       <div className="suite-count-total"><span className="suite-count-icon"><Layers size={15} aria-hidden="true"/></span><span>Loaded records<strong>{rows.length.toLocaleString()}</strong></span></div>
-      {total!==undefined && <div><span>Matching records<strong>{total.toLocaleString()}</strong></span></div>}
+      {total!==undefined && <div><span className="suite-count-icon"><Layers size={15} aria-hidden="true"/></span><span>Matching records<strong>{total.toLocaleString()}</strong></span></div>}
       {counts.map(({title,count})=>{const {Icon,tone}=groupAppearance(title,"Status");return <div key={title} className={`suite-count-${tone}`}><span className="suite-count-icon"><Icon size={15} aria-hidden="true"/></span><span>{title}<strong>{count.toLocaleString()}</strong></span></div>;})}
     </div>
     {schedule.length>0 && <section className="suite-collection-schedule" aria-label="Record schedule">

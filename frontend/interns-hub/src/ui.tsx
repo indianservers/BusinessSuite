@@ -1,3 +1,4 @@
+import "../../src/shared/priority/priority.css";
 import { RichTextContent, richTextPlainText } from "../../src/components/rich-text/RichTextContent";
 import React, { createContext, useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -318,7 +319,7 @@ export function TaskTable({
         </thead>
         <tbody>
           {items.slice(0, compact ? 4 : undefined).map((t) => (
-            <tr key={t.id}>
+            <tr data-priority-row data-priority={t.priority} key={t.id}>
               <td>
                 <Link className="task-title" to={`/tasks/${t.id}`}>
                   <span className="task-icon">
@@ -338,7 +339,7 @@ export function TaskTable({
                   <td className="nowrap">{formatDate(t.due_date)}</td>
                   <td>{data.me.manager || "Unassigned"}</td>
                   <td>
-                    <Badge>{t.priority}</Badge>
+                    <span className="badge" data-priority-badge data-priority={t.priority}>{t.priority}</span>
                   </td>
                 </>
               )}

@@ -1,3 +1,4 @@
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import CatalogEditor from "@/shared/catalog/CatalogEditor";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { progress, operationId, type ProgressStep } from "@/lib/async-progress";
@@ -942,14 +943,14 @@ function TodayWorkList({ rows, onOpen }: { rows: Array<{ id: string; title: stri
   return (
     <div className="space-y-1">
       {rows.map((row) => (
-        <button key={row.id} type="button" className="grid w-full grid-cols-[4.5rem_1fr_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-xs hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => onOpen(row.path)}>
+        <Button variant="outline" key={row.id} type="button" className="grid w-full grid-cols-[4.5rem_1fr_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-xs hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" onClick={() => onOpen(row.path)}>
           <span className={row.overdue ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground"}>{row.time}</span>
           <span className="min-w-0">
             <span className="block truncate font-semibold text-foreground">{row.title}</span>
             <span className="block truncate text-[11px] text-muted-foreground">{row.type}{row.owner ? ` - ${row.owner}` : ""}</span>
           </span>
           <span className="text-emerald-700 dark:text-emerald-300">Open</span>
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -1815,7 +1816,7 @@ function PipelineColumn({
       <header className="border-t-4 p-3" style={{ borderTopColor: color }}>
         <div className="flex items-center justify-between gap-2">
           <h2 className="truncate text-sm font-semibold text-slate-950">{stage}</h2>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{deals.length}</span>
+          <span data-count-badge data-count-tone="purple" className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{deals.length}</span>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
           <div className="rounded bg-slate-50 p-2">
@@ -2006,7 +2007,7 @@ function PipelineSettingsPage() {
   }
   return <div className="space-y-4"><PageHeader title="Pipeline Settings" description="Customize the stages of your sales process." action="Back to board" onAction={()=>window.location.assign("/crm/pipeline")}/>
     {(error||pipelineState.error||stageState.error)&&<p role="alert" className="text-destructive">{error||pipelineState.error||stageState.error}</p>}
-    <div className="flex flex-wrap gap-2 items-center"><label>Pipeline <NativeSelect className="rounded border p-2 bg-background" value={pipeline?.id?String(pipeline.id):""} onChange={e=>setSelectedId(Number(e.target.value))}>{pipelines.map(p=><option key={String(p.id)} value={String(p.id)}>{String(p.name)}</option>)}</NativeSelect></label><Input className="max-w-56" aria-label="New pipeline name" placeholder="New pipeline name" value={newName} onChange={e=>setNewName(e.target.value)}/><Button disabled={!newName.trim()} onClick={()=>{setError("");void crmApi.create<CRMApiRecord>("pipelines",{name:newName.trim()}).then(async r=>{setSelectedId(Number(r.data.id));setNewName("");await reloadConfiguration();}).catch(e=>setError(dealError(e)));}}>Create pipeline</Button></div>
+    <div className="flex flex-wrap gap-2 items-center"><label>Pipeline <NativeSelect className="rounded border p-2 bg-background" value={pipeline?.id?String(pipeline.id):""} onChange={e=>setSelectedId(Number(e.target.value))}>{pipelines.map(p=><option key={String(p.id)} value={String(p.id)}>{String(p.name)}</option>)}</NativeSelect></label><SmartCreateSection title="Create pipeline" size="compact"><div className="space-y-3"><Input className="max-w-56" aria-label="New pipeline name" placeholder="New pipeline name" value={newName} onChange={e=>setNewName(e.target.value)}/><Button disabled={!newName.trim()} onClick={()=>{setError("");void crmApi.create<CRMApiRecord>("pipelines",{name:newName.trim()}).then(async r=>{setSelectedId(Number(r.data.id));setNewName("");await reloadConfiguration();}).catch(e=>setError(dealError(e)));}}>Create pipeline</Button>{error && <p role="alert">{error}</p>}</div></SmartCreateSection></div>
     {pipelineState.loading||stageState.loading?<p role="status">Loading pipeline settings…</p>:pipeline&&<PipelineStageEditor key={`${pipeline.id}:${revision}`} name={String(pipeline.name)} sales stages={activeStages.map(s=>({id:String(s.id),name:String(s.name),probability:Number(s.probability||0),color:String(s.color||"#278a48"),outcome:s.is_won?"won":s.is_lost?"lost":"open",wip_limit:(s.policy_json as CRMRecord|undefined)?.wip_limit as number|undefined,aging_days:Number((s.policy_json as CRMRecord|undefined)?.stagnation_days||14),required:((s.policy_json as CRMRecord|undefined)?.required||[]) as string[],approval_required:Boolean((s.policy_json as CRMRecord|undefined)?.approval_required),notify_owner:Boolean((s.policy_json as CRMRecord|undefined)?.notify_owner)}))} onSave={async draft=>{
       await movementApi.put(`/crm/pipelines/${pipeline.id}/configuration`,{...draft,expected_stages:activeStages.map(s=>({id:Number(s.id),name:s.name,probability:s.probability,color:s.color,is_won:s.is_won,is_lost:s.is_lost,position:s.position,policy_json:s.policy_json||null})),expected_name:pipeline.name});
       await reloadConfiguration();
@@ -2643,8 +2644,8 @@ function CalendarCreateDialog({ date, onClose, onCreated }: { date: Date; onClos
     crmApi.create(kind, payload).then(onCreated).catch((err) => setError(err?.response?.data?.detail || "Could not create calendar item.")).finally(() => setSaving(false));
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-      <SmartCreateSection title={<>Create calendar item</>} size="standard"><Card className="w-full max-w-lg">
+    <SmartCreateModal definition={{entity:"calendarItem",title:"Create calendar item",presentation:"page",size:"standard"}} onClose={onClose} busy={saving}>
+      <Card className="w-full max-w-lg">
         <CardHeader><CardTitle>Create calendar item</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {error ? <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
@@ -2657,8 +2658,8 @@ function CalendarCreateDialog({ date, onClose, onCreated }: { date: Date; onClos
           {kind === "meetings" ? <label className="flex items-center gap-2 rounded-md border bg-muted/25 p-3 text-sm"><input type="checkbox" checked={syncToCalendar} onChange={(event) => setSyncToCalendar(event.target.checked)} />Sync to connected calendar</label> : null}
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={submit} disabled={saving}>{saving ? "Saving..." : "Create"}</Button></div>
         </CardContent>
-      </Card></SmartCreateSection>
-    </div>
+      </Card>
+    </SmartCreateModal>
   );
 }
 
@@ -2870,7 +2871,7 @@ function CRMLeadsPage() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">Capture, qualify, assign, import, export, and convert leads.</p>
             </div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=lead")}><GitMerge className="h-4 w-4"/>Review duplicates & merge</Button><Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create lead</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=lead")}><GitMerge className="h-4 w-4"/>Review duplicates & merge</Button><Button className="h-8 px-4" onClick={openCreate}><Plus className="h-4 w-4" />Create lead</Button></div>
           </div>
 
           <section className="rounded-md border border-border bg-card">
@@ -3614,7 +3615,7 @@ export function CRMContactsPage() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">Manage people, lifecycle stages, follow-up dates, and account links.</p>
             </div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=contact")}><GitMerge className="h-4 w-4"/>Review duplicates & merge</Button><Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" disabled={!canCreate} onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/crm/duplicates?entity=contact")}><GitMerge className="h-4 w-4"/>Review duplicates & merge</Button><Button className="h-8 px-4" disabled={!canCreate} onClick={openCreate}><Plus className="h-4 w-4" />Create contact</Button></div>
           </div>
 
           <section className="rounded-md border border-border bg-card">
@@ -3802,7 +3803,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
               <th className="w-12 px-3 py-3"><input type="checkbox" checked={allSelected} onChange={(event) => onToggleAll(event.target.checked)} aria-label="Select all contacts" /></th>
               <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("name")}>Contact<ArrowUpDown className="h-3 w-3" /></button></th>
               {visibleColumns.company ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("companyName")}>Company<ArrowUpDown className="h-3 w-3" /></button></th> : null}
-              {visibleColumns.email ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("email")}>Email<ArrowUpDown className="h-3 w-3" /></button></th> : null}
+              {visibleColumns.email ? <th className="px-3 py-3 font-semibold"><Button variant="outline" type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("email")}>Email<ArrowUpDown className="h-3 w-3" /></Button></th> : null}
               {visibleColumns.phone ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("phone")}>Phone<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.stage ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("stage")}>Lifecycle stage<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.status ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("status")}>Status<ArrowUpDown className="h-3 w-3" /></button></th> : null}
@@ -3933,7 +3934,7 @@ export function ContactFormModal({ initialValues, mode, contact, saving, error, 
     clearDraft();return true;
   };
   const draftValue={draft,availability,catalogLines,customValues:customFieldForm.values};
-  const clearDraft=useRecordDraft("crm-contact:new",draftValue,value=>{setDraft(value.draft);setAvailability(value.availability);setCatalogLines(value.catalogLines||[]);customFieldForm.setValues(value.customValues||{});},mode==="create"&&!customFieldForm.loading);
+  const clearDraft=useRecordDraft(`crm-contact:new${initialValues?.companyId ? `:company:${initialValues.companyId}` : ""}`,draftValue,value=>{setDraft(value.draft);setAvailability(value.availability);setCatalogLines(value.catalogLines||[]);customFieldForm.setValues(value.customValues||{});},mode==="create"&&!customFieldForm.loading);
   const auto=useRecordAutosave({value:draftValue,enabled:mode==="edit"&&allowed&&!saving&&!customFieldForm.loading,dirty,save:()=>submit(true)});
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -4310,7 +4311,7 @@ function CRMAccountsPage() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">Manage companies, owners, industries, revenue, and status.</p>
             </div>
-            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create company</Button>
+            <Button className="h-8 px-4" onClick={openCreate}><Plus className="h-4 w-4" />Create company</Button>
           </div>
 
           <section className="rounded-md border border-border bg-card">
@@ -4950,7 +4951,7 @@ function CRMDealsPage() {
               </div>
               <p className="mt-3 text-sm text-muted-foreground">Opportunities with amount, probability, products, quotations, and owners.</p>
             </div>
-            <Button className="h-9 bg-emerald-500 px-4 text-white hover:bg-emerald-400" onClick={openCreate}><Plus className="h-4 w-4" />Create deal</Button>
+            <Button className="h-8 px-4" onClick={openCreate}><Plus className="h-4 w-4" />Create deal</Button>
           </div>
 
           <section className="rounded-md border border-border bg-card">
@@ -7013,7 +7014,7 @@ function LeadToCashPage() {
               </div>
               <p className="mt-3 font-semibold">{label}</p>
               <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
-              <a className="mt-3 inline-flex text-xs font-medium text-primary" href={path}>Open stage</a>
+              <Button asChild variant="outline"><a className="mt-3 inline-flex text-xs font-medium text-primary" href={path}>Open stage</a></Button>
             </CardContent>
           </Card>
         ))}
@@ -7147,6 +7148,7 @@ function ForecastingPage() {
 }
 
 function SalesTargetsPage() {
+  const [creatingTarget,setCreatingTarget] = useState(false);
   const currentUser = useAuthStore((state) => state.user);
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
@@ -7181,11 +7183,11 @@ function SalesTargetsPage() {
   const patchDraft = (key: string, value: CRMApiRecord[string]) => setDraft((current) => ({ ...current, [key]: value }));
   return (
     <div className="space-y-6">
-      <PageHeader title="Sales Targets" description="Create monthly, quarterly, or yearly quotas and compare achieved, invoiced, and collected amounts." action="Create target" onAction={create} />
+      <PageHeader title="Sales Targets" description="Create monthly, quarterly, or yearly quotas and compare achieved, invoiced, and collected amounts." action="Create target" onAction={() => setCreatingTarget(true)} />
       {notice ? <p role="status" className="text-sm text-emerald-700">{notice}</p> : null}
       {error ? <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{error}</div> : null}
       <Card>
-        <CardContent className="grid gap-3 p-4 md:grid-cols-3 xl:grid-cols-[8rem_9rem_9rem_10rem_8rem_10rem_6rem] xl:items-end">
+        <SmartCreateSection title="Create sales target" autoOpen={creatingTarget} onClose={() => setCreatingTarget(false)} size="standard"><CardContent className="grid gap-4 p-4 sm:grid-cols-2">
           <Field label="Period"><NativeSelect aria-label="Target period" className="h-10 rounded-md border bg-background px-3 text-sm" value={String(draft.periodType)} onChange={(event) => patchDraft("periodType", event.target.value)}>{["monthly", "quarterly", "yearly"].map((item) => <option key={item} value={item}>{labelFor(item)}</option>)}</NativeSelect></Field>
           <Field label="Start"><Input aria-label="Target period start" type="date" value={String(draft.periodStart || "")} onChange={(event) => patchDraft("periodStart", event.target.value)} /></Field>
           <Field label="End"><Input aria-label="Target period end" type="date" value={String(draft.periodEnd || "")} onChange={(event) => patchDraft("periodEnd", event.target.value)} /></Field>
@@ -7193,7 +7195,7 @@ function SalesTargetsPage() {
           <Field label="Owner ID"><Input aria-label="Target owner ID" min="1" type="number" value={String(draft.targetOwnerId ?? "")} onChange={(event) => patchDraft("targetOwnerId", Number(event.target.value))} /></Field>
           <Field label="Target"><Input aria-label="Target amount" min="0.01" step="0.01" type="number" value={String(draft.targetAmount ?? "")} onChange={(event) => patchDraft("targetAmount", Number(event.target.value))} /></Field>
           <Button disabled={saving} onClick={create}>{saving ? "Saving…" : "Save target"}</Button>
-        </CardContent>
+        </CardContent>{error && <p role="alert">{error}</p>}</SmartCreateSection>
       </Card>
       <div className="grid gap-4 xl:grid-cols-2">
         <ReportTable title="Targets" rows={targets} columns={["periodType", "periodStart", "periodEnd", "targetOwnerType", "targetOwnerId", "targetAmount", "currency"]} />

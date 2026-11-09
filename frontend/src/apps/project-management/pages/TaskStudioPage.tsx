@@ -1,3 +1,5 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import { Button } from "@/components/ui/button";
 import { MobileActionBar } from "@/components/mobile/MobileActionBar";
 import {useRecordAutosave} from "@/hooks/use-record-autosave";
 import {useModuleAction} from "@/hooks/use-module-action";
@@ -30,9 +32,6 @@ import {
   CalendarDays,
   Flag,
   Circle,
-  Bug,
-  Lightbulb,
-  BarChart3,
   MoreHorizontal,
   Copy,
   ListChecks,
@@ -174,25 +173,20 @@ function Section({
   title,
   sub,
   children,
+  hidden = false,
+  expandable = false,
 }: {
+  hidden?: boolean;
+  expandable?: boolean;
   icon: ReactNode;
   title: string;
   sub?: string;
   children: ReactNode;
 }) {
-  return (
-    <section className="ts-section">
-      <header>
-        <span className="ts-section-icon">{icon}</span>
-        <div>
-          <h2>{title}</h2>
-          {sub && <p>{sub}</p>}
-        </div>
-      </header>
-      {children}
-    </section>
-  );
+  const heading = <><span className="ts-section-icon">{icon}</span><div><h2>{title}</h2>{sub && <p>{sub}</p>}</div></>;
+  return expandable ? <details className="ts-section ts-expandable" hidden={hidden} data-task-tab={/Assignment/.test(title) ? 0 : 1}><summary>{heading}</summary><div className="ts-expandable-content">{children}</div></details> : <section className="ts-section" hidden={hidden} data-task-tab={title === "Basic info" ? 0 : 1}><header>{heading}</header>{children}</section>;
 }
+
 function PeoplePicker({
   label,
   people,
@@ -203,6 +197,7 @@ function PeoplePicker({
   protectedIds = [],
   projectId,
   reviewers = false,
+  compact = false,
 }: {
   label: string;
   people: Person[];
@@ -213,9 +208,10 @@ function PeoplePicker({
   protectedIds?: number[];
   projectId: number;
   reviewers?: boolean;
+  compact?: boolean;
 }) {
   const [q, setQ] = useState("");
-  const [pickerOpen,setPickerOpen]=useState(!single);
+  const [pickerOpen,setPickerOpen]=useState(!single && !compact);
   const [page, setPage] = useState(1);
   const [remote, setRemote] = useState<{
     items: Person[];
@@ -323,9 +319,9 @@ function PeoplePicker({
           {pickerError && (
             <p role="alert">
               {pickerError}
-              <button type="button" onClick={() => setRetry((v) => v + 1)}>
+              <Button variant="outline" type="button" onClick={() => setRetry((v) => v + 1)}>
                 Retry
-              </button>
+              </Button>
             </p>
           )}
           {remote && remote.pages > 1 && (
@@ -404,6 +400,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     task_key: `TSK-${crypto.randomUUID().slice(0, 12)}`,
     custom_fields: {},
   });
+  const [formTab, setFormTab] = useState(0);
   const [draft, setDraft] = useState<Draft>(initial);
   const [saved, setSaved] = useState("");
   const [detail, setDetail] = useState<Detail>();
@@ -546,7 +543,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   const savingRef=useRef(false);
   const uploaded = useRef(new Set<string>());
   const allowNavigation = useRef(false);
-  const draftKey = `pms-task-studio:${user?.id}:${id || "new"}${draftScope?":"+draftScope:""}`;
+  const draftKey = `pms-task-studio:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch") || "default"}:${id || "new"}${draftScope?":"+draftScope:""}`;
   const dirty =
     (!!saved && saved !== JSON.stringify(draft)) ||
     files.length > 0 ||
@@ -666,7 +663,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           if(!id&&!defaultAssignmentApplied.current&&!params.has("people")&&!params.has("teams")&&!params.has("batches")){
             defaultAssignmentApplied.current=true;
             const preferred=Number(defaultOwner("project_management"));
-            const person=r.data.people.find(p=>p.id===preferred)||r.data.people.find(p=>p.id===user?.id);
+            const person=r.data.people.find(p=>p.id===user?.id)||r.data.people.find(p=>p.id===preferred);
             if(person)setDraft(d=>d.assignment.people.length||d.assignment.teams.length||d.assignment.batches.length?d:{...d,assignment:{...d.assignment,people:[person.id]}});
           }
         }
@@ -1042,10 +1039,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           </p>
         </div>
         <div className="ts-title-actions">
-          <button className="tr-button" disabled={busy} onClick={saveDraft}>
+          <Button type="submit" variant="outline" className="tr-button" disabled={busy} onClick={saveDraft}>
             <Save size={17} />
             Save Draft
-          </button>
+          </Button>
           <button
             className="tr-primary"
             disabled={
@@ -1112,7 +1109,8 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           administrator for editing access.
         </p>
       )}
-      <CompactForm compactTabs={!embedded}
+      <CompactForm compactTabs={false}
+        onInvalidCapture={event => { event.preventDefault(); const field = event.target as HTMLElement; const panel = field.closest<HTMLElement>("[data-task-tab]"); if (panel) setFormTab(Number(panel.dataset.taskTab)); let node = field.parentElement; while (node) { if (node instanceof HTMLDetailsElement) node.open = true; node = node.parentElement; } requestAnimationFrame(() => field.focus()); }}
         ref={formRef}
         onSubmit={(e) => {
           e.preventDefault();
@@ -1120,11 +1118,13 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         }}
         className="ts-layout"
       >
+        <nav className="ts-compact-tabs" aria-label="Task form sections">{["Basic info", "Planning & details", "AI & tools"].map((label, index) => <button type="button" key={label} aria-pressed={formTab === index} onClick={() => setFormTab(index)}>{label}</button>)}</nav>
         <div className="ts-fields">
           <fieldset disabled={busy || !editable}>
             <Section
               icon={<FileText />}
-              title="1. Basic Info"
+              title="Basic info"
+              hidden={formTab !== 0}
               sub="Provide the essential details about the task."
             >
               <div className="ts-basic-pair">
@@ -1217,7 +1217,26 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                         </NativeSelect>
                       </>
                     )}
-                    <span>Parent task (optional)</span>
+                  </span>
+                </label>
+                <label className="ts-field">
+                  <Type />
+                  <span>
+                    Task Title <b>*</b>
+                    <input
+                      aria-label="Task Title"
+                      required
+                      maxLength={220}
+                      placeholder="What needs to be done?"
+                      value={draft.title}
+                      onChange={(e) => set("title", e.target.value)}
+                    />
+                    <small>
+                      Be clear and specific about what needs to be done.
+                    </small>
+                  </span>
+                </label>
+                <label className="ts-field"><Folder /><span>                    <span>Parent task (optional)</span>
                     <input
                       aria-label="Search parent tasks"
                       placeholder="Find a parent task in this location"
@@ -1254,110 +1273,252 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                         </option>
                       ))}
                     </NativeSelect>
-                  </span>
-                </label>
-                <label className="ts-field">
-                  <Type />
-                  <span>
-                    Task Title <b>*</b>
-                    <input
-                      aria-label="Task Title"
-                      required
-                      maxLength={220}
-                      placeholder="What needs to be done?"
-                      value={draft.title}
-                      onChange={(e) => set("title", e.target.value)}
-                    />
-                    <small>
-                      Be clear and specific about what needs to be done.
-                    </small>
-                  </span>
-                </label>
-              </div>
+</span></label>
               <div className="ts-field ts-worktype">
                 <FileText />
                 <div>
                   <label>
                     Work item type <b>*</b>
                   </label>
-                  <div role="group" aria-label="Work item type">
-                    {types
-                      .filter((type) =>
-                        [
-                          "Task",
-                          "Bug",
-                          "Feature",
-                          "Improvement",
-                          "Research",
-                          "Documentation",
-                        ].includes(type),
-                      )
-                      .map((type) => {
-                        const Icon =
-                          type === "Bug"
-                            ? Bug
-                            : type === "Feature"
-                              ? Lightbulb
-                              : type === "Improvement"
-                                ? BarChart3
-                                : type === "Research"
-                                  ? Search
-                                  : FileText;
-                        return (
-                          <button
-                            type="button"
-                            key={type}
-                            className={
-                              draft.work_type === type ? "selected" : ""
-                            }
-                            aria-pressed={draft.work_type === type}
-                            onClick={() => set("work_type", type)}
-                          >
-                            <Icon size={16} />
-                            {type}
-                            {draft.work_type === type && <Check size={13} />}
-                          </button>
-                        );
-                      })}
-                    <NativeSelect
-                      aria-label="Other work item types"
-                      value={
-                        [
-                          "Task",
-                          "Bug",
-                          "Feature",
-                          "Improvement",
-                          "Research",
-                          "Documentation",
-                        ].includes(draft.work_type)
-                          ? ""
-                          : draft.work_type
-                      }
-                      onChange={(e) => {
-                        if (e.target.value) set("work_type", e.target.value);
-                      }}
-                    >
-                      <option value="">••• Other</option>
-                      {types
-                        .filter(
-                          (type) =>
-                            ![
-                              "Task",
-                              "Bug",
-                              "Feature",
-                              "Improvement",
-                              "Research",
-                              "Documentation",
-                              ...(!id ? ["Sub-task"] : []),
-                            ].includes(type),
-                        )
-                        .map((type) => (
-                          <option key={type}>{type}</option>
-                        ))}
-                    </NativeSelect>{" "}
-                  </div>
+                  <NativeSelect aria-label="Work item type" value={draft.work_type} onChange={event => set("work_type", event.target.value)}>{types.filter(type => id || type !== "Sub-task" || draft.parent_task_id).map(type => <option key={type}>{type}</option>)}</NativeSelect>
                 </div>
               </div>
+              </div>
+              <div className="ts-essential-planning">                <label>
+                  Due date
+                  <input
+                    type="date"
+                    aria-label="Due date"
+                    value={draft.due_date}
+                    min={draft.start_date || undefined}
+                    onChange={(e) => set("due_date", e.target.value)}
+                  />
+                </label>
+                <label>
+                  Priority
+                  <NativeSelect
+                    aria-label="Priority"
+                    value={draft.priority}
+                    onChange={(e) => set("priority", e.target.value)}
+                  >
+                    {["Low", "Medium", "High", "Urgent"].map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </NativeSelect>
+                </label>
+<div className="ts-essential-assignees" ref={pickerRef}>
+                  <div className="ts-assignee-heading"><label>Assignees</label>
+                  {user && people.some(person => person.id === user.id) && <label className="ts-assign-self"><input type="checkbox" aria-label="Assign to me" checked={draft.assignment.people.includes(user.id)} disabled={!editable || detail?.protected_ids.includes(user.id)} onChange={event => assign({ people: event.target.checked ? [...new Set([...draft.assignment.people, user.id])] : draft.assignment.people.filter(id => id !== user.id) })} />Assign to me</label>}</div>
+                  <details className="ts-assignee-combo"><summary aria-label="Choose assignees"><Users size={15}/><span>{[...selectedPeople.map(person => person.name), ...selectedGroups.map(group => group.name)].join(", ") || "Select people, teams or interns batches"}</span><ChevronRight size={14}/></summary>
+                  <div className="ts-assignee-dropdown">                <div className="ts-assignment-cards" role="tablist" aria-label="Assignee type" onKeyDown={event => { if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return; const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')); const index = tabs.indexOf(document.activeElement as HTMLButtonElement); const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length; event.preventDefault(); tabs[next]?.click(); tabs[next]?.focus(); }}>
+                  {[
+                    {
+                      key: "people" as const,
+                      title: "Person",
+                      sub: "Assign to individual team members",
+                      icon: UserRound,
+                    },
+                    {
+                      key: "teams" as const,
+                      title: "Team",
+                      sub: "Assign to an existing team",
+                      icon: Users,
+                    },
+                    {
+                      key: "batches" as const,
+                      title: "Interns Batch",
+                      sub: "Assign to a batch of interns",
+                      icon: GraduationCap,
+                    },
+                  ].map((m) => (
+                    <button
+                      type="button"
+                      key={m.key}
+                      role="tab"
+                      tabIndex={mode === m.key ? 0 : -1}
+                      aria-selected={mode === m.key}
+                      aria-controls="task-assignee-options"
+                      id={`task-assignee-tab-${m.key}`}
+                      aria-pressed={mode === m.key}
+                      className={mode === m.key ? "selected" : ""}
+                      onClick={() => { setMode(m.key); setGroupSearch(""); }}
+                    >
+                      <span>
+                        <m.icon />
+                      </span>
+                      <div>
+                        <strong>{m.title}</strong>
+                        <small>{m.sub}</small>
+                      </div>
+                      {mode === m.key && <Check size={15} />}
+                    </button>
+                  ))}
+                </div>
+                <div className="ts-assignment-body" role="tabpanel" id="task-assignee-options" aria-labelledby={`task-assignee-tab-${mode}`}>
+                  <div>
+                    <label>
+                      {mode === "people"
+                        ? "Select assignees"
+                        : "Select " +
+                          (mode === "teams" ? "teams" : "intern batches")}{" "}
+                      <b>*</b>
+                    </label>
+
+                    {!options ? (
+                      <p role="status">Loading assignment options…</p>
+                    ) : mode === "people" ? (
+                      <PeoplePicker label="Select assignees" people={people} value={draft.assignment.people} protectedIds={detail?.protected_ids} disabled={!editable} projectId={draft.projectId} onChange={value => assign({ people: value })} />
+                    ) : (
+                      <div className="ts-group-picker">
+                        <label className="ts-group-search">
+                          <Search size={15} />
+                          <input
+                            aria-label="Search groups"
+                            placeholder="Search and select multiple groups…"
+                            value={groupSearch}
+                            onChange={(e) => setGroupSearch(e.target.value)}
+                          />
+                        </label>
+                        {options[mode]
+                          .filter((g) =>
+                            g.name
+                              .toLowerCase()
+                              .includes(groupSearch.toLowerCase()),
+                          )
+                          .map((g) => (
+                            <label key={g.id} className="ts-group-row">
+                              <input
+                                type="checkbox"
+                                checked={draft.assignment[mode].includes(g.id)}
+                                disabled={
+                                  draft.execution_mode === "individual" &&
+                                  mode === "batches"
+                                    ? !g.population_count
+                                    : !g.member_ids.length
+                                }
+                                onChange={(e) =>
+                                  assign({
+                                    [mode]: e.target.checked
+                                      ? [...draft.assignment[mode], g.id]
+                                      : draft.assignment[mode].filter(
+                                          (v) => v !== g.id,
+                                        ),
+                                  })
+                                }
+                              />
+                              <span>
+                                <strong>{g.name}</strong>
+                                <small>
+                                  {g.member_count ?? g.member_ids.length}{" "}
+                                  eligible · {g.excluded_count} excluded
+                                  (missing access, inactive account, or outside
+                                  your scope)
+                                </small>
+                              </span>
+                            </label>
+                          ))}
+                        {options[mode].length > 0 && !options[mode].some(group => group.name.toLowerCase().includes(groupSearch.toLowerCase())) && <p role="status">No matching {mode === "teams" ? "teams" : "interns batches"}. Try another search.</p>}
+                        {!options[mode].length && (
+                          <p>
+                            {mode === "batches"
+                              ? options.batch_reason
+                              : "No teams in this workspace. Create a team from workspace management."}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div className="ts-group-chips">
+                      {options &&
+                        (["teams", "batches"] as const).flatMap((kind) =>
+                          draft.assignment[kind]
+                            .filter(
+                              (id) => !options[kind].some((g) => g.id === id),
+                            )
+                            .map((id) => (
+                              <span key={`missing-${kind}-${id}`}>
+                                Unavailable{" "}
+                                {kind === "teams" ? "team" : "batch"} #{id}
+                                <button
+                                  type="button"
+                                  aria-label={`Remove unavailable ${kind} ${id}`}
+                                  onClick={() =>
+                                    assign({
+                                      [kind]: draft.assignment[kind].filter(
+                                        (v) => v !== id,
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <X size={11} />
+                                </button>
+                              </span>
+                            )),
+                        )}
+                      {["teams", "batches"].map((kind) =>
+                        (options?.[kind as "teams" | "batches"] || [])
+                          .filter((g) =>
+                            draft.assignment[
+                              kind as "teams" | "batches"
+                            ].includes(g.id),
+                          )
+                          .map((g) => (
+                            <span key={`${kind}-${g.id}`}>
+                              {g.name}
+                              <button
+                                type="button"
+                                aria-label={`Remove group ${g.name}`}
+                                onClick={() =>
+                                  assign({
+                                    [kind]: draft.assignment[
+                                      kind as "teams" | "batches"
+                                    ].filter((v) => v !== g.id),
+                                  })
+                                }
+                              >
+                                <X size={11} />
+                              </button>
+                            </span>
+                          )),
+                      )}
+                    </div>
+                    <Button variant="default"
+                      type="button"
+                      className="ts-add-person"
+                      onClick={() => setAdding(true)}
+                      disabled={!draft.projectId || !options?.can_add_existing}
+                      title={
+                        !options?.can_add_existing
+                          ? "Only a workspace or project administrator can add existing people."
+                          : "Add an existing person immediately"
+                      }
+                    >
+                      <Plus size={13} />
+                      Add existing person
+                    </Button>
+                    {!!selectedGroups.length && (
+                      <small className="ts-snapshot-note">
+                        {draft.assignment.group_responsibility
+                          ? "Groups own this task collectively. Select people explicitly for individual responsibility; future membership changes do not create individual assignments."
+                          : "Legacy group assignments retain their member snapshot. Future membership changes do not silently change this task."}
+                      </small>
+                    )}
+                    {excluded > 0 && (
+                      <label className="ts-exclusion">
+                        <input
+                          type="checkbox"
+                          checked={draft.assignment.allow_partial_groups}
+                          onChange={(e) =>
+                            assign({ allow_partial_groups: e.target.checked })
+                          }
+                        />
+                        I reviewed {excluded} excluded group memberships. Assign
+                        eligible members only.
+                      </label>
+                    )}
+                  </div>
+                </div>
+</div></details>
+                </div></div>
               <div className="ts-field ts-description">
                 <FileText />
                 <div>
@@ -1372,10 +1533,11 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                   />
                 </div>
               </div>
-            <div ref={pickerRef}>
+            <div>
               <Section
                 icon={<Users />}
-                title="Members & assignment"
+                title="Assignment details"
+                expandable
                 sub="Assign this task to a person, team, or interns batch."
               >
                 {!id && (
@@ -1471,214 +1633,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                     controls for recipient progress and membership.
                   </p>
                 )}
-                <div className="ts-assignment-cards">
-                  {[
-                    {
-                      key: "people" as const,
-                      title: "Person",
-                      sub: "Assign to individual team members",
-                      icon: UserRound,
-                    },
-                    {
-                      key: "teams" as const,
-                      title: "Team",
-                      sub: "Assign to an existing team",
-                      icon: Users,
-                    },
-                    {
-                      key: "batches" as const,
-                      title: "Interns Batch",
-                      sub: "Assign to a batch of interns",
-                      icon: GraduationCap,
-                    },
-                  ].map((m) => (
-                    <button
-                      type="button"
-                      key={m.key}
-                      aria-pressed={mode === m.key}
-                      className={mode === m.key ? "selected" : ""}
-                      onClick={() => setMode(m.key)}
-                    >
-                      <span>
-                        <m.icon />
-                      </span>
-                      <div>
-                        <strong>{m.title}</strong>
-                        <small>{m.sub}</small>
-                      </div>
-                      {mode === m.key && <Check size={15} />}
-                    </button>
-                  ))}
-                </div>
                 <div className="ts-assignment-body">
-                  <div>
-                    <label>
-                      {mode === "people"
-                        ? "Select assignees"
-                        : "Select " +
-                          (mode === "teams" ? "teams" : "intern batches")}{" "}
-                      <b>*</b>
-                    </label>
-                    {mode === "people" && user && people.some(p => p.id === user.id) && <button type="button" disabled={!editable || draft.assignment.people.includes(user.id)} onClick={() => assign({ people: [...new Set([...draft.assignment.people, user.id])] })}>{draft.assignment.people.includes(user.id) ? "Assigned to me" : "Assign to me"}</button>}
-                    {!options ? (
-                      <p role="status">Loading assignment options…</p>
-                    ) : mode === "people" ? (
-                      <PeoplePicker
-                        label="Select assignees"
-                        people={people}
-                        value={draft.assignment.people}
-                        protectedIds={detail?.protected_ids}
-                        disabled={!editable}
-                        projectId={draft.projectId}
-                        onChange={(v) => assign({ people: v })}
-                      />
-                    ) : (
-                      <div className="ts-group-picker">
-                        <label className="ts-group-search">
-                          <Search size={15} />
-                          <input
-                            aria-label="Search groups"
-                            placeholder="Search and select multiple groups…"
-                            value={groupSearch}
-                            onChange={(e) => setGroupSearch(e.target.value)}
-                          />
-                        </label>
-                        {options[mode]
-                          .filter((g) =>
-                            g.name
-                              .toLowerCase()
-                              .includes(groupSearch.toLowerCase()),
-                          )
-                          .map((g) => (
-                            <label key={g.id} className="ts-group-row">
-                              <input
-                                type="checkbox"
-                                checked={draft.assignment[mode].includes(g.id)}
-                                disabled={
-                                  draft.execution_mode === "individual" &&
-                                  mode === "batches"
-                                    ? !g.population_count
-                                    : !g.member_ids.length
-                                }
-                                onChange={(e) =>
-                                  assign({
-                                    [mode]: e.target.checked
-                                      ? [...draft.assignment[mode], g.id]
-                                      : draft.assignment[mode].filter(
-                                          (v) => v !== g.id,
-                                        ),
-                                  })
-                                }
-                              />
-                              <span>
-                                <strong>{g.name}</strong>
-                                <small>
-                                  {g.member_count ?? g.member_ids.length}{" "}
-                                  eligible · {g.excluded_count} excluded
-                                  (missing access, inactive account, or outside
-                                  your scope)
-                                </small>
-                              </span>
-                            </label>
-                          ))}
-                        {!options[mode].length && (
-                          <p>
-                            {mode === "batches"
-                              ? options.batch_reason
-                              : "No teams in this workspace. Create a team from workspace management."}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    <div className="ts-group-chips">
-                      {options &&
-                        (["teams", "batches"] as const).flatMap((kind) =>
-                          draft.assignment[kind]
-                            .filter(
-                              (id) => !options[kind].some((g) => g.id === id),
-                            )
-                            .map((id) => (
-                              <span key={`missing-${kind}-${id}`}>
-                                Unavailable{" "}
-                                {kind === "teams" ? "team" : "batch"} #{id}
-                                <button
-                                  type="button"
-                                  aria-label={`Remove unavailable ${kind} ${id}`}
-                                  onClick={() =>
-                                    assign({
-                                      [kind]: draft.assignment[kind].filter(
-                                        (v) => v !== id,
-                                      ),
-                                    })
-                                  }
-                                >
-                                  <X size={11} />
-                                </button>
-                              </span>
-                            )),
-                        )}
-                      {["teams", "batches"].map((kind) =>
-                        (options?.[kind as "teams" | "batches"] || [])
-                          .filter((g) =>
-                            draft.assignment[
-                              kind as "teams" | "batches"
-                            ].includes(g.id),
-                          )
-                          .map((g) => (
-                            <span key={`${kind}-${g.id}`}>
-                              {g.name}
-                              <button
-                                type="button"
-                                aria-label={`Remove group ${g.name}`}
-                                onClick={() =>
-                                  assign({
-                                    [kind]: draft.assignment[
-                                      kind as "teams" | "batches"
-                                    ].filter((v) => v !== g.id),
-                                  })
-                                }
-                              >
-                                <X size={11} />
-                              </button>
-                            </span>
-                          )),
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className="ts-add-person"
-                      onClick={() => setAdding(true)}
-                      disabled={!draft.projectId || !options?.can_add_existing}
-                      title={
-                        !options?.can_add_existing
-                          ? "Only a workspace or project administrator can add existing people."
-                          : "Add an existing person immediately"
-                      }
-                    >
-                      <Plus size={13} />
-                      Add existing person
-                    </button>
-                    {!!selectedGroups.length && (
-                      <small className="ts-snapshot-note">
-                        {draft.assignment.group_responsibility
-                          ? "Groups own this task collectively. Select people explicitly for individual responsibility; future membership changes do not create individual assignments."
-                          : "Legacy group assignments retain their member snapshot. Future membership changes do not silently change this task."}
-                      </small>
-                    )}
-                    {excluded > 0 && (
-                      <label className="ts-exclusion">
-                        <input
-                          type="checkbox"
-                          checked={draft.assignment.allow_partial_groups}
-                          onChange={(e) =>
-                            assign({ allow_partial_groups: e.target.checked })
-                          }
-                        />
-                        I reviewed {excluded} excluded group memberships. Assign
-                        eligible members only.
-                      </label>
-                    )}
-                  </div>
                   <div>
                     <label>
                       Reviewer <small>(optional)</small>
@@ -1727,7 +1682,9 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
             </Section>
             <Section
               icon={<CalendarDays />}
-              title="2. Schedule"
+              title="Scheduling"
+              expandable
+              hidden={formTab !== 1}
               sub="Set timeline, priority, and status for this task."
             >
               <div className="ts-schedule">
@@ -1739,28 +1696,6 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                     value={draft.start_date}
                     onChange={(e) => set("start_date", e.target.value)}
                   />
-                </label>
-                <label>
-                  Due date
-                  <input
-                    type="date"
-                    aria-label="Due date"
-                    value={draft.due_date}
-                    min={draft.start_date || undefined}
-                    onChange={(e) => set("due_date", e.target.value)}
-                  />
-                </label>
-                <label>
-                  Priority
-                  <NativeSelect
-                    aria-label="Priority"
-                    value={draft.priority}
-                    onChange={(e) => set("priority", e.target.value)}
-                  >
-                    {["Low", "Medium", "High", "Urgent"].map((v) => (
-                      <option key={v}>{v}</option>
-                    ))}
-                  </NativeSelect>
                 </label>
                 <label>
                   Status
@@ -1801,7 +1736,9 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
             </Section>
             <Section
               icon={<ListChecks />}
-              title="3. Details & attachments"
+              title="Advanced settings & attachments"
+              expandable
+              hidden={formTab !== 1}
               sub="Keep required project fields and supporting evidence together."
             >
               <CustomFieldsForm
@@ -1859,7 +1796,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               {attachments.map((f) => (
                 <div key={f.id} className="ts-file-row">
                   {f.original_name || f.file_name}
-                  <button
+                  <Button variant="outline"
                     type="button"
                     onClick={async () => {
                       try {
@@ -1876,7 +1813,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                     }}
                   >
                     Download
-                  </button>
+                  </Button>
                   <button
                     type="button"
                     aria-label={`Delete attachment ${f.original_name || f.file_name}`}
@@ -1970,7 +1907,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                     </button>
                   </div>
                 ))}
-                <div className="ts-check-row">
+                <SmartCreateSection title="Add checklist item" size="compact" trigger={<Button variant="default" type="button" className="tr-button" disabled={!canAddItems}>Add checklist item</Button>}><div className="ts-check-row">
                   <input
                     aria-label="New checklist item"
                     disabled={!canAddItems}
@@ -1978,16 +1915,16 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                     value={checkTitle}
                     onChange={(e) => setCheckTitle(e.target.value)}
                   />
-                  <button
+                  <Button variant="default"
                     type="button"
-                    className="tr-button"
+                    className="tr-button" data-save-action
                     disabled={!canAddItems || !checkTitle.trim()}
                     onClick={() => void addCheck()}
                   >
                     <Plus size={15} />
                     Add check
-                  </button>
-                </div>
+                  </Button>
+                </div></SmartCreateSection>
               </Section>
               <TaskExecutionPanel
                 taskId={id}
@@ -2022,7 +1959,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                     for authorized recovery.
                   </p>
                 </div>
-                <button
+                <Button variant="outline"
                   type="button"
                   className="tr-button"
                   disabled={!deletable || busy}
@@ -2030,12 +1967,12 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 >
                   <Trash2 size={16} />
                   Delete task
-                </button>
+                </Button>
               </section>
-              <Link className="ts-classic-link" to={`/pms/tasks/${id}/classic`}>
+              <Button asChild variant="outline"><Link className="ts-classic-link" to={`/pms/tasks/${id}/classic`}>
                 Open activity, conversations, subtasks, and advanced tools{" "}
                 <ArrowRight size={15} />
-              </Link>
+              </Link></Button>
             </>
           )}
           <div className="ts-bottom">
@@ -2052,7 +1989,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 Create another
               </label>
             )}
-            <button
+            <Button variant="outline"
               data-save-action
               className="tr-primary"
               type="submit"
@@ -2061,10 +1998,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               }
             >
               {id ? "Save Changes" : "Create Task"}
-            </button>
+            </Button>
           </div>
         </div>
-        <aside className="ts-right">
+        <aside className="ts-right" hidden={formTab !== 2} data-task-tab="2">
           <section className="ts-summary">
             <header>
               <span className="ts-section-icon">
@@ -2086,9 +2023,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                   {selectedPeople.slice(0, 5).map((p) => (
                     <Photo key={p.id} person={p} />
                   ))}
-                  <button
+                  <Button variant="default"
                     type="button"
                     onClick={() => {
+                      setFormTab(0);
                       setMode("people");
                       const target=pickerRef.current;
                       revealFormField(target);
@@ -2101,7 +2039,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                   >
                     <Plus size={13} />
                     Add more
-                  </button>
+                  </Button>
                 </div>
               </div>
             </header>
@@ -2143,7 +2081,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               </div>
             ))}
           </section>
-          <section className="ts-ai">
+          <details className="ts-ai ts-expandable"><summary>AI assistance</summary>
             <div>
               <Sparkles size={20} />
               <strong>AI Assist</strong>
@@ -2163,14 +2101,14 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 buttonLabel="Generate with AI"
               />
             </div>
-          </section>
+          </details>
           <section className="ts-quick">
             <header>
               <div>
                 <h2>⚡ Quick Actions</h2>
                 <small>Save time with templates and shortcuts.</small>
               </div>
-              <button type="button" onClick={() => setCopyOpen(true)}>
+              <button type="button" onClick={() => void loadCopy()}>
                 View all ›
               </button>
             </header>
@@ -2179,10 +2117,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 <Plus />
                 Blank task<small>Start from scratch</small>
               </button>
-              <button type="button" onClick={() => void loadCopy()}>
+              <Button variant="outline" type="button" onClick={() => void loadCopy()}>
                 <Copy />
                 Copy from existing<small>Use a similar task</small>
-              </button>
+              </Button>
               <button
                 type="button"
                 onClick={() => {
@@ -2203,7 +2141,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 <FileText />
                 Use template<small>Structured task brief</small>
               </button>
-              <button
+              <Button variant="default"
                 type="button"
                 onClick={() => {
                   if (!id) {
@@ -2219,7 +2157,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               >
                 <ListChecks />
                 Create subtasks<small>Break into smaller tasks</small>
-              </button>
+              </Button>
             </div>
           </section>
           <section className="ts-tips">
@@ -2240,7 +2178,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         </aside>
       </CompactForm>
       {!embedded && <MobileActionBar label="Task actions">
-        <button type="button" aria-label="Save task draft from mobile action bar" disabled={busy} onClick={saveDraft}><Save size={18}/>Save Draft</button>
+        <Button variant="outline" type="button" aria-label="Save task draft from mobile action bar" disabled={busy} onClick={saveDraft}><Save size={18}/>Save Draft</Button>
         <button type="button" data-primary aria-label={id ? "Save task from mobile action bar" : "Create task from mobile action bar"} disabled={busy || auto.saving || scopeBusy || !!job || !editable || !options?.can_edit} onClick={() => void save()}><Check size={18}/>{busy ? "Saving..." : id ? "Save Changes" : "Create Task"}</button>
       </MobileActionBar>}
       <AddExistingPeopleDialog
@@ -2284,14 +2222,14 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
             >
               Keep task
             </button>
-            <button
+            <Button variant="outline"
               className="tr-primary"
               type="button"
               disabled={busy||!deletable}
               onClick={() => void remove()}
             >
               Move to Trash
-            </button>
+            </Button>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
@@ -2335,13 +2273,13 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
                 {copyLoading ? "Loading..." : copyError ? "Retry loading tasks" : "Load existing tasks"}
               </button>
             )}
-            <button
+            <Button variant="outline"
               type="button"
               className="tr-button"
               onClick={() => setCopyOpen(false)}
             >
               Close
-            </button>
+            </Button>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

@@ -4,10 +4,10 @@ import { useAuthStore } from "@/store/authStore";
 import SuiteHeader from "./SuiteHeader";
 import "@/pages/module-dashboard.css";
 
-export default function SuitePageShell({ children }: { children: ReactNode }) {
+export default function SuitePageShell({ children, className = "" }: { children: ReactNode; className?: string }) {
   const authenticated = useAuthStore((s) => s.isAuthenticated);
   return (
-    <div className="module-dashboard suite-page-shell">
+    <div className={`module-dashboard suite-page-shell${className ? ` ${className}` : ""}`}>
       <a className="suite-skip" href="#suite-main">
         Skip to content
       </a>

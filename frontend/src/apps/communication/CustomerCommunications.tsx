@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import {ProductPicker} from '@/apps/crm/GrowthWorkspace';
@@ -326,7 +327,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   ? "Edit customer preferences"
                   : "Add customer recipient"}
               </h3>
-              <form
+              <SmartCreateSection title="Add customer recipient" size="large"><form
                 className="space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -475,7 +476,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                     Cancel edit
                   </Button>
                 )}
-              </form>
+              </form></SmartCreateSection>
             </CardContent>
           </Card>
           <div className="space-y-4">
@@ -579,7 +580,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   >
                     Copy unsubscribe link
                   </Button>
-                  <form
+                  <SmartCreateSection title="Add internal note" size="large"><form
                     className="space-y-2"
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -644,7 +645,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                     <Button size="sm" disabled={action.isPending}>
                       Save internal note
                     </Button>
-                  </form>
+                  </form></SmartCreateSection>
                   {!!history.data?.unread_email_count && (
                     <Button
                       size="sm"
@@ -721,7 +722,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   </Button>
                 ))}
               </div>
-              <form
+              <SmartCreateSection title="Create customer automation" size="large"><form
                 className="space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -882,7 +883,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   Stop follow-ups after a customer reply
                 </label>
                 <Button disabled={action.isPending}>Save automation</Button>
-              </form>
+              </form></SmartCreateSection>
             </CardContent>
           </Card>
           <div className="space-y-4">
@@ -1067,7 +1068,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
               <h3 className="font-semibold">
                 {shipmentEdit ? "Update shipment" : "Create shipment"}
               </h3>
-              <form
+              <SmartCreateSection title="Create shipment" size="large"><form
                 className="space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1136,7 +1137,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
                   </NativeSelect>
                 </Field>
                 <Button disabled={action.isPending}>Save shipment</Button>
-              </form>
+              </form></SmartCreateSection>
             </CardContent>
           </Card>
           <div className="space-y-3">

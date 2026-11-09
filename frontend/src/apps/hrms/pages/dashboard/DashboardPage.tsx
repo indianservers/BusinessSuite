@@ -1,769 +1,108 @@
-import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
-import { SuiteMetric } from "@/components/visuals/SuiteVisuals";
-import {Button} from "@/components/ui/button";
-import SecondaryDetails from "@/components/app/SecondaryDetails";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-
-import {
-  Users, Clock, CalendarDays, Briefcase, TrendingUp, TrendingDown,
-  CheckCircle2, AlertCircle, Building2, DollarSign, ShieldCheck, Target,
-  FileText, HelpCircle, Award, UserCheck, ArrowRight, BarChart3, Sparkles,
-  Fingerprint, FileCheck2, LockKeyhole, Smartphone
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { attendanceApi, documentsApi, employeeApi, engagementApi, leaveApi, payrollApi, reportsApi } from "@/services/api";
-import { formatCurrency } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useQueries, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { RefreshCw, Users, Clock, CalendarDays, DollarSign, ArrowRight } from "lucide-react";
+import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { getRoleKey, getRoleLabel } from "@/lib/roles";
 import { usePageTitle } from "@/hooks/use-page-title";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
-} from "recharts";
+import { Button } from "@/components/ui/button";
+import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
+import { PersonalHighlights } from "./PersonalHighlights";
+import "./hrms-dashboard.css";
 
-const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+type Section = "workforce" | "attendance" | "leave" | "payroll" | "onboarding" | "probation" | "exits" | "compliance";
+type Context = { business_date: string; timezone: string; currency: string; scope: string; personal: boolean; sections: Section[]; permissions: string[]; superuser: boolean; departments: {id:number;name:string}[]; locations: {id:number;name:string}[]; employment_types:string[] };
+type Row = {id:string;employee_id:number|null;name:string;detail:string;date:string|null;status:string;href:string};
+type Data = {section:Section;context:{as_of:string;business_date:string;timezone:string;from_date:string;to_date:string;previous_from:string;previous_to:string};metrics:Record<string,number|string|null>;series:Record<string,string|number>[];rows:Row[];total_rows:number;notes:string[]};
+const titles: Record<Section,string> = {workforce:"Workforce",attendance:"Attendance",leave:"Leave approvals & availability",payroll:"Payroll controls",onboarding:"Onboarding blockers",probation:"Probation milestones",exits:"Exit readiness",compliance:"Compliance deadlines"};
+const endpoint = "/reports/hrms-dashboard";
+const sectionNames:Section[] = ["workforce","attendance","leave","payroll","onboarding","probation","exits","compliance"];
+function subtract(day:string, days:number) { const date=new Date(day+"T12:00:00Z");date.setUTCDate(date.getUTCDate()-days);return date.toISOString().slice(0,10); }
+function number(data:Data|undefined,key:string) { const value=data?.metrics[key];return typeof value === "number" ? value : null; }
+function change(current:number|null, previous:number|null) { if(current===null||previous===null)return "Comparison unavailable"; const difference=current-previous;return `${difference>0?"+":""}${difference.toLocaleString()} versus previous period${previous ? ` (${((difference/Math.abs(previous))*100).toFixed(1)}%)` : "; prior value was zero"}`; }
 
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  trend,
-  color = "blue",
-  href,
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  trend?: { value: number; label: string };
-  color?: string;
-  href?: string;
-}) {
-  const content = <Card className="stat-card" title={subtitle || title}><SuiteMetric label={title} value={value} icon={Icon}>
-    {subtitle && <p className="mt-2 text-xs text-muted-foreground">{subtitle}</p>}
-    {trend && <span className={`mt-2 inline-flex items-center gap-1 text-xs ${trend.value >= 0 ? "text-green-600" : "text-red-600"}`}>{trend.value >= 0 ? <TrendingUp size={13}/> : <TrendingDown size={13}/>} {Math.abs(trend.value)}% {trend.label}</span>}
-  </SuiteMetric></Card>;
-  return href ? <Link to={href} className="block transition-transform hover:-translate-y-1">{content}</Link> : content;
-}
-
-function SkeletonCard() {
-  return (
-    <Card className="stat-card">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="h-4 w-24 skeleton rounded" />
-            <div className="h-8 w-16 skeleton rounded" />
-            <div className="h-3 w-20 skeleton rounded" />
-          </div>
-          <div className="h-12 w-12 skeleton rounded-xl" />
-        </div>
-      </CardContent>
-    </Card>
-  );
+function SectionState({query,children,zone}:{query:UseQueryResult<Data,Error>;children:React.ReactNode;zone:string}) {
+ return <>{query.isPending && <p className="hrd-loading" role="status">Loading this section…</p>}{query.isError && <div role="alert" className="hrd-error">{query.data ? "Refresh failed. Previous values are stale." : "Unavailable. This section could not be verified."}<Button variant="outline" size="sm" onClick={()=>void query.refetch()}>Retry section</Button></div>}{query.data && <><p className="hrd-freshness">{query.isFetching?"Refreshing… · ":""}{query.isError?"Stale · ":""}Updated {new Date(query.data.context.as_of).toLocaleString(undefined,{timeZone:zone})} · {zone}</p>{children}</>}</>;
 }
 
 export default function DashboardPage() {
-  usePageTitle("Dashboard");
-  const { user } = useAuthStore();
-  const roleKey = getRoleKey(user?.role, user?.is_superuser);
-  const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
-  const hasEmployeeProfile = Boolean(user?.employee_id);
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-  const todayIso = new Date().toISOString().slice(0, 10);
-
-  const { data: dashboard, isLoading, error: dashboardError, refetch:retryDashboard } = useQuery({
-    queryKey: ["hrms", "dashboard"],
-    queryFn: () => reportsApi.dashboard().then((r) => r.data),
-    refetchInterval: 5 * 60 * 1000,
-  });
-
-  const { data: headcount, isLoading: loadingHeadcount, error:headcountError,refetch:retryHeadcount } = useQuery({
-    queryKey: ["dashboard-headcount"],
-    queryFn: () => employeeApi.count().then((r) => r.data),
-  });
-
-  const { data: pendingLeave } = useQuery({
-    queryKey: ["dashboard-pending-leave"],
-    queryFn: () => leaveApi.pendingCount().then((r) => r.data),
-    retry: false,
-  });
-
-  const { data: lastRun } = useQuery({
-    queryKey: ["dashboard-last-payroll-run"],
-    queryFn: () => payrollApi.lastRun().then((r) => r.data),
-    retry: false,
-  });
-
-  const { data: todaySummary } = useQuery({
-    queryKey: ["dashboard-attendance-today-summary"],
-    queryFn: () => attendanceApi.todaySummary().then((r) => r.data),
-    retry: false,
-  });
-
-  const { data: missingPunches } = useQuery({
-    queryKey: ["dashboard-missing-punches", todayIso],
-    queryFn: () => attendanceApi.missingPunches({ from_date: todayIso, to_date: todayIso }).then((r) => r.data),
-    retry: false,
-  });
-
-  const { data: leaveBalances } = useQuery({
-    queryKey: ["dashboard-leave-balances"],
-    queryFn: () => leaveApi.balance(currentYear).then((r) => r.data),
-    retry: false,
-    enabled: hasEmployeeProfile,
-  });
-
-  const { data: certificates } = useQuery({
-    queryKey: ["dashboard-certificates"],
-    queryFn: () => documentsApi.certificates().then((r) => r.data),
-    retry: false,
-  });
-
-  const { data: recognitions } = useQuery({
-    queryKey: ["dashboard-recognitions"],
-    queryFn: () => engagementApi.recognitions().then((r) => r.data),
-    retry: false,
-  });
-
-  const { data: deptData } = useQuery({
-    queryKey: ["headcount-by-dept"],
-    queryFn: () => reportsApi.headcountByDept().then((r) => r.data),
-  });
-
-  const { data: payrollData } = useQuery({
-    queryKey: ["payroll-summary", currentYear],
-    queryFn: () => reportsApi.payrollSummary(currentYear).then((r) => r.data),
-  });
-
-  const { data: bankAdviceReadiness } = useQuery({
-    queryKey: ["dashboard-bank-advice-readiness", lastRun?.id],
-    queryFn: () => payrollApi.validateExport(lastRun.id, "bank_advice").then((r) => r.data),
-    enabled: Boolean(lastRun?.id),
-    retry: false,
-  });
-
-  const employeeActions = [
-    { label: "My Attendance", detail: "View attendance, hours, and overtime", icon: Clock, href: "/hrms/my-attendance" },
-    { label: "Apply Leave", detail: "Balances and leave requests", icon: CalendarDays, href: "/hrms/leave" },
-    { label: "My Payslips", detail: "Published payslips and PDF download", icon: DollarSign, href: "/hrms/my-payslips" },
-    { label: "My Documents", detail: "Letters, certificates, and policy documents", icon: FileText, href: "/hrms/documents" },
-  ];
-
-  const managerActions = [
-    { label: "Leave Approvals", detail: `${pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0} requests pending`, icon: CalendarDays, href: "/hrms/leave" },
-    { label: "Team Performance", detail: "Goals, reviews, feedback", icon: Target, href: "/hrms/performance" },
-    { label: "Team Attendance", detail: "Monthly presence trends", icon: Clock, href: "/hrms/attendance" },
-    { label: "Open Helpdesk", detail: "Resolve employee issues", icon: HelpCircle, href: "/hrms/helpdesk" },
-  ];
-
-  const ceoMetrics = [
-    { label: "Active Workforce", value: headcount?.active ?? dashboard?.headcount?.active ?? 0, icon: Users, tone: "text-blue-600" },
-    { label: "Last Payroll", value: lastRun ? `${String(lastRun.month).padStart(2, "0")}/${lastRun.year}` : "No run", icon: DollarSign, tone: "text-emerald-600" },
-    { label: "Open Roles", value: dashboard?.recruitment?.open_positions ?? 0, icon: Briefcase, tone: "text-violet-600" },
-    { label: "Pending Decisions", value: pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0, icon: ShieldCheck, tone: "text-amber-600" },
-  ];
-  const totalLeaveBalance = (leaveBalances || []).reduce(
-    (sum: number, row: { available?: number | string; balance?: number | string }) =>
-      sum + Number(row.available ?? row.balance ?? 0),
-    0
-  );
-  const totalEmployees = headcount?.total ?? dashboard?.headcount?.total ?? 0;
-  const activeEmployees = headcount?.active ?? dashboard?.headcount?.active ?? 0;
-  const presentToday = todaySummary?.present ?? dashboard?.attendance?.present_today ?? 0;
-  const absentToday = todaySummary?.absent ?? dashboard?.attendance?.absent_today ?? 0;
-  const attendanceBase = presentToday + absentToday;
-  const attendanceRate = attendanceBase ? Math.round((presentToday / attendanceBase) * 100) : 0;
-  const pendingApprovals = pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0;
-  const payrollGrossYtd = (payrollData || []).reduce((sum: number, row: { gross?: number | string }) => sum + Number(row.gross ?? 0), 0);
-  const payrollNetYtd = (payrollData || []).reduce((sum: number, row: { net?: number | string }) => sum + Number(row.net ?? 0), 0);
-  const departmentCount = deptData?.length ?? 0;
-  const certificateCount = certificates?.length ?? 0;
-  const recognitionCount = recognitions?.length ?? 0;
-  const payrollLocked = ["locked", "paid", "Locked", "Paid"].includes(lastRun?.status ?? "");
-  const missingPunchCount = missingPunches?.missing_punch_count ?? 0;
-  const bankAdviceIssues = bankAdviceReadiness?.critical_issue_count ?? 0;
-  const readinessSignals = [
-    {
-      label: "Biometric exceptions",
-      value: missingPunchCount,
-      detail: missingPunchCount ? "Missing or duplicate punches before payroll" : "No punch blockers for today",
-      Icon: Fingerprint,
-      href: "/hrms/attendance",
-      tone: missingPunchCount ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800",
-    },
-    {
-      label: "Bank advice readiness",
-      value: lastRun?.id ? bankAdviceIssues : "No run",
-      detail: lastRun?.id ? (bankAdviceIssues ? "Employee bank details need cleanup" : "Latest run is export-ready") : "Run payroll to validate exports",
-      Icon: FileCheck2,
-      href: "/hrms/payroll",
-      tone: bankAdviceIssues ? "border-red-200 bg-red-50 text-red-800" : "border-sky-200 bg-sky-50 text-sky-800",
-    },
-    {
-      label: "Payroll lock",
-      value: payrollLocked ? "Locked" : lastRun?.status ?? "No run",
-      detail: payrollLocked ? "Post-lock changes require authorization" : "Approval/lock pending for latest run",
-      Icon: LockKeyhole,
-      href: "/hrms/payroll",
-      tone: payrollLocked ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-orange-200 bg-orange-50 text-orange-800",
-    },
-    {
-      label: "Employee self-service",
-      value: certificateCount + recognitionCount,
-      detail: "Documents and engagement signals surfaced to ESS",
-      Icon: Smartphone,
-      href: "/hrms/enterprise/ess",
-      tone: "border-violet-200 bg-violet-50 text-violet-800",
-    },
-  ];
-
-  if((headcountError||dashboardError) && roleKey!=="employee") return <section className="space-y-3 rounded-lg border p-6"><h1 className="text-xl font-semibold">HR statistics unavailable</h1><p role="alert">Could not verify the current headcount or dashboard data. A failed request is not reported as zero.</p><Button onClick={()=>{void retryDashboard();void retryHeadcount()}}>Retry statistics</Button></section>;
-  if (roleKey === "employee") {
-    return (
-      <div className="space-y-5">
-        <div className="rounded-lg border bg-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{roleLabel}</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">My HR workspace</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Attendance, leave, payslips, documents, and requests in one place.</p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {employeeActions.map((item) => (
-            <Link key={item.label} to={item.href} className="group rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/50 hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary" />
-              </div>
-              <p className="mt-4 font-medium">{item.label}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-            </Link>
-          ))}
-        </div>
-
-        <ModuleWorkflowBoard module="hrms" />
-        <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">My Week</CardTitle>
-              <CardDescription>Quick personal summary</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
-              {[
-                ["Present", todaySummary?.present ?? dashboard?.attendance?.present_today ?? 0, UserCheck],
-                ["Leave Balance", totalLeaveBalance, CalendarDays],
-                ["Certificates", certificates?.length ?? 0, FileText],
-              ].map(([label, value, Icon]) => (
-                <div key={label as string} className="rounded-lg border p-4">
-                  <Icon className="mb-3 h-5 w-5 text-primary" />
-                  <p className="text-xl font-semibold">{value as string}</p>
-                  <p className="text-xs text-muted-foreground">{label as string}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recognition</CardTitle>
-              <CardDescription>Praise and culture moments</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {(recognitions || []).slice(0, 3).map((item: { id: number; badge?: string; title?: string; to_employee_name?: string; points?: number }) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-lg border p-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                    <Award className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{item.badge || item.title || "Recognition"}</p>
-                    <p className="text-xs text-muted-foreground">{item.to_employee_name || "Employee"}{item.points ? ` - ${item.points} points` : ""}</p>
-                  </div>
-                </div>
-              ))}
-              {!recognitions?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No public recognition activity yet.</p>}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (roleKey === "manager") {
-    return (
-      <div className="space-y-5">
-        <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{roleLabel}</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Team command center</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Approvals, team attendance, goals, and employee issues.</p>
-          </div>
-          <Badge variant="outline">{pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0} approvals pending</Badge>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {managerActions.map((item) => (
-            <Link key={item.label} to={item.href} className="rounded-lg border bg-card p-4 shadow-sm transition hover:border-primary/50 hover:shadow-md">
-              <item.icon className="mb-4 h-5 w-5 text-primary" />
-              <p className="font-medium">{item.label}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-            </Link>
-          ))}
-        </div>
-
-        <ModuleWorkflowBoard module="hrms" />
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Headcount by Department</CardTitle>
-              <CardDescription>Team distribution and capacity</CardDescription>
-            </CardHeader>
-          <CardContent>
-            {deptData?.length ? (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={deptData || []} margin={{ top: 0, right: 0, left: -10, bottom: 28 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="department" tick={{ fontSize: 11 }} angle={-35} textAnchor="end" tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <ChartEmptyState label="Department headcount will appear here once employees are assigned." />
-            )}
-          </CardContent>
-        </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Team Snapshot</CardTitle>
-              <CardDescription>Operational highlights for managers</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border p-4">
-                <p className="text-2xl font-semibold">{headcount?.active ?? dashboard?.headcount?.active ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Active / probation employee records</p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <p className="text-2xl font-semibold">{pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Approvals waiting</p>
-              </div>
-              <Link to="/hrms/leave" className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
-                <span className="text-sm font-medium">Review leave queue</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-              <Link to="/hrms/attendance" className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
-                <span className="text-sm font-medium">Check attendance trends</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (roleKey === "ceo") {
-    return (
-      <div className="space-y-5">
-        <div className="rounded-lg border bg-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{roleLabel}</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Executive people dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Workforce health, payroll exposure, hiring movement, and operating priorities.</p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {ceoMetrics.map((metric) => (
-            <Card key={metric.label}>
-              <CardContent className="p-5">
-                <metric.icon className={`mb-4 h-5 w-5 ${metric.tone}`} />
-                <p className="text-2xl font-semibold">{metric.value}</p>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <ModuleWorkflowBoard module="hrms" />
-        <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Payroll Trend</CardTitle>
-              <CardDescription>Gross vs net salary comparison</CardDescription>
-            </CardHeader>
-          <CardContent>
-            {payrollData?.length ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={payrollData || []} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="month" tickFormatter={(m) => new Date(currentYear, m - 1).toLocaleString("en", { month: "short" })} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `INR ${(v / 1000).toFixed(0)}K`} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Legend />
-                  <Bar dataKey="gross" name="Gross" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="net" name="Net" fill="#059669" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <ChartEmptyState label="Payroll history will appear after the first completed run." />
-            )}
-          </CardContent>
-        </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Board Pack</CardTitle>
-              <CardDescription>High-signal HR views</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                ["Reports & Analytics", "/hrms/reports", BarChart3],
-                ["Company Setup", "/hrms/company", Building2],
-                ["AI Workforce Notes", "/hrms/ai-assistant", Sparkles],
-              ].map(([label, href, Icon]) => (
-                <Link key={label as string} to={href as string} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
-                  <span className="flex items-center gap-3 text-sm font-medium">
-                    <Icon className="h-4 w-4 text-primary" />
-                    {label as string}
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-description">
-          Employee records include interns and people without login accounts. Active means Active or Probation; registered user accounts are a separate metric.
-        </p>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {isLoading || loadingHeadcount ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : (
-          <>
-            <StatCard
-              title="Employee records"
-              value={headcount?.total ?? dashboard?.headcount?.total ?? 0}
-              subtitle={`${headcount?.active ?? dashboard?.headcount?.active ?? 0} active`}
-              icon={Users}
-              color="blue"
-              href="/hrms/employees"
-            />
-            <StatCard
-              title="Present Today"
-              value={todaySummary?.present ?? dashboard?.attendance?.present_today ?? 0}
-              subtitle={`${todaySummary?.absent ?? dashboard?.attendance?.absent_today ?? 0} absent`}
-              icon={Clock}
-              color="green"
-              href="/hrms/attendance"
-            />
-            <StatCard
-              title="Pending Leaves"
-              value={pendingLeave?.pending ?? dashboard?.leaves?.pending_approvals ?? 0}
-              subtitle="Awaiting approval"
-              icon={CalendarDays}
-              color="yellow"
-              href="/hrms/leave"
-            />
-            <StatCard
-              title="Last Payroll"
-              value={lastRun ? `${String(lastRun.month).padStart(2, "0")}/${lastRun.year}` : "No run"}
-              subtitle={lastRun ? `${lastRun.status} payroll` : "Awaiting first run"}
-              icon={DollarSign}
-              color="purple"
-              href="/hrms/payroll"
-            />
-          </>
-        )}
-      </div>
-
-        <ModuleWorkflowBoard module="hrms" />
-<SecondaryDetails title="Workforce and payroll charts">
-      {/* Charts row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Headcount by Department */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Headcount by Department</CardTitle>
-            <CardDescription>Employee distribution across departments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={deptData || []} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis
-                  dataKey="department"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Payroll trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Monthly Payroll ({currentYear})</CardTitle>
-            <CardDescription>Gross vs net salary comparison</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart
-                data={payrollData || []}
-                margin={{ top: 0, right: 0, left: -10, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis
-                  dataKey="month"
-                  tickFormatter={(m) =>
-                    new Date(currentYear, m - 1).toLocaleString("en", { month: "short" })
-                  }
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => `INR ${(v / 1000).toFixed(0)}K`}
-                />
-                <Tooltip
-                  formatter={(v: number) => formatCurrency(v)}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="gross" name="Gross" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="net" name="Net" fill="#10B981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-
-</SecondaryDetails>
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Add Employee", icon: Users, href: "/hrms/employees/new", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
-          { label: "Run Payroll", icon: DollarSign, href: "/hrms/payroll", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
-          { label: "Leave Approvals", icon: CalendarDays, href: "/hrms/leave", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
-          { label: "View Reports", icon: TrendingUp, href: "/hrms/reports", color: "bg-card text-foreground border border-border hover:bg-accent hover:text-primary" },
-        ].map((action) => (
-          <a
-            key={action.label}
-            href={action.href}
-            className={`flex flex-col items-center gap-2 p-4 rounded-xl text-white text-sm font-medium transition-transform hover:scale-105 ${action.color}`}
-          >
-            <action.icon className="h-6 w-6" />
-            {action.label}
-          </a>
-        ))}
-      </div>
-
-<SecondaryDetails title="Payroll controls and readiness">
-      <section className="space-y-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold tracking-tight">Production Readiness Command Center</h2>
-          <p className="text-sm text-muted-foreground">Pre-payroll controls for biometric imports, statutory exports, payroll locking, and employee self-service.</p>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {readinessSignals.map(({ label, value, detail, Icon, href, tone }) => (
-            <Link key={label} to={href} className={`rounded-lg border p-4 shadow-sm transition hover:shadow-md ${tone}`}>
-              <div className="flex items-start justify-between gap-3">
-                <Icon className="h-5 w-5 shrink-0" />
-                <ArrowRight className="h-4 w-4 shrink-0 opacity-60" />
-              </div>
-              <p className="mt-4 text-2xl font-semibold">{value}</p>
-              <p className="text-sm font-medium">{label}</p>
-              <p className="mt-1 text-xs opacity-80">{detail}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-
-</SecondaryDetails>
-<SecondaryDetails title="Detailed HR statistics">      <DashboardStatistics
-        totalEmployees={totalEmployees}
-        activeEmployees={activeEmployees}
-        presentToday={presentToday}
-        absentToday={absentToday}
-        attendanceRate={attendanceRate}
-        pendingApprovals={pendingApprovals}
-        leaveBalance={totalLeaveBalance}
-        payrollGrossYtd={payrollGrossYtd}
-        payrollNetYtd={payrollNetYtd}
-        departmentCount={departmentCount}
-        certificateCount={certificateCount}
-        recognitionCount={recognitionCount}
-        lastPayroll={lastRun ? `${String(lastRun.month).padStart(2, "0")}/${lastRun.year}` : "No run"}
-      /></SecondaryDetails>
-    </div>
-  );
+ usePageTitle("HRMS dashboard");
+ const {user,isAuthenticated}=useAuthStore();
+ const client=useQueryClient();
+ const [params,setParams]=useSearchParams();
+ const branch=sessionStorage.getItem("suite-branch"), tenant=sessionStorage.getItem("suite-tenant");
+ const identity=[user?.id,user?.access?.companyId,branch,tenant,user?.role,JSON.stringify(user?.access?.grants)];
+ const context=useQuery({queryKey:["hrms-dashboard-context",...identity],enabled:isAuthenticated&&!!user,queryFn:({signal})=>api.get<Context>(endpoint+"/context",{signal,progress:false}).then(r=>r.data),retry:false,refetchInterval:60_000});
+ const ctx=context.data;
+ const to=params.get("to_date") || ctx?.business_date || "";
+ const from=params.get("from_date") || (to?subtract(to,29):"");
+ const department=params.get("department_id") || "", location=params.get("location_id") || "", employment=params.get("employment_type") || "";
+ const [draft,setDraft]=useState({from,to,department,location,employment});
+ useEffect(()=>setDraft({from,to,department,location,employment}),[from,to,department,location,employment]);
+ const filters={from_date:from,to_date:to,department_id:department||undefined,location_id:location||undefined,employment_type:employment||undefined};
+ const valid=!!from&&!!to&&from<=to&&(new Date(to).getTime()-new Date(from).getTime())/86400000<=365;
+ const queries=useQueries({queries:sectionNames.map(section=>({queryKey:["hrms-dashboard-section",...identity,section,filters,ctx?.business_date],enabled:!!ctx&&ctx.sections.includes(section)&&valid,queryFn:({signal}:{signal:AbortSignal})=>api.get<Data>(endpoint+"/"+section,{params:filters,signal,progress:false}).then(r=>r.data),retry:false,refetchInterval:300_000}))});
+ const get=(section:Section)=>queries[sectionNames.indexOf(section)];
+ const workforce=get("workforce"),attendance=get("attendance"),leave=get("leave"),payroll=get("payroll");
+ const money=(value:number)=>new Intl.NumberFormat(undefined,{style:"currency",currency:ctx?.currency||"INR"}).format(value);
+ const can=(permission:string)=>!!ctx&&(ctx.superuser||ctx.permissions.includes(permission));
+ const selected=params.get("section") as Section|null;
+ const detailsAllowed=!!selected&&sectionNames.includes(selected)&&!!ctx?.sections.includes(selected);
+ const detailFilters={...filters,record_status:params.get("record_status")||undefined,record_date:params.get("record_date")||undefined};
+ const detailQuery=useQuery({queryKey:["hrms-dashboard-section",...identity,selected,"details",detailFilters,ctx?.business_date],enabled:detailsAllowed&&valid,queryFn:({signal})=>api.get<Data>(endpoint+"/"+selected,{params:detailFilters,signal,progress:false}).then(r=>r.data),retry:false});
+ const selection=detailsAllowed?detailQuery:null;
+ const selectedRows=selection?.data?.rows||[];
+ const drill=(section:Section,status?:string,day?:string)=>{const next=new URLSearchParams(params);next.set("from_date",from);next.set("to_date",to);next.set("section",section);next.delete("record_status");next.delete("record_date");if(status)next.set("record_status",status);if(day)next.set("record_date",day);return `?${next.toString()}#hrd-details`;};
+ const refresh=()=>Promise.all([client.invalidateQueries({queryKey:["hrms-dashboard-context"]}),client.invalidateQueries({queryKey:["hrms-dashboard-section"]}),client.invalidateQueries({queryKey:["hrms-dashboard-personal"]}),client.invalidateQueries({queryKey:["dashboard-workflow","hrms"]})]);
+ const busy=context.isFetching||queries.some(q=>q.isFetching)||detailQuery.isFetching;
+ const metrics=[
+  {section:"workforce" as Section,title:"Employee records",value:number(workforce.data,"total"),detail:`${number(workforce.data,"active")??"Unavailable"} active / probation`,icon:Users,href:drill("workforce")},
+  {section:"attendance" as Section,title:"Present today",value:number(attendance.data,"present"),detail:`${number(attendance.data,"wfh")??"Unavailable"} remote · ${number(attendance.data,"absent")??"Unavailable"} recorded absent`,icon:Clock,href:drill("attendance","Present",ctx?.business_date)},
+  {section:"leave" as Section,title:ctx?.personal?"My pending leave":"Pending leave approvals",value:number(leave.data,"pending"),detail:`Oldest: ${number(leave.data,"oldest_days")??"Unavailable"} days`,icon:CalendarDays,href:drill("leave","Pending")},
+  {section:"payroll" as Section,title:"Net payroll in period",value:payroll.data?.series.length?money(number(payroll.data,"net")||0):null,detail:payroll.data?.series.length?change(number(payroll.data,"net"),number(payroll.data,"previous_net")):"No completed payroll in this period",icon:DollarSign,href:drill("payroll")},
+ ];
+ const actions=[
+  {label:"My attendance",href:"/hrms/my-attendance",show:!!user?.employee_id}, {label:"Apply leave",href:"/hrms/leave",show:can("leave_apply")},
+  {label:"My payslips",href:"/hrms/my-payslips",show:!!user?.employee_id&&can("payroll_view")}, {label:"My documents",href:"/hrms/documents",show:!!user?.employee_id},
+  {label:"Add employee",href:"/hrms/employees/new",show:can("employee_create")&&!ctx?.personal}, {label:"Run payroll",href:"/hrms/payroll",show:can("payroll_run")&&!ctx?.personal},
+  {label:"Review approvals",href:"/hrms/manager-dashboard",show:can("leave_approve")}, {label:"View reports",href:"/hrms/reports",show:can("reports_view")&&!ctx?.personal},
+ ];
+ return <div className="hrd-dashboard">
+  <header className="hrd-header"><div><h1>{ctx?.personal?"My HR workspace":"HRMS dashboard"}</h1><p>{ctx?.scope||"Loading authorized workspace…"}{ctx&&` · Business date ${ctx.business_date} · ${ctx.timezone}`}</p></div><Button variant="outline" disabled={busy} onClick={()=>void refresh()}><RefreshCw size={16}/>{busy?"Refreshing…":"Refresh dashboard"}</Button></header>
+  {context.isError&&<p role="alert" className="hrd-error">{ctx?"Workspace settings refresh failed; settings may be stale.":"Workspace settings are unavailable."}<Button onClick={()=>void context.refetch()}>Retry workspace</Button></p>}
+  {context.isPending&&<p role="status">Loading workspace settings…</p>}
+  {ctx&&<>
+   <form className="hrd-filters" onSubmit={e=>{e.preventDefault();const next=new URLSearchParams();next.set("from_date",draft.from);next.set("to_date",draft.to);if(draft.department)next.set("department_id",draft.department);if(draft.location)next.set("location_id",draft.location);if(draft.employment)next.set("employment_type",draft.employment);setParams(next);}}>
+    <label>From<input type="date" required value={draft.from} max={draft.to} onChange={e=>setDraft({...draft,from:e.target.value})}/></label><label>To<input type="date" required value={draft.to} min={draft.from} onChange={e=>setDraft({...draft,to:e.target.value})}/></label>
+    <label>Department<select aria-label="Department" value={draft.department} onChange={e=>setDraft({...draft,department:e.target.value})}><option value="">All permitted departments</option>{ctx.departments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
+    <label>Location<select aria-label="Location" value={draft.location} onChange={e=>setDraft({...draft,location:e.target.value})}><option value="">All permitted locations</option>{ctx.locations.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
+    <label>Employment type<select aria-label="Employment type" value={draft.employment} onChange={e=>setDraft({...draft,employment:e.target.value})}><option value="">All employment types</option>{ctx.employment_types.map(t=><option key={t}>{t}</option>)}</select></label><Button disabled={!draft.from||!draft.to||draft.from>draft.to||(new Date(draft.to).getTime()-new Date(draft.from).getTime())/86400000>365}>Apply filters</Button><Button type="button" variant="ghost" onClick={()=>setParams({})}>Reset filters</Button>
+   </form>
+   <p className="hrd-note">Period: {from} to {to}. Workforce filters apply to HR summary sections; the recruitment board has its own filters. Today, current queues, and upcoming deadlines are labeled separately.</p>
+   {!valid&&<p role="alert">Choose an ordered reporting period of at most 366 days.</p>}
+   {valid&&<>
+   <div className="hrd-metrics">{metrics.filter(m=>ctx.sections.includes(m.section)).map(m=>{const query=get(m.section);return <article className="hrd-metric" key={m.section}><m.icon size={22}/><h2>{m.title}</h2><Link to={m.href} className="hrd-value">{m.value??(query.isPending?"Loading…":query.isError?"Unavailable":m.section==="payroll"?"No completed run":"Unavailable")}</Link><p>{query.data?m.detail:query.isPending?"Loading this section…":"Awaiting verified data."}</p>{query.isError&&<p role="alert">{query.data?"Stale — refresh failed":"Could not verify this metric"}</p>}</article>;})}</div>
+   {actions.some(a=>a.show)&&<nav className="hrd-actions" aria-label="HR quick actions">{actions.filter(a=>a.show).map(a=><Link key={a.label} to={a.href}>{a.label}<ArrowRight size={15}/></Link>)}</nav>}
+   {ctx.sections.map(section=>{const query=get(section), data=query.data;return <section className="hrd-section" key={section} aria-labelledby={`hrd-${section}`}><div className="hrd-section-title"><h2 id={`hrd-${section}`}>{titles[section]}</h2><Link to={drill(section)}>View matching records</Link></div><SectionState query={query} zone={ctx.timezone}>
+    {section==="workforce"&&data&&<><p>{change(number(data,"headcount"),number(data,"previous_headcount"))} · {number(data,"joined")} joined in the selected period</p><p className="hrd-note">Comparison dates: {data.context.to_date} versus {subtract(data.context.from_date,1)}.</p><div className="hrd-bars" aria-label="Active headcount by department">{data.series.map(r=><div key={String(r.department)}><span>{r.department}: {r.count} employees</span><progress max={Math.max(number(data,"active")||0,1)} value={Number(r.count)} aria-label={`${r.department}: ${r.count} of ${number(data,"active")} active employees`}/></div>)}</div><DataTable caption="Active headcount by department (employees)" columns={["department","count"]} rows={data.series}/></>}
+    {section==="attendance"&&data&&<><div className="hrd-facts"><p><strong>{number(data,"rate")===null?"Not available":`${number(data,"rate")}%`}</strong> recorded attendance rate</p><p>{number(data,"present_equivalent")} present-equivalent days / {number(data,"denominator")} recorded working days</p><p>{number(data,"missing_punches")} incomplete punch pairs today · {number(data,"not_marked")} active employees without a recorded entry today</p>{ctx.personal&&<p><strong>My Week:</strong> {number(data,"week_days")} days with presence · {number(data,"week_hours")} recorded hours, Monday through today.</p>}</div><DataTable caption={`Today's recorded attendance (${ctx.business_date}) — employees`} columns={["status","count"]} rows={data.series}/></>}
+    {section==="leave"&&data&&<><div className="hrd-facts"><p><strong>{number(data,"available_days")} days</strong> {ctx.personal?"my available leave":"available leave across permitted employees"}</p><p>{number(data,"starting_soon")} pending requests start within three days · Oldest pending request: {number(data,"oldest_days")} days</p></div><DataTable caption="Approved leave and handover coverage — today through the next seven days" columns={["date","on_leave","without_handover"]} rows={data.series}/></>}
+    {section==="payroll"&&data&&<><p>Latest scoped run: {data.metrics.latest_run??"None"} · {data.metrics.status}</p><p>{data.metrics.latest_run?`${number(data,"issue_count")} bank export blockers` : "Readiness has not been validated; no run with employee records exists in this workforce scope."}</p><p>{data.metrics.status&&["locked","paid"].includes(String(data.metrics.status).toLowerCase())?"Payroll is locked; post-lock changes require authorization.":"Payroll lock is not confirmed."}</p><div className="hrd-bars" aria-label={`Monthly payroll in ${ctx.currency}`}>{data.series.map(row=><div key={String(row.month)}><span>{row.month}</span><div><label>Gross: {money(Number(row.gross))}<progress aria-label={`Gross payroll ${row.month} in ${ctx.currency}`} max={Math.max(...data.series.map(r=>Math.max(Number(r.gross),Number(r.net))),1)} value={Number(row.gross)}/></label><label>Net: {money(Number(row.net))}<progress aria-label={`Net payroll ${row.month} in ${ctx.currency}`} max={Math.max(...data.series.map(r=>Math.max(Number(r.gross),Number(r.net))),1)} value={Math.max(Number(row.net),0)}/></label></div></div>)}</div><DataTable caption={`Completed payroll by month (${ctx.currency}); ${from} to ${to}`} columns={["month","gross","net"]} rows={data.series} money={money}/></>}
+    {["onboarding","probation","compliance"].includes(section)&&data&&<p><strong>{number(data,"overdue")}</strong> overdue · <strong>{number(data,"upcoming")}</strong> upcoming within 30 days</p>}
+    {section==="exits"&&data&&<p><strong>{number(data,"open")}</strong> open exits · <strong>{number(data,"blocked")}</strong> with incomplete readiness</p>}
+    {data?.notes.map(note=><p className="hrd-note" key={note}>{note}</p>)}
+    {data&&!["attendance","workforce","leave"].includes(section)&&<Records rows={data.rows.slice(0,5)}/>}
+   </SectionState></section>;})}
+   {selection&&selected&&<section id="hrd-details" className="hrd-section" tabIndex={-1}><h2>{titles[selected]} — matching records</h2><SectionState query={selection} zone={ctx.timezone}><p>{selectedRows.length} displayed from {selection.data?.total_rows} source records. At most 250 matching records are returned; use workforce filters to narrow the scope.{params.get("record_status")&&` Status: ${params.get("record_status")}.`}{params.get("record_date")&&` Date: ${params.get("record_date")}.`}</p><Records rows={selectedRows}/></SectionState></section>}
+   {ctx.personal&&user?.employee_id&&<PersonalHighlights employeeId={user.employee_id} identity={identity}/>}
+   {can("recruitment_view")&&!ctx.personal&&<ModuleWorkflowBoard module="hrms"/>}
+   </>}
+  </>}
+ </div>;
 }
 
-function DashboardStatistics({
-  totalEmployees,
-  activeEmployees,
-  presentToday,
-  absentToday,
-  attendanceRate,
-  pendingApprovals,
-  leaveBalance,
-  payrollGrossYtd,
-  payrollNetYtd,
-  departmentCount,
-  certificateCount,
-  recognitionCount,
-  lastPayroll,
-}: {
-  totalEmployees: number;
-  activeEmployees: number;
-  presentToday: number;
-  absentToday: number;
-  attendanceRate: number;
-  pendingApprovals: number;
-  leaveBalance: number;
-  payrollGrossYtd: number;
-  payrollNetYtd: number;
-  departmentCount: number;
-  certificateCount: number;
-  recognitionCount: number;
-  lastPayroll: string;
-}) {
-  const workforceRows = [
-    { label: "Active employees", value: activeEmployees, max: Math.max(totalEmployees, 1), tone: "bg-blue-500" },
-    { label: "Present today", value: presentToday, max: Math.max(presentToday + absentToday, 1), tone: "bg-emerald-500" },
-    { label: "Absent today", value: absentToday, max: Math.max(presentToday + absentToday, 1), tone: "bg-red-500" },
-    { label: "Pending approvals", value: pendingApprovals, max: Math.max(pendingApprovals + presentToday, 1), tone: "bg-amber-500" },
-  ];
-  const cards = [
-    { label: "Attendance rate", value: `${attendanceRate}%`, detail: `${presentToday} present / ${absentToday} absent`, Icon: CheckCircle2 },
-    { label: "Leave liability", value: leaveBalance, detail: "Available leave days across current balances", Icon: CalendarDays },
-    { label: "Payroll YTD", value: formatCurrency(payrollNetYtd), detail: `${formatCurrency(payrollGrossYtd)} gross`, Icon: DollarSign },
-    { label: "Last payroll", value: lastPayroll, detail: "Most recent payroll run", Icon: Briefcase },
-  ];
-  const operatingRows = [
-    { label: "Departments", value: departmentCount, note: "Active workforce groups" },
-    { label: "Certificates", value: certificateCount, note: "Employee documents tracked" },
-    { label: "Recognitions", value: recognitionCount, note: "Culture moments recorded" },
-  ];
-
-  return (
-    <section className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold tracking-tight">Dashboard Statistics</h2>
-        <p className="text-sm text-muted-foreground">Live HRMS indicators calculated from workforce, attendance, leave, payroll, and document data.</p>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {cards.map(({ label, value, detail, Icon }) => (
-          <Card key={label}>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-blue-500/10 p-2 text-blue-700">
-                <Icon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-2xl font-semibold">{value}</p>
-                <p className="text-sm font-medium">{label}</p>
-                <p className="text-xs text-muted-foreground">{detail}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Workforce pulse</CardTitle>
-            <CardDescription>Operational counts for today</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {workforceRows.map((row) => {
-              const width = row.value > 0 ? Math.max(6, Math.round((row.value / row.max) * 100)) : 0;
-              return (
-                <div key={row.label} className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-medium">{row.label}</span>
-                    <span className="text-muted-foreground">{row.value}</span>
-                  </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                    <div className={`h-full rounded-full ${row.tone}`} style={{ width: `${width}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>HR operations</CardTitle>
-            <CardDescription>Coverage and governance signals</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            {operatingRows.map((row) => (
-              <div key={row.label} className="rounded-md border bg-muted/20 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">{row.label}</span>
-                  <span className="text-lg font-semibold">{row.value}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{row.note}</p>
-              </div>
-            ))}
-            {pendingApprovals > 0 ? (
-              <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                <AlertCircle className="h-4 w-4" />
-                {pendingApprovals} approval{pendingApprovals === 1 ? "" : "s"} need review.
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-    </section>
-  );
+function DataTable({caption,columns,rows,money}:{caption:string;columns:string[];rows:Record<string,string|number>[];money?:(value:number)=>string}) {
+ if(!rows.length)return <p className="hrd-note">No recorded data for {caption.toLowerCase()}.</p>;
+ return <div className="hrd-table-wrap"><table><caption>{caption}</caption><thead><tr>{columns.map(c=><th scope="col" key={c}>{c.replace(/_/g," ")}</th>)}</tr></thead><tbody>{rows.map((row,i)=><tr key={i}>{columns.map(c=><td key={c}>{money&&["gross","net"].includes(c)?money(Number(row[c])):row[c]}</td>)}</tr>)}</tbody></table></div>;
 }
-
-function ChartEmptyState({ label }: { label: string }) {
-  return (
-    <div className="flex h-[250px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 text-center">
-      <BarChart3 className="mb-3 h-8 w-8 text-muted-foreground/50" />
-      <p className="text-sm font-medium">No data yet</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
-    </div>
-  );
-}
+function Records({rows}:{rows:Row[]}) {return rows.length?<ul className="hrd-records">{rows.map(r=><li key={r.id}><div><strong>{r.name}</strong><p>{r.detail}</p><p className="hrd-note">{r.date||"No deadline"} · {r.status}</p></div><Link to={r.href}>Open record<ArrowRight size={14}/></Link></li>)}</ul>:<p className="hrd-note">No matching records in this scope.</p>;}

@@ -1,3 +1,4 @@
+import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
@@ -82,7 +83,7 @@ function MobileCRM() {
   const query = useQuery({ queryKey: ["checkins"], queryFn: saasApi.checkIns });
   const [form, setForm] = useState({ customer_name: "", notes: "", latitude: "", longitude: "" });
   const create = useMutation({ mutationFn: saasApi.createCheckIn, onSuccess: () => qc.invalidateQueries({ queryKey: ["checkins"] }) });
-  return <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]"><Card><CardHeader><CardTitle>Sales visit check-in</CardTitle></CardHeader><CardContent className="space-y-3"><Input placeholder="Customer name" value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /><Input placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} /><Input placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} /><Input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /><Button onClick={() => create.mutate(form)}>Check in</Button><p className="text-sm text-muted-foreground">Offline queue placeholder. Actions are not queued unless a production sync worker is added.</p></CardContent></Card><RecordList title="Recent check-ins" items={query.data?.items || []} /></div>;
+  return <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]"><Card><CardHeader><CardTitle>Sales visit check-in</CardTitle></CardHeader><SmartCreateSection title="Create sales check-in" size="standard"><CardContent className="space-y-3"><Input placeholder="Customer name" value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /><Input placeholder="Latitude" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} /><Input placeholder="Longitude" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} /><Input placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /><Button data-save-action onClick={() => create.mutate(form)}>Check in</Button><p className="text-sm text-muted-foreground">Offline queue placeholder. Actions are not queued unless a production sync worker is added.</p></CardContent></SmartCreateSection></Card><RecordList title="Recent check-ins" items={query.data?.items || []} /></div>;
 }
 
 function APIKeys() {

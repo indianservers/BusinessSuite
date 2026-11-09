@@ -1,4 +1,5 @@
 .mobile-module-dock{display:none}
+.mobile-module-add{display:none}
 .mobile-dock-tasks{display:contents}
 @media(max-width:767px){
   body:has(.mobile-module-dock){--mobile-dock-space:calc(92px + env(safe-area-inset-bottom,0px))}
@@ -33,9 +34,34 @@
  .mobile-dock-destination:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:1px}
  .mobile-dock-icon{position:relative}
  .mobile-dock-badge{position:absolute;left:15px;top:-5px;display:flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:12px;background:hsl(var(--destructive));color:white;font-size:9px;line-height:16px}
- .mobile-dock-quick{position:fixed;z-index:30;bottom:calc(104px + env(safe-area-inset-bottom));left:14px;display:flex;align-items:center;gap:6px;min-height:44px;padding:8px 12px;font-size:12px;font-weight:600;background:hsl(var(--background));border:1px solid hsl(var(--border));border-radius:24px;color:hsl(var(--primary));max-width:calc(100vw - 90px)}
+ .mobile-dock-quick{position:fixed;z-index:30;bottom:calc(104px + env(safe-area-inset-bottom,0px));left:14px;display:flex;align-items:center;gap:6px;min-height:44px;padding:8px 12px;font-size:12px;font-weight:600;background:hsl(var(--background));border:1px solid hsl(var(--border));border-radius:24px;color:hsl(var(--primary));max-width:calc(100vw - 90px)}
+ .mobile-module-add{position:fixed;z-index:39;left:14px;bottom:calc(100px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;justify-content:center;width:52px;height:52px;border:0;border-radius:50%;background:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:0 5px 18px hsl(var(--primary)/.3);cursor:pointer}
+ .mobile-module-add:focus-visible{outline:2px solid hsl(var(--primary));outline-offset:4px}
+ body:has(.mobile-module-add) .mobile-dock-quick{left:78px;max-width:calc(100vw - 150px)}
+ .mobile-keyboard-open .mobile-module-add{display:none}
  .mobile-keyboard-open .mobile-dock-quick{display:none}
  body:has(.mobile-module-dock){--mobile-dock-space:calc(156px + env(safe-area-inset-bottom,0px))}
  .mobile-dock-actions a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border-radius:14px;background:hsl(var(--muted)/.6);font-size:14px;font-weight:500;min-height:48px}
  .mobile-dock-actions{display:grid;gap:8px}
 }
+
+@media(max-width:767px){
+ .mobile-module-dock{padding:8px 6px;border-radius:28px;background:hsl(var(--background)/.96);box-shadow:0 12px 36px #20163a1a,0 2px 6px #20163a08}
+ .mobile-dock-item{border-radius:21px}
+ .mobile-dock-item.is-active{background:transparent}
+ .mobile-dock-destination{gap:5px;min-height:60px;font-size:10px;letter-spacing:.01em;line-height:14px}
+ .mobile-dock-icon{width:44px;height:34px;border-radius:13px;color:hsl(var(--muted-foreground));transition:background .18s,color .18s,box-shadow .18s}
+ .mobile-dock-icon>svg{width:21px;height:21px;stroke-width:1.8}
+ .mobile-dock-item.is-active .mobile-dock-icon{background:linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/.8));color:hsl(var(--primary-foreground));box-shadow:0 4px 10px hsl(var(--primary)/.24),inset 0 1px 0 #ffffff38}
+ .mobile-dock-item.is-active .mobile-dock-destination{font-weight:700}
+ .mobile-dock-destination:hover .mobile-dock-icon{background:hsl(var(--primary)/.1);color:hsl(var(--primary))}
+ .mobile-dock-item.is-active .mobile-dock-destination:hover .mobile-dock-icon{background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+ .mobile-dock-badge{left:auto;right:-5px;top:-4px;min-width:17px;height:17px;border:2px solid hsl(var(--background));box-sizing:content-box;font-weight:700;font-size:9px}
+ .mobile-module-add{border-radius:18px;background:linear-gradient(145deg,hsl(var(--primary)),hsl(var(--primary)/.85));box-shadow:0 6px 18px hsl(var(--primary)/.3),inset 0 1px 0 #ffffff40;transition:transform .18s,border-radius .18s}
+ .mobile-module-add[data-state=open]{border-radius:50%}
+ .mobile-module-add svg{transition:transform .18s}
+ .mobile-module-add[data-state=open] svg{transform:rotate(45deg)}
+ .mobile-module-add:active{transform:scale(.94)}
+ .mobile-dock-quick{border-color:hsl(var(--primary)/.12);box-shadow:0 3px 12px #20163a08;font-size:11px;background:hsl(var(--background)/.96)}
+}
+@media(prefers-reduced-motion:reduce){.mobile-dock-icon,.mobile-module-add,.mobile-module-add svg{transition:none}}

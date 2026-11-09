@@ -10,6 +10,9 @@ const pages: Record<string, CreationDefinition> = {
   "/fam/expenses/new": { entity: "expense", title: "Create expense", presentation: "page", size: "standard" },
   "/srm/inventory/products/create": { entity: "catalog", title: "Create product", presentation: "dialog", size: "large" },
   "/srm/inventory/purchase-orders/create": { entity: "purchaseOrder", title: "Create purchase order", presentation: "page", size: "large" },
+  "/srm/inventory/manufacturing/bom/create": { entity: "billOfMaterials", title: "Create bill of materials", presentation: "page", size: "large" },
+  "/srm/inventory/manufacturing/orders/create": { entity: "productionOrder", title: "Create production order", presentation: "page", size: "large" },
+  "/power-apps/automations/new": { entity: "automation", title: "Create automation", presentation: "page", size: "large" },
 };
 const intents: Record<string, string> = {
   "/crm/leads": "lead", "/crm/potential-clients": "lead", "/crm/leads/workbench": "lead",
@@ -21,6 +24,7 @@ const intents: Record<string, string> = {
   "/srm/products": "catalog", "/srm/services": "catalog", "/srm/products-services": "catalog", "/srm/inventory/products": "catalog", "/srm/inventory/items": "catalog",
   "/srm/customers": "customer", "/srm/vendors": "vendor", "/hrms/helpdesk": "ticket", "/hrms/leave": "leave",
   "/pms/workspaces": "workspace",
+  "/crm/workspaces": "workspace", "/hrms/workspaces": "workspace", "/srm/workspaces": "workspace", "/fam/workspaces": "workspace",
   "/pms/notes": "note",
   "/crm/campaigns": "campaign",
   "/analytics/scheduled-reports": "reportSchedule",
@@ -50,7 +54,7 @@ export function creationDefinition(destination: string): CreationDefinition | un
   let entity = url.searchParams.has("new") ? intents[url.pathname] : url.hash === "#new-record" ? commercial[url.pathname] : undefined;
   if (url.pathname === "/pms/workspaces") entity = ({ task: "task", story: "task", bug: "task", project: "project", workspace: "workspace", user: "invitation" } as Record<string, string>)[url.searchParams.get("new") || ""];
   if (!entity) return;
-  const hasExistingDialog = (["catalog", "lead", "contact", "company", "customer", "vendor", "deal", "activity", "quote", "quotation", "priceBook", "workspace", "invitation", "campaign", "reportSchedule", "customField", "customModule", "recordAction", "validationRule", "relatedList", "layout", "savedView", "kanbanBoard", "picklist", "ticket", "leave"].includes(entity)) && !url.pathname.startsWith("/fam");
+  const hasExistingDialog = (["catalog", "lead", "contact", "company", "customer", "vendor", "deal", "activity", "quote", "quotation", "priceBook", "invitation", "campaign", "reportSchedule", "customField", "customModule", "recordAction", "validationRule", "relatedList", "layout", "savedView", "kanbanBoard", "picklist", "ticket", "leave"].includes(entity)) && !url.pathname.startsWith("/fam");
   return { entity, title: `Create ${entity.replace(/([A-Z])/g, " $1").toLowerCase()}`, presentation: hasExistingDialog ? "dialog" : "page", size: "large" };
 }
 

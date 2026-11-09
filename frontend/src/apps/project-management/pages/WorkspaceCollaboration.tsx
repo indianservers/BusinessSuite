@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -56,12 +57,12 @@ export default function WorkspaceCollaboration({ workspaceId, canEdit, tasks, on
     } catch (e) { if (mounted.current) setError(workspaceError(e)); }
     finally { if (mounted.current) setBusy(false); }
   }
-  return <aside className="ws-collaboration" aria-label="Team collaboration"><Link className="ws-collab-sync" to={`/pms/messages?workspace=${workspaceId}`}>Open channels, messages & threads ↗</Link>
+  return <aside className="ws-collaboration" aria-label="Team collaboration"><Button asChild variant="outline"><Link className="ws-collab-sync" to={`/pms/messages?workspace=${workspaceId}`}>Open channels, messages & threads ↗</Link></Button>
     <div className="ws-collab-tabs" role="tablist" aria-label="Collaboration views">
       <button role="tab" aria-selected={tab === "chat"} onClick={() => setTab("chat")}><MessageSquare size={16} />Team chat</button>
       <button role="tab" aria-selected={tab === "note"} onClick={() => setTab("note")}><StickyNote size={16} />Quick notes</button>
     </div>
-    <Link to={`/pms/messages?workspace=${workspaceId}`} className="px-4 py-2 text-xs underline">Open private messages</Link>
+    <Button asChild variant="outline"><Link to={`/pms/messages?workspace=${workspaceId}`} className="px-4 py-2 text-xs underline">Open private messages</Link></Button>
     <p className="ws-collab-sync" role="status">{sync} · Shared with this workspace</p>
     <div className="space-y-2 border-b px-4 pb-3">
       <input className="w-full rounded-md border bg-background px-3 py-2 text-sm" aria-label="Search messages and notes" placeholder="Search text, people or linked tasks…" value={search} onChange={event => setSearch(event.target.value)} />

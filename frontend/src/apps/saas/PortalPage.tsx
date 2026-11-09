@@ -1,3 +1,5 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
+import {collectionColumns} from "@/shared/data-grid/collection-columns";
 import CommissionClaims from "./CommissionClaims";
 import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
@@ -108,14 +110,15 @@ function PartnerPortal() {
     <div className="space-y-6">
       <div><h2 className="text-xl font-semibold">Partner dashboard</h2><p className="text-sm text-muted-foreground">Track only partner-submitted leads and permitted deal status.</p></div>
       <div className="grid gap-4 md:grid-cols-2"><SummaryCard title="Submitted leads" value={dashboard.data?.submitted_leads || 0} icon={Briefcase} /><SummaryCard title="Commission status" value={dashboard.data?.commission_status || "Claims tracking"} icon={Landmark} /></div>
-      {section === "leads" && dashboard.data?.permissions?.includes("submit_lead") ? <Card ref={createRef}><CardHeader><CardTitle>Submit lead</CardTitle></CardHeader><CardContent><form className="grid gap-3 md:grid-cols-2" onSubmit={event=>{event.preventDefault();if(!submit.isPending)submit.mutate(lead);}}>
+      {section === "leads" && dashboard.data?.permissions?.includes("submit_lead") ? <SmartCreateSection title="Submit lead"><Card ref={createRef}><CardHeader><CardTitle>Submit lead</CardTitle></CardHeader><CardContent><form className="grid gap-3 md:grid-cols-2" onSubmit={event=>{event.preventDefault();if(!submit.isPending)submit.mutate(lead);}}>
         <Input aria-label="Company" required maxLength={180} placeholder="Company" value={lead.company_name} onChange={e=>setLead({...lead,company_name:e.target.value})}/>
         <Input aria-label="Contact" required maxLength={180} placeholder="Contact" value={lead.contact_name} onChange={e=>setLead({...lead,contact_name:e.target.value})}/>
         <Input aria-label="Email" required type="email" placeholder="Email" value={lead.email} onChange={e=>setLead({...lead,email:e.target.value})}/>
         <Input aria-label="Value" type="number" min={0} placeholder="Value" value={lead.value} onChange={e=>setLead({...lead,value:Number(e.target.value)})}/>
         <Button type="submit" disabled={submit.isPending || !lead.company_name.trim() || !lead.contact_name.trim() || !lead.email.trim()}>{submit.isPending?"Submitting…":"Submit lead"}</Button>
-        {submit.isError && <p role="alert">Could not submit the lead. Your details are kept for retry.</p>}{submit.isSuccess && <p role="status">Lead submitted</p>}
-      </form></CardContent></Card> : section === "leads" ? <p className="text-sm text-muted-foreground">This portal session can view submitted leads. Lead submission permission is required to add one.</p> : null}
+        {submit.isError && <p role="alert">Could not submit the lead. Your details are kept for retry.</p>}
+      </form></CardContent></Card></SmartCreateSection> : section === "leads" ? <p className="text-sm text-muted-foreground">This portal session can view submitted leads. Lead submission permission is required to add one.</p> : null}
+      {section === "leads" && submit.isSuccess && <p role="status">Lead submitted</p>}
       <RecordGrid items={leads.data?.items || []} empty="No partner-submitted leads yet." />
     </div>
   );
@@ -127,10 +130,15 @@ function SummaryCard({ title, value, icon: Icon }: { title: string; value: React
 
 function RecordGrid({ items, empty = "No records available.", actionLabel }: { items: SaaSRecord[]; empty?: string; actionLabel?: string }) {
   const client=useQueryClient();
+  const location=useLocation();
+  const section=location.pathname.split("/").pop()||"";
+  const entityLabel: string = ({quotes:"Quote",invoices:"Invoice",projects:"Project",leads:"Lead",profile:"Person"} as Record<string,string>)[section]||"Record";
+  const fields=[{id:"status",label:"Status",value:(item:SaaSRecord)=>item.status||"Visible"},{id:"type",label:"Type",value:(item:SaaSRecord)=>item.portal_type||(item.invoice_number?"Invoice":item.quote_number?"Quote":entityLabel)}];
+  const columns=collectionColumns(items,fields,location.pathname).map(column=>column.id==="name"?{...column,title:entityLabel}:column.id==="code"&&["Quote","Invoice"].includes(entityLabel)?{...column,title:`${entityLabel} number`}:column);
   const [review,setReview]=useState<SaaSRecord|null>(null),[error,setError]=useState("");
   const accept=useMutation({mutationFn:(id:number)=>saasApi.acceptQuote(id),onSuccess:()=>{setReview(null);void client.invalidateQueries({queryKey:["portal-quotes"]});},onError:()=>setError("Could not accept this quote. Your selection is kept; check your session and retry.")});
   if (!items.length) return <div className="rounded-md border bg-card p-4 text-sm text-muted-foreground">{empty}</div>;
-  return <><GroupedRecords scope="portal-records" items={items} gridClassName="grid gap-3 md:grid-cols-2" fields={[{id:"status",label:"Status",value:item=>item.status || "Visible"},{id:"type",label:"Type",value:item=>item.portal_type || (item.invoice_number?"Invoice":item.quote_number?"Quote":"Record")}]} renderItem={(item,index)=><Card key={item.id || index}><CardContent className="space-y-2 p-4"><div className="flex items-center justify-between"><p className="font-medium">{item.name || item.quote_number || item.invoice_number || item.email || `Record ${item.id || index + 1}`}</p><Badge variant="outline">{item.status || item.portal_type || "visible"}</Badge></div><dl className="grid gap-2 text-sm">{Object.entries(item).filter(([key,value])=>!["id","name","status"].includes(key)&&value!==null&&["string","number","boolean"].includes(typeof value)).map(([key,value])=><div key={key}><dt className="text-xs capitalize text-muted-foreground">{key.replace(/_/g," ")}</dt><dd>{String(value)}</dd></div>)}</dl>{actionLabel ? <Button size="sm" variant="outline" disabled={!item.id || accept.isPending || ["accepted","approved","cancelled","rejected"].includes(String(item.status).toLowerCase())} onClick={()=>{setError("");setReview(item);}}>{actionLabel}</Button> : null}</CardContent></Card>}/>
+  return <><GroupedRecords scope="portal-records" items={items} gridClassName="grid gap-3 md:grid-cols-2" fields={fields} tableColumns={columns} renderItem={(item,index)=><Card key={item.id || index}><CardContent className="space-y-2 p-4"><div className="flex items-center justify-between"><p className="font-medium">{item.name || item.quote_number || item.invoice_number || item.email || `Record ${item.id || index + 1}`}</p><Badge variant="outline">{item.status || item.portal_type || "visible"}</Badge></div><dl className="grid gap-2 text-sm">{Object.entries(item).filter(([key,value])=>!["id","name","status"].includes(key)&&value!==null&&["string","number","boolean"].includes(typeof value)).map(([key,value])=><div key={key}><dt className="text-xs capitalize text-muted-foreground">{key.replace(/_/g," ")}</dt><dd>{String(value)}</dd></div>)}</dl>{actionLabel ? <Button size="sm" variant="outline" disabled={!item.id || accept.isPending || ["accepted","approved","cancelled","rejected"].includes(String(item.status).toLowerCase())} onClick={()=>{setError("");setReview(item);}}>{actionLabel}</Button> : null}</CardContent></Card>}/>
     <Dialog open={!!review} onOpenChange={v=>{if(!v&&!accept.isPending)setReview(null);}}><DialogContent><DialogTitle>Review quote acceptance</DialogTitle><p>Accept {review?.quote_number || review?.name || "this quote"}?</p>{error&&<p role="alert">{error}</p>}<Button disabled={accept.isPending} onClick={()=>{if(review?.id)accept.mutate(Number(review.id));}}>{accept.isPending?"Accepting…":"Confirm acceptance"}</Button><Button variant="outline" disabled={accept.isPending} onClick={()=>setReview(null)}>Cancel</Button></DialogContent></Dialog></>;
 }
 

@@ -1,6 +1,6 @@
 import {test,expect} from "../frontend/node_modules/playwright/test";
 import {installNativeActor} from "./crud121-ui-actor";
-const BASE="http://127.0.0.1:1582";
+const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:1582';
 test.setTimeout(300000);
 test("/hrms/leave creator applies approver approves and rejects owner cancels through native UI",async({page,browser,request})=>{
  const tag=String(Date.now());let day=1;

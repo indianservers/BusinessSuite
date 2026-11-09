@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import CompactActions from "@/components/actions/CompactActions";
@@ -108,7 +109,7 @@ function GroupFilter({
       {groups.isError && (
         <span role="alert">
           Could not load groups.{" "}
-          <button onClick={() => groups.refetch()}>Retry</button>
+          <Button type="submit" variant="outline" onClick={() => groups.refetch()}>Retry</Button>
         </span>
       )}
       {(groups.data?.pages || 0) > 1 && (
@@ -355,7 +356,7 @@ export default function PeopleManagementDirectory() {
             </div>
             <div className="pd-heading-actions">
               <div className="pd-split-button">
-                <button
+                <Button type="submit" variant="default"
                   className="pd-primary"
                   disabled={!ref?.can_create_user && !canTeam}
                   title={
@@ -373,7 +374,7 @@ export default function PeopleManagementDirectory() {
                 >
                   <Plus size={16} />
                   Add Person
-                </button>
+                </Button>
                 <Dropdown.Root>
                   <Dropdown.Trigger aria-label="Add person options">
                     <ChevronDown size={14} />
@@ -394,14 +395,14 @@ export default function PeopleManagementDirectory() {
                   </Dropdown.Portal>
                 </Dropdown.Root>
               </div>
-              <button
+              <Button type="submit" variant="outline"
                 className="pd-button"
                 disabled={!canTeam}
                 onClick={() => setImporting(true)}
               >
                 Import
-              </button>
-              <button
+              </Button>
+              <Button type="submit" variant="outline"
                 className="pd-button pd-export"
                 disabled={!ref?.can_export || busy}
                 title={
@@ -413,9 +414,9 @@ export default function PeopleManagementDirectory() {
               >
                 <Download size={15} />
                 Export
-              </button>
+              </Button>
               <Dropdown.Root>
-                <Dropdown.Trigger
+                <Dropdown.Trigger data-overflow-trigger
                   className="pd-button"
                   aria-label="More directory actions"
                 >
@@ -485,14 +486,14 @@ export default function PeopleManagementDirectory() {
           {(error || people.error || reference.error) && (
             <div role="alert" className="pd-error pd-alert">
               {error || workspaceError(people.error || reference.error)}
-              <button
+              <Button type="submit" variant="outline"
                 onClick={() => {
                   setError("");
                   void qc.invalidateQueries({ queryKey: ["people-workspace"] });
                 }}
               >
                 Retry
-              </button>
+              </Button>
             </div>
           )}
           <div className="pd-search-row">
@@ -553,7 +554,7 @@ export default function PeopleManagementDirectory() {
               </button>
             </div>
           </div>
-          <div className="pd-command-bar"><label>Density <NativeSelect aria-label="Card density" value={params.get("density") || "comfortable"} onChange={e=>change("density",e.target.value)}>{["comfortable","compact","detailed"].map(v=><option key={v}>{v}</option>)}</NativeSelect></label><button className="pd-button" onClick={()=>change("panel",params.get("panel") === "hidden" ? "" : "hidden")}>{params.get("panel") === "hidden" ? "Show destinations" : "Hide destinations"}</button><button className="pd-button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.href);setNotice("Directory link copied with filters and layout.");}catch{setNotice("Copy this page URL from the address bar.");}}}>Copy filtered link</button><span role="status">{notice}</span></div>
+          <div className="pd-command-bar"><label>Density <NativeSelect aria-label="Card density" value={params.get("density") || "comfortable"} onChange={e=>change("density",e.target.value)}>{["comfortable","compact","detailed"].map(v=><option key={v}>{v}</option>)}</NativeSelect></label><button className="pd-button" onClick={()=>change("panel",params.get("panel") === "hidden" ? "" : "hidden")}>{params.get("panel") === "hidden" ? "Show destinations" : "Hide destinations"}</button><Button type="submit" variant="outline" className="pd-button" onClick={async()=>{try{await navigator.clipboard.writeText(window.location.href);setNotice("Directory link copied with filters and layout.");}catch{setNotice("Copy this page URL from the address bar.");}}}>Copy filtered link</Button><span role="status">{notice}</span></div>
           <div className="pd-quick-filters">
             {[
               ["all", "All people"],
@@ -747,7 +748,7 @@ export default function PeopleManagementDirectory() {
             <CompactActions className="pd-bulk-actions">
               <strong>{selected.length} selected across {new Set(selected.map(id => selectionPages[id] || page)).size} {new Set(selected.map(id => selectionPages[id] || page)).size === 1 ? "page" : "pages"} · limit 100</strong>
               <button onClick={() => setReviewSelection(true)}>Review selection</button>
-              {membershipOptions.isError && <span role="alert">Could not load membership destinations. <button onClick={() => membershipOptions.refetch()}>Retry</button></span>}
+              {membershipOptions.isError && <span role="alert">Could not load membership destinations. <Button type="submit" variant="outline" onClick={() => membershipOptions.refetch()}>Retry</Button></span>}
               <PeopleAction reason={!canAddWorkspace ? (membershipOptions.isLoading ? "Loading workspaces…" : "No workspaces you can manage. Ask a workspace owner for access.") : undefined} onClick={() => setMembershipMode("workspace")}>
                 Add to workspace
               </PeopleAction>
@@ -758,13 +759,13 @@ export default function PeopleManagementDirectory() {
                 <Users size={15} />
                 Add to team
               </PeopleAction>
-              <button
+              <Button type="submit" variant="outline"
                 onClick={() => navigate(directoryTaskHref("people", selected))}
               >
                 Assign task
-              </button>
+              </Button>
               <button onClick={()=>{change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Bulk destinations / transfer / remove / roles</button>
-              <button disabled={!ref?.can_export || busy} onClick={()=>void exportPeople("selected")}>Export selected</button>
+              <Button type="submit" variant="outline" disabled={!ref?.can_export || busy} onClick={()=>void exportPeople("selected")}>Export selected</Button>
               <button onClick={() => setSelected([])}>Clear selection</button>
             </CompactActions>
           )}
@@ -841,7 +842,7 @@ export default function PeopleManagementDirectory() {
         /></details></div>
       </div>
       <PeopleDialog open={exportOpen} onClose={()=>setExportOpen(false)} title="Export people" description="Choose which people to export, then pick the format and columns."><div className="pd-dialog-actions">{(["filtered","page","selected"] as const).map(scope=><DataExportButton key={scope} filename="people-directory" label={scope==="filtered"?"All filtered results":scope==="page"?"Current page":`${selected.length} selected people`} disabled={!ref?.can_export||(scope==="selected"&&!selected.length)} load={async()=> (await api.get<Blob>(directoryRoot+"/export",{params:scope==="filtered"?query:{selected_ids:(scope==="selected"?selected:(people.data?.items||[]).map(p=>p.id)).join(",")},responseType:"blob"})).data}/>)}</div></PeopleDialog>
-      {previewPerson && <PersonRecordPreview key={previewPerson.id} record={previewPerson} onClose={() => setPreviewPerson(undefined)} fullProfileHref={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`} work={<div className="pd-member-preview"><p>{previewPerson.email}</p><p>{previewPerson.classification} / {previewPerson.status}</p><h3>Current projects</h3><p>{previewPerson.projects?.map(p=>p.name).join(", ") || "No current projects"}</p><h3>Teams</h3><p>{previewPerson.teams.map(p=>p.name).join(", ") || "No teams"}</p>{previewPerson.classification.toLowerCase() === "intern" && <><h3>Intern batches</h3><p>{previewPerson.batches.map(p=>p.name).join(", ") || "No batch"}</p></>}<h3>Skills</h3><p>{previewPerson.skills.join(", ") || "No skills listed"}</p><div className="pd-dialog-actions"><Link className="pd-button" to={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`}>Open full profile</Link><Link className="pd-button" to={`/pms/people/${previewPerson.id}?tab=activity&returnTo=${encodeURIComponent(backTo)}`}>Assignment history</Link><button className="pd-primary" onClick={()=>{setSelected([previewPerson.id]);setPreviewPerson(undefined);change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Assign to destination</button></div></div>} />}
+      {previewPerson && <PersonRecordPreview key={previewPerson.id} record={previewPerson} onClose={() => setPreviewPerson(undefined)} fullProfileHref={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`} work={<div className="pd-member-preview"><p>{previewPerson.email}</p><p>{previewPerson.classification} / {previewPerson.status}</p><h3>Current projects</h3><p>{previewPerson.projects?.map(p=>p.name).join(", ") || "No current projects"}</p><h3>Teams</h3><p>{previewPerson.teams.map(p=>p.name).join(", ") || "No teams"}</p>{previewPerson.classification.toLowerCase() === "intern" && <><h3>Intern batches</h3><p>{previewPerson.batches.map(p=>p.name).join(", ") || "No batch"}</p></>}<h3>Skills</h3><p>{previewPerson.skills.join(", ") || "No skills listed"}</p><div className="pd-dialog-actions"><Button asChild variant="outline"><Link className="pd-button" to={`/pms/people/${previewPerson.id}?returnTo=${encodeURIComponent(backTo)}`}>Open full profile</Link></Button><Link className="pd-button" to={`/pms/people/${previewPerson.id}?tab=activity&returnTo=${encodeURIComponent(backTo)}`}>Assignment history</Link><Button type="submit" variant="outline" className="pd-primary" onClick={()=>{setSelected([previewPerson.id]);setPreviewPerson(undefined);change("panel","");setMobileTab("destinations");setDestinationRequest({kind:"projects",action:"add",sequence:Date.now()});}}>Assign to destination</Button></div></div>} />}
 
       <PeopleDialog open={reviewSelection} onClose={() => setReviewSelection(false)} title="Review selected people" description={`${selected.length} selected people. Remove anyone before applying a bulk action.`}>
         <ul className="max-h-80 overflow-auto">{selected.map(id => <li className="flex items-center justify-between border-b py-2" key={id}><span>{selectionPeople[id]?.name || `Person #${id}`}<small className="block">{selectionPeople[id]?.email}</small></span><button className="pd-button" onClick={() => setSelected(ids => ids.filter(value => value !== id))}>Remove</button></li>)}</ul>
@@ -913,17 +914,17 @@ export default function PeopleManagementDirectory() {
             </p>
           )}
           <div className="pd-dialog-actions">
-            <button className="pd-primary" disabled={busy}>
+            <Button type="submit" variant="outline" className="pd-primary" disabled={busy}>
               <Save size={15} />
               Save view
-            </button>
+            </Button>
           </div>
         </CompactForm>
         <h3>My saved views</h3>
         {views.data?.map((view) => (
           <div className="pd-saved-view" key={view.id}>
             {view.name}
-            <button
+            <Button type="submit" variant="outline"
               onClick={async () => {
                 try {
                   await api.delete(`${directoryRoot}/views/${view.id}`);
@@ -934,7 +935,7 @@ export default function PeopleManagementDirectory() {
               }}
             >
               Delete view
-            </button>
+            </Button>
           </div>
         ))}
       </PeopleDialog>

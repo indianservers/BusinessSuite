@@ -56,8 +56,8 @@ export function SmartCreationProvider({ children, routes }: { children: ReactNod
   }
   const currentOpen = useRef(open); currentOpen.current = open;
   const adapted = useMemo<Navigator>(() => ({ ...navigation.navigator,
-    push: (to, state, options) => { if (active.current && creationDefinition(destinationPath(to))) { return; } if (!currentOpen.current(destinationPath(to))) navigation.navigator.push(to, state, options); },
-    replace: (to, state, options) => { if (active.current && creationDefinition(destinationPath(to))) { return; } if (!currentOpen.current(destinationPath(to))) navigation.navigator.replace(to, state, options); },
+    push: (to, state, options) => { if (state?.suiteCanonicalRedirect) return navigation.navigator.push(to, state, options); if (active.current && creationDefinition(destinationPath(to))) { return; } if (!currentOpen.current(destinationPath(to))) navigation.navigator.push(to, state, options); },
+    replace: (to, state, options) => { if (state?.suiteCanonicalRedirect) return navigation.navigator.replace(to, state, options); if (active.current && creationDefinition(destinationPath(to))) { return; } if (!currentOpen.current(destinationPath(to))) navigation.navigator.replace(to, state, options); },
   }), [navigation.navigator]);
   useEffect(() => {
     function capture(event: MouseEvent) {
@@ -125,7 +125,7 @@ function CreationHost({ frame, routes, close }: { frame: Frame; routes: Frontend
   };
   const completeRef = useRef(complete); completeRef.current = complete;
   useEffect(() => {
-    const resource = ({ voucher: /\/fam\/vouchers\/?$/, purchase: /\/fam\/purchase-bills\/?$/, expense: /\/fam\/expenses\/?$/, purchaseOrder: /\/purchase-orders\/?$/, asset: /\/assets\/?$/ } as Record<string, RegExp>)[frame.definition.entity];
+    const resource = ({ voucher: /\/fam\/vouchers\/?$/, purchase: /\/fam\/purchase-bills\/?$/, expense: /\/fam\/expenses\/?$/, purchaseOrder: /\/purchase-orders\/?$/, asset: /\/assets\/?$/, report: /\/analytics\/reports\/?$/, note: /\/project-management\/notes\/?$/, workspace: /\/project-management\/workspaces\/?$/, billOfMaterials: /\/srm\/inventory\/manufacturing\/bom\/?$/, productionOrder: /\/srm\/inventory\/manufacturing\/orders\/?$/ } as Record<string, RegExp>)[frame.definition.entity];
     if (!resource) return;
     const saved = (event: Event) => {
       const change = (event as CustomEvent<RecordSaved>).detail;
@@ -135,6 +135,12 @@ function CreationHost({ frame, routes, close }: { frame: Frame; routes: Frontend
   }, [frame.definition.entity]);
   const navigateLocal = (to: To) => {
     const path = parsePath(destinationPath(to));
+    const nextIntent = new URLSearchParams(path.search).get('new');
+    // Scope hydration can retain the same creation intent while adding its workspace.
+    // Keep that internal route update in this form instead of opening another copy.
+    if ((!path.pathname || path.pathname === local.pathname) && nextIntent && nextIntent === new URLSearchParams(local.search).get('new')) {
+      setLocal(current => ({ ...current, ...path, key: crypto.randomUUID() })); return;
+    }
     if (creationDefinition(destinationPath(to)) && creation?.open(destinationPath(to))) return;
     // Creation intent consumers remove ?new after opening. Keep their page-scoped location isolated.
     if ((!path.pathname || path.pathname === local.pathname) && !path.search?.includes('new=')) {

@@ -20,7 +20,7 @@ const checkbox = (element: Element) => element.type === "input" && element.props
 const editor = (element: Element) => element.type === "input" && element.props.type !== "checkbox" || element.type === "textarea" || typeof element.type !== "string" && /Input|Editor|Composer/.test((element.type as { displayName?: string; name?: string }).displayName || (element.type as { name?: string }).name || "");
 
 /** Retains page-owned React cells and handlers; only the surrounding record grid changes. */
-export default function GridTable({ children, gridId, allowExport = false, pinActions = false, variant = "records", groupCreate, defaultGroupBy, defaultHiddenColumns, hideSearch, externalPagination, staticLayout, ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; pinActions?: boolean; variant?: "records" | "matrix"; staticLayout?: boolean; defaultGroupBy?: string; defaultHiddenColumns?: string[]; hideSearch?: boolean; externalPagination?: boolean; groupCreate?: { field: string; label: string; onCreate: (value: string) => void } }) {
+export default function GridTable({ children, gridId, allowExport = false, pinActions = false, personalViews = true, variant = "records", groupCreate, defaultGroupBy, defaultHiddenColumns, hideSearch, externalPagination, staticLayout, ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; pinActions?: boolean; personalViews?: boolean; variant?: "records" | "matrix"; staticLayout?: boolean; defaultGroupBy?: string; defaultHiddenColumns?: string[]; hideSearch?: boolean; externalPagination?: boolean; groupCreate?: { field: string; label: string; onCreate: (value: string) => void } }) {
   const location = useLocation(), instance = useId();
   const sections = elements(children);
   const heads = elements(sections.find(e => e.type === "thead")?.props.children);
@@ -47,12 +47,13 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
   const identityIndex = identityMatch >= 0 ? identityMatch : hasSelection ? 1 : 0;
   const columns: GridColumn<RecordRow>[] = headers.map((header, index) => {
     const title = gridHeaderText(header.props.children) || (index === 0 && hasSelection ? "Select" : `Column ${index + 1}`);
-    const isAction = /^(actions?|quick actions|select)$/i.test(title);
+    const isFavorite = /^favou?rites?$/i.test(title);
+    const isAction = /^(actions?|quick actions|select)$/i.test(title) || isFavorite;
     const hasControl = contains(header.props.children, e => e.type === "button" || checkbox(e) || typeof e.type !== "string");
     return {
-      id: `column-${index}`, title, width: typeof header.props.style?.width === "number" ? header.props.style.width : /^select$/i.test(title) ? 40 : isAction ? 130 : index === identityIndex ? 220 : /score|progress|quantity/i.test(title) ? 75 : /status|stage|priority/i.test(title) ? 100 : /owner|assignee|assigned|employee|team/i.test(title) ? 135 : /next action/i.test(title) ? 170 : /date|updated|follow.up/i.test(title) ? 140 : 130,
-      minWidth: /^select$/i.test(title) ? 32 : /score|progress|quantity/i.test(title) ? 60 : undefined,
-      header: hasControl ? header.props.children : undefined,
+      id: `column-${index}`, title, width: typeof header.props.style?.width === "number" ? header.props.style.width : /^select$/i.test(title) ? 40 : isFavorite ? 60 : isAction ? 130 : index === identityIndex ? 220 : /score|progress|quantity/i.test(title) ? 75 : /status|stage|priority/i.test(title) ? 100 : /owner|assignee|assigned|employee|team/i.test(title) ? 135 : /next action/i.test(title) ? 170 : /date|updated|follow.up/i.test(title) ? 140 : 130,
+      minWidth: /^select$/i.test(title) ? 32 : isFavorite ? 48 : /score|progress|quantity/i.test(title) ? 60 : undefined,
+      header: isFavorite ? <span className="sr-only">{title}</span> : hasControl ? header.props.children : undefined,
       sortable: !isAction && !hasControl, filterable: !isAction, groupable: !isAction,
       accessor: row => row.values[index],
       render: row => {
@@ -81,7 +82,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
   const caption = gridCellText(sections.find(e => e.type === "caption")?.props.children).trim();
   return <div className="udg-table-adapter" data-source-table={gridId}>
     <SharedDataGrid<RecordRow> gridId={scope} title={attributes["aria-label"] || caption || "Records"}
-      dataScope="loaded" emptyContent={emptyState} detailsEnabled={!rows.some(row=>typeof row.props.onClick==="function"||typeof row.props.onClickCapture==="function"||hasRecordOpenControl(row.props.children))}
+      dataScope="loaded" personalViews={personalViews} emptyContent={emptyState} detailsEnabled={!rows.some(row=>typeof row.props.onClick==="function"||typeof row.props.onClickCapture==="function"||hasRecordOpenControl(row.props.children))}
       hideSearch={hideSearch} externalPagination={externalPagination}
       initialQuery={{...(externalPagination ? {pageSize:200} : {}),...(defaultGroupBy ? {grouping:columns.filter(column=>column.title===defaultGroupBy).map(column=>column.id)} : {})}}
       columns={columns} dataSource={source} getRowId={row => row.id}

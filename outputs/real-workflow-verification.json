@@ -1,0 +1,40 @@
+{
+  "backend": "real localhost:1534/api/v1; no mocked API routes",
+  "company": "Indian Servers Pvt Ltd",
+  "branch_id": 1,
+  "modules_browser_checked": [
+    "CRM",
+    "PMS",
+    "HRMS",
+    "Sales",
+    "Finance",
+    "Power Apps"
+  ],
+  "persisted_ui_workflows": [
+    "CRM lead",
+    "PMS project 89 and tasks 2457-2460",
+    "HRMS employee EMP00596 without login account",
+    "Sales draft INV-000002 / invoice 242 and PDF download",
+    "Finance balanced unposted voucher QA-LIVE-20261108",
+    "Power Apps draft automation 40 and rename"
+  ],
+  "checks": {
+    "real_backend_reads": 31,
+    "read_failures": 0,
+    "typecheck": "passed",
+    "backend_regressions": "11 passed"
+  },
+  "priority_colors": {
+    "urgent": "#fff0f2",
+    "high": "#fff4e9",
+    "medium": "#fffae7",
+    "low": "#edf9f2"
+  },
+  "priority_browser_verification": "Both shared grid rows/cells and task list rows match palette; cards match too",
+  "limitations": [
+    "Representative workflows across six modules; not every possible role and state",
+    "No financial posting, invoice issue/send, provider publish or live outbound delivery",
+    "Existing legacy email-outbox recipient tenant-validation errors remain in background worker logs"
+  ],
+  "qa_records": "Clearly labelled QA Live Workflow records retained for review"
+}

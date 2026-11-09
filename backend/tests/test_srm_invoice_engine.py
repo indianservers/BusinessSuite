@@ -50,6 +50,13 @@ def test_srm_manual_invoice_and_reports(client, db, superuser_headers):
     assert invoice["source_type"] == "manual"
     assert invoice["total_amount"] == 35400.0
 
+    drafts = client.get("/api/v1/srm/invoice-drafts", headers=superuser_headers)
+    assert drafts.status_code == 200, drafts.text
+    visible_draft = next(item for item in drafts.json() if item["invoice_id"] == invoice["id"])
+    assert visible_draft["invoice_number"] == invoice["invoice_number"]
+    assert visible_draft["invoice_status"] == "draft"
+
+
     listing = client.get("/api/v1/srm/invoices", headers=superuser_headers)
     assert listing.status_code == 200
     assert any(item["id"] == invoice["id"] for item in listing.json())

@@ -21,6 +21,7 @@ export async function authenticateCrm(page: Page) {
   await page.route("**/api/v1/**", async route => {
     const path = new URL(route.request().url()).pathname;
     let data: unknown = {items: []};
+    if (path.endsWith("/access/settings/defaults/effective")) data = {values:{},modules:{},companyId:1,branchId:1};
     if (path.endsWith("/access/me")) data = {managed: false, companyId: 1, companyName: "CRM test company", grants: {}, modules: [{key: "crm", route: "/crm", label: "CRM"}], isAccessAdmin: true, isGlobalAdmin: true, memberships: [1], organizations: [{id: 1, name: "CRM test company"}]};
     if (path.endsWith("/branches/context")) data = {company_id: 1, selected: 1, all_branches: false, manage_access: true, branches: [{id: 1, name: "CRM test branch", code: "QA", can_write: true}]};
     if (/\/srm\/business\/customers\/\d+\/history$/.test(path)) data = {invoices: [], projects: []};

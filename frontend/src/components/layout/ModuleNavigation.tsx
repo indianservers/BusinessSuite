@@ -97,7 +97,8 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
       </div></div>
     </>}
     {directItems.length > 0 && <ul className="module-menu-landing" aria-label="Application landing pages">{directItems.map(item => {
-      const primary = item.to === `/${moduleKey}` || item.to === `/${moduleKey}/dashboard`;
+      const itemPath = item.to.split(/[?#]/)[0].replace(/\/$/, "");
+      const primary = itemPath === `/${moduleKey}` || itemPath === `/${moduleKey}/dashboard`;
       const selected = primary ? location.pathname === `/${moduleKey}` || location.pathname === `/${moduleKey}/dashboard` : isCurrent(item.to);
       const label = displayLabel(item);
       return <li key={item.to}><div className={`module-menu-row ${selected ? "is-active" : ""}`}>

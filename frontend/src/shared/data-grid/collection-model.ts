@@ -29,7 +29,7 @@ export function scheduleRecords<T>(rows: T[], fields: CollectionField<T>[]): Sch
     ["Expected start date","Expected end date"], ["Planned start date","Planned end date"],
     ["Assigned date","Returned date"], ["Resignation date","Last working date"],
     ["From date","To date"], ["Period start","Period end"], ["Valid from","Valid until"],
-    ["Start","Due"], ["Start","End"], ["From","To"], ["Calculated start","Calculated due"],
+    ["Start","Due"], ["Start","End"], ["Start time","End time"], ["From","To"], ["Calculated start","Calculated due"],
   ];
   const availablePairs = pairs.flatMap(([from,to]) => {
     const start=fields.find(field=>field.title.toLowerCase()===from.toLowerCase());

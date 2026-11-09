@@ -6,9 +6,10 @@ test.describe("SRM sales orders commercial UI", () => {
     await authenticate(page, "srm_admin");
 
     await page.goto("/srm/sales-orders", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button",{name:"Expand loaded groups",exact:true}).click();
     await expect(page.getByRole("heading", { name: "Sales Orders" })).toBeVisible();
     await expect(page.getByText("Implementation order")).toBeVisible();
-    await expect(page.getByText("confirmed")).toBeVisible();
+    await expect(page.getByText("confirmed",{exact:true}).filter({visible:true}).last()).toBeVisible();
     await expect(page.getByRole("button", { name: "Submit", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Confirm", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Draft invoice", exact: true })).toBeVisible();

@@ -1,8 +1,9 @@
+import "./my-attendance-mobile.css";
 import GridTable from "@/shared/data-grid/GridTable";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useMobile } from "@/components/mobile/useMobile";
-import { MobileFilters } from "@/components/mobile/MobilePrimitives";
+import { MobileDisclosure, MobileFilters } from "@/components/mobile/MobilePrimitives";
 import { Button } from "@/components/ui/button";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { useMemo, useState } from "react";
@@ -33,6 +34,7 @@ function isoDate(date: Date) {
 
 export default function MyAttendancePage() {
   usePageTitle("My Attendance");
+  const phone=useMobile(480);
   const mobile = useMobile(), user = useAuthStore(state => state.user), cache = useQueryClient();
   const punch = useMutation({ mutationFn: (direction: "in" | "out") => direction === "in" ? attendanceApi.checkIn({source:"Web"}) : attendanceApi.checkOut({}), onSuccess: () => { for (const key of ["my-attendance-today", "my-attendance", "my-attendance-summary", "attendance-today"]) void cache.invalidateQueries({queryKey:[key]}); } });
   const today = new Date();
@@ -65,14 +67,14 @@ export default function MyAttendancePage() {
   const todayRecord = todayQuery.data;
 
   return (
-    <div className="space-y-6">
+    <div className="hrms-my-attendance-page space-y-6">
       <div>
         <h1 className="page-title">My Attendance</h1>
         <p className="text-sm text-muted-foreground">View your attendance, hours, and overtime without register or lock controls.</p>
       </div>
 
-      {mobile && <section className="rounded-2xl border bg-card p-4 space-y-3" aria-label="Attendance home"><h2 className="font-semibold">Today · {isoDate(today)}</h2>{todayQuery.isPending ? <p role="status">Checking attendance…</p> : todayQuery.isError ? <p role="alert">Attendance unavailable. <button onClick={() => todayQuery.refetch()}>Retry</button></p> : <><p>{todayRecord?.check_out ? "Checked out" : todayRecord?.check_in ? "Checked in" : "Not checked in"} · {todayRecord?.hours_worked ?? 0} hours</p><p className="text-sm text-muted-foreground">Last punch: {todayRecord?.check_out || todayRecord?.check_in ? formatDateTime((todayRecord?.check_out || todayRecord?.check_in)!) : "No punch today"}</p>{!!user?.employee_id && !todayRecord?.check_out && <Button className="w-full" disabled={punch.isPending} onClick={() => punch.mutate(todayRecord?.check_in ? "out" : "in")}>{punch.isPending ? "Saving…" : todayRecord?.check_in ? "Check Out" : "Check In"}</Button>}</>}{punch.isError && <p role="alert" className="text-destructive text-sm">{(punch.error as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Unable to save attendance. Try again."}</p>}</section>}
-      <div className="grid gap-4 md:grid-cols-4">
+      {mobile && <section className="rounded-2xl border bg-card p-4 space-y-3" aria-label="Attendance home"><h2 className="font-semibold">Today · {isoDate(today)}</h2>{todayQuery.isPending ? <p role="status">Checking attendance…</p> : todayQuery.isError ? <p role="alert">Attendance unavailable. <Button type="submit" variant="outline" onClick={() => todayQuery.refetch()}>Retry</Button></p> : <><p>{todayRecord?.check_out ? "Checked out" : todayRecord?.check_in ? "Checked in" : "Not checked in"} · {todayRecord?.hours_worked ?? 0} hours</p><p className="text-sm text-muted-foreground">Last punch: {todayRecord?.check_out || todayRecord?.check_in ? formatDateTime((todayRecord?.check_out || todayRecord?.check_in)!) : "No punch today"}</p>{!!user?.employee_id && !todayRecord?.check_out && <Button className="w-full" disabled={punch.isPending} onClick={() => punch.mutate(todayRecord?.check_in ? "out" : "in")}>{punch.isPending ? "Saving…" : todayRecord?.check_in ? "Check Out" : "Check In"}</Button>}</>}{punch.isError && <p role="alert" className="text-destructive text-sm">{(punch.error as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Unable to save attendance. Try again."}</p>}</section>}
+      <div className="hrms-my-attendance-kpis grid gap-4 md:grid-cols-4">
         {[
           ["Present", summary.data?.present_days],
           ["Absent", summary.data?.absent_days],
@@ -82,13 +84,14 @@ export default function MyAttendancePage() {
           <Card key={label}>
             <CardContent className="p-4">
               <p className="text-xs uppercase text-muted-foreground">{label}</p>
-              <p className="mt-1 text-2xl font-semibold">{value ?? 0}</p>
+              <p className="mt-1 text-2xl font-semibold">{value ?? (phone?"—":0)}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card>
+      {phone&&summary.isError&&<p role="alert" className="text-sm text-destructive">Monthly summary unavailable. <Button variant="outline" disabled={summary.isFetching} onClick={()=>summary.refetch()}>Retry summary</Button></p>}
+      <MobileDisclosure title="Today details" maxWidth={480}><Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Clock className="h-4 w-4" />
@@ -98,7 +101,7 @@ export default function MyAttendancePage() {
         <CardContent className="grid gap-3 text-sm md:grid-cols-4">
           <div>
             <p className="text-muted-foreground">Status</p>
-            <Badge className={statusColor(todayRecord?.status || "Not Marked")}>{todayRecord?.status || "Not Marked"}</Badge>
+            <Badge className={statusColor(todayRecord?.status || (phone&&(todayQuery.isPending||todayQuery.isError)?"Unavailable":"Not Marked"))}>{todayRecord?.status || (phone&&(todayQuery.isPending||todayQuery.isError)?"Unavailable":"Not Marked")}</Badge>
           </div>
           <div>
             <p className="text-muted-foreground">Check In</p>
@@ -113,7 +116,7 @@ export default function MyAttendancePage() {
             <p>{todayRecord?.hours_worked ?? "-"}</p>
           </div>
         </CardContent>
-      </Card>
+      </Card></MobileDisclosure>
 
       <Card>
         <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
@@ -122,12 +125,14 @@ export default function MyAttendancePage() {
             Attendance History
           </CardTitle>
           <MobileFilters chips={[fromDate,toDate]} label="Attendance period"><div className="grid gap-2 sm:grid-cols-2">
-            <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
-            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+            <Input aria-label="Attendance from date" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+            <Input aria-label="Attendance to date" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
           </div></MobileFilters>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          {phone&&attendance.isError&&<p role="alert" className="mb-3 text-sm text-destructive">Attendance history unavailable. <Button variant="outline" disabled={attendance.isFetching} onClick={()=>attendance.refetch()}>Retry history</Button></p>}
+          {phone&&attendance.isPending&&<p role="status">Loading attendance history…</p>}
+          {(!phone||!!attendance.data)&&<div className="overflow-x-auto">
             <GridTable gridId="apps/hrms/pages/attendance/MyAttendancePage:table-1" className="min-w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
@@ -157,7 +162,7 @@ export default function MyAttendancePage() {
                 )}
               </tbody>
             </GridTable>
-          </div>
+          </div>}
         </CardContent>
       </Card>
     </div>

@@ -1,3 +1,7 @@
+import { selectedBranch } from "@/lib/branch-context";
+import CalibrationParticipantsMobile, { type CalibrationParticipantView } from "./CalibrationParticipantsMobile";
+import "./performance-mobile.css";
+import { useMobile } from "@/components/mobile/useMobile";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
@@ -81,7 +85,7 @@ interface CalibrationSession {
   name: string;
   status: string;
   cycle_id: number;
-  participants?: Array<{ id: number; employee_id: number; proposed_rating?: string | number; final_rating?: string | number; potential_rating?: string | number; notes?: string }>;
+  participants?: CalibrationParticipantView[];
 }
 
 interface OneOnOneRecord {
@@ -121,21 +125,28 @@ interface CompensationWorksheetRow {
   approval_status: string;
 }
 
+function performanceBrowserScope() {
+  try { return [sessionStorage.getItem("suite-tenant"),sessionStorage.getItem("suite-organization"),selectedBranch()]; }
+  catch { return []; }
+}
+
 export default function PerformancePage() {
   const actor=useAuthStore(state=>state.user),grant=actor?.access?.grants.hrms;
   const canCreate=!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("create"),canEdit=!!actor?.is_superuser || !actor?.access?.managed || !!grant?.enabled&&grant.actions.includes("edit");
   usePageTitle("Performance");
+  const phone = useMobile(480);
+  const phoneReadScope = phone ? JSON.stringify([actor?.id,actor?.access?.companyId,...performanceBrowserScope(),actor?.role,!!actor?.is_superuser,grant?.enabled,[...(grant?.permissions||[])].sort(),[...(grant?.actions||[])].sort()]) : "";
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<PerformanceTab>("goals");
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [selectedCycle, setSelectedCycle] = useState<number | "">("");
 
-  const { data: cycles } = useQuery({
+  const cycleQuery = useQuery({
     queryKey: ["perf-cycles"],
     queryFn: () => performanceApi.cycles().then((r) => r.data),
   });
 
-  const { data: goals, isLoading: loadingGoals, refetch: refetchGoals } = useQuery({
+  const goalQuery = useQuery({
     queryKey: ["goals", selectedCycle],
     queryFn: () =>
       performanceApi.goals(selectedCycle ? Number(selectedCycle) : undefined).then((r) => r.data),
@@ -143,37 +154,45 @@ export default function PerformancePage() {
     retry: false,
   });
 
-  const { data: feedback360, isLoading: loading360 } = useQuery({
+  const feedbackQuery = useQuery({
     queryKey: ["feedback-360-requests"],
     queryFn: () => performanceApi.feedback360Requests().then((r) => r.data as Feedback360Request[]),
     retry: false,
   });
-  const { data: calibrationSessions } = useQuery({
-    queryKey: ["perf-calibration", selectedCycle],
+  const calibrationQuery = useQuery({
+    queryKey: ["perf-calibration", selectedCycle, ...(phone ? [phoneReadScope] : [])],
     queryFn: () => performanceApi.calibrationSessions(selectedCycle ? { cycle_id: Number(selectedCycle) } : undefined).then((r) => r.data as CalibrationSession[]),
   });
-  const { data: oneOnOnes } = useQuery({
-    queryKey: ["perf-one-on-ones"],
+  const conversationQuery = useQuery({
+    queryKey: ["perf-one-on-ones", ...(phone ? [phoneReadScope] : [])],
     queryFn: () => performanceApi.oneOnOnes().then((r) => r.data as OneOnOneRecord[]),
   });
-  const { data: nineBox } = useQuery({
+  const nineBoxQuery = useQuery({
     queryKey: ["perf-nine-box", selectedCycle],
     queryFn: () => performanceApi.nineBox(selectedCycle ? { cycle_id: Number(selectedCycle) } : undefined).then((r) => r.data as { items: NineBoxItem[]; count: number }),
     enabled: Boolean(selectedCycle),
     retry: false,
   });
-  const { data: criticalRoles } = useQuery({
+  const successionQuery = useQuery({
     queryKey: ["perf-critical-roles"],
     queryFn: () => performanceApi.criticalRoles().then((r) => r.data as CriticalRole[]),
   });
-  const { data: worksheetRows } = useQuery({
+  const compensationQuery = useQuery({
     queryKey: ["perf-comp-worksheet"],
     queryFn: () => performanceApi.compensationWorksheet().then((r) => r.data as CompensationWorksheetRow[]),
     retry: false,
   });
 
+  const cycles = cycleQuery.data, goals = goalQuery.data, loadingGoals = goalQuery.isLoading, refetchGoals = goalQuery.refetch;
+  const feedback360 = feedbackQuery.data, loading360 = feedbackQuery.isLoading, calibrationSessions = calibrationQuery.data;
+  const oneOnOnes = conversationQuery.data, nineBox = nineBoxQuery.data, criticalRoles = successionQuery.data, worksheetRows = compensationQuery.data;
+  const sections: Array<[PerformanceTab,string]> = [["goals","My Goals"],["reviews","Submit Review"],["360","360 Reviews"],["calibration","Calibration"],["oneOnOnes","1:1s"],["nineBox","Nine Box"],["succession","Succession"],["compensation","Comp Worksheet"]];
+  const activeQuery = {goals:goalQuery,reviews:goalQuery,"360":feedbackQuery,calibration:calibrationQuery,oneOnOnes:conversationQuery,nineBox:nineBoxQuery,succession:successionQuery,compensation:compensationQuery}[activeTab];
+  const needsCycle = ["goals","reviews","nineBox"].includes(activeTab);
+  const showTabContent = !phone || (!needsCycle || !!selectedCycle) && activeQuery.data !== undefined;
+
   const { control: goalEditorControl, register: regGoal, handleSubmit: submitGoal, reset: resetGoal, formState: { errors: goalErrors } } = useForm<GoalForm>();
-  const { control: reviewEditorControl, register: regReview, handleSubmit: submitReview, reset: resetReview } = useForm<ReviewForm>({
+  const { control: reviewEditorControl, register: regReview, handleSubmit: submitReview, reset: resetReview, watch: watchReview } = useForm<ReviewForm>({
     defaultValues: { rating: 3, goals_achieved: 0 },
   });
 
@@ -225,11 +244,12 @@ export default function PerformancePage() {
     },
   });
 
+  const reviewRating = watchReview("rating");
   const completedGoals = (goals as Goal[])?.filter((g) => g.status === "Completed").length ?? 0;
   const totalGoals = (goals as Goal[])?.length ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="hrms-performance-page space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Performance</h1>
@@ -244,7 +264,7 @@ export default function PerformancePage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="performance-kpis grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Total Goals", value: totalGoals, color: "text-blue-600" },
           { label: "Completed", value: completedGoals, color: "text-green-600" },
@@ -253,7 +273,7 @@ export default function PerformancePage() {
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="p-4 text-center">
-              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              <p className={`text-2xl font-bold ${s.color}`}>{phone && !goals ? "—" : s.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
             </CardContent>
           </Card>
@@ -261,15 +281,15 @@ export default function PerformancePage() {
       </div>
 
       {/* Cycle selector */}
-      <div className="flex items-center gap-3">
+      <div className="performance-cycle flex items-center gap-3">
         <Label className="text-sm" htmlFor="performance-review-cycle">Review Cycle</Label>
         <NativeSelect
-          id="performance-review-cycle"
+          loading={phone && cycleQuery.isFetching} error={phone && cycleQuery.isError} id="performance-review-cycle"
           value={selectedCycle}
           onChange={(e) => setSelectedCycle(e.target.value ? Number(e.target.value) : "")}
           className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          <option value="">All Cycles</option>
+          <option value="">{phone ? "Choose a cycle" : "All Cycles"}</option>
           {(cycles as Cycle[])?.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -277,7 +297,7 @@ export default function PerformancePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b">
+      {phone ? <label className="performance-section">Section<NativeSelect aria-label="Performance section" value={activeTab} onChange={event=>setActiveTab(event.target.value as PerformanceTab)}>{sections.map(([id,label])=><option key={id} value={id}>{label}</option>)}</NativeSelect></label> : <div className="flex flex-wrap gap-2 border-b">
         {([
           ["goals", "My Goals"],
           ["reviews", "Submit Review"],
@@ -300,24 +320,28 @@ export default function PerformancePage() {
             {label}
           </button>
         ))}
-      </div>
+      </div>}
+      {phone && cycleQuery.isError && <p role="alert">Review cycles could not load. <Button variant="outline" onClick={()=>cycleQuery.refetch()}>Retry review cycles</Button></p>}
+      {phone && needsCycle && !selectedCycle && <p role="status">Choose a review cycle to view this section.</p>}
+      {phone && (!needsCycle || !!selectedCycle) && activeQuery.isPending && <p role="status">Loading performance section…</p>}
+      {phone && (!needsCycle || !!selectedCycle) && activeQuery.isError && <p role="alert">This performance section could not load. <Button variant="outline" onClick={()=>activeQuery.refetch()}>Retry performance section</Button></p>}
 
       {activeTab === "goals" && (
         <div className="space-y-4">
           {/* Create goal form */}
           {showGoalForm && (
-            <SmartCreateSection title={<>New Goal</>} size="standard" autoOpen onClose={() => setShowGoalForm(false)}><Card>
+            <SmartCreateSection title={<>New Goal</>} size="standard" mobileSheet={phone} autoOpen onClose={() => setShowGoalForm(false)}><Card>
               <CardHeader><CardTitle className="text-base">New Goal</CardTitle></CardHeader>
               <CardContent>
                 <CompactForm
                   onSubmit={submitGoal((data) => createGoalMutation.mutate(data))}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  className="performance-goal-form grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
                   <div className="sm:col-span-2 space-y-1.5">
                     <label className="block space-y-1.5">Appraisal cycle<NativeSelect aria-label="Appraisal cycle" required value={selectedCycle} onChange={event=>setSelectedCycle(event.target.value?Number(event.target.value):"")}><option value="">Choose an appraisal cycle</option>{(cycles as Cycle[])?.map(cycle=><option key={cycle.id} value={cycle.id}>{cycle.name}</option>)}</NativeSelect></label>
                     <Label>Goal Title *</Label>
-                    <Input aria-label="Goal title" {...regGoal("title", { required: "Required" })} placeholder="e.g. Complete Q2 product launch" />
-                    {goalErrors.title && <div className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={goalErrors.title.message}/></div>}
+                    <Input aria-invalid={phone ? !!goalErrors.title : undefined} aria-label="Goal title" {...regGoal("title", { required: "Required" })} placeholder="e.g. Complete Q2 product launch" />
+                    {goalErrors.title && <div role={phone ? "alert" : undefined} className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={goalErrors.title.message}/></div>}
                   </div>
                   <div className="sm:col-span-2 space-y-1.5">
                     <Label>Description</Label>
@@ -325,14 +349,14 @@ export default function PerformancePage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Target Value</Label>
-                    <Input type="number" {...regGoal("target_value")} placeholder="e.g. 100" />
+                    <Input aria-label={phone ? "Goal target value" : undefined} type="number" {...regGoal("target_value")} placeholder="e.g. 100" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Due Date</Label>
                     <Input aria-label="Due Date" type="date" {...regGoal("due_date")} />
                   </div>
                   <div className="sm:col-span-2 flex gap-3">
-                    <Button type="submit" disabled={!canCreate||createGoalMutation.isPending}>
+                    <Button type="submit" data-save-action={phone ? "" : undefined} disabled={!canCreate||createGoalMutation.isPending}>
                       {createGoalMutation.isPending ? "Creating..." : "Create Goal"}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setShowGoalForm(false)}>Cancel</Button>
@@ -343,7 +367,7 @@ export default function PerformancePage() {
           )}
 
           {/* Goals list */}
-          {loadingGoals ? (
+          {phone && !showTabContent ? null : loadingGoals ? (
             Array.from({ length: 4 }).map((_, i) => (
               <Card key={i}><CardContent className="p-5"><div className="h-16 skeleton rounded" /></CardContent></Card>
             ))
@@ -361,7 +385,7 @@ export default function PerformancePage() {
                 : 0);
 
               return (
-                <Card data-priority-row data-priority={goal.priority} key={goal.id}>
+                <Card className="performance-goal-card" data-priority-row data-priority={goal.priority} key={goal.id}>
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2">
@@ -389,7 +413,7 @@ export default function PerformancePage() {
                         </div>
                         <p className="text-xs text-muted-foreground">{Math.round(progress)}% complete</p>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="performance-goal-actions flex flex-col items-end gap-2">
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(goal.status)}`}>
                           {goal.status}
                         </span>
@@ -418,41 +442,43 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {activeTab === "reviews" && (
+      {activeTab === "reviews" && showTabContent && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Self Review</CardTitle>
             <CardDescription>Submit your performance self-assessment</CardDescription>
           </CardHeader>
           <CardContent>
-            <SmartCreateSection title="Submit performance review" size="standard"><CompactForm
+            <SmartCreateSection title="Submit performance review" size="standard" mobileSheet={phone}><CompactForm
               onSubmit={submitReview((data) => submitReviewMutation.mutate(data))}
-              className="space-y-6"
+              className="performance-review-form space-y-6"
             >
               {/* Star rating */}
               <div className="space-y-2">
                 <Label>Overall Rating *</Label>
-                <div className="flex gap-3">
+                <div className="performance-rating flex gap-3">
                   {[1, 2, 3, 4, 5].map((r) => (
                     <label key={r} className="cursor-pointer">
                       <input
                         type="radio"
                         aria-label={`Rating ${r}`}
+                        checked={phone ? Number(reviewRating) === r : undefined}
                         value={r}
                         {...regReview("rating")}
                         className="sr-only"
                       />
-                      <Star className="h-8 w-8 text-yellow-400 fill-yellow-400 hover:scale-110 transition-transform" />
+                      <Star className={phone && r > Number(reviewRating) ? "h-8 w-8 text-yellow-500 fill-none" : "h-8 w-8 text-yellow-400 fill-yellow-400 hover:scale-110 transition-transform"} />
                     </label>
                   ))}
                 </div>
+                {phone && <p role="status" className="performance-rating-status">Selected rating: {reviewRating} / 5</p>}
                 <p className="text-xs text-muted-foreground">Rating: 1 (Needs Improvement) – 5 (Exceptional)</p>
               </div>
 
               <div className="space-y-1.5">
                 <Label>Goals Achieved</Label>
                 <Input
-                  type="number"
+                  aria-label={phone ? "Goals achieved" : undefined} type="number"
                   min={0}
                   max={totalGoals}
                   {...regReview("goals_achieved")}
@@ -465,7 +491,7 @@ export default function PerformancePage() {
                 <Controller name="self_comments" control={reviewEditorControl} render={({field}) => <RichTextEditor legacyFormat="plain" label="Self Comments" value={field.value || ""} onChange={field.onChange} onBlur={field.onBlur} />}/>
               </div>
 
-              <Button type="submit" disabled={!canCreate||!selectedCycle||!(cycles as Cycle[] | undefined)?.some(cycle=>cycle.id===Number(selectedCycle)&&["active","self_review","manager_review","calibration"].includes(cycle.status))||submitReviewMutation.isPending}>
+              <Button type="submit" data-save-action={phone ? "" : undefined} disabled={!canCreate||!selectedCycle||!(cycles as Cycle[] | undefined)?.some(cycle=>cycle.id===Number(selectedCycle)&&["active","self_review","manager_review","calibration"].includes(cycle.status))||submitReviewMutation.isPending}>
                 {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
               </Button>
             </CompactForm></SmartCreateSection>
@@ -473,7 +499,7 @@ export default function PerformancePage() {
         </Card>
       )}
 
-      {activeTab === "360" && (
+      {activeTab === "360" && showTabContent && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">360 Reviews</CardTitle>
@@ -505,7 +531,7 @@ export default function PerformancePage() {
         </Card>
       )}
 
-      {activeTab === "calibration" && (
+      {activeTab === "calibration" && showTabContent && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Calibration Sessions</CardTitle>
@@ -521,7 +547,7 @@ export default function PerformancePage() {
                   </div>
                   <Badge>{session.status}</Badge>
                 </div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {phone ? <CalibrationParticipantsMobile key={phoneReadScope} sessionName={session.name} participants={session.participants||[]} sourceError={calibrationQuery.isError} refreshing={calibrationQuery.isFetching} onRetry={()=>{void calibrationQuery.refetch();}}/> : <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   {(session.participants || []).slice(0, 6).map((participant) => (
                     <div key={participant.id} className="rounded-md bg-muted/50 p-3 text-xs">
                       <p className="font-medium">Employee #{participant.employee_id}</p>
@@ -529,7 +555,7 @@ export default function PerformancePage() {
                       <p className="text-muted-foreground">Potential {participant.potential_rating || "-"}</p>
                     </div>
                   ))}
-                </div>
+                </div>}
               </div>
             )}/>}
             {!calibrationSessions?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No calibration sessions yet.</p>}
@@ -537,14 +563,14 @@ export default function PerformancePage() {
         </Card>
       )}
 
-      {activeTab === "oneOnOnes" && (
+      {activeTab === "oneOnOnes" && showTabContent && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">One-on-Ones</CardTitle>
             <CardDescription>Manager and employee conversations with action follow-through.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-3" items={((oneOnOnes || []).slice(0, 20)) || []} fields={standardRecordGroups(((oneOnOnes || []).slice(0, 20)) || [])} gridClassName="space-y-3" renderItem={(item) => (
+            {<GroupedRecords scope="apps/hrms/pages/performance/PerformancePage:records-3" items={(phone ? (oneOnOnes || []) : (oneOnOnes || []).slice(0, 20)) || []} fields={standardRecordGroups((phone ? (oneOnOnes || []) : (oneOnOnes || []).slice(0, 20)) || [])} gridClassName="space-y-3" renderItem={(item) => (
               <div key={item.id} className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_auto]">
                 <div>
                   <p className="text-sm font-medium">Employee #{item.employee_id} with Manager #{item.manager_id}</p>
@@ -561,7 +587,7 @@ export default function PerformancePage() {
         </Card>
       )}
 
-      {activeTab === "nineBox" && (
+      {activeTab === "nineBox" && showTabContent && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Nine-Box Grid</CardTitle>
@@ -583,7 +609,7 @@ export default function PerformancePage() {
         </Card>
       )}
 
-      {activeTab === "succession" && (
+      {activeTab === "succession" && showTabContent && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Succession & Career Paths</CardTitle>
@@ -614,7 +640,7 @@ export default function PerformancePage() {
         </Card>
       )}
 
-      {activeTab === "compensation" && (
+      {activeTab === "compensation" && showTabContent && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Compensation Worksheet</CardTitle>

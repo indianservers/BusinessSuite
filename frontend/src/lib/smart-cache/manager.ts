@@ -251,7 +251,13 @@ export class RecordCacheManager {
       throw error;
     } finally { this.optimistic.delete(entity); void this.syncModuleChanges(); }
   }
-  async afterMutation(url: string) {
+  async afterMutation(url?: string) {
+    // Some existing communication workflows emit a plain mutation Event.
+    // Their save succeeded, but no URL is available for targeted invalidation.
+    if (typeof url !== 'string' || !url.trim()) {
+      await this.syncModuleChanges(undefined, true);
+      return;
+    }
     url = resourcePath(url);
     const generation = this.generation;
     const path = (url || "").replace(/\/[^/]+$/, '');

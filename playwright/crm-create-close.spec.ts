@@ -53,6 +53,8 @@ for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[
     await page.goto(`/${module}/${kind}`);
     const add=kind==="contacts"?"Create contact":kind==="companies"?"Create company":kind==="deals"?"Create deal":kind==="projects"?"New Project":"Add Task";
     await expect(page.getByRole("button",{name:add,exact:true}).first()).toBeVisible({timeout:20000});
+    const cards=page.getByRole("tab",{name:"Cards",exact:true});
+    if(await cards.isVisible())await cards.click();
     const original=page.url();
     const heading=await page.locator("#suite-main h1,main h1").first().elementHandle();
     if(entry==="page")await page.getByRole("button",{name:add,exact:true}).first().click();
@@ -71,7 +73,7 @@ for(const width of [1440,390]) for(const kind of Object.keys(endpoints) as Kind[
     if(kind==="contacts") {await page.getByPlaceholder("Enter contact name").fill(name);save=page.getByRole("dialog").getByRole("button",{name:"Create contact",exact:true});}
     else if(kind==="companies") {await page.getByLabel("Company name *",{exact:true}).fill(name);save=page.getByRole("button",{name:"Save company",exact:true});}
     else if(kind==="projects") {await page.getByRole("textbox",{name:"Project name",exact:true}).fill(name);await page.getByLabel("Project workspace",{exact:true}).selectOption("1");save=page.getByRole("dialog").getByRole("button",{name:"Create project",exact:true}).last();}
-    else if(kind==="tasks") {await page.getByPlaceholder("What needs to be done?").fill(name);await page.getByRole("textbox",{name:"Task description",exact:true}).fill("Preserve the complete task description");await page.getByRole("dialog").getByRole("button",{name:"Schedule",exact:true}).click();await page.getByRole("dialog").getByLabel("Priority",{exact:true}).selectOption("High");save=page.getByRole("button",{name:/^Create task$/i}).last();}
+    else if(kind==="tasks") {await page.getByPlaceholder("What needs to be done?").fill(name);await page.getByRole("textbox",{name:"Task description",exact:true}).fill("Preserve the complete task description");await page.getByRole("dialog").getByLabel("Priority",{exact:true}).selectOption("High");save=page.getByRole("button",{name:/^Create task$/i}).last();}
     else {
       await page.getByPlaceholder("Enter deal name...").fill(name);
       const pipeline=page.getByRole('dialog').last().locator('select[aria-label="Pipeline"]');
@@ -108,10 +110,10 @@ for(const width of [1440,390])test(`campaign draft review and save close the edi
   await page.getByRole("button",{name:"Create campaign",exact:true}).click();
   await page.getByLabel("Campaign name",{exact:true}).fill("QA draft campaign");
   await page.getByRole("combobox",{name:"Email template",exact:true}).selectOption("1");
-  await expect(page.getByRole("button",{name:"Review & save draft",exact:true})).toBeVisible();
+  await expect(page.getByRole("contentinfo").getByRole("button",{name:"Review & save draft",exact:true})).toBeVisible();
   await page.getByLabel("Campaign name",{exact:true}).focus();
   await page.keyboard.press("Control+s");
-  const save=page.getByRole("button",{name:"Create reviewed draft",exact:true});
+  const save=page.getByRole("contentinfo").getByRole("button",{name:"Create reviewed draft",exact:true});
   await expect(save).toBeVisible();
   await save.click();
   await expect(page.getByRole("heading",{name:"New email campaign",exact:true})).toHaveCount(0);

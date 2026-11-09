@@ -818,3 +818,12 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Keep the module menu fixed while approval views remain local tabs. */
+.ap-app.ap-embedded { display: block; min-height: 0; }
+.ap-embedded .ap-sidebar { width: auto; min-width: 0; position: static; height: auto; padding: 12px; border-right: 0; }
+.ap-embedded .ap-sidebar .ap-suite-link,
+.ap-embedded .ap-sidebar .ap-brand,
+.ap-embedded .ap-sidebar .ap-side-note { display: none; }
+.ap-embedded .ap-sidebar nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.ap-embedded .ap-main { min-width: 0; }

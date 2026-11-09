@@ -2,16 +2,16 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown, Loader2, Plus, Search, X } from "lucide-react";
 import "./smart-record-picker.css";
 
-export type RecordSuggestion<T> = { id: string; label: string; description?: string; record: T };
-export default function SmartRecordPicker<T>({ name, value, search, onSearch, items, selected, onSelect, onClear, loading, error, retry, onCreate, hasMore, loadMore }: {
-  name: string; value: string; search: string; onSearch: (search: string) => void;
+export type RecordSuggestion<T> = { id: string; label: string; description?: string; searchText?: string; record: T };
+export default function SmartRecordPicker<T>({ name, value, search, onSearch, items, selected, onSelect, onClear, loading, error, retry, onCreate, hasMore, loadMore, inputId }: {
+  inputId?: string; name: string; value: string; search: string; onSearch: (search: string) => void;
   items: RecordSuggestion<T>[]; selected?: RecordSuggestion<T>; onSelect: (record: T) => void; onClear: () => void;
   loading?: boolean; error?: string; retry?: () => void; onCreate?: (seedName: string) => void; hasMore?: boolean; loadMore?: () => void;
 }) {
   const [open, setOpen] = useState(false), [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null), id = useId();
   const term = search.trim().toLocaleLowerCase();
-  const matches = items.filter(item => !term || `${item.label} ${item.description || ""}`.toLocaleLowerCase().includes(term));
+  const matches = items.filter(item => !term || `${item.label} ${item.description || ""} ${item.searchText || ""}`.toLocaleLowerCase().includes(term));
   const ranked = [...matches].sort((a, b) => Number(b.label.toLocaleLowerCase().startsWith(term)) - Number(a.label.toLocaleLowerCase().startsWith(term)));
   const activeIndex = Math.min(active, Math.max(0, ranked.length - 1));
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function SmartRecordPicker<T>({ name, value, search, onSearch, it
   return <div className="smart-record-picker" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) { setOpen(false); onSearch(""); } }}>
     <div className={`smart-record-input ${open ? "is-open" : ""}`}>
       <Search size={16} aria-hidden="true"/>
-      <input ref={input} data-record-picker role="combobox" aria-label={`Search ${name.toLowerCase()}`} aria-autocomplete="list" aria-expanded={open}
+      <input id={inputId} ref={input} data-record-picker role="combobox" aria-label={`Search ${name.toLowerCase()}`} aria-autocomplete="list" aria-expanded={open}
         aria-controls={`${id}-list`} aria-activedescendant={open && ranked.length ? `${id}-option-${activeIndex}` : undefined}
         autoComplete="off" placeholder={`Search ${name.toLowerCase()} by name, email or phone…`}
         value={open ? search : selected?.label || (value ? `Selected ${name.toLowerCase()} #${value}` : "")}

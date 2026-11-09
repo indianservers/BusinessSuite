@@ -27,3 +27,8 @@ console.log('Alternate date-pair regressions passed');
 const leaveFields=fields.map(field=>field.id==='start'?{...field,title:'From'}:field.id==='end'?{...field,title:'To'}:field);assert.equal(scheduleRecords(rows,leaveFields).length,1,'Leave date ranges must expose the applicable Gantt schedule');
 const calculatedFields=fields.map(field=>field.id==='start'?{...field,title:'Calculated start'}:field.id==='end'?{...field,title:'Calculated due'}:field);assert.equal(scheduleRecords(rows,calculatedFields).length,1,'Calculated plans must expose their schedule without treating it as applied');
 console.log('Leave and calculated-plan schedule checks passed');
+
+const meetingFields=[{id:'title',title:'Meeting',value:row=>row.title},{id:'start_time',title:'Start time',value:row=>row.start},{id:'end_time',title:'End time',value:row=>row.end}];
+assert.equal(scheduleRecords([{title:'Review',start:'2026-11-08T09:00:00Z',end:'2026-11-08T10:00:00Z'}],meetingFields).length,1,'Recorded meeting times expose a calendar-day Gantt');
+assert.equal(scheduleRecords([{title:'Unscheduled',start:'',end:''}],meetingFields).length,0);
+console.log('Meeting schedule checks passed');

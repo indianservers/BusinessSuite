@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
@@ -521,11 +522,11 @@ function TasksReferencePage() {
           <div className="tr-header-actions">
 
             {studio && (
-              <Link className="tr-primary tr-studio-new" to="/pms/tasks/new">
+              <Button asChild variant="default"><Link className="tr-primary tr-studio-new" to="/pms/tasks/new">
                 <Plus size={14} />
                 New
                 <ChevronDown size={12} />
-              </Link>
+              </Link></Button>
             )}
             <Link className="tr-button tr-ai" to="/pms/operator">
               <Sparkles size={17} />
@@ -587,10 +588,10 @@ function TasksReferencePage() {
                     Indian Servers.
                   </p>
                 </div>
-                <button className="tr-primary tr-add" disabled={!projectId||!canCreateTask} title={!projectId||!canCreateTask?"Task creation requires a project where you can manage tasks":undefined} onClick={() => add()}>
+                <Button type="submit" variant="default" className="tr-primary tr-add" disabled={!projectId||!canCreateTask} title={!projectId||!canCreateTask?"Task creation requires a project where you can manage tasks":undefined} onClick={() => add()}>
                   <Plus />
                   Add Task
-                </button>
+                </Button>
               </div>
               <section
                 className="tr-metrics"
@@ -632,7 +633,7 @@ function TasksReferencePage() {
                   role={error ? "alert" : "status"}
                 >
                   {error || notice}
-                  {error && <button onClick={reload}>Retry</button>}
+                  {error && <Button type="submit" variant="outline" onClick={reload}>Retry</Button>}
                   <button
                     aria-label="Dismiss message"
                     onClick={() => {
@@ -655,11 +656,11 @@ function TasksReferencePage() {
                       <label>Row density<NativeSelect aria-label="Row density" value={params.get("density") || "compact"} onChange={e => change("density", e.target.value)}><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></NativeSelect></label>
                       <fieldset className="tr-column-options"><legend>Visible columns</legend>{["Project","Priority","Assignee","Due date","Status","Progress","Labels"].map((label,index) => {const column=index+3;const hidden=(params.get("hideColumns") || "").split(",").includes(String(column));return <label key={column}><input type="checkbox" checked={!hidden} onChange={event => {const next=new Set((params.get("hideColumns") || "").split(",").filter(Boolean));if(event.target.checked)next.delete(String(column));else next.add(String(column));change("hideColumns",[...next].join(","));}}/>{label}</label>;})}</fieldset>
                       <details><summary>Task templates</summary>{[["Bug report","Bug"],["Feature request","Story"],["Client onboarding","Task"]].map(([title,type]) => <button key={title} className="tr-button" onClick={() => add(type as "Task" | "Story" | "Bug",title)}>{title}</button>)}</details>
-                      <button className="tr-button" onClick={() => setSaveOpen(true)}><Save size={14} />Save current view</button>
-                      <button className="tr-button" disabled={!canCreateTask} onClick={() => { setImportProject(String(projectId || "")); setImportOpen(true); }}><Upload size={14} />Import tasks</button>
+                      <Button type="submit" variant="outline" className="tr-button" onClick={() => setSaveOpen(true)}><Save size={14} />Save current view</Button>
+                      <Button type="submit" variant="outline" className="tr-button" disabled={!canCreateTask} onClick={() => { setImportProject(String(projectId || "")); setImportOpen(true); }}><Upload size={14} />Import tasks</Button>
                       <Link className="tr-button" to="/pms/automation"><Zap size={14} />Automations</Link>
                       <Link className="tr-button" to="/pms/custom-fields"><Settings2 size={14} />Custom fields</Link>
-                      <button className="tr-button" disabled={!canExportTasks} onClick={() => { if(!canExportTasks)return;const rows = [["Task ID", "Title", "Project", "Assignee", "Priority", "Status", "Due date"], ...(data?.items || []).map(t => [t.task_key, t.title, t.project_name, t.assignee_name, t.priority, t.status, t.due_date])]; const csv = rows.map(row => row.map(cell => '"' + String(cell || "").replace(/"/g, '""').replace(/^[=+@-]/, "'$&") + '"').join(",")).join("\r\n"); const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8;"})); const link = document.createElement("a"); link.href = url; link.download = "tasks-current-page.csv"; link.click(); URL.revokeObjectURL(url); setNotice("Current page exported."); }}><Download size={14} />Export current page</button>
+                      <Button type="submit" variant="outline" className="tr-button" disabled={!canExportTasks} onClick={() => { if(!canExportTasks)return;const rows = [["Task ID", "Title", "Project", "Assignee", "Priority", "Status", "Due date"], ...(data?.items || []).map(t => [t.task_key, t.title, t.project_name, t.assignee_name, t.priority, t.status, t.due_date])]; const csv = rows.map(row => row.map(cell => '"' + String(cell || "").replace(/"/g, '""').replace(/^[=+@-]/, "'$&") + '"').join(",")).join("\r\n"); const url = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8;"})); const link = document.createElement("a"); link.href = url; link.download = "tasks-current-page.csv"; link.click(); URL.revokeObjectURL(url); setNotice("Current page exported."); }}><Download size={14} />Export current page</Button>
                     </div></details>
                     <NativeSelect
                       aria-label="Saved views"
@@ -803,7 +804,7 @@ function TasksReferencePage() {
                     onClick={() => setExtra(!extra)}
                   >
                     <SlidersHorizontal size={15} />
-                    Filters{activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+                    Filters{activeFilterCount > 0 && <span data-count-badge data-count-tone="blue">{activeFilterCount}</span>}
                   </button>
                 </div>
                 {extra && (
@@ -1192,10 +1193,10 @@ function TasksReferencePage() {
                   Quick Actions
                 </h2>
                 <CompactActions className="tr-quick">
-                  <button className="tr-primary" disabled={!projectId||!canCreateTask} onClick={() => add()}>
+                  <Button type="submit" variant="default" className="tr-primary" disabled={!projectId||!canCreateTask} onClick={() => add()}>
                     <Plus />
                     Add Task
-                  </button>
+                  </Button>
                   <Link to="/pms/workspaces">
                     <FileText />
                     Task Templates
@@ -1204,7 +1205,7 @@ function TasksReferencePage() {
                     <Zap />
                     Automation
                   </Link>
-                  <button
+                  <Button type="submit" variant="outline"
                     title="Use the project import tools"
                     onClick={() => {
                       setImportProject(String(projectId || ""));
@@ -1213,7 +1214,7 @@ function TasksReferencePage() {
                   >
                     <Upload />
                     Import Tasks
-                  </button>
+                  </Button>
                 </CompactActions>
               </section>
               <section>
@@ -1388,7 +1389,7 @@ function TasksReferencePage() {
                   ? "Retry failed items"
                   : "Create tasks"}
             </button>
-            <button
+            <Button type="submit" variant="default"
               className="tr-button"
               disabled={busy}
               onClick={() => {
@@ -1398,7 +1399,7 @@ function TasksReferencePage() {
               }}
             >
               New import
-            </button>
+            </Button>
             <Dialog.Close disabled={busy} className="tr-button">
               Close
             </Dialog.Close>
@@ -1510,10 +1511,10 @@ function TasksReferencePage() {
                   onChange={(e) => setViewName(e.target.value)}
                 />
               </label>
-              <button className="tr-primary" disabled={busy}>
+              <Button type="submit" variant="outline" className="tr-primary" disabled={busy}>
                 <Save size={16} />
                 Save view
-              </button>
+              </Button>
               <Dialog.Close className="tr-button" type="button">
                 Cancel
               </Dialog.Close>

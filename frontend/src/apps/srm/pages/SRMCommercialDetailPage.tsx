@@ -165,7 +165,7 @@ function BillingMilestone({milestone,onChanged}:{milestone:SRMRecord;onChanged:(
     {!billed && <><div className="flex flex-wrap gap-2"><label>Milestone amount<Input aria-label="Milestone amount" type="number" min="0" step="0.01" value={amount} onChange={event=>setAmount(event.target.value)}/></label><label>Milestone due date<Input aria-label="Milestone due date" type="date" value={due} onInput={event=>setDue(event.currentTarget.value)} onChange={event=>setDue(event.target.value)}/></label><label>Amendment reason<Input aria-label="Amendment reason" value={reason} onChange={event=>setReason(event.target.value)}/></label></div>
     <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={!reason.trim() || amend.isPending} onClick={()=>amend.mutate()}>Save milestone amendment</Button><Button variant="outline" disabled={approve.isPending} onClick={()=>approve.mutate()}>Approve milestone</Button><Button disabled={draft.isPending || !["approved","ready","completed"].includes(String(milestone.status))} onClick={()=>draft.mutate()}>Generate milestone invoice</Button></div></>}
     {billed && <p>This milestone is invoiced and cannot be amended or billed again.</p>}
-    {draft.data && <Link className="text-primary underline" to={`/srm/invoices/${draft.data.id}`}>Open generated invoice</Link>}
+    {draft.data && <Button asChild variant="outline"><Link className="text-primary underline" to={`/srm/invoices/${draft.data.id}`}>Open generated invoice</Link></Button>}
     {[amend,approve,draft].filter(action=>action.isError).map((action,index)=><p role="alert" key={index}>{actionError(action.error)}</p>)}
   </section>;
 }

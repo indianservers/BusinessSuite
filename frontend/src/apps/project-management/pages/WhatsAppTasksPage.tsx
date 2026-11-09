@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useEffect, useRef, useState } from "react";
@@ -183,10 +184,10 @@ export default function WhatsAppTasksPage() {
             Indian Servers<small>Task workspace</small>
           </strong>
         </Link>
-        <Link className="wa-new" to="/pms/tasks/new">
+        <Button asChild variant="default"><Link className="wa-new" to="/pms/tasks/new">
           <Plus size={19} />
           New Task
-        </Link>
+        </Link></Button>
         <nav aria-label="Task views">
           {[
             ["all", "All Tasks", ListTodo],
@@ -327,7 +328,7 @@ export default function WhatsAppTasksPage() {
           {query.isError && (
             <div className="wa-empty" role="alert">
               {workspaceError(query.error)}
-              <button onClick={() => void query.refetch()}>Retry</button>
+              <Button type="submit" variant="outline" onClick={() => void query.refetch()}>Retry</Button>
             </div>
           )}
           {!query.isPending && !query.isError && !items.length && (
@@ -616,7 +617,7 @@ function Conversation({
     return (
       <div className="wa-empty" role="alert">
         {workspaceError(detail.error)}
-        <button onClick={() => void detail.refetch()}>Retry</button>
+        <Button type="submit" variant="outline" onClick={() => void detail.refetch()}>Retry</Button>
       </div>
     );
   const canPost = data.can_work || data.can_manage;
@@ -1231,10 +1232,10 @@ function Conversation({
                       value={checkTitle}
                       onChange={(e) => setCheckTitle(e.target.value)}
                     />
-                    <button disabled={busy || !checkTitle.trim()}>
+                    <Button type="submit" variant="default" disabled={busy || !checkTitle.trim()}>
                       <Plus size={15} />
                       Add
-                    </button>
+                    </Button>
                   </CompactForm>
                 )}
               </>

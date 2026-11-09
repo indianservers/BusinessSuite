@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -1404,7 +1405,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
               <Play size={14} />
               Test workflow
             </button>
-<button
+<Button type="button" variant="outline" data-save-action
               className="as-button-primary"
               onClick={save}
               disabled={
@@ -1415,7 +1416,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
             >
               <Save size={14} />
               Save draft
-            </button>
+            </Button>
 <button
               disabled={!props.onRuntime}
               onClick={props.onRuntime}
@@ -1427,14 +1428,14 @@ function BuilderCanvas(props: AutomationBuilderProps) {
             </button>
 {props.authoring && (
               <>
-                <button
+                <Button type="submit" variant="default"
                   aria-label="Create with AI"
                   title="Create with AI"
                   onClick={() => setAuthoringTab("AI designer")}
                 >
                   <Sparkles size={15} />
                   <span className="ai-button-label">Create with AI</span>
-                </button>
+                </Button>
                 <button
                   aria-label="Open authoring tools"
                   title="Mapping, blocks, templates, simulation and documentation"
@@ -1450,11 +1451,11 @@ function BuilderCanvas(props: AutomationBuilderProps) {
 
 
             <details className="as-more-menu">
-              <summary aria-label="More automation actions">
+              <summary data-overflow-trigger aria-label="More automation actions">
                 <MoreHorizontal size={20} />
               </summary>
               <div>
-                <button
+                <Button type="submit" variant="outline"
                   disabled={
                     !props.permissions.create ||
                     !props.onDuplicate ||
@@ -1468,8 +1469,8 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                 >
                   <Copy size={14} />
                   Duplicate saved automation
-                </button>
-                <button
+                </Button>
+                <Button type="submit" variant="outline"
                   disabled={
                     !props.permissions.create || !props.onSaveCopy || copying
                   }
@@ -1477,11 +1478,11 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                 >
                   <Copy size={14} />
                   Save current work as a copy
-                </button>
-                <button onClick={exportGraph}>
+                </Button>
+                <Button type="submit" variant="outline" onClick={exportGraph}>
                   <Download size={14} />
                   Export definition JSON
-                </button>
+                </Button>
                 <button onClick={() => setShortcuts(true)}>
                   <Braces size={14} />
                   Keyboard shortcuts
@@ -1495,9 +1496,9 @@ function BuilderCanvas(props: AutomationBuilderProps) {
             <CircleAlert size={16} />
             <span>{persistence.error} Your local draft is preserved.</span>
             {props.permissions.create && (
-              <button disabled={copying} onClick={() => void saveCopy()}>
+              <Button type="submit" variant="outline" disabled={copying} onClick={() => void saveCopy()}>
                 Save as separate copy
-              </button>
+              </Button>
             )}
             <button
               onClick={() => {
@@ -1842,7 +1843,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                     <br />
                     Your ideas have room to grow here.
                   </p>
-                  <button
+                  <Button type="submit" variant="default"
                     className="as-button-primary"
                     disabled={readonly}
                     onClick={() => {
@@ -1852,7 +1853,7 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                   >
                     <Plus size={16} />
                     Add your first node
-                  </button>
+                  </Button>
                 </div>
               )}
               <details className="as-canvas-options">
@@ -1911,22 +1912,22 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                       <option value="orthogonal">Orthogonal</option>
                     </NativeSelect>
                   </label>
-                  <button
+                  <Button type="submit" variant="default"
                     disabled={
                       readonly || (graph.annotations || []).length >= 100
                     }
                     onClick={() => addAnnotation("note")}
                   >
                     Add sticky note
-                  </button>
-                  <button
+                  </Button>
+                  <Button type="submit" variant="default"
                     disabled={
                       readonly || (graph.annotations || []).length >= 100
                     }
                     onClick={() => addAnnotation("annotation")}
                   >
                     Add annotation block
-                  </button>
+                  </Button>
                 </div>
               </details>
               <div className="as-canvas-tools">
@@ -2311,12 +2312,12 @@ function BuilderCanvas(props: AutomationBuilderProps) {
                           />
                         </label>
                       ))}
-                    <button
+                    <Button type="submit" variant="outline"
                       disabled={readonly}
                       onClick={() => deleteSelection()}
                     >
                       Delete annotation
-                    </button>
+                    </Button>
                   </div>
                 </aside>
               ) : selectedEdge ? (

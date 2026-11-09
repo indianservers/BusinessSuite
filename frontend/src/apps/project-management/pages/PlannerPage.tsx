@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -652,6 +653,8 @@ export default function PlannerPage() {
       <button
         key={item.key}
         type="button"
+        data-priority-row
+        data-priority={item.task?.priority}
         className={`planner-chip ${item.type} ${done(item.status) ? "complete" : ""} ${item.task?.priority === "Urgent" ? "urgent" : ""}`}
         style={
           {
@@ -721,7 +724,7 @@ export default function PlannerPage() {
       <section className="planner-side-section">
         <div className="planner-section-title">
           <h2>{title}</h2>
-          <span>{tasks.length}</span>
+          <span data-count-badge data-count-tone="purple">{tasks.length}</span>
         </div>
         {tasks.length ? (
           tasks.slice(0, 6).map((task) => (
@@ -815,7 +818,7 @@ export default function PlannerPage() {
                 <section className="planner-side-section">
                   <div className="planner-section-title">
                     <h2>{section.title}</h2>
-                    <span>{pinned.length}</span>
+                    <span data-count-badge data-count-tone="purple">{pinned.length}</span>
                   </div>
                   <div className="planner-priorities">
                     {pinned.length ? (
@@ -847,14 +850,14 @@ export default function PlannerPage() {
                         </p>
                       </div>
                     )}
-                    <button
+                    <Button variant="default"
                       type="button"
                       className="planner-pin-add"
                       onClick={() => setPinOpen(!pinOpen)}
                     >
                       <Plus />
                       Add priority
-                    </button>
+                    </Button>
                     {pinOpen && (
                       <div className="planner-pin-picker">
                         <input
@@ -1201,9 +1204,9 @@ export default function PlannerPage() {
         {result.error && (
           <div className="planner-error" role="alert">
             Your schedule could not load. Please try again.
-            <button type="button" onClick={() => void refresh()}>
+            <Button variant="outline" type="button" onClick={() => void refresh()}>
               Retry
-            </button>
+            </Button>
           </div>
         )}
         {preferencesQuery.error && (
@@ -1299,7 +1302,7 @@ export default function PlannerPage() {
                           </div>
                           {entries.slice(0, compact ? 2 : 4).map(chip)}
                           {entries.length > (compact ? 2 : 4) && (
-                            <button
+                            <Button variant="outline"
                               type="button"
                               className="planner-more"
                               onClick={() => {
@@ -1307,7 +1310,7 @@ export default function PlannerPage() {
                               }}
                             >
                               + {entries.length - (compact ? 2 : 4)} more
-                            </button>
+                            </Button>
                           )}
                         </div>
                       );
@@ -1326,14 +1329,14 @@ export default function PlannerPage() {
                   <section key={dateKey(day)}>
                     <div className="planner-agenda-heading">
                       <h3>{format(day, "EEEE, MMMM d")}</h3>
-                      <button
+                      <Button variant="default"
                         type="button"
                         onClick={() => openCreate(dateKey(day))}
                         disabled={!canCreate}
                       >
                         <Plus />
                         Add task
-                      </button>
+                      </Button>
                     </div>
                     {items
                       .filter((i) => i.date === dateKey(day))

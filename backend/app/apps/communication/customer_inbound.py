@@ -54,7 +54,7 @@ async def receive(organization_id: int, request: Request, db: Session = Depends(
     outbox = db.query(EmailOutbox).filter_by(organization_id=organization_id, provider_message_id=data.in_reply_to, module='customer_communication').first()
     delivery = db.query(CustomerDelivery).filter_by(organization_id=organization_id, email_outbox_id=outbox.id).first() if outbox else None
     recipient = db.query(CustomerRecipient).filter_by(id=delivery.recipient_id, organization_id=organization_id).first() if delivery else None
-    if not recipient or recipient.email.casefold() != data.from_email.casefold():
+    if not recipient or not recipient.email or recipient.email.casefold() != data.from_email.casefold():
         raise HTTPException(422, 'Reply could not be matched to an authorized customer conversation')
     from app.services.customer_identity import match_recipient
     match_recipient(db,recipient,apply=True)

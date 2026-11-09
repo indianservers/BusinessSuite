@@ -35,7 +35,7 @@ import { getWowFeaturesForContext } from "@/lib/wowFeatures";
 
 type Result = { type: string; title: string; subtitle?: string; url: string };
 
-export default function GlobalSearch({ compact = false }: { compact?: boolean } = {}) {
+export default function GlobalSearch({ compact = false, shortcuts = true }: { compact?: boolean; shortcuts?: boolean } = {}) {
   const navigate = useNavigate();
 
   const location = useLocation();
@@ -55,9 +55,20 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const historyKey = `suite-search-history:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch")}:${product.key}`;
+  const readHistory = (): { queries: string[]; records: Result[] } => {
+    try { const value = JSON.parse(sessionStorage.getItem(historyKey) || "{}"); return { queries: Array.isArray(value.queries) ? value.queries.filter((q: unknown): q is string => typeof q === "string").slice(0, 5) : [], records: Array.isArray(value.records) ? value.records.filter((r: Result) => typeof r?.url === "string" && r.url.startsWith("/") && !r.url.startsWith("//") && canAccessRoute(r.url.split("?")[0], user?.role, user?.is_superuser)).slice(0, 5) : [] }; } catch { return { queries: [], records: [] }; }
+  };
+  const [historyRevision, setHistoryRevision] = useState(0);
+  void historyRevision;
+  const history = readHistory();
+  function chooseResult(item: Result) {
+    try { sessionStorage.setItem(historyKey, JSON.stringify({ queries: query.trim() ? [query.trim(), ...history.queries.filter(q => q !== query.trim())].slice(0, 5) : history.queries, records: [item, ...history.records.filter(r => r.url !== item.url)].slice(0, 5) })); } catch { /* Search remains available without history. */ }
+    navigate(item.url); setOpen(false);
+  }
 
   const enabled =
-    product.key === "hrms" && open && debouncedQuery.trim().length >= 2;
+    product.key === "hrms" && open && debouncedQuery.trim().length >= 2 && Boolean(user?.is_superuser || user?.access?.grants.hrms?.permissions.includes("reports_view"));
 
   const { data } = useQuery({
     queryKey: [
@@ -451,17 +462,47 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
   const recordSearch = useQuery({
     queryKey: [
       "command-pms",
+      product.key,
       user?.id,
       user?.access?.companyId,
+      sessionStorage.getItem("suite-branch"),
       debouncedQuery,
     ],
     enabled:
       open &&
-      product.key === "project_management" &&
+      ["project_management", "crm", "srm", "hrms"].includes(product.key) &&
       debouncedQuery.length >= 2,
     retry: false,
 
     queryFn: async () => {
+      if (product.key === "hrms") {
+        const { data } = await api.get("/employees/workbench/search", { params: { q: debouncedQuery } });
+        return (data.items || []).slice(0, 8).map((person: { id: number; name: string; employee_code?: string }) => ({ type: "Employee", title: person.name, subtitle: person.employee_code, url: person.id === user?.employee_id ? "/hrms/profile" : `/hrms/employees/${person.id}` })) as Result[];
+      }
+      if (product.key === "crm") {
+        const sources = [
+          { type: "Lead", route: "/crm/leads", endpoint: "/crm/lead-management/leads" },
+          { type: "Contact", route: "/crm/contacts", endpoint: "/crm/contacts" },
+          { type: "Customer", route: "/crm/companies", endpoint: "/crm/companies" },
+          { type: "Deal", route: "/crm/deals", endpoint: "/crm/deals" },
+        ].filter(source => canAccessRoute(source.route, user?.role, user?.is_superuser));
+        const responses = await Promise.allSettled(sources.map(source => api.get(source.endpoint, { params: { search: debouncedQuery, perPage: 6, per_page: 6 } })));
+        if (responses.length && responses.every(response => response.status === "rejected")) throw new Error("Record search is unavailable");
+        return responses.flatMap((response, index) => response.status === "fulfilled" ? (response.value.data.items || []).map((record: { id: number; name?: string; full_name?: string; title?: string; email?: string; company_name?: string }) => ({ type: sources[index].type, title: record.name || record.full_name || record.title || record.email || `Record ${record.id}`, subtitle: record.company_name, url: `${sources[index].route}/${record.id}` })) : []) as Result[];
+      }
+      if (product.key === "srm") {
+        const responses = await Promise.allSettled([
+          canAccessRoute("/srm/sales-orders", user?.role, user?.is_superuser) ? api.get("/srm/sales-orders", { params: { search: debouncedQuery } }) : Promise.resolve({ data: [] }),
+          canAccessRoute("/srm/customers", user?.role, user?.is_superuser) ? api.get("/master-data/companies", { params: { source: "srm", search: debouncedQuery, per_page: 6 } }) : Promise.resolve({ data: { items: [] } }),
+        ]);
+        if (responses.every(response => response.status === "rejected")) throw new Error("Record search is unavailable");
+        const orders = responses[0].status === "fulfilled" ? responses[0].value.data : [];
+        const customers = responses[1].status === "fulfilled" ? responses[1].value.data : { items: [] };
+        return [
+          ...(Array.isArray(orders) ? orders : orders.items || []).filter((order: { title?: string; order_number?: string }) => `${order.title || ""} ${order.order_number || ""}`.toLowerCase().includes(debouncedQuery.toLowerCase())).slice(0, 8).map((order: { id: number; title: string; order_number?: string }) => ({ type: "Sales order", title: order.title, subtitle: order.order_number, url: `/srm/sales-orders/${order.id}` })),
+          ...(customers.items || []).map((customer: { id: number; name: string }) => ({ type: "Customer", title: customer.name, url: `/srm/customers/${customer.id}/360` })),
+        ] as Result[];
+      }
       const responses = await Promise.allSettled([
         api.get("/project-management/tasks", {
           params: { search: debouncedQuery, pageSize: 8 },
@@ -536,8 +577,9 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
   const results: Result[] = Array.from(
     new Map(
       [
+        ...(!query.trim() ? history.records : []),
+        ...(enabled ? (data?.results || []).map((item: Result) => ({ ...item, url: item.url.startsWith("/hrms/") ? item.url : `/hrms${item.url}` })) : []),
         ...filteredPages,
-        ...(enabled ? data?.results || [] : []),
         ...(recordSearch.data || []),
       ]
         .filter((item) =>
@@ -565,6 +607,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
   }, [query]);
 
   useEffect(() => {
+    if (!shortcuts) return;
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -581,7 +624,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
     window.addEventListener("keydown", onKey);
 
     return () => window.removeEventListener("keydown", onKey);
-  }, [navigate, product.homePath]);
+  }, [navigate, product.homePath, shortcuts]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -590,9 +633,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
       (focusedIndex >= 0 ? results[focusedIndex] : undefined) || results[0];
 
     if (selected) {
-      navigate(selected.url);
-
-      setOpen(false);
+      chooseResult(selected);
     }
   }
 
@@ -653,7 +694,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
               Search Business Suite
             </Dialog.Title>
             <p className="px-4 pt-1 text-xs text-muted-foreground">
-              Applications and authorized pages · Records in HRMS and PMS
+              Search your module’s records and authorized pages
             </p>
             <Dialog.Close
               className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-md"
@@ -691,6 +732,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
                   />
                 </div>
               </CompactForm>
+              {!query.trim() && !!history.queries.length && <div className="suite-search-history"><span>Recent searches</span>{history.queries.map(term => <button type="button" key={term} onClick={() => setQuery(term)}>{term}</button>)}<button type="button" onClick={() => { try { sessionStorage.removeItem(historyKey); } catch { /* Optional history. */ } setHistoryRevision(value => value + 1); }}>Clear history</button></div>}
 
               {recordSearch.isFetching && (
                 <p
@@ -721,9 +763,7 @@ export default function GlobalSearch({ compact = false }: { compact?: boolean } 
                       aria-selected={focusedIndex === index}
                       className={`flex w-full items-center justify-between rounded-md p-3 text-left hover:bg-muted ${focusedIndex === index ? "bg-accent" : ""}`}
                       onClick={() => {
-                        navigate(item.url);
-
-                        setOpen(false);
+                        chooseResult(item);
                       }}
                     >
                       <div>

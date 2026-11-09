@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import PeopleAction from "../components/people/PeopleAction";
@@ -112,7 +113,7 @@ export default function PeopleDirectoryProfile() {
       {profile.error && (
         <div role="alert" className="pd-error">
           {workspaceError(profile.error)}
-          <button onClick={() => void profile.refetch()}>Retry</button>
+          <Button type="submit" variant="outline" onClick={() => void profile.refetch()}>Retry</Button>
         </div>
       )}
       {person && (
@@ -139,13 +140,13 @@ export default function PeopleDirectoryProfile() {
           </header>
           <div className="pd-profile-actions">
             <CompactActions>{data.can_manage ? (
-              <button
+              <Button type="submit" variant="outline"
                 className="pd-button"
                 onClick={() => openPerson({ userId: person.id })}
               >
                 <ShieldCheck size={16} />
                 Edit profile & access
-              </button>
+              </Button>
             ) : (
               <span className="pd-scope-note">
                 Editing requires permission to manage this person.
@@ -169,13 +170,13 @@ export default function PeopleDirectoryProfile() {
 
 
 
-            <a
+            <Button asChild variant="outline"><a
               className="pd-button"
               href={`mailto:${encodeURIComponent(person.email)}`}
             >
               <Mail size={15} />
               Compose email
-            </a>
+            </a></Button>
           </div>
           {!!data.access_issues?.length && <section className="mb-4 rounded-lg border border-amber-400 p-4" aria-label="Access needs attention"><h2 className="font-semibold">Access needs attention</h2>{data.access_issues.map(issue=><p key={issue}>{issue}</p>)}{(viewer?.is_superuser || viewer?.access?.isAccessAdmin) ? <Link className="pd-button" to={`/admin/control/users/${person.id}`}>Review organization access</Link> : <p>Contact your organization access administrator to resolve this.</p>}</section>}
           <nav className="pd-profile-tabs" aria-label="Profile sections">

@@ -1,6 +1,6 @@
 import {test,expect} from "../frontend/node_modules/playwright/test";
 import {installNativeActor} from "./crud121-ui-actor";
-const BASE="http://127.0.0.1:1582";
+const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:1582';
 test.setTimeout(240000);
 async function open(page:any,request:any,profile:string,path:string){const r=await request.post(BASE+"/api/v1/auth/login",{data:{email:profile==="admin"?"admin@suiteqa.example.com":`conditional-${profile}@suiteqa.example.com`,password:profile==="admin"?"SuiteQA@12345":"ConditionalQA@12345"}});expect(r.ok()).toBeTruthy();const actor=await r.json();await installNativeActor(page,request,BASE,actor,false,null);page.setDefaultTimeout(45000);await page.goto(BASE+path);return actor;}
 test("/ai-agents global catalogue toggles require Super Admin while managed configuration remains available",async({page,browser,request})=>{

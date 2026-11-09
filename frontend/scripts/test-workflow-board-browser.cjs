@@ -13,6 +13,10 @@ if (!['localhost', '127.0.0.1'].includes(new URL(origin).hostname)) throw Error(
     const board = page.locator('.workflow-board');
     const open = async module => { await page.goto(`${origin}/workflow-board-qa.html?module=${module}`); await expect(board.locator('.workflow-board-lane').first()).toBeVisible(); };
     await open('crm');
+    const urgentCard=board.locator('.workflow-board-card').filter({hasText:'Urgent opportunity'});
+    await expect(urgentCard).toHaveAttribute('data-priority','urgent');
+    await expect(urgentCard).toHaveCSS('background-color','rgb(255, 240, 242)');
+    await expect(urgentCard.locator('[data-priority-badge]')).toHaveText(/urgent/i);
     const qualification = board.getByRole('region', { name: 'Qualification stage', exact: true });
     // Native sections with accessible names are regions.
     await expect(qualification.locator('.workflow-board-record strong').first()).toHaveText('Urgent opportunity');

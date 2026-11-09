@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useAuthStore } from "@/store/authStore";
 import "../pages/MyWorkPage.css";
@@ -554,9 +555,9 @@ export default function TaskAssignmentPanel({
               />
             </label>
             <div className="mw-actions">
-              <button disabled={busy} onClick={onClose}>
+              <Button type="submit" variant="outline" disabled={busy} onClick={onClose}>
                 Cancel
-              </button>
+              </Button>
               <button
                 className="mw-primary"
                 disabled={busy || !loaded || details.some((d) => !d.can_edit)}

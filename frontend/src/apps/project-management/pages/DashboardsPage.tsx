@@ -686,13 +686,13 @@ export default function DashboardsPage() {
       {list.isError && (
         <p role="alert">
           Dashboards could not load.{" "}
-          <button onClick={() => void list.refetch()}>Retry</button>
+          <Button type="submit" variant="outline" onClick={() => void list.refetch()}>Retry</Button>
         </p>
       )}
       {catalog.isError && (
         <p role="alert">
           Widget catalog could not load.{" "}
-          <button onClick={() => void catalog.refetch()}>Retry</button>
+          <Button type="submit" variant="outline" onClick={() => void catalog.refetch()}>Retry</Button>
         </p>
       )}
       {library ? (
@@ -775,7 +775,7 @@ export default function DashboardsPage() {
                   <footer>
                     <span>{new Date(d.updated_at).toLocaleDateString()}</span>
                     <details className="db-menu">
-                      <summary
+                      <summary data-overflow-trigger
                         role="button"
                         aria-label={`Options for ${d.name}`}
                       >
@@ -783,9 +783,9 @@ export default function DashboardsPage() {
                       </summary>
                       <div>
                         {!d.deleted_at && (
-                          <button onClick={() => void action(d, "duplicate")}>
+                          <Button type="submit" variant="outline" onClick={() => void action(d, "duplicate")}>
                             Duplicate privately
-                          </button>
+                          </Button>
                         )}
                         {d.can_manage &&
                           (d.deleted_at ? (
@@ -793,7 +793,7 @@ export default function DashboardsPage() {
                               <button onClick={() => void action(d, "restore")}>
                                 Restore
                               </button>
-                              <button
+                              <Button type="submit" variant="outline"
                                 onClick={() => {
                                   setConfirmName("");
                                   setConfirmation({
@@ -804,10 +804,10 @@ export default function DashboardsPage() {
                                 }}
                               >
                                 Delete permanently
-                              </button>
+                              </Button>
                             </>
                           ) : (
-                            <button
+                            <Button type="submit" variant="outline"
                               onClick={() =>
                                 setConfirmation({
                                   title: `Move “${d.name}” to trash?`,
@@ -816,7 +816,7 @@ export default function DashboardsPage() {
                               }
                             >
                               Move to trash
-                            </button>
+                            </Button>
                           ))}
                       </div>
                     </details>
@@ -900,15 +900,15 @@ export default function DashboardsPage() {
                 </Button>
               )}
               <details className="db-menu">
-                <summary role="button" aria-label="Dashboard actions">
+                <summary data-overflow-trigger role="button" aria-label="Dashboard actions">
                   <MoreHorizontal size={20} />
                 </summary>
                 <div>
-                  <button onClick={() => void png()}>Export PNG</button>
+                  <Button type="submit" variant="outline" onClick={() => void png()}>Export PNG</Button>
                   <button onClick={() => window.print()}>
                     Print / save PDF
                   </button>
-                  <button
+                  <Button type="submit" variant="outline"
                     onClick={() =>
                       exportCSV(
                         active.name,
@@ -924,13 +924,13 @@ export default function DashboardsPage() {
                     }
                   >
                     Export CSV
-                  </button>
+                  </Button>
                   <button onClick={() => setPresentation(true)}>
                     Presentation mode
                   </button>
-                  <button onClick={() => void action(active, "duplicate")}>
+                  <Button type="submit" variant="outline" onClick={() => void action(active, "duplicate")}>
                     Duplicate privately
-                  </button>
+                  </Button>
                   {saved?.can_manage && (
                     <>
                       <button
@@ -942,7 +942,7 @@ export default function DashboardsPage() {
                         {" "}
                         {active.archived ? "Unarchive" : "Archive"} on save
                       </button>
-                      <button
+                      <Button type="submit" variant="outline"
                         onClick={() =>
                           setConfirmation({
                             title: "Move dashboard to trash?",
@@ -951,7 +951,7 @@ export default function DashboardsPage() {
                         }
                       >
                         Move to trash
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
@@ -1018,7 +1018,7 @@ export default function DashboardsPage() {
           {data.isError && (
             <p className="db-error" role="alert">
               Dashboard data could not load.{" "}
-              <button onClick={() => void data.refetch()}>Retry</button>
+              <Button type="submit" variant="outline" onClick={() => void data.refetch()}>Retry</Button>
             </p>
           )}
           <div ref={canvas} className="db-canvas">
@@ -1059,7 +1059,7 @@ export default function DashboardsPage() {
                         </span>
                       )}
                       <details className="db-menu">
-                        <summary
+                        <summary data-overflow-trigger
                           role="button"
                           aria-label={`Options for widget ${w.title}`}
                         >
@@ -1072,7 +1072,7 @@ export default function DashboardsPage() {
                           <button onClick={() => setExpanded(w)}>
                             Expand widget
                           </button>
-                          <button
+                          <Button type="submit" variant="outline"
                             onClick={() =>
                               exportCSV(
                                 w.title,
@@ -1086,13 +1086,13 @@ export default function DashboardsPage() {
                             }
                           >
                             Export widget CSV
-                          </button>
+                          </Button>
                           {editing && saved?.can_edit && (
                             <>
                               <button onClick={() => setWidget(w)}>
                                 Widget settings
                               </button>
-                              <button
+                              <Button type="submit" variant="outline"
                                 onClick={() => {
                                   if (config.widgets.length >= 50)
                                     return setError("Maximum 50 widgets.");
@@ -1114,7 +1114,7 @@ export default function DashboardsPage() {
                                 }}
                               >
                                 Duplicate widget
-                              </button>
+                              </Button>
                               <button
                                 onClick={() =>
                                   updateWidget({ ...w, locked: !w.locked })
@@ -1323,7 +1323,7 @@ export default function DashboardsPage() {
                 w.title.toLowerCase().includes(gallerySearch.toLowerCase()),
             )
             .map((s) => (
-              <button
+              <Button type="submit" variant="default"
                 key={s.id}
                 disabled={config.widgets.length >= 50}
                 onClick={() => add(s)}
@@ -1335,7 +1335,7 @@ export default function DashboardsPage() {
                   <Plus size={14} />
                   Add widget
                 </span>
-              </button>
+              </Button>
             ))}
         </div>
       </Panel>
@@ -1603,7 +1603,7 @@ export default function DashboardsPage() {
         ) : history.isError ? (
           <p role="alert">
             History could not load.{" "}
-            <button onClick={() => void history.refetch()}>Retry</button>
+            <Button type="submit" variant="outline" onClick={() => void history.refetch()}>Retry</Button>
           </p>
         ) : !history.data?.length ? (
           <p>No previous saved versions yet.</p>

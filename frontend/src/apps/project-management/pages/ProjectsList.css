@@ -1379,3 +1379,54 @@
   .project-portfolio .portfolio-kpi { flex:0 0 140px; min-width:140px; min-height:46px; scroll-snap-align:start; }
   .project-portfolio .portfolio-heading p { font-size:11px; }
 }
+/* Projects page visual pilot, scoped for review before a wider rollout. */
+.project-portfolio { gap:16px; }
+.project-portfolio .portfolio-heading h1 { font-size:27px; font-weight:750; }
+.project-portfolio .portfolio-logo { width:50px; height:50px; border-radius:14px; background:linear-gradient(140deg,#f0e5ff,#d7baff); color:#7016ff; }
+.project-portfolio .portfolio-logo svg { width:27px; height:27px; }
+.project-portfolio .portfolio-actions :is(button,a) { min-height:42px; height:auto; font-size:13px; gap:8px; border-radius:11px; }
+.project-portfolio .portfolio-actions > :last-child { background:linear-gradient(120deg,#983cff,#7518f4); color:white; box-shadow:0 4px 10px #7016ff20; }
+.project-portfolio .portfolio-actions > :nth-child(1) { color:#5c20d6; }
+.project-portfolio .portfolio-actions > :nth-child(2) { color:#008a39; }
+.project-portfolio .portfolio-actions > :nth-child(3) { color:#df1645; border-color:#ffd5df; background:#fff4f7; }
+.project-portfolio .portfolio-kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)) minmax(190px,1.3fr); gap:14px; border:0; background:transparent; overflow:visible; }
+.project-portfolio .portfolio-kpi { --tone:#7016ff; --tint:#f8f4ff; --edge:#e3d4ff; min-width:0; min-height:78px; padding:12px; gap:12px; border:1px solid var(--edge); border-radius:11px; background:var(--tint); color:var(--tone); }
+.project-portfolio .portfolio-kpi.blue { --tone:#134cdd; --tint:#f2f7ff; --edge:#c6ddff; }
+.project-portfolio .portfolio-kpi.green { --tone:#008d3a; --tint:#f2fff6; --edge:#b4f3cd; }
+.project-portfolio .portfolio-kpi.amber { --tone:#b65c00; --tint:#fffbf2; --edge:#ffe6b5; }
+.project-portfolio .portfolio-kpi.red { --tone:#d41449; --tint:#fff4f7; --edge:#ffcbd8; }
+.project-portfolio .portfolio-kpi:last-child { border:1px solid var(--edge); }
+.project-portfolio .portfolio-kpi[aria-pressed="true"] { background:var(--tint); box-shadow:0 0 0 1px var(--edge); }
+.project-portfolio .kpi-icon { width:44px; height:44px; border-radius:50%; background:color-mix(in srgb,var(--tone) 13%,transparent); color:var(--tone); }
+.project-portfolio .kpi-icon svg { width:26px; height:26px; }
+.project-portfolio .portfolio-kpi > span:not(.kpi-icon):not(.portfolio-ring) { display:block; }
+.project-portfolio .portfolio-kpi strong { font-size:25px; margin-top:7px; font-variant-numeric:tabular-nums; }
+.project-portfolio .portfolio-kpi small { font-size:12px; font-weight:600; }
+.project-portfolio .portfolio-ring { width:52px; height:52px; }
+.project-portfolio .portfolio-ring b { width:40px; height:40px; font-size:14px; }
+.project-portfolio .portfolio-viewbar { padding:8px; }
+.project-portfolio .portfolio-viewbar nav { gap:10px; padding:2px; }
+.project-portfolio .portfolio-viewbar nav button { --tone:#5b21d8; --tint:#faf7ff; --edge:#e1d5ff; display:flex; align-items:center; gap:8px; padding:10px 13px; border:1px solid var(--edge); border-radius:10px; color:var(--tone); background:var(--tint); font-size:12px; }
+.project-portfolio .portfolio-viewbar nav button[data-tone="blue"] { --tone:#0077db; --tint:#edf8ff; --edge:#bce5ff; }
+.project-portfolio .portfolio-viewbar nav button[data-tone="green"] { --tone:#008d3a; --tint:#f2fff6; --edge:#b4f3cd; }
+.project-portfolio .portfolio-viewbar nav button[data-tone="amber"] { --tone:#b65c00; --tint:#fffbf2; --edge:#ffe6b5; }
+.project-portfolio .portfolio-viewbar nav button[data-tone="red"] { --tone:#d41449; --tint:#fff4f7; --edge:#ffcbd8; }
+.project-portfolio .portfolio-viewbar nav button span { display:grid; place-items:center; min-width:20px; height:20px; padding:0 5px; border-radius:999px; background:var(--tone); color:white; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; }
+.project-portfolio .portfolio-viewbar nav button.active { background:var(--tone); border-color:var(--tone); color:white; }
+.project-portfolio .portfolio-viewbar nav button.active span { background:white; color:var(--tone); }
+.project-portfolio .portfolio-quick-actions :is(a,button) { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:36px; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:600; }
+.project-portfolio .portfolio-quick-actions .project-action-open { color:white; background:#00a950; border-color:#00a950; }
+.project-portfolio .portfolio-quick-actions .project-action-task { color:white; border-color:transparent; background:linear-gradient(120deg,#a344ff,#8125f4); box-shadow:0 3px 8px #8125f420; }
+.project-portfolio .portfolio-quick-actions .project-action-board { color:#7016ff; border-color:#d5baff; background:#faf6ff; }
+.project-portfolio .portfolio-quick-actions .project-action-copy { color:#a85200; border-color:#ffd389; background:#fffbf2; }
+.project-portfolio .portfolio-quick-actions .project-action-duplicate { color:#34345f; border-color:#c9c9e5; background:#fafaff; }
+.project-portfolio .portfolio-quick-actions :is(a,button):hover { filter:brightness(.95); }
+.project-portfolio :is(.portfolio-cards,.portfolio-mobile-cards) article { position:relative; border-top:2px solid #139dff; border-radius:14px; padding:18px 22px; box-shadow:0 4px 12px #24215a0a; }
+.project-portfolio .portfolio-card-client { display:flex; align-items:center; gap:8px; }
+.project-portfolio .portfolio-mobile-more { position:absolute; top:12px; right:12px; }
+.project-portfolio :is(.portfolio-cards,.portfolio-mobile-cards) .portfolio-star { margin-right:34px; }
+.project-portfolio .portfolio-mobile-more button { display:grid; place-items:center; opacity:1; width:32px; height:32px; border:1px solid #e1d5ff; border-radius:8px; color:#5b21d8; background:#faf7ff; }
+.project-portfolio .portfolio-view-options > summary { border:1px solid #d5baff; border-radius:9px; color:#7016ff; }
+.dark .project-portfolio :is(.portfolio-kpi,.portfolio-viewbar nav button:not(.active),.portfolio-mobile-more button) { background:hsl(var(--card)); color:color-mix(in srgb,var(--tone,#a78bfa) 55%,white); }
+@media(max-width:1100px) { .project-portfolio .portfolio-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:760px) { .project-portfolio .portfolio-kpis { display:flex; overflow-x:auto; gap:10px; } .project-portfolio .portfolio-kpi { flex:0 0 165px; min-width:165px; } .project-portfolio .portfolio-viewbar nav button { min-height:44px; } }

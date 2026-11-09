@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import CompactActions from "@/components/actions/CompactActions";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
@@ -410,12 +411,12 @@ function Assistant() {
               <Settings size={14} />
             </Link>
           </div>
-          <Link className="pms-ai-studio-link" to={`/pms/assistant${projectId?`?project=${projectId}`:''}`} onClick={close}>
+          <Button asChild variant="outline"><Link className="pms-ai-studio-link" to={`/pms/assistant${projectId?`?project=${projectId}`:''}`} onClick={close}>
             <Sparkles size={15}/><span>Open your assistant workspace<small>Plans, memory, playbooks & delivery insights</small></span><ArrowUp size={15}/>
-          </Link>
-          <Link className="pms-ai-studio-link" to={`/ai-agents/operator${workspaceId?`?workspace=${workspaceId}`:''}`} onClick={close}>
+          </Link></Button>
+          <Button asChild variant="outline"><Link className="pms-ai-studio-link" to={`/ai-agents/operator${workspaceId?`?workspace=${workspaceId}`:''}`} onClick={close}>
             <Sparkles size={15}/><span>Open suite AI operator<small>HR, CRM, sales, finance & projects · Gemini</small></span><ArrowUp size={15}/>
-          </Link>
+          </Link></Button>
           <div className="pms-ai-body" aria-live="polite" aria-busy={busy}>
             {history ? (
               <div className="pms-ai-history">
@@ -455,7 +456,7 @@ function Assistant() {
                     >
                       Rename
                     </button>
-                    <button
+                    <Button type="submit" variant="outline"
                       aria-label={`Delete ${c.title}`}
                       onClick={async () => {
                         if (
@@ -474,7 +475,7 @@ function Assistant() {
                       }}
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -560,7 +561,7 @@ function Assistant() {
                             Previously invoiced: {m.card.previously_invoiced}.
                             Remaining: {m.card.remaining ?? "No linked order"}.
                           </small>
-                          <button
+                          <Button type="submit" variant="outline"
                             disabled={busy}
                             onClick={() => {
                               setIntent({
@@ -577,7 +578,7 @@ function Assistant() {
                             }}
                           >
                             Edit proposal
-                          </button>
+                          </Button>
                         </div>
                       )}
                       {m.card?.items?.map((item: Row) => (
@@ -638,9 +639,9 @@ function Assistant() {
                         </div>
                       ))}
                       {m.card?.kind === "report" && (
-                        <button onClick={() => exportReport(m.card)}>
+                        <Button type="submit" variant="outline" onClick={() => exportReport(m.card)}>
                           Export authorized rows (CSV)
-                        </button>
+                        </Button>
                       )}
                       {m.card?.kind === "saved_invoice" && (
                         <div className="pms-ai-saved">
@@ -652,11 +653,11 @@ function Assistant() {
                           <CompactActions><Link to={`/srm/invoices/${m.card.id}`}>
                             View invoice ↗
                           </Link>
-<button
+<Button type="submit" variant="outline"
                             onClick={() => download(m.card.id, m.card.number)}
                           >
                             Download PDF
-                          </button>
+                          </Button>
 <button
                             disabled={
                               busy || m.card.document_status !== "draft"
@@ -729,9 +730,9 @@ function Assistant() {
                               ? "& create invoice"
                               : "action"}
                           </button>
-                          <button disabled={busy} onClick={() => cancel(m)}>
+                          <Button type="submit" variant="outline" disabled={busy} onClick={() => cancel(m)}>
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -867,7 +868,7 @@ function Assistant() {
                         </button>
                       </fieldset>
                     ))}
-                    <button
+                    <Button type="submit" variant="default"
                       onClick={() =>
                         setIntent({
                           ...intent,
@@ -885,7 +886,7 @@ function Assistant() {
                       }
                     >
                       Add invoice line
-                    </button>
+                    </Button>
                   </div>
                 )}
                 <button

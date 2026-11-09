@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -274,10 +275,10 @@ export default function CRMReferenceDashboard(p: Props) {
             <Target />
             Forecast
           </button>
-          <button className="primary" onClick={() => p.onCreate("leads")}>
+          <Button type="submit" variant="default" className="primary" onClick={() => p.onCreate("leads")}>
             <Plus />
             Create
-          </button>
+          </Button>
         </div>
       </header>
       {p.error && (

@@ -1,3 +1,6 @@
+import {useMobile} from "@/components/mobile/useMobile";
+import {MobileDisclosure} from "@/components/mobile/MobilePrimitives";
+import "./shift-roster-mobile.css";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -70,6 +73,7 @@ function employeeName(employee: EmployeeRow) {
 
 export default function ShiftRosterPage() {
   usePageTitle("Shift Roster");
+  const phone=useMobile(480);
   const qc = useQueryClient();
   const [rosterReview,setRosterReview]=useState<any>();
   const [reviewError,setReviewError]=useState("");
@@ -204,7 +208,7 @@ export default function ShiftRosterPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="hrms-shift-roster-page space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="page-title">Shift Roster</h1>
@@ -213,11 +217,11 @@ export default function ShiftRosterPage() {
         <div className="grid gap-2 sm:grid-cols-3">
           <div className="space-y-1">
             <Label>Week start</Label>
-            <Input type="date" value={weekStart} onChange={(event) => setWeekStart(toIsoDate(startOfWeek(new Date(`${event.target.value}T00:00:00`))))} />
+            <Input aria-label="Roster week start" type="date" value={weekStart} onChange={(event) => setWeekStart(toIsoDate(startOfWeek(new Date(`${event.target.value}T00:00:00`))))} />
           </div>
           <div className="space-y-1">
             <Label>Department</Label>
-            <NativeSelect loading={departments.isFetching} error={departments.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
+            <NativeSelect aria-label="Roster department" loading={departments.isFetching} error={departments.isError} className="h-10 rounded-md border bg-background px-3 text-sm" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
               <option value="">All departments</option>
               {(departments.data || []).map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
             </NativeSelect>
@@ -232,6 +236,7 @@ export default function ShiftRosterPage() {
         </div>
       </div>
 
+      {phone&&[roster,shifts,departments,weeklyOffs,employeesFallback].some(query=>query.isError)&&<p role="alert" className="text-sm text-destructive">Roster information could not load. <Button variant="outline" onClick={()=>{for(const query of [roster,shifts,departments,weeklyOffs,employeesFallback])if(query.isError)void query.refetch();}}>Retry roster information</Button></p>}
       <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
         <Card>
           <CardHeader><CardTitle className="text-base">Shift Palette</CardTitle></CardHeader>
@@ -254,7 +259,7 @@ export default function ShiftRosterPage() {
                 <p className="text-xs opacity-80">{shift.code || "SHIFT"} - {String(shift.start_time || "").slice(0, 5)} to {String(shift.end_time || "").slice(0, 5)}</p>
               </button>
             ))}
-            {!shifts.isLoading && !shifts.data?.length && <p className="text-sm text-muted-foreground">Create shifts in HRMS settings before building a roster.</p>}
+            {!shifts.isLoading && (!phone||!shifts.isError) && !shifts.data?.length && <p className="text-sm text-muted-foreground">Create shifts in HRMS settings before building a roster.</p>}
             <div className="flex flex-col gap-2 pt-3">
               <Button variant="outline" onClick={() => copyWeek.mutate()} disabled={copyWeek.isPending}>
                 {copyWeek.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />} Copy Previous Week
@@ -269,19 +274,19 @@ export default function ShiftRosterPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <MobileDisclosure title="Weekly off setup" maxWidth={480}><Card>
           <CardHeader><CardTitle className="text-base">Weekly Off Setup</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1">
               <Label>Shift</Label>
-              <NativeSelect loading={shifts.isFetching} error={shifts.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffShiftId} onChange={(event) => setWeeklyOffShiftId(event.target.value)}>
+              <NativeSelect aria-label="Weekly off shift" loading={shifts.isFetching} error={shifts.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffShiftId} onChange={(event) => setWeeklyOffShiftId(event.target.value)}>
                 <option value="">Select shift</option>
                 {(shifts.data || []).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}
               </NativeSelect>
             </div>
             <div className="space-y-1">
               <Label>Weekly off day</Label>
-              <NativeSelect className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffDay} onChange={(event) => setWeeklyOffDay(event.target.value)}>
+              <NativeSelect aria-label="Weekly off day" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={weeklyOffDay} onChange={(event) => setWeeklyOffDay(event.target.value)}>
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((label, index) => (
                   <option key={label} value={index}>{label}</option>
                 ))}
@@ -291,7 +296,7 @@ export default function ShiftRosterPage() {
               Save Weekly Off
             </Button>
             <div className="space-y-2 text-sm">
-              {(weeklyOffs.data || []).slice(0, 6).map((item) => (
+              {(phone?weeklyOffs.data||[]:(weeklyOffs.data || []).slice(0, 6)).map((item) => (
                 <div key={item.id} className="flex items-center justify-between rounded-md border p-2">
                   <span>Shift #{item.shift_id}</span>
                   <Badge variant="outline">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][item.weekday] || item.weekday}</Badge>
@@ -300,7 +305,7 @@ export default function ShiftRosterPage() {
               {!weeklyOffs.isLoading && weeklyOffShiftId && !weeklyOffs.data?.length && <p className="text-muted-foreground">No weekly offs configured for this shift.</p>}
             </div>
           </CardContent>
-        </Card>
+        </Card></MobileDisclosure>
 
         <Card>
           <CardHeader>
@@ -310,7 +315,7 @@ export default function ShiftRosterPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {roster.isLoading ? <div className="h-64 animate-pulse rounded bg-muted" /> : (
+            {phone&&roster.isError&&!roster.data?<p role="status">Waiting for roster information.</p>:roster.isLoading ? <div className="h-64 animate-pulse rounded bg-muted" /> : (
               <div className="overflow-x-auto rounded-lg border">
                 <GridTable gridId="apps/hrms/pages/attendance/ShiftRosterPage:table-1" className="w-full min-w-[980px] text-sm">
                   <thead className="bg-muted/60">
@@ -347,7 +352,7 @@ export default function ShiftRosterPage() {
                                       <p className="font-medium">{cell.shift?.code || cell.shift?.name || "Shift"}</p>
                                       <p className="text-xs">{String(cell.shift?.startTime || "").slice(0, 5)}-{String(cell.shift?.endTime || "").slice(0, 5)}</p>
                                     </div>
-                                    <button type="button" className="text-xs opacity-70 hover:opacity-100" onClick={(event) => { event.stopPropagation(); remove.mutate(cell.id); }}>Clear</button>
+                                    <button type="button" className="text-xs opacity-70 hover:opacity-100" disabled={phone&&remove.isPending} onClick={(event) => { event.stopPropagation(); remove.mutate(cell.id); }}>Clear</button>
                                   </div>
                                   <Badge className="mt-2 capitalize" variant={cell.status === "published" ? "outline" : "secondary"}>{cell.status}</Badge>
                                   {!!cell.conflicts?.length && <AlertTriangle className="mt-2 h-4 w-4 text-amber-600" />}
@@ -355,6 +360,7 @@ export default function ShiftRosterPage() {
                               ) : (
                                 <span className="text-xs text-muted-foreground">Drop shift</span>
                               )}
+                              {phone&&<Button type="button" className="hrms-roster-cell-assign mt-2" size="sm" variant="outline" aria-label={`Assign selected shift to ${employeeName(employee)} on ${day.date}`} disabled={!selectedShiftId||assign.isPending||applyReview.isPending} onClick={event=>{event.stopPropagation();dropShift(employee.id,day.date,String(selectedShiftId));}}>Assign shift</Button>}
                             </td>
                           );
                         })}
@@ -376,7 +382,7 @@ export default function ShiftRosterPage() {
         <Card className="border-amber-200 bg-amber-50/60">
           <CardHeader><CardTitle className="flex items-center gap-2 text-base text-amber-900"><AlertTriangle className="h-5 w-5" /> Conflict Warnings</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm text-amber-900">
-            {lastConflicts.slice(0, 8).map((item, index) => (
+            {(phone?lastConflicts:lastConflicts.slice(0, 8)).map((item, index) => (
               <div key={index} className="rounded-md border border-amber-200 bg-background/70 p-2">
                 <p className="font-medium">{item.employeeId ? `Employee #${item.employeeId}` : "Roster warning"} {item.rosterDate ? `on ${item.rosterDate}` : ""}</p>
                 {(item.messages || []).map((message) => <p key={message}>{message}</p>)}
@@ -385,7 +391,7 @@ export default function ShiftRosterPage() {
           </CardContent>
         </Card>
       )}
-      {rosterReview&&<Dialog open onOpenChange={open=>{if(!open&&!applyReview.isPending)setRosterReview(undefined);}}><DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto"><DialogTitle>Review roster calendar</DialogTitle><p className="text-sm">{rosterReview.preview.scope}</p><p className="text-sm">{rosterReview.preview.affected} employee-days will change · {rosterReview.preview.exceptions} blocked days stay unchanged</p><div className="overflow-x-auto"><GridTable gridId="apps/hrms/pages/attendance/ShiftRosterPage:table-2" className="w-full text-left text-xs"><thead><tr><th className="p-2">Employee</th>{[...new Set<string>(rosterReview.preview.items.map((i:any)=>i.date))].map(day=><th className="p-2" key={day}>{day}</th>)}</tr></thead><tbody>{[...new Map<number,any>(rosterReview.preview.items.map((i:any)=>[i.employee.id,i.employee])).values()].map(person=><tr {...recordPreviewProps(person)} className="border-t" key={person.id}><th className="p-2">{person.name}<p>{person.employee_code} · {person.department}</p></th>{rosterReview.preview.items.filter((i:any)=>i.employee.id===person.id).map((i:any)=><td key={i.date} className={`min-w-36 p-2 align-top ${i.blocked?"bg-red-50 text-red-800":i.warnings.length?"bg-amber-50 text-amber-900":""}`}><strong>{i.blocked?"Unchanged":i.shift}</strong>{i.warnings.map((w:string)=><p key={w}>{w}</p>)}</td>)}</tr>)}</tbody></GridTable></div>{reviewError&&<p role="alert">{reviewError} <button className="underline" onClick={()=>void reviewRoster(rosterReview.payload).then(setRosterReview).catch(e=>setReviewError(errorText(e)))}>Refresh preview</button></p>}<Button disabled={applyReview.isPending||!rosterReview.preview.affected} onClick={()=>applyReview.mutate()}>Apply reviewed draft roster</Button></DialogContent></Dialog>}
+      {rosterReview&&<Dialog open onOpenChange={open=>{if(!open&&!applyReview.isPending)setRosterReview(undefined);}}><DialogContent className={phone?"mobile-experience-sheet hrms-roster-review":"max-h-[90vh] max-w-5xl overflow-y-auto"}><DialogTitle>Review roster calendar</DialogTitle><p className="text-sm">{rosterReview.preview.scope}</p><p className="text-sm">{rosterReview.preview.affected} employee-days will change · {rosterReview.preview.exceptions} blocked days stay unchanged</p><div className="overflow-x-auto"><GridTable gridId="apps/hrms/pages/attendance/ShiftRosterPage:table-2" className="w-full text-left text-xs"><thead><tr><th className="p-2">Employee</th>{[...new Set<string>(rosterReview.preview.items.map((i:any)=>i.date))].map(day=><th className="p-2" key={day}>{day}</th>)}</tr></thead><tbody>{[...new Map<number,any>(rosterReview.preview.items.map((i:any)=>[i.employee.id,i.employee])).values()].map(person=><tr {...recordPreviewProps(person)} className="border-t" key={person.id}><th className="p-2">{person.name}<p>{person.employee_code} · {person.department}</p></th>{rosterReview.preview.items.filter((i:any)=>i.employee.id===person.id).map((i:any)=><td key={i.date} className={`min-w-36 p-2 align-top ${i.blocked?"bg-red-50 text-red-800":i.warnings.length?"bg-amber-50 text-amber-900":""}`}><strong>{i.blocked?"Unchanged":i.shift}</strong>{i.warnings.map((w:string)=><p key={w}>{w}</p>)}</td>)}</tr>)}</tbody></GridTable></div>{reviewError&&<p role="alert">{reviewError} <Button type="submit" variant="outline" className="underline" onClick={()=>void reviewRoster(rosterReview.payload).then(review=>{setRosterReview(review);if(phone)setReviewError("");}).catch(e=>setReviewError(errorText(e)))}>Refresh preview</Button></p>}<Button className={phone?"hrms-roster-apply":undefined} disabled={applyReview.isPending||!rosterReview.preview.affected} onClick={()=>applyReview.mutate()}>Apply reviewed draft roster</Button></DialogContent></Dialog>}
     </div>
   );
 }

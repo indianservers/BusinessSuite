@@ -1,0 +1,19 @@
+@media(max-width:480px){
+ .hrms-investment-page{min-width:0;font-size:14px;}
+ .hrms-investment-page>div:first-child{padding:12px;gap:10px;}
+ .hrms-investment-page h1{font-size:20px;line-height:1.25;margin-top:4px;}
+ .hrms-investment-page>.grid>*,.hrms-investment-page .kf-card,.hrms-investment-page .flex>div{min-width:0;}
+ .hrms-investment-page .kf-card>div{padding:12px;}
+ .hrms-investment-page label:has(input[type="file"]):focus-within{outline:2px solid hsl(var(--primary));outline-offset:2px;}
+ .hrms-investment-page label:has(input[type="file"]){min-height:44px;}
+ .hrms-investment-page :is(p,span){overflow-wrap:anywhere;}
+ .hrms-investment-page :is(button,summary){min-height:44px;}
+ .smart-create-phone-sheet:has(.hrms-investment-category) :is(input,select),.hrms-investment-page :is(input,select),.smart-create-phone-sheet:has(.hrms-investment-create) :is(input,select){min-width:0;max-width:100%;font-size:16px;min-height:44px;}
+ .hrms-investment-page .smart-create-section{padding:10px;}
+ .hrms-investment-page .smart-create-section>div{display:none;}
+ .hrms-investment-page .smart-create-section>button{width:100%;}
+ .hrms-investment-page .grid.sm\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+ .smart-create-phone-sheet:has(.hrms-investment-create) .hrms-investment-create>div>div.grid{grid-template-columns:minmax(0,1fr) 100px;align-items:center;gap:8px;padding:10px;}
+ .smart-create-phone-sheet:has(.hrms-investment-create) button[data-save-action]{display:none;}
+ .hrms-investment-page .kf-card button.w-full>div{flex-wrap:wrap;}
+}

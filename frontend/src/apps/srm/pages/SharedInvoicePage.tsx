@@ -80,12 +80,12 @@ function InvoiceWorkspace({ id }: { id?: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="page-title">{r.invoice_number}</h1><Suspense fallback={null}><RecordTemplatePicker entity="invoice" recordId={Number(id)} source="srm"/></Suspense></div>
       {r.customer_id && <Button variant="outline" asChild><Link to={`/srm/customers/${r.customer_id}/360`}>Open customer 360</Link></Button>}
       {r.project_id && (
-        <Link
+        <Button asChild variant="outline"><Link
           className="text-primary underline"
           to={`/pms/projects/${r.project_id}/billing`}
         >
           Open originating project
-        </Link>
+        </Link></Button>
       )}
       <div className="mobile-only-panel"><ol className="mobile-timeline" aria-label="Invoice progress">{[["Document",r.document_status],["Delivery",r.delivery_status],["Payment",r.payment_status]].map(([label,status])=><li key={label}><strong>{label}</strong><small>{String(status||"Not available").replace(/_/g,' ')}</small></li>)}</ol><MobilePdfActions url={`/srm/invoices/${id}/pdf`} filename={`${r.invoice_number}.pdf`}/></div>
       <Card>
@@ -234,9 +234,9 @@ function InvoiceWorkspace({ id }: { id?: string }) {
             before cancellation. Source reservations stay held for finance
             review.
           </p>
-          <Link className="text-primary underline" to="/fam/vouchers">
+          <Button asChild variant="outline"><Link className="text-primary underline" to="/fam/vouchers">
             Open Accounting vouchers
-          </Link>
+          </Link></Button>
           <CompactForm
             className="mt-4 flex flex-wrap items-end gap-3"
             onSubmit={(e) => {

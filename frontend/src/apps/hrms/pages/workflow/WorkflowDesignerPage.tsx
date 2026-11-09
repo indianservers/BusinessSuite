@@ -483,7 +483,7 @@ function DefinitionCard({ definition, selected, onSelect, onDuplicate, onDelete,
         </div>
         <div className="mt-2 flex items-center justify-between"><ModuleBadge module={definition.module} /><span className="text-xs text-muted-foreground">{definition.steps?.length || 0} steps</span></div>
       </button>
-      <Button size="icon" variant="ghost" className="absolute right-1 top-1 h-7 w-7" onClick={() => setMenu(!menu)}><MoreHorizontal className="h-4 w-4" /></Button>
+      <Button aria-label="More options" data-overflow-trigger size="icon" variant="ghost" className="absolute right-1 top-1 h-7 w-7" onClick={() => setMenu(!menu)}><MoreHorizontal className="h-4 w-4" /></Button>
       {menu && <div className="absolute right-1 top-9 z-10 w-36 rounded-md border bg-popover p-1 shadow"><MenuItem icon={Edit2} label="Rename" onClick={onSelect} /><MenuItem icon={Copy} label="Duplicate" onClick={onDuplicate} /><MenuItem icon={GitBranch} label="Toggle Active" onClick={onToggle} /><MenuItem icon={Trash2} label="Delete" onClick={onDelete} danger /></div>}
     </div>
   );

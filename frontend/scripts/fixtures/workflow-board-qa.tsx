@@ -22,7 +22,7 @@ api.defaults.adapter = async config => {
   else if (url.endsWith("/pipelines")) data = { items: [{ id: 1, name: "Sales" }], total: 1 };
   else if (url.endsWith("/query")) data = { can_manage: writable, total: 5, items: [
     { id: 1, name: "Routine opportunity", stage_id: 1, amount: 400, currency: "INR", owner_user_id: 1, owner_name: "Alex", assigned_team_id: 1, expected_close_date: due(5), status: "Open" },
-    { id: 2, name: "Urgent opportunity", stage_id: 1, amount: 100, currency: "USD", owner_user_id: 2, owner_name: "Jamie", assigned_team_id: 2, expected_close_date: due(-3), status: "Open" },
+    { id: 2, name: "Urgent opportunity", priority: "Urgent", stage_id: 1, amount: 100, currency: "USD", owner_user_id: 2, owner_name: "Jamie", assigned_team_id: 2, expected_close_date: due(-3), status: "Open" },
     { id: 3, name: "Blocked opportunity", stage_id: 1, amount: 500, currency: "INR", owner_user_id: 1, owner_name: "Alex", assigned_team_id: 1, blocked: true, expected_close_date: due(4), status: "Open" },
     { id: 4, name: "Approval opportunity", stage_id: 1, amount: 600, currency: "INR", expected_close_date: due(3), status: "pending_approval" },
     { id: 5, name: "Proposal opportunity", stage_id: 2, amount: 50, currency: "USD", expected_close_date: due(2), status: "Open" },

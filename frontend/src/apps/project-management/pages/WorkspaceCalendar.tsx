@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CalendarTaskChip from "../components/CalendarTaskChip";
 import { useState } from "react";
@@ -282,13 +283,13 @@ export default function WorkspaceCalendar({
           <p>Plan work. Find time. Keep everyone aligned.</p>
         </div>
         {canEdit && (
-          <button
+          <Button type="submit" variant="default"
             className="ws-button ws-primary"
             disabled={!projects.length}
             onClick={() => onCreate(anchor, project)}
           >
             + Create task
-          </button>
+          </Button>
         )}
       </header>
       <div className="wc-toolbar">
@@ -430,8 +431,8 @@ export default function WorkspaceCalendar({
               <option value="priority">Priority</option>
             </NativeSelect>
           </label>
-          <button onClick={() => exportFile("csv")}>Export CSV</button>
-          <button onClick={() => exportFile("ics")}>Export iCalendar</button>
+          <Button type="submit" variant="outline" onClick={() => exportFile("csv")}>Export CSV</Button>
+          <Button type="submit" variant="outline" onClick={() => exportFile("ics")}>Export iCalendar</Button>
           <button onClick={() => window.print()}>Print</button>
         </fieldset>
       )}
@@ -594,7 +595,7 @@ export default function WorkspaceCalendar({
                       .slice(0, mode === "month" ? 4 : items.length)
                       .map((t) => chip(t, d))}
                     {mode === "month" && items.length > 4 && (
-                      <button
+                      <Button type="submit" variant="outline"
                         className="wc-more"
                         onClick={() => {
                           setAnchor(d);
@@ -602,7 +603,7 @@ export default function WorkspaceCalendar({
                         }}
                       >
                         + {items.length - 4} more
-                      </button>
+                      </Button>
                     )}
                   </div>
                 );

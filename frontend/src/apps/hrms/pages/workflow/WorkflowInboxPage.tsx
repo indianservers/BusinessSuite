@@ -247,7 +247,7 @@ export default function WorkflowInboxPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium">{item.title}</p>
                             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusTone(item.status)}`}>{item.status}</span>
-                            {item.priority === "High" && <Badge variant="destructive">High</Badge>}
+                            <Badge data-priority-badge data-priority={item.priority}>{item.priority}</Badge>
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">{item.requester_name || "System"} - {formatDateTime(item.submitted_at || null)}</p>
                         </div>

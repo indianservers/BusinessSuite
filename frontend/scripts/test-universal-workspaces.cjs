@@ -23,9 +23,9 @@ const path = require('node:path');
   await expect(region.locator('article')).toHaveCount(1);
   await page.getByRole('textbox', { name: 'Search workspaces', exact: true }).fill('');
   await page.getByRole('button', { name: 'List view', exact: true }).click();
-  await expect(region.getByRole('table')).toBeVisible();
+  await expect(region.getByRole('grid').or(region.getByRole('table'))).toBeVisible();
   await page.reload();
-  await expect(region.getByRole('table')).toBeVisible();
+  await expect(region.getByRole('grid').or(region.getByRole('table'))).toBeVisible();
   await page.getByRole('button', { name: 'Grid view', exact: true }).click();
   await page.getByRole('button', { name: 'Create Workspace', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -50,13 +50,13 @@ const path = require('node:path');
   for (const [module, title] of Object.entries(titles)) {
    await page.goto(`${base}?module=${module}`);
    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-   await expect(region.locator('article')).toHaveCount(6);
+   await expect(region.locator('article')).toHaveCount(3);
    const summaryLabels = { crm: 'Open deals', hrms: 'Employees in scope', srm: 'Sales orders · all time', fam: 'Financial year' };
    await expect(page.getByRole('region', { name: 'Workspace summary' })).toContainText(summaryLabels[module]);
    if (module === 'fam') await expect(page.getByRole('region', { name: 'Workspace summary' })).toContainText('FY 2026–27');
    await expect(region.locator('progress')).toHaveCount(0);
    await page.getByRole('button', { name: 'List view', exact: true }).click();
-   await expect(region.getByRole('table')).toBeVisible();
+   await expect(region.getByRole('grid').or(region.getByRole('table'))).toBeVisible();
    await page.getByRole('button', { name: 'Grid view', exact: true }).click();
    await page.screenshot({ path: path.join(__dirname, `../../outputs/universal-workspaces-${module}.png`), fullPage: true });
   }

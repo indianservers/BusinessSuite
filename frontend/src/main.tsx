@@ -1,3 +1,4 @@
+import ErrorBoundary from "@/components/app/ErrorBoundary";
 import "./shared/priority/priority.css";
 import { navigationViews } from "./lib/navigation-views";
 import "./pages/settings/settingsNavigationGuard";
@@ -69,7 +70,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <PortalRoot />
+        <ErrorBoundary><PortalRoot /></ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>

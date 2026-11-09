@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
@@ -357,13 +358,13 @@ export default function CalendarEventEditor({
             </fieldset>
             <footer>
               {event?.can_edit && (
-                <button
+                <Button variant="outline"
                   type="button"
                   disabled={busy}
                   onClick={() => void remove()}
                 >
                   Delete
-                </button>
+                </Button>
               )}
               <button
                 type="button"

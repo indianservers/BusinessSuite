@@ -1,5 +1,7 @@
 import { Loader2 } from "lucide-react";
 import {
+  Copy,
+  Layers3,
   ArrowRightLeft,
   CalendarClock,
   ClipboardCheck,
@@ -28,6 +30,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
+import "./button-presentation.css";
 
 const buttonVariants = cva(
   "kf-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -69,6 +72,13 @@ export interface ButtonProps
 }
 
 const actionPresentation = [
+  { match: /^\+?\s*add task\b/i, icon: Plus, tone: "task" },
+  { match: /^import\b/i, icon: Upload, tone: "purple" },
+  { match: /^trash$|^delete\b|^move to trash$/i, icon: Trash2, tone: "red" },
+  { match: /^copy link\b/i, icon: Copy, tone: "orange" },
+  { match: /^duplicate\b|^copy\b/i, icon: Copy, tone: "indigo" },
+  { match: /^task board$|^board$/i, icon: Layers3, tone: "purple" },
+  { match: /^open\b|^view( details| profile| record)?$/i, icon: Eye, tone: "emerald" },
   {
     match: /^send whatsapp$|^whatsapp$/i,
     icon: WhatsAppIcon,
@@ -127,7 +137,7 @@ const actionPresentation = [
   { match: /^save\b/i, icon: Save, tone: "slate" },
   { match: /^cancel$|^close$/i, icon: X, tone: "slate" },
   { match: /^refresh\b|^retry$/i, icon: RefreshCw, tone: "slate" },
-  { match: /^download\b|^export\b/i, icon: Download, tone: "slate" },
+  { match: /^download\b|^export\b/i, icon: Download, tone: "emerald" },
   { match: /^upload\b|^attach file$/i, icon: Upload, tone: "slate" },
   { match: /^view( details| profile| record)?$/i, icon: Eye, tone: "slate" },
   {
@@ -139,8 +149,27 @@ const actionPresentation = [
   { match: /^assign\b|^manage assignments$/i, icon: Users, tone: "slate" },
   { match: /^approve\b|^confirm$/i, icon: ShieldCheck, tone: "emerald" },
   { match: /^submit\b/i, icon: ClipboardCheck, tone: "slate" },
-  { match: /^add\b|^create\b|^new\b/i, icon: Plus, tone: "slate" },
+  { match: /^add\b|^create\b|^new\b/i, icon: Plus, tone: "purple" },
 ];
+
+/** Read composed labels without evaluating components or traversing hidden icon text. */
+function actionText(node: React.ReactNode): React.ReactNode {
+  return typeof node === "string" ? node.replace(/^\s*\+\s*(?=(?:add|create|new)\b)/i, "") : node;
+}
+function actionLabel(node: React.ReactNode): string {
+  return React.Children.toArray(node).map(child => {
+    if (typeof child === "string" || typeof child === "number") return String(child);
+    if (!React.isValidElement<{children?: React.ReactNode; "aria-hidden"?: boolean | "true" | "false"}>(child) || child.props["aria-hidden"]) return "";
+    return actionLabel(child.props.children);
+  }).join(" ").replace(/\s+/g, " ").trim();
+}
+function hasActionIcon(node: React.ReactNode): boolean {
+  return React.Children.toArray(node).some(child => {
+    if (!React.isValidElement<{children?: React.ReactNode}>(child)) return false;
+    const component = child.type as {displayName?: string; render?: {displayName?: string}};
+    return child.type === "svg" || (typeof child.type !== "string" && !!component.displayName && !child.props.children) || /(?:lucide|icon)/i.test(component.displayName || component.render?.displayName || "") || hasActionIcon(child.props.children);
+  });
+}
 
 function iconButtonLabel(children: React.ReactNode): string | undefined {
   const labels: Record<string, string> = {
@@ -198,25 +227,28 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     if (!available) return null;
     const Comp = asChild ? Slot : "button";
-    const plainLabel =
-      typeof props.children === "string" ? props.children : undefined;
+    const displayChildren = actionText(props.children);
+    const plainLabel = actionLabel(props.children).replace(/^\+\s*(?=(?:add|create|new)\b)/i, "") || props["aria-label"] || props.title || iconButtonLabel(props.children);
     const presentation = plainLabel
       ? actionPresentation.find((item) => item.match.test(plainLabel.trim()))
       : undefined;
     const LeadingIcon = presentation?.icon;
+    const needsIcon = !!LeadingIcon && !hasActionIcon(props.children);
     const content =
       loading && !asChild ? (
         <>
           <Loader2 className="motion-safe:animate-spin" aria-hidden="true" />
-          {loadingLabel || props.children}
+          {loadingLabel || displayChildren}
         </>
-      ) : LeadingIcon && !asChild ? (
+      ) : needsIcon && !asChild ? (
         <>
           <LeadingIcon aria-hidden="true" />
-          {props.children}
+          {displayChildren}
         </>
       ) : (
-        props.children
+        asChild && needsIcon && React.isValidElement<{children?: React.ReactNode}>(props.children)
+          ? React.cloneElement(props.children, {}, <><LeadingIcon aria-hidden="true"/>{actionText(props.children.props.children)}</>)
+          : displayChildren
       );
     const inferredLabel =
       !asChild && !props["aria-label"]
@@ -239,6 +271,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           inferredLabel
         }
         data-action-tone={presentation?.tone}
+        data-action-presentation={presentation?.tone === "task" ? "task" : undefined}
         {...buttonProps}
         aria-busy={loading || props["aria-busy"]}
         disabled={loading || props.disabled}

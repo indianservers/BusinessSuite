@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -27,7 +28,7 @@ export default function SendReminders() {
       <label>Search<Input aria-label="Search reminder recipients" value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, email or phone"/></label>
     </div>
     {records.isPending && <p role="status">Loading follow-ups…</p>}
-    {records.isError && <p role="alert">{errorText(records.error)} <button onClick={() => void records.refetch()}>Retry</button></p>}
+    {records.isError && <p role="alert">{errorText(records.error)} <Button type="submit" variant="outline" onClick={() => void records.refetch()}>Retry</Button></p>}
     <label>Follow-up recipient<NativeSelect aria-label="Follow-up recipient" value={selected?.key || ""} onChange={e => setSelected(records.data?.items.find(row => row.key === e.target.value))}><option value="">Select a follow-up recipient</option>{records.data?.items.map(row => <option key={row.key} value={row.key} disabled={!phoneLinks(row.phone, row.phone_country_code) || /^(blocked|do not contact|inactive)$/i.test(row.status || "")}>{row.name} · {row.due ? new Date(row.due).toLocaleString() : "No follow-up date"}{!row.phone ? " · No phone" : ""}</option>)}</NativeSelect></label>
     {records.data && !records.data.items.length && <p>No follow-ups match these filters. Choose another due date or <Link className="underline" to="/crm/customer-follow-ups">manage follow-ups</Link>.</p>}
     {records.data && records.data.total > records.data.items.length && <p>Showing the first {records.data.items.length} matches. Narrow your search to find another recipient.</p>}

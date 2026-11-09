@@ -24,17 +24,17 @@ import "./module-dashboard.css";
 export default function ModuleDashboardPage() {
   const { user, isAuthenticated, isHydrated, setUser } = useAuthStore();
   const location = useLocation();
-  const scope = suiteScope(user?.id, user?.access?.companyId);
+  const access = useQuery({
+    ...accessQueryOptions(),
+    enabled: isHydrated && isAuthenticated && !!user,
+  });
+  const scope = suiteScope(user?.id, access.data?.companyId ?? user?.access?.companyId);
   const preferences = useSuitePreferences(
     (state) => state.contexts[scope] || defaultSuitePreferences,
   );
   const updatePreferences = useSuitePreferences((state) => state.update);
   const notifications = useNotificationSummary();
-  const favoriteSync = useFavoriteSync(scope, !!(isAuthenticated && user?.access));
-  const access = useQuery({
-    ...accessQueryOptions(),
-    enabled: isHydrated && isAuthenticated && !!user,
-  });
+  const favoriteSync = useFavoriteSync(scope, !!(isAuthenticated && access.isSuccess && user?.access));
   const branding = useQuery({
     queryKey: ["login-branding"],
     queryFn: () =>

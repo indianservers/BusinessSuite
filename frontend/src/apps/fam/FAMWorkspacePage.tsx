@@ -1,3 +1,9 @@
+import FinancialRecordLookup from "./FinancialRecordLookup";
+import FinancialMobileLineEditor from "./FinancialMobileLineEditor";
+import "./fam-purchase-mobile.css";
+import {useMobile} from "@/components/mobile/useMobile";
+import VoucherMobileLineEditor from "./VoucherMobileLineEditor";
+import "./fam-voucher-mobile.css";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
 import { LoadingState } from "@/components/ui/state";
@@ -234,6 +240,8 @@ function State({ label, isLoading, isError }: { label: string; isLoading?: boole
   if (isError) return <div className="rounded-lg border border-destructive/40 p-6 text-sm text-destructive"><AlertTriangle className="mr-2 inline h-4 w-4" />Unable to load {label}.</div>;
   return null;
 }
+// Keep feedback identification stable in production bundles.
+State.displayName = "State";
 
 function DashboardView() {
   const query = useQuery({ queryKey: ["fam", "dashboard"], queryFn: famApi.dashboard });
@@ -411,6 +419,7 @@ function voucherDraft(kind: FAMViewKind): FAMRecord {
 }
 
 function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
+  const phone=useMobile(480);
   const params = useParams();
   const canCreate = useFinanceWrite(["fam_admin","fam_vouchers_create"],"create");
   const canUpdate = useFinanceWrite(["fam_admin","fam_vouchers_create"],"edit");
@@ -432,8 +441,8 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
     mutationFn: () => (mode === "detail" && voucherId ? famApi.updateVoucher(voucherId, { ...effective, total_debit: debitTotal, total_credit: creditTotal }) : famApi.createVoucher({ ...effective, total_debit: debitTotal, total_credit: creditTotal })),
     onSuccess: () => { toast({ title: "Voucher draft saved" }); if (mode === "detail") setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); },
    onError: showMutationError });
-  const postMutation = useMutation({ mutationFn: () => famApi.postVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  const cancelMutation = useMutation({ mutationFn: () => famApi.cancelVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cancelled" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const postMutation = useMutation({ mutationFn: () => famApi.postVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher posted" }); if(phone)setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const cancelMutation = useMutation({ mutationFn: () => famApi.cancelVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cancelled" }); if(phone)setDraft({}); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const reverseMutation = useMutation({ mutationFn: () => famApi.reverseVoucher(voucherId), onSuccess: () => { toast({ title: "Reversal voucher created" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const cloneMutation = useMutation({ mutationFn: () => famApi.cloneVoucher(voucherId), onSuccess: () => { toast({ title: "Voucher cloned" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const patch = (key: string, value: unknown) => setDraft((current) => ({ ...effective, ...current, [key]: value }));
@@ -442,59 +451,66 @@ function VoucherEntryView({ mode }: { mode: "new" | "journal" | "detail" }) {
     patch("lines", next);
   };
   const addLine = () => patch("lines", [...lines, { ...defaultVoucherLine, cost_center_id: defaultId("accounting_cost_center_id", "fam") }]);
-  const canEdit = (mode === "detail"?canUpdate:canCreate) && (mode !== "detail" || !!voucherQuery.data) && String(effective.status || "draft") === "draft";
+  // A phone confirmation must refer to the saved record the posting API uses.
+  const phoneRecordUnavailable=phone&&mode==="detail"&&(!voucherQuery.data||voucherQuery.isFetching||voucherQuery.isError);
+  const phoneUnsaved=phone&&mode==="detail"&&!!voucherQuery.data&&JSON.stringify(effective)!==JSON.stringify(voucherQuery.data);
+  const voucherStatus=phone&&mode==="detail"?voucherQuery.data?.status:effective.status;
+  const phoneLifecyclePending=phone&&(postMutation.isPending||cancelMutation.isPending);
+  const canEdit = !phoneLifecyclePending&&!phoneRecordUnavailable&&(mode === "detail"?canUpdate:canCreate) && (mode !== "detail" || !!voucherQuery.data) && String(voucherStatus || "draft") === "draft";
+  const fieldsEditable=canEdit&&!(phone&&saveMutation.isPending);
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 fam-mobile-voucher">
       <State label="voucher" isLoading={voucherQuery.isLoading || typesQuery.isLoading || ledgersQuery.isLoading} isError={voucherQuery.isError || typesQuery.isError || ledgersQuery.isError} />
       <RecordSections label="Voucher information" sections={[
-        {id:"overview",label:"Overview",content:<>      <div className="grid gap-3 md:grid-cols-4">
+        {id:"overview",label:"Overview",content:<>      <div className="grid gap-3 md:grid-cols-4 fam-voucher-overview">
         <Field label="Voucher Type">
-          <NativeSelect loading={typesQuery.isFetching} error={typesQuery.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(effective.voucher_type_id || 1)} onChange={(event) => patch("voucher_type_id", Number(event.target.value))} disabled={!canEdit}>
+          <NativeSelect loading={typesQuery.isFetching} error={typesQuery.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={String(effective.voucher_type_id || 1)} onChange={(event) => patch("voucher_type_id", Number(event.target.value))} disabled={!fieldsEditable}>
             {listItems(typesQuery.data).map((type) => <option key={String(type.id)} value={String(type.id)}>{text(type.voucher_type_name)}</option>)}
           </NativeSelect>
         </Field>
-        <Field label="Voucher Date"><Input type="date" value={String(effective.voucher_date || "")} onChange={(event) => patch("voucher_date", event.target.value)} disabled={!canEdit} /></Field>
-        <Field label="Reference Number"><Input value={String(effective.reference_number || "")} onChange={(event) => patch("reference_number", event.target.value)} disabled={!canEdit} /></Field>
-        <Field label="Narration"><RichTextField value={String(effective.narration || "")} onChange={(event) => patch("narration", event.target.value)} disabled={!canEdit} /></Field>
+        <Field label="Voucher Date"><Input type="date" value={String(effective.voucher_date || "")} onChange={(event) => patch("voucher_date", event.target.value)} disabled={!fieldsEditable} /></Field>
+        <Field label="Reference Number"><Input value={String(effective.reference_number || "")} onChange={(event) => patch("reference_number", event.target.value)} disabled={!fieldsEditable} /></Field>
+        <Field label="Narration"><RichTextField value={String(effective.narration || "")} onChange={(event) => patch("narration", event.target.value)} disabled={!fieldsEditable} /></Field>
       </div>
 </>},
-        {id:"lines",label:"Entry lines",content:<>      <Card>
+        {id:"lines",label:"Entry lines",content:<>      <Card className="fam-voucher-lines-card">
         <CardHeader><CardTitle className="text-base">Debit / Credit lines</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="overflow-x-auto rounded-lg border">
+          {phone&&<><VoucherMobileLineEditor lines={lines} ledgers={listItems(ledgersQuery.data)} loading={ledgersQuery.isFetching} error={ledgersQuery.isError} canEdit={fieldsEditable} onChange={patchLine} onAdd={addLine}/><p className="fam-voucher-scroll-help">Scroll within the full grid for all line fields and tools.</p></>}
+          <div className="overflow-x-auto rounded-lg border fam-voucher-line-table" role={phone?"region":undefined} aria-label={phone?"Voucher entry grid, scroll for all fields":undefined} tabIndex={phone?0:undefined}>
             <GridTable gridId="apps/fam/FAMWorkspacePage:table-2" className="w-full min-w-[860px] text-sm">
               <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr><th className="px-3 py-2">Ledger</th><th className="px-3 py-2">Debit</th><th className="px-3 py-2">Credit</th><th className="px-3 py-2">Cost Center</th><th className="px-3 py-2">Narration</th></tr></thead>
               <tbody>
                 {lines.map((line, index) => (
                   <tr {...recordPreviewProps(line)} key={index} className="border-t">
-                    <td className="px-3 py-2"><NativeSelect loading={ledgersQuery.isFetching} error={ledgersQuery.isError} className="h-9 w-full rounded-md border bg-background px-2" value={String(line.ledger_id || 1)} onChange={(event) => patchLine(index, "ledger_id", event.target.value)} disabled={!canEdit}>{listItems(ledgersQuery.data).map((ledger) => <option key={String(ledger.id)} value={String(ledger.id)}>{text(ledger.ledger_name)}</option>)}</NativeSelect></td>
-                    <td className="px-3 py-2"><Input type="number" value={String(line.debit_amount || 0)} onChange={(event) => patchLine(index, "debit_amount", event.target.value)} disabled={!canEdit} /></td>
-                    <td className="px-3 py-2"><Input type="number" value={String(line.credit_amount || 0)} onChange={(event) => patchLine(index, "credit_amount", event.target.value)} disabled={!canEdit} /></td>
-                    <td className="px-3 py-2"><Input value={String(line.cost_center_id || "")} onChange={(event) => patchLine(index, "cost_center_id", event.target.value)} disabled={!canEdit} /></td>
-                    <td className="px-3 py-2"><Input value={String(line.narration || "")} onChange={(event) => patchLine(index, "narration", event.target.value)} disabled={!canEdit} /></td>
+                    <td className="px-3 py-2"><NativeSelect aria-label={phone?`Line ${index+1} Ledger`:undefined} loading={ledgersQuery.isFetching} error={ledgersQuery.isError} className="h-9 w-full rounded-md border bg-background px-2" value={String(line.ledger_id || 1)} onChange={(event) => patchLine(index, "ledger_id", event.target.value)} disabled={!fieldsEditable}>{listItems(ledgersQuery.data).map((ledger) => <option key={String(ledger.id)} value={String(ledger.id)}>{text(ledger.ledger_name)}</option>)}</NativeSelect></td>
+                    <td className="px-3 py-2"><Input aria-label={phone?`Line ${index+1} Debit`:undefined} type="number" value={String(line.debit_amount || 0)} onChange={(event) => patchLine(index, "debit_amount", event.target.value)} disabled={!fieldsEditable} /></td>
+                    <td className="px-3 py-2"><Input aria-label={phone?`Line ${index+1} Credit`:undefined} type="number" value={String(line.credit_amount || 0)} onChange={(event) => patchLine(index, "credit_amount", event.target.value)} disabled={!fieldsEditable} /></td>
+                    <td className="px-3 py-2"><Input aria-label={phone?`Line ${index+1} Cost Center`:undefined} value={String(line.cost_center_id || "")} onChange={(event) => patchLine(index, "cost_center_id", event.target.value)} disabled={!fieldsEditable} /></td>
+                    <td className="px-3 py-2"><Input aria-label={phone?`Line ${index+1} Narration`:undefined} value={String(line.narration || "")} onChange={(event) => patchLine(index, "narration", event.target.value)} disabled={!fieldsEditable} /></td>
                   </tr>
                 ))}
               </tbody>
             </GridTable>
           </div>
-          {canEdit ? <Button variant="outline" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button> : null}
+          {fieldsEditable ? <Button variant="outline" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button> : null}
         </CardContent>
       </Card>
 </>},
-        {id:"review",label:"Review totals",content:<>      <div className="grid gap-3 md:grid-cols-4">
+        {id:"review",label:"Review totals",content:<>      <div className="grid gap-3 md:grid-cols-4 fam-voucher-totals">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total debit</p><p className="text-lg font-semibold">{money(debitTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total credit</p><p className="text-lg font-semibold">{money(creditTotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Difference</p><p className={difference ? "text-lg font-semibold text-destructive" : "text-lg font-semibold text-emerald-700"}>{money(difference)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(effective.status || "draft")}>{text(effective.status || "draft")}</Badge></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(voucherStatus || "draft")}>{text(voucherStatus || "draft")}</Badge></CardContent></Card>
       </div>
 </>},
       ]}/>
       <ActionToolbar label="Voucher actions" actions={[
         {id:"save",kind:"save",label:"Save draft",prominent:true,primary:true,available:canEdit,loading:saveMutation.isPending,onSelect:()=>saveMutation.mutate()},
-        {id:"post",kind:"approve",label:"Post voucher",prominent:true,available:canPost&&!!voucherId&&String(effective.status||"draft")==="draft",loading:postMutation.isPending,disabled:Boolean(difference),disabledReason:difference?"Balance debit and credit totals before posting":undefined,onSelect:()=>postMutation.mutate(),confirm:{title:"Post this voucher?",description:`${effective.voucher_number || voucherId} · debit ${money(debitTotal)} · credit ${money(creditTotal)}. Review the lines before posting to the ledger.`,label:"Post voucher"}},
+        {id:"post",kind:"approve",label:"Post voucher",prominent:true,available:canPost&&!!voucherId&&String(voucherStatus||"draft")==="draft",loading:postMutation.isPending,disabled:Boolean(difference)||phoneUnsaved||phoneRecordUnavailable,disabledReason:difference?"Balance debit and credit totals before posting":phoneRecordUnavailable?"Load the latest saved voucher before posting":phoneUnsaved?"Save draft changes before posting":undefined,onSelect:()=>postMutation.mutate(),confirm:{title:"Post this voucher?",description:`${effective.voucher_number || voucherId} · debit ${money(debitTotal)} · credit ${money(creditTotal)}. Review the lines before posting to the ledger.`,label:"Post voucher"}},
         {id:"clone",kind:"copy",label:"Clone voucher",prominent:true,available:canCreate&&!!voucherId&&!!voucherQuery.data,loading:cloneMutation.isPending,onSelect:()=>cloneMutation.mutate()},
-        {id:"cancel",kind:"reject",label:"Cancel voucher",danger:true,available:canCancel&&!!voucherId&&["draft","posted"].includes(String(effective.status)),loading:cancelMutation.isPending,onSelect:()=>cancelMutation.mutate(),confirm:{title:"Cancel this voucher?",description:`Voucher ${effective.voucher_number || voucherId}. Review its accounting impact before cancelling.`,label:"Cancel voucher"}},
-        {id:"reverse",kind:"review",label:"Reverse voucher",danger:true,available:canReverse&&!!voucherId&&effective.status==="posted",loading:reverseMutation.isPending,onSelect:()=>reverseMutation.mutate(),confirm:{title:"Reverse this posted voucher?",description:`Voucher ${effective.voucher_number || voucherId}. This creates a linked reversal and records it in history.`,label:"Reverse voucher"}},
+        {id:"cancel",kind:"reject",label:"Cancel voucher",danger:true,available:canCancel&&!!voucherId&&["draft","posted"].includes(String(voucherStatus)),loading:cancelMutation.isPending,onSelect:()=>cancelMutation.mutate(),confirm:{title:"Cancel this voucher?",description:`Voucher ${effective.voucher_number || voucherId}. Review its accounting impact before cancelling.`,label:"Cancel voucher"}},
+        {id:"reverse",kind:"review",label:"Reverse voucher",danger:true,available:canReverse&&!!voucherId&&voucherStatus==="posted",loading:reverseMutation.isPending,onSelect:()=>reverseMutation.mutate(),confirm:{title:"Reverse this posted voucher?",description:`Voucher ${effective.voucher_number || voucherId}. This creates a linked reversal and records it in history.`,label:"Reverse voucher"}},
       ]}/>
     </div>
   );
@@ -963,6 +979,7 @@ function defaultPurchaseBill(): FAMRecord {
 }
 
 function PurchaseBillFormView({ detail }: { detail?: boolean }) {
+  const phone=useMobile(480);
   const financialSettings = useQuery({ queryKey: ["fam", "settings"], queryFn: famApi.settings });
   const isUAE = ["AE", "UAE"].includes(String(financialSettings.data?.country_code || "").toUpperCase());
   const taxFieldLabel = (field: string) => isUAE && field === "gst_amount" ? "Recoverable VAT" : isUAE && field === "gstin" ? "TRN" : field.replace(/_/g, " ");
@@ -984,25 +1001,29 @@ function PurchaseBillFormView({ detail }: { detail?: boolean }) {
   const save = useMutation({ mutationFn: () => detail && billId ? famApi.updatePurchaseBill(billId, effective) : famApi.createPurchaseBill(effective), onSuccess: () => { toast({ title: "Purchase bill saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const post = useMutation({ mutationFn: () => famApi.postPurchaseBill(billId), onSuccess: () => { toast({ title: "Purchase bill posted" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
   const cancel = useMutation({ mutationFn: () => famApi.cancelPurchaseBill(billId), onSuccess: () => { toast({ title: "Purchase bill cancelled" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
+  const addLine=() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }]);
+  const phoneDetailUnavailable=Boolean(phone&&detail&&(!billQuery.data||billQuery.isFetching||billQuery.isError));
+  const fieldsEditable=canEdit&&!(phone&&save.isPending);
+  if(phone&&detail&&!billQuery.data)return <State label="purchase bill" isLoading={billQuery.isLoading} isError={billQuery.isError}/>;
   return (
-    <CompactFields className="space-y-4">
+    <CompactFields className="space-y-4 fam-mobile-purchase-form">
       {isUAE && <p className="text-sm text-muted-foreground">Enter recoverable VAT in the company base currency. Include non-recoverable VAT in the expense amount. Configure the existing input VAT account in UAE tax settings; VAT201 workings require reconciled AED figures.</p>}
       <State label="purchase bill" isLoading={billQuery.isLoading} isError={billQuery.isError} />
-      <div data-form-section-label="Bill details" className="grid gap-3 md:grid-cols-4">
-        {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={taxFieldLabel(field)}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={detail && !canEdit} />}</Field>)}
+      <div data-form-section-label="Bill details" className="grid gap-3 md:grid-cols-4 fam-purchase-details">
+        {["vendor_id", "bill_number", "bill_date", "due_date", "gstin", "place_of_supply", "discount_total"].map((field) => <Field key={field} label={phone&&field==="vendor_id"?"Vendor":taxFieldLabel(field)}>{phone&&field==="vendor_id"?<FinancialRecordLookup kind="vendor" value={String(effective.vendor_id??"")} onChange={value=>patch("vendor_id",value)} disabled={!fieldsEditable}/>: ["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={phone?!fieldsEditable:detail&&!canEdit} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(effective[field] ?? "")} onChange={(event) => patch(field, event.target.value)} disabled={phone?!fieldsEditable:detail&&!canEdit} />}</Field>)}
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusTone(effective.status || "draft")}>{text(effective.status || "draft")}</Badge></CardContent></Card>
       </div>
-      <Card><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3"><div className="overflow-x-auto rounded-lg border"><GridTable gridId="apps/fam/FAMWorkspacePage:table-3" className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{billLineFields.map((column) => <th key={column} className="px-3 py-2">{taxFieldLabel(column)}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr {...recordPreviewProps(line)} key={index} className="border-t">{billLineFields.map((field) => <td key={field} className="px-3 py-2"><Input value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={detail && !canEdit} /></td>)}</tr>)}</tbody></GridTable></div>{!detail ? <Button variant="outline" onClick={() => patch("lines", [...lines, { expense_ledger_id: "", description: "", quantity: 1, rate: 0, taxable_value: 0, gst_amount: 0, tds_amount: 0, line_total: 0 }])}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
-      <div className="grid gap-3 md:grid-cols-4">
+      <Card className="fam-purchase-lines"><CardHeader><CardTitle className="text-base">Bill lines</CardTitle></CardHeader><CardContent className="space-y-3">{phone&&<FinancialMobileLineEditor title="Bill line" lines={lines} fields={billLineFields.map(key=>({key,label:taxFieldLabel(key),wide:key==="description",lookup:key==="expense_ledger_id"?"ledger":undefined,inputMode:numericFields.has(key)?"decimal":undefined}))} canEdit={fieldsEditable} onChange={patchLine} onAdd={!detail?addLine:undefined}/>}<div className="overflow-x-auto rounded-lg border fam-purchase-line-grid" role={phone?"region":undefined} aria-label={phone?"Full bill lines, scroll for all fields":undefined} tabIndex={phone?0:undefined}><GridTable gridId="apps/fam/FAMWorkspacePage:table-3" className="w-full min-w-[980px] text-sm"><thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground"><tr>{billLineFields.map((column) => <th key={column} className="px-3 py-2">{taxFieldLabel(column)}</th>)}</tr></thead><tbody>{lines.map((line, index) => <tr {...recordPreviewProps(line)} key={index} className="border-t">{billLineFields.map((field) => <td key={field} className="px-3 py-2"><Input aria-label={phone?`Line ${index+1} ${taxFieldLabel(field)}`:undefined} value={String(line[field] ?? "")} onChange={(event) => patchLine(index, field, event.target.value)} disabled={phone?!fieldsEditable:detail&&!canEdit} /></td>)}</tr>)}</tbody></GridTable></div>{!detail ? <Button variant="outline" onClick={addLine}><Plus className="h-4 w-4" />Add line</Button> : null}</CardContent></Card>
+      <div className="grid gap-3 md:grid-cols-4 fam-purchase-totals">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Subtotal</p><p className="text-lg font-semibold">{money(effective.subtotal || subtotal)}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">{isUAE ? "Recoverable input VAT" : "Input GST"}</p><p className="text-lg font-semibold">{money(effective.gst_total || gstTotal)}</p></CardContent></Card>
         {!isUAE && <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">TDS deduction</p><p className="text-lg font-semibold">{money(effective.tds_amount || tdsTotal)}</p></CardContent></Card>}
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Grand total</p><p className="text-lg font-semibold">{money(effective.grand_total || grandTotal)}</p></CardContent></Card>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={() => save.mutate()} disabled={save.isPending}><Save className="h-4 w-4" />Save bill</Button>
-        {billId ? <Button variant="outline" onClick={() => post.mutate()} disabled={post.isPending || String(effective.status) !== "draft"}>Post bill</Button> : null}
-        {billId ? <Button variant="outline" onClick={() => cancel.mutate()} disabled={cancel.isPending || ["paid", "cancelled"].includes(String(effective.status))}>Cancel bill</Button> : null}
+      <div className="flex flex-wrap gap-2 fam-financial-save-actions">
+        <Button onClick={() => save.mutate()} disabled={save.isPending||phoneDetailUnavailable}><Save className="h-4 w-4" />Save bill</Button>
+        {billId ? <Button variant="outline" onClick={() => post.mutate()} disabled={phoneDetailUnavailable||post.isPending || String(effective.status) !== "draft"}>Post bill</Button> : null}
+        {billId ? <Button variant="outline" onClick={() => cancel.mutate()} disabled={phoneDetailUnavailable||cancel.isPending || ["paid", "cancelled"].includes(String(effective.status))}>Cancel bill</Button> : null}
       </div>
       {detail ? <Card><CardHeader><CardTitle className="text-base">Audit trail</CardTitle></CardHeader><CardContent><DataTable rows={(effective.audit_logs as FAMRecord[] | undefined) || []} columns={["action", "performed_by", "performed_at", "remarks"]} /></CardContent></Card> : null}
     </CompactFields>
@@ -1016,6 +1037,7 @@ function PurchaseBillsView() {
 }
 
 function ExpenseFormView() {
+  const phone=useMobile(480);
   const queryClient = useQueryClient();
   const financialSettings = useQuery({ queryKey: ["fam", "settings"], queryFn: famApi.settings });
   const isUAE = ["AE", "UAE"].includes(String(financialSettings.data?.country_code || "").toUpperCase());
@@ -1023,7 +1045,9 @@ function ExpenseFormView() {
   const lines = (draft.lines as FAMRecord[]) || [];
   const total = lines.reduce((sum, line) => sum + Number(line.taxable_value || 0) + Number(line.gst_amount || 0), 0);
   const mutation = useMutation({ mutationFn: () => famApi.createExpense(draft), onSuccess: () => { toast({ title: "Expense claim saved" }); queryClient.invalidateQueries({ queryKey: ["fam"] }); } , onError: showMutationError });
-  return <CompactFields className="space-y-4"><div data-form-section-label="Claim details" className="grid gap-3 md:grid-cols-4">{["claimant_name", "claim_number", "claim_date", "status"].map((field) => <Field key={field} label={isUAE && field === "gst_amount" ? "Recoverable VAT" : field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}</div><Card><CardHeader><CardTitle className="text-base">Expense lines</CardTitle></CardHeader><CardContent className="space-y-3">{lines.map((line, index) => <div key={index} className="grid gap-3 md:grid-cols-4">{["expense_ledger_id", "description", "taxable_value", "gst_amount"].map((field) => <Field key={field} label={isUAE && field === "gst_amount" ? "Recoverable VAT" : field.replace(/_/g, " ")}><Input value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: lines.map((item, lineIndex) => lineIndex === index ? { ...item, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value } : item) }))} /></Field>)}</div>)}<Button variant="outline" onClick={() => setDraft((current) => ({ ...current, lines: [...lines, { expense_ledger_id: 1, description: "", taxable_value: 0, gst_amount: 0 }] }))}><Plus className="h-4 w-4" />Add expense line</Button></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Claim total</p><p className="text-lg font-semibold">{money(total)}</p></CardContent></Card><Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save expense claim</Button></CompactFields>;
+  const addLine=() => setDraft((current) => ({ ...current, lines: [...lines, { expense_ledger_id: 1, description: "", taxable_value: 0, gst_amount: 0 }] }));
+  const patchLine=(index:number,key:string,value:string)=>setDraft(current=>({...current,lines:lines.map((line,i)=>i===index?{...line,[key]:numericFields.has(key)?Number(value):value}:line)}));
+  return <CompactFields className="space-y-4 fam-mobile-expense-form"><div data-form-section-label="Claim details" className="grid gap-3 md:grid-cols-4 fam-expense-details">{["claimant_name", "claim_number", "claim_date", "status"].map((field) => <Field key={field} label={isUAE && field === "gst_amount" ? "Recoverable VAT" : field.replace(/_/g, " ")}>{["narration","notes","remarks"].includes(field) ? <RichTextField  value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /> : <Input type={field.includes("date") ? "date" : "text"} value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} />}</Field>)}</div><Card className="fam-expense-lines"><CardHeader><CardTitle className="text-base">Expense lines</CardTitle></CardHeader><CardContent className="space-y-3">{phone&&<FinancialMobileLineEditor title="Expense line" lines={lines} fields={["expense_ledger_id","description","taxable_value","gst_amount"].map(key=>({key,label:isUAE&&key==="gst_amount"?"Recoverable VAT":key.replace(/_/g," "),wide:key==="description",lookup:key==="expense_ledger_id"?"ledger":undefined,inputMode:numericFields.has(key)?"decimal":undefined}))} canEdit={!mutation.isPending} onChange={patchLine} onAdd={addLine} addLabel="Add expense line"/>}{lines.map((line, index) => <div key={index} className="grid gap-3 md:grid-cols-4 fam-expense-line">{["expense_ledger_id", "description", "taxable_value", "gst_amount"].map((field) => <Field key={field} label={isUAE && field === "gst_amount" ? "Recoverable VAT" : field.replace(/_/g, " ")}><Input aria-label={phone?`Line ${index+1} ${isUAE&&field==="gst_amount"?"Recoverable VAT":field.replace(/_/g," ")}`:undefined} value={String(line[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, lines: lines.map((item, lineIndex) => lineIndex === index ? { ...item, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value } : item) }))} /></Field>)}</div>)}<Button variant="outline" onClick={addLine}><Plus className="h-4 w-4" />Add expense line</Button></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Claim total</p><p className="text-lg font-semibold">{money(total)}</p></CardContent></Card><Button className="fam-financial-save-actions" onClick={() => mutation.mutate()} disabled={mutation.isPending}>Save expense claim</Button></CompactFields>;
 }
 
 function ExpensesView() {
@@ -1377,7 +1401,7 @@ function InventoryItemsView() {
   const [draft, setDraft] = useState<FAMRecord>({ sku: "ITEM-001", item_name: "Demo Stock Item", purchase_rate: 100, sales_rate: 150, reorder_level: 5, min_stock: 2, track_inventory: true });
   const mutation = useMutation({ mutationFn: () => api.createInventoryItem(draft), onSuccess: () => { toast({ title: isSrmInventory ? "SRM product saved" : "Stock item saved" }); queryClient.invalidateQueries({ queryKey: [isSrmInventory ? "srm" : "fam"] }); } , onError: showMutationError });
   const fields = isSrmInventory ? ["sku", "item_name", "barcode", "category_name", "unit_code", "hsn_code", "gst_rate", "purchase_rate", "sales_rate", "mrp", "reorder_level", "min_stock"] : ["sku", "item_name", "hsn_code", "stock_group_id", "unit_id", "default_warehouse_id", "purchase_rate", "sales_rate", "reorder_level", "min_stock"];
-  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "Create SRM product" : "Create item"}</CardTitle></CardHeader><CardContent className="space-y-3">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) || ["gst_rate", "mrp"].includes(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>{isSrmInventory ? "Save product" : "Save item"}</Button></CardContent></Card><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "SRM products" : "Stock items"}</CardTitle></CardHeader><CardContent><State label={isSrmInventory ? "SRM products" : "stock items"} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "category_name", "hsn_code", "current_quantity", "sales_rate", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/srm/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
+  return <div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><SmartCreateSection title={isSrmInventory ? "Create SRM product" : "Create item"}><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "Create SRM product" : "Create item"}</CardTitle></CardHeader><CardContent className="space-y-3">{fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) || ["gst_rate", "mrp"].includes(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!canWrite || mutation.isPending} title={!canWrite ? "Write permission required" : undefined}>{isSrmInventory ? "Save product" : "Save item"}</Button></CardContent></Card></SmartCreateSection><Card><CardHeader><CardTitle className="text-base">{isSrmInventory ? "SRM products" : "Stock items"}</CardTitle></CardHeader><CardContent><State label={isSrmInventory ? "SRM products" : "stock items"} isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={["sku", "item_name", "category_name", "hsn_code", "current_quantity", "sales_rate", "reorder_level", "active"]} />{listItems(query.data).slice(0, 4).map((item) => <Button key={String(item.id)} asChild variant="link" className="px-0"><Link to={`/srm/inventory/items/${item.id}`}>Open {text(item.item_name)}</Link></Button>)}</CardContent></Card></div>;
 }
 
 function InventoryLedgerMappingView() {
@@ -1420,7 +1444,8 @@ function InventoryMasterView({ kind }: { kind: "groups" | "units" | "warehouses"
   const endpoint=isSrmWarehouse?"/srm/inventory/warehouses":`/fam/inventory/${kind==="groups"?"stock-groups":kind}`;
   const mutation = useMutation({ mutationFn: () => editing ? api.put(`${endpoint}/${editing.id}`,draft) : config.create(draft), onSuccess: () => { toast({ title: "Inventory master saved" }); setEditing(null);setDraft(config.initial); queryClient.invalidateQueries({ queryKey: [isSrmWarehouse ? "srm" : "fam"] }); } , onError: showMutationError });
   const removeMutation=useMutation({mutationFn:()=>api.delete(`${endpoint}/${deleting?.id}`),onSuccess:()=>{setDeleting(null);queryClient.invalidateQueries({queryKey:[isSrmWarehouse?"srm":"fam"]});},onError:showMutationError});
-  return <><div className="grid gap-4 lg:grid-cols-[24rem_1fr]"><Card><CardHeader><CardTitle className="text-base">{editing?"Edit":"Create"}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!(editing?canEdit:canCreate) || mutation.isPending} title={!(editing?canEdit:canCreate) ? "Write permission required" : undefined}>{editing?"Save changes":"Save"}</Button>{editing&&<Button variant="outline" onClick={()=>{setEditing(null);setDraft(config.initial);}}>Cancel editing</Button>}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} renderActions={row=><div className="flex gap-2"><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>{setEditing(row);setDraft({...row});}}>Edit</Button><Button variant="outline" disabled={!canDelete} aria-label={`Delete ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>setDeleting(row)}>Delete</Button></div>}/></CardContent></Card></div><Dialog open={!!deleting} onOpenChange={v=>{if(!v&&!removeMutation.isPending)setDeleting(null);}}><DialogContent><DialogTitle>Delete inventory master?</DialogTitle><p>This retires the selected record from active use and retains its stock history.</p><Button disabled={removeMutation.isPending||!canDelete} onClick={()=>removeMutation.mutate()}>Confirm delete master</Button><Button variant="outline" onClick={()=>setDeleting(null)}>Keep record</Button></DialogContent></Dialog></>;
+  const editor = <Card><CardHeader><CardTitle className="text-base">{editing?"Edit":"Create"}</CardTitle></CardHeader><CardContent className="space-y-3">{config.fields.map((field) => <Field key={field} label={field.replace(/_/g, " ")}><Input value={String(draft[field] ?? "")} onChange={(event) => setDraft((current) => ({ ...current, [field]: numericFields.has(field) ? Number(event.target.value) : event.target.value }))} /></Field>)}<Button className="w-full" onClick={() => mutation.mutate()} disabled={!(editing?canEdit:canCreate) || mutation.isPending} title={!(editing?canEdit:canCreate) ? "Write permission required" : undefined}>{editing?"Save changes":"Save"}</Button>{editing&&<Button variant="outline" onClick={()=>{setEditing(null);setDraft(config.initial);}}>Cancel editing</Button>}</CardContent></Card>;
+  return <><div className="grid gap-4 lg:grid-cols-[24rem_1fr]">{editing ? editor : <SmartCreateSection title={`Create ${kind === "groups" ? "stock group" : kind === "units" ? "unit" : "warehouse"}`}>{editor}</SmartCreateSection>}<Card><CardHeader><CardTitle className="text-base">Records</CardTitle></CardHeader><CardContent><State label="inventory masters" isLoading={query.isLoading} isError={query.isError} /><DataTable rows={listItems(query.data)} columns={config.columns} renderActions={row=><div className="flex gap-2"><Button variant="outline" disabled={!canEdit} aria-label={`Edit ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>{setEditing(row);setDraft({...row});}}>Edit</Button><Button variant="outline" disabled={!canDelete} aria-label={`Delete ${row.group_name||row.unit_name||row.warehouse_name}`} onClick={()=>setDeleting(row)}>Delete</Button></div>}/></CardContent></Card></div><Dialog open={!!deleting} onOpenChange={v=>{if(!v&&!removeMutation.isPending)setDeleting(null);}}><DialogContent><DialogTitle>Delete inventory master?</DialogTitle><p>This retires the selected record from active use and retains its stock history.</p><Button disabled={removeMutation.isPending||!canDelete} onClick={()=>removeMutation.mutate()}>Confirm delete master</Button><Button variant="outline" onClick={()=>setDeleting(null)}>Keep record</Button></DialogContent></Dialog></>;
 }
 
 function InventoryMovementView({ mode }: { mode: "in" | "out" | "purchase" | "delivery" }) {
@@ -2235,7 +2260,7 @@ export default function FAMWorkspacePage({ kind }: { kind: FAMViewKind }) {
   else content = <ListCreateView kind={kind} />;
 
   return (
-    <section className="space-y-5">
+    <section className={`space-y-5${["voucherNew","journal","voucherDetail"].includes(kind)?" fam-mobile-voucher-page":["purchaseBillNew","purchaseBillDetail","expenseNew"].includes(kind)?" fam-mobile-purchase-page":""}`}>
       <PageHeader meta={meta} onRefresh={() => queryClient.invalidateQueries({ queryKey: ["fam"] })} />
       {content}
     </section>

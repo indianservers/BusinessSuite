@@ -190,3 +190,6 @@ export function LoadingState({
     </div>
   );
 }
+
+// Form section inference must recognize feedback after production minification.
+LoadingState.displayName = "LoadingState";

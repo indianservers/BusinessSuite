@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { defaultText } from "@/lib/form-defaults";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -96,7 +97,7 @@ export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, on
       setError(typeof detail === "string" ? detail : "Could not save the task. Your entries are still here. Please try again.");
     } finally { submitting.current = false; setSaving(false); }
   }
-  return <section className="crm-task-creation" aria-label="CRM task creation">
+  return <SmartCreateSection title="Create task" closeOnRecordSaved={false} inline={!!initialDraft} autoOpen onClose={onCancel}><section className="crm-task-creation" aria-label="CRM task creation">
     <div className="ct-title"><button type="button" className="ct-button ct-back" aria-label="Back to tasks" disabled={saving} onClick={() => { if (JSON.stringify(draft) !== JSON.stringify(blank())) saveDraft(); onCancel(); }}><ArrowLeft size={18}/></button><div><h1>{initialDraft ? "Edit Task" : "Create Task"}</h1><p>Create a CRM task with clear ownership and deadlines.</p></div><div className="ct-title-actions"><button type="button" className="ct-button" onClick={saveDraft}><Save size={17}/>Save Draft</button><button type="button" className="ct-primary" disabled={saving} onClick={() => void submit()}><Sparkles size={18}/>{saving ? "Saving…" : initialDraft ? "Save changes" : "Create Task"}</button></div></div>
     <p className="ct-local-notice">{databaseBacked ? "Tasks are saved to CRM and available on your other devices. Unsaved drafts stay in this browser." : "UI preview · Tasks and drafts are saved in this browser only. No PMS records are loaded."}</p>
     {available && <div className="ct-draft-banner">A saved draft is available for this new task. <button type="button" onClick={() => { setDraft(available); setNotice("Saved draft restored."); }}>Restore draft</button><button type="button" onClick={discardDraft}>Discard saved draft</button></div>}
@@ -125,5 +126,5 @@ export default function TaskCreationForm({ draftKey: suppliedDraftKey, tasks, on
       </aside>
     </fieldset></CompactForm>
     <AlertDialog.Root open={clearOpen} onOpenChange={setClearOpen}><AlertDialog.Portal><AlertDialog.Overlay className="fixed inset-0 z-[1200] bg-black/40"/><AlertDialog.Content className="fixed left-1/2 top-1/2 z-[1201] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-xl border bg-background p-6 shadow-xl"><AlertDialog.Title className="text-lg font-semibold">Clear this task form?</AlertDialog.Title><AlertDialog.Description className="text-sm text-muted-foreground">The current entries will be cleared. Cancel and save a draft first if you want to keep them. Your previously saved draft remains available.</AlertDialog.Description><div className="flex justify-end gap-3"><AlertDialog.Cancel className="rounded-lg border px-4 py-2 text-sm font-medium">Cancel</AlertDialog.Cancel><AlertDialog.Action className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground" onClick={() => { setDraft(blank()); setNotice(""); setError(""); setPerson(""); setSubtask(""); setParentSearch(""); setCopyOpen(false); }}>Clear form</AlertDialog.Action></div></AlertDialog.Content></AlertDialog.Portal></AlertDialog.Root>
-  </section>;
+  </section></SmartCreateSection>;
 }

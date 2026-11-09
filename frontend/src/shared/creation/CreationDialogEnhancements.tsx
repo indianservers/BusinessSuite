@@ -14,8 +14,8 @@ export function CreationDialogEnhancements() {
         const overlay = dialog.previousElementSibling as HTMLElement | null;
         if (overlay && /overlay|inset-0/i.test(overlay.className)) { overlay.style.zIndex = String(169 + index * 4); overlay.dataset.smartCreateOverlay = 'true'; }
       });
-      document.querySelectorAll<HTMLElement>('[role="dialog"]:not([data-smart-create]):not([data-smart-create-enhanced])').forEach(dialog => {
-        const heading = dialog.querySelector('h1,h2,[data-dialog-title]')?.textContent?.trim() || '';
+      document.querySelectorAll<HTMLElement>('[role="dialog"]:not([data-smart-create]):not([data-smart-create-enhanced]):not([data-navigation-sheet])').forEach(dialog => {
+        const heading = dialog.querySelector('h1,h2,h3,[role="heading"],[data-dialog-title]')?.textContent?.trim() || dialog.getAttribute('aria-label') || '';
         if (!/^(?:quick\s+)?(create|new|add|invite|schedule|log|apply|request|upload)\b/i.test(heading)) return;
         dialog.dataset.smartCreateEnhanced = 'true';
         dialog.dataset.smartCreateSize = dialog.querySelectorAll('input,select,textarea').length <= 3 ? 'compact' : 'standard';
@@ -53,9 +53,13 @@ export function CreationDialogEnhancements() {
     function submitShortcut(event: KeyboardEvent) {
       if (event.defaultPrevented || event.repeat || !(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return;
       const dialog = (event.target as Element).closest<HTMLElement>('[data-smart-create-enhanced]');
-      if (!dialog) return;
+      if (!dialog || dialog !== topDialog()) return;
       const form = (event.target as Element).closest('form') || dialog.querySelector('form');
-      if (form && !dialog.querySelector('form[aria-busy="true"],[data-save-action][aria-busy="true"]')) { event.preventDefault(); form.requestSubmit(); }
+      if (dialog.querySelector('form[aria-busy="true"],[data-save-action][aria-busy="true"]')) return;
+      if (form) { event.preventDefault(); form.requestSubmit(); return; }
+      const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).filter(button => !button.disabled);
+      const primary = buttons.find(button => button.hasAttribute('data-save-action')) || buttons.find(button => /^(create|save|submit|register)\b/i.test(button.textContent?.trim() || '') && !/draft|template|field|folder/i.test(button.textContent || ''));
+      if (primary) { event.preventDefault(); primary.click(); }
     }
     document.addEventListener('input', dirty, true); document.addEventListener('change', dirty, true);
     document.addEventListener('click', click, true); document.addEventListener('keydown', keyboard, true);

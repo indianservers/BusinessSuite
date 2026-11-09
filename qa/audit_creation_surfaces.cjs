@@ -4,7 +4,11 @@ const ts = require('../frontend/node_modules/typescript');
 const root = path.resolve(__dirname, '../frontend/src');
 const out = path.resolve(__dirname, '../outputs/creation-inventory');
 const walk = dir => fs.readdirSync(dir, {withFileTypes:true}).flatMap(e => e.isDirectory() ? walk(path.join(dir,e.name)) : [path.join(dir,e.name)]);
-function label(n) { if(ts.isJsxText(n)) return n.text; return n.children?.map(label).join(' ') || ''; }
+function label(n) {
+ if(ts.isJsxText(n))return n.text;
+ if(ts.isJsxExpression(n)){const texts=[];function literals(x){if(ts.isStringLiteral(x))texts.push(x.text);else ts.forEachChild(x,literals);}if(n.expression)literals(n.expression);return texts.find(s=>/^(create|add|new|invite|register|publish|save|submit)\b/i.test(s))||texts.join(' ');}
+ return n.children?.map(label).join(' ')||'';
+}
 const result=[];
 for(const file of walk(root).filter(f=>f.endsWith('.tsx'))) {
  const source=fs.readFileSync(file,'utf8'), sf=ts.createSourceFile(file,source,99,true,4);
@@ -20,7 +24,7 @@ for(const file of walk(root).filter(f=>f.endsWith('.tsx'))) {
    if(fields.length && create.length) {
     const ancestors=[];let p=n.parent;while(p){if(ts.isJsxElement(p))ancestors.push(p.openingElement.tagName.getText(sf));p=p.parent;}
     let title=''; let card=n;while(card&&!title){if(ts.isJsxElement(card)&&card.openingElement.tagName.getText(sf)==='Card'){function find(x){if(ts.isJsxElement(x)&&x.openingElement.tagName.getText(sf)==='CardTitle')title=label(x).replace(/\s+/g,' ').trim();if(!title)ts.forEachChild(x,find);}find(card);}card=card.parent;}
-    result.push({file:path.relative(path.resolve(__dirname,'..'),file).replaceAll('\\','/'),line:sf.getLineAndCharacterOfPosition(n.getStart(sf)).line+1,kind,title,fields:fields.length,actions:create,protected:ancestors.some(a=>/Dialog|Modal|SmartCreateSection/.test(a)),ancestors,start:n.getStart(sf),end:n.end});
+    result.push({file:path.relative(path.resolve(__dirname,'..'),file).replaceAll('\\','/'),line:sf.getLineAndCharacterOfPosition(n.getStart(sf)).line+1,kind,title,fields:fields.length,actions:create,protected:ancestors.some(a=>/Dialog|Modal|SmartCreateSection/.test(a)),hasNestedCreationSurface:/<(SmartCreateSection|SmartCreateModal|CreationEditorSurface)\b/.test(n.getText(sf)),ancestors,start:n.getStart(sf),end:n.end});
    }
   } ts.forEachChild(n,visit);
  }visit(sf);

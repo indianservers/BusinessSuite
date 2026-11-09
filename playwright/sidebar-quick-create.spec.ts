@@ -157,11 +157,16 @@ for (const [path,query,label] of [["/hrms/employees","Employees","Employees"],["
 test("Power Apps quick creation preserves the selected environment",async({page})=>{
   await setup(page);await page.route("**/api/v1/power-apps/**",r=>{
     const path=new URL(r.request().url()).pathname;
+    if(path.endsWith("node-catalog"))return r.fulfill({json:{version:1,nodes:[{id:"manual",name:"Manual trigger",category:"Triggers",icon:"Play",description:"Start manually",trigger:true,editor_ready:true,executable:true,preview_supported:true,requires_credential:false,fields:[],inputs:[],outputs:[],output_schema:{},help:""}]}});
     return r.fulfill({json:path.endsWith("catalog")?{applications:[{id:"automations",name:"Automations",route:"/power-apps/automations",icon:"Workflow",status:"available",description:"Automations",environments:["testing"],required_permissions:[],feature_flags:[]}],permissions:["power_apps_view","power_apps_create"],templates:[]}:path.endsWith("environments")?{items:[{key:"testing",enabled:true}]}:path.endsWith("overview")?{counts:{},recent:[],unsupported_metrics:[]}: {items:[],total:0}});
   });
   await page.goto("/power-apps?environment=testing");const navigation=await menu(page,"Automations");
   await navigation.getByRole("button",{name:"Create Automation",exact:true}).click();
-  await expect(page).toHaveURL(/\/power-apps\/automations\/new\?environment=testing/);
+  const dialog=page.getByRole("dialog",{name:"Create automation",exact:true});
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("textbox",{name:"Automation name",exact:true})).toHaveValue("Untitled automation");
+  await expect(dialog.locator(".as-toolbar")).toContainText("testing");
+  await expect(page).toHaveURL(/\/power-apps\?environment=testing$/);
 });
 
 test("asset shortcut reveals its form from a different asset tab",async({page})=>{
@@ -176,7 +181,7 @@ test("HR sidebar actions render with populated employee cards",async({page},test
   await page.setViewportSize({width:1500,height:1000});await setup(page);
   const items=[{id:1,employee_id:"EMP-1",first_name:"Asha",last_name:"Rao",status:"Active",employment_type:"Full-time",date_of_joining:"2026-01-01",personal_email:"asha@example.com",phone_number:null},{id:2,employee_id:"EMP-2",first_name:"Ravi",last_name:"Kumar",status:"Probation",employment_type:"Contract",date_of_joining:"2026-02-01",personal_email:null,phone_number:null}];
   await page.route("**/api/v1/employees/**",r=>r.fulfill({json:r.request().url().includes("workbench/home")?{pending_counts:{}}:r.request().url().includes("filter-options")?{}:{items,total:2,pages:1,page:1}}));
-  await page.goto("/hrms/employees");await expect(page.getByText("Asha Rao",{exact:true})).toBeVisible();
+  await page.goto("/hrms/employees");await page.getByRole("tab",{name:"Cards",exact:true}).click();await expect(page.getByText("Asha Rao",{exact:true})).toBeVisible();
   const navigation=page.locator(".module-menu").first();await navigation.getByRole("button",{name:"Expand all menu categories",exact:true}).click();
   await navigation.getByRole("button",{name:"More options for People",exact:true}).click();
   await page.getByRole("menuitem",{name:"Create new",exact:true}).hover();

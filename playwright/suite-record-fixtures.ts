@@ -52,6 +52,7 @@ export async function setupLeads(page: Page, canManage = true) {
   });
   await page.goto("/crm/leads");
   await expect(page.getByRole("heading", { name: /Lead workbench/ })).toBeVisible();
+  await page.getByRole("tab",{name:"Cards",exact:true}).click();
   await expect(page.getByRole("button", { name: "Nisha Rao", exact: true })).toBeVisible();
   return mutations;
 }

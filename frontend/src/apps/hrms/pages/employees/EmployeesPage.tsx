@@ -186,6 +186,10 @@ function EmployeesPage() {
         <PhoneActions value={info.getValue()} record={info.row.original} field="phone_number" />
       ),
     }),
+    columnHelper.accessor("department_id", {
+      header: "Department",
+      cell: info => filterOptions?.department_id?.find(option => option.value === String(info.getValue()))?.label || "Not set",
+    }),
     columnHelper.accessor("employment_type", {
       header: "Type",
       cell: (info) => (
@@ -304,7 +308,7 @@ function EmployeesPage() {
         </div>
         <details className="mt-4 border-t pt-3">
           <summary className="cursor-pointer text-sm font-medium">Filters {activeCount > 0 ? `(${activeCount} active)` : ""}</summary>
-          {optionsError && <p role="alert" className="mt-2 text-sm text-destructive">Could not load filter choices. <button className="underline" onClick={() => void reloadOptions()}>Retry</button></p>}
+          {optionsError && <p role="alert" className="mt-2 text-sm text-destructive">Could not load filter choices. <Button type="submit" variant="outline" className="underline" onClick={() => void reloadOptions()}>Retry</Button></p>}
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {filterFields.map(([key, label]) => (
               <label key={key} className="space-y-1 text-xs font-medium">
@@ -330,7 +334,7 @@ function EmployeesPage() {
           <span className="pb-2 text-sm text-muted-foreground" aria-live="polite">{data?.total ?? 0} matching employees</span>
         </div>
       </Card>
-      {isError && <div role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail && typeof (error as any).response.data.detail === "string" ? (error as any).response.data.detail : "Could not load employees. Check filters and try again."} <button className="underline" onClick={() => void refetch()}>Retry</button></div>}
+      {isError && <div role="alert" className="rounded-md border border-destructive p-3 text-sm text-destructive">{(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail && typeof (error as any).response.data.detail === "string" ? (error as any).response.data.detail : "Could not load employees. Check filters and try again."} <Button type="submit" variant="outline" className="underline" onClick={() => void refetch()}>Retry</Button></div>}
 
       <WorkspaceViewBar scope="hrms-employees" label="Employee views" active={layout} views={[{id:"table",label:"Table",description:"Employee records and actions"},{id:"cards",label:"Profiles",description:"Employee profile cards"}]} onChange={id=>setLayout(id as "cards"|"table")} primary={["table","cards"]}/>
       {/* Table */}
@@ -408,7 +412,7 @@ function EmployeesPage() {
                     onClick={() => setEmployeePopup({ employee: row.original, editing: false })}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
+                      <td key={cell.id} className="px-4 py-3" data-grid-value={cell.column.id === "department_id" ? filterOptions?.department_id?.find(option => option.value === String(cell.getValue()))?.label || "Not set" : undefined}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}

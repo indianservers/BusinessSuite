@@ -6,9 +6,10 @@ test.describe("SRM contracts commercial UI", () => {
     await authenticate(page, "srm_admin");
 
     await page.goto("/srm/contracts", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button",{name:"Expand loaded groups",exact:true}).click();
     await expect(page.getByRole("heading", { name: "Contracts" })).toBeVisible();
     await expect(page.getByText("Managed Services")).toBeVisible();
-    await expect(page.getByText("active")).toBeVisible();
+    await expect(page.getByText("active",{exact:true}).filter({visible:true}).last()).toBeVisible();
 
     await page.goto("/srm/contracts/1", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Contract Detail" })).toBeVisible();

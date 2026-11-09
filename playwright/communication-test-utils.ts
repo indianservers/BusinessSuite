@@ -32,7 +32,11 @@ export async function installCommunicationApiStubs(page: Page, role: Role = "crm
     const method = request.method();
     let status = 200;
     let body: unknown = {};
-    if (path.includes("/auth/me")) {
+    if (path === "/access/settings/defaults/effective") {
+      body = { values: {}, modules: {}, companyId: 1, branchId: 1 };
+    } else if (path === "/branches/context") {
+      body = {company_id:1,selected:1,all_branches:false,manage_access:false,branches:[{id:1,name:"Communication test branch",code:"QA",can_write:true}]};
+    } else if (path.includes("/auth/me")) {
       body = { id: 101, email: `${role}@example.com`, role: { name: role }, is_superuser: role === "crm_org_admin" };
     } else if (path.includes("/notifications/unread")) {
       body = { unread: 0 };
@@ -51,11 +55,13 @@ export async function installCommunicationApiStubs(page: Page, role: Role = "crm
     } else if (path.startsWith("/public/webforms/") && path.endsWith("/submit")) {
       body = { status: "accepted", created_record_type: "lead", created_record_id: 88, duplicate_detected: false };
     } else if (path.startsWith("/public/webforms/")) {
-      body = { id: 1, name: "Lead Capture", public_slug: "lead-capture-phase-6", target_module: "lead" };
+      body = { id: 1, name: "Lead Capture", public_slug: "lead-capture-phase-6", target_module: "lead",fields_json:[{key:"first_name",label:"First name",type:"text",required:true},{key:"email",label:"Email",type:"email",required:true}] };
     } else if (path === "/communication/auto-response-rules") {
       body = method === "GET" ? { items: [{ id: 1, name: "Reply", active: true }], total: 1 } : { id: 2, name: "Reply", active: true };
     } else if (path === "/communication/campaigns") {
       body = method === "GET" ? { items: [{ id: 1, name: "Nurture Campaign", type: "email", status: "draft" }], total: 1 } : { id: 2, name: "Nurture Campaign", type: "email", status: "draft" };
+    } else if (/^\/communication\/campaigns\/\d+$/.test(path)) {
+      body = {id:Number(path.split('/').pop()),name:"Nurture Campaign",type:"email",status:"draft",template_id:1,segment_json:{source:"lead",limit:50}};
     } else if (path === "/communication/campaigns/1/preview") {
       body = { recipients: [{ record_type: "lead", record_id: 1, email: "lead@example.com", blocked: false }], total: 1, blocked_count: 0, rate_limit: 50 };
     } else if (path === "/communication/campaigns/1/send") {

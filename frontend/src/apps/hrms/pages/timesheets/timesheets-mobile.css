@@ -1,0 +1,32 @@
+@media(max-width:480px){
+ .hrms-timesheets-page{min-width:0;max-width:100%;font-size:14px}
+ .hrms-timesheets-page> :not([hidden])~:not([hidden]){margin-top:12px}
+ .hrms-timesheets-page .page-title{font-size:22px;line-height:1.2}
+ .hrms-timesheets-page .page-description{font-size:13px;line-height:1.4;margin-top:4px}
+ .hrms-timesheets-page .hrms-timesheet-kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .hrms-timesheet-kpis .kf-card>div{padding:10px}
+ .hrms-timesheet-kpis p:first-child{font-size:12px;line-height:1.35}
+ .hrms-timesheet-kpis p:last-child{font-size:20px;line-height:1.2}
+ .hrms-timesheets-page .grid,.hrms-timesheets-page .flex,.hrms-timesheets-page .kf-card{min-width:0;max-width:100%}
+ .hrms-timesheets-page .kf-card>div{padding:12px}
+ .hrms-timesheets-page .kf-card>div+div{padding-top:0}
+ .hrms-timesheets-page :is(p,span,button){overflow-wrap:anywhere}
+ .hrms-timesheets-page :is(button,summary){min-height:44px}
+ .hrms-timesheets-page :is(input,select){min-height:44px;font-size:16px;min-width:0;max-width:100%}
+ .hrms-timesheets-page .hrms-timesheet-projects-card{border:0;box-shadow:none}
+ .hrms-timesheet-projects-card>div:first-child{display:none}
+ .hrms-timesheet-projects-card>div+div{padding:0}
+ .hrms-timesheets-page .smart-create-section{padding:10px;gap:8px}
+ .hrms-timesheets-page .smart-create-section>div{display:none}
+ .hrms-timesheets-page .smart-create-section>button{width:100%}
+ .hrms-timesheets-page .overflow-x-auto{max-width:100%}
+ .smart-create-phone-sheet :is(.hrms-timesheet-create-card,.hrms-timesheet-entry-card){border:0;background:transparent;box-shadow:none}
+ .smart-create-phone-sheet :is(.hrms-timesheet-create-card,.hrms-timesheet-entry-card)>div:first-child{display:none}
+ .smart-create-phone-sheet :is(.hrms-timesheet-create-card,.hrms-timesheet-entry-card)>div+div{padding:0}
+ .smart-create-phone-sheet :is(.hrms-timesheet-create-card,.hrms-timesheet-entry-card,.hrms-timesheet-project-form) :is(input,select){min-height:44px;font-size:16px;min-width:0;max-width:100%}
+ .smart-create-phone-sheet .hrms-timesheet-entry-context{font-size:13px;line-height:1.45;overflow-wrap:anywhere;margin-bottom:12px;color:hsl(var(--muted-foreground))}
+ .smart-create-phone-sheet .hrms-timesheet-entry-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .smart-create-phone-sheet .hrms-timesheet-entry-fields>label,.smart-create-phone-sheet .hrms-timesheet-entry-fields>div:nth-child(4){grid-column:1/-1}
+ .smart-create-phone-sheet .hrms-timesheet-entry-fields>label{min-height:44px;font-size:14px}
+ .smart-create-phone-sheet .hrms-timesheet-entry-fields>button,.smart-create-phone-sheet .hrms-timesheet-project-form>button,.smart-create-phone-sheet .hrms-timesheet-create-card>div:last-child>button{display:none}
+}

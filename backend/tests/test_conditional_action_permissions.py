@@ -6,6 +6,13 @@ from app.access.catalog import action_for
 from app.api.v1.payroll_guided import _allows_action,advance,GuidedAction
 from app.api.v1.leave import cancel_leave
 
+
+def ensure_foreign_company(db):
+    from app.models.company import Company
+    if not db.get(Company, 2):
+        db.add(Company(id=2, name='Foreign scope fixture'))
+        db.flush()
+
 def request(path,method):
     return SimpleNamespace(url=SimpleNamespace(path=path),method=method)
 
@@ -247,6 +254,7 @@ def test_time_log_list_exposes_timesheet_immutability(db,superuser_headers,statu
 
 
 def test_picklist_values_follow_their_authorized_tenant_parent(db,superuser_headers):
+    ensure_foreign_company(db)
     from app.models.user import User
     from app.common.models import CommonPerson
     from app.apps.customization.models import CustomizationGlobalPicklist,CustomizationGlobalPicklistValue
@@ -299,6 +307,7 @@ def test_dashboard_widgets_inherit_real_owner_tenant_and_scope(db,superuser_head
 
 
 def test_calculated_payroll_components_inherit_record_run_and_employee_scope(db,superuser_headers):
+    ensure_foreign_company(db)
     from datetime import date
     from app.models.user import User
     from app.models.company import Branch
@@ -332,6 +341,7 @@ def test_calculated_payroll_components_inherit_record_run_and_employee_scope(db,
 
 
 def test_attendance_month_lock_actor_stamps_do_not_replace_tenant_ownership(db,superuser_headers):
+    ensure_foreign_company(db)
     from app.models.user import User
     from app.models.attendance import AttendanceMonthLock
     from app.models.security_boundary import SecurityResourceOwnership

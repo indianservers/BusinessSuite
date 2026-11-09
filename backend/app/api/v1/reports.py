@@ -29,6 +29,8 @@ from app.services.metrics.queries import EMPLOYED
 router = APIRouter(prefix="/reports", tags=["Reports & Analytics"],dependencies=[Depends(reporting_scope)])
 from app.api.v1.team_workspace import router as team_workspace_router
 router.include_router(team_workspace_router)
+from app.api.v1.hrms_dashboard import router as hrms_dashboard_router
+router.include_router(hrms_dashboard_router)
 
 
 REPORT_FIELD_CATALOG = {

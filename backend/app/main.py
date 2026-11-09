@@ -238,7 +238,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/api/v1/files/blob", include_in_schema=False)
-def private_blob_file(token: str, db=Depends(get_db)):
+def private_blob_file(request: Request, token: str, db=Depends(get_db)):
     from app.core.storage import blob_token_path, materialize_file
     from fastapi import HTTPException
     from fastapi.responses import FileResponse
@@ -249,10 +249,8 @@ def private_blob_file(token: str, db=Depends(get_db)):
     db.commit()  # Save provider refresh-token rotation.
     if not os.path.isfile(path):
         raise HTTPException(404,'File not found')
-    return FileResponse(path, filename=os.path.basename(path), headers={
-        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
-        "Referrer-Policy": "no-referrer",
-    })
+    from app.core.photo_cache import private_file_response
+    return private_file_response(path, request)
 
 
 @app.get("/")

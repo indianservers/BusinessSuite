@@ -1,4 +1,5 @@
 import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
+import { useRecordDraft } from "@/hooks/use-record-autosave";
 import { CurrencySelect } from "@/lib/validation/business";
 import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
@@ -171,6 +172,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<z.input<typeof schema>, unknown, FormData>({
     resolver: zodResolver(schema),
@@ -179,6 +181,13 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
   });
 
   const selectedBranch = watch("branch_id");
+  const { user_password: omittedPassword, ...employeeDraft } = watch();
+  void omittedPassword;
+  const clearEmployeeDraft = useRecordDraft("hrms-employee:new", { values: employeeDraft, customValues: customFieldForm.values, step: currentStep }, draft => {
+    reset({ ...draft.values, user_password: "" });
+    customFieldForm.setValues(draft.customValues || {});
+    setCurrentStep(Math.max(0, Math.min(stepFields.length - 1, draft.step || 0)));
+  }, !customFieldForm.loading);
   const selectedDepartment = watch("department_id");
   const filteredDepartments = (departments || []).filter((d: any) => !selectedBranch || d.branch_id === selectedBranch);
   const filteredDesignations = (designations || []).filter((d: any) => !selectedDepartment || d.department_id === selectedDepartment);
@@ -187,6 +196,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
     mutationFn: (data: FormData) =>
       employeeApi.create({...cleanEmployeePayload(data),custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}),
     onSuccess: (res) => {
+      clearEmployeeDraft();
       setSubmitError(null);
       toast({ title: "Employee created successfully!", variant: "default" });
       if (onCreated) onCreated(res.data); else navigate(`/hrms/employees/${res.data.id}`);
@@ -327,6 +337,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
           });
         })}
       >
+        {clearEmployeeDraft.status !== "idle" && <p role="status" className="mb-3 text-xs text-muted-foreground">{clearEmployeeDraft.status === "unavailable" ? "Browser draft storage is unavailable. Keep this form open until you save." : clearEmployeeDraft.status === "restored" ? "Your employee draft was restored. Review the details before saving. Login passwords must be entered again." : "Draft saved for this session. Login passwords are excluded."}</p>}
         {submitError && (
           <div role="alert" className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -353,7 +364,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               </div>
               <div className="space-y-2">
                 <Label>Gender</Label>
-                <NativeSelect {...register("gender")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect aria-label="Gender" {...register("gender")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -381,7 +392,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               </div>
               <div className="space-y-2">
                 <Label>Employment Type</Label>
-                <NativeSelect {...register("employment_type")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect aria-label="Employment type" {...register("employment_type")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
                   <option value="Contract">Contract</option>
@@ -395,8 +406,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <NativeSelect
-                  {...register("branch_id", { onChange: () => { setValue("department_id", null); setValue("designation_id", null); }, setValueAs: (v) => v === "" ? null : Number(v) })}
+                <NativeSelect aria-label="Branch"
+                  {...register("branch_id", { onChange: () => { setValue("department_id", null); setValue("designation_id", null); }, setValueAs: (v) => v == null || v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">Select Branch</option>
@@ -414,8 +425,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <NativeSelect
-                  {...register("department_id", { onChange: () => setValue("designation_id", null), setValueAs: (v) => v === "" ? null : Number(v) })}
+                <NativeSelect aria-label="Department"
+                  {...register("department_id", { onChange: () => setValue("designation_id", null), setValueAs: (v) => v == null || v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">Select Department</option>
@@ -432,8 +443,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <NativeSelect
-                  {...register("designation_id", { setValueAs: (v) => v === "" ? null : Number(v) })}
+                <NativeSelect aria-label="Designation"
+                  {...register("designation_id", { setValueAs: (v) => v == null || v === "" ? null : Number(v) })}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="">Select Designation</option>
@@ -445,7 +456,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reporting-manager">Reporting Manager / Intern Supervisor</Label>
-                <NativeSelect id="reporting-manager" {...register("reporting_manager_id", { setValueAs: (v) => v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect id="reporting-manager" {...register("reporting_manager_id", { setValueAs: (v) => v == null || v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Unassigned</option>
                   {managers.map((manager) => <option key={manager.id} value={manager.id}>{manager.name}</option>)}
                 </NativeSelect>
@@ -457,7 +468,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <NativeSelect {...register("shift_id", { setValueAs: (v) => v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <NativeSelect aria-label="Shift" {...register("shift_id", { setValueAs: (v) => v == null || v === "" ? null : Number(v) })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select Shift</option>
                   {shifts?.map((s: { id: number; name: string; start_time: string; end_time: string }) => (
                     <option key={s.id} value={s.id}>{s.name} ({s.start_time}-{s.end_time})</option>
@@ -465,7 +476,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
                 </NativeSelect>
                 {errors.shift_id && <div className="text-xs text-destructive"><RichTextContent legacyFormat="plain" value={errors.shift_id.message}/></div>}
               </div>
-              <label className="space-y-2 text-sm">Cost centre<NativeSelect aria-label="Employee cost centre" {...register("cost_center_id", { setValueAs: value => value === "" ? null : Number(value) })} className="flex h-10 w-full rounded-md border bg-background px-3"><option value="">None</option>{costCenters.data?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
+              <label className="space-y-2 text-sm">Cost centre<NativeSelect aria-label="Employee cost centre" {...register("cost_center_id", { setValueAs: value => value == null || value === "" ? null : Number(value) })} className="flex h-10 w-full rounded-md border bg-background px-3"><option value="">None</option>{costCenters.data?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></label>
               <label className="space-y-2 text-sm">Salary currency<Controller name="salary_currency" control={editorControl} render={({field}) => <CurrencySelect label="Salary currency" value={field.value || ""} onChange={field.onChange}/>}/></label>
             </CardContent>
           </Card>
@@ -604,7 +615,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button key="create-employee" type="submit" disabled={mutation.isPending}>
+            <Button key="create-employee" type="submit" disabled={mutation.isPending || customFieldForm.loading || !!customFieldForm.error}>
               {mutation.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (

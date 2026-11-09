@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -29,6 +30,7 @@ function WorkMovementPage({title}:{title:string}) {
   const [projectsLoading,setProjectsLoading] = useState(true);
   const [projectsError,setProjectsError] = useState("");
   const [moreProjects,setMoreProjects] = useState(false);
+  const nextProjectOffset = useRef(0);
   const [tasks,setTasks] = useState<PMSTaskListItem[]>([]);
   const [total,setTotal] = useState(0);
   const [loading,setLoading] = useState(false);
@@ -47,11 +49,19 @@ function WorkMovementPage({title}:{title:string}) {
   function change(key:string,value:string) {setParams(previous=>{const next=new URLSearchParams(previous);if(value)next.set(key,value);else next.delete(key);return next;});}
   async function loadProjects(offset=0) {
     setProjectsLoading(true);setProjectsError("");
-    try {const rows=await projectsAPI.list(offset,100,undefined,true);if(!Array.isArray(rows))throw new Error("Projects could not be loaded. Refresh and try again.");setProjects(current=>offset?[...current,...rows.filter(row=>!current.some(existing=>existing.id===row.id))]:rows);setMoreProjects(rows.length===100);}
+    try {const rows=await projectsAPI.list(offset,100,undefined,true);if(!Array.isArray(rows))throw new Error("Projects could not be loaded. Refresh and try again.");setProjects(current=>offset?[...current,...rows.filter(row=>!current.some(existing=>existing.id===row.id))]:rows);nextProjectOffset.current=offset+rows.length;setMoreProjects(rows.length===100);}
     catch(e){setProjectsError(workspaceError(e));}
     finally{setProjectsLoading(false);}
   }
   useEffect(()=>{void loadProjects();},[]);
+  useEffect(()=>{
+    if(!project || selectedProject || projectsLoading)return;
+    let active=true;
+    void projectsAPI.get(project).then(data=>{
+      if(active)setProjects(current=>current.some(row=>row.id===data.id)?current:[data,...current]);
+    }).catch(error=>{if(active)setProjectsError(workspaceError(error));});
+    return()=>{active=false;};
+  },[project,!!selectedProject,projectsLoading]);
   useEffect(()=>()=>{requestRef.current++;},[]);
   async function load(id=project,clearError=true) {
     if(!id || !selectedProject)return;
@@ -99,8 +109,8 @@ function WorkMovementPage({title}:{title:string}) {
   ];
   const open = (id:string) => navigate(`/pms/tasks/${id}`);
   return <section className="wm-workspace" aria-label={title}>
-    <header className="wm-header"><div><span className="wm-eyebrow">DELIVERY WORKSPACE</span><h1>{title}</h1><p>Select a project to plan its work, track delivery and collaborate with the team.</p></div>{canManage && <Link className="wm-primary" to={`/pms/tasks/new?projectId=${project}`}><Plus size={15}/>Add task</Link>}</header>
-    <div className="wm-controls"><label className="wm-project"><span>Project</span><NativeSelect aria-label="Work project" disabled={projectsLoading||busy} value={project || ""} onChange={event=>change("projectId",event.target.value)}>{!projects.length && <option value="">{projectsLoading?"Loading projects…":"No accessible projects"}</option>}{project>0&&!selectedProject&&<option value={project}>Project not in loaded results</option>}{projects.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</NativeSelect></label><label className="wm-search"><Search size={15}/><input aria-label="Search work cards" placeholder="Search tasks, codes or owners…" value={search} onChange={event=>change("search",event.target.value)}/></label><button className="wm-secondary" disabled={loading || !selectedProject} onClick={()=>void load()}><RefreshCw size={14} className={loading?"animate-spin":""}/>Refresh</button>{moreProjects&&<button className="wm-secondary" disabled={projectsLoading} onClick={()=>void loadProjects(projects.length)}>Load more projects</button>}</div>
+    <header className="wm-header"><div><span className="wm-eyebrow">DELIVERY WORKSPACE</span><h1>{title}</h1><p>Select a project to plan its work, track delivery and collaborate with the team.</p></div>{canManage && <Button asChild variant="default"><Link className="wm-primary suite-task-button" to={`/pms/tasks/new?projectId=${project}`}><Plus size={15}/>Add task</Link></Button>}</header>
+    <div className="wm-controls"><label className="wm-project"><span>Project</span><NativeSelect aria-label="Work project" disabled={projectsLoading||busy} value={project || ""} onChange={event=>change("projectId",event.target.value)}>{!projects.length && <option value="">{projectsLoading?"Loading projects…":"No accessible projects"}</option>}{project>0&&!selectedProject&&<option value={project}>Project not in loaded results</option>}{projects.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</NativeSelect></label><label className="wm-search"><Search size={15}/><input aria-label="Search work cards" placeholder="Search tasks, codes or owners…" value={search} onChange={event=>change("search",event.target.value)}/></label><Button type="submit" variant="outline" className="wm-secondary" disabled={loading || !selectedProject} onClick={()=>void load()}><RefreshCw size={14} className={loading?"animate-spin":""}/>Refresh</Button>{moreProjects&&<button className="wm-secondary" disabled={projectsLoading} onClick={()=>void loadProjects(nextProjectOffset.current)}>Load more projects</button>}</div>
     {projectsError&&<p role="alert" className="wm-error">{projectsError} <button onClick={()=>void loadProjects()}>Retry projects</button></p>}
     {error&&<p role="alert" className="wm-error">{error} <button onClick={()=>void load()}>Retry tasks</button></p>}
     {notice&&<p role="status" className="wm-notice">{notice}</p>}

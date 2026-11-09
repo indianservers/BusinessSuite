@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useEffect,useState } from "react";
 import { Link2,RefreshCw } from "lucide-react";
 import { api } from "@/services/api";
@@ -13,5 +14,5 @@ export function NoteLinkPicker({open,onClose,onInsert,noteId}:{open:boolean;onCl
 export function NoteBacklinks({noteId,onOpen}:{noteId:number;onOpen:(id:number)=>void}){
   const [notes,setNotes]=useState<NoteRecord[]>([]),[reload,setReload]=useState(0),[error,setError]=useState("");
   useEffect(()=>{const controller=new AbortController();setError("");void api.get<NoteRecord[]>(`${noteBase}/${noteId}/backlinks`,{signal:controller.signal}).then(result=>setNotes(result.data)).catch(error=>{if(!controller.signal.aborted)setError(workspaceError(error));});return()=>controller.abort();},[noteId,reload]);
-  return <details className="notes-backlinks"><summary><Link2 size={14}/>Linked from {notes.length} note{notes.length===1?"":"s"}</summary><button className="notes-small-action" aria-label="Refresh linked notes" onClick={()=>setReload(value=>value+1)}><RefreshCw size={12}/>Refresh</button>{notes.map(note=><button className="notes-backlink" key={note.id} onClick={()=>onOpen(note.id)}><strong>{note.title}</strong><span>{note.preview}</span></button>)}{!notes.length&&!error&&<p>No accessible notes link here yet. Add a note link in another note to connect your ideas.</p>}{error&&<p role="alert">{error}</p>}</details>;
+  return <details className="notes-backlinks"><summary><Link2 size={14}/>Linked from {notes.length} note{notes.length===1?"":"s"}</summary><Button type="submit" variant="outline" className="notes-small-action" aria-label="Refresh linked notes" onClick={()=>setReload(value=>value+1)}><RefreshCw size={12}/>Refresh</Button>{notes.map(note=><button className="notes-backlink" key={note.id} onClick={()=>onOpen(note.id)}><strong>{note.title}</strong><span>{note.preview}</span></button>)}{!notes.length&&!error&&<p>No accessible notes link here yet. Add a note link in another note to connect your ideas.</p>}{error&&<p role="alert">{error}</p>}</details>;
 }

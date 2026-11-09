@@ -532,12 +532,12 @@ function BillingWorkspace({ projectId }: { projectId: number }) {
                 {created && (
                   <p role="status">
                     Saved {created.invoice_number}.{" "}
-                    <Link
+                    <Button asChild variant="outline"><Link
                       className="text-primary underline"
                       to={`/srm/invoices/${created.id}`}
                     >
                       Open in SRM
-                    </Link>
+                    </Link></Button>
                   </p>
                 )}
               </fieldset>

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
@@ -28,7 +29,7 @@ export default function TeamCommunicationPage() {
       </select>
       {projects.hasNextPage && <button className="text-sm underline" disabled={projects.isFetchingNextPage} onClick={() => void projects.fetchNextPage()}>{projects.isFetchingNextPage ? "Loading…" : "Load more projects"}</button>}
     </div>
-    {projects.isError && <p role="alert">{workspaceError(projects.error)} <button className="underline" onClick={() => void projects.refetch()}>Retry</button></p>}
+    {projects.isError && <p role="alert">{workspaceError(projects.error)} <Button type="submit" variant="outline" className="underline" onClick={() => void projects.refetch()}>Retry</Button></p>}
     {id ? <ProjectCommunicationPage key={`${scope}:${id}`} selectedProjectId={id} /> : !projects.isPending && !projects.isError ? <div className="rounded-xl border bg-card p-10 text-center"><MessageCircle className="mx-auto mb-3 text-emerald-600" /><h1 className="text-xl font-semibold">Team communication</h1><p className="mt-2 text-sm text-muted-foreground">Your project conversations will appear here when you have access to a project.</p></div> : null}
   </div>;
 }

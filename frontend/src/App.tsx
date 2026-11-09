@@ -34,6 +34,7 @@ import { applicationRoutes } from "@/apps/power-apps/registry";
 import SuiteNavigationTracker from "@/components/suite/SuiteNavigationTracker";
 import PMSRealtimeBridge from "@/apps/project-management/PMSRealtimeBridge";
 import { SmartCreationProvider } from "@/shared/creation/SmartCreationProvider";
+import ErrorBoundary from "@/components/app/ErrorBoundary";
 
 const AutomationRuntimePage = lazyRoute(() => import("@/apps/power-apps/applications/automations/AutomationRuntimePage"));
 const AutomationEditorPage = lazyRoute(() => import("@/apps/power-apps/applications/automations/AutomationEditorPage"));
@@ -164,11 +165,11 @@ export default function App() {
     { path: "connectors", element: <ConnectorCatalog /> },
     ...["crm", "pms", "hrms", "srm", "fam"].map(module => ({ path: `${module}/connectors`, element: <ConnectorCatalog /> })),
     { path: "power-apps", element: <PowerAppsPage /> },
-    { path: "power-apps/connectors", element: <IntegrationsPage /> },
-    { path: "power-apps/integrations", element: <IntegrationsPage /> },
-    { path: "power-apps/approvals", element: <ApprovalsPage /> },
-    { path: "power-apps/approvals/:section", element: <ApprovalsPage /> },
-    { path: "power-apps/approvals/designer/:id", element: <ApprovalsPage /> },
+    { path: "power-apps/connectors", element: <PowerAppsPage><IntegrationsPage /></PowerAppsPage> },
+    { path: "power-apps/integrations", element: <PowerAppsPage><IntegrationsPage /></PowerAppsPage> },
+    { path: "power-apps/approvals", element: <PowerAppsPage><ApprovalsPage embedded /></PowerAppsPage> },
+    { path: "power-apps/approvals/:section", element: <PowerAppsPage><ApprovalsPage embedded /></PowerAppsPage> },
+    { path: "power-apps/approvals/designer/:id", element: <PowerAppsPage><ApprovalsPage embedded /></PowerAppsPage> },
     { path: "power-apps/automations/executions", element: <AutomationRuntimePage /> },
     { path: "power-apps/automations/executions/:runId", element: <AutomationRuntimePage /> },
     { path: "power-apps/automations/:resourceId/runtime", element: <AutomationRuntimePage /> },
@@ -295,7 +296,7 @@ export default function App() {
       <SuiteNavigationTracker />
       <Toaster />
       <ActionTooltipProvider />
-      {isAuthenticated && <Suspense fallback={null}><PersonManagementHost /></Suspense>}
+      {isAuthenticated && <ErrorBoundary resetKey={location.pathname}><Suspense fallback={null}><PersonManagementHost /></Suspense></ErrorBoundary>}
     </SmartCreationProvider>
   );
 }

@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import LocalRecordGrid from "@/shared/data-grid/LocalRecordGrid";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -556,7 +557,7 @@ export default function TaskListPage() {
           <p className="page-description">Search, filter, sort, and update work across every project you can access.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/pms/trash" className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><Trash2 className="h-4 w-4" />Trash</Link>
+          <Button asChild variant="outline"><Link to="/pms/trash" className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><Trash2 className="h-4 w-4" />Trash</Link></Button>
           <NativeSelect value={selectedViewId} onChange={(event) => handleViewSelect(event.target.value)} className="h-10 min-w-52 rounded-md border bg-background px-3 text-sm">
             <option value="">Unsaved task view</option>
             {savedViews.map((view) => (
@@ -696,7 +697,7 @@ export default function TaskListPage() {
         <CardContent hidden={!columnsOpen}>
           {custom.error && <p role="alert" className="text-sm text-destructive">{custom.error}</p>}
           <section aria-label="Task field chooser" className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2"><Input aria-label="Search task fields" placeholder="Search task fields" value={columnSearch} onChange={event => setColumnSearch(event.target.value)} /><Button variant="outline" size="sm" onClick={() => setVisibleColumns(initialVisibleColumns)}>Reset columns</Button><Button variant="outline" size="sm" onClick={() => setVisibleColumns(Object.fromEntries(columns.map(column => [column.key, true])) as Record<ColumnKey, boolean>)}>Show all fields</Button><Link className="text-sm text-primary underline" to="/pms/custom-fields?entity=task&create=1">+ Add custom column</Link></div>
+            <div className="flex flex-wrap items-center gap-2"><Input aria-label="Search task fields" placeholder="Search task fields" value={columnSearch} onChange={event => setColumnSearch(event.target.value)} /><Button variant="outline" size="sm" onClick={() => setVisibleColumns(initialVisibleColumns)}>Reset columns</Button><Button variant="outline" size="sm" onClick={() => setVisibleColumns(Object.fromEntries(columns.map(column => [column.key, true])) as Record<ColumnKey, boolean>)}>Show all fields</Button><Button asChild variant="default"><Link className="text-sm text-primary underline" to="/pms/custom-fields?entity=task&create=1">+ Add custom column</Link></Button></div>
             {[true, false].map(shown => <div key={String(shown)}><h3 className="mb-2 text-sm font-medium">{shown ? "Shown" : "Available properties"} ({columns.filter(column => Boolean(columnVisible(column.key)) === shown).length})</h3><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{columns.filter(column => Boolean(columnVisible(column.key)) === shown && column.label.toLowerCase().includes(columnSearch.toLowerCase())).map(column => <label key={column.key} className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm"><span>{column.label}{column.key === "title" && " (required)"}</span><input aria-label={`Show ${column.label} column`} type="checkbox" disabled={column.key === "title"} checked={columnVisible(column.key)} onChange={event => setVisibleColumns(current => ({ ...current, [column.key]: event.target.checked }))} /></label>)}</div></div>)}
             {!columns.some(column => column.label.toLowerCase().includes(columnSearch.toLowerCase())) && <p className="text-sm text-muted-foreground">No matching field.</p>}
             <p className="text-xs text-muted-foreground">Selections persist in this browser. Save a view to reuse them with its filters across devices. Custom columns appear automatically. Click a value to edit it.</p>
@@ -763,7 +764,6 @@ export default function TaskListPage() {
                   rowActions={[{ id: "task-actions", label: "Open task", run: openTask }]}
                   renderCard={task => <RecordActions record={{...task,key:task.task_key}} canEdit={data.filters.projects.find(project=>project.id===task.project_id)?.can_manage_tasks===true} onOpen={()=>openTask(task)} onChanged={()=>loadTasks(true)}>{menu=><div>{menu}<strong>{task.title}</strong></div>}</RecordActions>}
                 />
-                {inlineParent !== null && data.items.find(task => task.id === inlineParent) && <div className="border-t p-4"><InlineSubtaskComposer parent={data.items.find(task => task.id === inlineParent)!} onCreated={child => subtaskCreated(data.items.find(task => task.id === inlineParent)!, child)} onCancel={() => setInlineParent(null)}/></div>}
               </div>
 
               <div className={layout === "gallery" ? "grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3" : "space-y-3 p-4 lg:hidden"}>
@@ -790,7 +790,7 @@ export default function TaskListPage() {
                     <div className="mt-3 space-y-2 text-sm">{visibleColumnList.filter(column => !["task", "title", "tags"].includes(column.key)).map(column => <div key={column.key} className="flex flex-wrap items-center justify-between gap-2"><span className="text-muted-foreground">{column.label}</span><span>{renderCell(task, column.key)}</span></div>)}</div>
                     <div className="mt-3"><TaskBadges task={task} /></div>
                     <Button className="mt-3" type="button" variant="outline" size="sm" aria-label={`Add subtask to ${task.title}`} onClick={event => { event.stopPropagation(); setInlineParent(task.id); setInlineNotice(""); }}>+ Add subtask</Button>
-                    <div className="mt-3 space-y-2" onClick={event => event.stopPropagation()}>{createdChildren[task.id]?.map(child => <Link key={child.id} className="block text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link>)}{inlineParent === task.id && <InlineSubtaskComposer key={task.id} parent={task} onCreated={child => subtaskCreated(task, child)} onCancel={() => setInlineParent(null)} />}</div>
+                    <div className="mt-3 space-y-2" onClick={event => event.stopPropagation()}>{createdChildren[task.id]?.map(child => <Link key={child.id} className="block text-sm text-primary underline" to={`/pms/tasks/${child.id}`}>↳ {child.task_key} · {child.title}</Link>)}</div>
                   </div>}</RecordActions>
                 ))}</Fragment>)}
               </div>
@@ -816,6 +816,6 @@ export default function TaskListPage() {
           </Button>
         </div>
       </div>
-    </div>
+    {inlineParent !== null && data && data.items.some(task=>task.id===inlineParent) && <SmartCreateSection nested title="Create subtask" autoOpen closeOnRecordSaved={false} onClose={()=>setInlineParent(null)}><InlineSubtaskComposer parent={data.items.find(task=>task.id===inlineParent)!} onCreated={child=>subtaskCreated(data.items.find(task=>task.id===inlineParent)!,child)} onCancel={()=>setInlineParent(null)}/></SmartCreateSection>}</div>
   );
 }

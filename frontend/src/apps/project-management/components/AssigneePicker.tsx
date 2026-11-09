@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/services/api";
@@ -44,7 +45,7 @@ export default function AssigneePicker({ people, value, onChange, disabled = fal
       {error && <p role="alert">{error}</p>}{warnings.map((w,i)=><p role="status" className="text-xs text-amber-700" key={i}>{w}</p>)}
       {options.filter(p => `${p.email} ${p.name || ""} ${p.role || ""}`.toLowerCase().includes(search.toLowerCase())).map(p => <div key={p.id} className="flex items-start gap-2 border-b py-2"><input aria-label={`Assign ${p.email}`} type="checkbox" checked={value.includes(p.id)} onChange={e => { void change(e.target.checked ? [...value, p.id] : value.filter(id => id !== p.id)); }} /><div className="min-w-0 flex-1"><PersonIdentity person={p} /><ManagePersonButton userId={p.id} projectId={pid || undefined} workspaceId={workspaceId} /></div></div>)}
       {!options.length && <p>No eligible collaborators yet. Authorized administrators can add an existing person below.</p>}
-      {!disabled && <><button type="button" disabled={!canAdd || !pid} onClick={() => setAdding(true)}>Add existing person</button>{!canAdd && <p className="text-xs">{unavailable}</p>}</>}
+      {!disabled && <><Button variant="default" type="button" disabled={!canAdd || !pid} onClick={() => setAdding(true)}>Add existing person</Button>{!canAdd && <p className="text-xs">{unavailable}</p>}</>}
       {!!value.length && !disabled && <button type="button" onClick={() => { void change([]); }}>Clear assignees</button>}
       {busy && <p role="status">Saving assignees…</p>}
     </fieldset>

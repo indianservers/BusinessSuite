@@ -7,6 +7,9 @@ import { defaultsScope, installFormDefaults, type DefaultsPayload } from "@/lib/
 export default function FormDefaultsGate({ children }: { children: ReactNode }) {
   const query = useQuery({ queryKey: ["form-defaults", defaultsScope()], queryFn: async () => {
     const { data } = await api.get<DefaultsPayload>("/access/settings/defaults/effective", { progress: false });
+    if (!data || typeof data !== "object" || !data.values || typeof data.values !== "object" || Array.isArray(data.values) || !data.modules || typeof data.modules !== "object" || Array.isArray(data.modules)) {
+      throw new Error("Invalid form defaults response");
+    }
     installFormDefaults(data); return data;
   }, staleTime: 60_000, refetchOnWindowFocus: true, retry: 1 });
   if (query.data) { installFormDefaults(query.data); return <>{children}</>; }

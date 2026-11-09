@@ -21,6 +21,8 @@ import { canAccessRoute } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 
 import "./mobile-module-dock.css";
+import ModuleNewMenu from "@/components/app/ModuleNewMenu";
+import NewMenu from "@/components/app/NewMenu";
 
 
 
@@ -126,7 +128,7 @@ export default function MobileModuleDock() {
 
   });
 
-  const memoryKey = `mobile-tab:${user?.id}:${user?.access?.companyId}`;
+  const memoryKey = `mobile-tab:${user?.id}:${user?.access?.companyId}:${sessionStorage.getItem("suite-branch") || "default"}`;
 
   useEffect(() => { if (!mobile || !menus) return; const entry = menus.find(entry => entry.to === location.pathname); if (entry && !new URLSearchParams(location.search).has("new")) { try { sessionStorage.setItem(`${memoryKey}:${entry.to}`, location.pathname + location.search); } catch { /* Optional browser persistence. */ } } }, [mobile, menus, location.pathname, location.search, memoryKey]);
 
@@ -160,7 +162,8 @@ export default function MobileModuleDock() {
 
   return <>
 
-    <MobileExperience /><MobileTools />
+    <MobileExperience /><MobileTools onQuickActions={() => setSelected(current)} quickActionsLabel={`${current.label} shortcuts`} />
+    <ModuleNewMenu>{actions => <NewMenu key={location.key} actions={actions} floating />}</ModuleNewMenu>
 
     <nav className="mobile-module-dock" aria-label={`${module.toUpperCase()} mobile navigation`}>
 
@@ -185,8 +188,6 @@ export default function MobileModuleDock() {
       })}
 
     </nav>
-
-    <button type="button" className="mobile-dock-quick" aria-label={`${current.label} quick actions`} aria-haspopup="dialog" aria-expanded={!!selected} onClick={() => setSelected(current)}><ChevronUp size={15}/>{current.label} actions</button>
 
     <MobileSheet open={!!selected} onClose={() => setSelected(null)} title={selected?.label || "Quick actions"}>
 

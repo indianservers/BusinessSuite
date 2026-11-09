@@ -1,0 +1,19 @@
+{
+  "email_recipient_errors_since_latest_start": 0,
+  "backend_tests": 68,
+  "typecheck": "passed",
+  "real_backend_reads": 31,
+  "broadcast_checkpoints": {
+    "2362": "expanded",
+    "2389": "expanded"
+  },
+  "unresolved": "company-36 PostgreSQL runtime role missing; company database connection cannot be verified",
+  "browser_checks": [
+    "HRMS leave/payroll",
+    "CRM follow-ups",
+    "Sales orders/stock summary",
+    "Finance payables",
+    "Power Apps catalog/activity",
+    "PMS task priorities and shared creation entry points"
+  ]
+}

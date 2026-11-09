@@ -1,0 +1,90 @@
+{
+  "release": "BusinessSuite critical-workflow release",
+  "target_date": "2026-11-12",
+  "timezone": "Asia/Kolkata",
+  "scope_revision": 1,
+  "scope_status": "frozen",
+  "frozen_on": "2026-11-09",
+  "authority": "User instructed the agent to identify failures, decide priorities and freeze release scope.",
+  "code_freeze_status": "not_yet_frozen",
+  "baseline_commit": "76b7d812b070becb8a8948a44558fdbfdeb45fc4",
+  "baseline_note": "The shared working tree contains substantial uncommitted changes. The baseline commit alone does not contain the locally tested candidate. Scope freeze does not stage, discard, commit or publish those changes.",
+  "included_journeys": [
+    {
+      "id": "SELL-01",
+      "journey": "Lead capture, assignment, follow-up and deal progression",
+      "acceptance": "Authorized users can save and reopen records, link customer/contact records, progress deals and schedule follow-ups without lost changes or cross-scope access."
+    },
+    {
+      "id": "SELL-02",
+      "journey": "Quotation calculation, approval and revision",
+      "acceptance": "Totals remain consistent; approvals enforce permissions; revisions preserve history and invalidate superseded approvals; accepted commercial data is traceable."
+    },
+    {
+      "id": "COMMS-01",
+      "journey": "Existing SES email and WhatsApp communications",
+      "acceptance": "Designated test recipients receive provider messages; callbacks and replies associate correctly; opt-outs include copied email recipients; duplicates and retries do not repeat confirmed sends; failures are visible."
+    },
+    {
+      "id": "DELIVERY-01",
+      "journey": "Won deal to commercial order and project",
+      "acceptance": "The approved/confirmed workflow produces linked records once; retries return the existing records; unavailable linked projects return a conflict instead of false success."
+    },
+    {
+      "id": "CASH-01",
+      "journey": "Order to invoice, collection reminder and recorded payment",
+      "acceptance": "Invoice permissions, totals, duplicate prevention, payment records and accounting links reconcile. No live payment or financial transaction is required for test acceptance."
+    },
+    {
+      "id": "HR-01",
+      "journey": "Employee onboarding, attendance and leave approval",
+      "acceptance": "Employee/account links and checklists persist; attendance actions and leave decisions affect the intended employee and balance; authorization and branch boundaries remain enforced."
+    },
+    {
+      "id": "HR-02",
+      "journey": "Existing payroll state checks and employee exit clearance",
+      "acceptance": "Payroll readiness/state guards remain intact. Exit edits preserve valid dates/states; asset and login clearance checks prevent unsafe completion. No new payroll/statutory calculation scope."
+    }
+  ],
+  "allowed_changes": [
+    "Fix reproduced failures in included journeys, authorization, data integrity, build or deployment startup.",
+    "Complete essential existing SES/WhatsApp configuration and job/callback wiring for the included journeys.",
+    "Repair regression tests for the current UI without removing business or zero-error assertions.",
+    "Add validation, release evidence, rollback instructions and narrowly scoped compatibility fixes."
+  ],
+  "deferred": [
+    "New AI agents, meeting-transcription platform and unvalidated predictive models",
+    "New e-signature integration or tracked-proposal platform",
+    "Offline synchronization engine",
+    "External marketplace and new connector platform",
+    "Sandbox provisioning and vendor portal expansion",
+    "New modules, broad navigation/design rewrite or database replatforming",
+    "New payroll/statutory rules, expanded finance scope and new industry packs"
+  ],
+  "change_control": "New feature work requires an explicit scope revision. Release-blocking fixes remain allowed. Revalidate affected journeys after every accepted change. Existing deferred functionality may remain only if it does not block or falsely promise the frozen journeys.",
+  "confirmed_failures": [
+    {"priority":"P0","item":"Linked production-target deployment build failure","status":"open_in_published_revision","evidence":"dpl_3MLZF3tnqyEoX4P7hGyEdm2Jm9U5 remains ERROR; prior logs show empty committed PremiumLauncher.tsx. Existing local restoration builds successfully but is unpublished. A failed deployment is not proof of a live outage."},
+    {"priority":"P1","item":"Communication-save JavaScript errors and late email reply crash","status":"fixed_locally","evidence":"Reproduced before fixes; local regression and integrated browser acceptance passed in the prior batch."},
+    {"priority":"P1","item":"CC/BCC opt-out bypass and invalid copied recipient handling","status":"fixed_locally","evidence":"Copied-recipient regressions failed before fixes; targeted follow-up suite passed."},
+    {"priority":"P1","item":"Delivery handoff returns success for a deleted linked project","status":"fixed_locally","evidence":"Reproduced HTTP 200 with null project; now HTTP 409 with no replacement project."},
+    {"priority":"P1","item":"Exit edits accept invalid dates and unsupported/null required values","status":"fixed_locally","evidence":"Reproduced invalid date/status persistence; targeted validation and existing HR operations passed."}
+  ],
+  "mandatory_release_gates": [
+    {"id":"G1","gate":"Local critical backend, cache regressions and production build","status":"passed_on_current_working_tree","evidence":"247 backend checks passed, one PostgreSQL-only skip; 11 selling/onboarding/attendance checks passed; three receipt/allocation/accounting checks passed; cache regressions and production build passed."},
+    {"id":"G2","gate":"Integrated browser acceptance on the exact candidate","status":"prior_local_pass_candidate_recheck_required"},
+    {"id":"G3","gate":"Freeze a reviewed candidate revision containing intended local changes","status":"pending"},
+    {"id":"G4","gate":"PostgreSQL migration and critical workflow acceptance on disposable/staging data","status":"pending"},
+    {"id":"G5","gate":"Live SES/WhatsApp test delivery, inbound callbacks and monitored worker/cron execution","status":"pending"},
+    {"id":"G6","gate":"Successful candidate deployment, authenticated smoke checks and tested rollback/restore procedure","status":"pending"}
+  ],
+  "latest_local_evidence": {
+    "runner_summary": ".local/release-readiness/20261109T023040714363Z/summary.json",
+    "core_junit": ".local/release-readiness/20261109T023040714363Z/backend.xml",
+    "selling_hr_supplement_junit": ".local/release-readiness/20261109T023040714363Z/scope-supplement.xml",
+    "receipt_junit": ".local/release-readiness/20261109T023040714363Z/receipts.xml",
+    "new_failures": "None in this local rerun. Published deployment remains ERROR. Production acceptance gaps remain open.",
+    "test_runner_scope": "The core run began before the runner was expanded; additional frozen-scope tests ran as supplements. The saved runner now includes all those test files for the next single run."
+  },
+  "go_no_go": "NO-GO until every mandatory gate has evidence for the same release candidate and no unresolved critical/high defect remains in included journeys. Unknown production behavior is an acceptance gap, not a demonstrated product failure.",
+  "ownership": {"agent":"Diagnose, implement, run available checks and maintain evidence.","user":"Provide access or business decisions only when an actual external blocker is reached; no diagnostic work requested."}
+}

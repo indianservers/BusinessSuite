@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {useRecordDraft} from "@/hooks/use-record-autosave";
 import {useModuleAction} from "@/hooks/use-module-action";
 import {useEffect,useState} from "react";
@@ -29,6 +30,6 @@ export default function ProjectQuickTask({initialTitle="",initialWorkType="Task"
  </div></details></fieldset>
  {error&&<p role="alert" className="pipeline-error">{error}</p>}
  <footer className="pipeline-quick-task-footer"><button type="submit" data-save-action className="pipeline-primary" disabled={busy||!canCreate||!d.title.trim()}>{busy?"Creating…":"Create task"}</button>
- <button type="button" disabled={busy} onClick={()=>onFullForm(new URLSearchParams({projectId:String(projectId),...d,people:d.assignee}))}>Open full task form</button></footer>
+ <Button variant="outline" type="button" disabled={busy} onClick={()=>onFullForm(new URLSearchParams({projectId:String(projectId),...d,people:d.assignee}))}>Open full task form</Button></footer>
  </form>;
 }

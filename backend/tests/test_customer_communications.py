@@ -347,6 +347,15 @@ def test_signed_email_replies_dedup_and_stop_followups(client, db, superuser_hea
     assert client.post(BASE+f"/recipients/{r['id']}/read", headers=superuser_headers).status_code == 200
     assert client.get(BASE+f"/recipients/{r['id']}/history", headers=superuser_headers).json()['unread_email_count'] == 0
 
+    # A customer can remove their email after a message has been sent. A late
+    # authenticated reply must be rejected rather than crashing the receiver.
+    customer = db.get(CustomerRecipient, r['id'])
+    customer.email = None
+    db.commit()
+    response = client.post(path, content=raw, headers=headers)
+    assert response.status_code == 422, response.text
+    assert db.query(CustomerEmailReply).count() == 1
+
 
 def test_whatsapp_customer_consent_uses_canonical_phone(client, db, superuser_headers):
     from app.shared.whatsapp_models import WhatsAppContact

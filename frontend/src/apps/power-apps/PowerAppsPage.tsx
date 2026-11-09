@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import "@/components/layout/shared-sidebar.css";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -13,7 +14,7 @@ import { Empty } from "./shared/EmptyState";
 import { ActivityList } from "./shared/ActivityList";
 import WorkspaceTools from "./applications/WorkspaceTools";
 import { PlannedApplication } from "./shared/PlannedApplication";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -49,7 +50,7 @@ const metrics = [
   ["workflow_executions", "Workflow executions"],
   ["failed_runs", "Failed runs"],
 ];
-export default function PowerAppsPage() {
+export default function PowerAppsPage({ children }: { children?: ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const signOut = useSignOut("/login");
   const location = useLocation();
@@ -68,6 +69,15 @@ export default function PowerAppsPage() {
   const [busy, setBusy] = useState(true);
   const [refresh, setRefresh] = useState(0);
   const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (section) return;
+    const created = (event: Event) => {
+      const detail = (event as CustomEvent<{destination?: string}>).detail;
+      if (detail?.destination?.startsWith("/power-apps/")) setRefresh(value => value + 1);
+    };
+    window.addEventListener("suite:creation-completed", created);
+    return () => window.removeEventListener("suite:creation-completed", created);
+  }, [section]);
   const can = (permission: string) => {
     const action=({activity_view:"view",approval_submit:"create",execute:"create",publish:"configure",manage_credentials:"configure",manage_environment:"configure"} as Record<string,string>)[permission]||permission;
     const grant=user?.access?.grants.power_apps;
@@ -268,7 +278,7 @@ export default function PowerAppsPage() {
               </button>
             </div>
           )}
-          {busy ? (
+          {children ? children : busy ? (
             <p role="status" className="pa-loading">
               Loading your environment...
             </p>
@@ -346,10 +356,10 @@ export default function PowerAppsPage() {
                             </span>
                             <h3>{app.name}</h3>
                             <p>{app.description}</p>
-                            <button onClick={() => move(app.route)}>
+                            <Button type="submit" variant="outline" onClick={() => move(app.route)}>
                               Open application
                               <ArrowRight size={16} />
-                            </button>
+                            </Button>
                           </article>
                         );
                       })}

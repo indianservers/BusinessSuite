@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useState } from "react";
 import type { NodeDefinition, WorkflowEdge, WorkflowGraph } from "./types";
@@ -132,9 +133,9 @@ export function ConnectionEditor({
       <button disabled={readOnly} onClick={onInsert}>
         Insert node between
       </button>
-      <button disabled={readOnly} className="as-danger" onClick={onDelete}>
+      <Button type="submit" variant="outline" disabled={readOnly} className="as-danger" onClick={onDelete}>
         Delete connection
-      </button>
+      </Button>
     </section>
   );
 }

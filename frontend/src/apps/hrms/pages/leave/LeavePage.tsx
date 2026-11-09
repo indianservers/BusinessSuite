@@ -650,7 +650,7 @@ export default function LeavePage() {
           >
             {tab === "my" ? "My Requests" : tab === "approvals" ? "Pending Approvals" : "Calendar"}
             {tab === "approvals" && pendingApprovals.length > 0 && (
-              <span className="ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs text-primary-foreground">
+              <span data-count-badge data-count-tone="amber" className="ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs text-primary-foreground">
                 {pendingApprovals.length}
               </span>
             )}
@@ -675,7 +675,7 @@ export default function LeavePage() {
                   <p className="text-sm font-medium">Pending Leave Encashment</p>
                   <p className="text-xs text-muted-foreground">Approved requests become payroll earnings in the next open pay period.</p>
                 </div>
-                <span className="rounded-full bg-muted px-2 py-1 text-xs">{pendingEncashments.length}</span>
+                <span data-count-badge data-count-tone="amber" className="rounded-full bg-muted px-2 py-1 text-xs">{pendingEncashments.length}</span>
               </div>
               {pendingEncashments.length === 0 ? (
                 <p className="rounded-md border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">No pending encashment approvals</p>

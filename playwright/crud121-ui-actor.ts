@@ -1,6 +1,17 @@
 import {test} from "../frontend/node_modules/playwright/test";
+/** Expand the visible group itself, including nested groups, without closing menus. */
+export async function installGridExpansion(page:any){
+  if(page._creationGridExpansion)return;
+  page._creationGridExpansion=true;
+  await page.addLocatorHandler(page.locator('body:not(:has([role="dialog"], [role="menu"], [aria-haspopup="menu"][aria-expanded="true"])) .udg-group-row button[aria-expanded="false"]').first(),async(group:any)=>{
+    const button=await group.elementHandle();
+    await group.click();
+    if(button)await page.waitForFunction((node:HTMLElement)=>!node.isConnected||node.getAttribute('aria-expanded')==='true',button);
+  },{noWaitAfter:true});
+}
 /** Use a real managed actor in native pages while keeping administrator fixture setup separate. */
 export async function installNativeActor(page:any,request:any,base:string,fixtureAuth:any,preserveSession=false,profileOverride?:string|null){
+  await installGridExpansion(page);
   const info:any=test.info();
   info._nativeRoutes ||= new Set<string>();info._nativeWrites ||= [];
   page.on('framenavigated',(frame:any)=>{if(frame===page.mainFrame()){try{info.annotations.push({type:'native-page',description:new URL(frame.url()).pathname});}catch{}}});
@@ -21,5 +32,6 @@ export async function installNativeActor(page:any,request:any,base:string,fixtur
     if(preserveSession && sessionStorage.getItem('hrms-auth'))return;
     sessionStorage.setItem('hrms-auth',JSON.stringify({state:{accessToken:actor.access_token,refreshToken:actor.refresh_token,user:{id:actor.user_id,email:actor.email,role:actor.role,is_superuser:actor.is_superuser,employee_id:actor.employee_id,access:actor.access},isAuthenticated:true},version:0}));
   },{actor,preserveSession});
+  if(process.env.CREATION_RESPONSE_TIMEOUT)page.setDefaultTimeout(Number(process.env.CREATION_RESPONSE_TIMEOUT));
   return actor;
 }

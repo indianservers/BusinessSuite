@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useRefreshableEffect } from "@/lib/page-refresh";
@@ -78,13 +79,14 @@ export default function MilestonesPage() {
         <h1 className="page-title">Milestones</h1>
         <p className="page-description">Plan deliverables, approval gates, and client-visible outcomes.</p>
       </div>
-      <Card>
+      <SmartCreateSection title="Create milestone"><Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Create milestone</CardTitle></CardHeader>
         <CardContent>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <CompactForm onSubmit={submit} className="grid gap-4 md:grid-cols-[1fr_12rem_12rem_auto] md:items-end">
             <div className="space-y-2">
               <Label htmlFor="milestone-name">Name</Label>
-              <Input id="milestone-name" value={name} onChange={(event) => setName(event.target.value)} />
+              <Input required id="milestone-name" value={name} onChange={(event) => setName(event.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="milestone-due">Due date</Label>
@@ -96,10 +98,10 @@ export default function MilestonesPage() {
                 {["Not Started", "In Progress", "At Risk", "Completed", "Delayed"].map((item) => <option key={item}>{item}</option>)}
               </NativeSelect>
             </div>
-            <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Add"}</Button>
+            <Button data-save-action type="submit" disabled={submitting}>{submitting ? "Adding..." : "Add"}</Button>
           </CompactForm>
         </CardContent>
-      </Card>
+      </Card></SmartCreateSection>
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {milestones.map((milestone) => (

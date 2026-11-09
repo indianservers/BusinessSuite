@@ -15,6 +15,7 @@ test.describe("SRM engagements commercial UI", () => {
     });
 
     await page.goto("/srm/engagements", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button",{name:"Expand loaded groups",exact:true}).click();
     await expect(page.getByRole("heading", { name: "Engagements" })).toBeVisible();
     await expect(page.getByText("Delivery engagement")).toBeVisible();
     await expect(page.getByRole("button", { name: "Create Project" })).toBeVisible();

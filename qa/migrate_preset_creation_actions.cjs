@@ -6,7 +6,7 @@ for(const file of walk('frontend/src').filter(f=>f.endsWith('.tsx')&&!f.includes
  let text=fs.readFileSync(file,'utf8');const sf=ts.createSourceFile(file,text,99,true,4),edits=[];
  function visit(n){if(ts.isJsxElement(n)&&/^(Button|button)$/.test(n.openingElement.tagName.getText(sf))){
   const title=label(n).replace(/\s+/g,' ').trim(),attr=n.openingElement.getText(sf);
-  if(/^(Create\b|Add Mock Provider|Publish shared view)/i.test(title)&&/onClick=/.test(attr)&&/\.mutate\(|api\.post\(/.test(attr)){
+  if(/^(Create\b|Add Mock Provider|Publish shared view)/i.test(title)&&/onClick=/.test(attr)&&/\.mutate\(|api\.post\(|crmApi\.create[<(]/.test(attr)){
    let p=n.parent,protectedForm=false;while(p){if(ts.isJsxElement(p)&&/Dialog|Modal|SmartCreate|form|CompactForm/.test(p.openingElement.tagName.getText(sf)))protectedForm=true;p=p.parent;}
    if(!protectedForm){
     let target=n,section=false; p=n.parent;
@@ -25,4 +25,5 @@ for(const file of walk('frontend/src').filter(f=>f.endsWith('.tsx')&&!f.includes
  for(const tag of ['SmartCreateAction','SmartCreateSection'])if(edits.some(e=>e.text.startsWith('<'+tag+' '))&&!text.includes(`import { ${tag} }`))text=`import { ${tag} } from "@/shared/creation/${tag}";\n`+text;
  if(edits.length)fs.writeFileSync(file,text);
 }
-fs.writeFileSync('outputs/creation-inventory/preset-creation-migrations.json',JSON.stringify(log,null,2));console.log(JSON.stringify(log,null,2));
+const ledger='outputs/creation-inventory/preset-creation-migrations.json';const previous=fs.existsSync(ledger)?JSON.parse(fs.readFileSync(ledger,'utf8')):[];
+fs.writeFileSync(ledger,JSON.stringify([...previous,...log.filter(row=>!previous.some(old=>old.file===row.file&&old.title===row.title))],null,2));console.log(JSON.stringify(log,null,2));

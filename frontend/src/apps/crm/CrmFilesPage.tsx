@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { SuiteFileIcon } from "@/components/visuals/SuiteVisuals";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -126,7 +127,7 @@ export default function CrmFilesPage() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Folder name"
         />
-        <button
+        <Button type="submit" variant="default"
           disabled={busy || !name.trim()}
           onClick={async () => {
             setBusy(true);
@@ -143,7 +144,7 @@ export default function CrmFilesPage() {
           }}
         >
           Create folder
-        </button>
+        </Button>
       </div></SmartCreateSection>
       <MoveBoard
         label="CRM file folders"
@@ -163,7 +164,7 @@ export default function CrmFilesPage() {
           content: (
             <div className="flex justify-between text-xs">
               <SuiteFileIcon name={f.name}/><span>{Math.ceil(f.size / 1024)} KB</span>
-              <button onClick={() => void download(f)}>Download</button>
+              <Button type="submit" variant="outline" onClick={() => void download(f)}>Download</Button>
             </div>
           ),
         }))}

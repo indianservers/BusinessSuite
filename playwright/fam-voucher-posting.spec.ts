@@ -7,8 +7,9 @@ test.describe("FAM voucher posting", () => {
     await expectHealthyFamRoute(page, "/fam/vouchers/1");
     await expect(page.getByRole("heading", { name: "Voucher Detail" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Post voucher/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Cancel voucher/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Reverse voucher/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /Clone voucher/i })).toBeVisible();
+    await page.getByRole("button", { name: "More actions", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: /Cancel voucher/i })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /Reverse voucher/i })).toHaveCount(0);
   });
 });

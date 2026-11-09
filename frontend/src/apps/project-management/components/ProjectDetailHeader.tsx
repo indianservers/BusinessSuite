@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import WorkspaceViewBar, { type WorkspaceView } from "@/shared/workspace/WorkspaceViewBar";
 import { useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -60,7 +61,7 @@ export function ProjectDetailFrame({ children }: { children: ReactNode }) {
   const members = useQuery({ queryKey: ["project-detail-tab-members", scope, id], enabled: !!project.data, queryFn: async () => (await api.get<unknown[]>(`/project-management/projects/${id}/members`)).data });
   const files = useQuery({ queryKey: ["project-detail-tab-files", scope, id], enabled: !!project.data, queryFn: () => filesAPI.list({ project_id: id }) });
   if (project.isPending) return <p role="status">Loading project…</p>;
-  if (project.isError) return <p role="alert">{workspaceError(project.error)} <button className="underline" onClick={() => void project.refetch()}>Retry</button></p>;
+  if (project.isError) return <p role="alert">{workspaceError(project.error)} <Button type="submit" variant="outline" className="underline" onClick={() => void project.refetch()}>Retry</Button></p>;
   return <div className="pd-page pd-tab-page" data-project-page data-project-view={view}>
     <ProjectDetailHeader project={project.data} taskCount={dashboard.data?.metrics.total_tasks} memberCount={members.data?.length} fileCount={files.data?.length} riskCount={dashboard.data?.metrics.high_risks} />
     {active && <header className="pd-view-intro"><span className="pd-view-icon"><active.icon size={22} /></span><div><h2>{active.title}</h2><p>{active.description}</p></div><Link to={`/pms/team-communication?project=${id}`}><MessageSquare size={16} /><span>Discuss with team</span></Link></header>}

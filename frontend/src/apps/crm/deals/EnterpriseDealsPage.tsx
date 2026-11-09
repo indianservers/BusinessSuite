@@ -598,7 +598,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
 <Link to={`/crm/deals/${row.id}?tab=Notes+%26+Files`}>Note</Link>
 {data?.can_manage && (
             <>
-              <button onClick={() => setEditing(row.id)}>Edit</button>
+              <Button type="submit" variant="outline" onClick={() => setEditing(row.id)}>Edit</Button>
               <button onClick={() => setTransition({ id: row.id })}>
                 Move
               </button>
@@ -1271,7 +1271,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
           </div>
         </footer>
       )}
-      <PipelineDrawer open={!!lensPreview} onClose={() => setLensPreview(undefined)} title={rows.find(row => String(row.id) === lensPreview)?.name || "Deal workspace"}>{lensPreview && <><Link className="ed-link-button" to={`/crm/deals/${lensPreview}`}>Open complete deal</Link><PipelineDomainDetails module="crm" id={lensPreview} canEdit={!!data?.can_manage}/></>}</PipelineDrawer>
+      <PipelineDrawer open={!!lensPreview} onClose={() => setLensPreview(undefined)} title={rows.find(row => String(row.id) === lensPreview)?.name || "Deal workspace"}>{lensPreview && <><Button asChild variant="outline"><Link className="ed-link-button" to={`/crm/deals/${lensPreview}`}>Open complete deal</Link></Button><PipelineDomainDetails module="crm" id={lensPreview} canEdit={!!data?.can_manage}/></>}</PipelineDrawer>
       <details className="ed-definitions">
         <summary>Calculation definitions</summary>
         {Object.entries(summary?.definitions || {}).map(([key, text]) => (

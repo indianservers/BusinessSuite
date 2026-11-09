@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Layers3, RefreshCw } from "lucide-react";
@@ -143,10 +144,10 @@ export default function AutomationEditorPage() {
         <h1>{busy ? "Opening Automation Studio" : "Studio unavailable"}</h1>
         {error && <p role="alert">{error}</p>}
         {!busy && (
-          <button onClick={() => setRetry((v) => v + 1)}>
+          <Button type="submit" variant="outline" onClick={() => setRetry((v) => v + 1)}>
             <RefreshCw size={15} />
             Retry
-          </button>
+          </Button>
         )}
         <button
           onClick={() =>

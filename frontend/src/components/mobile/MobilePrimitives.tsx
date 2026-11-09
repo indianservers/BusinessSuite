@@ -5,11 +5,16 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useMobile } from "./useMobile";
 import "./mobile-experience.css";
 
-export function MobileSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function MobileSheet({ open, onClose, title, children, navigation = false }: { open: boolean; onClose: () => void; title: string; children: ReactNode; navigation?: boolean }) {
   const start = useRef<number | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
   const mobile=useMobile();
   if(!mobile)return null;
-  return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}><DialogContent className="mobile-experience-sheet"><button type="button" className="mobile-sheet-handle" aria-label="Drag down or tap to close" onClick={onClose} onPointerDown={event => { start.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerUp={event => { if (start.current !== null && event.clientY - start.current > 65) onClose(); start.current = null; }}><span /></button><DialogTitle className="text-xl font-semibold pr-7">{title}</DialogTitle>{children}</DialogContent></Dialog>;
+  return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}><DialogContent data-navigation-sheet={navigation || undefined} className="mobile-experience-sheet" onOpenAutoFocus={() => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }} onCloseAutoFocus={event => {
+    if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus(); }
+  }}><button type="button" className="mobile-sheet-handle" aria-label="Drag down or tap to close" onClick={onClose} onPointerDown={event => { start.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerUp={event => { if (start.current !== null && event.clientY - start.current > 65) onClose(); start.current = null; }}><span /></button><DialogTitle className="text-xl font-semibold pr-7">{title}</DialogTitle>{children}</DialogContent></Dialog>;
 }
 export function MobileFilters({ children, chips = [], onClear, label = "Filters" }: { children: ReactNode; chips?: string[]; onClear?: () => void; label?: string }) {
   const mobile = useMobile(); const [open, setOpen] = useState(false);
@@ -22,8 +27,8 @@ export function MobileContactActions({ phone, email, onNote }: { phone?: string 
   const clean = phone?.replace(/[^\d+]/g, ""); const digits = clean?.replace(/\D/g, "");
   return <nav className="mobile-contact-strip" aria-label="Contact actions">{clean && <a aria-label="Call contact" data-action-tooltip="Call this contact" href={`tel:${clean}`}><Phone className="text-teal-600" size={18}/>Call</a>}{digits && <a aria-label="Send WhatsApp message" data-action-tooltip="Send WhatsApp message" href={`https://wa.me/${digits}`} target="_blank" rel="noreferrer"><WhatsAppIcon className="h-[18px] w-[18px] text-[#25D366]"/>WhatsApp</a>}{email && <a aria-label="Compose email to this contact" data-action-tooltip="Compose email to this contact" href={`mailto:${email}`}><Mail className="text-blue-600" size={18}/>Email</a>}{onNote && <button type="button" onClick={onNote}><StickyNote size={18}/>Add note</button>}</nav>;
 }
-export function MobileDisclosure({ title, children }: { title: string; children: ReactNode }) {
-  const mobile = useMobile();
+export function MobileDisclosure({ title, children, maxWidth = 767 }: { title: string; children: ReactNode; maxWidth?: number }) {
+  const mobile = useMobile(maxWidth);
   const detailsRef = useRef<HTMLDetailsElement>(null);
   // Native validation must be able to focus required controls inside disclosure.
   const revealInvalid = () => {

@@ -1,0 +1,15 @@
+const {chromium,expect}=require('playwright/test'),fs=require('fs'),path=require('path'),ts=require('typescript');
+const compiled=ts.transpileModule(fs.readFileSync('src/shared/data-grid/business-grouping.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,m={exports:{}};new Function('exports','module',compiled)(m.exports,m);const {initialBusinessGroups,businessGroupColumn}=m.exports;
+const columns=[{id:'priority',title:'Priority'},{id:'stage',title:'Stage'},{id:'status',title:'Status'},{id:'department',title:'Department'}];
+expect(businessGroupColumn(columns,'/crm/leads').id).toBe('stage');expect(businessGroupColumn(columns,'/hrms/employees').id).toBe('department');expect(businessGroupColumn(columns,'/srm/sales-orders').id).toBe('status');
+expect(initialBusinessGroups(columns,'/crm/leads',['priority'],false)).toEqual(['stage']);expect(initialBusinessGroups(columns,'/crm/leads',[],true)).toEqual([]);expect(initialBusinessGroups(columns,'/crm/leads',['department'],false)).toEqual(['department']);expect(businessGroupColumn([{id:'priority',title:'Priority'}],'/pms/tasks')).toBeUndefined();
+(async()=>{const browser=await chromium.launch();try{for(const kind of ['crm','hrms','sales'])for(const native of [false,true]){
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/business-grouping-qa?*',r=>r.fulfill({contentType:'text/html',body:`<div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>(type)=>type;window.__vite_plugin_react_preamble_installed__=true;await import('/scripts/fixtures/business-grouping-qa.tsx');</script>`}));
+ await page.goto('http://127.0.0.1:5188/business-grouping-qa?kind='+kind+(native?'&native=1':''));const field=kind==='hrms'?'Department':kind==='sales'?'Status':'Stage';
+ if(!native){await expect(page.locator('.udg-grouping')).toContainText(field);await page.getByRole('button',{name:'Expand loaded groups',exact:true}).click();}else await expect(page.getByRole('combobox',{name:'Group loaded rows by'})).toHaveValue(field);
+ const rows=page.locator('[data-record-group-field="'+field+'"]');await expect(rows).toHaveCount(3);const colors=await rows.evaluateAll(rows=>rows.map(row=>getComputedStyle(row).backgroundColor));expect(new Set(colors).size).toBe(3);
+ await expect(page.locator('[data-priority-badge]')).toHaveCount(3);expect(await page.locator('[data-priority-badge]').first().evaluate(e=>getComputedStyle(e).backgroundColor)).not.toBe(colors[0]);
+ await page.evaluate(()=>document.documentElement.classList.add('dark'));const dark=await rows.evaluateAll(rows=>rows.map(row=>getComputedStyle(row).backgroundColor));expect(new Set(dark).size).toBe(3);expect(dark[0]).not.toBe(colors[0]);
+ expect(errors).toEqual([]);console.log(`PASS ${kind} ${native?'native':'adapted'}: ${field} grouping, different row tints at equal priority, priority badges, dark mode`);await page.close();
+ }}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from typing import Literal, Optional
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class ExitRecordCreate(BaseModel):
@@ -24,9 +24,16 @@ class ExitRecordUpdate(BaseModel):
     notice_period_days: Optional[int] = None
     notice_waived: Optional[bool] = None
     reason: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal['Initiated', 'In Progress', 'Completed', 'Cancelled']] = None
     final_settlement_amount: Optional[Decimal] = None
     final_settlement_date: Optional[date] = None
+
+    @field_validator('status', 'notice_waived')
+    @classmethod
+    def required_values_cannot_be_cleared(cls, value):
+        if value is None:
+            raise ValueError('This field cannot be null')
+        return value
 
 
 class ExitRecordSchema(ExitRecordCreate):

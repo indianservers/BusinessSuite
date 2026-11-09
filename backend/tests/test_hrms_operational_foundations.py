@@ -120,7 +120,7 @@ def test_shift_roster_publish_swap_and_employee_view(client, superuser_headers):
     assert len(my_roster.json()) == 1
 
 
-def test_exit_asset_helpdesk_and_announcements(client, superuser_headers):
+def test_exit_asset_helpdesk_and_announcements(client, db, superuser_headers):
     employee, employee_headers = _create_employee_user(client, superuser_headers, "OPSFOUND001")
 
     exit_record = client.post(
@@ -134,7 +134,11 @@ def test_exit_asset_helpdesk_and_announcements(client, superuser_headers):
     assert len(checklist.json()) >= 5
     for item in checklist.json():
         completed = client.put(f"/api/v1/exit/checklist/{item['id']}/complete?remarks=Done", headers=superuser_headers)
-        assert completed.status_code == 200, completed.text
+        if "access" in item["task_name"].lower():
+            assert completed.status_code == 409, completed.text
+            assert "Disable the linked login" in completed.json()["detail"]
+        else:
+            assert completed.status_code == 200, completed.text
 
 
     category = client.post("/api/v1/assets/categories", headers=superuser_headers, json={"name": "Laptop"})
@@ -159,9 +163,6 @@ def test_exit_asset_helpdesk_and_announcements(client, superuser_headers):
     assert blocked.status_code == 409
     returned = client.put(f"/api/v1/assets/assignments/{assignment.json()['id']}/return", headers=superuser_headers, params={"condition_at_return": "Good"})
     assert returned.status_code == 200, returned.text
-    closed = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers)
-    assert closed.status_code == 200, closed.text
-    assert closed.json()["status"] == "Completed"
 
     ticket = client.post(
         "/api/v1/helpdesk/tickets/json",
@@ -180,3 +181,15 @@ def test_exit_asset_helpdesk_and_announcements(client, superuser_headers):
     ack = client.post(f"/api/v1/engagement/announcements/{announcement.json()['id']}/acknowledge", headers=employee_headers)
     assert ack.status_code == 201, ack.text
     assert ack.json()["employee_id"] == employee["id"]
+
+    # Finish employee self-service before disabling its login for final clearance.
+    from app.models.employee import Employee
+    db.get(Employee, employee["id"]).user.is_active = False
+    db.commit()
+    for item in checklist.json():
+        if "access" in item["task_name"].lower():
+            cleared = client.put(f"/api/v1/exit/checklist/{item['id']}/complete?remarks=Login disabled", headers=superuser_headers)
+            assert cleared.status_code == 200, cleared.text
+    closed = client.put(f"/api/v1/exit/records/{exit_record.json()['id']}/complete", headers=superuser_headers)
+    assert closed.status_code == 200, closed.text
+    assert closed.json()["status"] == "Completed"

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,7 +43,7 @@ export default function HomepageBannerSettings() {
     } catch (err) { setMessage(error(err)); } finally { setBusy(false); }
   }
   if (settings.isPending) return <p role="status">Loading banner appearance…</p>;
-  if (settings.isError) return <div role="alert">Could not load the banner. <button onClick={() => void settings.refetch()}>Retry</button></div>;
+  if (settings.isError) return <div role="alert">Could not load the banner. <Button type="submit" variant="outline" onClick={() => void settings.refetch()}>Retry</Button></div>;
   return <section className="banner-editor settings-panel">
     <div className="banner-editor-heading"><div><p className="settings-eyebrow">APPEARANCE</p><h2>Homepage Banner</h2><p>Customize the welcome banner for everyone in this company.</p></div><div className="banner-device"><button aria-pressed={!mobile} onClick={() => setMobile(false)}><Monitor size={16} />Desktop</button><button aria-pressed={mobile} onClick={() => setMobile(true)}><Smartphone size={16} />Mobile</button></div></div>
     <div className={`banner-crop ${mobile ? "banner-crop-mobile" : ""}`} aria-label="Banner crop preview. Drag to reposition, or use the positioning sliders." onPointerDown={e => { if (e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, left: draft[xKey], top: draft[yKey] }; }} onPointerMove={e => {

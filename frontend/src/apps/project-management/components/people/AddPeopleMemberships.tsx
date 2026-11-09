@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -67,7 +68,7 @@ export default function AddPeopleMemberships({ mode, personIds, onClose, onAdded
     }}>
       {error && <p role="alert" className="pd-error">{error}</p>}
       {options.isLoading && <p role="status">Loading available {mode === "project" ? "projects" : "workspaces"}…</p>}
-      {options.isError && <p role="alert">Could not load destinations. <button type="button" onClick={() => options.refetch()}>Retry</button></p>}
+      {options.isError && <p role="alert">Could not load destinations. <Button variant="outline" type="button" onClick={() => options.refetch()}>Retry</Button></p>}
       <fieldset disabled={busy || options.isLoading || options.isError} className="space-y-4">
         <label className="block">Search {mode === "project" ? "projects" : "workspaces"}<input className="mt-1 block w-full rounded border p-2" value={search} onChange={event => setSearch(event.target.value)} placeholder="Name or project key" /></label>
         <p>{destinations.length} destinations selected</p>
@@ -89,7 +90,7 @@ export default function AddPeopleMemberships({ mode, personIds, onClose, onAdded
         </label>
         {tooMany && <p role="alert" className="pd-error">Choose fewer destinations. A single operation supports at most {mode === "workspace" ? 30 : 100} destinations and 500 person/destination combinations.</p>}
         <div className="flex justify-end gap-2">
-          <button type="button" className="pd-button" onClick={onClose} disabled={busy}>Cancel</button>
+          <Button variant="outline" type="button" className="pd-button" onClick={onClose} disabled={busy}>Cancel</Button>
           <button type="submit" className="pd-button primary" disabled={busy || !destinations.length || !personIds.length || tooMany || reason.trim().length < 3}>{busy ? "Adding…" : `Add to ${mode}`}</button>
         </div>
       </fieldset>

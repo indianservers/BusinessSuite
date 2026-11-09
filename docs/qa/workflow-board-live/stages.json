@@ -4,7 +4,8 @@
     "crm: live stage workflow verified",
     "pms: live stage workflow verified",
     "srm: live stage workflow verified",
-    "fam: live stage workflow verified"
+    "fam: live stage workflow verified",
+    "power_apps: live stage workflow verified"
   ],
   "failures": [],
   "records": {
@@ -27,7 +28,13 @@
     "srm": {
       "id": 246,
       "persistedStage": "confirmed"
+    },
+    "power_apps": {
+      "id": 2,
+      "persistedStage": "Approved",
+      "selfApprovalRejected": true
     }
   },
-  "started": "2026-11-08T12:51:34.975Z"
+  "started": "2026-11-08T13:00:16.612Z",
+  "pageErrors": []
 }

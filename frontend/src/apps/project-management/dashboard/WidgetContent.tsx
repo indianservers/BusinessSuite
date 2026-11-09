@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { RichTextContent } from "@/components/rich-text/RichTextContent";
@@ -526,7 +527,7 @@ export default function WidgetContent({
         ))}
       </div>
     ) : (
-      <div className="space-y-2 p-3 text-sm"><p className="text-muted-foreground">No visible sprints in this scope.</p><Link className="font-medium underline" to="/pms/sprints">Open sprints to configure commitments →</Link></div>
+      <div className="space-y-2 p-3 text-sm"><p className="text-muted-foreground">No visible sprints in this scope.</p><Button asChild variant="outline"><Link className="font-medium underline" to="/pms/sprints">Open sprints to configure commitments →</Link></Button></div>
     );
   if (type === "radial" || type === "gauge") {
     const value = data.value;

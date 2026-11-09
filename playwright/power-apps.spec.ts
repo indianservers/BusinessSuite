@@ -1,12 +1,29 @@
 import { test, expect } from "../frontend/node_modules/playwright/test";
 import { ids, names, setupPowerApps } from "./power-apps-fixtures";
+
+test("automation creation refreshes the originating list and keeps its search",async({page})=>{
+  await setupPowerApps(page);
+  await page.goto("/power-apps/automations");
+  await page.getByRole("textbox",{name:"Search automations",exact:true}).fill("QA refresh");
+  await page.getByRole("button",{name:"New automation",exact:true}).click();
+  await page.getByRole("dialog").getByRole("textbox",{name:"Automation name",exact:true}).fill("QA refresh automation");
+  await page.getByRole("dialog").getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const groups=page.getByRole("button",{name:"Expand loaded groups",exact:true});
+  if(await groups.isVisible())await groups.click();
+  await expect(page.getByRole("button",{name:"QA refresh automation",exact:true})).toBeVisible();
+  await expect(page.getByRole("textbox",{name:"Search automations",exact:true})).toHaveValue("QA refresh");
+  await expect(page).toHaveURL(/\/power-apps\/automations$/);
+});
 test("Master Suite entry and all twelve application routes", async ({
   page,
 }, info) => {
   await setupPowerApps(page);
   await page.setViewportSize({ width: 1536, height: 1100 });
   await page.goto("/");
-  await page.getByRole("link", { name: "Open Power Apps" }).click();
+  const application=page.getByRole("article", { name: "Power Apps", exact:true }).getByRole("link", { name: "Power Apps", exact:true });
+  await expect(application).toHaveAttribute("href",/\/power-apps/);
+  await page.goto((await application.getAttribute("href"))!);
   await expect(page.locator(".pa-catalog article")).toHaveCount(12);
   await expect(page.locator(".pa-metrics strong")).toHaveText([
     "0",
@@ -31,9 +48,11 @@ test("Master Suite entry and all twelve application routes", async ({
       new RegExp("/power-apps/" + ids[i] + "(?:\\?|$)"),
     );
     await expect(
-      page.getByRole("heading", { name: names[i], exact: true }),
+      page.getByRole("heading", { name: ids[i]==="approvals"?"Overview":ids[i]==="connectors"?"Integration Studio":names[i], exact: true,level:1 }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Overview", exact: true }).click();
+    if(ids[i]==="approvals")await page.locator(".ap-suite-link").click();
+    else if(ids[i]==="connectors")await page.locator(".ic-header").getByRole("link",{name:"Power Apps",exact:true}).click();
+    else await page.getByRole("link", { name: "Overview", exact: true }).click();
     await expect(page.locator(".pa-catalog article")).toHaveCount(12);
   }
 });
@@ -50,7 +69,11 @@ test("draft create edit persist switch environments and delete", async ({
     .getByLabel("Automation name", { exact: true })
     .fill("Welcome review");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await expect(page.locator(".as-save-status")).toContainText("Saved");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const loadedGroups=page.getByRole("button",{name:"Expand loaded groups",exact:true});
+  await expect(loadedGroups).toBeVisible();
+  await loadedGroups.click();
+  await page.getByRole("button",{name:"Welcome review",exact:true}).click();
   await page
     .getByLabel("Automation name", { exact: true })
     .fill("Welcome review v2");
@@ -66,17 +89,21 @@ test("draft create edit persist switch environments and delete", async ({
   await page
     .getByLabel("Power Apps environment", { exact: true })
     .selectOption("testing");
-  await page.getByRole("button", { name: "Automations", exact: true }).click();
+  await page.getByRole("button",{name:"Expand all menu categories",exact:true}).click();
+  await page.getByRole("link", { name: "Automations", exact: true }).click();
   await expect(page.getByText("Make your first connection")).toBeVisible();
   await page
     .getByLabel("Power Apps environment", { exact: true })
     .selectOption("development");
-  await page.getByRole("button", { name: "Automations", exact: true }).click();
+  await page.getByRole("button",{name:"Expand all menu categories",exact:true}).click();
+  await page.getByRole("link", { name: "Automations", exact: true }).click();
+  await expect(loadedGroups).toBeVisible();
+  await loadedGroups.click();
   await page
-    .getByLabel("Actions for Welcome review v2", { exact: true })
+    .getByLabel("Workflow actions for Welcome review v2", { exact: true })
     .click();
   page.once("dialog", (d) => d.accept());
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
   await expect(page.getByText("Make your first connection")).toBeVisible();
 });
 test("mobile dashboard and editor fit viewport", async ({ page }, info) => {

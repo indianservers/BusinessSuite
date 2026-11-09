@@ -1,5 +1,6 @@
 import { api } from "@/services/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { affectsResource, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import { milestonesAPI, activityAPI, filesAPI } from "../services/api";
 import ProjectOverview from "../components/ProjectOverview";
 import CatalogAssociations from "@/shared/catalog/CatalogLinesEditor";
@@ -17,6 +18,7 @@ import type { DashboardData, PMSTask } from "../types";
 export default function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = Number(projectId || 0);
+  const queryClient = useQueryClient();
   const mobileMembers=useQuery({queryKey:["mobile-project-members",id],queryFn:()=>api.get<{user_id:number;name?:string;email?:string}[]>(`/project-management/projects/${id}/members`).then(r=>r.data),enabled:!!id});
   const mobileMilestones=useQuery({queryKey:["mobile-project-milestones",id],queryFn:()=>milestonesAPI.list(id),enabled:!!id});
   const projectFiles=useQuery({queryKey:["project-overview-files",id],queryFn:()=>filesAPI.list({project_id:id}),enabled:!!id});
@@ -44,6 +46,20 @@ export default function ProjectDashboard() {
     return()=>{active=false;};
   },[id,setSelectedProject,setTasks,retryVersion]);
 
+  useEffect(() => {
+    const changed = (event: Event) => {
+      const change = (event as CustomEvent<RecordSaved>).detail;
+      if (!affectsResource("/project-management/tasks", change.resource || change.url)) return;
+      const task = (change.record?.task || change.record) as { project_id?: number } | undefined;
+      const project = task?.project_id ?? Number(change.url.match(/projects\/(\d+)\/tasks/)?.[1] || 0);
+      if (project && project !== id) return;
+      setRetryVersion(value => value + 1);
+      void queryClient.invalidateQueries({queryKey:["project-overview-activity",id]});
+    };
+    window.addEventListener(recordSavedEvent, changed);
+    return () => window.removeEventListener(recordSavedEvent, changed);
+  }, [id, queryClient]);
+
   usePageRefresh(() => setRetryVersion(value => value + 1));
 
   const project = selectedProject || dashboard?.project;
@@ -58,7 +74,7 @@ export default function ProjectDashboard() {
     <details id="project-more-details" className="pd-extra" open={moreOpen} onToggle={event=>setMoreOpen(event.currentTarget.open)}>
       <summary>Project actions</summary>
       <div className="pd-extra-content">
-        <div className="pd-actions-menu"><button disabled={!project.can_manage_members && !project.can_edit_project} onClick={() => setAddingPeople(true)}>Add existing person</button><Link to={`/pms/projects/${id}/members`}>Manage project members</Link>{project.can_edit_project && <Link to={`/pms/projects/${id}/edit`}>Edit project</Link>}<Link to={`/pms/projects/${id}/billing`}>Billing & invoices</Link><Link to={`/pms/projects/${id}/milestones`}>Milestones</Link><Link to={`/pms/projects/${id}/risks`}>Risks</Link><Link to={`/pms/projects/${id}/notes`}>My Notes</Link></div>
+        <div className="pd-actions-menu"><Button type="submit" variant="default" disabled={!project.can_manage_members && !project.can_edit_project} onClick={() => setAddingPeople(true)}>Add existing person</Button><Link to={`/pms/projects/${id}/members`}>Manage project members</Link>{project.can_edit_project && <Link to={`/pms/projects/${id}/edit`}>Edit project</Link>}<Link to={`/pms/projects/${id}/billing`}>Billing & invoices</Link><Link to={`/pms/projects/${id}/milestones`}>Milestones</Link><Link to={`/pms/projects/${id}/risks`}>Risks</Link><Link to={`/pms/projects/${id}/notes`}>My Notes</Link></div>
         <CatalogAssociations source="pms" target="project" id={id}/>
         <RecordCustomFields entity="project" id={id}/>
         {project.srm_links && <Card><CardHeader><CardTitle>SRM Engagement Link</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-4"><LinkedSummary label="Engagement" value={textValue(project.srm_links.engagement?.engagement_number || project.srm_links.engagement?.name)} /><LinkedSummary label="Sales Order" value={textValue(project.srm_links.sales_order?.order_number || project.srm_links.sales_order?.title)} /><LinkedSummary label="Contract" value={textValue(project.srm_links.contract?.contract_number || project.srm_links.contract?.title)} /><LinkedSummary label="Billing Plan" value={textValue(project.srm_links.billing_plan?.name || project.srm_links.billing_plan?.billing_type)} /></CardContent></Card>}

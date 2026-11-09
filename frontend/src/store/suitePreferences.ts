@@ -34,7 +34,7 @@ export const useSuitePreferences = create<{
         set((state) => ({
           contexts: {
             ...state.contexts,
-            [scope]: { ...defaults, ...state.contexts[scope], ...patch },
+            [scope]: { ...defaults, ...state.contexts[scope], ...(patch.favorites ? { favoritesDirty: true } : {}), ...patch },
           },
         })),
       visit: (scope, path) => {
@@ -42,17 +42,15 @@ export const useSuitePreferences = create<{
         if (!safe) return;
         set((state) => {
           const current = state.contexts[scope] || defaults;
-
+          const recent = [safe, ...current.recent.filter(p => p !== safe)].slice(0, 5);
+          const visitedAt = { ...current.recentVisitedAt, [safe]: new Date().toISOString() };
           return {
             contexts: {
               ...state.contexts,
               [scope]: {
                 ...current,
-                recentVisitedAt: { ...current.recentVisitedAt, [safe]: new Date().toISOString() },
-                recent: [
-                  safe,
-                  ...current.recent.filter((p) => p !== safe),
-                ].slice(0, 5),
+                recentVisitedAt: Object.fromEntries(recent.filter(path => visitedAt[path]).map(path => [path, visitedAt[path]])),
+                recent,
               },
             },
           };

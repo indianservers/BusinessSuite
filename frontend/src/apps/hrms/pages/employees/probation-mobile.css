@@ -1,0 +1,23 @@
+@media(max-width:480px){
+ .hrms-probation-page{min-width:0;font-size:14px;}
+ .hrms-probation-page>.grid>*,.hrms-probation-page .kf-card,.hrms-probation-page .flex>div{min-width:0;}
+ .hrms-probation-page>div:first-child{padding:12px;gap:10px;}
+ .hrms-probation-page h1{font-size:20px;line-height:1.25;margin-top:4px;}
+ .hrms-probation-page :is(p,span,button){overflow-wrap:anywhere;}
+ .hrms-probation-page .hrms-probation-kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+ .hrms-probation-kpis .kf-card>div{padding:8px;}
+ .hrms-probation-kpis p:last-child{font-size:20px;}
+ .hrms-probation-page .kf-card>div{padding:12px;}
+ .hrms-probation-page :is(button,summary){min-height:44px;}
+ .hrms-probation-page :is(input,select),.smart-create-phone-sheet:has(.hrms-probation-review) :is(input,select){font-size:16px;min-height:44px;min-width:0;max-width:100%;}
+ .hrms-probation-page .grid.md\:grid-cols-3{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+ .hrms-probation-page .smart-create-section{padding:10px;}
+ .hrms-probation-page .smart-create-section>div{display:none;}
+ .hrms-probation-page .smart-create-section>button{width:100%;}
+ .hrms-probation-selector{display:grid;gap:6px;font-weight:500;}
+ .smart-create-phone-sheet:has(.hrms-probation-review) .hrms-probation-ratings{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+ .smart-create-phone-sheet:has(.hrms-probation-review) .hrms-probation-review{border:0;box-shadow:none;}
+ .smart-create-phone-sheet:has(.hrms-probation-review) .hrms-probation-review>div:first-child{display:none;}
+ .smart-create-phone-sheet:has(.hrms-probation-review) .hrms-probation-review>div:last-child{padding:0;}
+ .smart-create-phone-sheet:has(.hrms-probation-review) button[data-save-action]{display:none;}
+}

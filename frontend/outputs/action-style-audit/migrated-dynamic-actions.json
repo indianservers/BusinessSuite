@@ -1,0 +1,245 @@
+[
+  {
+    "file": "apps/communication/center/EngagementInbox.tsx",
+    "buttons": [
+      {
+        "line": 86,
+        "label": "Open #",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/communication/whatsapp/MessageMedia.tsx",
+    "buttons": [
+      {
+        "line": 41,
+        "label": "Download",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/CRMWorkspacePage.tsx",
+    "buttons": [
+      {
+        "line": 945,
+        "label": "Open",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/EngagementWorkspace.tsx",
+    "buttons": [
+      {
+        "line": 223,
+        "label": "Edit / record outcome Edit call",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/product-customers/ProductCustomersPage.tsx",
+    "buttons": [
+      {
+        "line": 108,
+        "label": "New",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/crm/templates/TemplateStudio.tsx",
+    "buttons": [
+      {
+        "line": 215,
+        "label": "Export sample HTML Export HTML",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/hrms/pages/reports/ReportSchedules.tsx",
+    "buttons": [
+      {
+        "line": 43,
+        "label": "Download generated CSV #",
+        "tag": "a",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/automations/builder/IntelligencePanels.tsx",
+    "buttons": [
+      {
+        "line": 1375,
+        "label": "Save block draft version Save selection as block",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/power-apps/applications/integrations/ModuleConnectionSettings.tsx",
+    "buttons": [
+      {
+        "line": 88,
+        "label": "Save and authorize account",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/AssistantStudio.tsx",
+    "buttons": [
+      {
+        "line": 188,
+        "label": "Save memory correction Remember this",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/DashboardsPage.tsx",
+    "buttons": [
+      {
+        "line": 1325,
+        "label": "Add widget",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/PlannerPage.tsx",
+    "buttons": [
+      {
+        "line": 1304,
+        "label": "+ more",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TaskStudioPage.tsx",
+    "buttons": [
+      {
+        "line": 1910,
+        "label": "Add checklist item",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 1992,
+        "label": "Save Changes Create Task",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TaskWorkspacePage.tsx",
+    "buttons": [
+      {
+        "line": 634,
+        "label": "Assign people",
+        "tag": "button",
+        "hasHandler": true
+      },
+      {
+        "line": 970,
+        "label": "Save comment Post comment",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/TrashPage.tsx",
+    "buttons": [
+      {
+        "line": 44,
+        "label": "Open project task",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspaceCalendar.tsx",
+    "buttons": [
+      {
+        "line": 597,
+        "label": "+ more",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspacesPage.tsx",
+    "buttons": [
+      {
+        "line": 296,
+        "label": "Create workspace",
+        "tag": "button",
+        "hasHandler": false
+      }
+    ]
+  },
+  {
+    "file": "apps/project-management/pages/WorkspaceToolsPage.tsx",
+    "buttons": [
+      {
+        "line": 118,
+        "label": "Open created task #",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "apps/srm/pages/SRMWorkspacePage.tsx",
+    "buttons": [
+      {
+        "line": 1076,
+        "label": "Open",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/ai-agents/AIWorkspacePanel.tsx",
+    "buttons": [
+      {
+        "line": 59,
+        "label": "Save changes Save artifact",
+        "tag": "button",
+        "hasHandler": true
+      }
+    ]
+  },
+  {
+    "file": "pages/SettingsHubPage.tsx",
+    "buttons": [
+      {
+        "line": 121,
+        "label": "Open",
+        "tag": "Link",
+        "hasHandler": true
+      }
+    ]
+  }
+]

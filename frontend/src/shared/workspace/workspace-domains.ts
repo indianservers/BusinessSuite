@@ -55,3 +55,5 @@ export const operationalWorkspaceDefinitions: Record<WorkspaceDomainModule, Defi
     ], actions: [{ label: "Create voucher", href: "/fam/vouchers/new", icon: FileCheck2 }, { label: "View receivables", href: "/fam/ar", icon: Wallet }, { label: "View payables", href: "/fam/ap", icon: Wallet }, { label: "Reconcile account", href: "/fam/bank-reconciliation", icon: Scale }],
   },
 };
+
+export const workspaceDomainViewIds = { crm: ["leads", "contacts", "deals", "activities", "quotes", "reports"], hrms: ["employees", "attendance", "leave", "approvals", "documents", "recruitment"], srm: ["pos", "orders", "products", "stock", "invoices", "collections"], fam: ["accounts", "journals", "receivables", "payables", "reconciliation", "statements"] };

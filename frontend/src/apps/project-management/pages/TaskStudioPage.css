@@ -1312,3 +1312,74 @@
 }
 
 .ts-picker-inline .ts-picker-list{position:static;min-width:0;max-height:260px;box-shadow:none;margin-top:8px}
+/* Compact task creation keeps essentials together; optional controls retain native disclosure semantics. */
+.task-studio .ts-layout{display:block;max-width:1120px;margin-inline:auto}
+.task-studio .ts-compact-tabs{display:flex;gap:4px;padding:4px;margin-bottom:12px;border-radius:10px;background:hsl(var(--muted))}
+.ts-compact-tabs button{flex:1;padding:9px 12px;border-radius:7px;font-size:13px;font-weight:600}
+.ts-compact-tabs button[aria-pressed=true]{background:hsl(var(--background));color:#7139cf;box-shadow:0 1px 4px #30204b18}
+.task-studio .ts-section[hidden],.task-studio .ts-right[hidden]{display:none!important}
+.task-studio .ts-basic-pair{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:14px}
+.task-studio .ts-section{padding:16px;margin-bottom:10px}
+.task-studio .ts-section>header{margin-bottom:12px}
+.task-studio .ts-section header p,.task-studio .ts-basic-pair small{display:none}
+.task-studio .ts-essential-planning{display:grid;grid-template-columns:1fr 1fr 2fr;gap:14px;margin:12px 0}
+.ts-essential-planning>label,.ts-essential-assignees>label{display:block;font-size:12px;font-weight:600}
+.task-studio .ts-essential-planning input:not([type=checkbox]):not([type=radio]),.task-studio .ts-essential-planning select{width:100%}
+.task-studio .ts-essential-assignees{min-width:0}
+.task-studio .ts-essential-assignees>button{float:right;font-size:11px;color:#7139cf}
+.task-studio .ts-expandable>summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;font-weight:600}
+.task-studio .ts-expandable>summary::after,.ts-optional-description>summary::after{content:'+';margin-left:auto;font-size:18px}
+.task-studio .ts-expandable[open]>summary::after,.ts-optional-description[open]>summary::after{content:'âˆ’'}
+.ts-expandable-content{padding-top:14px}
+.ts-optional-description{border-top:1px solid hsl(var(--border));margin-top:10px;padding-top:10px}
+.ts-optional-description>summary{display:flex;cursor:pointer;font-size:13px;font-weight:600;padding:4px 0}
+.task-studio .ts-right{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:static}
+.task-studio .ts-right .ts-tips{display:none}
+.task-studio .ts-ai{padding:16px;border:1px solid hsl(var(--border));border-radius:12px;align-self:start}
+.smart-create-task .smart-create-body{padding:14px 20px}
+.smart-create-task .smart-create-header{padding:12px 20px}
+.smart-create-task .smart-create-footer{padding:10px 20px}
+.smart-create-task .task-studio{padding:0;min-height:0}
+@media(max-width:760px){.task-studio .ts-basic-pair,.task-studio .ts-essential-planning{grid-template-columns:1fr 1fr}.task-studio .ts-essential-assignees{grid-column:1/-1}.task-studio .ts-right{grid-template-columns:1fr}.smart-create-task .smart-create-body{padding:12px}.task-studio .ts-section{padding:12px}}
+@media(max-width:450px){.task-studio .ts-basic-pair{grid-template-columns:1fr}.ts-compact-tabs button{font-size:11px;padding:9px 4px}}
+
+.smart-create-task .ts-title{display:flex;justify-content:flex-end;margin:0 0 8px;padding:0;min-height:0}
+.smart-create-task .ts-title>div:not(.ts-title-actions),.smart-create-task .ts-title .ts-back{display:none}
+.smart-create-task .ts-title-actions{display:flex;align-items:center;gap:8px}
+.smart-create-task .ts-title-actions button{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid hsl(var(--border));border-radius:8px;font-size:12px}
+.smart-create-task .ts-title-actions .tr-primary{display:none}
+.task-studio .ts-essential-assignees .ts-picker-list{position:absolute;z-index:10;inset-inline:0;min-width:0;background:hsl(var(--background));box-shadow:0 8px 24px #30204b22}
+.task-studio .ts-essential-assignees .ts-picker-row>label{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.task-studio .ts-essential-assignees .ts-picker-row input[type=checkbox]{width:16px;min-height:16px}
+.task-studio .ts-essential-assignees .ts-picker-row>label>span:last-child{flex:1;min-width:0}
+
+@media(min-width:1000px){.task-studio .ts-basic-pair{grid-template-columns:1.1fr 1.4fr 1.1fr .8fr}}
+.task-studio .ts-basic-pair .ts-worktype{margin:0;padding:0}
+.task-studio .ts-basic-pair .ts-worktype>div{min-width:0;flex:1}
+.task-studio .ts-basic-pair .ts-worktype select{width:100%}
+.task-studio .ts-section>header{min-height:34px;padding-bottom:8px;margin-bottom:10px}
+.task-studio .ts-expandable>summary .ts-section-icon{width:30px;height:30px}
+.task-studio .ts-expandable>summary p{display:none}
+.smart-create-task .ts-bottom{display:flex;justify-content:flex-end;padding:8px 0;border:0}
+.smart-create-task .ts-bottom>:not(label){display:none}
+.smart-create-task .ts-draft-banner{padding:8px 12px}
+
+/* A single compact assignee chooser supports individual and collective ownership. */
+.ts-assignee-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+.task-studio .ts-assign-self{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-size:11px}
+.task-studio .ts-assign-self input[type=checkbox]{width:15px;height:15px;min-height:15px;accent-color:#7c3aed}
+.ts-assignee-combo{position:relative}
+.ts-assignee-combo>summary{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 10px;list-style:none;cursor:pointer;border:1px solid hsl(var(--border));border-radius:8px;background:hsl(var(--background));font-size:12px}
+.ts-assignee-combo>summary>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ts-assignee-combo[open]>summary>svg:last-child{transform:rotate(90deg)}
+.ts-assignee-dropdown{position:absolute;right:0;top:calc(100% + 6px);width:min(620px,calc(100vw - 72px));max-height:390px;overflow:auto;z-index:20;padding:12px;border:1px solid hsl(var(--border));border-radius:12px;background:hsl(var(--background));box-shadow:0 12px 32px #30204b26}
+.task-studio .ts-assignee-dropdown .ts-assignment-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.task-studio .ts-assignee-dropdown .ts-assignment-cards button{padding:8px;min-width:0;gap:5px}
+.task-studio .ts-assignee-dropdown .ts-assignment-cards button>span{width:25px;height:25px;flex:none}
+.task-studio .ts-assignee-dropdown .ts-assignment-cards strong{font-size:12px}
+.task-studio .ts-assignee-dropdown .ts-assignment-cards small{font-size:10px;line-height:1.35;display:block}
+.task-studio .ts-assignee-dropdown .ts-assignment-body{display:block}
+.task-studio .ts-assignee-dropdown .ts-picker-list{position:static;box-shadow:none;max-height:180px;width:100%;margin-top:5px}
+.task-studio .ts-assignee-dropdown .ts-group-picker{max-height:210px;overflow:auto}
+.task-studio .ts-assignee-dropdown .ts-group-chips{display:flex;flex-wrap:wrap;gap:5px}
+@media(max-width:600px){.ts-assignee-dropdown{width:100%;max-height:360px}.task-studio .ts-assignee-dropdown .ts-assignment-cards button{flex-direction:column;align-items:flex-start}.task-studio .ts-assignee-dropdown .ts-assignment-cards small{font-size:10px}.task-studio .ts-assignee-dropdown .ts-assignment-cards button>svg:last-child{display:none}}

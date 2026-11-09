@@ -1,0 +1,29 @@
+@media(max-width:480px){
+ .hrms-exit-page{--exit-gap:12px;min-width:0;}
+ .hrms-exit-page>div:first-child{padding:12px;gap:10px;}
+ .hrms-exit-page h1{font-size:20px;line-height:1.25;margin-top:4px;}
+ .hrms-exit-page>div:first-child>div:last-child{display:grid;grid-template-columns:1fr 1fr;}
+ .hrms-exit-page>div:first-child>div:last-child>a{min-width:0;white-space:normal;text-align:center;padding:6px;}
+ .hrms-exit-page [class*="suite-count-"]{min-width:0;}
+ .hrms-exit-page>div:first-child>div:last-child>button{grid-column:1/-1;}
+ .hrms-exit-page :is(button,a,input,select){min-height:44px;}
+ .hrms-exit-page :is(input,select),.smart-create-phone-sheet:has(.hrms-exit-create) :is(input,select){font-size:16px;min-height:44px;}
+ .hrms-exit-page>.grid>*{min-width:0;}
+ .hrms-exit-page .suite-record-card-shell .flex.gap-3>div:last-child{min-width:0;}
+ .hrms-exit-page .suite-record-card-shell .flex.gap-3>div:first-child{flex-shrink:0;}
+ .hrms-exit-page .smart-create-section{padding:10px;}
+ .hrms-exit-page .smart-create-section>div{display:none;}
+ .hrms-exit-page .smart-create-section>button{width:100%;}
+ .hrms-exit-page .kf-card>div{padding:12px;}
+ .hrms-exit-page .grid{min-width:0;gap:12px;}
+ .hrms-exit-page .suite-record-card-shell{min-width:0;}
+ .hrms-exit-page .suite-record-card-shell :is(p,a,span),.hrms-exit-checklist :is(p,li){overflow-wrap:anywhere;}
+ .hrms-exit-page .suite-record-card-shell .flex.items-center.gap-2{flex-wrap:wrap;}
+ .hrms-exit-checklist>summary{min-height:44px;align-content:center;padding:8px 0;}
+ .hrms-exit-checklist form{display:grid;grid-template-columns:minmax(0,1fr);}
+ .hrms-exit-checklist form :is(input,button){width:100%;}
+ .smart-create-phone-sheet:has(.hrms-exit-create) .hrms-exit-create{border:0;box-shadow:none;}
+ .smart-create-phone-sheet:has(.hrms-exit-create) .hrms-exit-create>div:first-child{display:none;}
+ .smart-create-phone-sheet:has(.hrms-exit-create) .hrms-exit-create>div:last-child{padding:0;}
+ .smart-create-phone-sheet:has(.hrms-exit-create) .hrms-exit-create>div:last-child>button[data-save-action]{display:none;}
+}

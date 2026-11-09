@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useInitialLoading } from "@/hooks/use-initial-loading";
 import CompactActions from "@/components/actions/CompactActions";
 import { ActionToolbar } from "@/components/actions";
@@ -130,6 +131,9 @@ export default function TaskDetail() {
   const [draggedChecklistId, setDraggedChecklistId] = useState<number | null>(null);
   const [checklistError, setChecklistError] = useState<string | null>(null);
   const [newTag, setNewTag] = useState("");
+  const [tagCompletionRevision, setTagCompletionRevision] = useState(0);
+  const [tagSaving, setTagSaving] = useState(false);
+  const [tagError, setTagError] = useState("");
   const [subtaskPeople, setSubtaskPeople] = useState<PMSMentionUser[]>([]);
   const [subtaskSearch, setSubtaskSearch] = useState("");
   const [subtaskFilter, setSubtaskFilter] = useState("all");
@@ -419,13 +423,16 @@ export default function TaskDetail() {
 
   const addTag = async (event: FormEvent) => {
     event.preventDefault();
-    if (!newTag.trim()) return;
-    const created = await tagsAPI.create({ name: newTag.trim() });
-    setAvailableTags((items) => items.some((item) => item.id === created.id) ? items : [...items, created].sort((a, b) => a.name.localeCompare(b.name)));
-    const tag = await tasksAPI.addTagById(task.id, created.id);
-    setTags((items) => items.some((item) => item.id === tag.id) ? items : [...items, tag].sort((a, b) => a.name.localeCompare(b.name)));
-    setNewTag("");
-    refreshActivity();
+    if (!newTag.trim() || tagSaving) return;
+    setTagSaving(true); setTagError("");
+    try {
+      const created = availableTags.find(item => item.name.toLowerCase() === newTag.trim().toLowerCase()) || await tagsAPI.create({ name: newTag.trim() });
+      setAvailableTags(items => items.some(item => item.id === created.id) ? items : [...items, created].sort((a,b)=>a.name.localeCompare(b.name)));
+      const tag = await tasksAPI.addTagById(task.id, created.id);
+      setTags(items => items.some(item => item.id === tag.id) ? items : [...items, tag].sort((a,b)=>a.name.localeCompare(b.name)));
+      setNewTag(""); setTagCompletionRevision(value=>value+1); refreshActivity();
+    } catch (cause: any) { setTagError(typeof cause?.response?.data?.detail === "string" ? cause.response.data.detail : "Could not add this tag. Your entered name is retained."); }
+    finally { setTagSaving(false); }
   };
 
   const attachExistingTag = async (tagId: number) => {
@@ -827,10 +834,10 @@ export default function TaskDetail() {
                   </div>
                 ))}
                 {!checklist.length ? <EmptyLine>No checklist items yet.</EmptyLine> : null}
-                <CompactForm onSubmit={addChecklistItem} className="flex gap-2">
-                  <Input id="add-checklist-item" value={newChecklistItem} onChange={(event) => setNewChecklistItem(event.target.value)} placeholder="Add checklist item" />
-                  <Button type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
-                </CompactForm>
+                <SmartCreateSection title="Add checklist item"><CompactForm onSubmit={addChecklistItem} className="flex gap-2">
+                  <Input required id="add-checklist-item" value={newChecklistItem} onChange={(event) => setNewChecklistItem(event.target.value)} placeholder="Add checklist item" />
+                  <Button data-save-action type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
+                </CompactForm></SmartCreateSection>
               </CardContent>
             </Card>
 
@@ -858,10 +865,10 @@ export default function TaskDetail() {
                     {availableTags.filter((tag) => !tags.some((item) => item.id === tag.id)).map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
                   </NativeSelect>
                 </div>
-                <CompactForm onSubmit={addTag} className="flex gap-2">
-                  <Input value={newTag} onChange={(event) => setNewTag(event.target.value)} placeholder="Create and add tag" />
-                  <Button type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
-                </CompactForm>
+                <SmartCreateSection title="Add tag" closeOnRecordSaved={false} completionRevision={tagCompletionRevision}><CompactForm onSubmit={addTag} className="flex flex-wrap gap-2">{tagError && <p role="alert" className="basis-full text-sm text-destructive">{tagError}</p>}
+                  <Input aria-label="New tag name" required maxLength={100} disabled={tagSaving} value={newTag} onChange={(event) => setNewTag(event.target.value)} placeholder="Create and add tag" />
+                  <Button data-save-action disabled={tagSaving} type="submit" size="sm"><Plus className="h-4 w-4" />Add</Button>
+                </CompactForm></SmartCreateSection>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Story points">
                     <Input type="number" min="0" step="1" value={task.story_points ?? ""} onChange={(event) => setTask({ ...task, story_points: Number(event.target.value || 0) })} onBlur={saveStoryPoints} />
@@ -921,7 +928,7 @@ export default function TaskDetail() {
                 ))}
                 {!subtasks.length ? <EmptyLine>No sub-tasks yet.</EmptyLine> : null}
               </div>
-              <CompactForm onSubmit={addSubtask} className="rounded-md border p-3">
+              <SmartCreateSection title="Create subtask"><CompactForm onSubmit={addSubtask} className="rounded-md border p-3">
                 <div className="grid gap-2 md:grid-cols-2">
                   <Input aria-label="Subtask title" maxLength={220} required id="add-subtask" value={newSubtask} onChange={(event) => setNewSubtask(event.target.value)} placeholder="Add sub-task title" />
                   <NativeSelect aria-label="Subtask priority" value={newSubtaskPriority} onChange={(event) => setNewSubtaskPriority(event.target.value as TaskPriority)} className="h-10 rounded-md border bg-background px-3 text-sm">
@@ -929,7 +936,7 @@ export default function TaskDetail() {
                   </NativeSelect>
                   <Input aria-label="Subtask due date" type="date" value={newSubtaskDueDate} onChange={(event) => setNewSubtaskDueDate(event.target.value)} />
                   <Input aria-label="Subtask story points" type="number" min="0" step="1" value={newSubtaskStoryPoints} onChange={(event) => setNewSubtaskStoryPoints(event.target.value)} placeholder="Pts" />
-                  <Button aria-label="Add subtask" disabled={subtaskSaving} type="submit" size="sm"><Plus className="h-4 w-4" />{subtaskSaving ? "Adding..." : "Add"}</Button>
+                  <Button data-save-action aria-label="Add subtask" disabled={subtaskSaving} type="submit" size="sm"><Plus className="h-4 w-4" />{subtaskSaving ? "Adding..." : "Add"}</Button>
                 </div>
                 <div className="mt-3 space-y-2">
                   <Label>Subtask assignees</Label>
@@ -937,7 +944,7 @@ export default function TaskDetail() {
                   <Button type="button" size="sm" variant="ghost" onClick={() => setNewSubtaskAssignees(taskAssignees(task))}>Inherit parent assignees</Button>
                   <RichTextField data-legacy-format="markdown" aria-label="Subtask description" placeholder="Description or acceptance criteria" value={newSubtaskDescription} onChange={e => setNewSubtaskDescription(e.target.value)} className="w-full rounded-md border bg-background p-2" />
                 </div>
-              </CompactForm>
+              </CompactForm></SmartCreateSection>
             </CardContent>
           </Card>
 

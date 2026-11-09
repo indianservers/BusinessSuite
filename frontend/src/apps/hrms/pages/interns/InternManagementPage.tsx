@@ -316,7 +316,11 @@ export default function InternManagementPage({ page }: { page: Page }) {
   const [preview, setPreview] = useState<Row | null>(null);
   const { data: access, isError: denied } = useQuery({
     queryKey: ["intern-management", "access"],
-    queryFn: () => api.get(root + "/access").then((r) => r.data),
+    queryFn: async () => {
+      const { data } = await api.get(root + "/access");
+      if (!data || typeof data.allowed !== "boolean") throw new Error("Intern Management access is unavailable");
+      return data;
+    },
     retry: false,
   });
   const allowed = !!access?.allowed;
@@ -580,7 +584,7 @@ export default function InternManagementPage({ page }: { page: Page }) {
     setSelected((v) =>
       v.includes(id) ? v.filter((x) => x !== id) : [...v, id],
     );
-  if (denied)
+  if (denied || (access && !allowed))
     return (
       <div role="alert" className="im-denied">
         <ShieldCheck />
@@ -922,9 +926,9 @@ export default function InternManagementPage({ page }: { page: Page }) {
               >
                 Send Announcement
               </Button>
-              <Link className="im-text-link" to="/hrms/interns/reviews">
+              <Button asChild variant="outline"><Link className="im-text-link" to="/hrms/interns/reviews">
                 Open Review Queue →
-              </Link>
+              </Link></Button>
             </Panel>
           </div>
           <Panel
@@ -1607,12 +1611,12 @@ export default function InternManagementPage({ page }: { page: Page }) {
                           Resume / Retry
                         </Button>
                       )}
-                      <Link
+                      <Button asChild variant="outline"><Link
                         className="im-text-link"
                         to={`/pms/tasks/${r.task_id}`}
                       >
                         Open in PMS
-                      </Link>
+                      </Link></Button>
                     </div>
                   ),
                 ],
@@ -1786,14 +1790,14 @@ export default function InternManagementPage({ page }: { page: Page }) {
                       "Action",
                       (r) =>
                         r.id ? (
-                          <button
+                          <Button type="submit" variant="outline"
                             onClick={() => {
                               setActiveReport(r);
                               setReportNote("");
                             }}
                           >
                             Open →
-                          </button>
+                          </Button>
                         ) : (
                           <Button
                             size="sm"

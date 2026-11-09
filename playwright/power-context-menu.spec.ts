@@ -28,6 +28,8 @@ test("context menus provide node, connection and canvas submenus", async ({ page
   await page.getByRole("menuitem", { name: "Paste", exact: true }).click();
   await expect(page.getByTestId("graph-count")).toHaveText("4 nodes / 2 connections");
   await page.getByRole("button", { name: "Fit to screen", exact: true }).click();
+  let previousTransform:string|null=null;
+  await expect.poll(async()=>{const transform=await page.locator(".react-flow__viewport").getAttribute("style");const settled=transform===previousTransform;previousTransform=transform;return settled;},{intervals:[100,100,100],timeout:5000}).toBe(true);
   const midpoint = await page.locator(".react-flow__edge-interaction").evaluateAll(elements => {
     for (const element of elements) {
       const path = element as SVGPathElement;

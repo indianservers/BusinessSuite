@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import InlineSubtaskComposer from "../components/InlineSubtaskComposer";
 import { RecordCustomFields } from "../components/CustomFields";
 import Record360Workspace from "@/shared/records/Record360Workspace";
@@ -395,7 +396,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
     return (
       <div role="alert" className="tw-error">
         {detail.error ? workspaceError(detail.error) : "Task unavailable"}
-        <button onClick={() => void detail.refetch()}>Retry</button>
+        <Button type="submit" variant="outline" onClick={() => void detail.refetch()}>Retry</Button>
       </div>
     );
   const renderEntry = (entry: Entry) => (
@@ -451,7 +452,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
         )}
         {entry.can_edit && entry.kind !== "review" && (
           <footer>
-            <button
+            <Button type="submit" variant="outline"
               disabled={busy}
               onClick={() => {
                 setEditing(entry);
@@ -461,7 +462,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
               }}
             >
               <Pencil size={13} /> Edit
-            </button>
+            </Button>
             {entry.kind === "blocker" || entry.kind === "followup" ? (
               <button
                 disabled={busy}
@@ -483,7 +484,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                     : "Resolve blocker"}
               </button>
             ) : null}
-            <button
+            <Button type="submit" variant="outline"
               disabled={busy}
               onClick={() => {
                 if (
@@ -502,7 +503,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
               }}
             >
               <Trash2 size={13} /> Delete
-            </button>
+            </Button>
           </footer>
         )}
         {entry.can_resolve &&
@@ -606,14 +607,14 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
       {error && (
         <p role="alert" className="tw-error">
           {error}
-          <button
+          <Button type="submit" variant="outline"
             onClick={() => {
               setError("");
               refresh();
             }}
           >
             Refresh
-          </button>
+          </Button>
         </p>
       )}
       {notice && (
@@ -631,7 +632,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
       <div className="tw-facts">
         <div>
           <small>Assignees</small>
-          <button disabled={!data.can_manage} onClick={() => setAssign(true)}>
+          <Button type="submit" variant="outline" disabled={!data.can_manage} onClick={() => setAssign(true)}>
             {data.assignees.slice(0, 3).map((p) => (
               <AssignmentAvatar key={p.id} person={p} />
             ))}
@@ -642,7 +643,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                   .join(", ")
               : "Assign people"}
             {data.assignees.length > 2 ? ` +${data.assignees.length - 2}` : ""}
-          </button>
+          </Button>
         </div>
         <div>
           <small>{data.project.is_general ? "Location" : "Project"}</small>
@@ -711,9 +712,9 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
             {label:"Files & history",sections:tabs.filter(([key])=>["files","history"].includes(key)).map(([value,label])=>({value,label}))},
           ]}/>}
 
-          {tab === "conversation" && <section className="tw-box"><h2>Conversation & activity</h2><p className="tw-muted">Recent updates, comments and activity, newest first.</p>{(updates.isPending||comments.isPending||history.isPending)&&<p role="status">Loading conversation…</p>}{(updates.isError||comments.isError||history.isError)&&<p role="alert">Some activity is unavailable. <button onClick={refresh}>Retry</button></p>}
+          {tab === "conversation" && <section className="tw-box"><h2>Conversation & activity</h2><p className="tw-muted">Recent updates, comments and activity, newest first.</p>{(updates.isPending||comments.isPending||history.isPending)&&<p role="status">Loading conversation…</p>}{(updates.isError||comments.isError||history.isError)&&<p role="alert">Some activity is unavailable. <Button type="submit" variant="outline" onClick={refresh}>Retry</Button></p>}
             <div className="mobile-contact-strip"><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","discussion");return n;})}>Write comment</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Attachments ({attachments.data?.length ?? 0})</button><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","updates");return n;})}>Post update</button></div>
-            {[...(updates.data?.items||[]).map(entry=>({key:`update-${entry.id}`,date:entry.created_at,node:renderEntry(entry)})),...(comments.data||[]).map(c=>({key:`comment-${c.id}`,date:c.created_at,node:<article className="tw-comment"><strong>{c.author?.name||"Team member"}</strong><RichTextContent value={c.body} legacyFormat={c.body_format === "markdown" ? "markdown" : "plain"}/><small>{stamp(c.created_at)}</small></article>})),...(attachments.data||[]).map(file=>({key:`file-${file.id}`,date:file.created_at,node:<article className="tw-history"><strong>Attachment: {file.original_name || file.file_name}</strong><small>{file.uploaded_by_name || "Team member"} · {stamp(file.created_at)}</small><button type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Open attachment</button></article>})),...(history.data?.items||[]).map(h=>({key:`history-${h.id}`,date:h.created_at,node:<article className="tw-history"><strong>{h.summary}</strong><small>{h.actor.name} · {stamp(h.created_at)}</small></article>}))].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).map(event=><div key={event.key}>{event.node}</div>)}
+            {[...(updates.data?.items||[]).map(entry=>({key:`update-${entry.id}`,date:entry.created_at,node:renderEntry(entry)})),...(comments.data||[]).map(c=>({key:`comment-${c.id}`,date:c.created_at,node:<article className="tw-comment"><strong>{c.author?.name||"Team member"}</strong><RichTextContent value={c.body} legacyFormat={c.body_format === "markdown" ? "markdown" : "plain"}/><small>{stamp(c.created_at)}</small></article>})),...(attachments.data||[]).map(file=>({key:`file-${file.id}`,date:file.created_at,node:<article className="tw-history"><strong>Attachment: {file.original_name || file.file_name}</strong><small>{file.uploaded_by_name || "Team member"} · {stamp(file.created_at)}</small><Button variant="outline" type="button" onClick={()=>setParams(p=>{const n=new URLSearchParams(p);n.set("tab","files");return n;})}>Open attachment</Button></article>})),...(history.data?.items||[]).map(h=>({key:`history-${h.id}`,date:h.created_at,node:<article className="tw-history"><strong>{h.summary}</strong><small>{h.actor.name} · {stamp(h.created_at)}</small></article>}))].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).map(event=><div key={event.key}>{event.node}</div>)}
           </section>}
           {(tab === "updates" || tab === "followups") && (
             <>
@@ -967,7 +968,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                 mentions={commentMentions}
                 onMentionsChange={setCommentMentions}
               />
-              <button
+              <Button type="submit" variant="outline"
                 className="tw-primary"
                 disabled={busy || !richTextPlainText(comment).trim()}
                 onClick={() =>
@@ -992,7 +993,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                 }
               >
                 {editingComment ? "Save comment" : "Post comment"}
-              </button>
+              </Button>
               {editingComment && (
                 <button
                   onClick={() => {
@@ -1071,7 +1072,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                     {c.is_resolved && <span className="tw-tag">Resolved</span>}
                   </div>
                   {c.author_user_id === user?.id && (
-                    <button
+                    <Button type="submit" variant="outline"
                       onClick={() => {
                         setEditingComment(c);
                         setComment(c.body);
@@ -1079,10 +1080,10 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                       }}
                     >
                       Edit
-                    </button>
+                    </Button>
                   )}
                   {(c.author_user_id === user?.id || data.can_review) && (
-                    <button
+                    <Button type="submit" variant="outline"
                       disabled={busy}
                       onClick={() => {
                         if (window.confirm("Delete comment?"))
@@ -1093,7 +1094,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                       }}
                     >
                       Delete
-                    </button>
+                    </Button>
                   )}
                 </article>
               ))}
@@ -1115,7 +1116,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                   onChange={(e) => setCheckTitle(e.target.value)}
                   placeholder="Add a checklist item…"
                 />
-                <button
+                <Button type="submit" variant="default"
                   disabled={!data.can_manage || busy || !checkTitle.trim()}
                   onClick={() =>
                     void run(async () => {
@@ -1127,7 +1128,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                   }
                 >
                   <Plus size={15} /> Add
-                </button>
+                </Button>
               </div>
               {checks.data?.map((c: PMSChecklistItem, index) => (
                 <div className="tw-check" key={c.id}>
@@ -1207,14 +1208,14 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                   <span>{c.status}</span>
                 </Link>
               ))}
-              {embeddedTaskId && data.can_manage && (addingChild ? <InlineSubtaskComposer parent={task} onCreated={() => {setAddingChild(false);refresh();onTaskChanged?.();}} onCancel={() => setAddingChild(false)}/> : <button onClick={() => setAddingChild(true)}><Plus size={15}/>Create subtask</button>)}
+              {embeddedTaskId && data.can_manage && (addingChild ? <SmartCreateSection nested title="Create subtask" autoOpen closeOnRecordSaved={false} onClose={()=>setAddingChild(false)}><InlineSubtaskComposer parent={task} onCreated={() => {setAddingChild(false);refresh();onTaskChanged?.();}} onCancel={() => setAddingChild(false)}/></SmartCreateSection> : <Button type="submit" variant="default" onClick={() => setAddingChild(true)}><Plus size={15}/>Create subtask</Button>)}
               {!embeddedTaskId && data.can_manage && (
-                <Link
+                <Button asChild variant="default"><Link
                   className="tw-link-button"
                   to={`/pms/tasks/new?projectId=${task.project_id}&parentTaskId=${id}&workType=Sub-task`}
                 >
                   <Plus size={15} /> Create subtask
-                </Link>
+                </Link></Button>
               )}
             </section>
           )}
@@ -1282,13 +1283,13 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
                     />
                   </label>
                   <div className="tw-buttons">
-                    <button
+                    <Button type="submit" variant="outline"
                       className="tw-submit"
                       disabled={busy}
                       onClick={() => void action("approve")}
                     >
                       Approve & complete
-                    </button>
+                    </Button>
                     <button
                       disabled={busy || !feedback.trim()}
                       onClick={() => void action("rework")}

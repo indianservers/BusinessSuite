@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import RecordActions, { RecordSummary } from "./RecordActions";
@@ -104,9 +105,9 @@ export default function CalendarTaskChip({
               >
                 <RecordSummary record={record} people={people} />
                 <footer>
-                  <button className="pms-preview-open" onClick={open}>
+                  <Button type="submit" variant="outline" className="pms-preview-open" onClick={open}>
                     Open task
-                  </button>
+                  </Button>
                   <Popover.Close aria-label="Close task preview">
                     Close
                   </Popover.Close>

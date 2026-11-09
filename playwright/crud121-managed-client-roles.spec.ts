@@ -1,6 +1,6 @@
 import {test,expect} from "../frontend/node_modules/playwright/test";
 import {installNativeActor} from "./crud121-ui-actor";
-const BASE="http://127.0.0.1:1582";
+const BASE=process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:1582';
 test.setTimeout(240000);
 test("/pms/clients creator editor and deleter each operate only their granted action",async({page,browser,request})=>{
  const name="Scoped role client "+Date.now();

@@ -187,10 +187,16 @@ def prepare_engagement_email(db, limit=25):
                         count += 1
                     db.commit()
                     if not employees.first():
-                        marker = db.query(EmailOutbox).filter_by(event_key=f"broadcast:{model.__tablename__}:{source.id}").first()
-                        if marker:
-                            marker.status = "expanded"
-                            db.commit()
+                        # This is a non-deliverable broadcast checkpoint, not a
+                        # recipient change. Old checkpoints can reference a global
+                        # admin outside the scoped employee directory. Update only
+                        # status through the company-guarded ORM statement rather
+                        # than revalidating that historical recipient on flush.
+                        db.query(EmailOutbox).filter_by(
+                            event_key=f"broadcast:{model.__tablename__}:{source.id}",
+                            organization_id=company, status="broadcast",
+                        ).update({"status": "expanded"}, synchronize_session=False)
+                        db.commit()
             except Exception:
                 db.rollback()
     return count

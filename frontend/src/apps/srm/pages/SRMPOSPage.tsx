@@ -748,7 +748,7 @@ export default function SRMPOSPage() {
           {customerId>0&&<Button type="button" variant="outline" aria-label="Open customer 360" onClick={()=>setCustomerProfile(true)}>360°</Button>}
           {customerProfile&&customerId>0&&<CompanyProfile id={customerId} source="srm" onClose={()=>setCustomerProfile(false)}/>}
           <Button type="button" variant="outline" className="h-11 shrink-0 border-slate-200 bg-white text-slate-950" onClick={() => setQuickAddOpen(true)}><Plus size={16}/>Quick add</Button>
-        </div>{customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <button type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</button></p>}</div>
+        </div>{customersQuery.isError && <p role="alert" className="mt-1 text-xs text-red-700">Unable to load customers. <Button variant="outline" type="button" className="underline" onClick={() => void customersQuery.refetch()}>Retry</Button></p>}</div>
         <Button className="h-11 bg-[#3157d8] px-6 text-white hover:bg-[#2748b8]" onClick={() => openPayment("Cash")}><CreditCard className="h-4 w-4" />Payment [F7]</Button>
       </section>
 
@@ -832,7 +832,7 @@ export default function SRMPOSPage() {
             <NativeSelect aria-label="Sort catalogue" className="rounded border p-2 text-sm" value={catalogSort} onChange={e => setCatalogSort(e.target.value)}><option value="name">Name</option><option value="price">Price: low to high</option></NativeSelect>
           </div>
           {productsQuery.isLoading && <div role="status" aria-label="Loading products and services" aria-busy="true"><span className="sr-only">Loading products and services</span><div aria-hidden="true" className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 motion-safe:animate-pulse">{Array.from({length:10},(_,i)=><div key={i} className="overflow-hidden rounded-xl border bg-white"><div className="h-20 bg-slate-100"/><div className="space-y-3 p-3"><div className="h-3 w-4/5 rounded bg-slate-100"/><div className="h-3 w-1/2 rounded bg-slate-100"/><div className="h-4 w-1/3 rounded bg-slate-100"/></div></div>)}</div></div>}
-          {productsQuery.isError && <p role="alert">Unable to load the catalog. <button type="button" className="underline" onClick={() => void productsQuery.refetch()}>Retry</button></p>}
+          {productsQuery.isError && <p role="alert">Unable to load the catalog. <Button variant="outline" type="button" className="underline" onClick={() => void productsQuery.refetch()}>Retry</Button></p>}
           {!productsQuery.isLoading && !productsQuery.isError && !filteredProducts.length && <p className="rounded-lg border border-dashed p-6 text-sm text-slate-600">No active products or services match this view. Add an item in the shared catalog or change your filters.</p>}
           {productView === "details" ? (
             <div className="srm-pos-product-details overflow-x-auto rounded-2xl border border-white bg-white shadow-sm">

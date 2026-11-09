@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { IconActionButton } from "@/components/actions";
 import { savedWithUndo } from "@/components/actions/undo-feedback";
@@ -621,9 +622,9 @@ export default function RecordActions({
               restore it from Trash. {kind === "project" && "Its tasks and files remain attached and become accessible again when the project is restored."}
             </Dialog.Description>
             <div>
-              <button disabled={busy} onClick={() => setConfirmTrash(false)}>
+              <Button type="submit" variant="outline" disabled={busy} onClick={() => setConfirmTrash(false)}>
                 Cancel
-              </button>
+              </Button>
               <button
                 className="danger"
                 disabled={busy}

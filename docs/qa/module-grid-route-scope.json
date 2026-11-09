@@ -1730,5 +1730,29 @@
   {
     "module": "CRM",
     "route": "/crm/statistics/overdue"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/workspaces"
+  },
+  {
+    "module": "PMS",
+    "route": "/pms/admin/workspaces"
+  },
+  {
+    "module": "CRM",
+    "route": "/crm/workspaces"
+  },
+  {
+    "module": "HRMS",
+    "route": "/hrms/workspaces"
+  },
+  {
+    "module": "Finance",
+    "route": "/fam/workspaces"
+  },
+  {
+    "module": "Sales",
+    "route": "/srm/workspaces"
   }
 ]

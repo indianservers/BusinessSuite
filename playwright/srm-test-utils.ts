@@ -67,6 +67,12 @@ export async function installApiStubs(page: Page, user = users.srm_admin) {
 
     if (path.includes("/auth/me")) {
       body = { id: user.id, email: user.email, role: { name: user.role }, is_superuser: user.is_superuser, employee_id: user.employee_id };
+    } else if (path.startsWith("/accounting-sync/")) {
+      body = {items:[],total:0,sources:[],basis:"QA accounting fixture",undated_records:0};
+    } else if (path === "/master-data/companies") {
+      body = {items:[],total:0,canCreate:true};
+    } else if (path === "/access/settings/defaults/effective") {
+      body = { values: {}, modules: {}, companyId: 1, branchId: 1 };
     } else if (path === "/access/settings" || path.startsWith("/access/settings/")) {
       const options = [["sales", "Sales settings"]].map(([id,title]) => ({id,title,group:"Configuration",description:title,destination:null,scope:"company",editable:true}));
       body = path === "/access/settings" ? {companyId:1,companyName:"Workflow test company",options} : options.find(option => path.endsWith("/"+option.id));

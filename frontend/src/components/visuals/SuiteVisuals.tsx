@@ -25,7 +25,7 @@ export function SuiteAvatar({ name, src, kind = "person", size = 40 }: {
   const url = src ? assetUrl(src) : undefined;
   const business = kind === "company" || kind === "vendor";
   return <span className={`suite-avatar suite-avatar--${kind}`} style={{ width: size, height: size } as CSSProperties}>
-    {url && url !== failed ? <img src={url} alt={name} loading="lazy" onError={() => setFailed(url)} /> :
+    {url && url !== failed ? <img src={url} alt={name} loading="lazy" decoding="async" width={size} height={size} onError={() => setFailed(url)} /> :
       <svg viewBox="0 0 80 80" role="img" aria-label={`Generic ${kind} picture for ${name}`}>
         <rect width="80" height="80" rx={business ? 18 : 40} fill={business ? "#e0f2f1" : "#ede9fe"}/>
         <circle cx="65" cy="13" r="23" fill={business ? "#b2dfdb" : "#ddd6fe"}/>

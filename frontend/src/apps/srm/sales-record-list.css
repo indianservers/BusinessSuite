@@ -11,3 +11,8 @@
 .srm-record-workspace .srm-record-name{min-width:0;max-width:100%}
 .srm-record-workspace .srm-record-name>[aria-hidden]{display:inline-flex;flex:none}
 .srm-record-workspace .srm-record-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Commercial list creation uses the same primary control as Projects. */
+.srm-record-workspace .srm-create-record{background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground));min-height:32px;height:32px;border-radius:7px;font-size:11px}
+.srm-record-workspace .srm-create-record:hover{background:hsl(var(--primary)/.9)}
+@media(max-width:640px){.srm-record-workspace .srm-create-record{min-height:40px;height:auto}}

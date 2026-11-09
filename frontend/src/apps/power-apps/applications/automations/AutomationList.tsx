@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
 import GridTable from "@/shared/data-grid/GridTable";
@@ -65,6 +66,14 @@ export function AutomationList({
   const [renaming, setRenaming] = useState<number | null>(null),
     [newName, setNewName] = useState("");
   useEffect(() => {
+    const created = (event: Event) => {
+      const detail = (event as CustomEvent<{destination?: string}>).detail;
+      if (detail?.destination === "/power-apps/automations/new") setRefresh(value => value + 1);
+    };
+    window.addEventListener("suite:creation-completed", created);
+    return () => window.removeEventListener("suite:creation-completed", created);
+  }, []);
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       setQuery(search);
       setOffset(0);
@@ -124,7 +133,7 @@ export function AutomationList({
         </div>
         <button onClick={() => navigate(studioPath("/power-apps/automations/executions", environment))}><FileClock size={16} /> Executions</button>
         {can("create") && (
-          <button
+          <Button type="submit" variant="default"
             className="pa-primary"
             onClick={() =>
               navigate(studioPath("/power-apps/automations/new", environment))
@@ -132,7 +141,7 @@ export function AutomationList({
           >
             <Plus size={16} />
             New automation
-          </button>
+          </Button>
         )}
       </div>
       <div className="al-tabs" role="tablist" aria-label="Automation views">
@@ -174,7 +183,7 @@ export function AutomationList({
       {error && (
         <div className="pa-error" role="alert">
           {error}
-          <button onClick={() => setRefresh((v) => v + 1)}>Retry</button>
+          <Button type="submit" variant="outline" onClick={() => setRefresh((v) => v + 1)}>Retry</Button>
         </div>
       )}
       {busy ? (
@@ -329,11 +338,11 @@ export function AutomationList({
                   </td>
                   <td>
                     <Dropdown.Root>
-                      <Dropdown.Trigger asChild><button type="button" aria-label={`Workflow actions for ${row.name}`} onClick={event => event.stopPropagation()}>
+                      <Dropdown.Trigger asChild><Button data-overflow-trigger variant="outline" type="button" aria-label={`Workflow actions for ${row.name}`} onClick={event => event.stopPropagation()}>
                         <MoreHorizontal size={19} />
-                      </button></Dropdown.Trigger>
+                      </Button></Dropdown.Trigger>
                       <Dropdown.Portal><Dropdown.Content align="end" sideOffset={6} className="z-[180] min-w-48 rounded-lg border bg-popover p-2 text-popover-foreground shadow-lg [&_button]:flex [&_button]:w-full [&_button]:items-center [&_button]:gap-2 [&_button]:rounded [&_button]:px-3 [&_button]:py-2 [&_button]:text-left [&_button:hover]:bg-muted [&_button:disabled]:opacity-50" onClick={event => event.stopPropagation()}>
-                        <Dropdown.Item asChild><button onClick={() => open(row)}>Open workflow</button></Dropdown.Item>
+                        <Dropdown.Item asChild><Button type="submit" variant="outline" onClick={() => open(row)}>Open workflow</Button></Dropdown.Item>
                         <Dropdown.Item asChild><button
                           disabled={!can("edit") || Boolean(row.archived_at)}
                           onClick={() => {
@@ -343,7 +352,7 @@ export function AutomationList({
                         >
                           Rename
                         </button></Dropdown.Item>
-                        <Dropdown.Item asChild><button
+                        <Dropdown.Item asChild><Button type="submit" variant="outline"
                           disabled={!can("create") || mutating}
                           onClick={() =>
                             void action(async () =>
@@ -355,7 +364,7 @@ export function AutomationList({
                         >
                           <Copy size={13} />
                           Duplicate
-                        </button></Dropdown.Item>
+                        </Button></Dropdown.Item>
                         <Dropdown.Item asChild><button onClick={() => open(row, "versions")}>
                           <FileClock size={13} />
                           Version history
@@ -375,7 +384,7 @@ export function AutomationList({
                           <Archive size={13} />
                           {row.archived_at ? "Unarchive" : "Archive draft"}
                         </button></Dropdown.Item>
-                        <Dropdown.Item asChild><button
+                        <Dropdown.Item asChild><Button type="submit" variant="outline"
                           className="pa-delete"
                           disabled={!can("delete") || mutating}
                           onClick={() => {
@@ -391,7 +400,7 @@ export function AutomationList({
                         >
                           <Trash2 size={13} />
                           Delete
-                        </button></Dropdown.Item>
+                        </Button></Dropdown.Item>
                       </Dropdown.Content></Dropdown.Portal>
                     </Dropdown.Root>
                   </td>
@@ -423,7 +432,7 @@ export function AutomationList({
           </p>
           {can("create") && !["published", "disabled"].includes(view) && (
             <div>
-              <button
+              <Button type="submit" variant="default"
                 className="pa-primary"
                 onClick={() =>
                   navigate(
@@ -433,7 +442,7 @@ export function AutomationList({
               >
                 <Plus size={14} />
                 Create automation
-              </button>
+              </Button>
               <button onClick={() => setView("templates")}>
                 Explore templates
                 <ArrowRight size={14} />

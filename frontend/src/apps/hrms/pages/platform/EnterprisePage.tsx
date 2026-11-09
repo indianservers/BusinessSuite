@@ -173,12 +173,14 @@ function PrivacyOps() {
 
 function IpPolicies() {
   const qc = useQueryClient();
+  const [completionRevision, setCompletionRevision] = useState(0);
   const [draft, setDraft] = useState<IpPolicy>({ cidr: "", action: "allow", description: "", is_active: true });
   const policies = useQuery({ queryKey: ["ip-policies"], queryFn: () => authApi.ipPolicies().then((r) => r.data as IpPolicy[]) });
   const save = useMutation({
     mutationFn: () => draft.id ? authApi.updateIpPolicy(draft.id, draft) : authApi.createIpPolicy(draft),
     onSuccess: () => {
       toast({ title: "IP policy saved" });
+      setCompletionRevision(value => value + 1);
       setDraft({ cidr: "", action: "allow", description: "", is_active: true });
       qc.invalidateQueries({ queryKey: ["ip-policies"] });
     },
@@ -186,16 +188,16 @@ function IpPolicies() {
   });
   return (
     <div className="grid gap-5 xl:grid-cols-[360px_1fr]">
-      <Card>
+      <SmartCreateSection title="Add IP policy" inline={!!draft.id} completionRevision={completionRevision} closeOnRecordSaved={false}><Card>
         <CardHeader><CardTitle className="text-base">{draft.id ? "Edit" : "Add"} IP Policy</CardTitle><CardDescription>Blocklist entries always win. If any allowlist entry is active, unmatched IPs are rejected.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <Field label="CIDR"><Input placeholder="203.0.113.0/24" value={draft.cidr} onChange={(e) => setDraft({ ...draft, cidr: e.target.value })} /></Field>
-          <Field label="Action"><NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.action} onChange={(e) => setDraft({ ...draft, action: e.target.value as "allow" | "block" })}><option value="allow">Allow</option><option value="block">Block</option></NativeSelect></Field>
-          <Field label="Description"><Input value={draft.description || ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
+          <Field label="CIDR"><Input aria-label="CIDR" placeholder="203.0.113.0/24" value={draft.cidr} onChange={(e) => setDraft({ ...draft, cidr: e.target.value })} /></Field>
+          <Field label="Action"><NativeSelect aria-label="Action" className="h-10 rounded-md border bg-background px-3 text-sm" value={draft.action} onChange={(e) => setDraft({ ...draft, action: e.target.value as "allow" | "block" })}><option value="allow">Allow</option><option value="block">Block</option></NativeSelect></Field>
+          <Field label="Description"><Input aria-label="Description" value={draft.description || ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.is_active} onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })} />Active</label>
           <Button onClick={() => save.mutate()} disabled={!draft.cidr || save.isPending}>Save Policy</Button>
         </CardContent>
-      </Card>
+      </Card></SmartCreateSection>
       <Card>
         <CardHeader><CardTitle className="text-base">IP Allowlist / Blocklist</CardTitle></CardHeader>
         <CardContent>
@@ -226,7 +228,9 @@ function SecurityPolicy() {
     mutationFn: () => authApi.enforceMfaPolicy(draft!.id),
     onSuccess: (res) => { toast({ title: "MFA enforcement enabled", description: `${res.data.users_without_mfa} users still need setup.` }); qc.invalidateQueries({ queryKey: ["password-policies"] }); },
   });
-  if (!draft) return <div className="h-40 animate-pulse rounded bg-muted" />;
+  if (policies.isPending) return <div role="status" className="h-40 animate-pulse rounded bg-muted"><span className="sr-only">Loading security policy…</span></div>;
+  if (policies.isError) return <div role="alert" className="rounded-md border p-4 text-sm">Security policy could not load. <Button variant="outline" onClick={() => void policies.refetch()}>Retry</Button></div>;
+  if (!draft) return <div className="space-y-5"><div className="rounded-md border bg-card p-4 text-sm">No security policy configured. Password and MFA settings will be available after a policy is configured.</div><Card><CardHeader><CardTitle className="text-base">Login Attempt Log</CardTitle></CardHeader><CardContent><AttemptsTable rows={attempts.data || []} /></CardContent></Card></div>;
   const patch = (changes: Partial<Policy>) => setDraft((current) => current ? { ...current, ...changes } : current);
   return (
     <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">

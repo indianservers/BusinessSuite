@@ -34,7 +34,7 @@ function StarterValues() {
     <p className="rounded-lg border p-3 text-sm">Leave allowances and shift times are starter examples. Review them for your company. Salary amounts start at zero; configure amounts and tax treatment before running payroll.</p>
     <p className="text-sm">Currency, country, timezone, priorities, and other form choices are already available in <Link className="font-medium underline" to="/settings/business-defaults">Defaults</Link>.</p>
     {query.isPending && <p role="status">Loading starter values…</p>}
-    {query.isError && <p role="alert">Could not load starter values. <button className="underline" onClick={() => void query.refetch()}>Retry</button></p>}
+    {query.isError && <p role="alert">Could not load starter values. <Button type="submit" variant="outline" className="underline" onClick={() => void query.refetch()}>Retry</Button></p>}
     {query.data?.groups.map(group => <article className="rounded-xl border p-5" key={group.key}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{group.title}</h2><Button disabled={!!busy} onClick={() => void add(group.key)}>{busy === group.key ? "Adding…" : "Add starter values"}</Button></div><ul className="my-4 grid list-inside list-disc gap-2 text-sm sm:grid-cols-2">{group.values.map(value => <li key={value}>{value}</li>)}</ul><Link className="text-sm font-medium underline" to={group.destination}>Manage in Settings</Link>{group.key === "hrms" && <div className="mt-2 flex flex-wrap gap-4 text-sm"><Link className="underline" to="/settings/salaryComponents">Salary components</Link><Link className="underline" to="/settings/shifts">Shifts</Link><Link className="underline" to="/settings/departments">Departments</Link><Link className="underline" to="/settings/designations">Designations</Link></div>}</article>)}
     {query.data && !query.data.groups.length && <p>No supported applications are enabled for this company.</p>}
     {message && <p role="status" className="text-sm">{message}</p>}{error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -51,7 +51,7 @@ function LeadSources() {
   const query = useQuery({ queryKey: ["lead-source-settings", defaultsScope()], queryFn: () => api.get<{ sources: string[]; defaults: string[] }>(endpoint).then(r => r.data), refetchOnWindowFocus: false });
   useEffect(() => { if (query.data) setText(query.data.sources.join("\n")); }, [query.data]);
   if (query.isPending) return <p role="status">Loading lead sources…</p>;
-  if (query.isError) return <p role="alert">Could not load lead sources. <button onClick={() => void query.refetch()}>Retry</button></p>;
+  if (query.isError) return <p role="alert">Could not load lead sources. <Button type="submit" variant="outline" onClick={() => void query.refetch()}>Retry</Button></p>;
   return <form className="max-w-2xl space-y-4" onSubmit={async event => {
     event.preventDefault(); if (busy) return;
     setBusy(true); setError(""); setMessage("");

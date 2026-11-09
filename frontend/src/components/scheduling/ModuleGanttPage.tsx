@@ -1,3 +1,4 @@
+import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
 import { useId, useMemo, useRef, useState, type PointerEvent } from "react";
@@ -57,6 +58,7 @@ export default function ModuleGanttPage({ module }: { module: Module }) {
   const [saving, setSaving] = useState(false); const saveLock = useRef(false);
   const [error, setError] = useState(""); const [notice, setNotice] = useState("");
   const [drag, setDrag] = useState<Drag | null>(null); const dragRef = useRef<Drag | null>(null);
+  const [dependencyCompletion, setDependencyCompletion] = useState(0);
   const [linkSource, setLinkSource] = useState(""); const [linkTarget, setLinkTarget] = useState("");
   const [linkType, setLinkType] = useState<Dependency["type"]>("FS"); const [lag, setLag] = useState("0");
   const scroll = useRef<HTMLDivElement>(null);
@@ -139,7 +141,7 @@ export default function ModuleGanttPage({ module }: { module: Module }) {
     try {
       if (id) await api.delete(`${url}/dependencies/${id}`, { params: { revision: schedule.data.revision } });
       else await api.post(`${url}/dependencies`, { source_id: linkSource, target_id: linkTarget, type: linkType, lag: Number(lag), revision: schedule.data.revision });
-      await refresh(); setNotice(id ? "Dependency removed." : "Dependency saved.");
+      await refresh(); if (!id) setDependencyCompletion(value=>value+1); setNotice(id ? "Dependency removed." : "Dependency saved.");
     } catch (cause) { setError(errorMessage(cause)); await refresh(); }
     finally { saveLock.current = false; setSaving(false); }
   };
@@ -198,12 +200,12 @@ export default function ModuleGanttPage({ module }: { module: Module }) {
     </>}
     {schedule.data && !schedule.isError && <Card className="space-y-3 p-4">
       <h2 className="text-lg font-semibold">Dependencies</h2><p className="text-sm text-muted-foreground">Saved links between these records. Amber arrows flag unmet constraints. Linked records are not automatically rescheduled.</p>
-      {normalized.some(row => row.canEdit) && <CompactForm onSubmit={event => { event.preventDefault(); void mutateLink(); }}><fieldset disabled={busy} className="flex flex-wrap items-end gap-3">
+      {normalized.some(row => row.canEdit) && <SmartCreateSection title="Add dependency" closeOnRecordSaved={false} completionRevision={dependencyCompletion}>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<CompactForm onSubmit={event => { event.preventDefault(); void mutateLink(); }}><fieldset disabled={busy} className="flex flex-wrap items-end gap-3">
         <label>Predecessor<NativeSelect loading={query.isFetching} error={query.isError} aria-label="Predecessor" className="block max-w-[250px] rounded border bg-background p-2" value={linkSource} onChange={event => setLinkSource(event.target.value)}><option value="">Choose a record</option>{normalized.filter(row => row.canEdit).map(row => <option key={row.id} value={row.id}>{row.title}</option>)}</NativeSelect></label>
         <label>Successor<NativeSelect loading={query.isFetching} error={query.isError} aria-label="Successor" className="block max-w-[250px] rounded border bg-background p-2" value={linkTarget} onChange={event => setLinkTarget(event.target.value)}><option value="">Choose a record</option>{normalized.filter(row => row.canEdit && row.id !== linkSource).map(row => <option key={row.id} value={row.id}>{row.title}</option>)}</NativeSelect></label>
         <label>Type<NativeSelect aria-label="Dependency type" className="block rounded border bg-background p-2" value={linkType} onChange={event => setLinkType(event.target.value as Dependency["type"])}>{["FS", "SS", "FF", "SF"].map(type => <option key={type}>{type}</option>)}</NativeSelect></label>
-        <label>Lag days<Input aria-label="Lag days" type="number" step="1" min="-3650" max="3650" value={lag} onChange={event => setLag(event.target.value)} className="w-24" /></label><Button disabled={!linkSource || !linkTarget}>Add dependency</Button>
-      </fieldset></CompactForm>}
+        <label>Lag days<Input aria-label="Lag days" type="number" step="1" min="-3650" max="3650" value={lag} onChange={event => setLag(event.target.value)} className="w-24" /></label><Button data-save-action disabled={!linkSource || !linkTarget}>Add dependency</Button>
+      </fieldset></CompactForm></SmartCreateSection>}
       <ul className="space-y-2">{schedule.data.dependencies.map(link => <li key={link.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-2 text-sm"><span>{normalized.find(row => row.id === link.source_id)?.title} &rarr; {normalized.find(row => row.id === link.target_id)?.title} - {link.type} - {link.lag}d</span>{normalized.find(row => row.id === link.source_id)?.canEdit && normalized.find(row => row.id === link.target_id)?.canEdit && <Button variant="outline" size="sm" disabled={busy} onClick={() => void mutateLink(link.id)}>Remove dependency</Button>}</li>)}</ul>
       {!schedule.data.dependencies.length && <p className="text-sm text-muted-foreground">No dependencies yet.</p>}
     </Card>}

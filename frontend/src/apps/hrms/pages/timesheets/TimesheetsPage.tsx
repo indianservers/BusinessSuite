@@ -1,9 +1,12 @@
+import "./timesheets-mobile.css";
+import { useMobile } from "@/components/mobile/useMobile";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import RecordMaintenance from "@/components/RecordMaintenance";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, FolderKanban, Plus, Send, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,6 +68,7 @@ function statusTone(status: string) {
 
 export default function TimesheetsPage() {
   usePageTitle("Timesheets");
+  const phone = useMobile(480), entryFields = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const roleKey = getRoleKey(user?.role, user?.is_superuser);
@@ -87,15 +91,18 @@ export default function TimesheetsPage() {
     task_name: "",
   });
 
-  const { data: projects = [] } = useQuery({
+  const projectQuery = useQuery({
     queryKey: ["timesheet-projects"],
     queryFn: () => timesheetsApi.projects({ status: "Active" }).then((r) => r.data as Project[]),
   });
 
-  const { data: sheets = [] } = useQuery({
+  const sheetQuery = useQuery({
     queryKey: ["timesheets"],
     queryFn: () => timesheetsApi.list().then((r) => r.data as Timesheet[]),
   });
+
+  const projects = projectQuery.data || [];
+  const sheets = sheetQuery.data || [];
 
   const projectById = useMemo(
     () => new Map((projects as Project[]).map((project) => [project.id, project])),
@@ -188,7 +195,7 @@ export default function TimesheetsPage() {
   }, [sheets]);
 
   return (
-    <div className="space-y-6">
+    <div className="hrms-timesheets-page space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="page-title">Timesheets</h1>
@@ -196,23 +203,26 @@ export default function TimesheetsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {phone && projectQuery.isError && <p role="alert">Projects could not load. <Button variant="outline" onClick={() => projectQuery.refetch()}>Retry projects</Button></p>}
+      {phone && sheetQuery.isPending && <p role="status">Loading timesheets…</p>}
+      {phone && sheetQuery.isError && <p role="alert">Timesheets could not load. <Button variant="outline" onClick={() => sheetQuery.refetch()}>Retry timesheets</Button></p>}
+      <div className="hrms-timesheet-kpis grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Recorded hours</p>
-            <p className="text-2xl font-bold mt-1">{totals.total.toFixed(1)}</p>
+            <p className="text-2xl font-bold mt-1">{phone && !sheetQuery.data ? "—" : totals.total.toFixed(1)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Billable hours</p>
-            <p className="text-2xl font-bold mt-1">{totals.billable.toFixed(1)}</p>
+            <p className="text-2xl font-bold mt-1">{phone && !sheetQuery.data ? "—" : totals.billable.toFixed(1)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Awaiting approval</p>
-            <p className="text-2xl font-bold mt-1">{totals.submitted}</p>
+            <p className="text-2xl font-bold mt-1">{phone && !sheetQuery.data ? "—" : totals.submitted}</p>
           </CardContent>
         </Card>
       </div>
@@ -220,7 +230,7 @@ export default function TimesheetsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
         <div className="space-y-4">
           {canManageProjects && (
-            <Card>
+            <MobileDisclosure title="Projects & setup" maxWidth={480}><Card className="hrms-timesheet-projects-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <FolderKanban className="h-4 w-4" />
@@ -228,7 +238,7 @@ export default function TimesheetsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <SmartCreateSection title="Create timesheet project" size="standard"><div className="space-y-4"><div className="grid grid-cols-2 gap-3">
+                <SmartCreateSection title="Create timesheet project" size="standard" mobileSheet={phone}><div className="hrms-timesheet-project-form space-y-4"><div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Code</Label>
                     <Input aria-label="Timesheet project code" value={projectForm.code} onChange={(e) => setProjectForm({ ...projectForm, code: e.target.value })} />
@@ -251,11 +261,11 @@ export default function TimesheetsPage() {
                   Add Project
                 </Button></div></SmartCreateSection><details><summary>Manage timesheet projects</summary>{projects.map(project=><div key={project.id} className="flex items-center justify-between gap-2 border-t py-2"><span>{project.name}</span><RecordMaintenance record={project as unknown as Record<string,unknown>} name={project.name} endpoint={`/timesheets/projects/${project.id}`} fields={[{key:"code",label:"Project code",required:true},{key:"name",label:"Project name",required:true}]} queryKeys={["timesheet-projects"]} canEdit={canManageProjects} canDelete={canManageProjects} mergeRecord/></div>)}</details>
               </CardContent>
-            </Card>
+            </Card></MobileDisclosure>
           )}
 
           {canCreateSheet && (
-            <SmartCreateSection title="Create timesheet" size="standard"><Card>
+            <SmartCreateSection title="Create timesheet" size="standard" mobileSheet={phone}><Card className="hrms-timesheet-create-card">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Clock3 className="h-4 w-4" />
@@ -266,7 +276,7 @@ export default function TimesheetsPage() {
                 <div className="space-y-1.5">
                   <Label>Project</Label>
                   <NativeSelect
-                    aria-label="Timesheet project" value={sheetForm.project_id}
+                    loading={phone && projectQuery.isFetching} error={phone && projectQuery.isError} aria-label="Timesheet project" value={sheetForm.project_id}
                     onChange={(e) => setSheetForm({ ...sheetForm, project_id: e.target.value })}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
@@ -300,7 +310,7 @@ export default function TimesheetsPage() {
         </div>
 
         <div className="space-y-4">
-          <Card>
+          {(!phone || !!sheetQuery.data) && <Card>
             <CardHeader>
               <CardTitle className="text-base">Timesheet Register</CardTitle>
             </CardHeader>
@@ -341,18 +351,18 @@ export default function TimesheetsPage() {
                             <td className="px-4 py-3">
                               <div className="flex flex-wrap gap-2">
                                 {sheet.status === "Draft" && canCreateSheet && (
-                                  <Button size="sm" variant="outline" className="h-8" onClick={() => submitSheet.mutate(sheet.id)}>
+                                  <Button size="sm" variant="outline" className="h-8" disabled={phone && submitSheet.isPending} onClick={() => submitSheet.mutate(sheet.id)}>
                                     <Send className="h-3.5 w-3.5 mr-1" />
                                     Submit
                                   </Button>
                                 )}
                                 {sheet.status === "Submitted" && canApprove && (
                                   <>
-                                    <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700 text-white" onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Approved" })}>
+                                    <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700 text-white" disabled={phone && reviewSheet.isPending} onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Approved" })}>
                                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                                       Approve
                                     </Button>
-                                    <Button size="sm" variant="outline" className="h-8 text-red-600 border-red-200" onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Rejected" })}>
+                                    <Button size="sm" variant="outline" className="h-8 text-red-600 border-red-200" disabled={phone && reviewSheet.isPending} onClick={() => reviewSheet.mutate({ id: sheet.id, status: "Rejected" })}>
                                       <XCircle className="h-3.5 w-3.5 mr-1" />
                                       Reject
                                     </Button>
@@ -368,17 +378,18 @@ export default function TimesheetsPage() {
                 </GridTable>
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {selectedSheet && selectedSheet.status === "Draft" && canCreateSheet && (
-            <SmartCreateSection title={<>Add Work Entry</>} size="standard"><Card>
+            <SmartCreateSection title={<>Add Work Entry</>} size="standard" mobileSheet={phone}><Card className="hrms-timesheet-entry-card">
               <CardHeader>
                 <CardTitle className="text-base">Add Work Entry</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-[160px_120px_140px_minmax(0,1fr)_auto] gap-3 items-end">
+              {phone && <p className="hrms-timesheet-entry-context">{projectById.get(selectedSheet.project_id)?.name || `Project #${selectedSheet.project_id}`} · {selectedSheet.period_start} to {selectedSheet.period_end}</p>}
+              <CardContent ref={entryFields} className="hrms-timesheet-entry-fields grid grid-cols-1 md:grid-cols-[160px_120px_140px_minmax(0,1fr)_auto] gap-3 items-end">
                 <div className="space-y-1.5">
                   <Label>Date</Label>
-                  <Input type="date" value={entryForm.work_date} onChange={(e) => setEntryForm({ ...entryForm, work_date: e.target.value })} />
+                  <Input aria-label={phone ? "Timesheet entry date" : undefined} type="date" value={entryForm.work_date} onChange={(e) => setEntryForm({ ...entryForm, work_date: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Hours</Label>
@@ -392,7 +403,7 @@ export default function TimesheetsPage() {
                   <Label>Task</Label>
                   <Input aria-label="Timesheet work description" value={entryForm.task_name} onChange={(e) => setEntryForm({ ...entryForm, task_name: e.target.value })} />
                 </div>
-                <Button onClick={() => addEntry.mutate()} disabled={!selectedSheet || addEntry.isPending}>
+                <Button onClick={() => { if (phone && !entryFields.current?.querySelector<HTMLInputElement>('input[type="number"]')?.reportValidity()) return; addEntry.mutate(); }} disabled={!selectedSheet || addEntry.isPending}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add
                 </Button>

@@ -137,7 +137,7 @@ export function NodeLibrary({
             <div className="as-library-group" key={group}>
               <h3>
                 {group}
-                <span>{rows.length}</span>
+                <span data-count-badge data-count-tone="purple">{rows.length}</span>
               </h3>
               {rows.map((def) => (
                 <div className="as-palette-row" key={def.id}>

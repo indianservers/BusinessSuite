@@ -31,3 +31,13 @@ def test_srm_pms_project_creation_is_idempotent(client, db, superuser_headers):
     assert second.json()["idempotent"] is True
     assert second.json()["project"]["id"] == first.json()["project"]["id"]
     assert db.query(PMSProject).filter(PMSProject.id == first.json()["project"]["id"]).count() == 1
+
+    # A removed linked project is not a successful retry and must not silently
+    # create a replacement with duplicate delivery/billing work.
+    from datetime import datetime, timezone
+    project = db.get(PMSProject, first.json()['project']['id'])
+    project.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+    missing = client.post(f"/api/v1/srm/engagements/{handoff['engagement']['id']}/create-pms-project", headers=superuser_headers)
+    assert missing.status_code == 409, missing.text
+    assert db.query(PMSProject).count() == 1

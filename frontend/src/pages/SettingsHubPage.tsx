@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import SetupReadiness from "@/components/suite/SetupReadiness";
 import StarterValuesSettings from "./settings/StarterValuesSettings";
 import SettingsDirectory, { settingsCategory, scopeLabel, type SettingsOption } from "./settings/SettingsDirectory";
@@ -106,7 +107,7 @@ export default function SettingsHubPage() {
 
       {catalog.isPending && <p role="status">Loading your allowed settings…</p>}
 
-      {catalog.isError && <div role="alert" className="settings-panel">{errorMessage(catalog.error)} <button onClick={()=>void catalog.refetch()}>Retry</button></div>}
+      {catalog.isError && <div role="alert" className="settings-panel">{errorMessage(catalog.error)} <Button type="submit" variant="outline" onClick={()=>void catalog.refetch()}>Retry</Button></div>}
 
       {catalog.isSuccess && section && (!option || selected.isError) && <section className="settings-panel" role="alert"><h2>Setting unavailable</h2><p>Your current permissions do not allow this setting in this company.</p><Link to="/settings">Return to allowed settings</Link></section>}
 
@@ -117,7 +118,7 @@ export default function SettingsHubPage() {
 
       {section && option && selected.isSuccess && <SettingsEditorFrame key={`${company}-${section}`} section={section}><div className="settings-section-context"><ShieldCheck size={16}/><span>{scopeLabel(option)}{!option.editable?" · Read only":" · Changes apply within this scope"}</span></div>
 
-        {["starter-values", "crm-lead-sources"].includes(section) ? <StarterValuesSettings section={section}/> : section === "appearance" ? <HomepageBannerSettings key={String(company)}/> : section === "company-profile" ? <CompanyProfile key={`${catalog.data?.companyId}-${section}`}/> : section==="branches" ? <Suspense fallback={<p role="status">Loading branches...</p>}><BranchSettings/></Suspense> : section==="users" ? <Suspense fallback={<p role="status">Loading users...</p>}><UsersAccess embedded/></Suspense> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : centralEditorKeys.has(section) ? <CentralSettingsEditor key={section} section={section}/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></section>}
+        {["starter-values", "crm-lead-sources"].includes(section) ? <StarterValuesSettings section={section}/> : section === "appearance" ? <HomepageBannerSettings key={String(company)}/> : section === "company-profile" ? <CompanyProfile key={`${catalog.data?.companyId}-${section}`}/> : section==="branches" ? <Suspense fallback={<p role="status">Loading branches...</p>}><BranchSettings/></Suspense> : section==="users" ? <Suspense fallback={<p role="status">Loading users...</p>}><UsersAccess embedded/></Suspense> : section==="account" ? <AccountSettings/> : section==="preferences" ? <Preferences/> : centralEditorKeys.has(section) ? <CentralSettingsEditor key={section} section={section}/> : masterKeys.has(section) ? <Suspense fallback={<p role="status">Loading configuration…</p>}><SetupMasters key={section} section={section as any}/></Suspense> : <section className="settings-panel"><h2>{option.title}</h2><p>{option.description}</p><p>Changes apply within your authorized company, team or project scope.</p><Button asChild variant="outline"><Link className="settings-primary" to={selected.data.destination!}>Open {option.title}<ArrowRight size={17}/></Link></Button></section>}
 
         {option.historyAvailable?<SettingsHistory section={section}/>:catalog.data?.options.some(o=>o.id==="audit")&&!["account","preferences","audit"].includes(section)?<Link className="settings-history-link" to="/settings/audit">View company change history <ArrowRight size={15}/></Link>:null}
 
@@ -175,7 +176,7 @@ function CompanyProfile({ defaultsOnly = false }: { defaultsOnly?: boolean }) {
 
  if(profile.isPending)return <p role="status">Loading company profile…</p>;
 
- if(profile.isError)return <p role="alert">{errorMessage(profile.error)} <button onClick={()=>void profile.refetch()}>Retry</button></p>;
+ if(profile.isError)return <p role="alert">{errorMessage(profile.error)} <Button type="submit" variant="outline" onClick={()=>void profile.refetch()}>Retry</Button></p>;
 
  const isDefault=(key:string)=>["default_timezone","default_currency","working_days_per_week","fiscal_year_start_month"].includes(key);
 

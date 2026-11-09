@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { memo, useEffect } from "react";
 import {
   useUpdateNodeInternals,
@@ -61,7 +62,7 @@ function NodeCard({ data, selected }: NodeProps<CanvasNode>) {
           <NodeIcon name={definition.icon} nodeType={definition.id} size={60} />
         </span>
         <span className="as-node-category">{definition.category}</span>
-        <button
+        <Button data-overflow-trigger type="submit" variant="outline"
           className="nodrag nopan as-node-menu"
           aria-label={`Actions for ${node.label}`}
           onClick={(e) => {
@@ -70,7 +71,7 @@ function NodeCard({ data, selected }: NodeProps<CanvasNode>) {
           }}
         >
           <MoreHorizontal size={17} />
-        </button>
+        </Button>
       </div>
       {data.simulation && (
         <small className={`ai-node-state ${data.simulation}`}>

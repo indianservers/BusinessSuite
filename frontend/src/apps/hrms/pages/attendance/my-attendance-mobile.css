@@ -1,0 +1,13 @@
+@media(max-width:480px){
+ .hrms-my-attendance-page{min-width:0;font-size:14px;}
+ .hrms-my-attendance-page> :not([hidden])~:not([hidden]){margin-top:12px;}
+ .hrms-my-attendance-page .page-title{font-size:22px;line-height:1.25;}
+ .hrms-my-attendance-page .hrms-my-attendance-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+ .hrms-my-attendance-page .kf-card,.hrms-my-attendance-page .grid>*{min-width:0;}
+ .hrms-my-attendance-page .kf-card>div{padding:12px;}
+ .hrms-my-attendance-page .hrms-my-attendance-kpis .kf-card>div{padding:10px;}
+ .hrms-my-attendance-page :is(p,span){overflow-wrap:anywhere;}
+ .hrms-my-attendance-page :is(button,summary){min-height:44px;}
+ .hrms-my-attendance-page .mobile-disclosure .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+ .mobile-experience-sheet:has(input[aria-label="Attendance from date"]) input{font-size:16px;min-height:44px;min-width:0;max-width:100%;}
+}

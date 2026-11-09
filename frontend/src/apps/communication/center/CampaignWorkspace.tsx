@@ -1,4 +1,5 @@
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
+import { useCreateIntent } from "@/hooks/use-create-intent";
 import RecordMaintenance from "@/components/RecordMaintenance";
 import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -16,6 +17,7 @@ export default function CampaignWorkspace(){
   const canEdit=useDefinitionPermission(["communication_campaigns_manage"],"edit"),canDelete=useDefinitionPermission(["communication_campaigns_manage"],"delete");
   const scope=useCenterScope(),params=useParams(),cache=useQueryClient();
   const [selected,setSelected]=useState<number|null>(params.id?Number(params.id):null),[creating,setCreating]=useState(false),[name,setName]=useState(''),[template,setTemplate]=useState(''),[source,setSource]=useState('lead'),[segmentStatus,setSegmentStatus]=useState(''),[limit,setLimit]=useState(50);
+  useCreateIntent(kind => { if (/^campaigns?$/.test(kind) && canCreate) setCreating(true); });
   const [preview,setPreview]=useState<{id:number;data:Audience}|null>(null),[schedule,setSchedule]=useState(''),[zone,setZone]=useState(Intl.DateTimeFormat().resolvedOptions().timeZone),[review,setReview]=useState(''),[confirmed,setConfirmed]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
   const campaigns=useQuery({queryKey:['communication-campaigns',scope],queryFn:communicationApi.campaigns});
   const templates=useQuery({queryKey:['communication-templates',scope],queryFn:communicationApi.templates});
