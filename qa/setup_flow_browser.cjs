@@ -11,6 +11,7 @@ const browser=await chromium.launch();const context=await browser.newContext({vi
 await context.addInitScript(({login,actor,access})=>{sessionStorage.setItem('suite-organization','1');sessionStorage.setItem('suite-branch','1');sessionStorage.setItem('hrms-auth',JSON.stringify({state:{accessToken:login.access_token,refreshToken:login.refresh_token,isAuthenticated:true,user:{id:actor.id,email:actor.email,role:'admin',is_superuser:true,access}},version:0}));},{login,actor,access});
 const page=await context.newPage();page.on('pageerror',e=>console.log('PAGEERROR',e.message));
 fs.mkdirSync('outputs/setup-flow',{recursive:true});
+if(!process.env.SETUP_FLOW_RESUME){
 for(const path of ['/pms','/pms/tasks','/crm','/crm/tasks','/crm/workspaces']){
 await page.goto('http://127.0.0.1:5200'+path);await expect(page.getByRole('region',{name:'Workspace setup guide'})).toBeVisible({timeout:60000});
 console.log('GUIDE',path,await page.getByRole('region',{name:'Workspace setup guide'}).innerText());
@@ -47,6 +48,30 @@ dialog=page.getByRole('dialog');await dialog.getByRole('textbox',{name:'Workspac
 await dialog.getByRole('button',{name:'Create Workspace',exact:true}).click();await expect(dialog).toHaveCount(0);
 await expect(guide.locator('li').filter({has:page.getByText('Sales workspace',{exact:true})})).toContainText('Complete');
 console.log('PASS CRM: sales workspace created through UI and guide updated automatically');
-console.log('CRM REMAINING',await guide.innerText());
+}
+await page.goto('http://127.0.0.1:5200/crm/workspaces');
+let crmGuide=page.getByRole('region',{name:'Workspace setup guide'});await expect(crmGuide).toBeVisible();
+
+const settings=await context.newPage();
+await settings.goto('http://127.0.0.1:5200/settings/crm-pipelines');
+
+const existing=await api('/crm/pipelines');
+if(!(existing.items||existing).length){
+ await settings.getByRole('button',{name:'Create pipeline',exact:true}).click();
+ await settings.getByRole('textbox',{name:'New pipeline name',exact:true}).fill('Setup Browser Pipeline');
+ await settings.getByRole('button',{name:'Create pipeline',exact:true}).last().click();
+ await expect(settings.getByRole('textbox',{name:'New pipeline name',exact:true})).toHaveCount(0);
+}
+await expect(settings.getByRole('button',{name:'Add stage',exact:true})).toBeVisible({timeout:30000});
+await settings.getByRole('button',{name:'Add stage',exact:true}).click();
+await settings.getByRole('textbox',{name:/Stage name new:/}).fill('Qualified');
+await settings.getByRole('button',{name:'Save',exact:true}).click();
+await expect.poll(async()=> (await api('/access/setup')).moduleItems.find(i=>i.id==='pipeline').ready).toBe(true);
+console.log('PASS CRM: pipeline and named stage created through UI');
+await page.bringToFront();
+await expect(crmGuide).toHaveCount(0,{timeout:30000});
+await page.screenshot({path:'outputs/setup-flow/crm-complete.png'});
+console.log('PASS CRM: guide hides automatically after sales workspace and pipeline setup');
+
 await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
