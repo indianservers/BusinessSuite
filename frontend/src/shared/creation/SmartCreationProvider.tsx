@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createPath, parsePath, UNSAFE_LocationContext, UNSAFE_NavigationContext, type Location, type Navigator, type To, useLocation } from "react-router-dom";
+import { createPath, parsePath, matchRoutes, UNSAFE_LocationContext, UNSAFE_NavigationContext, type Location, type Navigator, type To, useLocation } from "react-router-dom";
+import { editNavigationActive, markEditNavigation } from "@/lib/edit-navigation";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import { recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
 import type { FrontendRoute } from "@/appRegistry";
-import { creationDefinition, contextualDestination, destinationPath, type CreationDefinition } from "./registry";
+import { creationDefinition, editDefinition, contextualDestination, destinationPath, type CreationDefinition } from "./registry";
 import { SmartCreateModal } from "./SmartCreateModal";
 import { CreationContent } from "./CreationContent";
 import { CreationDialogEnhancements } from "./CreationDialogEnhancements";
@@ -38,23 +39,26 @@ export function SmartCreationProvider({ children, routes }: { children: ReactNod
     window.addEventListener("suite:record-access-changed", clear);
     return () => { window.removeEventListener("suite:organization-changed", clear); window.removeEventListener("suite:branch-changed", clear); window.removeEventListener("suite:record-access-changed", clear); };
   }, []);
-  function open(destination: string, onCreated?: (record?: unknown) => void) {
+  function open(destination: string, onCreated?: (record?: unknown) => void, explicitEdit=false) {
     let url: URL;
     try { url = new URL(destination, window.location.origin); } catch { return false; }
     if (url.origin !== window.location.origin || !user) return false;
-    const definition = creationDefinition(url.pathname + url.search + url.hash);
+    const edit=editDefinition(url.pathname+url.search+url.hash,explicitEdit||editNavigationActive());
+    if(edit&&!matchRoutes(routes.map(route=>({path:route.path})),new URL(edit.destination,window.location.origin).pathname))return false;
+    const definition = edit?.definition||creationDefinition(url.pathname + url.search + url.hash);
     if (!definition) return false;
-    const grant = user.access?.grants[({ pms: "project_management" } as Record<string, string>)[url.pathname.split('/')[1]] || url.pathname.split('/')[1]];
+    const grant = user.access?.grants[({ pms: "project_management", "power-apps": "power_apps" } as Record<string, string>)[url.pathname.split('/')[1]] || url.pathname.split('/')[1]];
     // A denied action stays denied. Its existing destination can show its access explanation.
-    if (!canAccessRoute(url.pathname, user.role, user.is_superuser) || !user.is_superuser && grant && (!grant.enabled || !grant.actions.includes("create"))) return false;
+    if (!canAccessRoute(url.pathname, user.role, user.is_superuser) || !user.is_superuser && grant && (!grant.enabled || !grant.actions.includes(definition.mode==='edit'?'edit':"create"))) return false;
     // Explicit related-record callers can stack a form and receive its saved record.
     // Parent frames remain mounted, so their drafts and selected fields survive.
-    const path = contextualDestination(url.pathname + url.search + url.hash, active.current?.location || location);
+    const path = edit?.destination||contextualDestination(url.pathname + url.search + url.hash, active.current?.location || location);
     const resolved = parsePath(path);
     const next: Frame = { key: crypto.randomUUID(), definition: creationDefinition(path) || definition, location: { pathname: resolved.pathname!, search: resolved.search || "", hash: resolved.hash || "", state: null, key: "creation" }, scope: creationScope(), previousTitle: document.title, onCreated, trigger: document.activeElement instanceof HTMLElement ? document.activeElement : null, existingDialogs: Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')) };
     framesRef.current = [...framesRef.current, next]; active.current = next; setFrames(framesRef.current); return true;
   }
   const currentOpen = useRef(open); currentOpen.current = open;
+  useEffect(()=>{const handler=(event:Event)=>{const detail=(event as CustomEvent<{destination:string;handled:boolean}>).detail;if(detail)detail.handled=currentOpen.current(detail.destination,undefined,true);};window.addEventListener('suite:open-editor',handler);return()=>window.removeEventListener('suite:open-editor',handler);},[]);
   const adapted = useMemo<Navigator>(() => ({ ...navigation.navigator,
     push: (to, state, options) => { if (state?.suiteCanonicalRedirect) return navigation.navigator.push(to, state, options); if (active.current && creationDefinition(destinationPath(to))) { return; } if (!currentOpen.current(destinationPath(to))) navigation.navigator.push(to, state, options); },
     replace: (to, state, options) => { if (state?.suiteCanonicalRedirect) return navigation.navigator.replace(to, state, options); if (active.current && creationDefinition(destinationPath(to))) { return; } if (!currentOpen.current(destinationPath(to))) navigation.navigator.replace(to, state, options); },
@@ -62,6 +66,8 @@ export function SmartCreationProvider({ children, routes }: { children: ReactNod
   useEffect(() => {
     function capture(event: MouseEvent) {
       if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const control=(event.target as Element)?.closest<HTMLElement>('button,a,[role="menuitem"]');
+      if(control&&(/^(edit|update)\b/i.test(control.textContent?.trim()||'')||control.dataset.action==='edit'||/^Edit\b/.test(control.getAttribute('aria-label')||'')))markEditNavigation();
       const anchor = (event.target as Element)?.closest<HTMLAnchorElement>('a[href]');
       if (!anchor || anchor.hasAttribute('download') || anchor.closest('[role="dialog"]')) return;
       if (currentOpen.current(anchor.href)) { event.preventDefault(); event.stopPropagation(); }
@@ -104,6 +110,7 @@ function CreationHost({ frame, routes, close }: { frame: Frame; routes: Frontend
       const entity = frame.definition.entity;
       const collection = ({ customer: 'companies', vendor: 'companies', company: 'companies', activity: 'activities', priceBook: 'price-books', quotation: 'quotations' } as Record<string, string>)[entity] || entity.replace(/([A-Z])/g, '-$1').toLowerCase() + 's';
       const path = change.url.split('?')[0].replace(/\/$/, '');
+      if (frame.definition.mode==='edit'&&['put','patch'].includes(change.method.toLowerCase())&&(String(change.record?.id||'')===frame.definition.recordId||path.split('/').includes(frame.definition.recordId||'__none__')))confirmed.current=true;
       if (change.method.toLowerCase() === "post" && path.endsWith('/' + collection) && (change.record?.id || (change.record?.task as { id?: number } | undefined)?.id)) confirmed.current = true;
     };
     window.addEventListener(recordSavedEvent, saved);

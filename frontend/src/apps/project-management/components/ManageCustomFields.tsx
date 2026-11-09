@@ -11,7 +11,7 @@ export default function ManageCustomFields({ entity, onChanged }: { entity: "tas
   return <>
     <button type="button" aria-label={`Manage ${entity} custom fields`} className="text-xs text-primary" onClick={() => setOpen(true)}>Manage <Plus className="inline h-3 w-3" /></button>
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-6xl" onPointerDownOutside={event => event.preventDefault()}>
+      <DialogContent className="max-w-6xl" style={{zIndex:181}} overlayClassName="z-[180]" onPointerDownOutside={event => event.preventDefault()} onSubmit={event => event.stopPropagation()}>
         <DialogTitle>Manage {entity} custom fields</DialogTitle>
         <DialogDescription>Your draft stays open. Added fields become available in the form automatically.</DialogDescription>
         <Suspense fallback={<p role="status">Loading field library…</p>}>

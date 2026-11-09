@@ -1,6 +1,17 @@
 import { createPath, type To } from "react-router-dom";
 
-export type CreationDefinition = { entity: string; title: string; presentation: "page" | "dialog"; size: "compact" | "standard" | "large"; };
+export type CreationDefinition = { entity: string; title: string; presentation: "page" | "dialog"; size: "compact" | "standard" | "large"; mode?:"edit";recordId?:string };
+
+/** Edit actions reuse their existing authorized record route inside the shared window. */
+export function editDefinition(destination:string, explicit=false):{definition:CreationDefinition;destination:string}|undefined {
+  const url=new URL(destination,"http://suite.local");
+  const match=url.pathname.match(/^\/(pms|crm|hrms|srm|fam|power-apps)\/(.+)\/([\w-]+)(\/edit)?$/);
+  if(!match||(!explicit&&!match[4])||!(/^(?:\d+|[a-f\d]{8}-[a-f\d-]{27,})$/i.test(match[3])))return;
+  const resource=match[2].split('/').pop()!;
+  const entity=({tasks:'task',projects:'project',employees:'employee',companies:'company',contacts:'contact',leads:'lead',deals:'deal'} as Record<string,string>)[resource]||resource.replace(/s$/,'');
+  if(match[1]==='pms'&&['task','project'].includes(entity)&&!match[4])url.pathname+='/edit';
+  return {definition:{entity,title:`Edit ${entity.replace(/-/g,' ')}`,presentation:'page',size:entity==='task'?'large':'standard',mode:'edit',recordId:match[3]},destination:url.pathname+url.search+url.hash};
+}
 const pages: Record<string, CreationDefinition> = {
   "/pms/tasks/new": { entity: "task", title: "Create task", presentation: "page", size: "large" },
   "/pms/projects/new": { entity: "project", title: "Create project", presentation: "page", size: "large" },

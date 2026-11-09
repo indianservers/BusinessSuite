@@ -26,7 +26,8 @@ export function CreationContent({ definition, routes, close, complete, busy }: {
   const contactContext = { ...(contextId("company_id") ? { companyId: contextId("company_id") } : {}), ...(contextId("contact_id") ? { contactId: contextId("contact_id") } : {}) };
   const commercialKind = ({ salesOrder: "salesOrders", contract: "contracts", engagement: "engagements", billingPlan: "billingPlans" } as const)[entity as "salesOrder" | "contract" | "engagement" | "billingPlan"];
   let content;
-  if (entity === "workspace" && ["pms", "crm", "hrms", "srm", "fam"].includes(module)) content = <Workspace module={module as "pms" | "crm" | "hrms" | "srm" | "fam"} onCreated={complete} onClose={close} onBusyChange={busy} />;
+  if(definition.mode==='edit')content=<Routes>{routes.map(route=><Route key={route.path} path={route.path} element={module==='pms'&&entity==='task'&&route.path==='pms/tasks/:taskId/edit'?<Task onClose={close} onBusyChange={busy} onCreated={async record=>complete(record)}/>:module==='pms'&&entity==='project'&&route.path==='pms/projects/:projectId/edit'?<Project onCancel={close} onCreated={complete}/>:route.element}/>)}</Routes>;
+  else if (entity === "workspace" && ["pms", "crm", "hrms", "srm", "fam"].includes(module)) content = <Workspace module={module as "pms" | "crm" | "hrms" | "srm" | "fam"} onCreated={complete} onClose={close} onBusyChange={busy} />;
   else if (entity === "task") content = <Task draftScope={`smart-create:${location.pathname}${location.search}`} onBusyChange={busy} onClose={close} onCreated={async (task, keepOpen) => complete(task, keepOpen)} />;
   else if (entity === "project") content = <Project onCreated={complete} onCancel={close} />;
   else if (entity === "employee") content = <Employee onCreated={complete} />;

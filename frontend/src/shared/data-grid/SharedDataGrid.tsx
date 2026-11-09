@@ -1,4 +1,5 @@
 import { useRecordSync, rowSync } from "@/shared/record-sync/store";
+import { withEditNavigation } from "@/lib/edit-navigation";
 import { SyncRing } from "@/shared/record-sync/RecordSyncItems";
 import { withAllRows } from "./all-rows-source";
 import RowResizeHandle, { fitRow } from "./RowResizeHandle";
@@ -1165,7 +1166,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     actionInFlight.current = true; setBusyAction(getRowId(row));
     try {
       setActionError("");
-      await action.run(row);
+      await withEditNavigation(action,()=>action.run(row));
     } catch (e) {
       setActionError(errorText(e));
     } finally { actionInFlight.current = false; setBusyAction(undefined); }

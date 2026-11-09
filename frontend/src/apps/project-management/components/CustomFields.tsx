@@ -4,7 +4,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { useRefreshableEffect, usePageRefresh } from "@/lib/page-refresh";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Columns3, Plus, Check, Pencil } from "lucide-react";
+import { Columns3, Check, Pencil } from "lucide-react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
