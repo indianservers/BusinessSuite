@@ -12,6 +12,17 @@ const browser=await chromium.launch();const context=await browser.newContext({vi
 await context.addInitScript(({login,actor,access})=>{sessionStorage.setItem('suite-organization','1');sessionStorage.setItem('suite-branch','1');sessionStorage.setItem('hrms-auth',JSON.stringify({state:{accessToken:login.access_token,refreshToken:login.refresh_token,isAuthenticated:true,user:{id:actor.id,email:actor.email,role:'admin',is_superuser:true,access}},version:0}));},{login,actor,access});
 const errors=[];const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
 fs.mkdirSync('outputs/setup-flow',{recursive:true});
+if(process.env.SETUP_FLOW_COMPLETE){
+ for(const [route,title] of [['/pms/tasks','Task workspace'],['/crm/tasks','Task workspace'],['/crm/workspaces','Sales & Customer Workspaces']]){
+  await page.goto('http://127.0.0.1:5200'+route);
+  await expect(page.getByRole('heading',{name:new RegExp('^'+title)})).toBeVisible({timeout:30000});
+  await expect(page.getByRole('region',{name:'Workspace setup guide'})).toHaveCount(0);
+  await page.screenshot({path:'outputs/setup-flow/'+route.replaceAll('/','_')+'-complete.png'});
+  console.log('PASS loaded completed page hides guide',route);
+ }
+ expect(errors).toEqual([]);await browser.close();return;
+}
+
 
 if(!process.env.SETUP_FLOW_RESUME){
 for(const path of ['/pms','/pms/tasks','/crm','/crm/tasks','/crm/workspaces']){
@@ -68,6 +79,7 @@ if(!(existing.items||existing).length){
  await expect(settings.getByRole('textbox',{name:'New pipeline name',exact:true})).toHaveCount(0);
 }
 if(await settings.getByRole('button',{name:'Close creation window',exact:true}).count()) await settings.getByRole('button',{name:'Close creation window',exact:true}).click();
+if(await settings.getByRole('button',{name:'Discard Changes',exact:true}).count()) await settings.getByRole('button',{name:'Discard Changes',exact:true}).click();
 await expect(settings.locator('.smart-create-overlay')).toHaveCount(0);
 await expect(settings.getByRole('button',{name:'Add stage',exact:true})).toBeVisible({timeout:30000});
 await settings.getByRole('button',{name:'Add stage',exact:true}).click();
@@ -80,6 +92,7 @@ await settings.goBack();
 if(!new URL(page.url()).pathname.endsWith('/crm/workspaces')) await settings.goBack();
 await expect(page).toHaveURL(/\/crm\/workspaces(?:[?#]|$)/);
 await expect(crmGuide).toHaveCount(0,{timeout:30000});
+await expect(page.getByRole('heading',{name:'Sales & Customer Workspaces',exact:true})).toBeVisible({timeout:30000});
 await page.screenshot({path:'outputs/setup-flow/crm-complete.png'});
 console.log('PASS CRM: guide hides after completing sales workspace and pipeline setup, without reloading or Check again');
 await page.goto('http://127.0.0.1:5200/crm');await expect(crmGuide).toHaveCount(0);
