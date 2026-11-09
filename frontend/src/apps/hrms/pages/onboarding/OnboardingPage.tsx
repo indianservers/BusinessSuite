@@ -36,6 +36,7 @@ export default function OnboardingPage() {
   const [employeeId, setEmployeeId] = useState(()=>new URLSearchParams(window.location.search).get("employeeId")||"");
   const [templateId, setTemplateId] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const startSnapshot = useRef({ employeeId, templateId, startDate });
 
   const templates = useQuery({ queryKey: ["onboarding-templates"], queryFn: () => onboardingApi.templates().then((r) => r.data) });
   const onboardings = useQuery({ queryKey: ["onboarding-employees"], queryFn: () => onboardingApi.employees().then((r) => r.data) });
@@ -127,7 +128,7 @@ export default function OnboardingPage() {
         <Button aria-label="Refresh" disabled={phone && (templates.isFetching || onboardings.isFetching)} variant="outline" onClick={() => { templates.refetch(); onboardings.refetch(); }}><RefreshCw className="h-4 w-4" /><span>Refresh</span></Button>
       </div>
 
-      {phone && <><Button onClick={event => {startOpener.current=event.currentTarget;setStartError("");setStartOpen(true);}}>Start onboarding</Button>{startOpen && <SmartCreateModal definition={{entity:"onboarding-start",title:"Start onboarding",presentation:"page",size:"compact"}} mobileSheet busy={start.isPending} returnFocus={startOpener.current} onClose={() => {setStartOpen(false);setStartError("");setEmployeeId("");setTemplateId("");setStartDate(new Date().toISOString().slice(0,10));}}>{startForm}</SmartCreateModal>}<nav className="hrms-onboarding-sections" aria-label="Onboarding sections">{[["records","Records"],["templates","Templates"]].map(([key,label]) => <Button key={key} aria-pressed={section===key} variant={section===key?"default":"outline"} onClick={() => setSection(key)}>{label}</Button>)}</nav></>}
+      {phone && <><Button onClick={event => {startOpener.current=event.currentTarget;startSnapshot.current={employeeId,templateId,startDate};setStartError("");setStartOpen(true);}}>Start onboarding</Button>{startOpen && <SmartCreateModal definition={{entity:"onboarding-start",title:"Start onboarding",presentation:"page",size:"compact"}} mobileSheet busy={start.isPending} returnFocus={startOpener.current} onClose={() => {setStartOpen(false);setStartError("");setEmployeeId(startSnapshot.current.employeeId);setTemplateId(startSnapshot.current.templateId);setStartDate(startSnapshot.current.startDate);}}>{startForm}</SmartCreateModal>}<nav className="hrms-onboarding-sections" aria-label="Onboarding sections">{[["records","Records"],["templates","Templates"]].map(([key,label]) => <Button key={key} aria-pressed={section===key} variant={section===key?"default":"outline"} onClick={() => setSection(key)}>{label}</Button>)}</nav></>}
       <div className="hrms-onboarding-layout grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="space-y-5" style={phone && section!=="templates"?{display:"none"}:undefined}>
           <Card>

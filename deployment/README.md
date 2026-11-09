@@ -14,6 +14,21 @@ As of 9 November 2026, `https://besterp.app` serves the suite from
 `20261109-grid9395` release rather than the uncommitted development checkout.
 The final restore verified all 837 table counts and the complete user records.
 
+The shared Notes frontend is selected by `frontend/dist` pointing to
+`/srv/business-suite/suite-builds/shared-notes-20261109` on both suite hosts.
+All module Notes links use `/pms/notes`; Create → Note uses `?new=1`.
+The previous static releases and their hashed assets are retained for rollback
+and already-open tabs, including the direct Google Drive/OneDrive controls.
+
+The live API uses `REALTIME_TRANSPORT=database` so realtime updates poll without
+holding WebSocket database sessions. Module-access database checks run in the
+thread pool. Security counters and response audits use a separate bounded
+database pool (two persistent connections plus three overflow), preventing them
+from waiting for connections held by the handlers they must finish. These
+changes require no schema migration. Browser acceptance is repeatable with
+`qa/shared_notes_navigation_browser.cjs`, `NOTES_QA_ORIGIN`, and a private
+`NOTES_QA_SESSION_FILE` containing a revocable test session.
+
 The existing Apache sites on `164.92.119.35` still serve their frontends and
 proxy API, uploads and health requests over verified HTTPS to `besterp.app`.
 That host resolves `besterp.app` directly to the new origin in `/etc/hosts`.
