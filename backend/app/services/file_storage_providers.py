@@ -112,6 +112,11 @@ def account_info(db, conn):
 
 
 def folder_info(db, conn, folder):
+    if conn.provider == "google_drive" and folder == "root":
+        # drive.file can upload into My Drive without permission to read its
+        # root folder metadata. Validate the token with the permitted list API.
+        json_request(db, conn, "GET", "https://www.googleapis.com/drive/v3/files?pageSize=1&fields=files(id)")
+        return {"id": "root", "name": "My Drive"}
     if conn.provider == "dropbox":
         if folder == "root":
             dropbox_rpc(db, conn, "files/list_folder", {"path": "", "limit": 1})

@@ -1,3 +1,4 @@
+import SetupReadiness from "@/components/suite/SetupReadiness";
 import { Button } from "@/components/ui/button";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { withRecordViewHost } from "@/shared/data-grid/RecordViewHost";
@@ -571,7 +572,7 @@ function TasksReferencePage() {
           <TaskStudioPage key={route.taskId || `new:${routeLocation.search}`} />
         ) : (
           <div className="tr-content">
-            <main id="suite-main" tabIndex={-1}>
+            <main id="suite-main" tabIndex={-1}><SetupReadiness embedded />
               <div className="tr-breadcrumb">
                 <Link to="/dashboard">All applications</Link>
                 <ChevronRight />

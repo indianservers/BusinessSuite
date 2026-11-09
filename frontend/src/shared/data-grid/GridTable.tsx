@@ -1,3 +1,4 @@
+import { useSyncedTable } from "@/shared/record-sync/useSyncedTable";
 import { cellPriority } from "@/shared/priority/priority-cell";
 import NativeTableTools from "./NativeTableTools";
 import { columnValue } from "./column-presentation";
@@ -21,6 +22,7 @@ const editor = (element: Element) => element.type === "input" && element.props.t
 
 /** Retains page-owned React cells and handlers; only the surrounding record grid changes. */
 export default function GridTable({ children, gridId, allowExport = false, pinActions = false, personalViews = true, variant = "records", groupCreate, defaultGroupBy, defaultHiddenColumns, hideSearch, externalPagination, staticLayout, ...attributes }: TableHTMLAttributes<HTMLTableElement> & { gridId: string; allowExport?: boolean; pinActions?: boolean; personalViews?: boolean; variant?: "records" | "matrix"; staticLayout?: boolean; defaultGroupBy?: string; defaultHiddenColumns?: string[]; hideSearch?: boolean; externalPagination?: boolean; groupCreate?: { field: string; label: string; onCreate: (value: string) => void } }) {
+  children = useSyncedTable(children, gridId);
   const location = useLocation(), instance = useId();
   const sections = elements(children);
   const heads = elements(sections.find(e => e.type === "thead")?.props.children);

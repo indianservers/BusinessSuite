@@ -2,7 +2,7 @@
 const {chromium,expect:baseExpect}=require('../frontend/node_modules/playwright/test');
 const expect=baseExpect.configure({timeout:45000});
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
-const root=path.resolve('.local/shared-notes-release'),origin=process.env.NOTES_QA_ORIGIN||'http://127.0.0.1:5207';
+const root=path.resolve('.local/shared-notes-release'),origin=process.env.NOTES_QA_ORIGIN||'http://127.0.0.1:5208';
 (async()=>{
  const s=JSON.parse(fs.readFileSync(process.env.NOTES_QA_SESSION_FILE || path.join(root,'session.json'))),browser=await chromium.launch();
  const context=await browser.newContext({viewport:{width:1480,height:1080},serviceWorkers:'block'});
@@ -13,15 +13,16 @@ const root=path.resolve('.local/shared-notes-release'),origin=process.env.NOTES_
  const results=[];
  async function stable(name){const url=page.url(),start=reads,docs=documents;await page.waitForTimeout(3000);assert.equal(page.url(),url,'URL must settle');assert.equal(documents,docs,'No document reload loop');assert.ok(reads-start<15,'No request storm');assert.deepEqual(errors,[],'No JavaScript exceptions');results.push({name,status:'pass',url:new URL(url).pathname+new URL(url).search});console.log('PASS',name)}
  try{
-  for(const module of ['fam','hrms','crm','power-apps']){
+  for(const module of ['fam','hrms','crm','power-apps','srm','pms']){
    console.log('OPEN',module);await page.goto(origin+'/'+module);
    const search=page.getByRole('textbox',{name:'Find a page in this application'});await expect(search).toBeVisible();await search.fill('Notes');
    const link=page.locator('.module-menu').getByRole('link',{name:'Notes',exact:true}).first();await expect(link).toBeVisible();assert.equal(await link.getAttribute('href'),'/pms/notes');await link.click();console.log('CLICKED NOTES',module,page.url());
    await expect(page.getByRole('textbox',{name:'Search notes',exact:true})).toBeVisible();await expect(page.getByRole('textbox',{name:'Note title',exact:true})).toBeVisible();await stable(module+' menu → shared Notes');
    console.log('OPEN',module);await page.goto(origin+'/'+module);
-   if(module==='power-apps'){
+   if(module==='pms'){await page.getByRole('textbox',{name:'Find a page in this application'}).fill('Notes');await page.getByRole('button',{name:'Create Private note',exact:true}).click();}
+   else if(module==='power-apps'){
     await expect(page.locator('.pa-create-menu summary')).toBeVisible();await page.locator('.pa-create-menu summary').click();await page.locator('.pa-create-menu').getByRole('button',{name:'Note',exact:true}).click();
-   }else{await page.getByRole('button',{name:'New',exact:true}).first().click();await page.getByRole('menuitem',{name:/^Note\b/}).click();}
+   }else{await page.getByRole('button',{name:'New',exact:true}).first().click();await page.getByRole('menuitem',{name:/^(?:Private )?Note\b/i}).click();}
    await expect(page).toHaveURL(/\/pms\/notes\?new=1$/);await expect(page.getByRole('textbox',{name:'Note title',exact:true})).toHaveValue('');await expect(page.getByRole('textbox',{name:'Note content',exact:true})).toBeVisible();assert.equal(await page.locator('.notes-workspace').count(),1,'Reuse a single Notes workspace');await stable(module+' Create → Note');
    await page.screenshot({path:path.join(root,module+'-create-note.png')});
   }

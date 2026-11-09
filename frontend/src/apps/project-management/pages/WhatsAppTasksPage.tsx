@@ -1,3 +1,4 @@
+import SetupReadiness from "@/components/suite/SetupReadiness";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -393,7 +394,7 @@ export default function WhatsAppTasksPage() {
           </div>
         )}
       </section>
-      <main className="wa-main">
+      <main className="wa-main"><SetupReadiness embedded />
         <div className="wa-theme-top">
           <span>
             <MessageCircle size={16} /> Conversations

@@ -285,3 +285,25 @@ def test_project_setup_requires_live_project_in_company_workspace(db, scope):
         setattr(project, attribute, original)
         db.flush()
     assert project_ready(1)
+
+
+def test_crm_setup_tracks_active_branch_workspace(client, db, scope):
+    from app.shared.models import ServicePolicy
+    branch = int(scope["X-Suite-Branch"])
+    def check():
+        response = client.get("/api/v1/access/setup", headers=scope)
+        assert response.status_code == 200, response.text
+        return next(i for i in response.json()["moduleItems"] if i["id"] == "crm-workspace")
+    assert not check()["ready"]
+    row = ServicePolicy(organization_id=1, module_key="crm", kind="module_workspace", updated_by=db.query(User).filter(User.is_superuser.is_(True)).first().id,
+        scope_key=f"workspace:crm:1:{branch}:setup-test", values_json={"status": "Active", "visibility": "organization"})
+    db.add(row)
+    db.commit()
+    assert check()["ready"]
+    row.values_json = {"status": "Archived", "visibility": "organization"}
+    db.commit()
+    assert not check()["ready"]
+    row.values_json = {"status": "Active", "visibility": "organization"}
+    row.scope_key = f"workspace:crm:1:{branch + 999}:setup-test"
+    db.commit()
+    assert not check()["ready"]

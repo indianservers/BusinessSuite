@@ -248,7 +248,17 @@ def readiness(db: Session = Depends(get_db), user: User = Depends(get_current_us
         item["canRepair"] = bool(can_edit_company(ctx) if key in {"company-profile", "business-defaults"} else allows(option, ctx))
     modules = {key for key, grant in ctx["grants"].items() if grant.get("enabled")}
     module_items = module_requirements(db, user.organization_id, modules)
-    module_by_id = {"pipeline": "crm", "workspace": "project_management", "project": "project_management", "warehouse": "srm", "financial-year": "fam", "ledgers": "fam"}
+    if "crm" in modules:
+        from app.shared.workspace_management.api import policies, visible
+        from app.shared.workspace_management.domains import DOMAINS
+        branch = getattr(user, "_suite_branch_id", None)
+        crm_workspaces = policies(db, DOMAINS["crm"], user.organization_id, branch).all() if branch else []
+        module_items.insert(0, dict(id="crm-workspace", title="Sales workspace",
+            description="Create an active workspace for your sales team first.",
+            destination="/crm/workspaces", ready=any(
+                row.values_json.get("status", "Active") == "Active" and visible(DOMAINS["crm"], user, row.values_json)
+                for row in crm_workspaces)))
+    module_by_id = {"crm-workspace": "crm", "pipeline": "crm", "workspace": "project_management", "project": "project_management", "warehouse": "srm", "financial-year": "fam", "ledgers": "fam"}
     for item in items:
         item.update(module="company", required=True)
     for item in module_items:

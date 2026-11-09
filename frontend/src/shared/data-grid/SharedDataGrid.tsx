@@ -1,3 +1,5 @@
+import { useRecordSync, rowSync } from "@/shared/record-sync/store";
+import { SyncRing } from "@/shared/record-sync/RecordSyncItems";
 import { withAllRows } from "./all-rows-source";
 import RowResizeHandle, { fitRow } from "./RowResizeHandle";
 import { businessGroupColumn, initialBusinessGroups } from "./business-grouping";
@@ -726,6 +728,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     setChildren({});
     setExpanded({});
   }, [signature, query.page, props.refreshKey, dataSource.key]);
+  const recordSyncItems = useRecordSync();
   const request = useQuery({
     queryKey: [
       "shared-grid",
@@ -1591,6 +1594,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           }}
           onKeyDown={(e) => cellKey(e, node, column.id, index)}
         >
+          {column.id===ordered.find(item=>!/^(?:actions|select|__suite_)/.test(item.id))?.id && node.record && rowSync(recordSyncItems,[getRowId(node.record)],new URLSearchParams(location.search).get("operation")||location.pathname).filter(item=>item.phase==="pending").slice(-1).map(item=><span className="record-sync-row-marker" key={item.id}><SyncRing item={item}/></span>)}
           {display(node, def)}
         </div>
       );

@@ -1,0 +1,15 @@
+.record-sync-items{display:grid;gap:5px;margin:8px 0}.record-sync-floating{position:fixed;right:18px;bottom:20px;width:min(370px,calc(100vw - 30px));max-height:45vh;overflow:auto;z-index:220;pointer-events:none}.record-sync-item{display:flex;align-items:center;gap:9px;min-width:0;padding:9px 11px;border:1px solid #e5def3;border-radius:9px;background:var(--background,#fff);background-color:hsl(var(--background,0 0% 100%));box-shadow:0 3px 14px #26154012;font-size:12px;pointer-events:auto}.record-sync-item>div{min-width:0;flex:1}.record-sync-item strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.record-sync-item small{display:block;font-size:10px;line-height:1.5;color:#737185}.record-sync-item button{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:5px}.record-sync-ring{display:inline-block;flex:0 0 12px;width:12px;height:12px;border:1.5px solid #ddd6ee;border-top-color:#7c3aed;border-radius:50%;animation:record-sync-turn .75s linear infinite;vertical-align:middle}.record-sync-warning{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;flex:0 0 13px;border:1px solid #b45309;border-radius:50%;font-size:10px;color:#b45309}.record-sync-item.is-error{border-color:#f0d8b3}.record-sync-row-marker{display:inline-flex;align-items:center;gap:4px;margin-right:6px}.record-sync-item.is-saved>svg{color:#15803d}@keyframes record-sync-turn{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.record-sync-ring{animation:none;border-style:dotted}}@media(max-width:760px){.record-sync-floating{right:10px;bottom:80px;max-height:30vh;width:min(340px,calc(100vw - 20px))}}
+
+@media(max-width:480px){
+ .record-sync-floating.record-sync-phone{z-index:40;width:auto;max-width:calc(100vw - 20px);max-height:none;bottom:calc(10px + env(safe-area-inset-bottom));pointer-events:none}
+ body:has(.mobile-module-dock) .record-sync-floating.record-sync-phone{bottom:calc(100px + env(safe-area-inset-bottom))}
+ .record-sync-phone-trigger{min-height:44px;height:auto;max-width:220px;padding:8px 12px;gap:8px;white-space:normal;font-size:12px;pointer-events:auto;box-shadow:0 3px 14px #26154012}
+ .record-sync-phone-details .record-sync-item{display:grid;grid-template-columns:16px minmax(0,1fr) 44px;gap:8px;align-items:start;font-size:13px}
+ .record-sync-phone-details .record-sync-item>div{grid-column:2/-1}
+ .record-sync-phone-details .record-sync-item>button{grid-row:2;justify-self:start}
+ .record-sync-phone-details .record-sync-item>button:first-of-type{grid-column:2}
+ .record-sync-phone-details .record-sync-item>button:last-of-type{grid-column:3}
+ .record-sync-phone-details .record-sync-item strong{white-space:normal;overflow-wrap:anywhere}
+ .record-sync-phone-details .record-sync-item small{font-size:12px;overflow-wrap:anywhere}
+ .record-sync-phone-details .record-sync-item button{min-width:44px;min-height:44px;font-size:12px;flex-shrink:0}
+}

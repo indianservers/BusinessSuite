@@ -1,3 +1,4 @@
+import { startRecordSync, finishRecordSync, confirmRecoveredSync } from "@/shared/record-sync/store";
 import { policy as recordCachePolicy } from "@/lib/smart-cache/model";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { useAuthStore } from "@/store/authStore";
@@ -10,6 +11,9 @@ import { confirmedMutation, recordSavedEvent } from "@/lib/record-changes";
 
 declare module "axios" {
   interface AxiosRequestConfig {
+    /** Use an entity-owned optimistic implementation instead of the shared tracker. */
+    recordSync?: boolean;
+    _recordSyncId?: string;
     /** Disable foreground feedback for non-interactive mutations. */
     progress?: false | (Omit<ProgressOperation, "id"> & { id?: string });
     /** POST-based previews read records but must not trigger save/refresh events. */
@@ -35,7 +39,7 @@ export const api = axios.create({
 });
 
 // Request interceptor: attach access token
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   const explicitWorkspace = config.headers.has("X-Suite-Tenant");
   const tenant = explicitWorkspace ? String(config.headers.get("X-Suite-Tenant") || "") : new URLSearchParams(window.location.search).get("tenant") || sessionStorage.getItem("suite-tenant");
   if ((explicitWorkspace || new URLSearchParams(window.location.search).get("tenant")) && tenant !== sessionStorage.getItem("suite-tenant")) {
@@ -70,7 +74,8 @@ api.interceptors.request.use((config) => {
   if (token && !["/auth/login", "/auth/reset-password", "/auth/forgot-password", "/auth/branding", "/auth/login-branding"].includes(config.url || "")) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  if (config.progress !== false && !config._recordSyncBackground && !config._finishProgress && !(recordCachePolicy(config.url || "") && !config.progress && !config._recordSyncBypass && (config.method || "get") === "get")) {
+  config._recordSyncId = await startRecordSync(config, () => api(config));
+  if (!config._recordSyncId && config.progress !== false && !config._recordSyncBackground && !config._finishProgress && !(recordCachePolicy(config.url || "") && !config.progress && !config._recordSyncBypass && (config.method || "get") === "get")) {
     const explicit = config.progress || undefined;
     const read = config.readOnlyPreview || ["get", "head", "options"].includes((config.method || "get").toLowerCase());
     const context = getProgressContext();
@@ -169,10 +174,14 @@ api.interceptors.response.use(
 // Run after the refresh interceptor: retries retain one operation until the
 // final response, and the idempotent finish handles nested interceptor chains.
 api.interceptors.response.use(response => {
+  if((response.config.method||"get").toLowerCase()==="get")confirmRecoveredSync(response.config.url||"",response.data);
+  finishRecordSync(response.config._recordSyncId, response.data);
   response.config._finishPageRefresh?.();
   response.config._finishProgress?.();
   return response;
 }, (error: AxiosError<{ detail?: unknown }>) => {
+  if(error.response?.status===404&&(error.config?.method||"get").toLowerCase()==="get")confirmRecoveredSync(error.config?.url||"",undefined,404);
+  finishRecordSync(error.config?._recordSyncId, undefined, error);
   error.config?._finishPageRefresh?.(false);
   const detail = error.response?.data?.detail;
   error.config?._finishProgress?.(false, axios.isCancel(error) ? "Operation cancelled." : typeof detail === "string" ? detail :

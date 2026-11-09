@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Cloud, FolderOpen, RefreshCw } from "lucide-react";
+import { CheckCircle2, Cloud, FolderOpen, RefreshCw } from "lucide-react";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -9,6 +9,9 @@ type Account = {id:number;provider:"google_drive"|"onedrive";account:string};
 type Folder = {id:string;name:string};
 type Props = {source:"project_management"|"crm";title:string;content:string;disabled?:boolean;prepare?:()=>Promise<{id:number;version:number}|null>};
 const labels = {google_drive:"Google Drive",onedrive:"OneDrive"};
+function ProviderLogo({provider}:{provider:keyof typeof labels}) {
+  return provider==="google_drive"?<svg aria-hidden="true" viewBox="0 0 48 48" className="!h-7 !w-7 shrink-0"><path fill="#0066DA" d="m8 40 8-14h32l-8 14z"/><path fill="#00AC47" d="M0 26 16 0l8 14L8 40z"/><path fill="#FFBA00" d="m16 0 16 0 16 26H32z"/><path fill="#00832D" d="m0 26 8 14 8-14z"/><path fill="#2684FC" d="m32 26 8 14 8-14z"/><path fill="#FFBA00" d="m16 0 8 14 8-14z"/></svg>:<svg aria-hidden="true" viewBox="0 0 48 32" className="!h-7 !w-7 shrink-0"><path fill="#0364B8" d="M18 8a13 13 0 0 1 24 8L26 22z"/><path fill="#0078D4" d="M18 8a11 11 0 0 0-17 9l16 9 13-6z"/><path fill="#1490DF" d="M38 13a10 10 0 0 1 0 20H13l6-13z"/><path fill="#28A8EA" d="M11 15a9 9 0 1 0-2 18h29z"/></svg>;
+}
 const errorMessage=(error:unknown)=>{const e=error as {response?:{data?:{detail?:unknown}};message?:string};const detail=e.response?.data?.detail;return typeof detail==="string"?detail:e.message||"Could not save a cloud copy. Please retry.";};
 
 export default function NoteCloudSave({source,title,content,disabled,prepare}:Props) {
@@ -73,7 +76,15 @@ export default function NoteCloudSave({source,title,content,disabled,prepare}:Pr
   return <><button type="button" disabled={disabled} onClick={()=>{setError("");setNotice("");setOpen(true);}}><Cloud size={14}/>Save to cloud</button>
     <Dialog open={open} onOpenChange={value=>{if(!saving&&!connecting)setOpen(value);}}><DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
       <DialogTitle>Save a note copy</DialogTitle><DialogDescription>Choose your connected Google Drive or OneDrive account. This copies note text and formatting; attachments stay in the app. People with access to the destination folder can read the copy.</DialogDescription>
-      <div className="grid gap-2 sm:grid-cols-2">{(Object.keys(labels) as (keyof typeof labels)[]).map(kind=><Button type="button" key={kind} variant="outline" disabled={saving||loading||!!connecting} onClick={()=>void connect(kind)}>{connecting===kind?"Connecting…":`Connect ${labels[kind]}`}</Button>)}</div>
+      <div className="grid gap-3 sm:grid-cols-2">{(Object.keys(labels) as (keyof typeof labels)[]).map(kind=>{
+        const connectedAccount=accounts.find(a=>a.provider===kind);
+        const connected=!!connectedAccount;
+        return <Button type="button" key={kind} variant="outline" aria-label={`${labels[kind]}: ${connecting===kind?"Connecting":connected?"Connected": "Connect"}`} aria-pressed={provider===kind&&connected} disabled={saving||loading||!!connecting}
+          className={`h-auto min-h-20 justify-start gap-3 rounded-xl px-4 py-3 text-left shadow-sm transition-colors ${connected?"border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50":"hover:border-primary/40 hover:bg-muted/60"}`}
+          onClick={()=>{if(connectedAccount){setProvider(kind);selectAccount(connectedAccount.id);}else void connect(kind);}}>
+          <ProviderLogo provider={kind}/><span className="flex min-w-0 flex-col gap-1"><span className="font-semibold">{labels[kind]}</span><span className={`flex items-center gap-1 text-xs font-normal ${connected?"text-emerald-700 dark:text-emerald-400":"text-muted-foreground"}`}>{connecting===kind?<> <RefreshCw size={12} className="animate-spin"/>Connecting…</>:connected?<><CheckCircle2 size={12}/>Connected</>:"Connect account"}</span></span>
+        </Button>;
+      })}</div>
       {connecting&&<p role="status" className="text-sm">Complete {labels[connecting as keyof typeof labels]} authorization in the popup. Your note stays open here.</p>}
       <label className="grid gap-2 text-sm">Storage provider<NativeSelect aria-label="Note storage provider" disabled={saving||loading||!!connecting} value={provider} onChange={e=>{const next=e.target.value as keyof typeof labels;setProvider(next);selectAccount(accounts.find(a=>a.provider===next)?.id||0);}}>{Object.entries(labels).map(([id,label])=><option key={id} value={id}>{label}</option>)}</NativeSelect></label>
       <label className="grid gap-2 text-sm">Connected account<NativeSelect aria-label="Note storage account" disabled={saving||loading} value={account} onChange={e=>selectAccount(Number(e.target.value))}><option value="">Choose your account</option>{accounts.filter(a=>a.provider===provider).map(a=><option key={a.id} value={a.id}>{a.account}</option>)}</NativeSelect></label>

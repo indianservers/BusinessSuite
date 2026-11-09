@@ -1,3 +1,4 @@
+import { useSyncedRecords } from "@/shared/record-sync/store";
 import { Button } from "@/components/ui/button";
 import GroupedRecords from "@/shared/data-grid/GroupedRecords";
 import { standardRecordGroups } from "@/shared/data-grid/record-group-fields";
@@ -56,7 +57,7 @@ export function AutomationList({
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
     [offset, setOffset] = useState(0);
-  const [rows, setRows] = useState<Resource[]>([]),
+  const [serverRows, setRows] = useState<Resource[]>([]),
     [total, setTotal] = useState(0),
     [templates, setTemplates] = useState<AutomationTemplate[]>([]);
   const [busy, setBusy] = useState(true),
@@ -65,6 +66,7 @@ export function AutomationList({
     [refresh, setRefresh] = useState(0);
   const [renaming, setRenaming] = useState<number | null>(null),
     [newName, setNewName] = useState("");
+  const rows=useSyncedRecords(serverRows,"/power-apps/automations");
   useEffect(() => {
     const created = (event: Event) => {
       const detail = (event as CustomEvent<{destination?: string}>).detail;

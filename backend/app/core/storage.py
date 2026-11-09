@@ -150,9 +150,9 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
         raise HTTPException(403, "Invalid or expired file link") from None
 
 
-def persist_file(path: str, *, db=None, module=None, company=None, filename=None) -> None:
+def persist_file(path: str, *, db=None, module=None, company=None, filename=None, personal_note_owner=None) -> None:
     from app.services.file_storage import route_upload
-    if route_upload(str(path), db=db, company=company, module=module, filename=filename):
+    if route_upload(str(path), db=db, company=company, module=module, filename=filename, personal_note_owner=personal_note_owner):
         return
     if settings.STORAGE_BACKEND == "local":
         return

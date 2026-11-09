@@ -1,0 +1,92 @@
+{
+  "verifiedAt": "2026-11-09T18:36:31.053Z",
+  "versions": [
+    {
+      "origin": "https://app.indianservers.com",
+      "change": "browser-first-crud",
+      "revision": 2,
+      "worker_version": 6,
+      "fingerprint": "d391e1d17275ad0b34fb33b7072e4cb52efb0f6348df24abdb8547f2c8e5afd4",
+      "health": 200
+    },
+    {
+      "origin": "https://besterp.app",
+      "change": "browser-first-crud",
+      "revision": 2,
+      "worker_version": 6,
+      "fingerprint": "d391e1d17275ad0b34fb33b7072e4cb52efb0f6348df24abdb8547f2c8e5afd4",
+      "health": 200
+    }
+  ],
+  "sharedCrudTests": {
+    "passed": 36,
+    "concepts": [
+      "CRM records",
+      "employees",
+      "FAM vouchers",
+      "Power Apps automations",
+      "tasks",
+      "projects"
+    ],
+    "checks": [
+      "browser persistence before network request",
+      "instant item feedback",
+      "small circular indicator",
+      "background form remains mounted",
+      "page remains usable",
+      "failed draft retained",
+      "edit and delete rollback",
+      "newer edit preserved",
+      "stale response protection",
+      "explicit browser-copy recovery after reload",
+      "scope isolation",
+      "credentials excluded from persistence",
+      "automatic preferences keep forms open"
+    ]
+  },
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "preview": {
+    "origin": "http://127.0.0.1:5209",
+    "results": [
+      "fam shell loaded",
+      "hrms shell loaded",
+      "crm shell loaded",
+      "power-apps shell loaded",
+      "project committed locally before request completion",
+      "creation dialog backgrounds without unmounting",
+      "failure restores original project draft",
+      "no actual record writes"
+    ],
+    "errors": [],
+    "failures": [],
+    "actualRecordWrites": 0
+  },
+  "live": {
+    "origin": "https://app.indianservers.com",
+    "results": [
+      "fam shell loaded",
+      "hrms shell loaded",
+      "crm shell loaded",
+      "power-apps shell loaded",
+      "project committed locally before request completion",
+      "creation dialog backgrounds without unmounting",
+      "failure restores original project draft",
+      "no actual record writes"
+    ],
+    "errors": [],
+    "failures": [],
+    "actualRecordWrites": 0
+  },
+  "deployment": {
+    "besterp": {
+      "previous": "/srv/business-suite/suite-builds/notes-stay-open-20261109",
+      "active": "/srv/business-suite/suite-builds/browser-first-crud-v2-20261109"
+    },
+    "indianservers": {
+      "previous": "/srv/business-suite/suite-builds/notes-stay-open-20261109",
+      "active": "/srv/business-suite/suite-builds/browser-first-crud-v2-20261109"
+    }
+  },
+  "verificationSession": "revoked"
+}

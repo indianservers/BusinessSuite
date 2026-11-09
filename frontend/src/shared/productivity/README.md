@@ -22,6 +22,9 @@ PMS keeps its existing `NoteRichEditor` import as a thin adapter that injects `P
 
 All Suite module menus open `/pms/notes`, and their Create menus use `/pms/notes?new=1`. PMS owns the single Notes UI and API persistence. CRM's legacy `workspaceView=notes` entry and Power Apps' `/power-apps/notes` entry redirect to that workspace. Existing browser-local drafts are left in storage; they are not copied into or merged with server notes.
 
+New notes stay inside that persistent workspace. Autosave assigning a temporary
+or server ID must not replace an editor window or remount its text fields.
+
 `NotesWorkspace` remains a reusable presentation for existing browser-local hosts and fixtures. Suite module navigation must use the shared Notes route rather than mounting a separate notebook.
 
 `NoteCloudSave` adds **Save to cloud** to Notes and the reusable CRM editor. It
@@ -39,3 +42,10 @@ backend reads the owned saved note and verifies its version rather than trusting
 browser-supplied note content. Copies are downloaded again and checksum-verified
 before reporting success. The original note stays in its existing storage;
 attachments are not bundled, and future edits are not synchronized automatically.
+
+Shared Notes save their original content to the ERP database before creating a
+Drive copy. Note attachments can use the owner's Google Drive connection from
+Notes without configuring a company storage route. They upload to My Drive;
+after verification and database commit, temporary server bytes are removed.
+The database keeps the attachment metadata and cloud locator, with an empty
+attachment body. Other project uploads continue to use company storage policy.

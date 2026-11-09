@@ -8,6 +8,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm, {revealFormField} from "@/components/forms/CompactForm";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { guardTaskEnter } from "@/shared/creation/task-keyboard";
 import {
   Link,
   useLocation,
@@ -414,6 +415,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   }>();
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [options, setOptions] = useState<Options>();
+  const [optionsProjectId, setOptionsProjectId] = useState<number>();
   const defaultAssignmentApplied=useRef(false);
   const [scopeMode, setScopeMode] = useState<"project" | "general">("project");
   const [workspaces, setWorkspaces] = useState<{ id: number; name: string }[]>(
@@ -548,7 +550,10 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     (!!saved && saved !== JSON.stringify(draft)) ||
     files.length > 0 ||
     extraDirty;
-  const membershipEdit = id ? !!detail?.can_edit : !!options?.can_edit;
+  const optionsReady = !!options && optionsProjectId === draft.projectId && !!draft.projectId;
+  // An unselected/loading project is not a permission denial. Keep location
+  // controls usable; submission still requires permission for the selected ID.
+  const membershipEdit = id ? !!detail?.can_edit : !optionsReady || !!options?.can_edit;
   const editable=membershipEdit&&(id?allowEdit:allowCreate),deletable=membershipEdit&&allowDelete,canAddItems=membershipEdit&&allowCreate;
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -651,7 +656,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     };
   }, [id, loadRevision]);
   useEffect(() => {
-    if (!draft.projectId || loading) return;
+    if (!draft.projectId || loading) { setOptions(undefined); setOptionsProjectId(undefined); return; }
     let active = true;
     setOptions(undefined);
     api
@@ -659,7 +664,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
         params: { project_id: draft.projectId, compact: true },
       })
       .then((r) => {
-        if (active) {setOptions(r.data);
+        if (active) {setOptions(r.data);setOptionsProjectId(draft.projectId);
           if(!id&&!defaultAssignmentApplied.current&&!params.has("people")&&!params.has("teams")&&!params.has("batches")){
             defaultAssignmentApplied.current=true;
             const preferred=Number(defaultOwner("project_management"));
@@ -795,7 +800,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       return false;
     }
     if (!(automatic?formRef.current?.checkValidity():formRef.current?.reportValidity())) return false;
-    if (!options || !draft.projectId) {
+    if (!optionsReady || !options || !draft.projectId) {
       setError("Choose a project and wait for assignment options to load.");
       return false;
     }
@@ -1046,7 +1051,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           <button
             className="tr-primary"
             disabled={
-              busy || auto.saving || scopeBusy || !!job || !editable || !options?.can_edit
+              busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit
             }
             onClick={() => void save()}
           >
@@ -1103,13 +1108,14 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
           </button>
         </div>
       )}
-      {!editable && (
+      {!editable && (id ? !!detail : optionsReady) && (
         <p className="tr-feedback">
           Your project role allows viewing this task. Ask a project
           administrator for editing access.
         </p>
       )}
       <CompactForm compactTabs={false}
+        onKeyDown={guardTaskEnter}
         onInvalidCapture={event => { event.preventDefault(); const field = event.target as HTMLElement; const panel = field.closest<HTMLElement>("[data-task-tab]"); if (panel) setFormTab(Number(panel.dataset.taskTab)); let node = field.parentElement; while (node) { if (node instanceof HTMLDetailsElement) node.open = true; node = node.parentElement; } requestAnimationFrame(() => field.focus()); }}
         ref={formRef}
         onSubmit={(e) => {
@@ -1120,7 +1126,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       >
         <nav className="ts-compact-tabs" aria-label="Task form sections">{["Basic info", "Planning & details", "AI & tools"].map((label, index) => <button type="button" key={label} aria-pressed={formTab === index} onClick={() => setFormTab(index)}>{label}</button>)}</nav>
         <div className="ts-fields">
-          <fieldset disabled={busy || !editable}>
+          <fieldset disabled={busy || (id ? !editable : !allowCreate)}>
             <Section
               icon={<FileText />}
               title="Basic info"
@@ -1994,7 +2000,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
               className="tr-primary"
               type="submit"
               disabled={
-                busy || auto.saving || scopeBusy || !!job || !editable || !options?.can_edit
+                busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit
               }
             >
               {id ? "Save Changes" : "Create Task"}
@@ -2179,7 +2185,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
       </CompactForm>
       {!embedded && <MobileActionBar label="Task actions">
         <Button variant="outline" type="button" aria-label="Save task draft from mobile action bar" disabled={busy} onClick={saveDraft}><Save size={18}/>Save Draft</Button>
-        <button type="button" data-primary aria-label={id ? "Save task from mobile action bar" : "Create task from mobile action bar"} disabled={busy || auto.saving || scopeBusy || !!job || !editable || !options?.can_edit} onClick={() => void save()}><Check size={18}/>{busy ? "Saving..." : id ? "Save Changes" : "Create Task"}</button>
+        <button type="button" data-primary aria-label={id ? "Save task from mobile action bar" : "Create task from mobile action bar"} disabled={busy || auto.saving || scopeBusy || !!job || !editable || !optionsReady || !options?.can_edit} onClick={() => void save()}><Check size={18}/>{busy ? "Saving..." : id ? "Save Changes" : "Create Task"}</button>
       </MobileActionBar>}
       <AddExistingPeopleDialog
         open={adding}

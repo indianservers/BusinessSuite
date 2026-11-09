@@ -1,3 +1,6 @@
+import { FocusScope } from "@radix-ui/react-focus-scope";
+import { guardTaskEnter } from "./task-keyboard";
+import { useRecordSync } from "@/shared/record-sync/store";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Alert from "@radix-ui/react-alert-dialog";
@@ -11,6 +14,9 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
   const content = useRef<HTMLDivElement | null>(null);
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   const attach = useCallback((node: HTMLDivElement | null) => { content.current = node; setElement(node); }, []);
+  const syncItems = useRecordSync();
+  const background = syncItems.some(item => item.origin === element && item.phase === "pending");
+  useEffect(() => { if(background) requestAnimationFrame(() => { if(returnFocus?.isConnected) returnFocus.focus(); else document.getElementById("suite-main")?.focus(); }); }, [background,returnFocus]);
   const [dirty, setDirty] = useState(false), [confirm, setConfirm] = useState(false);
   const [action, setAction] = useState<{ label: string; disabled: boolean; previous?: { disabled: boolean } }>();
   const primary = useRef<HTMLButtonElement>();
@@ -19,10 +25,10 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
   const submitFromClick = useRef(false);
   useEffect(() => { setDirty(false); submitting.current = false; }, [savedRevision]);
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty || background) return;
     const unload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
     window.addEventListener('beforeunload', unload); return () => window.removeEventListener('beforeunload', unload);
-  }, [dirty]);
+  }, [dirty,background]);
   useEffect(() => {
     const inspect = () => {
       const buttons = Array.from(content.current?.querySelectorAll<HTMLButtonElement>('button') || []).filter(button => !button.closest('[data-smart-create-footer]'));
@@ -45,9 +51,9 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
   const latestCloseRequest = useRef(requestClose); latestCloseRequest.current = requestClose;
   useEffect(() => { if (closeRequestRevision) latestCloseRequest.current(); }, [closeRequestRevision]);
   const draftButton = confirm ? Array.from(content.current?.querySelectorAll<HTMLButtonElement>('button') || []).find(button => /^save (as )?draft$/i.test(button.textContent?.trim() || '') && !button.disabled) : undefined;
-  return <><Dialog.Root open onOpenChange={open => { if (!open) requestClose(); }}><Dialog.Portal>
-    <Dialog.Overlay className="smart-create-overlay" />
-    <Dialog.Content ref={attach} className={`smart-create-window smart-create-${definition.size}${definition.entity === "task" ? " smart-create-task" : ""}${mobileSheet ? " smart-create-phone-sheet" : ""}`} aria-describedby="smart-create-description" data-smart-create="true" data-smart-create-loading={loading ? "true" : undefined} onCloseAutoFocus={event => { if(returnFocus?.isConnected) { event.preventDefault(); returnFocus.focus(); } }} onInputCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onChangeCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onSubmitCapture={event => {
+  return <><Dialog.Root modal={false} open={!background} onOpenChange={open => { if (!open && !background) requestClose(); }}><Dialog.Portal forceMount>
+    <div aria-hidden="true" className="smart-create-overlay" style={background?{display:"none"}:undefined} />
+    <Dialog.Content forceMount style={background?{display:"none"}:undefined} aria-modal={!background} ref={attach} className={`smart-create-window smart-create-${definition.size}${definition.entity === "task" ? " smart-create-task" : ""}${mobileSheet ? " smart-create-phone-sheet" : ""}`} aria-describedby="smart-create-description" data-smart-create="true" data-smart-create-loading={loading ? "true" : undefined} onCloseAutoFocus={event => { if(returnFocus?.isConnected) { event.preventDefault(); returnFocus.focus(); } }} onInputCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onChangeCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onSubmitCapture={event => {
       if (!content.current?.contains(event.target as Node)) return;
       if (submitting.current && !submitFromClick.current) { event.preventDefault(); event.stopPropagation(); return; }
       submitFromClick.current = false; submitting.current = true;
@@ -60,6 +66,7 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
       }
       if (button?.closest('.smart-create-body') && /^(cancel|close)$/i.test(button.textContent?.trim() || '')) { event.preventDefault(); event.stopPropagation(); requestClose(); }
     }} onPointerDownOutside={event => event.preventDefault()} onKeyDown={event => {
+      if (definition.entity === "task") { guardTaskEnter(event); if (event.isPropagationStopped()) return; }
       if (event.defaultPrevented || event.repeat) return;
       if (!content.current?.contains(event.target as Node)) return;
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !busy && !submitting.current && !primary.current?.disabled) {
@@ -68,9 +75,11 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
         else if (!form && primary.current && !primary.current.disabled) { event.preventDefault(); primary.current.click(); }
       }
     }}>
+      <FocusScope asChild trapped={!background} loop={!background}><div className="contents">
       <header className="smart-create-header"><span className="smart-create-emblem"><Sparkles size={21}/></span><div><Dialog.Title>{definition.title}</Dialog.Title><Dialog.Description id="smart-create-description">Create without leaving your current work.</Dialog.Description></div><button type="button" aria-label="Close creation window" onClick={requestClose} disabled={busy}><X size={20}/></button></header>
       <div className="smart-create-layout">{definition.size === "large" && definition.entity !== "task" && <aside className="smart-create-sidebar"><span className="smart-create-eyebrow">BUSINESS SUITE</span><h2>Bring your next<br/>idea to life.</h2><p>Your current page stays right here. Complete the details, review your choices, and create when you’re ready.</p><span><CheckCircle2 size={16}/> Clear details, one step at a time</span><span><CheckCircle2 size={16}/> Connected to your current work</span><span><CheckCircle2 size={16}/> Ready when you save</span></aside>}<div className="smart-create-body"><CreationSurfaceContext.Provider value={true}>{children}</CreationSurfaceContext.Provider></div></div>
       <footer className="smart-create-footer" data-smart-create-footer><span>Review the details before creating.</span><Button type="button" variant="outline" disabled={busy} onClick={requestClose}>Cancel</Button>{action?.previous && <Button type="button" variant="outline" disabled={busy || action.previous.disabled} onClick={() => previous.current?.click()}>Previous</Button>}{action && <Button type="button" disabled={busy || action.disabled} onClick={() => primary.current?.click()}>{action.label}</Button>}</footer>
+      </div></FocusScope>
     </Dialog.Content>
   </Dialog.Portal></Dialog.Root>
   <Alert.Root open={confirm} onOpenChange={setConfirm}><Alert.Portal><Alert.Overlay className="smart-discard-overlay"/><Alert.Content className="smart-discard-window"><Alert.Title>Discard changes?</Alert.Title><Alert.Description>Your unsaved information will be lost. Drafts explicitly saved by the form remain available.</Alert.Description><div><Alert.Cancel asChild><Button variant="outline">Continue Editing</Button></Alert.Cancel>{draftButton && <Button variant="outline" onClick={() => { setConfirm(false); draftButton.click(); }}>Save Draft</Button>}<Alert.Action asChild><Button variant="destructive" onClick={onClose}>Discard Changes</Button></Alert.Action></div></Alert.Content></Alert.Portal></Alert.Root></>;

@@ -15,6 +15,31 @@ from app.apps.power_apps.integrations.vault import CredentialVault
 ROOT = "/api/v1/files-storage"
 
 
+def test_google_root_uses_scope_permitted_listing(monkeypatch):
+    from types import SimpleNamespace
+    calls = []
+    monkeypatch.setattr(providers, "json_request", lambda *args: calls.append(args[3]) or {"files": []})
+    assert providers.folder_info(None, SimpleNamespace(provider="google_drive"), "root")["id"] == "root"
+    assert len(calls) == 1 and "/files?" in calls[0]
+
+
+def test_note_route_uses_only_current_users_drive(db):
+    from app.services.file_storage import upload_route
+    own = StorageConnection(organization_id=1, provider="google_drive", label="Personal", created_by=1, connected=True)
+    other = StorageConnection(organization_id=1, provider="google_drive", label="Other", created_by=2, connected=True)
+    db.add_all([own, other]); db.flush()
+    token = context.set({"actor": {"user_id": 1, "access_company": 1}})
+    try:
+        assert upload_route(db, 1, "pms", 1) == {"connection_id": own.id, "folder_id": "root"}
+        assert upload_route(db, 2, "pms", 1) is None
+        with pytest.raises(HTTPException) as error:
+            upload_route(db, 1, "pms", 2)
+        assert error.value.status_code == 403
+        assert upload_route(db, 1, "pms") is None
+    finally:
+        context.reset(token)
+
+
 def test_cloud_quota_failure_explains_recovery(monkeypatch):
     from types import SimpleNamespace
     monkeypatch.setattr(providers.HttpTransport, "request", lambda *args, **kwargs: SimpleNamespace(status=507))

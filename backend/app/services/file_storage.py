@@ -52,15 +52,27 @@ def locator(path, db=None, company=None):
     return db.query(StorageObject).filter_by(organization_id=int(company), relative_path=ref).first()
 
 
-def require_project_drive(db=None, company=None):
+def upload_route(db, company, module, personal_note_owner=None):
+    if personal_note_owner is not None:
+        _, _, actor = scope(db, company)
+        if actor.get("user_id") != personal_note_owner:
+            raise HTTPException(403, "Note storage must belong to the current user")
+        conn = db.query(StorageConnection).filter_by(organization_id=int(company),
+            created_by=personal_note_owner, connected=True, provider="google_drive").order_by(StorageConnection.id.desc()).first()
+        if conn:
+            return {"connection_id": conn.id, "folder_id": "root"}
+    policy = db.get(StoragePolicy, int(company))
+    return ((policy.routes or {}).get(module) or (policy.routes or {}).get("default")) if policy and policy.enabled else None
+
+
+def require_project_drive(db=None, company=None, *, personal_note_owner=None):
     """Reject new project uploads before writing unless this tenant has a Drive route."""
     if not settings.PMS_GOOGLE_DRIVE_REQUIRED:
         return
     db, company, _ = scope(db, company)
     if db is None or company is None:
         raise HTTPException(409, "Select a business and connect its Google Drive in Settings > Files & Storage before uploading attachments")
-    policy = db.get(StoragePolicy, int(company))
-    route = ((policy.routes or {}).get("pms") or (policy.routes or {}).get("default")) if policy and policy.enabled else None
+    route = upload_route(db, company, "pms", personal_note_owner)
     conn = db.query(StorageConnection).filter_by(id=route.get("connection_id"), organization_id=int(company)).first() if route else None
     if not conn or not conn.connected or conn.provider != "google_drive" or not route.get("folder_id"):
         raise HTTPException(409, "Connect this business's Google Drive and choose its project storage folder in Settings > Files & Storage before uploading attachments")
@@ -94,16 +106,15 @@ def cloud_content(path, db=None, company=None):
     return content, row
 
 
-def route_upload(path, *, db=None, company=None, module=None, filename=None):
+def route_upload(path, *, db=None, company=None, module=None, filename=None, personal_note_owner=None):
     db, company, actor = scope(db, company)
     try: relative(path)
     except HTTPException: return False  # Preserve legacy local paths; never send them to a cloud provider.
     if server_photo(path): return True  # Explicitly keep employee/profile photos on this server.
     module = module or module_for(path, actor)
-    if module == "pms": require_project_drive(db, company)
+    if module == "pms": require_project_drive(db, company, personal_note_owner=personal_note_owner)
     if db is None or company is None: return False  # Background/legacy paths keep their existing backend.
-    policy = db.get(StoragePolicy, int(company))
-    route = ((policy.routes or {}).get(module) or (policy.routes or {}).get("default")) if policy and policy.enabled else None
+    route = upload_route(db, company, module, personal_note_owner)
     content = Path(path).read_bytes()
     from app.enterprise.controls import subscription
     from sqlalchemy import func

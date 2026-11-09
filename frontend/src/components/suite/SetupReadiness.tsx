@@ -24,7 +24,7 @@ export default function SetupReadiness({embedded = false, navigation = false, co
       return data;
     }, retry:false, staleTime:30000, refetchOnWindowFocus:true, refetchInterval:embedded||navigation?false:60000});
   useEffect(() => {
-    if (navigation || embedded) return;
+    if (navigation) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => { clearTimeout(timer); timer = setTimeout(() => void query.refetch(), 250); };
     const required = () => {refresh(); setOpen(true);};
@@ -36,9 +36,10 @@ export default function SetupReadiness({embedded = false, navigation = false, co
   const pageItems = [...(query.data?.items || []), ...(query.data?.moduleItems || [])]
     .filter(item => item.required !== false && !item.ready && location.pathname.replace(/\/$/, "") === item.destination);
   const guidePath = location.pathname === "/pms/reports" && new URLSearchParams(location.search).get("operation") === "/pms/dashboards" ? "/pms/dashboards" : location.pathname.replace(/\/$/, "");
+  const taskWorkspace = guidePath === "/crm/tasks" || guidePath.startsWith("/pms/tasks");
   const guideModule = ({"/hrms":"hrms", "/hrms/dashboard":"hrms", "/hrms/manager-dashboard":"hrms", "/fam":"fam", "/fam/dashboard":"fam", "/crm":"crm", "/crm/dashboard":"crm", "/crm/sales-home":"crm", "/srm":"srm", "/srm/dashboard":"srm", "/pms":"project_management", "/pms/overview":"project_management", "/pms/dashboards":"project_management"} as Record<string,string>)[guidePath];
-  const showGuide = ["/settings", "/setup-guide"].includes(location.pathname) || !!guideModule || ["/pms/workspaces", "/pms/projects", "/pms/tasks"].includes(guidePath);
-  const scopedModule = guideModule || (guidePath.startsWith("/pms/") ? "project_management" : undefined);
+  const showGuide = ["/settings", "/setup-guide"].includes(location.pathname) || !!guideModule || taskWorkspace || ["/crm/workspaces", "/pms/workspaces", "/pms/projects"].includes(guidePath);
+  const scopedModule = taskWorkspace ? "project_management" : guidePath === "/crm/workspaces" ? "crm" : guideModule || (guidePath.startsWith("/pms/") ? "project_management" : undefined);
   if (navigation) {
     const remaining = [...(query.data?.items || []), ...(query.data?.moduleItems || [])].filter(i=>i.required!==false && !i.ready).length;
     return enabled && remaining > 0 ? <Link to="/setup-guide" title="Setup guide" onClick={onNavigate} className={`nav-link mx-2 mt-2 flex items-center gap-2 ${location.pathname === "/setup-guide" ? "nav-link-active" : "nav-link-inactive"} ${collapsed ? "justify-center" : ""}`}><ListChecks size={18}/>{!collapsed && <><span className="flex-1">Setup guide</span><span className="rounded-full bg-primary/15 px-2 text-xs">{remaining}</span></>}</Link> : null;

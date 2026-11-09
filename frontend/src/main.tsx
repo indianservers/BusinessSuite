@@ -1,3 +1,7 @@
+import BrowserDraftRecovery from "./shared/record-sync/BrowserDraftRecovery";
+import { installRecordSync } from "./shared/record-sync/store";
+import { cacheVisitedAssets } from "./lib/visited-assets";
+import RecordSyncItems from "./shared/record-sync/RecordSyncItems";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
 import "./shared/priority/priority.css";
 import { navigationViews } from "./lib/navigation-views";
@@ -40,6 +44,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 2, // 2 minutes
+      gcTime: 1000 * 60 * 60, // Keep visited-page data ready for an hour; stale views refresh in the background.
       retry: (failureCount, error: unknown) => {
         if ((error as { response?: { status?: number } })?.response?.status === 401) return false;
         return failureCount < 1;
@@ -51,6 +56,7 @@ const queryClient = new QueryClient({
 
 installRecordCache(api, queryClient);
 installRecordListRefresh(queryClient);
+installRecordSync(queryClient);
 
 // Statistics caches must not survive an identity, tenant or permission-context switch.
 const statisticsContext=()=>{const u=useAuthStore.getState().user;return JSON.stringify([u?.id,u?.access?.companyId,u?.primary_role??u?.role,u?.is_superuser,u?.access?.grants])};
@@ -63,7 +69,7 @@ window.addEventListener("suite:metrics-changed",()=>{window.clearTimeout(statist
 function PortalRoot() {
   const {pathname} = useLocation();
   if (pathname.startsWith("/platform")) return <PlatformApp/>;
-  return <><SaveShortcut/><AsyncProgress/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
+  return <><SaveShortcut/><AsyncProgress/><RecordSyncItems floating/><BrowserDraftRecovery/>{import.meta.env.DEV && <CacheDiagnostics/>}<App/><RecordQuickPreview/></>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -77,9 +83,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 );
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => cacheVisitedAssets(navigator.serviceWorker.controller));
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").then((registration) => {
+    navigator.serviceWorker.register("/sw.js?v=6", { updateViaCache: "none" }).then((registration) => {
       registration.update().catch(() => undefined);
+      cacheVisitedAssets(navigator.serviceWorker.controller || registration.active);
+      void navigator.serviceWorker.ready.then(ready => cacheVisitedAssets(ready.active));
       if (registration.waiting) {
         registration.waiting.postMessage({ type: "SKIP_WAITING" });
       }

@@ -1,0 +1,159 @@
+{
+  "verifiedAt": "2026-11-09T16:47:14.949Z",
+  "deployment": {
+    "besterp": {
+      "previous": "/srv/business-suite/suite-builds/notes-connect-20261109T163005Z",
+      "active": "/srv/business-suite/suite-builds/shared-notes-20261109",
+      "change": "shared-notes-navigation"
+    },
+    "indianservers": {
+      "previous": "/srv/business-suite/suite-builds/notes-connect-20261109T162949Z",
+      "active": "/srv/business-suite/suite-builds/shared-notes-20261109",
+      "change": "shared-notes-navigation"
+    }
+  },
+  "versions": [
+    {
+      "origin": "https://app.indianservers.com",
+      "change": "shared-notes-navigation",
+      "source_fingerprint": "567c9a6ea4cb48efa217f31a9dd6bd702c97164fef6347f6846509b1db992728",
+      "health": 200
+    },
+    {
+      "origin": "https://besterp.app",
+      "change": "shared-notes-navigation",
+      "source_fingerprint": "567c9a6ea4cb48efa217f31a9dd6bd702c97164fef6347f6846509b1db992728",
+      "health": 200
+    }
+  ],
+  "browser": {
+    "origin": "https://app.indianservers.com",
+    "results": [
+      {
+        "name": "fam menu → shared Notes",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      },
+      {
+        "name": "fam Create → Note",
+        "status": "pass",
+        "url": "/pms/notes?new=1"
+      },
+      {
+        "name": "hrms menu → shared Notes",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      },
+      {
+        "name": "hrms Create → Note",
+        "status": "pass",
+        "url": "/pms/notes?new=1"
+      },
+      {
+        "name": "crm menu → shared Notes",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      },
+      {
+        "name": "crm Create → Note",
+        "status": "pass",
+        "url": "/pms/notes?new=1"
+      },
+      {
+        "name": "power-apps menu → shared Notes",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      },
+      {
+        "name": "power-apps Create → Note",
+        "status": "pass",
+        "url": "/pms/notes?new=1"
+      },
+      {
+        "name": "/crm/tasks?workspaceView=notes legacy redirect",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      },
+      {
+        "name": "/power-apps/notes legacy redirect",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      },
+      {
+        "name": "Direct note deep link",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      },
+      {
+        "name": "Reload note deep link",
+        "status": "pass",
+        "url": "/pms/notes?note=4"
+      }
+    ],
+    "errors": [],
+    "failed": [],
+    "writes": [],
+    "reads": 235,
+    "documents": 12
+  },
+  "concurrency": {
+    "durationMs": 8959,
+    "results": [
+      {
+        "path": "/access/settings/defaults/effective",
+        "status": 200
+      },
+      {
+        "path": "/branches/context",
+        "status": 200
+      },
+      {
+        "path": "/project-management/notes",
+        "status": 200
+      },
+      {
+        "path": "/project-management/workspaces",
+        "status": 200
+      },
+      {
+        "path": "/access/me",
+        "status": 200
+      },
+      {
+        "path": "/project-management/realtime/config",
+        "status": 200
+      },
+      {
+        "path": "/access/settings/defaults/effective",
+        "status": 200
+      },
+      {
+        "path": "/branches/context",
+        "status": 200
+      },
+      {
+        "path": "/project-management/notes",
+        "status": 200
+      },
+      {
+        "path": "/project-management/workspaces",
+        "status": 200
+      },
+      {
+        "path": "/access/me",
+        "status": 200
+      },
+      {
+        "path": "/project-management/realtime/config",
+        "status": 200
+      }
+    ]
+  },
+  "backendRegression": {
+    "passed": 20,
+    "skipped": 1
+  },
+  "typescript": "passed",
+  "productionBuild": "passed",
+  "verificationSession": "revoked"
+}

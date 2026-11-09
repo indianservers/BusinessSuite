@@ -95,7 +95,7 @@ def validated_file(file):
 def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     writable(db, note_id, user)
     from app.services.file_storage import require_project_drive
-    require_project_drive(db)
+    require_project_drive(db, personal_note_owner=user.id)
     name, media_type, body = validated_file(file)
     count, size = db.query(func.count(PMSNoteAttachment.id), func.coalesce(func.sum(PMSNoteAttachment.size), 0)).filter_by(note_id=note_id).one()
     if count >= 20 or size + len(body) > 50 * 1024 * 1024:
@@ -107,7 +107,7 @@ def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = 
     path = Path(settings.UPLOAD_DIR) / "_private" / "pms-note-attachments" / str(note_id) / (uuid4().hex + Path(name).suffix)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(body)
-    persist_file(str(path), db=db, module="pms", filename=name)
+    persist_file(str(path), db=db, module="pms", filename=name, personal_note_owner=user.id)
     row = PMSNoteAttachment(note_id=note_id, filename=name, media_type=media_type, size=len(body), body=b"", storage_path=str(path))
     db.add(row); db.commit(); db.refresh(row)
     return attachment_result(row)
