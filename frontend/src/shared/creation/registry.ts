@@ -5,7 +5,7 @@ export type CreationDefinition = { entity: string; title: string; presentation: 
 /** Edit actions reuse their existing authorized record route inside the shared window. */
 export function editDefinition(destination:string, explicit=false):{definition:CreationDefinition;destination:string}|undefined {
   const url=new URL(destination,"http://suite.local");
-  const match=url.pathname.match(/^\/(pms|crm|hrms|srm|fam|power-apps)\/(.+)\/([\w-]+)(\/edit)?$/);
+  const match=url.pathname.match(/^\/(pms|crm|hrms|srm|fam|power-apps)\/(.+?)\/([\w-]+)(\/edit)?$/);
   if(!match||(!explicit&&!match[4])||!(/^(?:\d+|[a-f\d]{8}-[a-f\d-]{27,})$/i.test(match[3])))return;
   const resource=match[2].split('/').pop()!;
   const entity=({tasks:'task',projects:'project',employees:'employee',companies:'company',contacts:'contact',leads:'lead',deals:'deal'} as Record<string,string>)[resource]||resource.replace(/s$/,'');
