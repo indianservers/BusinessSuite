@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.concurrency import run_in_threadpool
 
 from app.apps.business_os.services.module_service import is_module_enabled
 from app.db.session import SessionLocal
@@ -51,6 +52,14 @@ class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
         if not module_key:
             return await call_next(request)
 
+        # Pool checkout and module queries can wait. Keep them off the event loop
+        # so in-flight handlers can finish and release their database connections.
+        denied = await run_in_threadpool(self._check_access, request, module_key)
+        if denied is not None:
+            return denied
+        return await call_next(request)
+
+    def _check_access(self, request: Request, module_key: str):
         session_factory = getattr(request.app.state, "business_os_session_factory", None)
         close_session = getattr(request.app.state, "business_os_close_session", session_factory is None)
         session_factory = session_factory or SessionLocal
@@ -72,7 +81,7 @@ class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
             if not db.get(Company, company_id):
                 if actor:
                     return JSONResponse(status_code=403,content={"detail":"Organization context is unavailable"})
-                return await call_next(request)
+                return None
             if not is_module_enabled(db, module_key, company_id=company_id):
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -85,4 +94,4 @@ class BusinessOSModuleAccessMiddleware(BaseHTTPMiddleware):
         finally:
             if close_session:
                 db.close()
-        return await call_next(request)
+        return None

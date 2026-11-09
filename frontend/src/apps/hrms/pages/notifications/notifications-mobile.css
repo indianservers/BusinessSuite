@@ -1,0 +1,24 @@
+@media (max-width: 480px) {
+ .hrms-notifications { min-width: 0; }
+ .hrms-notifications.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+ .hrms-notifications .hrms-notification-header { padding: 12px; gap: 10px; }
+ .hrms-notification-header > div > p:first-child { display: none; }
+ .hrms-notifications h1 { margin-top: 0; font-size: 20px; line-height: 1.25; }
+ .hrms-notification-header > div:last-child { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .hrms-notifications :is(button,a,summary), .hrms-notification-record :is(button,a,summary) { min-height: 44px; height: auto; }
+ .hrms-notifications button, .hrms-notification-record button { white-space: normal; }
+ .hrms-notifications :is(input,select) { min-height: 44px; min-width: 0; max-width: 100%; font-size: 16px; }
+ .hrms-notification-list > div { padding: 12px; }
+ .hrms-notification-record { padding: 12px; min-width: 0; }
+ .hrms-notifications .suite-record-card-shell > .hrms-notification-record { padding-bottom: 62px; }
+ .hrms-notifications .suite-record-card-shell > .suite-record-star { top: auto; bottom: 6px; right: 6px; }
+ .hrms-notifications .suite-record-card-shell > .suite-record-card-tools { top: auto; bottom: 6px; right: 56px; }
+ .hrms-notifications .suite-record-star { width: 44px; min-width: 44px; height: 44px; }
+ .hrms-notification-record :is(p,span,a) { overflow-wrap: anywhere; }
+ .hrms-notification-record .shrink-0 { flex-wrap: wrap; }
+ .hrms-notification-record .shrink-0 > :is(button,a) { flex: 1; }
+ .hrms-notification-record a > button { width: 100%; }
+ .hrms-notification-delivery { width: 100%; }
+ .hrms-notification-delivery summary { display: list-item; align-content: center; cursor: pointer; color: hsl(var(--primary)); }
+ .hrms-notification-delivery > div { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 4px 0; }
+}

@@ -6,5 +6,5 @@ import CRMTasksWorkspace from "./CRMTasksWorkspace";
 export default function LegacyCRMTasksPage() {
   const user = useAuthStore(state => state.user);
   const navigate = useNavigate();
-  return <CRMTasksWorkspace legacyKey={`productivity:crm:${user?.id ?? "anonymous"}:v1`} onNotes={() => navigate("/crm/tasks?workspaceView=notes")} />;
+  return <CRMTasksWorkspace legacyKey={`productivity:crm:${user?.id ?? "anonymous"}:v1`} onNotes={() => navigate("/pms/notes")} />;
 }

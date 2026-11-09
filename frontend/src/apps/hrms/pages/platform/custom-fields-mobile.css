@@ -1,0 +1,21 @@
+@media (max-width: 480px) {
+ .hrms-custom-fields { min-width: 0; }
+ .hrms-custom-fields h1 { font-size: 20px; line-height: 1.25; }
+ .hrms-custom-fields > header { align-items: center; }
+ .hrms-custom-fields :is(button,summary), .hrms-custom-fields-form :is(button,summary), .hrms-custom-fields-form label:has(input:is([type="checkbox"],[type="radio"])) { min-height: 44px; min-width: 44px; height: auto; white-space: normal; }
+ .hrms-custom-fields :is(input,select), .hrms-custom-fields-form :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-custom-fields .move-columns { display: block; min-width: 0; }
+ .hrms-custom-fields .move-feedback:empty { display: none; }
+ .hrms-custom-fields .move-card-heading { padding-right: 96px; }
+ .hrms-custom-fields .move-card-heading strong { min-width: 0; }
+ .hrms-custom-fields .move-card > .flex { margin-top: 6px; }
+ .hrms-custom-fields .move-card > .flex > button { position: absolute; right: 10px; top: 10px; }
+ .hrms-custom-fields .move-lane { min-width: 0; max-width: 100%; }
+ .hrms-custom-fields :is(p,strong,span), .hrms-custom-fields-form :is(label,p) { overflow-wrap: anywhere; }
+ .hrms-custom-fields-form > fieldset > .grid { gap: 12px; }
+ .hrms-custom-fields-form .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+ .hrms-custom-fields-form footer { display: none; }
+ .hrms-custom-fields-form .mobile-disclosure { padding: 0 10px; margin: 0; }
+ .hrms-custom-fields-form .mobile-disclosure > div { padding-bottom: 10px; }
+ .hrms-custom-fields-form input:is([type="checkbox"],[type="radio"]) { width: 18px; height: 18px; flex-shrink: 0; }
+}

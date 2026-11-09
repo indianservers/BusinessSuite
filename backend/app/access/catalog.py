@@ -167,6 +167,10 @@ def register_routes(router, source, default=None):
 
 
 def request_module(request):
+    if request.url.path.startswith("/api/v1/files-storage/notes/"):
+        # Each Notes handler checks its body/query-selected source module's
+        # export permission, personal connection ownership and company scope.
+        return None
     if request.url.path.startswith("/api/v1/imports/sample-data/"):
         # Company administration; the endpoint checks approval, membership and
         # the current application grants before creating any sample records.

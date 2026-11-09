@@ -43,6 +43,7 @@ export type GridQuery = {
   grouping: string[];
   path: GridPath;
   page: number;
+  /** 0 selects All; the shared source adapter fetches bounded API pages. */
   pageSize: number;
 };
 export type GridAggregate = {
@@ -141,6 +142,7 @@ export type GridLayout = {
   sizes: ColumnSizingState;
   density: "compact" | "comfortable";
   rowHeight: number;
+  rowHeights?: Record<string, number>;
   view: "grid" | "cards" | "list" | "kanban";
   summary: "sum" | "avg" | "min" | "max" | "count";
 };

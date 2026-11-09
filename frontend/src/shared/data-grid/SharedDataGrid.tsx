@@ -1,7 +1,9 @@
+import { withAllRows } from "./all-rows-source";
+import RowResizeHandle, { fitRow } from "./RowResizeHandle";
 import { businessGroupColumn, initialBusinessGroups } from "./business-grouping";
 import { hasMobilePreset, mobilePresets, toggleMobilePreset } from "./mobile-presets";
 import { useRouteViewState } from "@/hooks/use-route-view-state";
-import { groupAppearance } from "./GroupLabel";
+import { groupAppearance, groupCategoryColors } from "./GroupLabel";
 import "./record-group.css";
 import { normalizePriority, recordPriority } from "@/shared/priority/priority";
 import CollectionOverview from "./CollectionOverview";
@@ -525,13 +527,14 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const collectionLocation = useLocation();
   const {
     columns,
-    dataSource,
+    dataSource: originalDataSource,
     getRowId,
     onOpen,
     onEdit,
     rowActions = [],
     gridId,
   } = props;
+  const dataSource = useMemo(() => withAllRows(originalDataSource), [originalDataSource]);
   const user = useAuthStore((s) => s.user),
     client = useQueryClient();
   const preferenceKey = `suite-grid:v1:${props.organizationId ?? user?.access?.companyId ?? 0}:${props.userId ?? user?.id ?? 0}:${props.workspaceId ?? "organization"}:${gridId}`;
@@ -823,7 +826,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       columns.map((c) => ({
         id: c.id,
         header: c.title,
-        size: c.width || 160,
+        size: c.width || 220,
         minSize: c.minWidth || 70,
         maxSize: 800,
         enableSorting: c.sortable !== false,
@@ -898,7 +901,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const rowVirtual = useVirtualizer({
     count: modelRows.length,
     getScrollElement: () => scroll.current,
-    estimateSize: (index) => modelRows[index]?.original.group ? (mobile ? 44 : 34) : effectiveRowHeight,
+    estimateSize: (index) => modelRows[index]?.original.group ? (mobile ? 44 : 34) : Math.max(mobile ? 48 : 32, layout.rowHeights?.[modelRows[index]?.original.id] ?? effectiveRowHeight),
     overscan: 8,
     scrollMargin: 40,
     scrollPaddingStart: 40,
@@ -915,7 +918,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   });
   useEffect(() => {
     rowVirtual.measure();
-  }, [effectiveRowHeight, mobile, modelRows.length, query.grouping.join("|")]);
+  }, [effectiveRowHeight, layout.rowHeights, mobile, modelRows.length, query.grouping.join("|")]);
   useEffect(() => {
     columnVirtual.measure();
   }, [effectiveSizes, layout.order, layout.visibility, effectivePinning]);
@@ -979,7 +982,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           ),
       ];
       widths[def.id] = Math.min(
-        480,
+        800,
         Math.max(
           def.minWidth || 80,
           ...text.map(
@@ -1165,9 +1168,25 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     } finally { actionInFlight.current = false; setBusyAction(undefined); }
   }
   const rowGroupColumn = columns.find(column => query.grouping.includes(column.id) && !/priority/i.test(column.title)) || businessGroupColumn(columns, `${collectionLocation.pathname}:${gridId}`);
+  const categoryColors = new Map<string,Map<string,string>>();
+  function collectGroupLabels(items:Node<T>[], labels:Map<string,Set<string>>) {
+    for(const node of items) {
+      if(node.group) {
+        const title=columns.find(column=>column.id===node.group!.field)?.title || "";
+        const values=labels.get(title)||new Set<string>(); values.add(node.group.label); labels.set(title,values);
+      }
+      if(node.record && rowGroupColumn) {
+        const values=labels.get(rowGroupColumn.title)||new Set<string>();values.add(textFor(node.record,rowGroupColumn).trim()||"Not set");labels.set(rowGroupColumn.title,values);
+      }
+      if(node.children)collectGroupLabels(node.children,labels);
+    }
+  }
+  const categoryLabels=new Map<string,Set<string>>();collectGroupLabels(nodes,categoryLabels);
+  for(const [title,labels] of categoryLabels)categoryColors.set(title,groupCategoryColors(labels));
+  const categoryColor=(label:string,field="")=>categoryColors.get(field)?.get(label)||groupAppearance(label,field).color;
   function rowGroupStyle(record:T): CSSProperties {
     if (!rowGroupColumn) return {};
-    const {color} = groupAppearance(textFor(record,rowGroupColumn).trim() || "Not set",rowGroupColumn.title);
+    const color = categoryColor(textFor(record,rowGroupColumn).trim() || "Not set",rowGroupColumn.title);
     return color ? {"--record-group-accent":color,"--record-group-bg":`color-mix(in srgb, ${color} 7%, hsl(var(--card)))`,"--record-group-hover":`color-mix(in srgb, ${color} 13%, hsl(var(--card)))`} as CSSProperties : {};
   }
   function rowGroup(record:T) {
@@ -1989,7 +2008,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                               ) : (
                                 <ChevronRight size={15} />
                               )}
-                              <GroupLabel label={node.group.label} field={columns.find(c => c.id === node.group!.field)?.title} count={node.group.count}/>
+                              <GroupLabel color={categoryColor(node.group.label,columns.find(c => c.id === node.group!.field)?.title)} label={node.group.label} field={columns.find(c => c.id === node.group!.field)?.title} count={node.group.count}/>
                             </button>
                             {node.group.aggregates.length > 0 && <NativeSelect
                               aria-label={`Aggregation for ${node.group.label}`}
@@ -2056,6 +2075,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                             data-priority-row={!!priorityFor(record)}
                             data-priority={priorityFor(record)}
                             role="row"
+                            data-resize-row={virtual.index}
                             aria-selected={selection.includes(node.id)}
                             aria-rowindex={
                               (query.page - 1) * query.pageSize +
@@ -2068,11 +2088,11 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                             onClick={event => {
                               props.rowProps?.(record).onClick?.(event);
                               if (event.defaultPrevented) return;
-                              if (!(event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]') || (event.target as HTMLElement).closest("[data-record-open]")) selectRecord(record);
+                              if (!(event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[role="separator"],[contenteditable="true"]') || (event.target as HTMLElement).closest("[data-record-open]")) selectRecord(record);
                             }}
                             onDoubleClickCapture={event => {
                               clearTimeout(selectRecordTimer.current);
-                              const action = (event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[contenteditable="true"]');
+                              const action = (event.target as HTMLElement).closest('button,a,input,select,textarea,[role="checkbox"],[role="separator"],[contenteditable="true"]');
                               if (action && !action.hasAttribute('data-record-open')) return;
                               if (onOpen) { event.preventDefault(); event.stopPropagation(); onOpen(record); }
                               else if (props.onOpenPopup) { event.preventDefault(); event.stopPropagation(); props.onOpenPopup(record); }
@@ -2106,6 +2126,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                   .catch((e) => setActionError(errorText(e)));
                             }}
                           >
+                            <RowResizeHandle height={virtual.size} change={height => updateLayout({ ...layout, rowHeights: { ...layout.rowHeights, [node.id]: height } })} fit={() => fitRow(scroll.current?.querySelector<HTMLElement>(`[data-resize-row="${virtual.index}"]`) ?? null)}/>
                             {selectionWidth > 0 && <div className="udg-select-cell" role="gridcell">
                               <input
                                 aria-label={`Select row ${rowLabel(record)}`}
@@ -2227,7 +2248,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               const field=columns.find(column=>column.id===(props.collectionGroup||props.kanbanField||"status"));
               const groups=new Map<string,T[]>();
               for(const record of visibleRecords){const raw=field?.accessor?.(record) ?? (record as Record<string,unknown>)[field?.id||"status"];const labels=field&&/tags?|labels/i.test(field.title)?Array.isArray(raw)?raw.map(String):String(raw||"").split(",").map(value=>value.trim()).filter(Boolean):[String(raw||"Not set")];for(const label of labels.length?labels:["Untagged"])groups.set(label,[...(groups.get(label)||[]),record]);}
-              return [...groups].map(([label,records])=><section className="suite-record-group" key={label}><h3><GroupLabel label={label} field={field?.title} count={records.length}/></h3><div className="udg-alternate udg-view-cards">{records.map(renderCollectionRecord)}</div></section>);
+              return [...groups].map(([label,records])=><section className="suite-record-group" key={label}><h3><GroupLabel color={categoryColor(label,field?.title)} label={label} field={field?.title} count={records.length}/></h3><div className="udg-alternate udg-view-cards">{records.map(renderCollectionRecord)}</div></section>);
             })() : visibleRecords.map(renderCollectionRecord)}
             {!visibleRecords.length&&<p className="suite-record-empty">No records in this view. Your current filters and access still apply.</p>}
             <small>Alternate views show loaded records from the same filtered data source.</small>
@@ -2244,7 +2265,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           </span>
         ))}
       </div>
-      {(!props.externalPagination || (result?.pageTotal || 0) > query.pageSize) && <footer className="udg-pagination">
+      {(!props.externalPagination || query.pageSize === 0 || (result?.pageTotal || 0) > query.pageSize) && <footer className="udg-pagination">
         <label>
           {props.dataScope === "loaded" ? "Loaded rows per page" : "Rows per page"}
           <NativeSelect
@@ -2258,14 +2279,14 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               })
             }
           >
-            {[10, 25, 50, 100, 200].map((size) => (
-              <option key={size}>{size}</option>
+            {[10, 25, 50, 100, 200, 0].map((size) => (
+              <option key={size} value={size}>{size === 0 ? "All" : size}</option>
             ))}
           </NativeSelect>
         </label>
         <span>
           {query.grouping.length ? "Group page" : "Page"} {query.page} of{" "}
-          {Math.max(1, Math.ceil((result?.pageTotal || 0) / query.pageSize))}
+          {query.pageSize === 0 ? 1 : Math.max(1, Math.ceil((result?.pageTotal || 0) / query.pageSize))}
         </span>
         <button
           disabled={query.page <= 1 || request.isFetching}
@@ -2275,7 +2296,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         </button>
         <button
           disabled={
-            query.page * query.pageSize >= (result?.pageTotal || 0) ||
+            query.pageSize === 0 || query.page * query.pageSize >= (result?.pageTotal || 0) ||
             request.isFetching
           }
           onClick={() => changeQuery({ ...query, page: query.page + 1 })}

@@ -3,8 +3,10 @@ from decimal import Decimal
 from typing import Any, List, Optional
 import calendar
 import re
+import hashlib
+import json
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, func, text
 from app.models.payroll import (
     SalaryComponent, SalaryStructure, SalaryStructureComponent,
     EmployeeSalary, PayrollRun, PayrollRecord, PayrollComponent, Reimbursement,
@@ -256,6 +258,15 @@ def _salary_effective_from(salary: EmployeeSalary) -> date:
     return salary.effective_date or salary.effective_from
 
 
+def get_salary_for_period(db: Session, employee_id: int, start: date, end: date) -> Optional[EmployeeSalary]:
+    """Resolve the applicable pay mode/rate without leaking a future revision."""
+    return db.query(EmployeeSalary).filter(
+        EmployeeSalary.employee_id == employee_id,
+        func.coalesce(EmployeeSalary.effective_date, EmployeeSalary.effective_from) <= end,
+        or_(EmployeeSalary.effective_to.is_(None), EmployeeSalary.effective_to >= start),
+    ).order_by(func.coalesce(EmployeeSalary.effective_date, EmployeeSalary.effective_from).desc(), EmployeeSalary.id.desc()).first()
+
+
 def get_prorated_salary_for_period(
     db: Session,
     employee_id: int,
@@ -374,13 +385,19 @@ def payroll_readiness_summary(
     from app.models.employee import Employee
 
     scope = _payroll_scope_filters(company_id, branch_id, department_id, pay_group_id, employee_category)
+
     employee_query = db.query(Employee).filter(
         Employee.deleted_at.is_(None),
         Employee.status.in_(["Active", "Probation", "Resigned"]),
     )
     employees = _scoped_employee_query(db, employee_query, scope).all()
     employee_ids = [employee.id for employee in employees]
-    salary_employee_ids = {row[0] for row in db.query(EmployeeSalary.employee_id).filter(EmployeeSalary.is_active == True).all()}
+    salary_start = date(year, month, 1)
+    salary_end = date(year, month, calendar.monthrange(year, month)[1])
+    salary_employee_ids = {row[0] for row in db.query(EmployeeSalary.employee_id).filter(
+        func.coalesce(EmployeeSalary.effective_date, EmployeeSalary.effective_from) <= salary_end,
+        or_(EmployeeSalary.effective_to.is_(None), EmployeeSalary.effective_to >= salary_start),
+    ).all()}
     seen_accounts: dict[str, int] = {}
     missing_salary: list[int] = []
     missing_bank: list[int] = []
@@ -709,6 +726,8 @@ def run_payroll(
 ) -> PayrollRun:
     from app.models.employee import Employee
     from app.models.attendance import Attendance
+    from app.services import payroll_policy as policy_service
+    from copy import deepcopy
     import calendar
 
     period_start = pay_period_start or date(year, month, 1)
@@ -716,6 +735,11 @@ def run_payroll(
     scope = _payroll_scope_filters(company_id, branch_id, department_id, pay_group_id, employee_category)
 
     # Create or get existing run
+    if db.get_bind().dialect.name == "postgresql":
+        # Protect the absent-row case as well as existing runs through commit.
+        identity = json.dumps([month, year, company_id, branch_id, department_id, pay_group_id, employee_category], separators=(",", ":"))
+        key = int.from_bytes(hashlib.sha256(identity.encode()).digest()[:8], "big", signed=True)
+        db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": key})
     payroll_run = db.query(PayrollRun).filter(
         and_(
             PayrollRun.month == month,
@@ -727,7 +751,7 @@ def run_payroll(
             PayrollRun.employee_category == employee_category,
             PayrollRun.deleted_at.is_(None),
         )
-    ).first()
+    ).with_for_update().first()
 
     if payroll_run:
         coerce_payroll_run_status(payroll_run)
@@ -760,6 +784,7 @@ def run_payroll(
 
     readiness = payroll_readiness_summary(db, month, year, **scope)
     persist_payroll_readiness_checks(db, payroll_run, readiness, run_by_user_id, force_run=force_run)
+    for check in db.query(PayrollPreRunCheck).filter_by(payroll_run_id=payroll_run.id,check_type='payroll_policy').all():db.delete(check)
     if readiness["critical_issue_count"] and not force_run:
         db.commit()
         raise PayrollReadinessError(readiness)
@@ -785,7 +810,7 @@ def run_payroll(
     db.flush()
 
     for emp in employees:
-        salary = get_active_salary(db, emp.id)
+        salary = get_salary_for_period(db, emp.id, period_start, period_end)
         salary_currency = (emp.salary_currency or "INR").upper()
         if not salary or salary_currency == "INR":
             continue
@@ -814,7 +839,7 @@ def run_payroll(
         if emp.id in missing_exchange_employee_ids:
             continue
 
-        salary = get_active_salary(db, emp.id)
+        salary = get_salary_for_period(db, emp.id, period_start, period_end)
         if not salary:
             continue
 
@@ -824,6 +849,7 @@ def run_payroll(
             PayrollPeriod.year == year,
             PayrollAttendanceInput.employee_id == emp.id,
             PayrollAttendanceInput.source_status.in_(["Approved", "Locked"]),
+            or_(pay_group_id is None,PayrollPeriod.pay_group_id==pay_group_id),
         ).order_by(PayrollAttendanceInput.id.desc()).first()
 
         attendance_query = db.query(Attendance).filter(
@@ -844,8 +870,17 @@ def run_payroll(
         if payable_calendar_days <= 0:
             continue
 
-        pay_group = _active_pay_group(db, pay_group_id, emp)
+        pay_group = _active_pay_group(db, pay_group_id or (attendance_input.period.pay_group_id if attendance_input else None), emp)
         employee_working_days = _working_days_for_employee(db, emp, employment_start, employment_end, pay_group)
+        effective_policy = policy_service.run_policy(db,payroll_run,pay_group,period_start)
+        policy_days = policy_service.evaluate_days(db,emp,period_start,period_end,pay_group,effective_policy,attendance_input) if effective_policy else None
+        policy_lines = None
+        policy_context = None
+        lop_ratio = Decimal(0)
+        if effective_policy:
+            snapshot=deepcopy(payroll_run.policy_snapshot)
+            snapshot.setdefault('employee_groups',{})[str(emp.id)]=str(pay_group.id if pay_group else 0)
+            payroll_run.policy_snapshot=snapshot
 
         if attendance_input:
             employee_working_days = Decimal(attendance_input.working_days or employee_working_days)
@@ -864,11 +899,16 @@ def run_payroll(
                 present_days = employee_working_days
             paid_days = min(present_days, employee_working_days)
             lop_days = max(Decimal("0"), employee_working_days - paid_days)
+        if policy_days:
+            employee_working_days=policy_days['working_days']
+            paid_days=policy_days['payable_days'];lop_days=policy_days['lop_days'];present_days=policy_days['present_days']
 
         salary_currency = (emp.salary_currency or "INR").upper()
         exchange_rate = Decimal("1")
         converted_currency = "INR"
-        monthly_ctc, basic, hra = get_prorated_salary_for_period(db, emp.id, period_start, period_end)
+        # Salary versions outside employment must not affect the employed
+        # portion. Calendar employment proration is applied once below.
+        monthly_ctc, basic, hra = get_prorated_salary_for_period(db, emp.id, employment_start, employment_end)
         if monthly_ctc == Decimal("0"):
             ctc = salary.ctc
             monthly_ctc = ctc / Decimal("12")
@@ -888,28 +928,59 @@ def run_payroll(
         payroll_type = (salary.payroll_type or "monthly_fixed").strip().lower()
         unit_component_name = None
         if payroll_type in {"monthly_fixed", "mixed"}:
-            monthly_ctc = _money(monthly_ctc * employment_ratio)
-            basic = _money(basic * employment_ratio)
-            hra = _money(hra * employment_ratio)
-            other_allowances = monthly_ctc - basic - hra
-            per_day_salary = monthly_ctc / Decimal(str(employee_working_days or 1))
-            lop_deduction = per_day_salary * lop_days
-            gross = monthly_ctc - lop_deduction
+            if effective_policy:
+                full_working=_working_days_for_employee(db,emp,period_start,period_end,pay_group)
+                employed_working=_working_days_for_employee(db,emp,employment_start,employment_end,pay_group)
+                policy_context=dict(calendar_days=period_calendar_days,employed_days=payable_calendar_days,working_days=full_working,employed_working_days=employed_working)
+                employment_ratio=policy_service.proration_factor(effective_policy['rules'],**policy_context)
+                lop_denominator=policy_service.divisor(effective_policy['rules']['lop_divisor'],period_calendar_days,employed_working)
+                lop_ratio=min(Decimal(1),lop_days/lop_denominator) if lop_denominator else Decimal(0)
+                snapshot=deepcopy(payroll_run.policy_snapshot)
+                entry=snapshot['components'].get(str(emp.id))
+                if entry is None or entry.get('errors'):
+                    templates,errors=policy_service.component_templates(db,salary,effective_policy)
+                    entry={'templates':templates,'errors':errors};snapshot['components'][str(emp.id)]=entry
+                snapshot.setdefault('employee_groups',{})[str(emp.id)]=str(pay_group.id if pay_group else 0)
+                payroll_run.policy_snapshot=snapshot
+                policy_lines,lop_deduction=policy_service.monthly_components(db,salary,effective_policy,entry['templates'],monthly_ctc,basic,hra,employment_ratio,lop_ratio,policy_context)
+                basic=sum((value for name,value,key in policy_lines if key.startswith('basic') or name.strip().lower().startswith('basic')),Decimal(0))
+                hra=sum((value for name,value,key in policy_lines if key.startswith('hra') or name.strip().lower()=='hra' or 'house rent' in name.lower()),Decimal(0))
+                gross=sum((value for _,value,_ in policy_lines),Decimal(0))
+                other_allowances=gross-basic-hra
+                monthly_ctc=gross+lop_deduction
+            else:
+                monthly_ctc = _money(monthly_ctc * employment_ratio)
+                basic = _money(basic * employment_ratio)
+                hra = _money(hra * employment_ratio)
+                other_allowances = monthly_ctc - basic - hra
+                per_day_salary = monthly_ctc / Decimal(str(employee_working_days or 1))
+                lop_deduction = per_day_salary * lop_days
+                gross = monthly_ctc - lop_deduction
             if payroll_type == "mixed":
                 unit_pay, _unit_basic, _unit_hra, unit_other, unit_component_name = _non_monthly_base_pay(salary, paid_days)
                 gross += unit_pay
                 other_allowances += unit_other
         else:
+            if policy_days:
+                employee_working_days=policy_days.get('scheduled_days',Decimal(0))
+                paid_days=policy_days.get('scheduled_payable_days',Decimal(0))
+                lop_days=policy_days.get('scheduled_lop_days',Decimal(0))
             unit_pay, basic, hra, other_allowances, unit_component_name = _non_monthly_base_pay(salary, paid_days)
             monthly_ctc = unit_pay
             lop_deduction = Decimal("0")
             gross = unit_pay
 
+        prior_record_ids = db.query(PayrollRecord.id).filter(
+            PayrollRecord.payroll_run_id == payroll_run.id,
+            PayrollRecord.employee_id == emp.id,
+        )
         approved_reimbursements = db.query(Reimbursement).filter(
             and_(
                 Reimbursement.employee_id == emp.id,
-                Reimbursement.status == "Approved",
-                Reimbursement.payroll_record_id.is_(None),
+                or_(
+                    and_(Reimbursement.status == "Approved", Reimbursement.payroll_record_id.is_(None)),
+                    and_(Reimbursement.status == "Paid", Reimbursement.payroll_record_id.in_(prior_record_ids)),
+                ),
                 Reimbursement.date >= period_start,
                 Reimbursement.date <= period_end,
             )
@@ -917,10 +988,12 @@ def run_payroll(
         reimbursement_total = sum((item.amount or Decimal("0")) for item in approved_reimbursements)
         approved_advances = db.query(SalaryAdvance).filter(
             SalaryAdvance.employee_id == emp.id,
-            SalaryAdvance.status == "Approved",
+            or_(
+                and_(SalaryAdvance.status == "Approved", SalaryAdvance.payroll_record_id.is_(None)),
+                and_(SalaryAdvance.status == "Recovered", SalaryAdvance.payroll_record_id.in_(prior_record_ids)),
+            ),
             SalaryAdvance.requested_deduction_month == month,
             SalaryAdvance.requested_deduction_year == year,
-            SalaryAdvance.payroll_record_id.is_(None),
         ).all()
         salary_advance_total = sum((item.approved_amount or item.requested_amount or Decimal("0")) for item in approved_advances)
         period = attendance_input.period if attendance_input else db.query(PayrollPeriod).filter(
@@ -935,14 +1008,18 @@ def run_payroll(
             overtime_lines = db.query(OvertimePayLine).filter(
                 OvertimePayLine.period_id == period.id,
                 OvertimePayLine.employee_id == emp.id,
-                OvertimePayLine.status == "Approved",
-                OvertimePayLine.payroll_record_id.is_(None),
+                or_(
+                    and_(OvertimePayLine.status == "Approved", OvertimePayLine.payroll_record_id.is_(None)),
+                    and_(OvertimePayLine.status == "Paid", OvertimePayLine.payroll_record_id.in_(prior_record_ids)),
+                ),
             ).all()
             encashment_lines = db.query(LeaveEncashmentLine).filter(
                 LeaveEncashmentLine.period_id == period.id,
                 LeaveEncashmentLine.employee_id == emp.id,
-                LeaveEncashmentLine.status == "Approved",
-                LeaveEncashmentLine.payroll_record_id.is_(None),
+                or_(
+                    and_(LeaveEncashmentLine.status == "Approved", LeaveEncashmentLine.payroll_record_id.is_(None)),
+                    and_(LeaveEncashmentLine.status == "Paid", LeaveEncashmentLine.payroll_record_id.in_(prior_record_ids)),
+                ),
             ).all()
             overtime_total = sum((item.amount or Decimal("0")) for item in overtime_lines)
             encashment_total = sum((item.amount or Decimal("0")) for item in encashment_lines)
@@ -962,6 +1039,22 @@ def run_payroll(
         ]
         manual_earning_total = sum((item.amount or Decimal("0")) for item in manual_earning_inputs)
         manual_deduction_total = sum((item.amount or Decimal("0")) for item in manual_deduction_inputs)
+        adjusted_manual={}
+        if effective_policy:
+            if policy_context is None:
+                policy_context=dict(calendar_days=period_calendar_days,employed_days=payable_calendar_days,working_days=_working_days_for_employee(db,emp,period_start,period_end,pay_group),employed_working_days=_working_days_for_employee(db,emp,employment_start,employment_end,pay_group))
+                denominator=policy_service.divisor(effective_policy['rules']['lop_divisor'],period_calendar_days,policy_context['employed_working_days'])
+                lop_ratio=min(Decimal(1),lop_days/denominator) if denominator else Decimal(0)
+            def treated(amount,category):
+                rule=effective_policy['rules']['components'][category]
+                factor=policy_service.proration_factor(effective_policy['rules'],**policy_context) if rule['prorate'] else Decimal(1)
+                prorated=_money(Decimal(amount)*factor)
+                base=prorated if effective_policy['rules']['lop_divisor']=='working_days' else Decimal(amount)
+                return _money(max(Decimal(0),prorated-base*lop_ratio)) if rule['lop'] else prorated
+            adjusted_manual={item.id:treated(item.amount or 0,'incentives') for item in manual_earning_inputs}
+            manual_earning_total=sum(adjusted_manual.values(),Decimal(0))
+            overtime_total=treated(overtime_total,'incentives');encashment_total=treated(encashment_total,'incentives')
+            reimbursement_total=treated(reimbursement_total,'reimbursements')
 
         gross = gross + overtime_total + encashment_total + manual_earning_total
         statutory_amounts, statutory_lines = _calculate_statutory_amounts(
@@ -988,6 +1081,15 @@ def run_payroll(
         if net < Decimal("0"):
             is_anomaly = True
             anomaly_reason = "Net salary is negative"
+        if policy_days and policy_days['blockers']:
+            is_anomaly=True;anomaly_reason='; '.join(policy_days['blockers'])
+        elif policy_days and policy_days.get('warnings'):
+            is_anomaly=True;anomaly_reason='; '.join(policy_days['warnings'])
+        if effective_policy:
+            errors=payroll_run.policy_snapshot.get('components',{}).get(str(emp.id),{}).get('errors',[])
+            for issue in policy_days['blockers']+errors:
+                db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id,check_type='payroll_policy',status='Failed',severity='Critical',affected_employee_id=emp.id,message=issue))
+            for issue in policy_days.get('warnings',[]):db.add(PayrollPreRunCheck(payroll_run_id=payroll_run.id,check_type='payroll_policy',status='Warning',severity='Warning',affected_employee_id=emp.id,message=issue))
 
         # Remove existing record for this run
         existing = db.query(PayrollRecord).filter(
@@ -1050,6 +1152,8 @@ def run_payroll(
                         "working_pattern": (pay_group.working_pattern if pay_group else "company"),
                     },
             result_json={
+                "policy_version_id": effective_policy['version_id'] if effective_policy else None,
+                "policy_checks": {key:(str(value) if isinstance(value,Decimal) else value) for key,value in (policy_days or {}).items()},
                 "salary_currency": salary_currency,
                 "exchange_rate": str(exchange_rate),
                 "converted_currency": converted_currency,
@@ -1079,6 +1183,8 @@ def run_payroll(
             ("ESI Employer", "Employer Contribution", esi_employer),
             ("LWF Employer", "Employer Contribution", lwf_employer),
         ]
+        if policy_lines is not None:
+            payroll_lines=[(name,'Earning',value) for name,value,_ in policy_lines]+[(name,kind,amount) for name,kind,amount in payroll_lines if name not in {'Basic','House Rent Allowance','Other Allowances','LOP Deduction'}]
         if unit_component_name and payroll_type != "monthly_fixed":
             payroll_lines.insert(0, (unit_component_name, "Earning", monthly_ctc if payroll_type != "mixed" else Decimal(salary.wage_rate or 0) * Decimal(salary.default_units or 0)))
         if overtime_total > 0:
@@ -1088,7 +1194,7 @@ def run_payroll(
         if reimbursement_total > 0:
             payroll_lines.append(("Approved Reimbursements", "Reimbursement", reimbursement_total))
         for item in manual_earning_inputs:
-            payroll_lines.append((item.component_name, "Earning", item.amount or Decimal("0")))
+            payroll_lines.append((item.component_name, "Earning", adjusted_manual.get(item.id,item.amount or Decimal("0"))))
         for item in manual_deduction_inputs:
             payroll_lines.append((item.component_name, "Deduction", item.amount or Decimal("0")))
 
@@ -1154,6 +1260,10 @@ def run_payroll(
         total_gross += gross
         total_deductions += total_ded
         total_net += net
+        if effective_policy:
+            snapshot=deepcopy(payroll_run.policy_snapshot)
+            snapshot.setdefault('checks',{})[str(emp.id)]=policy_service.calculation_signature(db,emp,payroll_run,policy_days)
+            payroll_run.policy_snapshot=snapshot
 
     payroll_run.total_gross = total_gross
     payroll_run.total_deductions = total_deductions

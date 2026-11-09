@@ -1,3 +1,7 @@
+import {MobileDisclosure} from "@/components/mobile/MobilePrimitives";
+import {useMobile} from "@/components/mobile/useMobile";
+import {MobileChartZoom} from "@/components/mobile/MobileChartZoom";
+import "./engagement-mobile.css";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import { NativeSelect } from "@/components/ui/native-select";
 import CompactForm from "@/components/forms/CompactForm";
@@ -18,8 +22,30 @@ import { useAuthStore } from "@/store/authStore";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { formatDate } from "@/lib/utils";
 
+function PhoneRecognitionReactions({ item }: { item: { id: number; reactions?: Record<string, number> } }) {
+  const qc = useQueryClient();
+  const reaction = useMutation({
+    mutationFn: (emoji: string) => engagementApi.reactToRecognition(item.id, { emoji }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["recognition-wall"] }),
+  });
+
+  return <div role="group" aria-label="Recognition reactions" aria-busy={reaction.isPending}>
+    <div className="mt-3 flex flex-wrap gap-2">
+      {["clap", "star", "heart"].map((emoji) => (
+        <Button key={emoji} type="button" variant="outline" size="sm" disabled={reaction.isPending} onClick={() => { if (!reaction.isPending) reaction.mutate(emoji); }}>
+          <Smile className="h-4 w-4" />{emoji} {item.reactions?.[emoji] || 0}
+        </Button>
+      ))}
+    </div>
+    {reaction.isPending && <p role="status" className="mt-2 text-sm text-muted-foreground">Saving reaction…</p>}
+    {reaction.isError && <p role="alert" className="mt-2 text-sm text-destructive">Reaction could not save. Tap a reaction to retry.</p>}
+  </div>;
+}
+
 export default function EngagementPage() {
   usePageTitle("Engagement");
+  const phone=useMobile(480);
+  const [announcementSaved,setAnnouncementSaved]=useState(0),[pollSaved,setPollSaved]=useState(0),[shoutoutSaved,setShoutoutSaved]=useState(0);
   const qc = useQueryClient();
   const { toast } = useToast();
   const user = useAuthStore((state) => state.user);
@@ -38,7 +64,7 @@ export default function EngagementPage() {
   const employees = useQuery({ queryKey: ["engagement-employees"], queryFn: () => employeeApi.list({ per_page: 100 }).then((r) => r.data.items || []) });
   const moments = useQuery({ queryKey: ["people-moments", 14], queryFn: () => reportsApi.peopleMoments(14).then((r) => r.data) });
   const activeSurvey = surveys.data?.find((item: any) => item.id === selectedSurveyId) || surveys.data?.[0];
-  const resultSurveyId = selectedSurveyId || activeSurvey?.id;
+  const resultSurveyId = phone?activeSurvey?.id:selectedSurveyId || activeSurvey?.id;
   const results = useQuery({
     queryKey: ["survey-results", resultSurveyId],
     queryFn: () => engagementApi.surveyResults(resultSurveyId!).then((r) => r.data),
@@ -49,6 +75,7 @@ export default function EngagementPage() {
     mutationFn: () => engagementApi.createAnnouncement({ ...announcement, audience: "All", is_published: true }),
     onSuccess: () => {
       setAnnouncement({ title: "", body: "" });
+      if(phone)setAnnouncementSaved(value=>value+1);
       qc.invalidateQueries({ queryKey: ["engagement-announcements"] });
       toast({ title: "Announcement published" });
     },
@@ -63,6 +90,7 @@ export default function EngagementPage() {
     }),
     onSuccess: (response) => {
       setSelectedSurveyId(response.data.id);
+      if(phone){setPollSaved(value=>value+1);setSelectedOption("");}
       qc.invalidateQueries({ queryKey: ["engagement-surveys"] });
       toast({ title: "Poll created" });
     },
@@ -79,6 +107,7 @@ export default function EngagementPage() {
     mutationFn: () => engagementApi.createRecognition({ ...recognition, to_employee_id: Number(recognition.to_employee_id), is_public: true, points: 10 }),
     onSuccess: () => {
       setRecognition({ to_employee_id: "", title: "", message: "", badge: "Team shoutout" });
+      if(phone)setShoutoutSaved(value=>value+1);
       qc.invalidateQueries({ queryKey: ["recognition-wall"] });
       toast({ title: "Recognition posted" });
     },
@@ -87,7 +116,7 @@ export default function EngagementPage() {
   const options = activeSurvey?.options_json || [];
 
   return (
-    <div className="space-y-5">
+    <div className="hrms-engagement-page space-y-5">
       <div className="rounded-lg border bg-card p-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Engagement</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Announcements & Engagement</h1>
@@ -106,47 +135,50 @@ export default function EngagementPage() {
         </div>
       ))}
 
+      {phone&&[announcements,surveys,recognitions,employees,moments,results].some(query=>query.isError)&&<p role="alert" className="text-sm text-destructive">Engagement information could not load. <Button variant="outline" onClick={()=>{for(const query of [announcements,surveys,recognitions,employees,moments,results])if(query.isError)void query.refetch();}}>Retry engagement</Button></p>}
       <div className="grid gap-4 xl:grid-cols-3">
         {canManageEngagement && <Card>
           <CardHeader><CardTitle className="text-base">Post Announcement</CardTitle></CardHeader>
           <CardContent>
-            <SmartCreateSection title="Create post announcement" size="compact"><CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createAnnouncement.mutate(); }}>
-              <div className="space-y-2"><Label>Title</Label><Input value={announcement.title} onChange={(e) => setAnnouncement({ ...announcement, title: e.target.value })} required /></div>
-              <div className="space-y-2"><Label>Message</Label><RichTextField value={announcement.body} onChange={(e) => setAnnouncement({ ...announcement, body: e.target.value })} required /></div>
-              <Button type="submit" disabled={createAnnouncement.isPending}><Send className="h-4 w-4" />Publish</Button>
+            <SmartCreateSection title="Create post announcement" size="compact" mobileSheet={phone} completionRevision={phone?announcementSaved:0}><CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createAnnouncement.mutate(); }}>
+              <div className="space-y-2"><Label>Title</Label><Input aria-label="Announcement title" value={announcement.title} onChange={(e) => setAnnouncement({ ...announcement, title: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Message</Label><RichTextField aria-label="Announcement message" value={announcement.body} onChange={(e) => setAnnouncement({ ...announcement, body: e.target.value })} required /></div>
+              {phone&&createAnnouncement.isError&&<p role="alert" className="text-destructive">Announcement could not publish. Your text is retained.</p>}
+              <Button data-save-action={phone?"":undefined} type="submit" disabled={createAnnouncement.isPending}><Send className="h-4 w-4" />Publish</Button>
             </CompactForm></SmartCreateSection>
           </CardContent>
         </Card>}
 
-        {canManageEngagement && <SmartCreateSection title={<>Create Poll</>} size="compact"><Card>
+        {canManageEngagement && <SmartCreateSection title={<>Create Poll</>} size="compact" mobileSheet={phone} completionRevision={phone?pollSaved:0}><Card className="hrms-engagement-create">
           <CardHeader><CardTitle className="text-base">Create Poll</CardTitle></CardHeader>
           <CardContent>
             <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createPoll.mutate(); }}>
-              <div className="space-y-2"><Label>Question</Label><Input value={pollTitle} onChange={(e) => setPollTitle(e.target.value)} required /></div>
-              <div className="space-y-2"><Label>Options</Label><Input value={pollOptions} onChange={(e) => setPollOptions(e.target.value)} required /></div>
-              <Button type="submit" disabled={createPoll.isPending}><Plus className="h-4 w-4" />Create poll</Button>
+              <div className="space-y-2"><Label>Question</Label><Input aria-label="Poll question" value={pollTitle} onChange={(e) => setPollTitle(e.target.value)} required /></div>
+              <div className="space-y-2"><Label>Options</Label><Input aria-label="Poll options" value={pollOptions} onChange={(e) => setPollOptions(e.target.value)} required /></div>
+              {phone&&createPoll.isError&&<p role="alert" className="text-destructive">Poll could not save. Your question and options are retained.</p>}
+              <Button data-save-action={phone?"":undefined} type="submit" disabled={createPoll.isPending}><Plus className="h-4 w-4" />Create poll</Button>
             </CompactForm>
           </CardContent>
         </Card></SmartCreateSection>}
 
-        <Card className={canManageEngagement ? "" : "xl:col-span-3"}>
+        <MobileDisclosure title="People moments" maxWidth={480}><Card className={`hrms-people-moments ${canManageEngagement ? "" : "xl:col-span-3"}`}>
           <CardHeader><CardTitle className="text-base">People Moments</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {[...(moments.data?.birthdays || []).map((item: any) => ({ ...item, type: "Birthday" })), ...(moments.data?.anniversaries || []).map((item: any) => ({ ...item, type: "Anniversary" }))].slice(0, 6).map((item: any) => (
+            {[...(moments.data?.birthdays || []).map((item: any) => ({ ...item, type: "Birthday" })), ...(moments.data?.anniversaries || []).map((item: any) => ({ ...item, type: "Anniversary" }))].slice(0, phone?undefined:6).map((item: any) => (
               <a key={`${item.type}-${item.employee_id}`} href={`/hrms/employees/${item.employee_id}`} className="flex justify-between rounded-lg border p-3 text-sm hover:bg-muted/50">
                 <span>{item.name}</span><span className="text-muted-foreground">{item.type} • {formatDate(item.date)}</span>
               </a>
             ))}
-            {!moments.data?.birthdays?.length && !moments.data?.anniversaries?.length && <p className="text-sm text-muted-foreground">No upcoming birthdays or anniversaries.</p>}
+            {(!phone||moments.isSuccess) && !moments.data?.birthdays?.length && !moments.data?.anniversaries?.length && <p className="text-sm text-muted-foreground">No upcoming birthdays or anniversaries.</p>}
           </CardContent>
-        </Card>
+        </Card></MobileDisclosure>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
         <Card>
           <CardHeader><CardTitle className="text-base">Live Poll</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <NativeSelect loading={surveys.isFetching} error={surveys.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activeSurvey?.id || ""} onChange={(e) => setSelectedSurveyId(Number(e.target.value))}>
+            <NativeSelect aria-label="Live poll" loading={surveys.isFetching} error={surveys.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={activeSurvey?.id || ""} onChange={(e) => {setSelectedSurveyId(Number(e.target.value));if(phone)setSelectedOption("");}}>
               {surveys.data?.map((item: any) => <option key={item.id} value={item.id}>{item.title}</option>)}
             </NativeSelect>
             <div className="grid gap-2">
@@ -154,39 +186,41 @@ export default function EngagementPage() {
                 <Button key={option} type="button" variant={selectedOption === option ? "default" : "outline"} onClick={() => setSelectedOption(option)}>{option}</Button>
               ))}
             </div>
-            <Button disabled={!activeSurvey || !selectedOption || vote.isPending} onClick={() => vote.mutate()}>Submit vote</Button>
+            {phone&&vote.isError&&<p role="alert" className="text-destructive">Vote could not submit. Your selection is retained.</p>}
+            <Button disabled={!activeSurvey || !selectedOption || vote.isPending || (phone&&!options.includes(selectedOption))} onClick={() => vote.mutate()}>Submit vote</Button>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Poll Results</CardTitle></CardHeader>
           <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
+            <MobileChartZoom title="Poll results"><ResponsiveContainer width="100%" height="100%">
               <BarChart data={results.data?.results || []}>
                 <XAxis dataKey="option" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></MobileChartZoom>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-        <Card>
+        <SmartCreateSection title="Create team shoutout" mobileSheet={phone} inline={!phone} completionRevision={phone?shoutoutSaved:0}><Card className="hrms-engagement-create">
           <CardHeader><CardTitle className="text-base">Team Shoutout</CardTitle></CardHeader>
           <CardContent>
             <CompactForm className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); createRecognition.mutate(); }}>
-              <NativeSelect loading={employees.isFetching} error={employees.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={recognition.to_employee_id} onChange={(e) => setRecognition({ ...recognition, to_employee_id: e.target.value })} required>
+              <NativeSelect aria-label="Recognition recipient" loading={employees.isFetching} error={employees.isError} className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={recognition.to_employee_id} onChange={(e) => setRecognition({ ...recognition, to_employee_id: e.target.value })} required>
                 <option value="">Select employee</option>
                 {employees.data?.map((item: any) => <option key={item.id} value={item.id}>{item.first_name} {item.last_name} ({item.employee_id})</option>)}
               </NativeSelect>
-              <Input placeholder="Recognition title" value={recognition.title} onChange={(e) => setRecognition({ ...recognition, title: e.target.value })} required />
-              <RichTextField placeholder="Message" value={recognition.message} onChange={(e) => setRecognition({ ...recognition, message: e.target.value })} />
-              <Button type="submit" disabled={createRecognition.isPending}><Trophy className="h-4 w-4" />Post shoutout</Button>
+              <Input aria-label="Recognition title" placeholder="Recognition title" value={recognition.title} onChange={(e) => setRecognition({ ...recognition, title: e.target.value })} required />
+              <RichTextField aria-label="Recognition message" placeholder="Message" value={recognition.message} onChange={(e) => setRecognition({ ...recognition, message: e.target.value })} />
+              {phone&&createRecognition.isError&&<p role="alert" className="text-destructive">Shoutout could not post. Your details are retained.</p>}
+              <Button data-save-action={phone?"":undefined} type="submit" disabled={createRecognition.isPending}><Trophy className="h-4 w-4" />Post shoutout</Button>
             </CompactForm>
           </CardContent>
-        </Card>
+        </Card></SmartCreateSection>
         <Card>
           <CardHeader><CardTitle className="text-base">Recognition Wall</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -200,16 +234,16 @@ export default function EngagementPage() {
                   <Badge variant="secondary">{item.badge || "Shoutout"}</Badge>
                 </div>
                 {item.message && <div className="mt-2 text-sm"><RichTextContent legacyFormat="plain" value={item.message}/></div>}
-                <div className="mt-3 flex flex-wrap gap-2">
+                {phone ? <PhoneRecognitionReactions item={item} /> : <div className="mt-3 flex flex-wrap gap-2">
                   {["clap", "star", "heart"].map((emoji) => (
                     <Button key={emoji} variant="outline" size="sm" onClick={() => engagementApi.reactToRecognition(item.id, { emoji }).then(() => qc.invalidateQueries({ queryKey: ["recognition-wall"] }))}>
                       <Smile className="h-4 w-4" />{emoji} {item.reactions?.[emoji] || 0}
                     </Button>
                   ))}
-                </div>
+                </div>}
               </div>
             ))}
-            {!recognitions.data?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No public recognitions yet.</p>}
+            {(!phone||recognitions.isSuccess) && !recognitions.data?.length && <p className="rounded-lg border p-4 text-sm text-muted-foreground">No public recognitions yet.</p>}
           </CardContent>
         </Card>
       </div>

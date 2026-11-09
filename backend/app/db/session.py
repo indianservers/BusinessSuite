@@ -22,6 +22,27 @@ def SessionLocal(**kwargs):
     route = current_tenant.get()
     return tenant_session(route) if route else LegacySessionLocal(**kwargs)
 
+# Security counters and response auditing run while handlers can still own their
+# main connections. Reserve a separate bounded pool so they can always finish.
+control_engine = create_engine(
+    settings.SQLALCHEMY_DATABASE_URI,
+    pool_pre_ping=True,
+    **({"poolclass": NullPool} if settings.SERVERLESS else {
+        "pool_recycle": settings.DB_POOL_RECYCLE_SECONDS,
+        "pool_size": 2, "max_overflow": 3,
+    }),
+    connect_args=settings.SQLALCHEMY_CONNECT_ARGS,
+    echo=settings.DEBUG,
+)
+ControlLegacySessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=control_engine)
+
+
+def ControlSessionLocal(**kwargs):
+    from app.db.tenant import current_tenant, tenant_session
+    route = current_tenant.get()
+    return tenant_session(route) if route else ControlLegacySessionLocal(**kwargs)
+
+
 # PostgreSQL enforces the DB deadline even if a synchronous HTTP worker is cancelled.
 from sqlalchemy import event, text
 from sqlalchemy.orm import Session

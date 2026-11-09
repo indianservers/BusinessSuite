@@ -83,9 +83,9 @@ def enabled(request):
 
 
 def factory(request):
-    from app.db.session import SessionLocal
+    from app.db.session import ControlSessionLocal
 
-    return getattr(request.app.state, "security_session_factory", SessionLocal)
+    return getattr(request.app.state, "security_session_factory", ControlSessionLocal)
 
 
 def expensive(path):

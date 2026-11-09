@@ -1145,6 +1145,8 @@ def upload(
         >= 100
     ):
         raise HTTPException(429, "Upload limit reached; try again later")
+    from app.services.file_storage import require_project_drive
+    require_project_drive(db)
     name = Path((file.filename or "file").replace("\\", "/")).name
     name = "".join(c for c in name if c.isprintable())[:180]
     suffix = Path(name).suffix.lower()
@@ -1179,11 +1181,7 @@ def upload(
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload)
-    try:
-        persist_file(str(path))
-    except Exception:
-        path.unlink(missing_ok=True)
-        raise
+    persist_file(str(path), db=db, module="pms", filename=name)
     row = Attachment(
         conversation_id=rid,
         owner_id=user.id,
@@ -1326,12 +1324,12 @@ def download(
         get_project_for_action(db, f.project_id, user, "browse")
     if not upload_exists(a.path):
         raise HTTPException(404, "Stored file unavailable")
-    path = materialize_file(a.path)
-    # Proxy bytes after authorization; never return a reusable public storage URL.
-    from fastapi.responses import FileResponse
+    path = a.path
+    # Keep conversation authorization on every request, without a reusable bearer link.
+    from app.core.storage import private_attachment_response
 
-    return FileResponse(
-        path,
+    return private_attachment_response(
+        path, db=db,
         filename=a.name,
         media_type=a.mime,
         headers={

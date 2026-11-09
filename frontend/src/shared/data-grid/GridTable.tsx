@@ -51,7 +51,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
     const isAction = /^(actions?|quick actions|select)$/i.test(title) || isFavorite;
     const hasControl = contains(header.props.children, e => e.type === "button" || checkbox(e) || typeof e.type !== "string");
     return {
-      id: `column-${index}`, title, width: typeof header.props.style?.width === "number" ? header.props.style.width : /^select$/i.test(title) ? 40 : isFavorite ? 60 : isAction ? 130 : index === identityIndex ? 220 : /score|progress|quantity/i.test(title) ? 75 : /status|stage|priority/i.test(title) ? 100 : /owner|assignee|assigned|employee|team/i.test(title) ? 135 : /next action/i.test(title) ? 170 : /date|updated|follow.up/i.test(title) ? 140 : 130,
+      id: `column-${index}`, title, width: typeof header.props.style?.width === "number" ? header.props.style.width : /^select$/i.test(title) ? 40 : isFavorite ? 60 : isAction ? 130 : index === identityIndex ? 320 : /score|progress|quantity/i.test(title) ? 75 : /status|stage|priority/i.test(title) ? 100 : /owner|assignee|assigned|employee|team/i.test(title) ? 135 : /next action/i.test(title) ? 170 : /date|updated|follow.up/i.test(title) ? 140 : 130,
       minWidth: /^select$/i.test(title) ? 32 : isFavorite ? 48 : /score|progress|quantity/i.test(title) ? 60 : undefined,
       header: isFavorite ? <span className="sr-only">{title}</span> : hasControl ? header.props.children : undefined,
       sortable: !isAction && !hasControl, filterable: !isAction, groupable: !isAction,
@@ -87,7 +87,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
       initialQuery={{...(externalPagination ? {pageSize:200} : {}),...(defaultGroupBy ? {grouping:columns.filter(column=>column.title===defaultGroupBy).map(column=>column.id)} : {})}}
       columns={columns} dataSource={source} getRowId={row => row.id}
       selectionEnabled={!hasSelection} exportFormats={["csv", "clipboard"]}
-      initialLayout={{ visibility:Object.fromEntries(columns.filter(column=>defaultHiddenColumns?.includes(column.title)).map(column=>[column.id,false])), pinning: { left: hasSelection ? ["column-0", "column-1"] : ["column-0"], right: pinActions ? columns.filter(column => /^(actions?|quick actions)$/i.test(column.title)).map(column => column.id) : [] }, rowHeight: 42 }}
+      initialLayout={{ visibility:Object.fromEntries(columns.filter(column=>defaultHiddenColumns?.includes(column.title)).map(column=>[column.id,false])), pinning: { left: hasSelection ? ["column-0", "column-1"] : ["column-0"], right: pinActions ? columns.filter(column => /^(actions?|quick actions)$/i.test(column.title)).map(column => column.id) : [] }, rowHeight: 64 }}
       rowProps={row => {
         const { children: _children, className: _className, style: _style, ...props } = rowMap.get(row.id)?.props || {};
         return props as HTMLAttributes<HTMLDivElement>;

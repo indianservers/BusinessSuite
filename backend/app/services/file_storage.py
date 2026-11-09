@@ -52,13 +52,56 @@ def locator(path, db=None, company=None):
     return db.query(StorageObject).filter_by(organization_id=int(company), relative_path=ref).first()
 
 
+def require_project_drive(db=None, company=None):
+    """Reject new project uploads before writing unless this tenant has a Drive route."""
+    if not settings.PMS_GOOGLE_DRIVE_REQUIRED:
+        return
+    db, company, _ = scope(db, company)
+    if db is None or company is None:
+        raise HTTPException(409, "Select a business and connect its Google Drive in Settings > Files & Storage before uploading attachments")
+    policy = db.get(StoragePolicy, int(company))
+    route = ((policy.routes or {}).get("pms") or (policy.routes or {}).get("default")) if policy and policy.enabled else None
+    conn = db.query(StorageConnection).filter_by(id=route.get("connection_id"), organization_id=int(company)).first() if route else None
+    if not conn or not conn.connected or conn.provider != "google_drive" or not route.get("folder_id"):
+        raise HTTPException(409, "Connect this business's Google Drive and choose its project storage folder in Settings > Files & Storage before uploading attachments")
+    import shutil
+    root = Path(settings.UPLOAD_DIR)
+    if shutil.disk_usage(root).free < 256 * 1024 * 1024:
+        raise HTTPException(507, "Temporary upload space is unavailable; try again later")
+    staging = 0
+    for directory in (root / "pms", root / "_private" / "pms-note-attachments"):
+        for path in directory.rglob("*"):
+            try:
+                if path.is_file(): staging += path.stat().st_size
+            except FileNotFoundError:
+                pass  # Another completed upload may have just removed its staging copy.
+    if staging >= 128 * 1024 * 1024:
+        raise HTTPException(503, "Project attachment staging is full. Ask an administrator to recover pending Drive uploads before retrying")
+
+
+def cloud_content(path, db=None, company=None):
+    """Read verified private cloud bytes without recreating a permanent server copy."""
+    row = locator(path, db, company)
+    if not row or row.status != "cloud":
+        return None
+    db, company, _ = scope(db, company)
+    conn = db.query(StorageConnection).filter_by(id=row.connection_id, organization_id=int(company)).with_for_update().first()
+    if not conn or not conn.connected:
+        raise HTTPException(409, "Reconnect the original storage account to download this attachment")
+    content = providers.download(db, conn, row.remote_id)
+    if hashlib.sha256(content).hexdigest() != row.sha256:
+        raise HTTPException(409, "Cloud file contents changed; checksum verification failed")
+    return content, row
+
+
 def route_upload(path, *, db=None, company=None, module=None, filename=None):
     db, company, actor = scope(db, company)
     try: relative(path)
     except HTTPException: return False  # Preserve legacy local paths; never send them to a cloud provider.
     if server_photo(path): return True  # Explicitly keep employee/profile photos on this server.
-    if db is None or company is None: return False  # Background/legacy paths keep their existing backend.
     module = module or module_for(path, actor)
+    if module == "pms": require_project_drive(db, company)
+    if db is None or company is None: return False  # Background/legacy paths keep their existing backend.
     policy = db.get(StoragePolicy, int(company))
     route = ((policy.routes or {}).get(module) or (policy.routes or {}).get("default")) if policy and policy.enabled else None
     content = Path(path).read_bytes()
@@ -104,6 +147,8 @@ def route_upload(path, *, db=None, company=None, module=None, filename=None):
         # Never discard an accepted attachment because the provider is temporarily unavailable.
         row.error = "Cloud upload or verification failed. The server copy is retained; retry from Files & Storage."
     db.flush()
+    if module == "pms" and settings.PMS_GOOGLE_DRIVE_REQUIRED and row.status != "cloud":
+        raise HTTPException(503, "Google Drive upload could not be verified. Attachment was not accepted; reconnect Drive or free Drive space and retry. The temporary original is retained for recovery.")
     return row.status == "cloud"
 
 
@@ -145,6 +190,7 @@ def materialize(path, db=None, company=None):
 def retain_generated(db, module, name, content, *, company=None, commit=True):
     """Persist generated binary documents which previously existed only in HTTP responses."""
     from app.core.storage import persist_file
+    if module == "pms": require_project_drive(db, company)
     safe = Path(name.replace("\\", "/")).name
     path = Path(settings.UPLOAD_DIR) / module / "generated" / uuid4().hex / safe
     path.parent.mkdir(parents=True, exist_ok=True)

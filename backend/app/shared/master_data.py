@@ -334,6 +334,16 @@ def relationships(db, row, kind):
     return sorted(roles)
 
 
+def company_location(row, details):
+    """Use the primary structured address, with legacy city/state taking precedence."""
+    addresses = details.addresses if details else []
+    address = addresses[0] if addresses and isinstance(addresses[0], dict) else {}
+    text = lambda value: str(value).strip() if value is not None else ""
+    return {"city": text(row.city) or text(address.get("city")),
+            "state": text(row.state) or text(address.get("state")),
+            "pincode": text(address.get("postalCode"))}
+
+
 def company_output(db, row):
     details = db.get(CompanyMasterDetails, row.id)
     if "master_vendor_cache" not in db.info:
@@ -343,6 +353,7 @@ def company_output(db, row):
         db.info["master_vendor_cache"] = cache
     vendor = db.info["master_vendor_cache"].get(row.id)
     return {"branch_availability": profile_availability(db, row), "id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "status": row.status,
+        **company_location(row, details),
         "country": row.country or "IN", "vendorClassification": vendor.category if vendor else None, "paymentTerms": vendor.payment_terms if vendor else None,
         "gstNumber": next((r.get("number", "") for r in (details.tax_registrations if details else []) if r.get("type", "").upper() in {"GST", "GSTIN"}), ""),
         "roles": relationships(db, row, "company"), "tags": [x.strip() for x in (row.tags_text or "").split(",") if x.strip() and x.strip() not in ROLES], "notes": row.notes,
@@ -986,6 +997,11 @@ def company_grid(state: str = Query("{}", max_length=16000), source: Source = "c
     category = select(BusinessRelationship.category).where(BusinessRelationship.account_id == CRMCompany.id,
         BusinessRelationship.role.in_(["Vendor", "Supplier"])).order_by(BusinessRelationship.id).limit(1).scalar_subquery()
     fields = {name: GridField(getattr(CRMCompany, name), "id" if name == "id" else "datetime" if name in {"created_at", "updated_at"} else "text") for name in ["id", "name", "email", "phone", "country", "industry", "status", "account_type", "tags_text", "created_at", "updated_at"]}
+    # Keep grouped values identical to company_output, including blank/missing addresses.
+    for name, address_key in [("city", "city"), ("state", "state"), ("pincode", "postalCode")]:
+        address_value = func.nullif(func.trim(CompanyMasterDetails.addresses[0][address_key].as_string()), "")
+        legacy_value = func.nullif(func.trim(getattr(CRMCompany, name)), "") if name != "pincode" else None
+        fields[name] = GridField(func.coalesce(legacy_value, address_value, ""), "text")
     fields["businessType"] = GridField(CompanyMasterDetails.business_type, "text")
     fields["vendorClassification"] = GridField(category, "text")
     q = apply_filters(q, parsed, fields)
@@ -1075,7 +1091,7 @@ def export_companies(data: CompanyExport, source: Source = "crm", role: str = ""
     from app.shared.data_grid import parse_query, safe_cell
     authorize(actor, source, action="export")
     columns = data.columns
-    if not columns or set(columns) - {"name", "email", "phone", "industry", "status", "roles", "tags", "account_type", "tags_text", "gstNumber", "bankAccountCount", "upiCount", "businessType", "vendorClassification", "country"}:
+    if not columns or set(columns) - {"name", "email", "phone", "industry", "status", "roles", "tags", "account_type", "tags_text", "gstNumber", "bankAccountCount", "upiCount", "businessType", "vendorClassification", "country", "city", "state", "pincode"}:
         raise HTTPException(422, "Unsupported export columns")
     parsed = parse_query(data.state)
     parsed.grouping, parsed.path, parsed.page, parsed.pageSize = [], [], 1, 200

@@ -1,0 +1,18 @@
+@media(max-width:480px){
+ .hrms-engagement-page{min-width:0;font-size:14px;}
+ .hrms-engagement-page>div:first-child{padding:12px;}
+ .hrms-engagement-page h1{font-size:22px;line-height:1.25;margin-top:4px;}
+ .hrms-engagement-page .grid>*,.hrms-engagement-page .kf-card,.hrms-engagement-page .flex>div{min-width:0;}
+ .hrms-engagement-page .hrms-people-moments>div:first-child{display:none;}
+ .hrms-engagement-page .kf-card>div{padding:12px;}
+ .hrms-engagement-page :is(p,span,a){overflow-wrap:anywhere;}
+ .hrms-engagement-page :is(button,a){min-height:44px;}
+ .hrms-engagement-page button{white-space:normal;}
+ .smart-create-phone-sheet:has(input[aria-label="Poll question"],input[aria-label="Announcement title"],input[aria-label="Recognition title"]) :is(input,select,[contenteditable="true"]),.hrms-engagement-page :is(input,select){font-size:16px;min-height:44px;min-width:0;max-width:100%;}
+ .hrms-engagement-page .smart-create-section{padding:10px;}
+ .hrms-engagement-page .smart-create-section>div{display:none;}
+ .hrms-engagement-page .smart-create-section>button{width:100%;}
+ .smart-create-phone-sheet .hrms-engagement-create{border:0;box-shadow:none;}
+ .smart-create-phone-sheet .hrms-engagement-create>div:first-child{display:none;}
+ .smart-create-phone-sheet .hrms-engagement-create>div:last-child{padding:0;}
+}

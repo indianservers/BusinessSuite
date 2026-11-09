@@ -191,3 +191,26 @@ def test_relationship_edits_reject_stale_version(client, db, superuser_headers, 
     assert first.status_code==200,first.text
     stale=client.put(endpoint,headers=superuser_headers,json=payload)
     assert stale.status_code==409,stale.text
+
+def test_customer_location_grouping_uses_saved_primary_address(client, db, superuser_headers, directory_identity):
+    import json
+    rows = [company(client, superuser_headers, name=f"Location customer {index}", roles=["Customer"],
+                    addresses=[{"type": "Billing", "state": state, "city": city, "postalCode": pin}])
+            for index, (state, city, pin) in enumerate([
+                ("Telangana", "Hyderabad", "500001"), ("Maharashtra", "Pune", "411001"),
+                ("Telangana", "Hyderabad", "500001"), ("", "", "")])]
+    for field, expected in [("state", {"Telangana": 2, "Maharashtra": 1, "Not set": 1}),
+                            ("city", {"Hyderabad": 2, "Pune": 1, "Not set": 1}),
+                            ("pincode", {"500001": 2, "411001": 1, "Not set": 1})]:
+        result = client.get(ROOT + "/company-directory/query", headers=superuser_headers,
+                            params={"role": "Customer", "state": json.dumps({"search": "Location customer", "grouping": [field]})})
+        assert result.status_code == 200, result.text
+        groups = result.json()["groups"]
+        assert {group["label"]: group["count"] for group in groups} == expected
+        for group in groups:
+            expanded = client.get(ROOT + "/company-directory/query", headers=superuser_headers,
+                params={"role": "Customer", "state": json.dumps({"search": "Location customer", "grouping": [field], "path": group["path"]})})
+            assert expanded.status_code == 200, expanded.text
+            records = expanded.json()["rows"]
+            assert len(records) == group["count"]
+            assert all(record[field] == group["value"] for record in records)

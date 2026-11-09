@@ -9,9 +9,9 @@ export const productivityReferences = [
   },
   {
     id: "notes", name: "Notes", icon: "FileText", route: "/pms/notes",
-    description: "Rich notes and notebook presentation with application-owned persistence.",
-    source: "frontend/src/shared/productivity/NotesWorkspace.tsx",
-    integration: ["Reuse NoteEditor for controlled editing or NotesWorkspace for browser-local notebooks.", "Provide attachment and reference callbacks plus application-specific persistence.", "Scope browser drafts by application, company, branch and user; remount when scope changes."],
+    description: "One shared Notes workspace for every Suite module.",
+    source: "frontend/src/apps/project-management/pages/NotesPage.tsx",
+    integration: ["Link every module to /pms/notes; create notes with /pms/notes?new=1.", "Use the existing PMS UI and API persistence instead of a separate module notebook.", "Preserve note access controls, project/task references and attachments."],
     preserve: "PMS private notes, project/task references, attachment authorization and API persistence stay in PMS adapters.",
   },
   {

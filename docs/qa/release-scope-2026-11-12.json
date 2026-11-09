@@ -6,7 +6,14 @@
   "scope_status": "frozen",
   "frozen_on": "2026-11-09",
   "authority": "User instructed the agent to identify failures, decide priorities and freeze release scope.",
-  "code_freeze_status": "not_yet_frozen",
+  "code_freeze_status": "candidate_source_snapshot_frozen_review_for_promotion_pending",
+  "frozen_candidate": {
+    "sha256": "e551c851b8f5ce52b7389e677f1ef747097195ab94475cfee697b2c6cbfd7ac4",
+    "directory": ".local/release-candidates/rc-20261109T034833437380Z",
+    "base_commit": "7d22e502bf399ecb02ea233c6da959d2a4598434",
+    "report": "docs/qa/live-release-acceptance-2026-11-09.json",
+    "reason_for_derivation": "Critical follow-up scheduler cron authentication defect found during hosted acceptance; exact route exception and regression test only."
+  },
   "baseline_commit": "76b7d812b070becb8a8948a44558fdbfdeb45fc4",
   "baseline_note": "The shared working tree contains substantial uncommitted changes. The baseline commit alone does not contain the locally tested candidate. Scope freeze does not stage, discard, commit or publish those changes.",
   "included_journeys": [
@@ -63,19 +70,72 @@
   ],
   "change_control": "New feature work requires an explicit scope revision. Release-blocking fixes remain allowed. Revalidate affected journeys after every accepted change. Existing deferred functionality may remain only if it does not block or falsely promise the frozen journeys.",
   "confirmed_failures": [
-    {"priority":"P0","item":"Linked production-target deployment build failure","status":"open_in_published_revision","evidence":"dpl_3MLZF3tnqyEoX4P7hGyEdm2Jm9U5 remains ERROR; prior logs show empty committed PremiumLauncher.tsx. Existing local restoration builds successfully but is unpublished. A failed deployment is not proof of a live outage."},
-    {"priority":"P1","item":"Communication-save JavaScript errors and late email reply crash","status":"fixed_locally","evidence":"Reproduced before fixes; local regression and integrated browser acceptance passed in the prior batch."},
-    {"priority":"P1","item":"CC/BCC opt-out bypass and invalid copied recipient handling","status":"fixed_locally","evidence":"Copied-recipient regressions failed before fixes; targeted follow-up suite passed."},
-    {"priority":"P1","item":"Delivery handoff returns success for a deleted linked project","status":"fixed_locally","evidence":"Reproduced HTTP 200 with null project; now HTTP 409 with no replacement project."},
-    {"priority":"P1","item":"Exit edits accept invalid dates and unsupported/null required values","status":"fixed_locally","evidence":"Reproduced invalid date/status persistence; targeted validation and existing HR operations passed."}
+    {
+      "priority": "P0",
+      "item": "Linked production-target deployment build failure",
+      "status": "failed_attempt_not_current_live",
+      "evidence": "dpl_3MLZF3tnqyEoX4P7hGyEdm2Jm9U5 remains ERROR; logs show empty committed PremiumLauncher.tsx. Frozen candidate builds successfully. Production is healthy on READY deployment dpl_Du6Nw9aNG9yRKut4QuzpXTHpZY8d."
+    },
+    {
+      "priority": "P1",
+      "item": "Communication-save JavaScript errors and late email reply crash",
+      "status": "fixed_locally",
+      "evidence": "Reproduced before fixes; local regression and integrated browser acceptance passed in the prior batch."
+    },
+    {
+      "priority": "P1",
+      "item": "CC/BCC opt-out bypass and invalid copied recipient handling",
+      "status": "fixed_locally",
+      "evidence": "Copied-recipient regressions failed before fixes; targeted follow-up suite passed."
+    },
+    {
+      "priority": "P1",
+      "item": "Delivery handoff returns success for a deleted linked project",
+      "status": "fixed_locally",
+      "evidence": "Reproduced HTTP 200 with null project; now HTTP 409 with no replacement project."
+    },
+    {
+      "priority": "P1",
+      "item": "Exit edits accept invalid dates and unsupported/null required values",
+      "status": "fixed_locally",
+      "evidence": "Reproduced invalid date/status persistence; targeted validation and existing HR operations passed."
+    }
   ],
   "mandatory_release_gates": [
-    {"id":"G1","gate":"Local critical backend, cache regressions and production build","status":"passed_on_current_working_tree","evidence":"247 backend checks passed, one PostgreSQL-only skip; 11 selling/onboarding/attendance checks passed; three receipt/allocation/accounting checks passed; cache regressions and production build passed."},
-    {"id":"G2","gate":"Integrated browser acceptance on the exact candidate","status":"prior_local_pass_candidate_recheck_required"},
-    {"id":"G3","gate":"Freeze a reviewed candidate revision containing intended local changes","status":"pending"},
-    {"id":"G4","gate":"PostgreSQL migration and critical workflow acceptance on disposable/staging data","status":"pending"},
-    {"id":"G5","gate":"Live SES/WhatsApp test delivery, inbound callbacks and monitored worker/cron execution","status":"pending"},
-    {"id":"G6","gate":"Successful candidate deployment, authenticated smoke checks and tested rollback/restore procedure","status":"pending"}
+    {
+      "id": "G1",
+      "gate": "Local critical backend, cache regressions and production build",
+      "status": "passed_on_frozen_candidate",
+      "evidence": "262 PostgreSQL checks passed with zero skips; cache regressions and candidate production build passed."
+    },
+    {
+      "id": "G2",
+      "gate": "Integrated browser acceptance on the exact candidate",
+      "status": "passed_locally",
+      "evidence": "Cross-module WhatsApp/CRM/commercial/project browser test passed against candidate frontend and isolated API; provider transport simulated. HR verified through backend tests."
+    },
+    {
+      "id": "G3",
+      "gate": "Freeze a reviewed candidate revision containing intended local changes",
+      "status": "snapshot_frozen_promotion_review_pending"
+    },
+    {
+      "id": "G4",
+      "gate": "PostgreSQL migration and critical workflow acceptance on disposable/staging data",
+      "status": "passed_on_disposable_local_postgresql_staging_check_pending"
+    },
+    {
+      "id": "G5",
+      "gate": "Live SES/WhatsApp test delivery, inbound callbacks and monitored worker/cron execution",
+      "status": "blocked",
+      "evidence": "Live WhatsApp verification endpoint returns 503 unconfigured; real provider acceptance not performed."
+    },
+    {
+      "id": "G6",
+      "gate": "Successful candidate deployment, authenticated smoke checks and tested rollback/restore procedure",
+      "status": "candidate_deployment_pending_rollback_prepared",
+      "evidence": "Current live deployment healthy; rollback target mapped; synthetic local restore drill passed for 838 tables. Production recovery and candidate cloud acceptance pending."
+    }
   ],
   "latest_local_evidence": {
     "runner_summary": ".local/release-readiness/20261109T023040714363Z/summary.json",
@@ -86,5 +146,19 @@
     "test_runner_scope": "The core run began before the runner was expanded; additional frozen-scope tests ran as supplements. The saved runner now includes all those test files for the next single run."
   },
   "go_no_go": "NO-GO until every mandatory gate has evidence for the same release candidate and no unresolved critical/high defect remains in included journeys. Unknown production behavior is an acceptance gap, not a demonstrated product failure.",
-  "ownership": {"agent":"Diagnose, implement, run available checks and maintain evidence.","user":"Provide access or business decisions only when an actual external blocker is reached; no diagnostic work requested."}
+  "ownership": {
+    "agent": "Diagnose, implement, run available checks and maintain evidence.",
+    "user": "Provide access or business decisions only when an actual external blocker is reached; no diagnostic work requested."
+  },
+  "latest_hosted_acceptance": {
+    "report": "docs/qa/live-release-acceptance-2026-11-09.json",
+    "candidate_sha256": "e551c851b8f5ce52b7389e677f1ef747097195ab94475cfee697b2c6cbfd7ac4",
+    "status": "STAGING PASSED; production promotion held for remaining rollout gates"
+  },
+  "previous_frozen_candidate": {
+    "sha256": "4236cc75252f5f3c3303419fd551e27a2fad7a07e426c43e8ceb0b189249a303",
+    "directory": ".local/release-candidates/rc-20261109T025029118700Z",
+    "base_commit": "7d22e502bf399ecb02ea233c6da959d2a4598434",
+    "report": "docs/qa/release-candidate-2026-11-09.json"
+  }
 }

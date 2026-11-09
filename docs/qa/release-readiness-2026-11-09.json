@@ -2,7 +2,10 @@
   "assessment_date": "2026-11-09",
   "target_release_date": "2026-11-12",
   "timezone": "Asia/Kolkata",
-  "status": "local-critical-gates-passed-production-acceptance-pending",
+  "status": "hosted-staging-passed-live-delivery-and-domain-rollout-gates-pending",
+  "latest_candidate_report": "docs/qa/live-release-acceptance-2026-11-09.json",
+  "latest_candidate_sha256": "e551c851b8f5ce52b7389e677f1ef747097195ab94475cfee697b2c6cbfd7ac4",
+  "latest_candidate_summary": "Hosted candidate READY: 26 smoke checks, browser login/WhatsApp page, five cron jobs, private storage and Meta delivery confirmed. Email SMTP acceptance confirmed; inbox/live inbound confirmation and per-domain rollout gates remain.",
   "frozen_scope_manifest": "docs/qa/release-scope-2026-11-12.json",
   "latest_scope_validation": {
     "core_backend_passed": 247,
@@ -117,11 +120,15 @@
   "repeatable_local_command": "backend/venv/Scripts/python.exe backend/scripts/check_critical_release.py",
   "repeatable_command_scope": "Critical backend suite, standalone cache regressions and production build. Browser journey is a separate opt-in integration test requiring a local frontend server.",
   "remaining_release_gates": [
-    "Validate deployed authentication, permissions and critical workflows on the intended release environment.",
-    "Validate actual SES and WhatsApp provider delivery, callback configuration and monitored job execution using designated test recipients.",
-    "Exercise deployment migrations and critical database behavior on disposable PostgreSQL.",
-    "Demonstrate backup restore and deployment rollback.",
-    "Freeze and revalidate the exact release revision; this shared checkout contains concurrent in-progress work."
+    "Confirm email inbox receipt and the requested RELEASE4236 WhatsApp reply for live inbound acceptance.",
+    "DSB is a separate instance: its WhatsApp callback remains unconfigured. Select/configure its own account and callback routing before enabling WhatsApp there; do not copy the Indian Servers sender into a different tenant database.",
+    "Confirm final roles for team.indianservers.com and besterp.app before any routing changes.",
+    "Immediately before any production promotion, refresh the per-project rollback baseline, capture the production backup, verify old-app/schema compatibility and deploy the exact frozen source with the intended project environment."
   ],
-  "production_actions": "No deployment, production migration, live provider message or production business-data mutation performed by this batch."
+  "production_actions": "Verified canonical callback with empty signed payload and invalid signature/token rejection; read only receipt lookup for the authorized test. No production traffic promotion, DNS change, production schema migration, restore or rollback.",
+  "latest_hosted_acceptance": {
+    "report": "docs/qa/live-release-acceptance-2026-11-09.json",
+    "candidate_sha256": "e551c851b8f5ce52b7389e677f1ef747097195ab94475cfee697b2c6cbfd7ac4",
+    "status": "STAGING PASSED; production promotion held for remaining rollout gates"
+  }
 }

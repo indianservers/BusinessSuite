@@ -1,3 +1,4 @@
+import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import { SuiteAvatar, SuiteHeading } from "@/components/visuals/SuiteVisuals";
 import { businessDefinitions } from "@/lib/validation/business";
@@ -33,6 +34,7 @@ export default function CompaniesPage({source="crm",role="",entityKind="companie
     {id:"bankAccountCount",title:"Bank accounts",type:"number",sortable:false,filterable:false,groupable:false},
     {id:"upiCount",title:"UPI IDs",type:"number",sortable:false,filterable:false,groupable:false},
     {id:"vendorClassification",title:"Classification",editable:false}, {id:"businessType",title:"Business type",editable:false,render:row=><span>{businessDefinitions.businessTypes.find(t=>t.id===row.businessType)?.label||row.businessType||"—"}</span>}, {id:"country",title:"Country",editable:false}, {id:"industry",title:"Industry",editable:false}, {id:"status",title:"Status",type:"status",editable:false,editor:"select",options:["Active","Inactive","Blocked"].map(x=>({value:x,label:x}))},
+    ...locationFields.filter(field=>field.id!=="country").map(field=>({id:field.id,title:field.label,accessor:(row:Company)=>locationValue(row,field)})),
     {id:"tags_text",title:"Tags",accessor:row=>row.tags?.join(", "),render:row=><span>{row.tags?.join(", ")||"—"}</span>}
   ],[role,trash]);
   const sourceData=useMemo<GridDataSource<Company>>(()=>({personalIdentity:"id",key:`master-companies:${scope}:${source}:${role}:${kind}:${trash}`,export:async(request)=>{if(request.format!=="csv"&&request.format!=="clipboard")throw new Error("Choose CSV or clipboard for company export");return (await api.post("/master-data/company-directory/export",{state:JSON.stringify(request.query),columns:request.columns,ids:request.scope!=="filtered"?request.ids.map(Number):undefined},{params:{source,role,entity_kind:kind,deleted:trash},responseType:request.format==="clipboard"?"text":"blob"})).data;},load:async(query,signal)=>(await api.get("/master-data/company-directory/query",{params:{source,role,entity_kind:kind,deleted:trash,state:JSON.stringify(query)},signal})).data}),[scope,source,role,kind,trash]);

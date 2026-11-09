@@ -1,3 +1,5 @@
+import { sharedNotesPath } from "@/lib/shared-notes";
+import { FileText } from "lucide-react";
 import MenuItemMore, { MenuItemIcon } from "./MenuItemMore";
 import ModuleNewMenu from "@/components/app/ModuleNewMenu";
 import MenuQuickAdd from "./MenuQuickAdd";
@@ -38,6 +40,9 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   // Custom catalogs are already filtered by their server-side application permissions.
   const available = customItems ? [...customItems] : getRoleNav(user?.role, user?.is_superuser, catalogPath)
     .filter(item => canAccessRoute(item.to.split("?")[0], user?.role, user?.is_superuser));
+  if (!available.some(item => item.to === sharedNotesPath) && canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser)) {
+    available.push({ to: sharedNotesPath, label: "Notes", icon: FileText, group: "Collaboration" });
+  }
   if (moduleKey === "pms" && !available.some(item => item.to === "/pms/my-work") && canAccessRoute("/pms/my-work", user?.role, user?.is_superuser)) {
     available.push({ to: "/pms/my-work", label: "My work", icon: CheckCircle2, group: "Tasks & projects" });
   }

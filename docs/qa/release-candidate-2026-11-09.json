@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-09",
+  "target_date": "2026-11-12",
+  "timezone": "Asia/Kolkata",
+  "candidate_status": "built_and_locally_verified_not_promoted",
+  "promotion_decision": "NO-GO pending production configuration and live/staging acceptance",
+  "candidate": {
+    "directory": ".local/release-candidates/rc-20261109T025029118700Z",
+    "sha256": "4236cc75252f5f3c3303419fd551e27a2fad7a07e426c43e8ceb0b189249a303",
+    "base_commit": "7d22e502bf399ecb02ea233c6da959d2a4598434",
+    "source_files": 4283,
+    "source_integrity_verified_after_tests": true,
+    "source_archive": "source.zip",
+    "source_archive_sha256": "57b3e126d8e0b6b2a1d5c12abd7f3a01509aae8b2ca7d8c579a1462fb30fed87",
+    "frontend_archive": "frontend-dist.zip",
+    "frontend_archive_sha256": "33c556abfcf83e090a47e18e839739170b2898a3f3312354329138a8822b14b6",
+    "identity_note": "The source snapshot includes local changes beyond its base commit. Use the fingerprinted archive, not the mutable shared checkout or base commit alone.",
+    "package_note": "Source archive plus local Vite build, not a Vercel --prebuilt serverless output. Production build-time configuration and platform build still require staging validation. Dependencies were supplied by the existing local environments; lockfiles are included."
+  },
+  "candidate_checks": {
+    "postgresql_critical_tests": {
+      "passed": 262,
+      "failed": 0,
+      "skipped": 0,
+      "junit": "postgres-tests.xml",
+      "database": "isolated local PostgreSQL, never the application database",
+      "test_password_hashes": "Existing test-only fast bcrypt option enabled; not a production performance benchmark."
+    },
+    "browser_journey": {
+      "passed": 1,
+      "failed": 0,
+      "junit": "browser-tests.xml",
+      "scope": "Candidate production frontend and isolated real SQLite API; WhatsApp/CRM/invoice/project/follow-up/campaign journey with zero page errors. Provider transport simulated; HR workflows covered by backend tests."
+    },
+    "record_cache_regressions": "passed",
+    "production_frontend_build": "passed",
+    "release_json_fingerprint": "matches candidate manifest",
+    "backend_dependency_check": "pip check passed in the local dependency environment",
+    "warnings": "Existing bundle size, mixed import and dependency annotation warnings remain."
+  },
+  "verification_fixes": "Corrected test fixtures that recreated a seeded company, omitted foreign-company rows, or relied on automatic ownership inference in a multi-company database. Tenant-isolation assertions remain intact. Full candidate PostgreSQL run passes after these corrections.",
+  "deployment_readiness": {
+    "production_domain": "https://app.dsbchartered.com",
+    "health_http_status": 200,
+    "health_status": "healthy",
+    "live_commit": "074416c176cb60d0a3599544404a84f0b990c14c",
+    "live_deployment": "dpl_Du6Nw9aNG9yRKut4QuzpXTHpZY8d",
+    "live_deployment_state": "READY",
+    "failed_newer_attempt": "dpl_3MLZF3tnqyEoX4P7hGyEdm2Jm9U5; does not serve the current production domain",
+    "production_environment_entries": "Database, signing secrets, cron secret, storage, SMTP and public-URL entries are present. Secret values were not decrypted or displayed; presence alone does not certify correctness.",
+    "confirmed_blocker": {
+      "endpoint": "/api/v1/integrations/whatsapp/webhook",
+      "method": "GET with deliberately invalid verification token",
+      "http_status": 503,
+      "detail": "WhatsApp webhook verification is not configured",
+      "required_settings": [
+        "CRM_WHATSAPP_VERIFY_TOKEN",
+        "CRM_WHATSAPP_APP_SECRET"
+      ]
+    },
+    "still_required": [
+      "Securely configure and verify the WhatsApp callback in the selected deployment environment.",
+      "Run real SES/WhatsApp acceptance with designated test recipients and verify workers, callbacks and delivery outcomes.",
+      "Run a staged platform build against an isolated database and verify authenticated deployment workflows and production-specific frontend configuration.",
+      "Confirm production schema revision and old-app compatibility before traffic promotion. Backend builds run migrations; do not attach an unreviewed preview to the production database.",
+      "Review and approve the exact fingerprinted candidate before production promotion."
+    ]
+  },
+  "rollback": {
+    "runbook": "docs/qa/rollback-2026-11-12.txt",
+    "target_deployment": "dpl_Du6Nw9aNG9yRKut4QuzpXTHpZY8d",
+    "target_url": "https://businesssuite-24fb2zqxj-dsbca.vercel.app",
+    "production_alias_mapping_verified": true,
+    "cli_syntax_checked": true,
+    "local_restore_drill": {
+      "passed": true,
+      "tables_restored": 838,
+      "revision": "pg_20261108_090_employee_bgv",
+      "synthetic_marker_recovered": true,
+      "source_evidence": "rc-20261109T024412612302Z/restore-drill.json",
+      "backup_restore_scripts_and_migrations_identical_to_final_candidate": true
+    },
+    "limits": "Local synthetic restore drill only; production backup/restore, production RPO/RTO and actual alias rollback were not exercised. Application rollback does not undo database or configuration changes."
+  },
+  "production_actions": "Read-only deployment inspection and public health/version/webhook-verification GET checks. No deployment, promotion, rollback, production migration, production backup or live provider message.",
+  "cleanup": "Disposable PostgreSQL server and local candidate preview server stopped; artifacts and isolated drill databases retained locally.",
+  "superseded_by_hosted_acceptance": "docs/qa/live-release-acceptance-2026-11-09.json"
+}

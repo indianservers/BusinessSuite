@@ -16,6 +16,6 @@ export default function LocalRecordGrid<T>({ rows, allowExport = false, ...props
     } };
   }, [signature, props.gridId, props.columns, props.getRowId, allowExport]);
   return <SharedDataGrid {...props} dataScope="loaded" dataSource={source} exportFormats={["csv", "clipboard"]}
-    initialLayout={{rowHeight:42,density:"compact",...props.initialLayout}}
+    initialLayout={{rowHeight:64,density:"compact",...props.initialLayout}}
     statistics={props.statistics || (() => null)}/>;
 }

@@ -1,9 +1,10 @@
+import { locationFields, locationValue } from "./record-location";
 import type { CollectionGroupField } from "./GroupedRecords";
 
 /** Only exposes grouping fields actually present in the supplied records. */
 export function standardRecordGroups<T>(items: T[]): CollectionGroupField<T>[] {
   const candidates:[string,string,string[]][]=[
-    ["status","Status",["status","stage","state"]],
+    ["status","Status",["status","stage"]],
     ["type","Type",["type","kind","entity_type","record_type","file_type","mime_type","field_type","trigger_type"]],
     ["category","Category",["category_name","category","group_name"]],
     ["module","Module",["module_name","module","module_api_name"]],
@@ -23,5 +24,6 @@ export function standardRecordGroups<T>(items: T[]): CollectionGroupField<T>[] {
     fields.unshift({id:"status",label:"Status",value:item=>{const row=record(item);const value=["is_active","enabled","active","published"].map(key=>row[key]).find(value=>typeof value==="boolean");return value===undefined?null:value?"Active":"Disabled";}});
   }
   if(items.some(item=>Array.isArray(record(item).tags)||Array.isArray(record(item).labels)))fields.push({id:"tags",label:"Tags",value:item=>record(item).tags||record(item).labels});
+  fields.push(...locationFields.filter(field=>items.some(item=>locationValue(item,field))).map(field=>({id:field.id,label:field.label,value:(item:T)=>locationValue(item,field)})));
   return fields;
 }

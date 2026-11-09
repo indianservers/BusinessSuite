@@ -1,7 +1,7 @@
 from datetime import date as date_type, datetime
 from decimal import Decimal
 from typing import Any, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 class SalaryComponentBase(BaseModel):
@@ -364,19 +364,25 @@ class BankAdviceFormatSchema(BankAdviceFormatCreate):
 class EmployeeSalaryCreate(BaseModel):
     employee_id: int
     structure_id: Optional[int] = None
-    ctc: Decimal
-    basic: Optional[Decimal] = None
-    hra: Optional[Decimal] = None
+    ctc: Decimal = Field(ge=0)
+    basic: Optional[Decimal] = Field(default=None, ge=0)
+    hra: Optional[Decimal] = Field(default=None, ge=0)
     payroll_type: str = "monthly_fixed"
-    wage_rate: Decimal = Decimal("0")
-    default_units: Decimal = Decimal("0")
+    wage_rate: Decimal = Field(default=Decimal("0"), ge=0)
+    default_units: Decimal = Field(default=Decimal("0"), ge=0)
     unit_label: Optional[str] = None
-    commission_rate_percent: Decimal = Decimal("0")
-    commission_base_amount: Decimal = Decimal("0")
-    invoice_amount: Decimal = Decimal("0")
+    commission_rate_percent: Decimal = Field(default=Decimal("0"), ge=0)
+    commission_base_amount: Decimal = Field(default=Decimal("0"), ge=0)
+    invoice_amount: Decimal = Field(default=Decimal("0"), ge=0)
     effective_from: date_type
     effective_date: Optional[date_type] = None
     effective_to: Optional[date_type] = None
+
+    @model_validator(mode="after")
+    def validate_effective_range(self):
+        if self.effective_to and self.effective_to < (self.effective_date or self.effective_from):
+            raise ValueError("Salary effective_to must not precede its effective start")
+        return self
 
 
 class EmployeeSalarySchema(BaseModel):
@@ -486,6 +492,8 @@ class PayrollRunSchema(BaseModel):
     total_gross: Decimal
     total_deductions: Decimal
     total_net: Decimal
+    total_employees: int = 0
+    policy_snapshot: Optional[dict] = None
     remarks: Optional[str] = None
     deleted_at: Optional[datetime] = None
     deleted_by: Optional[int] = None
@@ -1205,21 +1213,30 @@ class StatutoryCalculationSchema(BaseModel):
 class PayrollAttendanceInputCreate(BaseModel):
     period_id: int
     employee_id: int
-    working_days: Decimal = Decimal("0")
-    payable_days: Decimal = Decimal("0")
-    present_days: Decimal = Decimal("0")
-    paid_leave_days: Decimal = Decimal("0")
-    unpaid_leave_days: Decimal = Decimal("0")
-    lop_days: Decimal = Decimal("0")
-    holiday_days: Decimal = Decimal("0")
-    weekly_off_days: Decimal = Decimal("0")
-    ot_hours: Decimal = Decimal("0")
+    working_days: Decimal = Field(default=Decimal("0"), ge=0)
+    payable_days: Decimal = Field(default=Decimal("0"), ge=0)
+    present_days: Decimal = Field(default=Decimal("0"), ge=0)
+    paid_leave_days: Decimal = Field(default=Decimal("0"), ge=0)
+    unpaid_leave_days: Decimal = Field(default=Decimal("0"), ge=0)
+    lop_days: Decimal = Field(default=Decimal("0"), ge=0)
+    holiday_days: Decimal = Field(default=Decimal("0"), ge=0)
+    weekly_off_days: Decimal = Field(default=Decimal("0"), ge=0)
+    ot_hours: Decimal = Field(default=Decimal("0"), ge=0)
     source_status: str = "Draft"
+    resolution_note: Optional[str] = Field(default=None,max_length=1000)
+
+    @model_validator(mode="after")
+    def validate_day_bounds(self):
+        for field in ("payable_days", "present_days", "lop_days"):
+            if getattr(self, field) > self.working_days:
+                raise ValueError(f"{field} cannot exceed working_days")
+        return self
 
 
 class PayrollAttendanceInputSchema(PayrollAttendanceInputCreate):
     id: int
     locked_at: Optional[datetime] = None
+    policy_trace: Optional[dict] = None
 
     class Config:
         from_attributes = True

@@ -24,6 +24,11 @@ search, grouping, and export as applying to loaded records. Existing server page
 filters and pagination remain available. Do not label a local result as an
 organization-wide total.
 
+The rows-per-page selector includes `All`. Personal query state uses `pageSize: 0`;
+`withAllRows` translates this into consecutive API pages of 200, including group
+branches. Local adapters show all matching loaded rows. Filters, permissions, and
+server pagination limits remain in force, and the grid virtualizes the result.
+
 Adapters do not infer authorization to export; export is disabled by default.
 Page-owned exports retain their existing authorization. Enable `allowExport`
 only where the page has established the user's export permission.

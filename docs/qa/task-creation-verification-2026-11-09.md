@@ -10,3 +10,7 @@ Verified the current checkout in Chrome at `http://localhost:5125/pms/tasks`.
 Automated browser regression: `node scripts/test-task-compact.cjs` passed against the actual React components with mocked API responses. Coverage includes self-assignment, member/group controls, Add more focus, project-scoped fresh task loading, empty-list reload, failed-request retry, copied fields with preserved assignments/dates, three sections, and desktop/768px/390px layouts. These failure/empty cases are simulated, not live backend failures.
 
 The reported controls already had fixes in the current checkout. This verification found no additional production-code change necessary.
+
+Rechecked on 2026-11-09: the Chromium regression passed again on the current checkout at 1440px, 768px, and 390px. Reviewed the refreshed desktop screenshot. This repeat used mocked API responses; no real task was created. No additional production fix was needed.
+
+Latest requested recheck: Chromium regression passed again, including added assertions that copying fills work type, priority, and description, and that self-assignment is unavailable when the current user is absent from eligible project members. TypeScript `tsc --noEmit` passed. The current localhost:5125 application was not listening during this recheck; the browser used the actual TaskStudioPage in the Vite fixture at localhost:5174 with simulated API responses. No new production defect was reproduced or production code changed.

@@ -1,0 +1,237 @@
+{
+  "version": {
+    "id": 1,
+    "effective_from": "2027-05-01",
+    "rules": {
+      "charge_weekly_off": false,
+      "charge_holidays": false,
+      "sandwich_enabled": true,
+      "missing_attendance": "block",
+      "leave_conflict": "block",
+      "lop_divisor": "fixed_30",
+      "proration_divisor": "fixed_26",
+      "proration_basis": "working_days",
+      "use_component_flags": true,
+      "components": {
+        "basic": {
+          "prorate": true,
+          "lop": true
+        },
+        "hra": {
+          "prorate": true,
+          "lop": false
+        },
+        "other_allowances": {
+          "prorate": true,
+          "lop": true
+        },
+        "incentives": {
+          "prorate": false,
+          "lop": false
+        },
+        "reimbursements": {
+          "prorate": false,
+          "lop": false
+        }
+      }
+    },
+    "reason": "QA recommended defaults with explicit fixed divisors"
+  },
+  "corrected": {
+    "id": 2,
+    "month": 5,
+    "year": 2027,
+    "company_id": 1,
+    "branch_id": 1,
+    "department_id": null,
+    "pay_group_id": 2,
+    "employee_category": null,
+    "pay_period_start": "2027-05-01",
+    "pay_period_end": "2027-05-31",
+    "run_date": "2026-11-09",
+    "status": "calculated",
+    "total_gross": "60200.00",
+    "total_deductions": "2880.00",
+    "total_net": "57320.00",
+    "total_employees": 2,
+    "policy_snapshot": {
+      "schema": 1,
+      "groups": {
+        "2": {
+          "version_id": 1,
+          "pay_group_id": 2,
+          "effective_from": "2027-05-01",
+          "rules": {
+            "charge_weekly_off": false,
+            "charge_holidays": false,
+            "sandwich_enabled": true,
+            "missing_attendance": "block",
+            "leave_conflict": "block",
+            "lop_divisor": "fixed_30",
+            "proration_divisor": "fixed_26",
+            "proration_basis": "working_days",
+            "use_component_flags": true,
+            "components": {
+              "basic": {
+                "prorate": true,
+                "lop": true
+              },
+              "hra": {
+                "prorate": true,
+                "lop": false
+              },
+              "other_allowances": {
+                "prorate": true,
+                "lop": true
+              },
+              "incentives": {
+                "prorate": false,
+                "lop": false
+              },
+              "reimbursements": {
+                "prorate": false,
+                "lop": false
+              }
+            }
+          }
+        }
+      },
+      "components": {
+        "1": {
+          "templates": [
+            {
+              "key": "basic",
+              "name": "Basic",
+              "prorate": true,
+              "lop": true
+            },
+            {
+              "key": "hra",
+              "name": "House Rent Allowance",
+              "prorate": true,
+              "lop": false
+            },
+            {
+              "key": "other_allowances",
+              "name": "Other Allowances",
+              "prorate": true,
+              "lop": true
+            }
+          ],
+          "errors": []
+        },
+        "2": {
+          "templates": [
+            {
+              "key": "basic",
+              "name": "Basic",
+              "prorate": true,
+              "lop": true
+            },
+            {
+              "key": "hra",
+              "name": "House Rent Allowance",
+              "prorate": true,
+              "lop": false
+            },
+            {
+              "key": "other_allowances",
+              "name": "Other Allowances",
+              "prorate": true,
+              "lop": true
+            }
+          ],
+          "errors": []
+        }
+      },
+      "employee_groups": {
+        "1": "2",
+        "2": "2"
+      },
+      "checks": {
+        "1": "b431fb6b180eaf49ee7aa38ddf16b0677d7eb62240a113932235c97f4f285efe",
+        "2": "3a48f879f4862324cfba7306dd6e3bf969478f647619faec0000d19256eb24e1"
+      }
+    },
+    "remarks": null,
+    "deleted_at": null,
+    "deleted_by": null
+  },
+  "record": {
+    "id": 8,
+    "payroll_run_id": 2,
+    "employee_id": 2,
+    "employee": {
+      "id": 2,
+      "employee_id": "EMP00002",
+      "first_name": "Synthetic",
+      "last_name": "Policy desktop"
+    },
+    "month": 5,
+    "year": 2027,
+    "financial_year": "2027-28",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2027-04-01",
+    "ytd_period_label": "Financial year 2027-28",
+    "department": "QA Policies desktop",
+    "working_days": 21,
+    "present_days": 20,
+    "lop_days": 1,
+    "paid_days": 20,
+    "gross_salary": 29200,
+    "total_deductions": 1392,
+    "net_salary": 27808,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "calculated",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 11600
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6000
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 11600
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1392
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1392
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 29200,
+      "total_deductions": 1392,
+      "net_salary": 27808,
+      "reimbursements": 0,
+      "employer_contributions": 1392
+    }
+  },
+  "blockedApproval": 400,
+  "historicalEdit": 409,
+  "replayedVersion": 1
+}

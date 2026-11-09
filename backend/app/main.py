@@ -245,6 +245,18 @@ def private_blob_file(request: Request, token: str, db=Depends(get_db)):
     if settings.STORAGE_BACKEND not in {"local", "vercel_blob", "s3"}:
         raise HTTPException(404, "Not found")
     path = blob_token_path(token, db=db)
+    from app.services.file_storage import cloud_content
+    cloud = cloud_content(path, db=db)
+    if cloud is not None:
+        from starlette.responses import Response
+        from urllib.parse import quote
+        content, stored = cloud
+        db.commit()  # Persist provider token rotation without writing downloaded bytes to disk.
+        return Response(content, media_type=stored.content_type, headers={
+            "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "sandbox",
+            "Content-Disposition": "attachment; filename*=UTF-8''" + quote(stored.filename, safe=""),
+        })
     path = materialize_file(path, db=db)
     db.commit()  # Save provider refresh-token rotation.
     if not os.path.isfile(path):

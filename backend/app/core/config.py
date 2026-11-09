@@ -209,6 +209,7 @@ class Settings(BaseSettings):
     FILES_DROPBOX_CLIENT_ID: str = ""
     FILES_DROPBOX_CLIENT_SECRET: str = ""
     UPLOAD_DIR: str = "./uploads"
+    PMS_GOOGLE_DRIVE_REQUIRED: bool = False
     STORAGE_BACKEND: str = "local"
     BLOB_READ_WRITE_TOKEN: str = ""
     S3_BUCKET: str = ""

@@ -1,4 +1,4 @@
-"""Loopback-only UI verification against disposable SQLite, never the app database."""
+"""Loopback UI QA on disposable SQLite or guarded PostgreSQL, never the app DB."""
 import asyncio
 from contextvars import ContextVar
 from contextlib import asynccontextmanager
@@ -11,9 +11,17 @@ import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 temporary = tempfile.TemporaryDirectory(prefix="suite-navigation-qa-")
+qa_database = "sqlite:///" + str(Path(temporary.name) / "navigation.db")
+if os.environ.get("SUITE_QA_POSTGRES_URL"):
+    from sqlalchemy.engine import make_url
+    candidate = make_url(os.environ["SUITE_QA_POSTGRES_URL"])
+    if candidate.get_backend_name() != "postgresql" or candidate.host != "127.0.0.1" or not (candidate.database or "").startswith("bs_payroll_") or not candidate.database.endswith("_test"):
+        raise RuntimeError("QA PostgreSQL must be an isolated loopback bs_payroll_*_test database")
+    qa_database = candidate.render_as_string(hide_password=False)
+    os.environ.update(PLATFORM_DATABASE_URL=qa_database,TENANT_DATABASES_ENABLED="false")
 os.environ.update(
     ENVIRONMENT="test", DEBUG="false",
-    DATABASE_URL="sqlite:///" + str(Path(temporary.name) / "navigation.db"),
+    DATABASE_URL=qa_database,
     SECRET_KEY=secrets.token_urlsafe(48), REFRESH_SECRET_KEY=secrets.token_urlsafe(48),
     SECRET_KEY_PREVIOUS="", REFRESH_SECRET_KEY_PREVIOUS="",
     INSTALLED_APPS="hrms,crm,project_management,srm,fam,power_apps",
@@ -40,7 +48,11 @@ from app.core.security import get_password_hash, pwd_context
 from app.api.v1.auth import _hash_reset_token
 
 pwd_context.update(bcrypt__rounds=4)
-Base.metadata.create_all(engine)
+if engine.dialect.name == "postgresql":
+    from app.db.migrations import upgrade_schema
+    upgrade_schema()
+else:
+    Base.metadata.create_all(engine)
 with SessionLocal() as db:
     db.add_all([Company(id=1, name="Indian Servers", email="company1@suiteqa.example.com", is_active=True), Company(id=2, name="Studio Operations", email="company2@suiteqa.example.com", is_active=True)])
     admin_role, employee_role, hr_role = Role(name="admin"), Role(name="employee"), Role(name="hr")
@@ -155,7 +167,7 @@ async def sqlite_requests(request, call_next):
     # Canonical record adapters make nested ASGI requests from a worker thread.
     # They belong to the already-serialized outer request and must not acquire
     # an asyncio lock owned by the server's different event loop.
-    if inside_qa_request.get():
+    if engine.dialect.name == "postgresql" or inside_qa_request.get():
         return await call_next(request)
     async with request_lock:
         token = inside_qa_request.set(True)
@@ -166,6 +178,10 @@ async def sqlite_requests(request, call_next):
 
 if __name__ == "__main__":
     import uvicorn
+    if sys.platform == 'win32':
+        # Local browser probes can close sockets during Windows proactor accept.
+        # This QA server does not launch subprocesses from its event loop.
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try: uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("SUITE_QA_PORT", "1551")), log_level="warning")
     finally:
         engine.dispose()

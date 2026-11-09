@@ -486,7 +486,7 @@ export function GridToolbar({
                 aria-label="Row height"
                 type="range"
                 min="32"
-                max="88"
+                max="400"
                 value={layout.rowHeight}
                 onChange={(e) =>
                   updateLayout({ ...layout, rowHeight: Number(e.target.value) })

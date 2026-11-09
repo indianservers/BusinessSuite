@@ -1,0 +1,56 @@
+@media (max-width: 480px) {
+ .hrms-workflow-inbox { min-width: 0; display: flex; flex-direction: column; }
+ .hrms-workflow-inbox .hrms-workflow-guidance { order: 2; }
+ .hrms-workflow-inbox .hrms-workflow-queue-layout { order: 1; }
+ .hrms-workflow-inbox.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+ .hrms-workflow-inbox .hrms-workflow-header { padding: 12px; gap: 12px; }
+ .hrms-workflow-header > div > p:first-child { display: none; }
+ .hrms-workflow-header h1 { margin-top: 0; font-size: 20px; line-height: 1.25; }
+ .hrms-workflow-header > div:last-child { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .hrms-workflow-header > div:last-child > button:last-child:nth-child(odd) { grid-column: 1/-1; }
+ .hrms-workflow-inbox :is(button,a,summary) { min-height: 44px; height: auto; }
+ .hrms-workflow-inbox button { white-space: normal; }
+ .hrms-workflow-inbox :is(input,select) { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-workflow-inbox .hrms-workflow-metrics { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+ .hrms-workflow-metrics .kf-card > div { padding: 10px; }
+ .hrms-workflow-metrics svg { margin-bottom: 6px; }
+ .hrms-workflow-metrics .text-2xl { font-size: 20px; }
+ .hrms-workflow-metrics .text-sm { font-size: 12px; }
+ .hrms-workflow-sections { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-workflow-inbox .hrms-workflow-item { padding: 12px; gap: 10px; }
+ .hrms-workflow-items > div { padding: 12px; }
+ .hrms-workflow-inbox :is(p,span) { overflow-wrap: anywhere; }
+ .hrms-workflow-mix > div { padding: 12px; }
+ .hrms-workflow-mix > div:last-child { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-workflow-inbox .hrms-workflow-mix > div:last-child > * { margin-top: 0; margin-bottom: 0; }
+ .hrms-workflow-mix > div:last-child > p { grid-column: 1/-1; }
+ .hrms-workflow-mix > div:last-child > div { padding: 8px; gap: 4px; }
+ .hrms-workflow-mix .flex > span { min-width: 0; gap: 6px; font-size: 12px; }
+ .hrms-workflow-mix svg { flex-shrink: 0; }
+ .hrms-workflow-inbox .hrms-workflow-designer-layout { grid-template-columns: minmax(0,1fr); min-width: 0; }
+ .hrms-workflow-designer-layout > * { min-width: 0; }
+ .hrms-workflow-editor { min-width: 0; border: 0; box-shadow: none; }
+ .hrms-workflow-editor [data-save-action] { display: none; }
+ .hrms-workflow-editor .mobile-disclosure, .hrms-workflow-definition .mobile-disclosure { padding: 0; }
+ .hrms-workflow-editor .mobile-disclosure > summary, .hrms-workflow-definition .mobile-disclosure > summary { padding: 8px 12px; min-height: 44px; }
+ .hrms-workflow-definition > div:first-child > div:last-child { flex-shrink: 0; white-space: nowrap; }
+ .hrms-workflow-editor > div { padding: 12px; }
+ .hrms-workflow-editor > div:first-child h3 { display: none; }
+ .hrms-workflow-editor :is(input,select) { width: 100%; min-width: 0; min-height: 44px; font-size: 16px; }
+ .hrms-workflow-editor :is(button,summary) { min-height: 44px; height: auto; }
+ .hrms-workflow-editor .hrms-workflow-info { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+ .hrms-workflow-info > :first-child, .hrms-workflow-info > :last-child { grid-column: 1/-1; }
+ .hrms-workflow-edit-step { padding: 12px; }
+ .hrms-workflow-edit-step > div:last-child { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+ .hrms-workflow-edit-step .mobile-disclosure { grid-column: 1/-1; min-width: 0; }
+ .hrms-workflow-edit-step .mobile-disclosure > div { display: grid; gap: 12px; }
+ .hrms-workflow-editor :is(p,span,label,summary) { overflow-wrap: anywhere; }
+ .hrms-workflow-inbox .suite-record-card-shell > .hrms-workflow-definition { padding: 12px 12px 62px; }
+ .hrms-workflow-inbox .suite-record-card-shell > .suite-record-star { top: auto; bottom: 6px; right: 6px; }
+ .hrms-workflow-inbox .suite-record-card-shell > .suite-record-card-tools { top: auto; bottom: 6px; right: 56px; }
+ .hrms-workflow-inbox .suite-record-star { width: 44px; min-width: 44px; height: 44px; }
+ .hrms-workflow-definition { min-width: 0; }
+ .hrms-workflow-definition :is(p,span,div) { overflow-wrap: anywhere; }
+ .hrms-workflow-definition > div:first-child > div { min-width: 0; }
+ .hrms-workflow-definition .mobile-disclosure { margin-top: 12px; }
+}

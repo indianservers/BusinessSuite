@@ -37,7 +37,10 @@ def model_module(model):
     # The shared transactional outbox belongs to its originating module, not
     # HRMS. Tenant/branch boundaries and each producer's permission checks still
     # protect it; classifying it as HRMS breaks non-HRMS background delivery.
-    if model.__tablename__ == 'email_outbox':
+    if model.__tablename__ in {'email_outbox', 'file_storage_connections', 'file_storage_oauth_states'}:
+        # Storage OAuth accounts/states serve all modules. Their APIs enforce
+        # company and owner/admin access; connecting a personal account must
+        # not require unrelated HRMS membership. Storage policies stay protected.
         return None
     source = model.__module__
     if source == "app.models.approval_os":

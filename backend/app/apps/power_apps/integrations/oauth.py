@@ -66,10 +66,15 @@ def app_config(connector_id, connection=None):
         settings.BACKEND_PUBLIC_URL.rstrip("/")
         + "/api/v1/power-apps/integrations/oauth/callback"
     )
-    if (
-        redirect != expected
-        or urlsplit(redirect).scheme != "https"
-        and settings.ENVIRONMENT != "test"
+    parsed = urlsplit(redirect)
+    local_development = (
+        settings.ENVIRONMENT == "development"
+        and parsed.scheme == "http"
+        and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+        and not parsed.username and not parsed.password
+    )
+    if redirect != expected or (
+        parsed.scheme != "https" and settings.ENVIRONMENT != "test" and not local_development
     ):
         raise HTTPException(
             503,

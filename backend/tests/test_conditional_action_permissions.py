@@ -265,9 +265,11 @@ def test_picklist_values_follow_their_authorized_tenant_parent(db,superuser_head
         parent=CustomizationGlobalPicklist(api_name="scope_"+suffix,label="Scoped picklist",created_by=owner.id);db.add(parent);db.flush();parents.append(parent.id)
         db.add(CustomizationGlobalPicklistValue(picklist_id=parent.id,value="Open",label="Open"))
     db.flush()
-    # Legacy configuration ownership is stamped by tenant context, not creator identity.
+    # These direct ORM fixtures have no request tenant context. Stamp their
+    # explicit owners; a multi-company database must not infer one for us.
     from app.models.security_boundary import SecurityResourceOwnership
-    db.query(SecurityResourceOwnership).filter_by(resource_table="customization_global_picklists",resource_id=parents[1]).update({"company_id":2})
+    for ident, company in zip(parents, (1, 2)):
+        db.merge(SecurityResourceOwnership(resource_table="customization_global_picklists",resource_id=ident,company_id=company))
     db.flush()
     cleanup=install_scope(db,actor,1,{"customization":{"enabled":True,"scope":"organization","actions":["view","create","edit","delete"],"permissions":[]}})
     try:
@@ -351,7 +353,7 @@ def test_attendance_month_lock_actor_stamps_do_not_replace_tenant_ownership(db,s
     assert legacy_root(AttendanceMonthLock)
     for company in (1,2):
         lock=AttendanceMonthLock(month=11,year=2026,locked_by=actor.id);db.add(lock);db.flush();locks.append(lock.id)
-        db.query(SecurityResourceOwnership).filter_by(resource_table="attendance_month_locks",resource_id=lock.id).update({"company_id":company})
+        db.merge(SecurityResourceOwnership(resource_table="attendance_month_locks",resource_id=lock.id,company_id=company))
     db.flush()
     cleanup=install_scope(db,actor,1,{"hrms":{"enabled":True,"scope":"organization","actions":["view","edit"],"permissions":[]}})
     try:
@@ -383,6 +385,7 @@ def test_chat_messages_inherit_conversation_workspace_tenant(db,superuser_header
 
 
 def test_hr_timesheet_entries_inherit_timesheet_project_and_employee_tenant(db,superuser_headers):
+    ensure_foreign_company(db)
     from datetime import date
     from app.models.user import User
     from app.models.employee import Employee

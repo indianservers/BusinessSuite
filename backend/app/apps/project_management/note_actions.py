@@ -94,6 +94,8 @@ def validated_file(file):
 @router.post("/notes/{note_id}/attachments", status_code=201)
 def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     writable(db, note_id, user)
+    from app.services.file_storage import require_project_drive
+    require_project_drive(db)
     name, media_type, body = validated_file(file)
     count, size = db.query(func.count(PMSNoteAttachment.id), func.coalesce(func.sum(PMSNoteAttachment.size), 0)).filter_by(note_id=note_id).one()
     if count >= 20 or size + len(body) > 50 * 1024 * 1024:
@@ -115,11 +117,8 @@ def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = 
 def download_attachment(note_id: int, attachment_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     row = attachment(db, note_id, attachment_id, user)
     if row.storage_path:
-        from app.core.storage import materialize_file
-        from fastapi.responses import FileResponse
-        path = materialize_file(row.storage_path, db=db)
-        db.commit()
-        return FileResponse(path, media_type=row.media_type, filename=row.filename, headers={"Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff", "Content-Security-Policy":"sandbox"})
+        from app.core.storage import private_attachment_response
+        return private_attachment_response(row.storage_path, db=db, media_type=row.media_type, filename=row.filename, headers={"Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff", "Content-Security-Policy":"sandbox"})
     return Response(row.body, media_type=row.media_type, headers={"Cache-Control": "private, no-store",
                     "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox",
                     "Content-Disposition": f"attachment; filename*=UTF-8''{quote(row.filename, safe='')}"})

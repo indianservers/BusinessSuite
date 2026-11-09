@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, case, cast, Date as SQLDate, Numeric, or_
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import RequirePermission, get_current_user, get_db
@@ -366,7 +366,7 @@ def reject_leave_encashment_request(
     return _serialize_encashment(request)
 
 
-def _calculate_lwp_feed(db: Session, month: str, employee_ids: list[int] | None = None, include_attendance: bool = True) -> list[dict[str, Any]]:
+def _calculate_lwp_feed(db: Session, month: str, employee_ids: list[int] | None = None, include_attendance: bool = True, include_zero: bool = False) -> list[dict[str, Any]]:
     period_start, period_end = _month_bounds(month)
     employee_query = db.query(Employee).filter(Employee.status == "Active", Employee.deleted_at.is_(None))
     if employee_ids:
@@ -377,25 +377,52 @@ def _calculate_lwp_feed(db: Session, month: str, employee_ids: list[int] | None 
     ids = [employee.id for employee in employees]
     working_days = Decimal(str(sum(1 for offset in range((period_end - period_start).days + 1) if date.fromordinal(period_start.toordinal() + offset).weekday() < 5)))
     holidays = Decimal(str(db.query(Holiday).filter(Holiday.is_active == True, Holiday.holiday_date >= period_start, Holiday.holiday_date <= period_end).count()))
-    overlap_start = case((LeaveRequest.from_date < period_start, period_start), else_=LeaveRequest.from_date)
-    overlap_end = case((LeaveRequest.to_date > period_end, period_end), else_=LeaveRequest.to_date)
-    duration = (func.julianday(overlap_end)-func.julianday(overlap_start)+1) if db.get_bind().dialect.name == 'sqlite' else (cast(overlap_end,SQLDate)-cast(overlap_start,SQLDate)+1)
-    marker = func.lower(func.coalesce(LeaveType.name,'')+' '+func.coalesce(LeaveType.code,''))
-    leave_totals = dict(db.query(LeaveRequest.employee_id,func.sum(case((LeaveRequest.is_half_day.is_(True),Decimal('0.5')),else_=cast(duration,Numeric(12,2))))).join(LeaveType,LeaveType.id==LeaveRequest.leave_type_id).filter(
-        LeaveRequest.employee_id.in_(ids),LeaveRequest.status=='Approved',LeaveRequest.from_date<=period_end,LeaveRequest.to_date>=period_start,
-        or_(*(marker.contains(token) for token in ('lop','lwp','loss of pay','unpaid','without pay'))),
-    ).group_by(LeaveRequest.employee_id).all())
-    attendance_totals = dict(db.query(Attendance.employee_id,func.count(Attendance.id)).filter(Attendance.employee_id.in_(ids),Attendance.attendance_date>=period_start,Attendance.attendance_date<=period_end,Attendance.status.in_(['Absent','LWP','Leave Without Pay'])).group_by(Attendance.employee_id).all()) if include_attendance else {}
+    from app.services.payroll_leave_intervals import add_leave_intervals
+    unpaid_slots = {employee_id: {} for employee_id in ids}
+    paid_slots = {employee_id: {} for employee_id in ids}
+    leaves = db.query(LeaveRequest).options(joinedload(LeaveRequest.leave_type)).filter(
+        LeaveRequest.employee_id.in_(ids), LeaveRequest.status == 'Approved', LeaveRequest.deleted_at.is_(None),
+        LeaveRequest.from_date <= period_end, LeaveRequest.to_date >= period_start,
+    ).all()
+    for leave in leaves:
+        target = unpaid_slots if _is_unpaid_leave_type(leave.leave_type) else paid_slots
+        add_leave_intervals(target[leave.employee_id], leave, period_start, period_end)
+    attendance_slots = {employee_id: {} for employee_id in ids}
+    if include_attendance:
+        for attendance in db.query(Attendance).filter(Attendance.employee_id.in_(ids), Attendance.attendance_date >= period_start,
+                Attendance.attendance_date <= period_end, Attendance.status.in_(['Absent','LWP','Leave Without Pay'])).all():
+            covered = unpaid_slots[attendance.employee_id].get(attendance.attendance_date, set()) | paid_slots[attendance.employee_id].get(attendance.attendance_date, set())
+            attendance_slots[attendance.employee_id].setdefault(attendance.attendance_date, set()).update({0,1} - covered)
     manual_totals = dict(db.query(LOPAdjustment.employee_id,func.sum(LOPAdjustment.adjustment_days)).join(PayrollPeriod,PayrollPeriod.id==LOPAdjustment.period_id).filter(PayrollPeriod.month==period_start.month,PayrollPeriod.year==period_start.year,LOPAdjustment.employee_id.in_(ids),LOPAdjustment.status=='Approved').group_by(LOPAdjustment.employee_id).all())
     salaries = db.query(EmployeeSalary.employee_id,EmployeeSalary.ctc,EmployeeSalary.basic,func.row_number().over(partition_by=EmployeeSalary.employee_id,order_by=(EmployeeSalary.effective_from.desc(),EmployeeSalary.id.desc())).label('position')).filter(EmployeeSalary.employee_id.in_(ids),EmployeeSalary.is_active.is_(True)).subquery()
     rates = {row.employee_id:_salary_daily_rate(row) for row in db.query(salaries.c.employee_id,salaries.c.ctc,salaries.c.basic).filter(salaries.c.position==1)}
     rows = []
     for employee in employees:
-        leave_days = Decimal(str(leave_totals.get(employee.id) or 0))
-        attendance_days = Decimal(str(attendance_totals.get(employee.id) or 0))
+        from app.crud import crud_payroll
+        from app.services import payroll_policy as policy_service
+        period=_period_for_month(db,month,create=False)
+        group=crud_payroll._active_pay_group(db,period.pay_group_id if period else None,employee)
+        policy=policy_service.active_policy(db,group,period_start)
+        policy_days=policy_service.evaluate_days(db,employee,period_start,period_end,group,policy,include_absence=include_attendance) if policy else None
+        leave_days = sum((Decimal(len(slots))/2 for slots in unpaid_slots[employee.id].values()), Decimal(0))
+        attendance_days = sum((Decimal(len(slots))/2 for slots in attendance_slots[employee.id].values()), Decimal(0))
         manual_days = Decimal(str(manual_totals.get(employee.id) or 0))
-        lwp_days = _days(leave_days + attendance_days + manual_days)
-        if lwp_days <= 0:
+        lwp_days = min(max(Decimal("0"), working_days - holidays), max(Decimal("0"), _days(leave_days + attendance_days + manual_days)))
+        row_working=max(Decimal('0'),working_days-holidays)
+        estimate=_money(rates.get(employee.id,Decimal('0'))*lwp_days)
+        if policy_days:
+            lwp_days=policy_days['lop_days'];leave_days=policy_days['unpaid_leave_days'];row_working=policy_days['working_days']
+            salary=crud_payroll.get_salary_for_period(db,employee.id,period_start,period_end)
+            if salary:
+                start=max(period_start,employee.date_of_joining or period_start);end=min(period_end,employee.date_of_exit or period_end)
+                monthly,basic,hra=crud_payroll.get_prorated_salary_for_period(db,employee.id,start,end)
+                context=dict(calendar_days=(period_end-period_start).days+1,employed_days=max(0,(end-start).days+1),working_days=crud_payroll._working_days_for_employee(db,employee,period_start,period_end,group),employed_working_days=crud_payroll._working_days_for_employee(db,employee,start,end,group))
+                denominator=policy_service.divisor(policy['rules']['lop_divisor'],context['calendar_days'],context['employed_working_days'])
+                ratio=min(Decimal(1),lwp_days/denominator) if denominator else Decimal(0)
+                templates,errors=policy_service.component_templates(db,salary,policy)
+                _,estimate=policy_service.monthly_components(db,salary,policy,templates,monthly,basic,hra,Decimal(1),ratio,context)
+                policy_days['blockers'].extend(errors)
+        if lwp_days <= 0 and not include_zero and not (policy_days and policy_days['blockers']):
             continue
         rate = rates.get(employee.id,Decimal('0'))
         rows.append(
@@ -404,12 +431,14 @@ def _calculate_lwp_feed(db: Session, month: str, employee_ids: list[int] | None 
                 "employeeCode": employee.employee_id,
                 "employeeName": _employee_name(employee),
                 "payrollMonth": month,
-                "workingDays": float(max(Decimal("0"), working_days - holidays)),
+                "workingDays": float(row_working),
                 "leaveLwpDays": float(_days(leave_days)),
                 "attendanceLwpDays": float(_days(attendance_days)),
                 "manualLwpDays": float(_days(manual_days)),
                 "lwpDays": float(lwp_days),
-                "estimatedDeduction": float(_money(rate * lwp_days)),
+                "estimatedDeduction": float(estimate),
+                "policyVersionId": policy['version_id'] if policy else None,
+                "policyBlockers": policy_days['blockers'] if policy_days else [],
             }
         )
     return rows
@@ -441,12 +470,20 @@ def sync_lwp_feed(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.api.v1.payroll import _ensure_not_locked_period
+    start, _ = _month_bounds(data.month)
+    _ensure_not_locked_period(db, start.month, start.year, "sync LWP inputs")
     period = _period_for_month(db, data.month, create=True)
-    rows = _calculate_lwp_feed(db, data.month, data.employeeIds, data.includeAttendanceAbsence)
+    if period.status == "Locked":
+        raise HTTPException(status_code=400, detail="Payroll period is locked")
+    rows = _calculate_lwp_feed(db, data.month, data.employeeIds, data.includeAttendanceAbsence, include_zero=True)
     synced = 0
     for row in rows:
         employee_id = int(row["employeeId"])
         lwp_days = _days(row["lwpDays"])
+        entry = db.query(PayrollLWPEntry).filter(PayrollLWPEntry.employee_id == employee_id, PayrollLWPEntry.payroll_month == data.month, PayrollLWPEntry.source == "leave").first()
+        if lwp_days <= 0 and entry is None:
+            continue
         input_row = (
             db.query(PayrollAttendanceInput)
             .filter(PayrollAttendanceInput.period_id == period.id, PayrollAttendanceInput.employee_id == employee_id)
@@ -463,6 +500,8 @@ def sync_lwp_feed(
         input_row.payable_days = max(Decimal("0"), working_days - lwp_days)
         input_row.source_status = "Approved" if data.approveInputs else "Draft"
         input_row.locked_at = datetime.now(timezone.utc) if data.approveInputs else None
+        if row.get('policyVersionId'):
+            input_row.policy_trace={'source':'lwp_sync','policy_version_id':row['policyVersionId'],'blockers':row.get('policyBlockers',[])}
         entry = (
             db.query(PayrollLWPEntry)
             .filter(PayrollLWPEntry.employee_id == employee_id, PayrollLWPEntry.payroll_month == data.month, PayrollLWPEntry.source == "leave")

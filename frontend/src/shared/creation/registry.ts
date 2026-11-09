@@ -25,7 +25,6 @@ const intents: Record<string, string> = {
   "/srm/customers": "customer", "/srm/vendors": "vendor", "/hrms/helpdesk": "ticket", "/hrms/leave": "leave",
   "/pms/workspaces": "workspace",
   "/crm/workspaces": "workspace", "/hrms/workspaces": "workspace", "/srm/workspaces": "workspace", "/fam/workspaces": "workspace",
-  "/pms/notes": "note",
   "/crm/campaigns": "campaign",
   "/analytics/scheduled-reports": "reportSchedule",
   "/analytics/report-builder": "report",

@@ -1,3 +1,5 @@
+import { useMobile } from "@/components/mobile/useMobile";
+import "./admin-logs-mobile.css";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -56,6 +58,8 @@ function statusVariant(status?: number | null) {
 
 export default function AdminLogsPage() {
   usePageTitle("Audit Logs");
+  const phone = useMobile(480);
+  const [section, setSection] = useState("requests");
   const [endpoint, setEndpoint] = useState("attendance");
   const [employeeId, setEmployeeId] = useState("");
   const [fieldName, setFieldName] = useState("");
@@ -83,8 +87,8 @@ export default function AdminLogsPage() {
   });
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-lg border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="hrms-admin-logs space-y-5">
+      <div className="hrms-log-header flex flex-col gap-3 rounded-lg border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Admin logs</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">Request logs and error analysis</h1>
@@ -92,49 +96,55 @@ export default function AdminLogsPage() {
             Review failed API calls, slow endpoints, status codes, and recent request history.
           </p>
         </div>
-        <Button variant="outline" onClick={() => { logs.refetch(); analysis.refetch(); }}>
+        <Button aria-label="Refresh" disabled={phone && (logs.isFetching || analysis.isFetching || fieldAudit.isFetching)} variant="outline" onClick={() => { logs.refetch(); analysis.refetch(); if(phone)fieldAudit.refetch(); }}>
           <RefreshCw className="h-4 w-4" />
-          Refresh
+          <span>Refresh</span>
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Metric title="Requests" value={analysis.data?.total_requests ?? 0} icon={Activity} />
-        <Metric title="Errors" value={analysis.data?.error_count ?? 0} icon={AlertTriangle} />
-        <Metric title="Server Errors" value={analysis.data?.server_error_count ?? 0} icon={AlertTriangle} />
-        <Metric title="Error Rate" value={`${analysis.data?.error_rate_percent ?? 0}%`} icon={Activity} />
+      <div className="hrms-log-metrics grid gap-4 md:grid-cols-4">
+        <Metric title="Requests" value={phone && !analysis.data ? "—" : analysis.data?.total_requests ?? 0} icon={Activity} />
+        <Metric title="Errors" value={phone && !analysis.data ? "—" : analysis.data?.error_count ?? 0} icon={AlertTriangle} />
+        <Metric title="Server Errors" value={phone && !analysis.data ? "—" : analysis.data?.server_error_count ?? 0} icon={AlertTriangle} />
+        <Metric title="Error Rate" value={phone && !analysis.data ? "—" : `${analysis.data?.error_rate_percent ?? 0}%`} icon={Activity} />
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+      {phone && <nav className="hrms-log-sections" aria-label="Audit log sections">{[["requests","Requests"],["fields","Field audit"],["analysis","Analysis"]].map(([key,label]) => <Button key={key} variant={section===key?"default":"outline"} aria-pressed={section===key} onClick={() => setSection(key)}>{label}</Button>)}</nav>}
+      {phone && analysis.isError && <p role="alert" className="text-sm text-destructive">Log analysis could not load. <Button disabled={phone && analysis.isFetching} variant="outline" onClick={() => void analysis.refetch()}>Retry log analysis</Button></p>}
+      <Card style={phone && section==="fields"?{display:"none"}:undefined}>
+        <CardContent className="hrms-request-filters flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
+              aria-label="Endpoint filter"
               value={endpoint}
               onChange={(event) => setEndpoint(event.target.value)}
               placeholder="Filter endpoint, e.g. attendance/check-in"
               className="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          <Button variant={errorsOnly ? "default" : "outline"} onClick={() => setErrorsOnly((value) => !value)}>
+          <Button style={phone && section!=="requests"?{display:"none"}:undefined} aria-pressed={errorsOnly} variant={errorsOnly ? "default" : "outline"} onClick={() => setErrorsOnly((value) => !value)}>
             Errors only
           </Button>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="hrms-field-audit" style={phone && section!=="fields"?{display:"none"}:undefined}>
         <CardHeader>
           <CardTitle className="text-base">Sensitive HR Field Audit</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-[160px_220px_auto]">
+          <div className="hrms-field-audit-filters grid gap-3 sm:grid-cols-[160px_220px_auto]">
             <input
+              aria-label="Field audit employee ID"
+              inputMode={phone?"numeric":undefined}
               value={employeeId}
               onChange={(event) => setEmployeeId(event.target.value)}
               placeholder="Employee ID"
               className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
             <NativeSelect
+              aria-label="Field audit field"
               value={fieldName}
               onChange={(event) => setFieldName(event.target.value)}
               className="h-9 rounded-md border bg-background px-3 text-sm"
@@ -144,8 +154,11 @@ export default function AdminLogsPage() {
                 <option key={field} value={field}>{field}</option>
               ))}
             </NativeSelect>
-            <Button variant="outline" onClick={() => fieldAudit.refetch()}>Refresh Field Audit</Button>
+            <Button disabled={phone && fieldAudit.isFetching} variant="outline" onClick={() => fieldAudit.refetch()}>Refresh Field Audit</Button>
           </div>
+          {phone && fieldAudit.isLoading && <p role="status">Loading field audit…</p>}
+          {phone && fieldAudit.isError && <p role="alert">Field audit could not load. <Button disabled={phone && fieldAudit.isFetching} variant="outline" onClick={() => void fieldAudit.refetch()}>Retry field audit</Button></p>}
+          {phone && (fieldAudit.isLoading || fieldAudit.isError && !fieldAudit.data) ? null : (
           <div className="overflow-x-auto rounded-md border">
             <GridTable gridId="apps/hrms/pages/logs/AdminLogsPage:table-1" className="w-full min-w-[860px] text-sm">
               <thead className="border-b bg-muted/50">
@@ -170,16 +183,17 @@ export default function AdminLogsPage() {
               </tbody>
             </GridTable>
           </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="hrms-log-analysis grid gap-4 lg:grid-cols-2" style={phone && section!=="analysis"?{display:"none"}:undefined}>
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Top errors</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(analysis.data?.top_errors || []).length === 0 ? (
+            {phone && !analysis.data ? <p role="status">{analysis.isLoading?"Loading analysis…":"Analysis unavailable."}</p> : (analysis.data?.top_errors || []).length === 0 ? (
               <p className="text-sm text-muted-foreground">No errors for this filter.</p>
             ) : (
               analysis.data!.top_errors.map((item) => (
@@ -200,6 +214,7 @@ export default function AdminLogsPage() {
             <CardTitle className="text-base">Slow endpoints</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            {phone && !analysis.data && <p role="status">{analysis.isLoading?"Loading slow endpoints…":"Slow endpoint analysis unavailable."}</p>}
             {(analysis.data?.slow_endpoints || []).map((item) => (
               <div key={item.endpoint} className="flex items-center justify-between rounded-md border p-3 text-sm">
                 <span className="truncate">{item.endpoint}</span>
@@ -210,11 +225,14 @@ export default function AdminLogsPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="hrms-request-logs" style={phone && section!=="requests"?{display:"none"}:undefined}>
         <CardHeader>
           <CardTitle className="text-base">Recent logs</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          {phone && logs.isLoading && <p role="status">Loading request logs…</p>}
+          {phone && logs.isError && <p role="alert">Request logs could not load. <Button disabled={phone && logs.isFetching} variant="outline" onClick={() => void logs.refetch()}>Retry request logs</Button></p>}
+          {phone && (logs.isLoading || logs.isError && !logs.data) ? null : (
           <div className="overflow-x-auto">
             <GridTable gridId="apps/hrms/pages/logs/AdminLogsPage:table-2" className="w-full min-w-[900px] text-sm">
               <thead className="border-b bg-muted/50">
@@ -246,6 +264,7 @@ export default function AdminLogsPage() {
               </tbody>
             </GridTable>
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,0 +1,181 @@
+{
+  "fixture": "Disposable SQLite, synthetic employee",
+  "employee_id": 3,
+  "run": {
+    "id": 3,
+    "month": 5,
+    "year": 2026,
+    "company_id": 1,
+    "branch_id": 1,
+    "department_id": null,
+    "pay_group_id": null,
+    "employee_category": null,
+    "pay_period_start": "2026-05-01",
+    "pay_period_end": "2026-05-31",
+    "run_date": "2026-11-09",
+    "status": "calculated",
+    "total_gross": "60000.00",
+    "total_deductions": "2880.00",
+    "total_net": "57120.00",
+    "total_employees": 2,
+    "policy_snapshot": {
+      "schema": 1,
+      "groups": {
+        "2": null
+      },
+      "components": {}
+    },
+    "remarks": null,
+    "deleted_at": null,
+    "deleted_by": null
+  },
+  "record": {
+    "id": 12,
+    "payroll_run_id": 3,
+    "employee_id": 3,
+    "employee": {
+      "id": 3,
+      "employee_id": "EMP00003",
+      "first_name": "Synthetic",
+      "last_name": "Payroll desktop"
+    },
+    "month": 5,
+    "year": 2026,
+    "financial_year": "2026-27",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2026-04-01",
+    "ytd_period_label": "Financial year 2026-27",
+    "department": "QA Payroll desktop",
+    "working_days": 21,
+    "present_days": 21,
+    "lop_days": 0,
+    "paid_days": 21,
+    "gross_salary": 30000,
+    "total_deductions": 1440,
+    "net_salary": 28560,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "calculated",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 12000
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6000
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 12000
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1440
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1440
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 30000,
+      "total_deductions": 1440,
+      "net_salary": 28560,
+      "reimbursements": 0,
+      "employer_contributions": 1440
+    }
+  },
+  "slip": {
+    "id": 12,
+    "payroll_run_id": 3,
+    "employee_id": 3,
+    "employee": {
+      "id": 3,
+      "employee_id": "EMP00003",
+      "first_name": "Synthetic",
+      "last_name": "Payroll desktop"
+    },
+    "month": 5,
+    "year": 2026,
+    "financial_year": "2026-27",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2026-04-01",
+    "ytd_period_label": "Financial year 2026-27",
+    "department": "QA Payroll desktop",
+    "working_days": 21,
+    "present_days": 21,
+    "lop_days": 0,
+    "paid_days": 21,
+    "gross_salary": 30000,
+    "total_deductions": 1440,
+    "net_salary": 28560,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "locked",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 12000
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6000
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 12000
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1440
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1440
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 30000,
+      "total_deductions": 1440,
+      "net_salary": 28560,
+      "reimbursements": 0,
+      "employer_contributions": 1440
+    }
+  },
+  "lockedSalaryMutationStatus": 400
+}

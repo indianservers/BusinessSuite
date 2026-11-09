@@ -1,0 +1,14 @@
+@media (max-width: 480px) {
+  .hrms-statutory-history { min-width: 0; }
+  .hrms-statutory-history .kf-card, .hrms-statutory-history .grid > * { min-width: 0; }
+  .hrms-statutory-history > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hrms-statutory-history :is(select, input) { min-height: 44px; font-size: 16px; min-width: 0; max-width: 100%; }
+  .hrms-statutory-history :is(button, summary) { min-height: 44px; white-space: normal; }
+  .hrms-statutory-history button[aria-label^="Download submission"] { min-width: 44px; }
+  .hrms-statutory-history .kf-card > div { padding: 12px; }
+  .hrms-statutory-history :is(p, span) { overflow-wrap: anywhere; }
+  .hrms-statutory-history .udg-record-field:has(.hrms-statutory-validation) { grid-column: 1 / -1; }
+  .hrms-statutory-validation { margin-top: 6px; border-top: 1px solid hsl(var(--border)); }
+  .hrms-statutory-validation summary { cursor: pointer; display: list-item; padding-block: 8px; }
+  .hrms-statutory-validation > div { max-height: 200px; overflow: auto; padding: 8px; border: 1px solid hsl(var(--border)); border-radius: 8px; }
+}

@@ -9,3 +9,12 @@ The public `/auth/branding` endpoint returns only `company_name` from the active
 The application dashboard reuses the public home module catalog. It provides authorized module cards, module search, responsive layouts, an empty-access state, retriable access loading and the existing company-context switch for multi-company members. All applications navigation in the module switcher and Power Apps links back to `/dashboard`. The root `/` redirects signed-out visitors to `/login` and signed-in users to `/dashboard`; the public module chooser is no longer the entry page.
 
 All suite entry links now use exactly `/login` without module-specific `next` parameters. Legacy login links strip `next`, and every successful sign-in opens `/dashboard` so users choose their authorized module there. Password-reset tokens and SSO handoff parameters remain intact. This supersedes the earlier destination-preservation behavior.
+
+Interns Hub keeps its separate identity boundary and uses **Continue with Google**
+on both `/login` and `/apply`. A verified Google identity matching an approved,
+active intern signs into the existing account; the login page opens the dashboard
+directly and completes MFA first when required. New users open the application,
+while returning applicants see their saved application and review status. Google
+sign-in never creates a duplicate application or bypasses approval, account
+lockout, company membership, or the portal restriction. Suite employee sign-in
+continues to require an existing active account.

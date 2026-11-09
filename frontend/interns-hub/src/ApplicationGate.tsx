@@ -38,8 +38,8 @@ export function ApplicationGate() {
   return <div className="application-page"><PublicHeader/><main className="application-signin-layout"><section className="application-signin-card">
     <span className="application-signin-icon"><GraduationCap size={36}/></span>
     <span className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</span>
-    <h1>Sign in with Google<br/>to continue</h1>
-    <p>Use your Google account to open the internship application. We’ll fill in your name and email so you can get started.</p>
+    <h1>Continue with Google</h1>
+    <p>Use one Google sign-in to start an application, check your saved application, or open your dashboard if your intern account is active.</p>
     {checking ? <p role="status">Checking your Google sign-in…</p> : <SocialSignup mode="continue" onVerified={setProfile}/>}
     <div className="application-signin-assurance"><ShieldCheck size={18}/><span>Your application is reviewed by our team before intern access is activated.</span></div>
   </section></main></div>;

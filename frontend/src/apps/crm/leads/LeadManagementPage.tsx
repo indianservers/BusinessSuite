@@ -1,3 +1,4 @@
+import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
 import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import {recordSavedEvent,type RecordSaved} from "@/lib/record-changes";
@@ -832,6 +833,7 @@ function LeadWorkbench() {
                   </th>
                   <th>Lead</th>
                   <th>Stage</th>
+                  {locationFields.map(field=><th key={field.id}>{field.label}</th>)}
                   {columns.includes("company") && <th>Company</th>}
                   {columns.includes("owner") && <th>Assigned employee</th>}
                   {columns.includes("score") && <th>Score</th>}
@@ -902,6 +904,7 @@ function LeadWorkbench() {
                         <StageBadge stage={lead.status} />
                       )}
                     </td>
+                    {locationFields.map(field=><td key={field.id}>{locationValue(lead,field) || "Not set"}</td>)}
                     {columns.includes("company") && (
                       <td>{lead.company_name || "—"}</td>
                     )}

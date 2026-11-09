@@ -1,3 +1,4 @@
+import { useMobile } from "@/components/mobile/useMobile";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { api } from "@/services/api";
@@ -10,21 +11,26 @@ export default function TemplateSteps({
   template: { id: number; name: string; tasks: Step[] };
   refresh: () => Promise<unknown>;
 }) {
+  const phone = useMobile(480);
+  const [busy, setBusy] = useState(false);
+  const [ordering, setOrdering] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const steps = [...(template.tasks || [])].sort(
     (a, b) => a.order_index - b.order_index || a.id - b.id,
   );
   return (
-    <details className="rounded-md border p-3 text-sm">
+    <details className="hrms-onboarding-template rounded-md border p-3 text-sm">
       <summary>
         {template.name} · {steps.length} steps
       </summary>
       <OrderedList
+        disabled={phone && (busy || ordering)}
         label={`${template.name} steps`}
         items={steps}
         title={(s) => s.task_name}
         onReorder={async (ordered) => {
+          if(phone)setOrdering(true);
           try {
             await api.post(
               `/onboarding/templates/${template.id}/tasks/reorder`,
@@ -34,12 +40,13 @@ export default function TemplateSteps({
               },
             );
           } finally {
-            await refresh();
+            try { await refresh(); } finally { if(phone)setOrdering(false); }
           }
         }}
       />
       <div className="flex gap-2">
         <input
+          disabled={phone && (busy || ordering)}
           aria-label={`New step for ${template.name}`}
           className="input min-w-0"
           value={name}
@@ -48,8 +55,10 @@ export default function TemplateSteps({
         />
         <Button variant="default"
           type="button"
-          disabled={!name.trim()}
+          disabled={!name.trim() || phone && (busy || ordering)}
           onClick={async () => {
+            if(phone && (busy || ordering))return;
+            if(phone)setBusy(true);
             setError("");
             try {
               await api.post(`/onboarding/templates/${template.id}/tasks`, {
@@ -62,7 +71,7 @@ export default function TemplateSteps({
               await refresh();
             } catch {
               setError("Could not add step. Check your access and try again.");
-            }
+            } finally { if(phone)setBusy(false); }
           }}
         >
           Add step

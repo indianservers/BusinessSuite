@@ -45,6 +45,8 @@ def upload_project_file(project_id: int, file: UploadFile = File(...), folder_id
     from app.core.storage import persist_file
     project = get_project_for_action(db, project_id, user, "upload")
     if folder_id: folder_for_project(db, folder_id, project.id)
+    from app.services.file_storage import require_project_drive
+    require_project_drive(db)
     _validate_attachment_upload(file)
     original = _safe_attachment_name(file.filename)
     filename = f"{uuid.uuid4().hex}_{original}"
@@ -52,6 +54,7 @@ def upload_project_file(project_id: int, file: UploadFile = File(...), folder_id
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / filename
     size = 0
+    storage_attempted = False
     try:
         with target.open("wb") as output:
             while chunk := file.file.read(1024 * 1024):
@@ -59,6 +62,7 @@ def upload_project_file(project_id: int, file: UploadFile = File(...), folder_id
                 if size > PMS_MAX_ATTACHMENT_BYTES: raise HTTPException(413, "File exceeds the configured size limit")
                 output.write(chunk)
         if not size: raise HTTPException(400, "File cannot be empty")
+        storage_attempted = True
         persist_file(str(target), db=db, module="pms", filename=original)
         asset = PMSFileAsset(project_id=project.id, folder_id=folder_id, uploaded_by_user_id=user.id, file_name=filename, original_name=original, storage_path=str(target), mime_type=file.content_type or "application/octet-stream", size_bytes=size, visibility="Project Team")
         db.add(asset); db.flush()
@@ -66,7 +70,8 @@ def upload_project_file(project_id: int, file: UploadFile = File(...), folder_id
         db.commit(); db.refresh(asset)
         return _file_payload(asset, user)
     except Exception:
-        db.rollback(); target.unlink(missing_ok=True)
+        db.rollback()
+        if not storage_attempted: target.unlink(missing_ok=True)
         raise
     finally:
         file.file.close()

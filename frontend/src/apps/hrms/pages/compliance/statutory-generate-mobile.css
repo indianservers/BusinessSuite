@@ -1,0 +1,14 @@
+@media (max-width: 480px) {
+  .hrms-statutory-generate { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  .hrms-statutory-generate > * { min-width: 0; }
+  .hrms-statutory-generate .grid > *, .hrms-statutory-generate .kf-card { min-width: 0; }
+  .hrms-statutory-generate :is(p, span, button) { overflow-wrap: anywhere; }
+  .hrms-statutory-generate .kf-card > div { padding: 12px; }
+  .hrms-statutory-generate :is(button, summary) { min-height: 44px; white-space: normal; }
+  .hrms-statutory-generate select, .smart-create-phone-sheet .hrms-statutory-ack-form input { font-size: 16px; min-height: 44px; max-width: 100%; min-width: 0; }
+  .hrms-statutory-generate select[aria-label="Payroll run"] { width: 100%; border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 8px 12px; background: hsl(var(--background)); }
+  .hrms-statutory-generate .hrms-statutory-legacy-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hrms-statutory-legacy-buttons button { padding: 10px; }
+  .smart-create-phone-sheet .hrms-statutory-ack-actions { display: none; }
+  .smart-create-phone-sheet:has(.hrms-statutory-ack-form) .smart-create-header p { display: none; }
+}

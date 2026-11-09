@@ -1,3 +1,4 @@
+import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import CatalogEditor from "@/shared/catalog/CatalogEditor";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
@@ -3038,10 +3039,10 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
                 <th key={key} className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort(key)}>{label}<ArrowUpDown className="h-3 w-3" /></button></th>
               ))}
               <th className="px-3 py-3 font-semibold">Actions</th>
-            </tr>
+            {locationFields.map(field=><th key={field.id} className="px-3 py-3">{field.label}</th>)}</tr>
           </thead>
           <tbody>
-            {initialLoading ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">Loading leads...</td></tr> : null}
+            {initialLoading ? <tr><td colSpan={15} className="px-3 py-12 text-center text-muted-foreground">Loading leads...</td></tr> : null}
             {!initialLoading && rows.map((lead) => (
               <tr {...recordPreviewProps(lead)} data-context-record="Lead" data-context-open="Open lead details" key={lead.id} className={`border-t border-border transition hover:bg-white/[0.04] ${selectedId === lead.id ? "bg-emerald-400/5" : ""}`} onClick={() => onSelect(lead)}>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={Boolean(selectedIds[String(lead.id)])} onChange={(event) => onToggleRow(lead, event.target.checked)} aria-label={`Select ${lead.name}`} /></td>
@@ -3055,9 +3056,10 @@ function LeadTable({ rows, loading, error, selectedId, selectedIds, allSelected,
                 <td className="px-3 py-3 font-semibold text-foreground">{formatCurrency(lead.value || 0)}</td>
                 <td className="px-3 py-3 text-muted-foreground">{lead.updatedAt ? formatDate(lead.updatedAt) : "-"}</td>
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(lead)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+                {locationFields.map(field=><td key={field.id} className="px-3 py-3">{locationValue(lead,field)||"Not set"}</td>)}
               </tr>
             ))}
-            {!initialLoading && !rows.length ? <tr><td colSpan={11} className="px-3 py-12 text-center text-muted-foreground">No leads match the current search or filters.</td></tr> : null}
+            {!initialLoading && !rows.length ? <tr><td colSpan={15} className="px-3 py-12 text-center text-muted-foreground">No leads match the current search or filters.</td></tr> : null}
           </tbody>
         </GridTable>
       </div>
@@ -3792,7 +3794,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
   const toggleSort = (key: string) => {
     onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
   };
-  const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
+  const columnCount = 7 + Object.values(visibleColumns).filter(Boolean).length;
   return (
     <div className="record-directory">
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
@@ -3811,7 +3813,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
               {visibleColumns.nextFollowUp ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("nextFollowUp")}>Next follow-up<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.updatedAt ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("updatedAt")}>Updated<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               <th className="sticky right-0 z-20 w-48 bg-muted px-3 py-3 font-semibold">Actions</th>
-            </tr>
+            {locationFields.map(field=><th key={field.id} className="px-3 py-3">{field.label}</th>)}</tr>
           </thead>
           <tbody>
             {initialLoading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading contacts...</td></tr> : null}
@@ -3828,6 +3830,7 @@ function ContactTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 {visibleColumns.nextFollowUp ? <td className="px-3 py-3"><FollowUpCell value={contact.nextFollowUp} /></td> : null}
                 {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{contact.updatedAt ? formatDate(contact.updatedAt) : "-"}</td> : null}
                 <td className="sticky right-0 z-10 bg-card px-2 py-3 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.2)]" onClick={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}><RecordQuickActions record={contact} onView={()=>openRecordPreview(contact,"/crm/contacts")} onMessage={channel=>onMessage(contact,channel)} onEdit={onEdit?()=>onEdit(contact):undefined}/></td>
+                {locationFields.map(field=><td key={field.id} className="px-3 py-3">{locationValue(contact,field)||"Not set"}</td>)}
               </tr>
             ))}
             {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No contacts match the current search or filters.</td></tr> : null}
@@ -4034,6 +4037,7 @@ function recordToContact(record: CRMRecord, companyNames = new Map<number, strin
   const companyId = Number(record.companyId || record.company_id || 0) || undefined;
   const ownerId = Number(record.ownerId || record.owner_id || record.owner_user_id || 0) || undefined;
   return {
+    ...record,
     id: Number(record.id || 0),
     name: String(record.name || record.full_name || "Contact"),
     companyId,
@@ -4456,7 +4460,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
   const canExport=useModuleAction("export");
   const initialLoading = useInitialLoading(Boolean(loading));
   const toggleSort = (key: string) => onSort(sort?.key === key ? sort.direction === "asc" ? { key, direction: "desc" } : null : { key, direction: "asc" });
-  const columnCount = 3 + Object.values(visibleColumns).filter(Boolean).length;
+  const columnCount = 6 + Object.values(visibleColumns).filter(Boolean).length;
   return (
     <div>
       {error ? <div className="border-b border-red-400/20 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">{error}</div> : null}
@@ -4474,7 +4478,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
               {visibleColumns.city ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("city")}>City<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               {visibleColumns.updatedAt ? <th className="px-3 py-3 font-semibold"><button type="button" className="inline-flex items-center gap-1" onClick={() => toggleSort("updatedAt")}>Updated<ArrowUpDown className="h-3 w-3" /></button></th> : null}
               <th className="px-3 py-3 font-semibold">Actions</th>
-            </tr>
+            {locationFields.filter(field=>field.id!=="city").map(field=><th key={field.id} className="px-3 py-3">{field.label}</th>)}</tr>
           </thead>
           <tbody>
             {initialLoading ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">Loading companies...</td></tr> : null}
@@ -4490,6 +4494,7 @@ function AccountTable({ rows, loading, error, selectedId, selectedIds, allSelect
                 {visibleColumns.city ? <td className="px-3 py-3 text-muted-foreground">{account.city || "Not provided"}</td> : null}
                 {visibleColumns.updatedAt ? <td className="px-3 py-3 text-muted-foreground">{account.updatedAt ? formatDate(account.updatedAt) : "-"}</td> : null}
                 <td className="px-3 py-3" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" className="h-8 text-foreground hover:bg-accent" onClick={() => onEdit(account)}><Edit3 className="h-3.5 w-3.5" />Edit</Button></td>
+                {locationFields.filter(field=>field.id!=="city").map(field=><td key={field.id} className="px-3 py-3">{locationValue(account,field)||"Not set"}</td>)}
               </tr>
             ))}
             {!initialLoading && !rows.length ? <tr><td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">No companies match the current search or filters.</td></tr> : null}
@@ -4711,6 +4716,7 @@ function recordToAccount(record: CRMRecord, ownerNames = new Map<number, string>
   const ownerId = Number(record.ownerId || record.owner_id || record.owner_user_id || 0) || undefined;
   const territoryId = Number(record.territoryId || record.territory_id || 0) || undefined;
   return {
+    ...record,
     id: Number(record.id || 0),
     branchName: String(record.branchName || ""),
     name: String(record.name || "Account"),
@@ -8399,70 +8405,71 @@ function detailPathFor(kind: CRMPageKind) {
 function normalizeApiRecord(kind: string, record: CRMApiRecord): CRMRecord {
   const id = Number(record.id || 0);
   if (kind === "leads") {
-    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Lead"), company: String(record.company_name || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), source: String(record.source || "Other"), status: String(record.status || "New"), rating: String(record.scoreLabel || record.lead_score_label || record.rating || "Warm"), leadScore: Number(record.leadScore || record.lead_score || 0), scoreLabel: String(record.scoreLabel || record.lead_score_label || record.rating || "Cold"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), value: Number(record.estimated_value || record.value || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), industry: String(record.industry || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
+    return { ...record, id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Lead"), company: String(record.company_name || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), source: String(record.source || "Other"), status: String(record.status || "New"), rating: String(record.scoreLabel || record.lead_score_label || record.rating || "Warm"), leadScore: Number(record.leadScore || record.lead_score || 0), scoreLabel: String(record.scoreLabel || record.lead_score_label || record.rating || "Cold"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), value: Number(record.estimated_value || record.value || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), industry: String(record.industry || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
   }
   if (kind === "contacts") {
-    return { id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Contact"), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), companyId: Number(record.companyId || record.company_id || 0), companyName: String(record.companyName || record.company_name || ""), title: String(record.job_title || ""), stage: String(record.lifecycle_stage || "Lead"), source: String(record.source || ""), status: String(record.status || "Active"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
+    return { ...record, id, name: String(record.full_name || [record.first_name, record.last_name].filter(Boolean).join(" ") || "Contact"), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), companyId: Number(record.companyId || record.company_id || 0), companyName: String(record.companyName || record.company_name || ""), title: String(record.job_title || ""), stage: String(record.lifecycle_stage || "Lead"), source: String(record.source || ""), status: String(record.status || "Active"), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), nextFollowUp: String(record.next_follow_up_at || record.nextFollowUp || ""), lastContacted: String(record.last_contacted_at || record.lastContacted || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || ""), notes: String(record.notes || "") };
   }
   if (kind === "companies") {
-    return { id, branchName: String(record.branchName || ""), name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || record.type || "Prospect"), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || record.revenue || 0), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), website: String(record.website || ""), notes: String(record.notes || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || "") };
+    return { ...record, id, branchName: String(record.branchName || ""), name: String(record.name || "Company"), industry: String(record.industry || ""), type: String(record.account_type || record.type || "Prospect"), status: String(record.status || "Active"), revenue: Number(record.annual_revenue || record.revenue || 0), owner: String(record.owner || record.ownerId || record.owner_user_id || ""), ownerId: Number(record.ownerId || record.owner_id || record.owner_user_id || 0), territoryId: Number(record.territoryId || record.territory_id || 0), city: String(record.city || ""), email: String(record.email || ""), phone: String(record.phone || ""), phone_country_code: String(record.phone_country_code || ""), website: String(record.website || ""), notes: String(record.notes || ""), createdAt: String(record.createdAt || record.created_at || ""), updatedAt: String(record.updatedAt || record.updated_at || "") };
   }
   if (kind === "deals") {
     return { ...record, id, name: String(record.name || "Deal"), companyId: Number(record.company_id || 0), contactId: Number(record.contact_id || 0), owner: String(record.ownerId || record.owner_user_id || ""), territoryId: Number(record.territoryId || record.territory_id || 0), stageId: Number(record.stage_id || 0), pipelineId: Number(record.pipeline_id || 0), stage: String(record.stage || record.status || "Open"), amount: Number(record.amount || 0), probability: Number(record.probability || 0), closeDate: String(record.expected_close_date || ""), nextStep: String(record.description || record.status || ""), status: String(record.status || "Open") };
   }
   if (kind === "activities") {
-    return { id, subject: String(record.subject || "Activity"), type: String(record.activity_type || ""), owner: String(record.ownerId || record.owner_user_id || ""), due: String(record.due_date || ""), status: String(record.status || "Pending"), priority: String(record.priority || "Medium") };
+    return { ...record, id, subject: String(record.subject || "Activity"), type: String(record.activity_type || ""), owner: String(record.ownerId || record.owner_user_id || ""), due: String(record.due_date || ""), status: String(record.status || "Pending"), priority: String(record.priority || "Medium") };
   }
   if (kind === "tasks") {
-    return { id, subject: String(record.title || "Task"), owner: String(record.ownerId || record.owner_user_id || ""), due: String(record.due_date || ""), status: String(record.status || "To Do"), priority: String(record.priority || "Medium") };
+    return { ...record, id, subject: String(record.title || "Task"), owner: String(record.ownerId || record.owner_user_id || ""), due: String(record.due_date || ""), status: String(record.status || "To Do"), priority: String(record.priority || "Medium") };
   }
   if (kind === "meetings") {
-    return { id, subject: String(record.title || "Meeting"), type: "Meeting", location: String(record.location || ""), due: String(record.start_time || ""), status: String(record.status || "Scheduled"), syncStatus: String(record.syncStatus || record.sync_status || "not_synced"), externalProvider: String(record.externalProvider || record.external_provider || "") };
+    return { ...record, id, subject: String(record.title || "Meeting"), type: "Meeting", location: String(record.location || ""), due: String(record.start_time || ""), status: String(record.status || "Scheduled"), syncStatus: String(record.syncStatus || record.sync_status || "not_synced"), externalProvider: String(record.externalProvider || record.external_provider || "") };
   }
   if (kind === "products") {
-    return { id, currency: String(record.currency || "INR"), name: String(record.name || "Product"), productCode: String(record.productCode || record.product_code || record.sku || ""), sku: String(record.sku || record.productCode || ""), category: String(record.category || ""), price: Number(record.listPrice || record.list_price || record.unit_price || 0), cost: Number(record.costPrice || record.cost_price || 0), status: String(record.status || "Active") };
+    return { ...record, id, currency: String(record.currency || "INR"), name: String(record.name || "Product"), productCode: String(record.productCode || record.product_code || record.sku || ""), sku: String(record.sku || record.productCode || ""), category: String(record.category || ""), price: Number(record.listPrice || record.list_price || record.unit_price || 0), cost: Number(record.costPrice || record.cost_price || 0), status: String(record.status || "Active") };
   }
   if (kind === "services") {
-    return { id, currency: String(record.currency || "INR"), name: String(record.name || "Service"), serviceCode: String(record.serviceCode || record.service_code || ""), category: String(record.category || ""), billingType: String(record.billingType || record.billing_type || "fixed"), price: Number(record.defaultRate || record.default_rate || 0), cost: Number(record.defaultCost || record.default_cost || 0), status: record.active === false ? "Inactive" : "Active" };
+    return { ...record, id, currency: String(record.currency || "INR"), name: String(record.name || "Service"), serviceCode: String(record.serviceCode || record.service_code || ""), category: String(record.category || ""), billingType: String(record.billingType || record.billing_type || "fixed"), price: Number(record.defaultRate || record.default_rate || 0), cost: Number(record.defaultCost || record.default_cost || 0), status: record.active === false ? "Inactive" : "Active" };
   }
   if (kind === "priceBooks") {
-    return { id, name: String(record.name || "Price Book"), currency: String(record.currency || "INR"), region: String(record.region || ""), segment: String(record.customerSegment || record.customer_segment || ""), status: String(record.status || "active") };
+    return { ...record, id, name: String(record.name || "Price Book"), currency: String(record.currency || "INR"), region: String(record.region || ""), segment: String(record.customerSegment || record.customer_segment || ""), status: String(record.status || "active") };
   }
   if (kind === "quotations" || kind === "quotes" || kind === "quoteBuilder") {
-    return { id, quote: String(record.quoteNumber || record.quote_number || ""), dealId: Number(record.dealId || record.deal_id || 0), companyId: Number(record.companyId || record.company_id || 0), status: String(record.status || "Draft"), approvalStatus: String(record.approvalStatus || record.approval_status || "not_submitted"), issueDate: String(record.quoteDate || record.quote_date || record.issue_date || ""), expiryDate: String(record.validUntil || record.valid_until || record.expiry_date || ""), total: Number(record.grandTotal || record.grand_total || record.total_amount || 0), margin: Number(record.expectedMargin || record.expected_margin || 0) };
+    return { ...record, id, quote: String(record.quoteNumber || record.quote_number || ""), dealId: Number(record.dealId || record.deal_id || 0), companyId: Number(record.companyId || record.company_id || 0), status: String(record.status || "Draft"), approvalStatus: String(record.approvalStatus || record.approval_status || "not_submitted"), issueDate: String(record.quoteDate || record.quote_date || record.issue_date || ""), expiryDate: String(record.validUntil || record.valid_until || record.expiry_date || ""), total: Number(record.grandTotal || record.grand_total || record.total_amount || 0), margin: Number(record.expectedMargin || record.expected_margin || 0) };
   }
   if (kind === "quoteApprovals") {
-    return { id, quoteId: Number(record.quoteId || record.quote_id || 0), status: String(record.status || "pending"), reason: String(record.reason || ""), comments: String(record.comments || ""), approver: String(record.approverUserId || record.approver_user_id || record.approved_by || "") };
+    return { ...record, id, quoteId: Number(record.quoteId || record.quote_id || 0), status: String(record.status || "pending"), reason: String(record.reason || ""), comments: String(record.comments || ""), approver: String(record.approverUserId || record.approver_user_id || record.approved_by || "") };
   }
   if (kind === "cpq") {
-    return { id, name: String(record.name || "CPQ Rule"), type: String(record.ruleType || record.rule_type || "recommendation"), status: record.active === false ? "Inactive" : "Active" };
+    return { ...record, id, name: String(record.name || "CPQ Rule"), type: String(record.ruleType || record.rule_type || "recommendation"), status: record.active === false ? "Inactive" : "Active" };
   }
   if (kind === "guidedSelling") {
-    return { id, name: String(record.name || "Guided Selling Flow"), status: record.active === false ? "Inactive" : "Active" };
+    return { ...record, id, name: String(record.name || "Guided Selling Flow"), status: record.active === false ? "Inactive" : "Active" };
   }
   if (kind === "campaigns") {
-    return { id, name: String(record.name || "Campaign"), type: String(record.campaign_type || ""), status: String(record.status || "Planned"), startDate: String(record.start_date || ""), endDate: String(record.end_date || ""), budget: Number(record.budget_amount || 0), expectedRevenue: Number(record.expected_revenue || 0) };
+    return { ...record, id, name: String(record.name || "Campaign"), type: String(record.campaign_type || ""), status: String(record.status || "Planned"), startDate: String(record.start_date || ""), endDate: String(record.end_date || ""), budget: Number(record.budget_amount || 0), expectedRevenue: Number(record.expected_revenue || 0) };
   }
   if (kind === "tickets") {
-    return { id, number: String(record.ticket_number || ""), subject: String(record.subject || "Ticket"), priority: String(record.priority || "Medium"), status: String(record.status || "Open"), category: String(record.category || ""), source: String(record.source || "Manual"), due: String(record.due_date || "") };
+    return { ...record, id, number: String(record.ticket_number || ""), subject: String(record.subject || "Ticket"), priority: String(record.priority || "Medium"), status: String(record.status || "Open"), category: String(record.category || ""), source: String(record.source || "Manual"), due: String(record.due_date || "") };
   }
   if (kind === "files") {
-    return { id, name: String(record.original_name || record.file_name || "File"), fileName: String(record.file_name || ""), type: String(record.mime_type || ""), size: Number(record.size_bytes || 0), visibility: String(record.visibility || "Internal"), storagePath: String(record.storage_path || "") };
+    return { ...record, id, name: String(record.original_name || record.file_name || "File"), fileName: String(record.file_name || ""), type: String(record.mime_type || ""), size: Number(record.size_bytes || 0), visibility: String(record.visibility || "Internal"), storagePath: String(record.storage_path || "") };
   }
   if (kind === "settings") {
-    return { id, setting: String(record.label || record.field_key || "Custom field"), area: String(record.entity || ""), type: String(record.field_type || ""), status: record.is_active === false ? "Inactive" : "Ready" };
+    return { ...record, id, setting: String(record.label || record.field_key || "Custom field"), area: String(record.entity || ""), type: String(record.field_type || ""), status: record.is_active === false ? "Inactive" : "Ready" };
   }
   if (kind === "admin") {
-    return { id, adminArea: String(record.full_name || "Owner"), permission: String(record.role || ""), email: String(record.email || ""), status: String(record.status || "Active") };
+    return { ...record, id, adminArea: String(record.full_name || "Owner"), permission: String(record.role || ""), email: String(record.email || ""), status: String(record.status || "Active") };
   }
   if (kind === "lead-scoring-rules") {
-    return { id, name: String(record.name || ""), field: String(record.field || ""), operator: String(record.operator || ""), value: String(record.value || ""), points: Number(record.points || 0), is_active: Boolean(record.is_active ?? record.isActive ?? true) };
+    return { ...record, id, name: String(record.name || ""), field: String(record.field || ""), operator: String(record.operator || ""), value: String(record.value || ""), points: Number(record.points || 0), is_active: Boolean(record.is_active ?? record.isActive ?? true) };
   }
-  return { id, ...record };
+  return { ...record, id, ...record };
 }
 
 function recordToLead(record: CRMRecord): CRMLead {
   return {
+    ...record,
     id: Number(record.id || 0),
     name: String(record.name || record.full_name || "Lead"),
     company: String(record.company || record.company_name || ""),

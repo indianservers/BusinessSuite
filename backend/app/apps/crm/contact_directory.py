@@ -61,6 +61,8 @@ def labels(row):
 
 def serialize(row):
     return {"id": row.id, "name": row.full_name, "email": row.email, "phone": row.phone,
+        "city": row.city, "state": row.state, "country": row.country,
+        "pincode": getattr(row, "postal_code", None) or getattr(row, "pincode", None),
         "phoneCountryCode": row.phone_country_code, "organization": row.company_name, "companyId": row.company_id,
         "ownerId": row.owner_user_id, "status": row.status, "tags": labels(row),
         "lastInteraction": row.last_contacted_at, "nextFollowUp": row.next_follow_up_at,

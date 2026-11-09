@@ -1,7 +1,14 @@
+import "./statutory-form16-mobile.css";
+import "./statutory-history-mobile.css";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import "./statutory-generate-mobile.css";
+import { useMobile } from "@/components/mobile/useMobile";
+import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
+import "./statutory-calendar-mobile.css";
 import GridTable from "@/shared/data-grid/GridTable";
 import { NativeSelect } from "@/components/ui/native-select";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
-import { useState } from "react";
+import { useState, type InputHTMLAttributes } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, FileCheck2, Loader2, TriangleAlert, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -113,18 +120,20 @@ const money = (value: unknown) =>
 
 export default function StatutoryCompliancePage() {
   usePageTitle("Statutory Compliance");
+  const phone = useMobile(480);
   const [tab, setTab] = useState<(typeof TABS)[number]>(new URLSearchParams(window.location.search).get("tab") === "form16" ? "Form 16" : "Compliance Calendar");
 
   return (
-    <div className="space-y-6">
+    <div className="hrms-statutory-page space-y-6">
       <div>
         <h1 className="page-title">Statutory Compliance</h1>
         <p className="page-description">Track due dates, generate statutory files, and monitor portal submission status.</p>
       </div>
-      <div className="flex flex-wrap gap-2 border-b">
+      <div className="hrms-statutory-tabs flex flex-wrap gap-2 border-b">
         {TABS.map((item) => (
           <button
             key={item}
+            aria-pressed={phone ? tab === item : undefined}
             type="button"
             onClick={() => setTab(item)}
             className={cn("border-b-2 px-3 py-2 text-sm font-medium", tab === item ? "border-primary text-primary" : "border-transparent text-muted-foreground")}
@@ -142,6 +151,7 @@ export default function StatutoryCompliancePage() {
 }
 
 function CalendarTab() {
+  const phone = useMobile(480);
   const qc = useQueryClient();
   const [filters, setFilters] = useState({ statutory_type: "", status: "", year: String(new Date().getFullYear()) });
   const [marking, setMarking] = useState<CalendarItem | null>(null);
@@ -162,28 +172,38 @@ function CalendarTab() {
   });
   const counts = summary.data?.counts || {};
 
+  const filedContent = marking ? (
+          <div className="hrms-statutory-filed-form space-y-4">
+            <p className="text-sm text-muted-foreground">Confirm filing for {marking.statutory_type} due on {marking.due_date}.</p>
+            <Input aria-label="Filing remarks" disabled={phone && markFiled.isPending} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Optional remarks" />
+            {phone && markFiled.isError && <p role="alert" className="text-sm text-destructive">Filing could not update. Your remarks are retained.</p>}
+            <div className="hrms-statutory-filed-actions flex justify-end gap-2"><Button variant="outline" onClick={() => setMarking(null)}>Cancel</Button><Button data-save-action={phone ? "" : undefined} onClick={() => markFiled.mutate()} disabled={markFiled.isPending}>Confirm</Button></div>
+          </div>
+  ) : null;
+
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Summary label="Pending" value={counts.Pending || 0} className="bg-yellow-50 text-yellow-700" />
-        <Summary label="Filed" value={counts.Filed || 0} className="bg-green-50 text-green-700" />
-        <Summary label="Overdue" value={counts.Overdue || 0} className="bg-red-50 text-red-700" />
-        <Summary label="Upcoming this month" value={summary.data?.upcoming_count || 0} className="bg-blue-50 text-blue-700" />
+    <div className="hrms-statutory-calendar space-y-5">
+      <div className="hrms-statutory-kpis grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Summary label="Pending" value={phone && !summary.data ? "—" : counts.Pending || 0} className="bg-yellow-50 text-yellow-700" />
+        <Summary label="Filed" value={phone && !summary.data ? "—" : counts.Filed || 0} className="bg-green-50 text-green-700" />
+        <Summary label="Overdue" value={phone && !summary.data ? "—" : counts.Overdue || 0} className="bg-red-50 text-red-700" />
+        <Summary label="Upcoming this month" value={phone && !summary.data ? "—" : summary.data?.upcoming_count || 0} className="bg-blue-50 text-blue-700" />
       </div>
 
+      {phone && (summary.isError || calendar.isError) && <p role="alert" className="text-sm text-destructive">Compliance calendar could not load. <Button variant="outline" onClick={() => { if (summary.isError) void summary.refetch(); if (calendar.isError) void calendar.refetch(); }}>Retry compliance calendar</Button></p>}
       <Card>
         <CardHeader><CardTitle className="text-base">Compliance Calendar</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}>
+          <div className="hrms-statutory-calendar-filters grid gap-3 sm:grid-cols-3">
+            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Compliance type" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}>
               <option value="">All types</option>{TYPES.map((type) => <option key={type}>{type}</option>)}
             </NativeSelect>
-            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+            <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Compliance status" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
               <option value="">All statuses</option>{["Pending", "Filed", "Overdue"].map((status) => <option key={status}>{status}</option>)}
             </NativeSelect>
-            <Input value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })} placeholder="Year" />
+            <Input aria-label="Compliance year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value })} placeholder="Year" />
           </div>
-          {calendar.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : (
+          {calendar.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : phone && calendar.isError && !calendar.data ? <p className="text-sm text-muted-foreground">Calendar entries are unavailable until the request succeeds.</p> : (
             <div className="overflow-x-auto rounded-lg border">
               <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-1" className="w-full min-w-[820px] text-sm">
                 <thead className="bg-muted/60"><tr><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2 text-left">Description</th><th className="px-3 py-2 text-left">Period</th><th className="px-3 py-2 text-left">Due Date</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-right">Actions</th></tr></thead>
@@ -200,7 +220,7 @@ function CalendarTab() {
                           <StatusBadge status={item.effective_status || (overdue ? "Overdue" : item.status)} />
                           {item.reminder_due_on && <p className="mt-1 text-xs text-muted-foreground">Reminder {item.reminder_status || "scheduled"}: {item.reminder_due_on}</p>}
                         </td>
-                        <td className="px-3 py-2 text-right">{item.status !== "Filed" && <Button size="sm" variant="outline" onClick={() => setMarking(item)}>Mark Filed</Button>}</td>
+                        <td className="px-3 py-2 text-right">{item.status !== "Filed" && <Button size="sm" variant="outline" onClick={() => { if (phone) { setRemarks(""); markFiled.reset(); } setMarking(item); }}>Mark Filed</Button>}</td>
                       </tr>
                     );
                   })}
@@ -210,20 +230,13 @@ function CalendarTab() {
           )}
         </CardContent>
       </Card>
-      {marking && (
-        <Modal title="Mark Filed" onClose={() => setMarking(null)}>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Confirm filing for {marking.statutory_type} due on {marking.due_date}.</p>
-            <Input value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Optional remarks" />
-            <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setMarking(null)}>Cancel</Button><Button onClick={() => markFiled.mutate()} disabled={markFiled.isPending}>Confirm</Button></div>
-          </div>
-        </Modal>
-      )}
+      {marking && (phone ? <SmartCreateModal definition={{ entity: "statutory-filing", title: "Mark Filed", presentation: "page", size: "compact" }} mobileSheet busy={markFiled.isPending} onClose={() => setMarking(null)}>{filedContent}</SmartCreateModal> : <Modal title="Mark Filed" onClose={() => setMarking(null)}>{filedContent}</Modal>)}
     </div>
   );
 }
 
 function GenerateTab() {
+  const phone = useMobile(480);
   const qc = useQueryClient();
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const [lastResult, setLastResult] = useState<any>(null);
@@ -277,41 +290,75 @@ function GenerateTab() {
   });
   const lockedRuns = (runs.data || []).filter((run) => ["locked", "paid"].includes(run.status));
 
+
+  const downloadFile = useMutation({
+    mutationFn: (target: { kind: "export"; item: ComplianceExport } | { kind: "submission"; id: number }) => target.kind === "export" ? downloadComplianceExport(target.item) : download(target.id),
+  });
+  const busy = generate.isPending || complianceGenerate.isPending || markSubmitted.isPending || downloadFile.isPending;
+  function chooseRun(id: number | null) {
+    if (phone) {
+      if (busy || id === selectedRunId) return;
+      setLastResult(null); setComplianceExport(null);
+      generate.reset(); complianceGenerate.reset(); downloadFile.reset();
+    }
+    setSelectedRunId(id);
+  }
+  function openAck(id: number) {
+    if (phone) { setAck(""); markSubmitted.reset(); }
+    setAckSubmission(id);
+  }
+  const legacyButtons = FILE_TYPES.map(([type, label]) => (
+    <Button key={type} className="w-full justify-start" variant="outline" onClick={() => generate.mutate(type)} disabled={generate.isPending || phone && busy}>
+      {generate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />} {label}
+    </Button>
+  ));
+  const ackContent = <div className="hrms-statutory-ack-form space-y-4">
+    {phone && <p className="text-sm text-muted-foreground">Submission #{ackSubmission}</p>}
+    <Input aria-label="Portal acknowledgement" disabled={phone && markSubmitted.isPending} value={ack} onChange={e => setAck(e.target.value)} placeholder="Acknowledgement number" />
+    {phone && markSubmitted.isError && <p role="alert" className="text-sm text-destructive">Acknowledgement could not save. Your number is retained.</p>}
+    <div className="hrms-statutory-ack-actions flex justify-end gap-2"><Button variant="outline" onClick={() => setAckSubmission(null)}>Cancel</Button><Button data-save-action={phone ? "" : undefined} disabled={!ack || markSubmitted.isPending} onClick={() => markSubmitted.mutate()}>Save</Button></div>
+  </div>;
+
   return (
-    <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+    <div className="hrms-statutory-generate grid gap-5 xl:grid-cols-[320px_1fr]">
       <Card>
         <CardHeader><CardTitle className="text-base">Payroll Runs</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {runs.isLoading && <div className="h-40 animate-pulse rounded bg-muted" />}
-          {lockedRuns.map((run) => (
+          {phone ? <NativeSelect aria-label="Payroll run" loading={runs.isFetching} error={runs.isError} disabled={busy} value={selectedRunId || ""} onChange={e => chooseRun(Number(e.target.value) || null)}><option value="">Select a locked or paid run</option>{lockedRuns.map(run => <option key={run.id} value={run.id}>{run.month}/{run.year} · {run.status} · {run.total_employees || run.employee_count || 0} employees</option>)}</NativeSelect> : lockedRuns.map((run) => (
             <button key={run.id} type="button" onClick={() => setSelectedRunId(run.id)} className={cn("w-full rounded-lg border p-3 text-left", selectedRunId === run.id && "border-primary bg-primary/10")}>
               <p className="font-medium">{run.month}/{run.year}</p>
               <p className="text-sm text-muted-foreground">{run.status} - {run.total_employees || run.employee_count || 0} employees</p>
             </button>
           ))}
+          {phone && runs.isSuccess && !lockedRuns.length && <p className="text-sm text-muted-foreground">No locked or paid payroll runs found.</p>}
         </CardContent>
       </Card>
       <div className="space-y-5">
+        {phone && [runs, submissions, pfPreview, esiPreview].some(query => query.isError) && <p role="alert" className="text-sm text-destructive">Statutory file information could not load. <Button variant="outline" onClick={() => { for (const query of [runs, submissions, pfPreview, esiPreview]) if (query.isError) void query.refetch(); }}>Retry statutory files</Button></p>}
+        {phone && generate.isError && <p role="alert" className="text-sm text-destructive">Statutory file could not generate. Try its action again.</p>}
+        {phone && complianceGenerate.isError && <p role="alert" className="text-sm text-destructive">Compliance export could not generate. Review validation and try again.</p>}
+        {phone && downloadFile.isError && <p role="alert" className="text-sm text-destructive">File could not download. Retry its download action.</p>}
         {selectedRunId && (
           <div className="grid gap-4 lg:grid-cols-2">
-            <CompliancePreviewCard
+            <MobileDisclosure title={`PF ECR preview${pfPreview.data?.validation_errors?.length ? ` (${pfPreview.data.validation_errors.length} issues)` : ""}`} maxWidth={480}><CompliancePreviewCard
               title="PF ECR"
               description="EPFO ECR wage and contribution preview"
               preview={pfPreview.data}
               loading={pfPreview.isLoading}
               columns={["uan", "member_name", "gross_wages", "epf_wages", "employee_pf_contribution", "employer_pf_contribution", "eps_contribution"]}
               onGenerate={() => complianceGenerate.mutate("pf")}
-              generating={complianceGenerate.isPending}
-            />
-            <CompliancePreviewCard
+              generating={complianceGenerate.isPending || phone && busy}
+            /></MobileDisclosure>
+            <MobileDisclosure title={`ESI preview${esiPreview.data?.validation_errors?.length ? ` (${esiPreview.data.validation_errors.length} issues)` : ""}`} maxWidth={480}><CompliancePreviewCard
               title="ESI Challan"
               description="ESI contribution report and challan preview"
               preview={esiPreview.data}
               loading={esiPreview.isLoading}
               columns={["esic_number", "employee_name", "gross_wages", "employee_esi", "employer_esi", "payable_days"]}
               onGenerate={() => complianceGenerate.mutate("esi")}
-              generating={complianceGenerate.isPending}
-            />
+              generating={complianceGenerate.isPending || phone && busy}
+            /></MobileDisclosure>
           </div>
         )}
         {complianceExport && (
@@ -321,7 +368,7 @@ function GenerateTab() {
                 <p className="font-medium">{complianceExport.export_type.toUpperCase()} generated</p>
                 <p className="text-muted-foreground">{complianceExport.file_path}</p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => downloadComplianceExport(complianceExport)}>
+              <Button size="sm" variant="outline" disabled={phone && downloadFile.isPending} onClick={() => phone ? downloadFile.mutate({ kind: "export", item: complianceExport }) : downloadComplianceExport(complianceExport)}>
                 <Download className="mr-2 h-4 w-4" /> Download
               </Button>
             </CardContent>
@@ -331,11 +378,7 @@ function GenerateTab() {
           <CardHeader><CardTitle className="text-base">Generate Files</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {!selectedRunId && <p className="text-sm text-muted-foreground">Select a locked or paid payroll run to generate files.</p>}
-            {selectedRunId && FILE_TYPES.map(([type, label]) => (
-              <Button key={type} className="w-full justify-start" variant="outline" onClick={() => generate.mutate(type)} disabled={generate.isPending}>
-                {generate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />} {label}
-              </Button>
-            ))}
+            {selectedRunId && (phone ? <div className="hrms-statutory-legacy-buttons">{legacyButtons}</div> : legacyButtons)}
             {lastResult && (
               <div className="rounded-lg border p-4">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -345,27 +388,27 @@ function GenerateTab() {
                   <span className="text-sm">{lastResult.row_count} rows - {money(lastResult.total_amount)}</span>
                 </div>
                 {!!lastResult.errors?.length && <ErrorList errors={lastResult.errors} />}
-                {!lastResult.errors?.length && <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => download(lastResult.submission_id)}>Download CSV</Button><Button size="sm" onClick={() => setAckSubmission(lastResult.submission_id)}>Mark as Submitted</Button></div>}
+                {!lastResult.errors?.length && <div className="flex gap-2"><Button size="sm" variant="outline" disabled={phone && downloadFile.isPending} onClick={() => phone ? downloadFile.mutate({ kind: "submission", id: lastResult.submission_id }) : download(lastResult.submission_id)}>Download CSV</Button><Button size="sm" onClick={() => phone ? openAck(lastResult.submission_id) : setAckSubmission(lastResult.submission_id)}>Mark as Submitted</Button></div>}
               </div>
             )}
           </CardContent>
         </Card>
-        <HistoryTable rows={submissions.data || []} compact onMarkSubmitted={setAckSubmission} />
+        <HistoryTable rows={submissions.data || []} compact onMarkSubmitted={phone ? openAck : setAckSubmission} onDownload={phone ? id => downloadFile.mutate({ kind: "submission", id }) : undefined} downloadBusy={phone && downloadFile.isPending} />
       </div>
-      {ackSubmission && (
-        <Modal title="Portal ACK Number" onClose={() => setAckSubmission(null)}>
-          <div className="space-y-4">
-            <Input value={ack} onChange={(e) => setAck(e.target.value)} placeholder="Acknowledgement number" />
-            <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setAckSubmission(null)}>Cancel</Button><Button disabled={!ack || markSubmitted.isPending} onClick={() => markSubmitted.mutate()}>Save</Button></div>
-          </div>
-        </Modal>
-      )}
+      {ackSubmission && (phone ? <SmartCreateModal definition={{ entity: "statutory-ack", title: "Portal ACK Number", presentation: "page", size: "compact" }} mobileSheet busy={markSubmitted.isPending} onClose={() => setAckSubmission(null)}>{ackContent}</SmartCreateModal> : <Modal title="Portal ACK Number" onClose={() => setAckSubmission(null)}>{ackContent}</Modal>)}
     </div>
   );
 }
 
+function Form16Upload(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} />;
+}
+
 function Form16Tab() {
   const qc = useQueryClient();
+  const phone = useMobile(480);
+  const FileControl = phone ? Form16Upload : "input";
+  const downloadFile = useMutation({ mutationFn: (record: Form16Record) => downloadForm16(record) });
   const permissions = useQuery({ queryKey: ["payroll-delivery-settings"], queryFn: () => payrollApi.deliverySettings().then(r => r.data as { can_manage: boolean; can_approve: boolean; form16_trust_configured: boolean }) });
   const canApprove = Boolean(permissions.data?.can_approve);
   const now = new Date();
@@ -429,48 +472,61 @@ function Form16Tab() {
     onError: error => toast({ title: "Form 16 operation failed", description: payrollError(error), variant: "destructive" }),
   });
 
+  const phoneBusy = phone && (generate.isPending || uploadPartA.isPending || publish.isPending || workflow.isPending || downloadFile.isPending);
+  const operationError = generate.error || uploadPartA.error || publish.error || workflow.error;
+
   const toggleEmployee = (id: number) => {
     setSelectedEmployeeIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   };
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+    <div className="hrms-form16 grid gap-5 xl:grid-cols-[320px_1fr]">
       <Card>
         <CardHeader><CardTitle className="text-base">Generate Form 16</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <MobileDisclosure maxWidth={480} title="Signing setup & workflow guidance">
           <p className="text-sm text-muted-foreground">Generate from locked or paid payroll. Upload TRACES Part A, review the merged certificate, sign the downloaded PDF using the authorized signatory's DSC, then upload it for verification and publication.</p>
-          <label className="block space-y-2 text-sm">Trusted public signing certificate (PEM)<Input aria-label="Form 16 signing trust certificate" type="file" accept=".pem,.crt" disabled={workflow.isPending || !canApprove} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "trust", file }); event.target.value = ""; }} /></label>
-          <p className="text-sm">Signing trust: {permissions.data?.form16_trust_configured ? "Configured" : "Public signatory certificate required"}</p>
+          <label className="block space-y-2 text-sm">Trusted public signing certificate (PEM)<Input aria-label="Form 16 signing trust certificate" type="file" accept=".pem,.crt" disabled={workflow.isPending || !canApprove || phoneBusy} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "trust", file }); event.target.value = ""; }} /></label>
+          <p className="text-sm">Signing trust: {phone && !permissions.data ? "Unavailable" : permissions.data?.form16_trust_configured ? "Configured" : "Public signatory certificate required"}</p>
           {permissions.data && !canApprove && <p className="text-xs text-muted-foreground">A payroll approver must configure signing trust, review, and publish certificates.</p>}
           <p className="text-xs text-muted-foreground">Upload only an authorized public certificate. Private keys stay with the signatory. Signature integrity and configured trust are checked locally; online revocation is not checked.</p>
+          </MobileDisclosure>
+          {phone && permissions.isError && <p role="alert">Signing permissions could not load. <Button variant="outline" onClick={() => void permissions.refetch()}>Retry signing permissions</Button></p>}
           <div className="space-y-2">
-            <Label>Financial Year</Label>
-            <Input value={financialYear} onChange={(e) => setFinancialYear(e.target.value)} placeholder="2025-26" />
+            <Label htmlFor="form16-financial-year">Financial Year</Label>
+            <Input id="form16-financial-year" disabled={phoneBusy} value={financialYear} onChange={(e) => setFinancialYear(e.target.value)} placeholder="2025-26" />
           </div>
+          <MobileDisclosure maxWidth={480} title={`Employees · ${selectedEmployeeIds.length ? `${selectedEmployeeIds.length} selected` : "All eligible"}`}>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Employees</Label>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedEmployeeIds([])}>All</Button>
+              <Button type="button" variant="ghost" size="sm" disabled={phoneBusy} onClick={() => setSelectedEmployeeIds([])}>All</Button>
             </div>
-            <Input aria-label="Search Form 16 employees" placeholder="Search employees" value={employeeSearch} onChange={event => { setEmployeeSearch(event.target.value); setEmployeePage(1); }} />
+            <Input disabled={phoneBusy} aria-label="Search Form 16 employees" placeholder="Search employees" value={employeeSearch} onChange={event => { setEmployeeSearch(event.target.value); setEmployeePage(1); }} />
             <div className="max-h-72 space-y-2 overflow-auto rounded-md border p-2">
               {employees.isLoading && <div className="h-24 animate-pulse rounded bg-muted" />}
               {employeeRows.map((employee) => {
                 const name = employeeName(employee);
                 return (
                   <label key={employee.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted">
-                    <input type="checkbox" checked={selectedEmployeeIds.includes(employee.id)} onChange={() => toggleEmployee(employee.id)} />
+                    <input type="checkbox" disabled={phoneBusy} checked={selectedEmployeeIds.includes(employee.id)} onChange={() => toggleEmployee(employee.id)} />
                     <span className="min-w-0 truncate">{name}</span>
                   </label>
                 );
               })}
-              {!employees.isLoading && !employeeRows.length && <p className="px-2 py-4 text-sm text-muted-foreground">No employees found.</p>}
+              {!employees.isLoading && !(phone && employees.isError) && !employeeRows.length && <p className="px-2 py-4 text-sm text-muted-foreground">No employees found.</p>}
             </div>
             {employees.isError && <p role="alert" className="text-sm">Employee selection could not load. <Button variant="outline" onClick={() => employees.refetch()}>Retry employees</Button></p>}
-            <div className="flex items-center gap-2 text-xs"><Button size="sm" variant="outline" disabled={employeePage === 1 || employees.isFetching} onClick={() => setEmployeePage(value => value - 1)}>Previous employees</Button><span>Page {employeePage}</span><Button size="sm" variant="outline" disabled={employeeRows.length < 100 || employees.isFetching} onClick={() => setEmployeePage(value => value + 1)}>Next employees</Button></div>
+            <div className="flex items-center gap-2 text-xs"><Button size="sm" variant="outline" disabled={employeePage === 1 || employees.isFetching || phoneBusy} onClick={() => setEmployeePage(value => value - 1)}>Previous employees</Button><span>Page {employeePage}</span><Button size="sm" variant="outline" disabled={employeeRows.length < 100 || employees.isFetching || phoneBusy} onClick={() => setEmployeePage(value => value + 1)}>Next employees</Button></div>
             <p className="text-xs text-muted-foreground">Leave empty to generate for employees with payroll in this financial year.</p>
           </div>
-          <Button className="w-full" onClick={() => generate.mutate()} disabled={!financialYear || generate.isPending}>
+          </MobileDisclosure>
+          {phone && operationError && <p role="alert" className="text-sm text-destructive">Form 16 operation failed. {payrollError(operationError)} Retry the same action.</p>}
+          {phone && uploadPartA.isError && uploadPartA.variables && <Button variant="outline" disabled={phoneBusy} onClick={() => uploadPartA.mutate(uploadPartA.variables!)}>Retry Part A upload · {uploadPartA.variables.file.name}</Button>}
+          {phone && workflow.isError && workflow.variables?.file && <Button variant="outline" disabled={phoneBusy} onClick={() => workflow.mutate(workflow.variables!)}>Retry file upload · {workflow.variables.file.name}</Button>}
+          {phoneBusy && <p role="status">Processing Form 16…</p>}
+          {phone && downloadFile.isError && <p role="alert" className="text-sm text-destructive">Form 16 download failed. Use its download action to retry.</p>}
+          <Button className="w-full" onClick={() => generate.mutate()} disabled={!financialYear || generate.isPending || phoneBusy}>
             {generate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}
             Generate Part B
           </Button>
@@ -484,11 +540,12 @@ function Form16Tab() {
               <CardTitle className="text-base">Employee Form 16 Records</CardTitle>
               <p className="text-sm text-muted-foreground">Prepare Part B, upload Part A, review, verify the signed PDF, and publish to employee self-service.</p>
             </div>
-            <Badge variant="outline">{records.data?.length || 0} records</Badge>
+            <Badge variant="outline">{phone && !records.data ? "—" : records.data?.length || 0} records</Badge>
           </div>
         </CardHeader>
         <CardContent>
-          {records.isLoading ? <div className="h-48 animate-pulse rounded bg-muted" /> : (
+          {phone && records.isError && <p role="alert">Form 16 records could not load. <Button variant="outline" onClick={() => void records.refetch()}>Retry Form 16 records</Button></p>}
+          {records.isLoading ? <div className="h-48 animate-pulse rounded bg-muted" /> : phone && records.isError && !records.data ? null : (
             <div className="overflow-x-auto rounded-lg border">
               <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-2" className="w-full min-w-[960px] text-sm">
                 <thead className="bg-muted/60">
@@ -525,10 +582,12 @@ function Form16Tab() {
                         <div className="flex flex-wrap justify-end gap-2">
                           <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-xs font-medium hover:bg-muted">
                             <Upload className="mr-2 h-4 w-4" /> Part A
-                            <input
+                            <FileControl
                               type="file"
                               accept="application/pdf"
-                              className="hidden"
+                              className={phone ? "sr-only" : "hidden"}
+                              aria-label={phone ? `Upload Part A for ${record.employee?.name || record.employeeId}` : undefined}
+                              disabled={phoneBusy}
                               onChange={(event) => {
                                 const file = event.target.files?.[0];
                                 if (file) uploadPartA.mutate({ id: record.id, file });
@@ -536,12 +595,12 @@ function Form16Tab() {
                               }}
                             />
                           </label>
-                          <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-xs">Upload reviewed Part B<input aria-label={`Upload reviewed Part B for ${record.employee?.name || record.employeeId}`} type="file" accept="application/pdf" className="sr-only" disabled={record.status === "published" || workflow.isPending} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "part-b", id: record.id, file }); event.target.value = ""; }} /></label>
-                          <Button size="sm" variant="outline" disabled={!canApprove || !record.partAFilePath || !record.partBFilePath || record.status === "published" || workflow.isPending} onClick={() => workflow.mutate({ action: "review", id: record.id })}>Confirm review</Button>
-                          <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-xs">Upload DSC-signed PDF<input aria-label={`Upload DSC-signed Form 16 for ${record.employee?.name || record.employeeId}`} type="file" accept="application/pdf" className="sr-only" disabled={!canApprove || !record.reviewedAt || record.status === "published" || workflow.isPending} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "signed", id: record.id, file }); event.target.value = ""; }} /></label>
-                          <Button size="sm" variant="outline" onClick={() => publish.mutate(record.id)} disabled={!canApprove || record.status === "published" || record.digitalSignatureStatus !== "verified" || !record.reviewedAt || publish.isPending}>Publish verified Form 16</Button>
-                          {record.status === "published" && <Button size="sm" variant="outline" disabled={!canApprove || workflow.isPending} onClick={() => workflow.mutate({ action: "withdraw", id: record.id })}>Withdraw for correction</Button>}
-                          <Button size="sm" variant="ghost" onClick={() => downloadForm16(record)} disabled={!record.partBFilePath && !record.combinedFilePath && !record.partAFilePath}>
+                          <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-xs">Upload reviewed Part B<FileControl aria-label={`Upload reviewed Part B for ${record.employee?.name || record.employeeId}`} type="file" accept="application/pdf" className="sr-only" disabled={record.status === "published" || workflow.isPending || phoneBusy} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "part-b", id: record.id, file }); event.target.value = ""; }} /></label>
+                          <Button size="sm" variant="outline" disabled={!canApprove || !record.partAFilePath || !record.partBFilePath || record.status === "published" || workflow.isPending || phoneBusy} onClick={() => workflow.mutate({ action: "review", id: record.id })}>Confirm review</Button>
+                          <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-xs">Upload DSC-signed PDF<FileControl aria-label={`Upload DSC-signed Form 16 for ${record.employee?.name || record.employeeId}`} type="file" accept="application/pdf" className="sr-only" disabled={!canApprove || !record.reviewedAt || record.status === "published" || workflow.isPending || phoneBusy} onChange={event => { const file = event.target.files?.[0]; if (file) workflow.mutate({ action: "signed", id: record.id, file }); event.target.value = ""; }} /></label>
+                          <Button size="sm" variant="outline" onClick={() => publish.mutate(record.id)} disabled={!canApprove || record.status === "published" || record.digitalSignatureStatus !== "verified" || !record.reviewedAt || publish.isPending || phoneBusy}>Publish verified Form 16</Button>
+                          {record.status === "published" && <Button size="sm" variant="outline" disabled={!canApprove || workflow.isPending || phoneBusy} onClick={() => workflow.mutate({ action: "withdraw", id: record.id })}>Withdraw for correction</Button>}
+                          <Button size="sm" variant="ghost" onClick={() => phone ? downloadFile.mutate(record) : downloadForm16(record)} disabled={phoneBusy || (!record.partBFilePath && !record.combinedFilePath && !record.partAFilePath)}>
                             <Download className="h-4 w-4" />
                             Download for review / signing
                           </Button>
@@ -563,21 +622,26 @@ function Form16Tab() {
 }
 
 function HistoryTab() {
+  const phone = useMobile(480);
+  const downloadFile = useMutation({ mutationFn: (id: number) => download(id) });
   const [filters, setFilters] = useState({ statutory_type: "", validation_status: "" });
   const params = { statutory_type: filters.statutory_type || undefined, validation_status: filters.validation_status || undefined };
   const submissions = useQuery({ queryKey: ["statutory-submissions-all", params], queryFn: () => statutoryApi.submissions(params).then((r) => r.data as Submission[]) });
   return (
-    <div className="space-y-4">
+    <div className="hrms-statutory-history space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}><option value="">All types</option>{["PF_ECR", "ESI", "PT", "LWF", "TDS_24Q", "TDS_26Q"].map((type) => <option key={type}>{type}</option>)}</NativeSelect>
-        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" value={filters.validation_status} onChange={(e) => setFilters({ ...filters, validation_status: e.target.value })}><option value="">All statuses</option>{["valid", "invalid", "submitted"].map((status) => <option key={status}>{status}</option>)}</NativeSelect>
+        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Submission type" value={filters.statutory_type} onChange={(e) => setFilters({ ...filters, statutory_type: e.target.value })}><option value="">All types</option>{["PF_ECR", "ESI", "PT", "LWF", "TDS_24Q", "TDS_26Q"].map((type) => <option key={type}>{type}</option>)}</NativeSelect>
+        <NativeSelect className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Submission validation status" value={filters.validation_status} onChange={(e) => setFilters({ ...filters, validation_status: e.target.value })}><option value="">All statuses</option>{["valid", "invalid", "submitted"].map((status) => <option key={status}>{status}</option>)}</NativeSelect>
       </div>
-      {submissions.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : <HistoryTable rows={submissions.data || []} />}
+      {phone && submissions.isError && <p role="alert" className="text-sm text-destructive">Submission history could not load. <Button variant="outline" onClick={() => void submissions.refetch()}>Retry submission history</Button></p>}
+      {phone && downloadFile.isPending && <p role="status">Preparing submission CSV…</p>}
+      {phone && downloadFile.isError && <p role="alert" className="text-sm text-destructive">Submission CSV could not download. Use its download action to retry.</p>}
+      {submissions.isLoading ? <div className="h-40 animate-pulse rounded bg-muted" /> : phone && submissions.isError && !submissions.data ? null : <HistoryTable rows={submissions.data || []} onDownload={phone ? id => downloadFile.mutate(id) : undefined} downloadBusy={phone && downloadFile.isPending} showValidationDetails={phone} />}
     </div>
   );
 }
 
-function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; compact?: boolean; onMarkSubmitted?: (id: number) => void }) {
+function HistoryTable({ rows, compact, onMarkSubmitted, onDownload, downloadBusy, showValidationDetails }: { rows: Submission[]; compact?: boolean; onMarkSubmitted?: (id: number) => void; onDownload?: (id: number) => void; downloadBusy?: boolean; showValidationDetails?: boolean }) {
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">{compact ? "Previous Submissions" : "Submission History"}</CardTitle></CardHeader>
@@ -590,7 +654,7 @@ function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; 
                 <tr {...recordPreviewProps(row)} key={row.id} className="border-t">
                   <td className="px-3 py-2"><TypeBadge type={row.statutory_type} /></td>
                   <td className="px-3 py-2">{row.payroll_period || row.payroll_run_id}</td>
-                  <td className="px-3 py-2"><StatusBadge status={row.filing_status || row.validation_status} />{row.validation_status === "invalid" && <Badge variant="outline" className="ml-2">{row.validation_errors_json?.length || 0} errors</Badge>}</td>
+                  <td className="px-3 py-2"><StatusBadge status={row.filing_status || row.validation_status} />{row.validation_status === "invalid" && <Badge variant="outline" className="ml-2">{row.validation_errors_json?.length || 0} errors</Badge>}{showValidationDetails && row.validation_status === "invalid" && !!row.validation_errors_json?.length && <HistoryValidationErrors data-grid-value="" row={row} />}</td>
                   <td className="px-3 py-2">{row.row_count || 0}</td>
                   <td className="px-3 py-2">{money(row.total_amount)}</td>
                   <td className="px-3 py-2">
@@ -598,7 +662,7 @@ function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; 
                     <p className="text-xs text-muted-foreground">{row.digital_signature_status || "signature not applicable"}</p>
                   </td>
                   <td className="px-3 py-2">{row.portal_reference || "-"}</td>
-                  <td className="px-3 py-2 text-right"><Button size="sm" variant="ghost" onClick={() => download(row.id)}><Download className="h-4 w-4" /></Button>{onMarkSubmitted && row.validation_status === "valid" && <Button size="sm" variant="outline" onClick={() => onMarkSubmitted(row.id)}>Submit</Button>}</td>
+                  <td className="px-3 py-2 text-right"><Button size="sm" variant="ghost" aria-label={onDownload ? `Download submission ${row.id}` : undefined} disabled={downloadBusy} onClick={() => onDownload ? onDownload(row.id) : download(row.id)}><Download className="h-4 w-4" /></Button>{onMarkSubmitted && row.validation_status === "valid" && <Button size="sm" variant="outline" onClick={() => onMarkSubmitted(row.id)}>Submit</Button>}</td>
                 </tr>
               ))}
             </tbody>
@@ -607,6 +671,10 @@ function HistoryTable({ rows, compact, onMarkSubmitted }: { rows: Submission[]; 
       </CardContent>
     </Card>
   );
+}
+
+function HistoryValidationErrors({ row }: { row: Submission; "data-grid-value"?: string }) {
+  return <details className="hrms-statutory-validation"><summary aria-label={`Validation errors for submission ${row.id}`}>{row.validation_errors_json!.length} validation errors</summary><div>{row.validation_errors_json!.map((error, index) => <p key={index}>Row {error.row}, {error.field}{error.code ? ` (${error.code})` : ""}{error.severity ? ` [${error.severity}]` : ""}: {error.message || error.error}</p>)}</div></details>;
 }
 
 function CompliancePreviewCard({
@@ -626,6 +694,7 @@ function CompliancePreviewCard({
   onGenerate: () => void;
   generating: boolean;
 }) {
+  const phone = useMobile(480);
   const errors = preview?.validation_errors || [];
   return (
     <Card>
@@ -635,7 +704,7 @@ function CompliancePreviewCard({
             <CardTitle className="text-base">{title}</CardTitle>
             <p className="text-sm text-muted-foreground">{description}</p>
           </div>
-          <Badge variant={errors.length ? "destructive" : "outline"}>{loading ? "Checking" : `${errors.length} issues`}</Badge>
+          <Badge variant={errors.length ? "destructive" : "outline"}>{loading ? "Checking" : phone && !preview ? "Unavailable" : `${errors.length} issues`}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -646,33 +715,33 @@ function CompliancePreviewCard({
           </div>
           <div className="rounded-md border p-2">
             <p className="text-xs text-muted-foreground">Employees</p>
-            <p className="font-medium">{preview?.total_employees || 0}</p>
+            <p className="font-medium">{phone && !preview ? "—" : preview?.total_employees || 0}</p>
           </div>
           <div className="rounded-md border p-2">
             <p className="text-xs text-muted-foreground">Amount</p>
-            <p className="font-medium">{money(preview?.total_amount)}</p>
+            <p className="font-medium">{phone && !preview ? "—" : money(preview?.total_amount)}</p>
           </div>
         </div>
         {errors.length > 0 && (
           <div className="max-h-24 overflow-auto rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
-            {errors.slice(0, 6).map((error) => <p key={error}>{error}</p>)}
+            {errors.slice(0, phone ? undefined : 6).map((error) => <p key={error}>{error}</p>)}
           </div>
         )}
-        <div className="overflow-x-auto rounded-md border">
+        {phone && !preview ? <p role={loading ? "status" : undefined} className="text-sm text-muted-foreground">{loading ? "Loading preview…" : "Preview is unavailable."}</p> : <div className="overflow-x-auto rounded-md border">
           <GridTable gridId="apps/hrms/pages/compliance/StatutoryCompliancePage:table-4" className="w-full min-w-[640px] text-xs">
             <thead className="bg-muted/60">
               <tr>{columns.map((column) => <th key={column} className="px-2 py-2 text-left capitalize">{column.replace(/_/g, " ")}</th>)}</tr>
             </thead>
             <tbody>
-              {(preview?.rows || []).slice(0, 5).map((row, index) => (
+              {(preview?.rows || []).slice(0, phone ? undefined : 5).map((row, index) => (
                 <tr {...recordPreviewProps(row)} key={index} className="border-t">
                   {columns.map((column) => <td key={column} className="px-2 py-2">{String(row[column] ?? "-")}</td>)}
                 </tr>
               ))}
-              {!loading && !preview?.rows?.length && <tr><td colSpan={columns.length} className="px-2 py-4 text-center text-muted-foreground">No contribution rows found.</td></tr>}
+              {!loading && (!phone || !!preview) && !preview?.rows?.length && <tr><td colSpan={columns.length} className="px-2 py-4 text-center text-muted-foreground">No contribution rows found.</td></tr>}
             </tbody>
           </GridTable>
-        </div>
+        </div>}
         <Button className="w-full" variant="outline" onClick={onGenerate} disabled={!preview || errors.length > 0 || generating}>
           {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}
           Generate {title}
@@ -682,7 +751,7 @@ function CompliancePreviewCard({
   );
 }
 
-function Summary({ label, value, className }: { label: string; value: number; className: string }) {
+function Summary({ label, value, className }: { label: string; value: number | string; className: string }) {
   return <Card><CardContent className="p-5"><div className={cn("mb-3 inline-flex rounded-lg p-2", className)}><TriangleAlert className="h-5 w-5" /></div><p className="text-2xl font-semibold">{value}</p><p className="text-sm text-muted-foreground">{label}</p></CardContent></Card>;
 }
 

@@ -30,6 +30,7 @@ import { useAuthStore } from "@/store/authStore";
 import GuidedPayroll from "./GuidedPayroll";
 import PayrollDeliverySettings from "./PayrollDeliverySettings";
 import SalaryPayouts from "./SalaryPayouts";
+import PayrollPolicies from "./PayrollPolicies";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import EmployeeSearchSelect from "../../components/EmployeeSearchSelect";
 import PayrollDepartmentSelect from "./PayrollDepartmentSelect";
@@ -236,7 +237,7 @@ const MONTHS = [
 
 const normalizeRunStatus = (status?: string) => (status || "draft").toLowerCase().replace(/\s+/g, "_");
 
-type PayrollTab = "templates" | "payouts" | "guided" | "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
+type PayrollTab = "policies" | "templates" | "payouts" | "guided" | "wizard" | "run" | "viewer" | "variance" | "inputs" | "setup" | "statutory" | "tax" | "tools" | "casebook";
 
 export default function PayrollPage() {
   usePageTitle("Payroll");
@@ -256,6 +257,7 @@ export default function PayrollPage() {
   const [slipMonth, setSlipMonth] = useState(today.getMonth() + 1);
   const [slipYear, setSlipYear] = useState(today.getFullYear());
   const [runMonth, setRunMonth] = useState(today.getMonth() + 1);
+  const [runPayGroup, setRunPayGroup] = useState("");
   const [runYear, setRunYear] = useState(today.getFullYear());
   const [readinessError, setReadinessError] = useState<PayrollReadinessSummary | null>(null);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(null);
@@ -325,7 +327,7 @@ export default function PayrollPage() {
   const [slipEmployeeId, setSlipEmployeeId] = useState("");
   const visibleTabs: PayrollTab[] = isEmployee
     ? ["viewer"]
-    : ["guided", "wizard", "run", "viewer", "templates", "payouts", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
+    : ["guided", "wizard", "policies", "run", "viewer", "templates", "payouts", "variance", "inputs", "statutory", "tax", "tools", "casebook"];
 
   useEffect(() => {
     if (isEmployee && activeTab !== "viewer") setActiveTab("viewer");
@@ -552,12 +554,18 @@ export default function PayrollPage() {
     enabled: !isEmployee && activeTab === "tools",
   });
 
-  const runMutation = useMutation<unknown, unknown, boolean>({
-    mutationFn: (forceRun: boolean) => payrollApi.runPayroll({ month: runMonth, year: runYear, force_run: forceRun }),
-    onSuccess: () => {
+  const runMutation = useMutation<{ data: PayrollRun }, unknown, boolean>({
+    mutationFn: (forceRun: boolean) => payrollApi.runPayroll({ month: runMonth, year: runYear, force_run: forceRun, pay_group_id: runPayGroup ? Number(runPayGroup) : undefined }),
+    onSuccess: async (response) => {
       setReadinessError(null);
+      setSelectedRun(current => current?.id === response.data.id ? response.data : current);
       toast({ title: "Payroll run initiated!" });
-      refetchRuns();
+      await Promise.all([
+        refetchRuns(),
+        qc.invalidateQueries({ queryKey: ["run-records", response.data.id] }),
+        qc.invalidateQueries({ queryKey: ["run-variance", response.data.id] }),
+        qc.invalidateQueries({ queryKey: ["payroll-pre-run-checks", response.data.id] }),
+      ]);
     },
     onError: (e: unknown) => {
       const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
@@ -1153,11 +1161,12 @@ export default function PayrollPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab === "templates" ? "Payslip Templates" : tab === "payouts" ? "Salary Payouts" : tab === "guided" ? "Guided Payroll" : tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
+            {tab === "policies" ? "Payroll Policies" : tab === "templates" ? "Payslip Templates" : tab === "payouts" ? "Salary Payouts" : tab === "guided" ? "Guided Payroll" : tab === "wizard" ? "Setup Wizard" : tab === "run" ? "Run Payroll" : tab === "viewer" ? "Payslip Viewer" : tab === "variance" ? "Variance" : tab === "inputs" ? "Inputs" : tab === "statutory" ? "Statutory" : tab === "tax" ? "Tax" : tab === "tools" ? "Payroll Tools" : "Real Cases"}
           </button>
         ))}
       </div>
 
+      {activeTab === "policies" && !isEmployee && <PayrollPolicies canManage={canRunPayroll} />}
       {activeTab === "templates" && !isEmployee && <PayrollDeliverySettings />}
       {activeTab === "payouts" && !isEmployee && <SalaryPayouts />}
       {activeTab === "guided" && !isEmployee && <GuidedPayroll onOpenTool={setActiveTab} />}
@@ -1516,10 +1525,12 @@ export default function PayrollPage() {
               <CardDescription>Process payroll for a specific month</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="space-y-1.5 mb-4"><Label>Pay group policy</Label><NativeSelect aria-label="Payroll pay group" value={runPayGroup} onChange={e=>setRunPayGroup(e.target.value)} className="h-10 w-full rounded border p-2"><option value="">Default pay group</option>{(payGroups as {id:number;name:string}[]|undefined||[]).map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</NativeSelect></div>
               <div className="flex flex-wrap items-end gap-4">
                 <div className="space-y-1.5">
                   <Label>Month</Label>
                   <NativeSelect
+                    aria-label="Payroll month"
                     value={runMonth}
                     onChange={(e) => setRunMonth(Number(e.target.value))}
                     className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"

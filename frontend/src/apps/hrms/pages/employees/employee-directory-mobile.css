@@ -1,0 +1,29 @@
+@media (max-width: 480px) {
+ .hrms-employee-directory { min-width: 0; }
+ .hrms-employee-directory.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+ .hrms-directory-header { gap: 12px; }
+ .hrms-directory-header h1 { font-size: 20px; line-height: 1.25; }
+ .hrms-directory-header > div:last-child { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-directory-header > div:last-child > div:first-child { grid-column: 1/-1; }
+ .hrms-employee-directory :is(button,a,summary), .hrms-directory-filters :is(button,label), .hrms-directory-profile :is(button,a), .hrms-directory-report button { min-height: 44px; height: auto; }
+ .hrms-employee-directory button, .hrms-directory-filters button { white-space: normal; }
+ .hrms-employee-directory :is(input,select), .hrms-directory-filters :is(input:not([type=checkbox]),select), .hrms-directory-report input { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-directory-filters > .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-directory-filters input[type=checkbox] { min-width: 20px; min-height: 20px; }
+ .hrms-directory-updates .kf-card > div { padding: 12px; }
+ .hrms-directory-header :is(p,button), .hrms-directory-updates :is(p,button), .hrms-directory-profile :is(p,span,h3), .hrms-directory-report p { overflow-wrap: anywhere; }
+ .hrms-employee-directory .mobile-disclosure { padding: 0; margin: 12px 0; }
+ .hrms-employee-directory .mobile-disclosure > summary { padding: 8px 12px; }
+ .hrms-employee-directory .mobile-disclosure > div { padding: 0 12px 12px; }
+ .hrms-employee-directory .profile-list-card { padding: 12px; gap: 8px; }
+ .hrms-employee-directory .profile-list-portrait { min-width: 44px; }
+ .hrms-employee-directory .profile-list-name { font-size: 14px; }
+ .hrms-employee-directory .profile-list-action { min-width: 44px; font-size: 12px; padding: 8px; }
+ .hrms-directory-profile-sheet { padding: 12px; }
+ .hrms-directory-profile { max-width: 100%; border: 0; box-shadow: none; }
+ .hrms-directory-profile > div { padding: 12px; }
+ .hrms-directory-profile > div:first-child { padding-right: 36px; }
+ .hrms-directory-profile [data-phone-actions] > a { min-height: 44px !important; min-width: 44px !important; }
+ .hrms-directory-profile button[aria-label^="Copy"] { min-width: 44px; }
+ .hrms-directory-report [data-save-action] { display: none; }
+}

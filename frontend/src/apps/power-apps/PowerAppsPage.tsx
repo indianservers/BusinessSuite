@@ -1,3 +1,6 @@
+import { canAccessRoute } from "@/lib/roles";
+import { moduleActionAllowed } from "@/hooks/use-module-action";
+import { sharedNotesPath, createSharedNotePath } from "@/lib/shared-notes";
 import { Button } from "@/components/ui/button";
 import "@/components/layout/shared-sidebar.css";
 import ModuleWorkflowBoard from "@/shared/workflow-board/ModuleWorkflowBoard";
@@ -15,7 +18,7 @@ import { ActivityList } from "./shared/ActivityList";
 import WorkspaceTools from "./applications/WorkspaceTools";
 import { PlannedApplication } from "./shared/PlannedApplication";
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -136,18 +139,20 @@ export default function PowerAppsPage({ children }: { children?: ReactNode }) {
   }, [environment, section, isReference, location.pathname, refresh]);
   const move = (route: string) =>
     navigate(
-      route.startsWith("/power-apps") ? studioPath(route, environment) : route,
+      route.split("?")[0] === "/power-apps/notes" ? sharedNotesPath : route.startsWith("/power-apps") ? studioPath(route, environment) : route,
     );
   const toolkitGroup = (id: string) => productivityReferences.some(item => item.id === id) ? "Productivity references" : ["automations", "approvals"].includes(id) ? "Workflows & approvals"
     : ["forms", "tables", "app-builder", "documents"].includes(id) ? "Build & customize"
     : ["notifications", "search", "connectors", "ai-agents"].includes(id) ? "Connections & AI" : "Reports & activity";
   const toolkitItems = [{ to: studioPath("/power-apps", environment), label: "Overview", icon: Layers3, group: "Overview" },
-    ...(catalog?.applications || []).map(app => ({ to: studioPath(app.route, environment), label: app.name, icon: applicationIcons[app.icon] || Layers3, group: toolkitGroup(app.id) }))];
+    ...(catalog?.applications || []).map(app => ({ to: app.id === "notes" ? sharedNotesPath : studioPath(app.route, environment), label: app.name, icon: applicationIcons[app.icon] || Layers3, group: toolkitGroup(app.id) }))];
+  const canCreateNote = canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser) && moduleActionAllowed(user, sharedNotesPath, "create");
   const selected = catalog?.applications.find((a) => a.id === section);
   const available =
     catalog?.applications.filter((a) =>
       `${a.name} ${a.description}`.toLowerCase().includes(query.toLowerCase()),
     ) || [];
+  if (section === "notes") return <Navigate replace to={sharedNotesPath + location.search} />;
   return (
     <div className="pa-shell">
       <aside className="pa-sidebar">
@@ -214,17 +219,18 @@ export default function PowerAppsPage({ children }: { children?: ReactNode }) {
               ))}
             </NativeSelect>
           </label>
-          {can("create") && environments.length > 0 && (
+          {(canCreateNote || can("create") && environments.length > 0) && (
             <details className="pa-create-menu">
               <summary>
                 <Plus size={16} />
                 Create new
                 <ChevronDown size={14} />
               </summary>
-              <button onClick={() => move("/power-apps/automations/new")}>
+              {canCreateNote && <button onClick={() => navigate(createSharedNotePath)}><FileText size={17} />Note</button>}
+              {can("create") && environments.length > 0 && <button onClick={() => move("/power-apps/automations/new")}>
                 <Workflow size={17} />
                 Automation draft
-              </button>
+              </button>}
             </details>
           )}
           {can("activity_view") && (

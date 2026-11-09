@@ -20,6 +20,8 @@ from app.apps.power_apps.integrations.vault import CredentialVault
 from app.services.sso_service import generate_pkce_pair
 
 router = APIRouter(prefix="/files-storage", tags=["Files & Storage"])
+from .note_cloud import router as note_cloud_router
+router.include_router(note_cloud_router)
 
 
 def admin(db, user):
@@ -27,9 +29,15 @@ def admin(db, user):
     return ctx["company"]
 
 
-def connection(db, company, ident):
+def notes_owner(row):
+    return CredentialVault.decrypt(row).get("notes_owner_id") if row.encrypted_value else None
+
+
+def connection(db, company, ident, notes_user_id=None):
     row = db.query(StorageConnection).filter_by(id=ident, organization_id=company).with_for_update().first()
     if not row: raise HTTPException(404, "Storage account not found")
+    if notes_owner(row) not in {None, notes_user_id}:
+        raise HTTPException(404, "Storage account not found")
     return row
 
 
@@ -44,7 +52,7 @@ def configuration(db: Session = Depends(get_db), user: User = Depends(get_curren
     return {"enabled": bool(policy and policy.enabled), "default_provider": policy.default_provider if policy else "google_drive",
         "routes": policy.routes if policy else {}, "revision": policy.revision if policy else 0,
         "modules": [{"id": k, "label": v} for k, v in MODULES.items()],
-        "connections": [public_connection(c) for c in db.query(StorageConnection).filter_by(organization_id=company).order_by(StorageConnection.id).all()],
+        "connections": [public_connection(c) for c in db.query(StorageConnection).filter_by(organization_id=company).order_by(StorageConnection.id).all() if notes_owner(c) is None],
         "providers": [{"id": key, "label": info["label"], "configured": provider.app_config(key)["ready"],
             "callback_uri": provider.app_config(key)["redirect_uri"], "scopes": info["scopes"],
             "required_settings": [f"FILES_{info['family']}_CLIENT_ID", f"FILES_{info['family']}_CLIENT_SECRET"]} for key, info in provider.PROVIDERS.items()],
@@ -90,20 +98,31 @@ def callback(state: str = "", code: str = "", error: str | None = None, db: Sess
     if not row or row.consumed_at or provider.utc(row.expires_at) <= provider.now(): raise HTTPException(400, "Storage authorization expired or was already used")
     actor = db.get(User, row.user_id)
     if not actor or not actor.is_active: raise HTTPException(403, "Storage administrator is no longer active")
-    actor.organization_id = row.organization_id
-    admin(db, actor)  # Recheck administrator access after the external login.
     value = CredentialVault.decrypt(row)
+    notes = value.get("purpose") == "notes"
+    if notes:
+        from .note_cloud import recheck_note_connection
+        recheck_note_connection(db, actor, row, value)
+    else:
+        actor.organization_id = row.organization_id
+        admin(db, actor)  # Recheck administrator access after the external login.
     row.consumed_at = provider.now()
     db.commit()  # A failed/denied callback cannot be replayed.
-    if error: return RedirectResponse(value["return_origin"] + "/settings/files-storage?authorization=denied", status_code=303)
+    if error:
+        if notes:
+            from .note_cloud import connection_completion
+            return connection_completion(value, "denied")
+        return RedirectResponse(value["return_origin"] + "/settings/files-storage?authorization=denied", status_code=303)
     if not code or len(code) > 4096: raise HTTPException(400, "Invalid authorization code")
-    conn = connection(db, row.organization_id, row.connection_id)
+    conn = connection(db, row.organization_id, row.connection_id, actor.id if notes else None)
+    if notes and (conn.created_by != actor.id or conn.provider not in {"google_drive", "onedrive"}):
+        raise HTTPException(403, "This Notes connection belongs to another account")
     cfg = provider.app_config(conn.provider)
     fields = {"grant_type": "authorization_code", "code": code, "redirect_uri": cfg["redirect_uri"]}
     if conn.provider != "box": fields["code_verifier"] = value["verifier"]
     data = provider.tokens(conn.provider, fields)
     previous = CredentialVault.decrypt(conn) if conn.encrypted_value else {}
-    conn.encrypted_value = CredentialVault.encrypt({"access_token": data["access_token"], "refresh_token": data.get("refresh_token") or previous.get("refresh_token")})
+    conn.encrypted_value = CredentialVault.encrypt({"access_token": data["access_token"], "refresh_token": data.get("refresh_token") or previous.get("refresh_token"), **({"notes_owner_id":actor.id} if notes else {})})
     conn.expires_at = provider.now()+timedelta(seconds=int(data.get("expires_in", 3600)))
     conn.connected = True
     conn.account = provider.account_info(db, conn)
@@ -114,6 +133,9 @@ def callback(state: str = "", code: str = "", error: str | None = None, db: Sess
     token_data["account"] = conn.account
     conn.encrypted_value = CredentialVault.encrypt(token_data)
     db.commit()
+    if notes:
+        from .note_cloud import connection_completion
+        return connection_completion(value, "connected", conn.id)
     return RedirectResponse(value["return_origin"] + "/settings/files-storage?authorization=connected", status_code=303)
 
 

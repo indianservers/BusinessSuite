@@ -1,3 +1,4 @@
+import { sharedNotesPath, createSharedNotePath } from "@/lib/shared-notes";
 
 import {lazy,Suspense,useState,useEffect,type ReactNode} from "react";
 const CRMQuickCreate=lazy(()=>import("@/apps/crm/SalesActions").then(m=>({default:m.CRMQuickCreate})));
@@ -33,8 +34,12 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
   const privileged = !!user?.is_superuser || ["super_admin", "admin"].includes(role);
   const moduleKey = ({crm:"crm",hrms:"hrms",srm:"srm",fam:"fam",pms:"project_management"} as Record<string,string>)[pathname.split("/")[1]];
   const moduleGrant = user?.access?.grants[moduleKey];
-  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return children ? <>{children([])}</> : null;
-  const actions: NewAction[] = [];
+  const notesGrant = user?.access?.grants.project_management;
+  const noteActions: NewAction[] = !pathname.startsWith("/pms") && canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser) &&
+    (user?.is_superuser || !user?.access?.managed || notesGrant?.enabled && notesGrant.actions.includes("create"))
+    ? [{ label: "Note", description: "Create a note in the shared Notes workspace", icon: FileText, menuPaths: [sharedNotesPath], onSelect: () => routerNavigate(createSharedNotePath) }] : [];
+  if (!user?.is_superuser && moduleGrant && (!moduleGrant.enabled || !moduleGrant.actions.some(action=>["create","edit","assign"].includes(action)))) return children ? <>{children(noteActions)}</> : <NewMenu actions={noteActions} />;
+  const actions: NewAction[] = [...noteActions];
   const add = (label: string, description: string, icon: NewAction["icon"], path: string, allowed = true, disabled = false) => {
     if (allowed && (!moduleGrant || user?.is_superuser || moduleGrant.actions.includes("create") || ["Apply Leave", "Support ticket", "Correct Attendance", "Generate Letter"].includes(label)) && canAccessRoute(path.split(/[?#]/)[0], user?.role, user?.is_superuser)) actions.push({ label, description, icon, disabled, menuPaths: label === "Correct Attendance" ? [] : [path.split(/[?#]/)[0].replace(/\/(new|create)$/, "")], onSelect: () => navigate(path) });
   };

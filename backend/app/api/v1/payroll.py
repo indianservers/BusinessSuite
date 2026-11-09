@@ -110,6 +110,31 @@ router = APIRouter(prefix="/payroll", tags=["Payroll"])
 from app.api.v1.payroll_guided import router as payroll_guided_router
 router.include_router(payroll_guided_router)
 
+from app.schemas.payroll_policy import PayrollPolicyCreate, PayrollPolicyRules
+from app.models.payroll import PayrollPolicyVersion
+
+
+@router.get('/setup/pay-groups/{group_id}/policies')
+def list_payroll_policies(group_id: int, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission('payroll_view'))):
+    if not db.query(PayrollPayGroup).filter_by(id=group_id).first():raise HTTPException(404,'Pay group not found')
+    rows=db.query(PayrollPolicyVersion).filter_by(pay_group_id=group_id).order_by(PayrollPolicyVersion.effective_from.desc()).all()
+    return {'defaults':PayrollPolicyRules().model_dump(),'versions':[{'id':row.id,'effective_from':row.effective_from,'rules':row.rules,'reason':row.reason,'created_by':row.created_by,'created_at':row.created_at} for row in rows]}
+
+
+@router.post('/setup/pay-groups/{group_id}/policies',status_code=201)
+def publish_payroll_policy(group_id: int, data: PayrollPolicyCreate, db: Session = Depends(get_db), current_user: User = Depends(RequirePermission('payroll_run'))):
+    group=db.query(PayrollPayGroup).filter_by(id=group_id).with_for_update().first()
+    if not group:raise HTTPException(404,'Pay group not found')
+    latest=db.query(PayrollPolicyVersion).filter_by(pay_group_id=group_id).order_by(PayrollPolicyVersion.effective_from.desc()).first()
+    if latest and data.effective_from<=latest.effective_from:raise HTTPException(409,'Publish a later effective month; existing policy versions are immutable')
+    if db.query(PayrollRun.id).filter(PayrollRun.deleted_at.is_(None),or_(PayrollRun.pay_group_id==group_id,PayrollRun.pay_group_id.is_(None)),or_(PayrollRun.year>data.effective_from.year,and_(PayrollRun.year==data.effective_from.year,PayrollRun.month>=data.effective_from.month))).first():
+        raise HTTPException(409,'A payroll run already exists on or after that month; choose a later effective month to preserve history')
+    row=PayrollPolicyVersion(pay_group_id=group_id,effective_from=data.effective_from,rules=data.rules.model_dump(),reason=data.reason.strip(),created_by=current_user.id)
+    db.add(row);db.flush()
+    _audit(db,None,'payroll_policy_published',current_user.id,f'group={group_id};version={row.id};effective={data.effective_from};reason={row.reason}')
+    db.commit();db.refresh(row)
+    return {'id':row.id,'effective_from':row.effective_from,'rules':row.rules,'reason':row.reason}
+
 EXPORT_TYPES = {"pf_ecr", "esi", "pt", "tds_24q", "form_16", "bank_advice", "pay_register", "accounting_journal"}
 
 
@@ -450,128 +475,10 @@ def _structure_payload(structure: SalaryStructure) -> dict:
     }
 
 
-ALLOWED_FORMULA_FUNCS = {"min": min, "max": max, "round": round, "Decimal": Decimal}
-ALLOWED_FORMULA_NODES = (
-    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load, ast.Call,
-    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.FloorDiv, ast.Mod, ast.Pow, ast.UAdd, ast.USub,
+from app.services.payroll_component_engine import (
+    ALLOWED_FORMULA_FUNCS, ALLOWED_FORMULA_NODES, _safe_formula_value,
+    _formula_dependencies, _active_formula_expression, _component_monthly_amount, _ordered_structure_components,
 )
-
-
-def _safe_formula_value(expression: str, variables: dict[str, Decimal], component_code: str) -> Decimal:
-    from app.core.formula_limits import bounded_formula_tree
-    bounded_formula_tree(expression)
-    try:
-        tree = ast.parse(expression, mode="eval")
-    except SyntaxError as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid formula for {component_code}: {exc.msg}")
-
-    allowed_names = set(variables) | set(ALLOWED_FORMULA_FUNCS)
-    for node in ast.walk(tree):
-        if not isinstance(node, ALLOWED_FORMULA_NODES):
-            raise HTTPException(status_code=400, detail=f"Invalid formula for {component_code}: unsupported expression")
-        if isinstance(node, ast.Name) and node.id not in allowed_names:
-            raise HTTPException(status_code=400, detail=f"Invalid formula for {component_code}: unknown name {node.id}")
-        if isinstance(node, ast.Call):
-            if not isinstance(node.func, ast.Name) or node.func.id not in ALLOWED_FORMULA_FUNCS:
-                raise HTTPException(status_code=400, detail=f"Invalid formula for {component_code}: unsupported function")
-    try:
-        value = eval(
-            compile(tree, "<salary_formula>", "eval"),
-            {"__builtins__": {}},
-            {**ALLOWED_FORMULA_FUNCS, **variables},
-        )
-        return Decimal(str(value)).quantize(Decimal("0.01"))
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid formula for {component_code}: {exc}")
-
-
-def _formula_dependencies(expression: Optional[str]) -> set[str]:
-    if not expression:
-        return set()
-    try:
-        tree = ast.parse(expression, mode="eval")
-    except SyntaxError:
-        return set()
-    return {
-        node.id for node in ast.walk(tree)
-        if isinstance(node, ast.Name)
-        and node.id not in ALLOWED_FORMULA_FUNCS
-        and node.id not in {"ctc_monthly", "ctc_annual", "gross", "basic"}
-    }
-
-
-def _active_formula_expression(component: SalaryComponent) -> Optional[str]:
-    active_rules = [
-        rule for rule in component.formula_rules
-        if rule.validation_status in {"Active", "Approved"} and not rule.effective_to
-    ]
-    if active_rules:
-        active_rules.sort(key=lambda rule: (rule.dependency_order or 100, rule.id), reverse=False)
-        return active_rules[0].formula_expression
-    return component.formula_expression
-
-
-def _component_monthly_amount(item: SalaryStructureComponent, monthly_ctc: Decimal, extra_variables: Optional[dict[str, Decimal]] = None) -> Decimal:
-    component = item.component
-    variables = {
-        "ctc_monthly": monthly_ctc,
-        "ctc_annual": monthly_ctc * Decimal("12"),
-    }
-    if extra_variables:
-        variables.update(extra_variables)
-    item_expression = getattr(item, "formula_expression", None)
-    if component and (component.calculation_type == "Formula" or item_expression):
-        expression = item_expression or _active_formula_expression(component)
-        if expression:
-            value = _safe_formula_value(expression, variables, component.code)
-            item_min = getattr(item, "min_amount", None)
-            item_max = getattr(item, "max_amount", None)
-            minimum = item_min if item_min is not None else component.min_amount
-            maximum = item_max if item_max is not None else component.max_amount
-            if minimum is not None:
-                value = max(value, Decimal(minimum))
-            if maximum is not None:
-                value = min(value, Decimal(maximum))
-            return value.quantize(Decimal("0.01"))
-    if item.amount is not None and Decimal(item.amount) != Decimal("0"):
-        return Decimal(item.amount)
-    if item.percentage is not None:
-        return (monthly_ctc * Decimal(item.percentage) / Decimal("100")).quantize(Decimal("0.01"))
-    if component and component.calculation_type == "Percentage" and component.amount:
-        return (monthly_ctc * Decimal(component.amount) / Decimal("100")).quantize(Decimal("0.01"))
-    return Decimal(component.amount or 0) if component else Decimal("0")
-
-
-def _ordered_structure_components(structure: SalaryStructure) -> tuple[list[SalaryStructureComponent], list[str]]:
-    items = [item for item in structure.components if item.component]
-    by_code = {item.component.code: item for item in items}
-    dependencies = {
-        item.component.code: {dep for dep in _formula_dependencies(getattr(item, "formula_expression", None) or _active_formula_expression(item.component)) if dep in by_code}
-        for item in items
-    }
-    ordered: list[SalaryStructureComponent] = []
-    visiting: set[str] = set()
-    visited: set[str] = set()
-    warnings: list[str] = []
-
-    def visit(code: str) -> None:
-        if code in visited:
-            return
-        if code in visiting:
-            raise HTTPException(status_code=400, detail=f"Circular salary formula dependency detected at {code}")
-        visiting.add(code)
-        for dependency in sorted(dependencies.get(code, set())):
-            visit(dependency)
-        visiting.remove(code)
-        visited.add(code)
-        ordered.append(by_code[code])
-
-    for item in sorted(items, key=lambda row: (row.order_sequence or 100, row.component.display_sequence or 100, row.component.code)):
-        visit(item.component.code)
-    for code, deps in dependencies.items():
-        if deps:
-            warnings.append(f"{code} depends on {', '.join(sorted(deps))}")
-    return ordered, warnings
 
 
 def _calculate_tax_from_slabs(taxable_income: Decimal, slabs: List[TaxSlab]) -> Decimal:
@@ -736,6 +643,7 @@ def _payroll_period_for_run(db: Session, run: PayrollRun) -> Optional[PayrollPer
     return db.query(PayrollPeriod).filter(
         PayrollPeriod.month == run.month,
         PayrollPeriod.year == run.year,
+        or_(run.pay_group_id is None,PayrollPeriod.pay_group_id==run.pay_group_id),
     ).order_by(PayrollPeriod.id.desc()).first()
 
 
@@ -745,6 +653,8 @@ def _payroll_input_blockers(db: Session, run: PayrollRun) -> List[str]:
         return [f"No payroll period configured for {run.month}/{run.year}"]
     records = db.query(PayrollRecord).filter(PayrollRecord.payroll_run_id == run.id).all()
     blockers: List[str] = []
+    from app.services.payroll_policy import approval_blockers
+    blockers.extend(approval_blockers(db,run))
     for record in records:
         item = db.query(PayrollAttendanceInput).filter(
             PayrollAttendanceInput.period_id == period.id,
@@ -1311,6 +1221,7 @@ def upsert_payroll_attendance_input(
         raise HTTPException(status_code=404, detail="Payroll period not found")
     if period.status == "Locked":
         raise HTTPException(status_code=400, detail="Payroll period is locked")
+    _ensure_not_locked_period(db, period.month, period.year, "change attendance inputs")
     item = db.query(PayrollAttendanceInput).filter(
         PayrollAttendanceInput.period_id == data.period_id,
         PayrollAttendanceInput.employee_id == data.employee_id,
@@ -1318,11 +1229,12 @@ def upsert_payroll_attendance_input(
     if not item:
         item = PayrollAttendanceInput(period_id=data.period_id, employee_id=data.employee_id)
         db.add(item)
-    for key, value in data.model_dump(exclude={"period_id", "employee_id"}).items():
+    item.policy_trace={'source':'manual','resolution_note':data.resolution_note}
+    for key, value in data.model_dump(exclude={"period_id", "employee_id", "resolution_note"}).items():
         setattr(item, key, value)
     if item.source_status in {"Approved", "Locked"} and not item.locked_at:
         item.locked_at = datetime.now(timezone.utc)
-    _audit(db, None, "payroll_attendance_input_upserted", current_user.id, f"employee_id={data.employee_id}:period_id={data.period_id}")
+    _audit(db, None, "payroll_attendance_input_upserted", current_user.id, f"employee_id={data.employee_id}:period_id={data.period_id}:resolution={data.resolution_note or ''}")
     db.commit()
     db.refresh(item)
     return item
@@ -1345,6 +1257,7 @@ def reconcile_payroll_attendance_inputs(
         raise HTTPException(status_code=400, detail="Payroll period is locked")
 
     period_start, period_end = _period_bounds(period)
+    _ensure_not_locked_period(db, period.month, period.year, "reconcile attendance inputs")
     employee_query = db.query(Employee).filter(Employee.status == "Active")
     if data.employee_ids:
         employee_query = employee_query.filter(Employee.id.in_(data.employee_ids))
@@ -1363,6 +1276,9 @@ def reconcile_payroll_attendance_inputs(
     exceptions = []
 
     for employee in employees:
+        from app.services.payroll_policy import active_policy,evaluate_days
+        group=db.query(PayrollPayGroup).filter_by(id=period.pay_group_id).first()
+        effective_policy=active_policy(db,group,period_start)
         present_rows = db.query(Attendance).filter(
             Attendance.employee_id == employee.id,
             Attendance.attendance_date >= period_start,
@@ -1378,17 +1294,18 @@ def reconcile_payroll_attendance_inputs(
         leaves = db.query(LeaveRequest).filter(
             LeaveRequest.employee_id == employee.id,
             LeaveRequest.status == "Approved",
+            LeaveRequest.deleted_at.is_(None),
             LeaveRequest.from_date <= period_end,
             LeaveRequest.to_date >= period_start,
         ).all()
+        paid_intervals = {}
+        unpaid_intervals = {}
+        from app.services.payroll_leave_intervals import add_leave_intervals
         for leave in leaves:
-            overlap_start = max(leave.from_date, period_start)
-            overlap_end = min(leave.to_date, period_end)
-            days = Decimal("0.5") if leave.is_half_day else _inclusive_days(overlap_start, overlap_end)
-            if _is_unpaid_leave_type(leave.leave_type.name if leave.leave_type else None, leave.leave_type.code if leave.leave_type else None):
-                unpaid_leave_days += days
-            else:
-                paid_leave_days += days
+            intervals = unpaid_intervals if _is_unpaid_leave_type(leave.leave_type.name if leave.leave_type else None, leave.leave_type.code if leave.leave_type else None) else paid_intervals
+            add_leave_intervals(intervals,leave,period_start,period_end)
+        paid_leave_days = sum((Decimal(len(slots)) / 2 for slots in paid_intervals.values()), Decimal(0))
+        unpaid_leave_days = sum((Decimal(len(slots)) / 2 for slots in unpaid_intervals.values()), Decimal(0))
 
         approved_lop_adjustments = db.query(LOPAdjustment).filter(
             LOPAdjustment.period_id == period.id,
@@ -1396,8 +1313,9 @@ def reconcile_payroll_attendance_inputs(
             LOPAdjustment.status == "Approved",
         ).all()
         manual_lop_days = sum((item.adjustment_days or Decimal("0")) for item in approved_lop_adjustments)
-        lop_days = max(Decimal("0"), unpaid_leave_days + Decimal(str(manual_lop_days)))
+        lop_days = min(working_days, max(Decimal("0"), unpaid_leave_days + Decimal(str(manual_lop_days))))
         payable_days = max(Decimal("0"), working_days - lop_days)
+        policy_result=evaluate_days(db,employee,period_start,period_end,group,effective_policy) if effective_policy else None
 
         item = db.query(PayrollAttendanceInput).filter(
             PayrollAttendanceInput.period_id == period.id,
@@ -1415,6 +1333,10 @@ def reconcile_payroll_attendance_inputs(
         item.payable_days = payable_days
         item.holiday_days = holiday_days
         item.weekly_off_days = weekly_off_days
+        if policy_result:
+            for field in ('working_days','present_days','paid_leave_days','unpaid_leave_days','lop_days','payable_days'):setattr(item,field,policy_result[field])
+            item.policy_trace={'source':'reconciled','policy_version_id':effective_policy['version_id'],'checks':jsonable_encoder(policy_result)}
+            for issue in policy_result['blockers']:exceptions.append({'employee_id':employee.id,'issue':issue})
         item.source_status = "Approved" if data.approve_inputs else "Draft"
         item.locked_at = datetime.now(timezone.utc) if data.approve_inputs else None
 
@@ -2303,12 +2225,18 @@ def approve_payroll(
     current_user: User = Depends(RequirePermission("payroll_approve")),
 ):
     run = _get_payroll_run_or_404(db, run_id)
+    # Serialize approval/locking against recalculation and concurrent approvals.
+    run = db.query(PayrollRun).filter(PayrollRun.id == run.id).populate_existing().with_for_update().one()
     try:
         crud_payroll.coerce_payroll_run_status(run)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     action = data.action.lower()
+    if action in {'approve','lock'}:
+        from app.services.payroll_policy import approval_blockers
+        policy_errors=approval_blockers(db,run)
+        if policy_errors:raise HTTPException(400,detail={'message':'Resolve payroll policy blockers and regenerate before approval','blockers':policy_errors})
     if action == "approve":
         blockers = _payroll_input_blockers(db, run)
         if blockers and not data.force_approve:
@@ -3016,6 +2944,8 @@ def review_manual_input(
     item = db.query(PayrollManualInput).filter(PayrollManualInput.id == input_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Payroll manual input not found")
+    run = _get_payroll_run_or_404(db, item.payroll_run_id)
+    _ensure_not_locked_period(db, run.month, run.year, "review payroll manual input")
     action = data.action.lower()
     if action not in {"approve", "reject"}:
         raise HTTPException(status_code=400, detail="action must be approve or reject")

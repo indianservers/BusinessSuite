@@ -100,12 +100,12 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         # database. Never copy owner activity into a customer's audit console.
         if request.url.path.startswith(("/api/v1/platform/", "/api/v1/auth/platform/", "/api/v1/auth/signup")):
             return
-        from app.db.session import SessionLocal
+        from app.db.session import ControlSessionLocal
         from app.models.audit import AuditLog, AuditLogTask
         from app.models.user import User
         from app.core.security import verify_access_token
         from app.apps.project_management.models import PMSTask, PMSProject
-        factory = getattr(request.app.state, 'audit_session_factory', SessionLocal)
+        factory = getattr(request.app.state, 'audit_session_factory', ControlSessionLocal)
         close = getattr(request.app.state, 'audit_close_session', True)
         commit = getattr(request.app.state, 'audit_commit', True)
         db = factory()

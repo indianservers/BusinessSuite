@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AsyncProgress from "../../src/components/app/AsyncProgress";
 import RouteProgress from "../../src/components/app/RouteProgress";
 import NotificationsPage from "./NotificationsPage";
@@ -218,7 +219,12 @@ function Login({ onLogin }: { onLogin: () => void }) {
             <LockKeyhole size={15} />
             For active interns with an HRMS-linked account.
           </p>
-          {!mfa && <><SocialSignup />
+          {!mfa && <><SocialSignup onSignIn={result => {
+            if (result.mfa_required && result.mfa_token) { setMfa(result.mfa_token); return; }
+            if (!result.access_token) throw new Error("Sign-in could not be completed. Please retry.");
+            setToken(result.access_token, result.refresh_token);
+            onLogin();
+          }} />
             <Link to="/apply" className="intern-apply-card"><span className="intern-apply-icon"><GraduationCap size={25}/></span><span><strong>Apply for an Internship</strong><small>Your next chapter starts here</small></span><ArrowRight size={21}/></Link>
             <p className="application-status-link"><Link to="/application-status">Already applied? Check application status <ChevronRight size={14}/></Link></p>
           </>}
@@ -488,10 +494,13 @@ function App() {
     </Routes>
   );
 }
+const queryClient = new QueryClient();
 createRoot(document.getElementById("root")!).render(
+  <QueryClientProvider client={queryClient}>
   <BrowserRouter>
     <AsyncProgress />
     <RouteProgress />
     <App />
-  </BrowserRouter>,
+  </BrowserRouter>
+  </QueryClientProvider>,
 );

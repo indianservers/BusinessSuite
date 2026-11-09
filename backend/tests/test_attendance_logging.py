@@ -42,11 +42,17 @@ def test_attendance_checkin_handles_existing_partial_record(client, db):
 def test_admin_can_view_and_analyze_audit_logs(client, db):
     init_db(db)
     admin_headers = _login(client, "admin@aihrms.com", "Admin@123456")
-    db.add_all([
+    from app.models.user import User
+    actor=db.query(User).filter_by(email="admin@aihrms.com").one()
+    fixtures=[
         AuditLog(method="POST", endpoint="/api/v1/attendance/check-in", status_code=500, duration_ms=120, action="ERROR", description="error=boom"),
         AuditLog(method="GET", endpoint="/api/v1/attendance/today", status_code=200, duration_ms=20, action="GET"),
         AuditLog(method="POST", endpoint="/api/v1/leave/requests", status_code=400, duration_ms=60, action="POST", description="bad request"),
-    ])
+    ]
+    for row in fixtures:
+        row.organization_id=actor.person.organization_id
+        row.user_id=actor.id
+    db.add_all(fixtures)
     db.commit()
 
     errors = client.get("/api/v1/logs/errors?endpoint=attendance", headers=admin_headers)

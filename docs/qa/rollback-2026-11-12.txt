@@ -1,0 +1,113 @@
+BUSINESSSUITE RELEASE ROLLBACK RUNBOOK
+Prepared 9 November 2026. Target release: 12 November 2026, Asia/Kolkata.
+Production traffic promotion, production migration and rollback have not been performed.
+Hosted staging and authorized provider acceptance checks are recorded separately.
+
+KNOWN CURRENT PRODUCTION BASELINE
+Project: businesssuite
+Team: team_bE8rRsbbyPR30IkE3xI4oHso
+Project ID: prj_AZ86wc2FbH4Qe10Whg49wJGL38jL
+Production origin: https://app.dsbchartered.com
+Rollback deployment: dpl_AFYTtUvVMFmAMctVFJwDd2m8E884
+Rollback URL: https://businesssuite-f2ij3e3tk-dsbca.vercel.app
+Observed live release commit: 7d22e502bf399ecb02ea233c6da959d2a4598434
+Verified: production /health returned HTTP 200 and status healthy; Vercel inspect
+mapped the production domain to this READY deployment. Direct generated URLs
+redirected to deployment protection, so use the production domain for smoke checks.
+
+Indian Servers is a DIFFERENT project and must use its own rollback target:
+Project: indianservers-app (prj_b3XOky29D6HclRNTh6nu5kJtiI2q)
+Origin: https://app.indianservers.com
+Rollback deployment: dpl_AHzDHvV5dWB5NB3x6CGLAvfniFgq
+Rollback URL: https://indianservers-ex6705d06-dsbca.vercel.app
+Observed commit: 7d22e502bf399ecb02ea233c6da959d2a4598434; READY.
+Both mappings rechecked on 9 November 2026. Recheck immediately before release.
+team.indianservers.com currently redirects to aimersociety.com; besterp.app serves
+the BestERP welcome site. Neither is a verified Suite API release surface.
+
+BEFORE ANY PRODUCTION RELEASE
+0. Configure DATABASE_URL and MIGRATION_DATABASE_URL with the installed driver:
+   postgresql+psycopg:// (Psycopg 3). Use the direct Neon host for migrations,
+   retain sslmode=require or stronger, and never print credentials. A raw
+   postgresql:// MIGRATION_DATABASE_URL selects the absent psycopg2 driver.
+1. Record the candidate manifest fingerprint, source/build hashes, test reports,
+   current production deployment, database revision and configuration versions.
+   The local candidate has a SHA-256 identity distinct from its base Git commit.
+   Do not deploy a later mutable working-tree checkout in place of that candidate.
+2. Confirm the rollback deployment still exists and the current alias mapping:
+   vercel inspect https://app.dsbchartered.com --scope team_bE8rRsbbyPR30IkE3xI4oHso
+3. Capture a production backup through the approved secure database connection.
+   Set DATABASE_URL in the process using the secret manager, verify its host and
+   database without printing credentials, then run from the repository root:
+   backend\venv\Scripts\python.exe backend\scripts\postgres_backup.py --output .local\release-backups\pre-release-20261112.dump
+   Protect this production-data backup. Do not commit, upload to chat, or include
+   it in the candidate archive. Record checksum and the time writes were paused.
+4. Restore the backup into a NEW EMPTY isolated database, using a separate
+   DATABASE_URL for that target and its required PostgreSQL client tools:
+   backend\venv\Scripts\python.exe backend\scripts\postgres_restore.py .local\release-backups\pre-release-20261112.dump
+   The restore script does not create a database or choose a safe target for you.
+   Confirm the destination is empty and is not the production database first.
+5. Verify migration revision, representative record counts, authentication and
+   financial reconciliation on the restored copy. Confirm the previous app can
+   run with the schema that will remain after release. Never assume alias rollback
+   reverses a migration. No new migration files were found between the observed
+   live commit and the candidate base, but production schema compatibility still
+   needs an explicit check against the selected production database.
+6. Preserve the verified Meta callback at app.indianservers.com. Its verification
+   challenge works. The separate DSB deployment returns 503 for its unconfigured
+   callback; do not copy the Indian Servers sender into a different tenant database
+   or repoint Meta between deployments. Each enabled messaging instance needs a
+   deliberate account and callback routing configuration before its acceptance.
+7. Use a separate staging/test database for any preview build. This repository's
+   Vercel backend build command runs migrate_deployment.py; sharing a production
+   DATABASE_URL with an unreviewed preview can apply production migrations.
+8. A NEW serverless database also needs explicit administrator/system-data
+   initialization; serverless startup deliberately skips init_db. With only the
+   verified staging database and generated bootstrap credentials in the process
+   environment, import app.db.base before calling init_db(db, seed_demo=False).
+   Do not enable demo seeding or reset an existing production administrator.
+9. Extract the selected source archive OUTSIDE the parent Git checkout before
+   deploying it, and pass the intended project explicitly. Vercel CLI's service
+   root discovery can otherwise select the parent checkout's linked project.
+   Check the returned project ID and candidate /release.json before testing.
+   A new staging project's first deployment can target its own "production"
+   environment; that isolated project still uses only staging data and domains.
+
+WHEN TO ROLL BACK
+Rollback when the candidate causes sustained login/API failures, authorization or
+tenant/branch leakage, missing/duplicate invoices or projects, incorrect payment
+allocation, lost HR updates, or a critical workflow regression. Preserve request
+IDs, logs, candidate fingerprint and affected record IDs before changing traffic.
+
+APPLICATION ROLLBACK (OPERATOR ACTION; NOT EXECUTED BY THIS TASK)
+1. Stop new writes and pause relevant workers/crons through the incident controls.
+   Retain ambiguous outbound jobs for reconciliation; do not blindly resend them.
+2. Recheck the known target above. If it remains the selected compatible target:
+   DSB: vercel rollback dpl_AFYTtUvVMFmAMctVFJwDd2m8E884 --scope team_bE8rRsbbyPR30IkE3xI4oHso --yes --timeout 3m
+   Indian Servers: vercel rollback dpl_AHzDHvV5dWB5NB3x6CGLAvfniFgq --scope team_bE8rRsbbyPR30IkE3xI4oHso --yes --timeout 3m
+3. Inspect rollout status and alias mapping:
+   vercel rollback status businesssuite --scope team_bE8rRsbbyPR30IkE3xI4oHso
+   vercel inspect https://app.dsbchartered.com --scope team_bE8rRsbbyPR30IkE3xI4oHso
+4. Verify /health, /release.json, login, company/branch authorization and the
+   affected journey. Verify the returned release commit matches the rollback
+   baseline. These checks must use the production domain after routing changes.
+5. Reconcile invoices/payments, handoff links, HR state and outbound job/provider
+   outcomes before resuming writes and schedulers. Do not rerun accepted sends.
+
+DATABASE RECOVERY (ONLY IF APPLICATION ROLLBACK IS INSUFFICIENT)
+Keep writes paused. Preserve a new backup of the incident state and inventory
+post-backup writes. Restore the pre-release backup to a NEW EMPTY database using
+the procedure above, verify its integrity, and reconcile later valid business
+transactions before switching the application connection. An old backup can lose
+newer invoices, payments and HR changes; do not overwrite the current database or
+run alembic downgrade headlessly as a generic rollback step. Routing, configuration,
+database and private object storage recovery are separate actions.
+
+LOCAL DRILL EVIDENCE AND LIMITS
+A disposable local PostgreSQL custom-format backup was restored successfully:
+838 tables; Alembic revision pg_20261108_090_employee_bgv retained; synthetic marker
+recovered. This verifies the backup/restore mechanism with synthetic data, not
+production RPO/RTO, production data recovery or old-app/schema compatibility.
+Production restore and rollback were not exercised. Consult the latest hosted
+acceptance report for live messaging outcomes; a provider acceptance alone is
+not proof of recipient delivery.

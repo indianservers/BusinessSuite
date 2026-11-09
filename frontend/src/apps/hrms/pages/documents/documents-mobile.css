@@ -1,0 +1,36 @@
+@media (max-width:480px) {
+ .hrms-documents { min-width: 0; }
+ .hrms-documents.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+ .hrms-documents .hrms-document-header { padding: 12px; flex-direction: row; align-items: flex-start; gap: 8px; }
+ .hrms-document-header > div { min-width: 0; }
+ .hrms-document-header > button { width: 44px; min-width: 44px; padding: 10px; }
+ .hrms-document-header > button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+ .hrms-document-header p:first-child { display: none; }
+ .hrms-document-header h1 { margin-top: 0; font-size: 20px; line-height: 1.25; }
+ .hrms-documents :is(button,a,summary), .hrms-document-upload :is(button,summary), .hrms-document-chooser button { min-height: 44px; height: auto; }
+ .hrms-documents button, .hrms-document-upload button { white-space: normal; }
+ .hrms-document-upload :is(input,select), .hrms-document-chooser :is(input,select) { width: 100%; min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-document-employee { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border: 1px solid hsl(var(--border)); border-radius: 12px; }
+ .hrms-document-employee > button { flex-shrink: 0; }
+ .hrms-documents .hrms-document-layout { grid-template-columns: minmax(0,1fr); gap: 12px; }
+ .hrms-document-layout > * { min-width: 0; }
+ .hrms-document-upload { border: 0; box-shadow: none; }
+ .hrms-document-upload > div { padding: 12px; }
+ .hrms-document-upload > div:first-child h3 { display: none; }
+ .hrms-document-upload form > .grid, .hrms-document-chooser .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+ .hrms-document-upload [data-save-action] { display: none; }
+ .hrms-document-upload .mobile-disclosure, .hrms-documents .mobile-disclosure { padding: 0; margin: 12px 0; }
+ .hrms-document-upload .mobile-disclosure > summary, .hrms-documents .mobile-disclosure > summary { padding: 8px 12px; }
+ .hrms-document-upload .mobile-disclosure > div, .hrms-documents .mobile-disclosure > div { padding: 0 12px 12px; }
+ .hrms-document-upload .mobile-disclosure .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+ .hrms-document-upload :is(p,label), .hrms-documents :is(p,a), .hrms-document-chooser :is(span,label) { overflow-wrap: anywhere; }
+ .hrms-document-chooser .truncate { white-space: normal; overflow: visible; text-overflow: clip; }
+ .hrms-document-repository > div { padding: 12px; }
+ .hrms-documents .suite-record-card-shell > .hrms-document-record { padding: 12px 12px 62px; }
+ .hrms-documents .suite-record-card-shell > .suite-record-star { top: auto; bottom: 6px; right: 6px; }
+ .hrms-documents .suite-record-card-shell > .suite-record-card-tools { top: auto; bottom: 6px; right: 56px; }
+ .hrms-documents .suite-record-star { width: 44px; min-width: 44px; height: 44px; }
+ .hrms-document-record { min-width: 0; }
+ .hrms-document-record :is(p,a) { overflow-wrap: anywhere; }
+ .hrms-document-record .kf-badge { flex-shrink: 0; }
+}

@@ -26,6 +26,7 @@ test("history selects a payslip, preserves decimals and submits a query", async 
     return route.fulfill({ status: 201, json: { id: 1 } });
   });
   await page.goto("/hrms/my-payslips");
+  if (test.info().project.name === 'phone') await page.locator('summary').filter({hasText:'Available payslips'}).click();
   await page.getByRole("button", { name: /May 2026/ }).click();
   await expect(page.getByLabel("Payslip month")).toHaveValue("5");
   await expect(page.getByLabel("Payslip year")).toHaveValue("2026");
@@ -64,13 +65,18 @@ test("HR viewer fetches run records and publishes PDFs with optional email", asy
   await page.goto("/hrms/payroll");
   await page.getByRole("button", { name: "Payslip Viewer", exact: true }).click();
   await page.getByRole("button", { name: "May 2026", exact: true }).click();
+  if (await page.getByRole('button',{name:'Expand loaded groups',exact:true}).isVisible()) await page.getByRole('button',{name:'Expand loaded groups',exact:true}).click();
   await expect(page.getByRole("button", { name: "Bulk publish", exact: true })).toBeDisabled();
   await expect(page.getByText("EMP-91", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "June 2026", exact: true }).click();
+  if (await page.getByRole('button',{name:'Expand loaded groups',exact:true}).isVisible()) await page.getByRole('button',{name:'Expand loaded groups',exact:true}).click();
   await page.getByLabel("Notify employees by email").uncheck();
   await page.getByRole("button", { name: "Bulk publish", exact: true }).click();
   await expect.poll(() => submitted).toEqual({ send_email: false });
   await expect(page.getByText("1 PDFs ready. Email: Not requested.", { exact: true })).toBeVisible();
+  const tableView=page.getByRole('button',{name:'Table view',exact:true});
+  if(await tableView.isVisible()) await tableView.click();
+  if(await page.getByRole('button',{name:'Expand loaded groups',exact:true}).isVisible()) await page.getByRole('button',{name:'Expand loaded groups',exact:true}).click();
   await page.getByRole("button", { name: "Preview", exact: true }).first().click();
   await expect(page.getByText("Employee Payslip Preview", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Download PDF", exact: true })).toBeVisible();

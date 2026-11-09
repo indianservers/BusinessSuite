@@ -56,5 +56,8 @@ export function useRecordDraft<T>(name:string,value:T,restore:(value:T)=>void,en
     if(skip.current){skip.current=false;return;}
     try{sessionStorage.setItem(key,snapshot);setStatus(current => current === "restored" ? current : "saved");}catch{setStatus("unavailable");}
   },[key,snapshot,enabled]);
-  return Object.assign(()=>{try{sessionStorage.removeItem(key);}catch{/* The successful write is still confirmed. */}}, { status });
+  // Async owners can acknowledge a confirmed field before they unmount. Capture
+  // this render's key so a late response cannot overwrite a new actor's draft.
+  const persist = (value:T) => { if(!enabled)return false;try{sessionStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;} };
+  return Object.assign(()=>{try{sessionStorage.removeItem(key);}catch{/* The successful write is still confirmed. */}}, { status, persist });
 }

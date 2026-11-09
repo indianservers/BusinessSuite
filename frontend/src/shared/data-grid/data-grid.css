@@ -1232,3 +1232,8 @@
 .suite-column-progress > [role="progressbar"] { height:4px; flex:1; min-width:32px; overflow:hidden; border-radius:4px; background:hsl(var(--primary)/.09); }
 .suite-column-progress > [role="progressbar"] > span { display:block; height:100%; border-radius:inherit; background:hsl(var(--primary)); }
 .udg-legacy-heading { gap:5px; }
+
+/* Keep row boundaries distinct from record selection and open controls. */
+.suite-row-resize { position:absolute; left:0; bottom:0; width:40px; height:7px; cursor:row-resize; touch-action:none; z-index:12; }
+.suite-row-resize:hover,.suite-row-resize:focus-visible { background:hsl(var(--primary)/.4); outline:none; }
+.udg-cell > .udg-adapted-cell { max-height:100%; overflow:hidden; }

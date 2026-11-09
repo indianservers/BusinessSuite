@@ -7,7 +7,7 @@ import type { CreationDefinition } from "./registry";
 import "./smart-creation.css";
 import { CreationSurfaceContext } from "./CreationSurfaceContext";
 
-export function SmartCreateModal({ definition, children, onClose, busy = false, savedRevision = 0, closeRequestRevision = 0, loading = false, mobileSheet = false }: { definition: CreationDefinition; children: ReactNode; onClose: () => void; busy?: boolean; savedRevision?: number; closeRequestRevision?: number; loading?: boolean; mobileSheet?: boolean }) {
+export function SmartCreateModal({ definition, children, onClose, busy = false, savedRevision = 0, closeRequestRevision = 0, loading = false, mobileSheet = false, returnFocus }: { definition: CreationDefinition; children: ReactNode; onClose: () => void; busy?: boolean; savedRevision?: number; closeRequestRevision?: number; loading?: boolean; mobileSheet?: boolean; returnFocus?: HTMLElement | null }) {
   const content = useRef<HTMLDivElement | null>(null);
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   const attach = useCallback((node: HTMLDivElement | null) => { content.current = node; setElement(node); }, []);
@@ -47,7 +47,7 @@ export function SmartCreateModal({ definition, children, onClose, busy = false, 
   const draftButton = confirm ? Array.from(content.current?.querySelectorAll<HTMLButtonElement>('button') || []).find(button => /^save (as )?draft$/i.test(button.textContent?.trim() || '') && !button.disabled) : undefined;
   return <><Dialog.Root open onOpenChange={open => { if (!open) requestClose(); }}><Dialog.Portal>
     <Dialog.Overlay className="smart-create-overlay" />
-    <Dialog.Content ref={attach} className={`smart-create-window smart-create-${definition.size}${definition.entity === "task" ? " smart-create-task" : ""}${mobileSheet ? " smart-create-phone-sheet" : ""}`} aria-describedby="smart-create-description" data-smart-create="true" data-smart-create-loading={loading ? "true" : undefined} onInputCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onChangeCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onSubmitCapture={event => {
+    <Dialog.Content ref={attach} className={`smart-create-window smart-create-${definition.size}${definition.entity === "task" ? " smart-create-task" : ""}${mobileSheet ? " smart-create-phone-sheet" : ""}`} aria-describedby="smart-create-description" data-smart-create="true" data-smart-create-loading={loading ? "true" : undefined} onCloseAutoFocus={event => { if(returnFocus?.isConnected) { event.preventDefault(); returnFocus.focus(); } }} onInputCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onChangeCapture={() => { submitting.current = false; submitFromClick.current = false; setDirty(true); }} onSubmitCapture={event => {
       if (!content.current?.contains(event.target as Node)) return;
       if (submitting.current && !submitFromClick.current) { event.preventDefault(); event.stopPropagation(); return; }
       submitFromClick.current = false; submitting.current = true;

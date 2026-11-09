@@ -315,6 +315,18 @@ def has_overlapping_leave(
 def create_leave_request(db: Session, employee_id: int, data: dict) -> LeaveRequest:
     from_date = data["from_date"]
     to_date = data["to_date"]
+    employee = db.query(Employee).filter(Employee.id == employee_id, Employee.deleted_at.is_(None)).first()
+    if employee:
+        if employee.date_of_joining and from_date < employee.date_of_joining:
+            raise ValueError("Leave cannot start before the employment joining date")
+        if employee.date_of_exit and to_date > employee.date_of_exit:
+            raise ValueError("Leave cannot end after the employment exit date")
+    if data.get("is_half_day"):
+        if from_date != to_date:
+            raise ValueError("Half-day leave must have the same start and end date")
+        leave_type = db.query(LeaveType).filter(LeaveType.id == data["leave_type_id"]).first()
+        if leave_type and not leave_type.half_day_allowed:
+            raise ValueError("Half-day leave is disabled for this leave type")
     days = calculate_leave_days(from_date, to_date, data.get("is_half_day", False))
 
     if has_overlapping_leave(db, employee_id, from_date, to_date):

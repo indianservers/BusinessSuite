@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="7" time="37.622" timestamp="2026-11-09T19:16:50.565771+05:30" hostname="DESKTOP-B3SR465"><testcase classname="tests.test_payroll_qa_remaining" name="test_reprocessing_preserves_previously_consumed_inputs[reimbursement]" file="tests\test_payroll_qa_remaining.py" line="26" time="13.911"><properties><property name="expected" value="(Decimal('50000.00'), Decimal('1800.00'), Decimal('49450.00'))" /><property name="actual" value="(Decimal('50000.00'), Decimal('1800.00'), Decimal('48200.00'))" /></properties><failure message="AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('500...l('49450.00'))&#10;  &#10;  At index 2 diff: Decimal('48200.00') != Decimal('49450.00')&#10;  Use -v to get more diff">tests\test_payroll_qa_remaining.py:44: in test_reprocessing_preserves_previously_consumed_inputs
+    assert actual==expected
+E   AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('500...l('49450.00'))
+E
+E     At index 2 diff: Decimal('48200.00') != Decimal('49450.00')
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.test_payroll_qa_remaining" name="test_reprocessing_preserves_previously_consumed_inputs[advance]" file="tests\test_payroll_qa_remaining.py" line="26" time="4.127"><properties><property name="expected" value="(Decimal('50000.00'), Decimal('3050.00'), Decimal('46950.00'))" /><property name="actual" value="(Decimal('50000.00'), Decimal('1800.00'), Decimal('48200.00'))" /></properties><failure message="AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('500...l('46950.00'))&#10;  &#10;  At index 1 diff: Decimal('1800.00') != Decimal('3050.00')&#10;  Use -v to get more diff">tests\test_payroll_qa_remaining.py:44: in test_reprocessing_preserves_previously_consumed_inputs
+    assert actual==expected
+E   AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('500...l('46950.00'))
+E
+E     At index 1 diff: Decimal('1800.00') != Decimal('3050.00')
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.test_payroll_qa_remaining" name="test_reprocessing_preserves_previously_consumed_inputs[overtime]" file="tests\test_payroll_qa_remaining.py" line="26" time="3.740"><properties><property name="expected" value="(Decimal('51250.00'), Decimal('1800.00'), Decimal('49450.00'))" /><property name="actual" value="(Decimal('50000.00'), Decimal('1800.00'), Decimal('48200.00'))" /></properties><failure message="AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('512...l('49450.00'))&#10;  &#10;  At index 0 diff: Decimal('50000.00') != Decimal('51250.00')&#10;  Use -v to get more diff">tests\test_payroll_qa_remaining.py:44: in test_reprocessing_preserves_previously_consumed_inputs
+    assert actual==expected
+E   AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('512...l('49450.00'))
+E
+E     At index 0 diff: Decimal('50000.00') != Decimal('51250.00')
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.test_payroll_qa_remaining" name="test_reprocessing_preserves_previously_consumed_inputs[encashment]" file="tests\test_payroll_qa_remaining.py" line="26" time="3.592"><properties><property name="expected" value="(Decimal('51250.00'), Decimal('1800.00'), Decimal('49450.00'))" /><property name="actual" value="(Decimal('50000.00'), Decimal('1800.00'), Decimal('48200.00'))" /></properties><failure message="AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('512...l('49450.00'))&#10;  &#10;  At index 0 diff: Decimal('50000.00') != Decimal('51250.00')&#10;  Use -v to get more diff">tests\test_payroll_qa_remaining.py:44: in test_reprocessing_preserves_previously_consumed_inputs
+    assert actual==expected
+E   AssertionError: assert (Decimal('500...l('48200.00')) == (Decimal('512...l('49450.00'))
+E
+E     At index 0 diff: Decimal('50000.00') != Decimal('51250.00')
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.test_payroll_qa_remaining" name="test_processing_failure_rolls_back_partial_records" file="tests\test_payroll_qa_remaining.py" line="48" time="3.626" /><testcase classname="tests.test_payroll_qa_remaining" name="test_postgresql_concurrent_same_scope_generation[2]" file="tests\test_payroll_qa_remaining.py" line="61" time="4.560"><properties><property name="actual" value="[7, 6]" /><property name="expected" value="One shared run ID, one payroll record" /></properties><failure message="assert 2 == 1&#10; +  where 2 = len({6, 7})&#10; +    where {6, 7} = set([7, 6])">tests\test_payroll_qa_remaining.py:79: in test_postgresql_concurrent_same_scope_generation
+    assert len(set(results))==1
+E   assert 2 == 1
+E    +  where 2 = len({6, 7})
+E    +    where {6, 7} = set([7, 6])</failure></testcase><testcase classname="tests.test_payroll_qa_remaining" name="test_postgresql_concurrent_same_scope_generation[4]" file="tests\test_payroll_qa_remaining.py" line="61" time="3.428"><properties><property name="actual" value="[10, 11, 9, 8]" /><property name="expected" value="One shared run ID, one payroll record" /></properties><failure message="assert 4 == 1&#10; +  where 4 = len({8, 9, 10, 11})&#10; +    where {8, 9, 10, 11} = set([10, 11, 9, 8])">tests\test_payroll_qa_remaining.py:79: in test_postgresql_concurrent_same_scope_generation
+    assert len(set(results))==1
+E   assert 4 == 1
+E    +  where 4 = len({8, 9, 10, 11})
+E    +    where {8, 9, 10, 11} = set([10, 11, 9, 8])</failure></testcase></testsuite></testsuites>

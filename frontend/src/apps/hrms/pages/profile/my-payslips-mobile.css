@@ -1,0 +1,21 @@
+@media (max-width: 480px) {
+  .hrms-my-payslips-page { min-width: 0; font-size: 14px; }
+  .hrms-my-payslips-page h1 { font-size: 22px; line-height: 1.25; }
+  .hrms-my-payslips-page :is(p, span, strong, button) { overflow-wrap: anywhere; }
+  .hrms-my-payslips-page .kf-card, .hrms-my-payslips-page .grid > * { min-width: 0; }
+  .hrms-my-payslips-page .kf-card > div { padding: 12px; }
+  .hrms-my-payslips-page :is(button, summary) { min-height: 44px; white-space: normal; }
+  .hrms-my-payslips-page :is(input, select, textarea) { min-height: 44px; font-size: 16px; min-width: 0; max-width: 100%; }
+  .hrms-my-payslips-page .hrms-payslip-period { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hrms-payslip-period > :is(button, .hrms-payslip-year-error) { grid-column: 1 / -1; }
+  .hrms-my-payslips-page .mobile-net-pay strong { font-size: 24px; }
+  .hrms-my-payslips-page .hrms-payslip-employee { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px; }
+  .hrms-payslip-employee > :first-child, .hrms-payslip-employee > :last-child { grid-column: 1 / -1; }
+  .hrms-payslip-lines .flex { gap: 12px; align-items: flex-start; }
+  .hrms-payslip-lines .flex > :first-child { min-width: 0; overflow-wrap: anywhere; }
+  .hrms-payslip-lines .flex > :last-child { flex-shrink: 0; }
+  .hrms-payslip-net { gap: 12px; flex-wrap: wrap; }
+  .hrms-payslip-net > span { min-width: 0; }
+  .hrms-payslip-ytd .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hrms-payslip-history-list > button { flex: 1 1 120px; }
+}

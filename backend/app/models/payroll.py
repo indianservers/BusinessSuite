@@ -135,6 +135,18 @@ class PayrollCalendar(Base):
     pay_group = relationship("PayrollPayGroup")
 
 
+class PayrollPolicyVersion(Base):
+    __tablename__ = "payroll_policy_versions"
+    __table_args__ = (UniqueConstraint("pay_group_id", "effective_from", name="uq_payroll_policy_group_date"),)
+    id = Column(Integer, primary_key=True)
+    pay_group_id = Column(Integer, ForeignKey("payroll_pay_groups.id", ondelete="RESTRICT"), nullable=False, index=True)
+    effective_from = Column(Date, nullable=False)
+    rules = Column(JSON, nullable=False)
+    reason = Column(String(1000), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class PayrollStatutoryProfile(Base):
     __tablename__ = "payroll_statutory_profiles"
 
@@ -508,6 +520,7 @@ class PayrollAttendanceInput(Base):
     ot_hours = Column(Numeric(8, 2), default=0)
     source_status = Column(String(30), default="Draft", index=True)
     locked_at = Column(DateTime(timezone=True))
+    policy_trace = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     period = relationship("PayrollPeriod")
@@ -883,6 +896,7 @@ class PayrollRun(Base):
     total_deductions = Column(Numeric(16, 2), default=0)
     total_net = Column(Numeric(16, 2), default=0)
     remarks = Column(Text)
+    policy_snapshot = Column(JSON)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     deleted_at = Column(DateTime(timezone=True))
@@ -894,6 +908,11 @@ class PayrollRun(Base):
     pre_run_checks = relationship("PayrollPreRunCheck", back_populates="payroll_run", cascade="all, delete-orphan")
     manual_inputs = relationship("PayrollManualInput", back_populates="payroll_run", cascade="all, delete-orphan")
     run_employees = relationship("PayrollRunEmployee", back_populates="payroll_run", cascade="all, delete-orphan")
+
+    @property
+    def total_employees(self):
+        """Count calculated payroll records, including historical runs."""
+        return len(self.records)
 
 
 class PayrollRecord(Base):

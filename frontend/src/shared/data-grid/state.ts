@@ -13,7 +13,7 @@ export function defaultLayout<T>(columns: GridColumn<T>[]): GridLayout {
     pinning: { left: [columns[0]?.id].filter(Boolean), right: [] },
     sizes: {},
     density: "compact",
-    rowHeight: 42,
+    rowHeight: 64,
     view: "grid",
     summary: "sum",
   };
@@ -52,7 +52,8 @@ export function sanitizeLayout<T>(
         .map(([key, v]) => [key, Math.max(60, Math.min(800, v))]),
     ),
     pinning: { left, right },
-    rowHeight: Math.max(32, Math.min(88, Number(value.rowHeight) || 42)),
+    rowHeight: Math.max(32, Math.min(400, (value.rowHeight === 42 ? 64 : Number(value.rowHeight)) || 64)),
+    rowHeights: Object.fromEntries(Object.entries(value.rowHeights || {}).filter(([, height]) => typeof height === "number" && Number.isFinite(height)).map(([id, height]) => [id, Math.max(32, Math.min(400, height))])),
     density: value.density === "comfortable" ? "comfortable" : "compact",
     view: ["grid", "cards", "list", "kanban"].includes(String(value.view))
       ? value.view!
@@ -165,7 +166,7 @@ export function sanitizeQuery<T>(
           )
           .slice(0, 4)
       : [],
-    pageSize: [10, 25, 50, 100, 200].includes(Number(value.pageSize))
+    pageSize: [0, 10, 25, 50, 100, 200].includes(Number(value.pageSize))
       ? Number(value.pageSize)
       : 50,
     page: Math.max(1, Number(value.page) || 1),

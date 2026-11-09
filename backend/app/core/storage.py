@@ -319,3 +319,23 @@ def normalize_upload_references(value, *, db=None, actor_id=None, company_id=Non
     if isinstance(value, dict):
         return {key: normalize_upload_references(item, db=db, actor_id=actor_id, company_id=company_id, portal_token=portal_token) for key, item in value.items()}
     return value
+
+
+def private_attachment_response(path, *, db, filename, media_type, headers=None):
+    """Serve after record authorization; do not mint a reusable chat/note file link."""
+    from app.core.audit_context import context
+    if context.get() is not None: context.get()["file_response_path"] = str(path)
+    from app.services.file_storage import cloud_content
+    from starlette.responses import Response
+    from urllib.parse import quote
+    cloud = cloud_content(str(path), db=db)
+    response_headers = {"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+                        "Content-Security-Policy": "sandbox", **(headers or {})}
+    response_headers["Content-Disposition"] = "attachment; filename*=UTF-8''" + quote(filename, safe="")
+    if cloud is not None:
+        content, _ = cloud
+        db.commit()
+        return Response(content, media_type=media_type, headers=response_headers)
+    local = materialize_file(str(path), db=db)
+    db.commit()
+    return LocalFileResponse(local, filename=filename, media_type=media_type, headers=response_headers)

@@ -1,0 +1,25 @@
+@media (max-width: 480px) {
+ .hrms-admin-logs { min-width: 0; }
+ .hrms-admin-logs.space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+ .hrms-admin-logs .hrms-log-header { padding: 12px; flex-direction: row; align-items: flex-start; gap: 8px; }
+ .hrms-log-header > div { min-width: 0; }
+ .hrms-log-header > div > p:first-child { display: none; }
+ .hrms-log-header > button { width: 44px; min-width: 44px; padding: 10px; }
+ .hrms-log-header > button > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+ .hrms-admin-logs h1 { font-size: 20px; line-height: 1.25; margin-top: 4px; }
+ .hrms-admin-logs .hrms-log-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-log-metrics .kf-card > div { padding: 10px; }
+ .hrms-log-metrics .text-2xl { font-size: 20px; }
+ .hrms-log-sections { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+ .hrms-admin-logs :is(button,summary) { min-height: 44px; height: auto; white-space: normal; }
+ .hrms-admin-logs :is(input,select) { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px; }
+ .hrms-admin-logs .hrms-request-filters { flex-direction: row; align-items: center; padding: 12px; gap: 8px; }
+ .hrms-request-filters > div { min-width: 0; }
+ .hrms-field-audit-filters { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+ .hrms-field-audit-filters > button { grid-column: 1 / -1; }
+ .hrms-admin-logs .kf-card > div { min-width: 0; }
+ .hrms-admin-logs .truncate { white-space: normal; overflow: visible; text-overflow: clip; max-width: 100%; overflow-wrap: anywhere; }
+ .hrms-admin-logs :is(p,span) { overflow-wrap: anywhere; }
+ .hrms-log-analysis .flex > span:first-child { min-width: 0; }
+ .hrms-log-analysis .flex > div { flex-shrink: 0; }
+}

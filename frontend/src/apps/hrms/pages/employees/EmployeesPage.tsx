@@ -1,3 +1,4 @@
+import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import {useRouteViewState} from "@/hooks/use-route-view-state";
 import { LoadingState } from "@/components/ui/state";
 import WorkspaceViewBar from "@/shared/workspace/WorkspaceViewBar";
@@ -212,6 +213,7 @@ function EmployeesPage() {
         </span>
       ),
     }),
+    ...locationFields.map(field=>columnHelper.display({id:field.id,header:field.label,cell:info=>locationValue(info.row.original,field)||"Not set"})),
     columnHelper.display({
       id: "actions",
       header: "Actions",
@@ -343,6 +345,7 @@ function EmployeesPage() {
           {isLoading ? <LoadingState label="Loading Employee Records" variant="cards"/> : <GroupedRecords scope="hrms-employees" items={data?.items || []} gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3" fields={[
             {id:"status",label:"Status",value:employee=>employee.status},
             {id:"type",label:"Employment type",value:employee=>employee.employment_type},
+            ...locationFields.map(field=>({id:field.id,label:field.label,value:(employee:Employee)=>locationValue(employee,field)})),
           ]} renderItem={(employee: Employee) => {
             const name = `${employee.first_name} ${employee.last_name}`;
             const designation = filterOptions?.designation_id?.find(option => option.value === String(employee.designation_id))?.label;
@@ -412,7 +415,7 @@ function EmployeesPage() {
                     onClick={() => setEmployeePopup({ employee: row.original, editing: false })}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3" data-grid-value={cell.column.id === "department_id" ? filterOptions?.department_id?.find(option => option.value === String(cell.getValue()))?.label || "Not set" : undefined}>
+                      <td key={cell.id} className="px-4 py-3" data-grid-value={locationFields.some(field=>field.id===cell.column.id) ? locationValue(row.original,locationFields.find(field=>field.id===cell.column.id)!) || "Not set" : cell.column.id === "department_id" ? filterOptions?.department_id?.find(option => option.value === String(cell.getValue()))?.label || "Not set" : undefined}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}

@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 export default defineConfig({
   // Shared suite components must use the portal's router context too.
-  resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) }, dedupe: ["react", "react-dom", "react-router", "react-router-dom"] },
+  resolve: { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) }, dedupe: ["react", "react-dom", "react-router", "react-router-dom", "@tanstack/react-query"] },
   plugins: [react()],
   server: {
     fs: { allow: [".."] },
@@ -26,7 +26,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           charts: ["recharts"],
-          vendor: ["react", "react-dom", "react-router-dom"],
+          vendor: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
         },
       },
     },

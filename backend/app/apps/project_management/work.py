@@ -204,6 +204,8 @@ def upload(db, task_id, user, file):
     assignment, task = own_assignment(db, task_id, user, True)
     from .api.router import PMS_MAX_ATTACHMENT_BYTES, _validate_attachment_upload, _safe_attachment_name
     from app.core.storage import persist_file
+    from app.services.file_storage import require_project_drive
+    require_project_drive(db)
     _validate_attachment_upload(file)
     original = _safe_attachment_name(file.filename)
     stored = uuid4().hex + "_" + original
@@ -211,6 +213,7 @@ def upload(db, task_id, user, file):
     directory = Path(settings.UPLOAD_DIR).resolve() / "pms" / "work" / str(task.id)
     directory.mkdir(parents=True, exist_ok=True)
     path=directory/stored; size=0
+    storage_attempted = False
     try:
         with path.open("wb") as output:
             while chunk := file.file.read(1024*1024):
@@ -218,12 +221,14 @@ def upload(db, task_id, user, file):
                 if size>PMS_MAX_ATTACHMENT_BYTES: raise HTTPException(413,"Evidence exceeds the configured upload limit")
                 output.write(chunk)
         if not size: raise HTTPException(422,"Evidence cannot be empty")
-        persist_file(str(path))
+        storage_attempted = True
+        persist_file(str(path), db=db, module="pms", filename=original)
         item=PMSFileAsset(project_id=task.project_id,task_id=task.id,uploaded_by_user_id=user.id,file_name=stored,original_name=original,
             mime_type=file.content_type or "application/octet-stream",size_bytes=size,storage_path=str(path),visibility="Work Evidence")
         db.add(item);db.flush();activity(db,task,user,"work.evidence_uploaded",item.id);db.commit()
         return {"id":item.id,"name":item.original_name,"size":size}
     except Exception:
-        path.unlink(missing_ok=True);raise
+        if not storage_attempted: path.unlink(missing_ok=True)
+        raise
     finally:
         file.file.close()

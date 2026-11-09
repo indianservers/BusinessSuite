@@ -12,6 +12,27 @@ function loadTypescript(relative) {
 async function sourceTests() {
   const { localGridSource } = loadTypescript("../src/shared/data-grid/local-source.ts");
   const { emptyQuery } = loadTypescript("../src/shared/data-grid/types.ts");
+  const { withAllRows } = loadTypescript("../src/shared/data-grid/all-rows-source.ts");
+  const many = Array.from({length: 451}, (_, i) => ({id: String(i), name: `Row ${i}`}));
+  const allSource = withAllRows(localGridSource("all-test", many, [{id:"name",title:"Name"}], r => r.id));
+  const serverCalls = [];
+  const serverSource = withAllRows({key:"server-test",load:async(query, signal)=>{
+    assert.equal(query.pageSize,200); assert.equal(query.search,"authorized");
+    serverCalls.push(query.page);
+    return {rows:many.slice((query.page-1)*200,query.page*200),total:451,pageTotal:451,page:query.page,pageSize:200,permissions:{export:false}};
+  }});
+  const serverAll = await serverSource.load({...emptyQuery(),search:"authorized",pageSize:0});
+  assert.deepEqual(serverCalls,[1,2,3]); assert.equal(serverAll.rows.length,451);
+  assert.equal(serverAll.permissions.export,false);
+  console.log("PASS All loads 451 server records in bounded pages and preserves permissions");
+  const all = await allSource.load({...emptyQuery(), pageSize:0});
+  assert.equal(all.rows.length, 451);
+  assert.equal(all.rows[450].id, "450");
+  const allGroups = await allSource.load({...emptyQuery(), pageSize:0, grouping:["name"]});
+  assert.equal(allGroups.groups.length, 451);
+  const allFiltered = await allSource.load({...emptyQuery(), pageSize:0, search:"Row 450"});
+  assert.equal(allFiltered.rows.length, 1);
+
   const rows = [{ id: "1", name: "Alpha", status: "Open", amount: 2 }, { id: "2", name: "Beta", status: "Done", amount: 20 }, { id: "3", name: "Gamma", status: "Open", amount: 100 }];
   const source = localGridSource("test", rows, ["name", "status", "amount"].map(id => ({ id, title: id })), r => r.id);
   assert.equal((await source.load({ ...emptyQuery(), search: "ALPHA" })).rows[0].id, "1");
@@ -37,7 +58,38 @@ async function browserTests() {
   try {
     await page.goto(`${base}/qa-grid-standard`);
     const shared = page.getByTestId("shared"), adapter = page.getByTestId("adapter");
+    await shared.getByLabel("Remove grouping Status").waitFor();
+    if (await shared.getByLabel("Remove grouping Status").count()) await shared.getByLabel("Remove grouping Status").click();
     await shared.getByRole("checkbox", { name: "Select row Record 1", exact: true }).waitFor();
+    await shared.getByLabel("Rows per page", {exact:true}).selectOption("0");
+    await page.waitForTimeout(150);
+    await shared.getByRole("button", {name:"Next",exact:true}).isDisabled().then(disabled => assert.equal(disabled,true));
+    assert.match(await shared.locator(".udg-pagination").innerText(), /Page 1 of 1/);
+    await shared.getByLabel("Rows per page", {exact:true}).selectOption("10");
+    await page.waitForTimeout(150);
+    const rowHandle = shared.getByRole("separator", { name: "Resize row height", exact: true }).first();
+    const recordRow = shared.locator(".udg-row").first();
+    const beforeHeight = (await recordRow.boundingBox()).height;
+    await rowHandle.focus();
+    await rowHandle.press("ArrowDown");
+    await page.waitForTimeout(150);
+    assert.equal(Math.round((await recordRow.boundingBox()).height), Math.round(beforeHeight + 8));
+    const handleBox = await rowHandle.boundingBox();
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await page.mouse.down(); await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2 + 24); await page.mouse.up();
+    await page.waitForTimeout(100);
+    assert.equal(Math.round((await recordRow.boundingBox()).height), Math.round(beforeHeight + 32));
+    await rowHandle.dblclick();
+    assert.equal(await page.getByRole("dialog").count(), 0, "row auto-fit does not open record preview");
+    const firstBottom = await recordRow.evaluate(el => el.getBoundingClientRect().bottom);
+    const secondTop = await shared.locator(".udg-row").nth(1).evaluate(el => el.getBoundingClientRect().top);
+    assert.ok(Math.abs(firstBottom - secondTop) < 2, "resized virtual rows stay aligned");
+    const native = page.getByTestId("matrix");
+    const nativeHandle = native.getByRole("separator", { name: "Resize row height", exact: true });
+    await nativeHandle.focus(); await nativeHandle.press("ArrowDown");
+    assert.equal(await nativeHandle.getAttribute("aria-valuenow"), "72");
+    await native.getByRole("button", { name: "Auto-fit columns", exact: true }).click();
+    console.log("PASS shared and native row resizing, virtual row alignment, native auto-fit");
     await shared.getByLabel("Search grid", { exact: true }).fill("Record 35");
     await shared.getByRole("checkbox", { name: "Select row Record 35", exact: true }).waitFor();
     assert.equal(await shared.getByRole("checkbox", { name: /^Select row/ }).count(), 1);
@@ -57,6 +109,7 @@ async function browserTests() {
     assert.equal(await shared.getByRole("checkbox", { name: "Select row Record 2", exact: true }).isChecked(), true);
     await shared.getByRole("button", { name: "Mark done", exact: true }).click();
     await shared.getByRole("button", { name: /Done.*19/ }).waitFor();
+    if (await adapter.getByLabel("Remove grouping Status").count()) await adapter.getByLabel("Remove grouping Status").click();
     await adapter.getByLabel("Existing select a", { exact: true }).check();
     await page.getByRole("button", { name: "Existing bulk action (1)", exact: true }).waitFor();
     assert.equal(await adapter.getByLabel("Select all loaded rows").count(), 0);

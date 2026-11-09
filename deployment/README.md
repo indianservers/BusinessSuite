@@ -5,6 +5,98 @@ The suite and Interns Hub are built from the same Git revision. One API worker
 preserves the current in-process WebSocket behavior. Allow enough RAM and disk
 for both frontend builds and retained releases.
 
+## Current BestERP host
+
+As of 9 November 2026, `https://besterp.app` serves the suite from
+`139.59.91.37` using Nginx, local PostgreSQL 18 on port 55435, and
+`business-suite.service` on `127.0.0.1:8000`. The active release is
+`/srv/business-suite/releases/20261109-besterp`, copied from the live
+`20261109-grid9395` release rather than the uncommitted development checkout.
+The final restore verified all 837 table counts and the complete user records.
+
+The existing Apache sites on `164.92.119.35` still serve their frontends and
+proxy API, uploads and health requests over verified HTTPS to `besterp.app`.
+That host resolves `besterp.app` directly to the new origin in `/etc/hosts`.
+Its former API and backup timer are disabled to keep one active database.
+The source database, files, release and pre-cutover configuration are retained.
+
+Private runtime configuration is `/srv/business-suite/shared/backend.env`;
+uploads are `/srv/business-suite/shared/besterp-uploads`. The existing local
+backup timer runs on the new host and includes the active database, uploads,
+runtime settings, portal configuration and Google storage client configuration.
+
+Suite login uses Firebase project `best-erp-a19f3`, with Google and Microsoft
+providers enabled and both suite domains authorized. Interns Hub retains its
+separate Firebase identity configuration. Microsoft storage uses the existing
+Azure storage app, delegated `Files.ReadWrite`, `offline_access`, and `User.Read`,
+and callback `https://besterp.app/api/v1/files-storage/oauth/callback`.
+Each company administrator connects their own account in Settings → Files &
+Storage and chooses a destination folder before enabling cloud uploads.
+Credentials remain outside the repository. The Firebase Microsoft client secret
+created during this deployment expires on 8 May 2027 and needs renewal before then.
+
+The Interns Hub Google entry update is deployed on both hosts as a separate static
+portal build under `/srv/business-suite/portal-builds/google-unified-*`.
+Each release's `frontend/interns-hub/dist` symlink selects that build; the former
+directory is retained alongside it as `dist.before-google-*`. Runtime `config.js`
+is preserved, and older hashed assets remain available for already-open tabs.
+`release.json` identifies the change as `intern-google-unified` and records the
+source fingerprint. This update changes no database schema or API service.
+
+The Notes cloud-copy feature is deployed on both suite frontends under
+`/srv/business-suite/suite-builds/notes-cloud-*`, selected by each release's
+`frontend/dist` symlink. Previous assets and `dist.before-notes-cloud-*` are
+retained. The new origin API includes `app/api/v1/note_cloud.py` through the
+Files & Storage router; the previous router source is retained in
+`/root/notes-cloud-deploy`. No schema migration was required. The feature uses
+existing OAuth storage accounts, and requires a user to choose Save to cloud;
+it does not copy notes during deployment.
+
+Direct personal-account connection from Notes is deployed as
+`suite-builds/notes-connect-*` on both hosts. The shared OAuth callback handles
+purpose-bound Notes consent in a popup and returns no provider tokens to the
+browser. Personal Notes connections are excluded from company storage APIs.
+The source module's export grant, company membership and owner checks protect
+these operations; company storage administration still requires its existing
+privileges. Backend rollback files are in `/root/notes-connect-deploy/before`.
+
+## Previous shared Apache deployment
+
+The migration to `164.92.119.35` uses the existing Apache server on Ubuntu 22.04,
+PostgreSQL 18, Python 3.14, Redis, and one API worker bound to `127.0.0.1:8100`.
+Port 8000 belongs to the existing School ERP application. Use the configurations
+in `digitalocean/apache/` for this shared host; the Nginx setup below targets a
+separate, fresh Droplet.
+
+- Suite: `https://app.indianservers.com`.
+- Interns Hub: `https://interns-hub.indianservers.com`.
+- Current release: `/srv/business-suite/current`; private settings and uploads:
+  `/srv/business-suite/shared`.
+- API service: `business-suite.service`; Apache site: `business-suite.conf`.
+- Daily local database/document backups: `business-suite-local-backup.timer`,
+  02:30 India time, 14-day retention, private `shared/backups` directory.
+- The `business-suite` Let's Encrypt certificate covers both hostnames. HTTP
+  verification uses `/srv/business-suite/acme`; renewal reloads Apache.
+- Both apps use Amazon SES (AWS Mail Manager SMTP) through the shared email
+  transport, sender `noreply@indianservers.com`, region `us-east-1`. Credentials
+  remain only in the private server settings. Email notifications, the background
+  delivery worker, and Interns Hub email are enabled; a test was confirmed in
+  the owner's inbox on 9 November 2026.
+
+The public Cloudflare cutover was verified on 9 November 2026. Both former
+Vercel projects are paused. Both login pages and local-database health checks
+passed through the public domains, and the HTTP certificate-renewal dry run
+succeeded. The existing intern data, account hashes, and private documents were
+verified against the final source snapshot.
+
+The migration keeps a verified off-server database/document export. During the
+final cutover the source database has a temporary write-blocking trigger so
+pooled connections cannot create divergent data. Source-snapshot restores must
+remove only `public.businesssuite_migration_write_blocker()` with `CASCADE` in
+the restored target before starting it; normal post-cutover local backups do not
+contain this gate. Restore into a new database and verify counts, account hashes,
+and private files before activation.
+
 ## One-time setup
 
 1. Point your suite and Interns Hub DNS names at the Droplet. Allow SSH, HTTP and

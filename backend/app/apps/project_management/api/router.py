@@ -4341,6 +4341,8 @@ def upload_task_attachment(
 ):
     """Upload a binary file and attach it to a task."""
     task, project = get_task_project_for_action(db, task_id, current_user, "upload")
+    from app.services.file_storage import require_project_drive
+    require_project_drive(db)
     _validate_attachment_upload(file)
     original_name = _safe_attachment_name(file.filename)
     stored_name = f"{uuid.uuid4().hex}_{original_name}"

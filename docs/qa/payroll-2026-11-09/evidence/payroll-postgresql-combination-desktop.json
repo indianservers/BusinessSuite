@@ -1,0 +1,437 @@
+{
+  "monthly": 30516.13,
+  "work": 23,
+  "before": {
+    "id": 1,
+    "payroll_run_id": 1,
+    "employee_id": 1,
+    "employee": {
+      "id": 1,
+      "employee_id": "EMP00001",
+      "first_name": "Synthetic",
+      "last_name": "Combination desktop"
+    },
+    "month": 3,
+    "year": 2027,
+    "financial_year": "2026-27",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2026-04-01",
+    "ytd_period_label": "Financial year 2026-27",
+    "department": "QA Combination desktop",
+    "working_days": 23,
+    "present_days": 22.5,
+    "lop_days": 0.5,
+    "paid_days": 22.5,
+    "gross_salary": 29852.74,
+    "total_deductions": 1465,
+    "net_salary": 28387.74,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "calculated",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6103.23
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 12206.45
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "LOP Deduction",
+        "component_type": "Deduction",
+        "amount": 663.39
+      },
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1465
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1465
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 29852.74,
+      "total_deductions": 1465,
+      "net_salary": 28387.74,
+      "reimbursements": 0,
+      "employer_contributions": 1465
+    }
+  },
+  "corrected": {
+    "id": 2,
+    "payroll_run_id": 1,
+    "employee_id": 1,
+    "employee": {
+      "id": 1,
+      "employee_id": "EMP00001",
+      "first_name": "Synthetic",
+      "last_name": "Combination desktop"
+    },
+    "month": 3,
+    "year": 2027,
+    "financial_year": "2026-27",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2026-04-01",
+    "ytd_period_label": "Financial year 2026-27",
+    "department": "QA Combination desktop",
+    "working_days": 23,
+    "present_days": 21.5,
+    "lop_days": 1.5,
+    "paid_days": 21.5,
+    "gross_salary": 29525.95,
+    "total_deductions": 1715,
+    "net_salary": 27810.95,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "calculated",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6103.23
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "QA bonus",
+        "component_type": "Earning",
+        "amount": 1000
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "LOP Deduction",
+        "component_type": "Deduction",
+        "amount": 1990.18
+      },
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1465
+      },
+      {
+        "component_name": "QA recovery",
+        "component_type": "Deduction",
+        "amount": 250
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1465
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 29525.95,
+      "total_deductions": 1715,
+      "net_salary": 27810.95,
+      "reimbursements": 0,
+      "employer_contributions": 1465
+    }
+  },
+  "repeated": {
+    "id": 3,
+    "payroll_run_id": 1,
+    "employee_id": 1,
+    "employee": {
+      "id": 1,
+      "employee_id": "EMP00001",
+      "first_name": "Synthetic",
+      "last_name": "Combination desktop"
+    },
+    "month": 3,
+    "year": 2027,
+    "financial_year": "2026-27",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2026-04-01",
+    "ytd_period_label": "Financial year 2026-27",
+    "department": "QA Combination desktop",
+    "working_days": 23,
+    "present_days": 21.5,
+    "lop_days": 1.5,
+    "paid_days": 21.5,
+    "gross_salary": 29525.95,
+    "total_deductions": 1715,
+    "net_salary": 27810.95,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "calculated",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6103.23
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "QA bonus",
+        "component_type": "Earning",
+        "amount": 1000
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "LOP Deduction",
+        "component_type": "Deduction",
+        "amount": 1990.18
+      },
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1465
+      },
+      {
+        "component_name": "QA recovery",
+        "component_type": "Deduction",
+        "amount": 250
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1465
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 29525.95,
+      "total_deductions": 1715,
+      "net_salary": 27810.95,
+      "reimbursements": 0,
+      "employer_contributions": 1465
+    }
+  },
+  "slip": {
+    "id": 3,
+    "payroll_run_id": 1,
+    "employee_id": 1,
+    "employee": {
+      "id": 1,
+      "employee_id": "EMP00001",
+      "first_name": "Synthetic",
+      "last_name": "Combination desktop"
+    },
+    "month": 3,
+    "year": 2027,
+    "financial_year": "2026-27",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2026-04-01",
+    "ytd_period_label": "Financial year 2026-27",
+    "department": "QA Combination desktop",
+    "working_days": 23,
+    "present_days": 21.5,
+    "lop_days": 1.5,
+    "paid_days": 21.5,
+    "gross_salary": 29525.95,
+    "total_deductions": 1715,
+    "net_salary": 27810.95,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "locked",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6103.23
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "QA bonus",
+        "component_type": "Earning",
+        "amount": 1000
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "LOP Deduction",
+        "component_type": "Deduction",
+        "amount": 1990.18
+      },
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1465
+      },
+      {
+        "component_name": "QA recovery",
+        "component_type": "Deduction",
+        "amount": 250
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1465
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 29525.95,
+      "total_deductions": 1715,
+      "net_salary": 27810.95,
+      "reimbursements": 0,
+      "employer_contributions": 1465
+    }
+  },
+  "afterUnlock": {
+    "id": 4,
+    "payroll_run_id": 1,
+    "employee_id": 1,
+    "employee": {
+      "id": 1,
+      "employee_id": "EMP00001",
+      "first_name": "Synthetic",
+      "last_name": "Combination desktop"
+    },
+    "month": 3,
+    "year": 2027,
+    "financial_year": "2026-27",
+    "ytd_basis": "financial",
+    "ytd_period_start": "2026-04-01",
+    "ytd_period_label": "Financial year 2026-27",
+    "department": "QA Combination desktop",
+    "working_days": 23,
+    "present_days": 23,
+    "lop_days": 0,
+    "paid_days": 23,
+    "gross_salary": 31516.13,
+    "total_deductions": 1715,
+    "net_salary": 29801.13,
+    "currency": "INR",
+    "salary_currency": "INR",
+    "exchange_rate": 1,
+    "converted_currency": "INR",
+    "currency_note": "Salary processed in INR",
+    "status": "Draft",
+    "payroll_status": "calculated",
+    "pdf_available": false,
+    "is_anomaly": false,
+    "anomaly_reason": null,
+    "earnings": [
+      {
+        "component_name": "Basic",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "House Rent Allowance",
+        "component_type": "Earning",
+        "amount": 6103.23
+      },
+      {
+        "component_name": "Other Allowances",
+        "component_type": "Earning",
+        "amount": 12206.45
+      },
+      {
+        "component_name": "QA bonus",
+        "component_type": "Earning",
+        "amount": 1000
+      }
+    ],
+    "deductions": [
+      {
+        "component_name": "PF Employee",
+        "component_type": "Deduction",
+        "amount": 1465
+      },
+      {
+        "component_name": "QA recovery",
+        "component_type": "Deduction",
+        "amount": 250
+      }
+    ],
+    "employer_contributions": [
+      {
+        "component_name": "PF Employer",
+        "component_type": "Employer Contribution",
+        "amount": 1465
+      }
+    ],
+    "reimbursements": [],
+    "ytd": {
+      "gross_salary": 31516.13,
+      "total_deductions": 1715,
+      "net_salary": 29801.13,
+      "reimbursements": 0,
+      "employer_contributions": 1465
+    }
+  },
+  "snapshotCount": 4,
+  "lockedInputStatus": 400,
+  "lockedReviewStatus": 400
+}

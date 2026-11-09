@@ -1,0 +1,254 @@
+{
+  "updated_at": "2026-11-09T04:00:28.514715+00:00",
+  "status": "STAGING PASSED; production promotion held for remaining rollout gates",
+  "candidate_sha256": "e551c851b8f5ce52b7389e677f1ef747097195ab94475cfee697b2c6cbfd7ac4",
+  "parent_candidate_sha256": "4236cc75252f5f3c3303419fd551e27a2fad7a07e426c43e8ceb0b189249a303",
+  "candidate_directory": "C:\\Users\\Sai Satish\\Documents\\GitHub\\BusinessSuite\\.local\\release-candidates\\rc-20261109T034833437380Z",
+  "source_delta": [
+    "backend/app/core/route_policy.py",
+    "backend/tests/test_follow_up_scheduler_auth.py"
+  ],
+  "fix": "Allow the exact follow-up reminder cron route to reach its existing cron-secret check without requiring a user JWT. Missing/wrong cron secrets remain rejected.",
+  "staging": {
+    "project_id": "prj_uyyoCMN3lBl0iZjU2MkXzINCHuKr",
+    "deployment_id": "dpl_48FR7nhoksdXwPFXhfC4228XZLtZ",
+    "deployment_state": "READY",
+    "origin": "https://businesssuite-release-4236.vercel.app",
+    "source_files_verified": 4284,
+    "schema_runtime_tables": 834,
+    "schema_columns": 9755,
+    "schema_revision": "pg_20261108_090_employee_bgv",
+    "database_isolated": true,
+    "storage_isolated": true,
+    "demo_seed": false,
+    "checks_passed": 26,
+    "checks": {
+      "health": {
+        "passed": true,
+        "http_status": 200
+      },
+      "candidate_identity": {
+        "passed": true,
+        "http_status": 200
+      },
+      "webhook_verification": {
+        "passed": true,
+        "http_status": 200
+      },
+      "webhook_rejects_wrong_token": {
+        "passed": true,
+        "http_status": 403
+      },
+      "signed_webhook": {
+        "passed": true,
+        "http_status": 200
+      },
+      "webhook_rejects_wrong_signature": {
+        "passed": true,
+        "http_status": 403
+      },
+      "admin_login": {
+        "passed": true,
+        "http_status": 200
+      },
+      "company_directory": {
+        "passed": true,
+        "http_status": 200
+      },
+      "whatsapp_connection": {
+        "passed": true,
+        "http_status": 200
+      },
+      "private_blob_upload": {
+        "passed": true,
+        "http_status": 200
+      },
+      "private_blob_readback": {
+        "passed": true,
+        "http_status": 200
+      },
+      "selling_hosted_read": {
+        "passed": true,
+        "http_status": 200
+      },
+      "delivery_hosted_read": {
+        "passed": true,
+        "http_status": 200
+      },
+      "employee_directory_hosted_read": {
+        "passed": true,
+        "http_status": 200
+      },
+      "leave_hosted_read": {
+        "passed": true,
+        "http_status": 200
+      },
+      "employee_exits_hosted_read": {
+        "passed": true,
+        "http_status": 200
+      },
+      "email-dispatch_auth_guard": {
+        "passed": true,
+        "http_status": 401
+      },
+      "email-dispatch_execution": {
+        "passed": true,
+        "http_status": 200
+      },
+      "pms-automations_auth_guard": {
+        "passed": true,
+        "http_status": 401
+      },
+      "pms-automations_execution": {
+        "passed": true,
+        "http_status": 200
+      },
+      "intern-correction-reminders_auth_guard": {
+        "passed": true,
+        "http_status": 401
+      },
+      "intern-correction-reminders_execution": {
+        "passed": true,
+        "http_status": 200
+      },
+      "service-follow-up-reminders_auth_guard": {
+        "passed": true,
+        "http_status": 401
+      },
+      "service-follow-up-reminders_execution": {
+        "passed": true,
+        "http_status": 200
+      },
+      "accounting-sync_auth_guard": {
+        "passed": true,
+        "http_status": 401
+      },
+      "accounting-sync_execution": {
+        "passed": true,
+        "http_status": 200
+      }
+    },
+    "browser": {
+      "passed": true,
+      "login": true,
+      "whatsapp_page": true,
+      "errors": [],
+      "failedApi": []
+    }
+  },
+  "tests": {
+    "parent_postgresql": "262 passed; zero skipped. Inherited unchanged workflow source.",
+    "additional_regression_suite": "24 passed; follow-up scheduler authentication, follow-up operations and backend permissions.",
+    "new_auth_regression": "Cron secret succeeds without a user JWT; missing/wrong secrets and non-exact route exceptions remain protected."
+  },
+  "live_messaging": {
+    "authorization": "One labelled WhatsApp and one labelled email to user-designated recipients",
+    "whatsapp": {
+      "recipient": "+919618222220",
+      "request_id": "release_4236_live_whatsapp_20261109",
+      "message_id": 1,
+      "provider_accepted": true,
+      "actual_canonical_receipt_statuses": [
+        "sent",
+        "delivered"
+      ],
+      "delivery_confirmed": true,
+      "live_inbound_reply_confirmed": false
+    },
+    "email": {
+      "recipient": "saisatish@indianservers.com",
+      "sender": "noreply@dsbchartered.com",
+      "subject": "[RELEASE TEST 4236] BusinessSuite email verification",
+      "http_status": 201,
+      "status": "sent",
+      "message_id": 1,
+      "provider_accepted": true,
+      "inbox_delivery_confirmed": false,
+      "earlier_attempt": "HTTP 409 company-setup gate blocked before provider invocation; completed synthetic company profile and retried once"
+    },
+    "deduplication": {
+      "outbound_whatsapp_rows": 1,
+      "replayed_receipt_rows": 1,
+      "sent_email_rows": 1
+    },
+    "stage_receipt_replay": {
+      "purpose": "Replay reconstructed from the actual canonical provider receipt into isolated staging; Meta subscription was not changed",
+      "signed_replay_http": [
+        200,
+        200
+      ],
+      "stage_message_status": "delivered",
+      "observed_canonical_status": "delivered",
+      "passed": true,
+      "delivery_replay_http": 200
+    },
+    "callback": "https://app.indianservers.com/api/v1/integrations/whatsapp/webhook",
+    "meta_subscription_changed": false
+  },
+  "domains": [
+    {
+      "domain": "app.indianservers.com",
+      "status": 200,
+      "final_url": "https://app.indianservers.com/",
+      "title": "Business Suite",
+      "server": "Vercel",
+      "ip": "216.150.16.193"
+    },
+    {
+      "domain": "team.indianservers.com",
+      "status": 200,
+      "final_url": "https://aimersociety.com/",
+      "title": "Artificial Intelligence Medical and Engineering Researchers Society",
+      "server": "cloudflare",
+      "ip": "104.21.20.83"
+    },
+    {
+      "domain": "app.dsbchartered.com",
+      "status": 200,
+      "final_url": "https://app.dsbchartered.com/",
+      "title": "Business Suite",
+      "server": "Vercel",
+      "ip": "216.150.16.65"
+    },
+    {
+      "domain": "besterp.app",
+      "status": 200,
+      "final_url": "https://besterp.app/",
+      "title": "Welcome to BestERP",
+      "server": "cloudflare",
+      "ip": "104.21.48.112"
+    }
+  ],
+  "routing_assumption": "Retain current domain roles pending user clarification. No DNS or production aliases changed.",
+  "rollout_gates": [
+    "Confirm email inbox receipt and the requested RELEASE4236 WhatsApp reply for live inbound acceptance.",
+    "DSB is a separate instance: its WhatsApp callback remains unconfigured. Select/configure its own account and callback routing before enabling WhatsApp there; do not copy the Indian Servers sender into a different tenant database.",
+    "Confirm final roles for team.indianservers.com and besterp.app before any routing changes.",
+    "Immediately before any production promotion, refresh the per-project rollback baseline, capture the production backup, verify old-app/schema compatibility and deploy the exact frozen source with the intended project environment."
+  ],
+  "rollback_baselines": [
+    {
+      "domain": "app.indianservers.com",
+      "deployment_id": "dpl_AHzDHvV5dWB5NB3x6CGLAvfniFgq",
+      "url": "indianservers-ex6705d06-dsbca.vercel.app",
+      "project_id": "prj_b3XOky29D6HclRNTh6nu5kJtiI2q",
+      "ready_state": "READY",
+      "base_commit": "7d22e502bf399ecb02ea233c6da959d2a4598434"
+    },
+    {
+      "domain": "app.dsbchartered.com",
+      "deployment_id": "dpl_AFYTtUvVMFmAMctVFJwDd2m8E884",
+      "url": "businesssuite-f2ij3e3tk-dsbca.vercel.app",
+      "project_id": "prj_AZ86wc2FbH4Qe10Whg49wJGL38jL",
+      "ready_state": "READY",
+      "base_commit": "7d22e502bf399ecb02ea233c6da959d2a4598434"
+    }
+  ],
+  "production_actions": "Verified canonical callback with empty signed payload and invalid signature/token rejection; read only receipt lookup for the authorized test. No production traffic promotion, DNS change, production schema migration, restore or rollback.",
+  "operator_notes": [
+    "Staging direct migration URL corrected to postgresql+psycopg; raw postgresql selected absent psycopg2.",
+    "Local diagnostic migration was stopped after a competing hosted attempt timed out on its lock; subsequent hosted builds completed and verified the schema.",
+    "Initial CLI previews selected the parent project; both were removed. Subsequent builds used extracted source outside the checkout and an explicit staging project.",
+    "SES credentials found in existing ignored local configuration, validated over TLS and stored in staging without exposing values."
+  ]
+}

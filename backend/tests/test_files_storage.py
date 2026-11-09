@@ -315,3 +315,87 @@ def test_dropbox_oauth_requests_offline_access_and_pkce(client,superuser_headers
     assert query["token_access_type"]==["offline"]
     assert query["code_challenge_method"]==["S256"]
     assert "files.content.write" in query["scope"][0]
+
+
+def test_primary_project_storage_rejects_other_tenant_and_disconnected_drive(db, storage_root, monkeypatch):
+    from app.services.file_storage import require_project_drive
+    monkeypatch.setattr(settings, "PMS_GOOGLE_DRIVE_REQUIRED", True)
+    other, _ = cloud(db, company=2)
+    policy = StoragePolicy(organization_id=1, enabled=True, routes={"default": {"connection_id": other.id, "folder_id": "other-tenant"}})
+    db.add(policy); db.commit()
+    with pytest.raises(HTTPException) as exc:
+        require_project_drive(db, 1)
+    assert exc.value.status_code == 409
+    own, _ = cloud(db)
+    require_project_drive(db, 1)
+    own.connected = False
+    with pytest.raises(HTTPException):
+        require_project_drive(db, 1)
+
+
+def test_primary_project_failure_preserves_original_without_local_fallback(db, storage_root, monkeypatch):
+    monkeypatch.setattr(settings, "PMS_GOOGLE_DRIVE_REQUIRED", True)
+    cloud(db)
+    path = storage_root / "pms" / "failed.pdf"
+    path.parent.mkdir(); path.write_bytes(b"%PDF-original")
+    monkeypatch.setattr(providers, "upload", lambda *args: "unverified-id")
+    monkeypatch.setattr(providers, "download", lambda *args: b"wrong bytes")
+    with pytest.raises(HTTPException) as exc:
+        persist_file(str(path), db=db, company=1, module="pms")
+    assert exc.value.status_code == 503
+    db.rollback()
+    assert path.read_bytes() == b"%PDF-original"
+
+
+def test_cloud_read_does_not_recreate_server_copy(db, storage_root, monkeypatch):
+    from app.services.file_storage import cloud_content
+    monkeypatch.setattr(settings, "PMS_GOOGLE_DRIVE_REQUIRED", True)
+    cloud(db)
+    content = b"%PDF-private-project"
+    monkeypatch.setattr(providers, "upload", lambda *args: "verified-id")
+    monkeypatch.setattr(providers, "download", lambda *args: content)
+    path = storage_root / "pms" / "verified.pdf"
+    path.parent.mkdir(); path.write_bytes(content)
+    persist_file(str(path), db=db, company=1, module="pms")
+    assert path.exists()
+    db.commit()
+    assert not path.exists()
+    assert cloud_content(str(path), db, 1)[0] == content
+    assert not path.exists()
+    assert cloud_content(str(path), db, 2) is None
+
+
+def test_primary_project_upload_never_falls_back_without_business_context(storage_root, monkeypatch):
+    monkeypatch.setattr(settings, "PMS_GOOGLE_DRIVE_REQUIRED", True)
+    path = storage_root / "pms" / "unowned.pdf"
+    path.parent.mkdir(); path.write_bytes(b"%PDF-unowned")
+    from app.core.audit_context import context
+    token = context.set(None)
+    try:
+        with pytest.raises(HTTPException) as exc:
+            persist_file(str(path), module="pms")
+        assert exc.value.status_code == 409
+        assert path.exists()
+    finally:
+        context.reset(token)
+
+
+def test_private_note_chat_response_does_not_mint_links_or_cache_bytes(db, storage_root, monkeypatch):
+    from app.core.storage import private_attachment_response
+    conn, _ = cloud(db)
+    content = b"private chat bytes"
+    path = storage_root / "pms" / "chat" / "private.txt"
+    path.parent.mkdir(parents=True)
+    row = StorageObject(organization_id=1, module="pms", relative_path="pms/chat/private.txt", filename="private.txt", content_type="text/plain", size=len(content), sha256=hashlib.sha256(content).hexdigest(), connection_id=conn.id, provider="google_drive", folder_id="qa-folder", remote_id="private-id", status="cloud", versions=[])
+    db.add(row); db.commit()
+    monkeypatch.setattr(providers, "download", lambda *args: content)
+    token = context.set({"actor": {"access_company": 1}, "storage_session": db})
+    try:
+        response = private_attachment_response(str(path), db=db, filename="private.txt", media_type="text/plain")
+        assert response.body == content
+        assert context.get()["file_response_path"] == str(path)
+        assert "location" not in response.headers
+        assert response.headers["cache-control"] == "private, no-store"
+        assert not path.exists()
+    finally:
+        context.reset(token)

@@ -1,3 +1,4 @@
+import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import CrmRecordFields, { useCrmFieldForm, CrmFieldsReadOnly } from "@/shared/custom-fields/CrmRecordFields";
 import Record360Workspace from "@/shared/records/Record360Workspace";
 import { affectsResource, recordSavedEvent, type RecordSaved } from "@/lib/record-changes";
@@ -51,7 +52,7 @@ import "./universal-contacts.css";
 
 
 
-type Contact = {gstNumber?: string; bankAccountCount?: number; upiCount?: number; unconvertedLeadIds?: number[]; id: number; name: string; email?: string; phone?: string; phoneCountryCode?: string; organization?: string; companyId?:number;roles?:string[];lifecycleStage?:string; ownerId?: number; status: string; tags: string[]; lastInteraction?: string; nextFollowUp?: string; createdAt?: string; updatedAt?: string; notes?: string; version: string; deletedAt?: string};
+type Contact = {city?:string; state?:string; country?:string; pincode?:string;gstNumber?: string; bankAccountCount?: number; upiCount?: number; unconvertedLeadIds?: number[]; id: number; name: string; email?: string; phone?: string; phoneCountryCode?: string; organization?: string; companyId?:number;roles?:string[];lifecycleStage?:string; ownerId?: number; status: string; tags: string[]; lastInteraction?: string; nextFollowUp?: string; createdAt?: string; updatedAt?: string; notes?: string; version: string; deletedAt?: string};
 
 type Lead = {id: number; name: string; status: string; converted: boolean};
 
@@ -61,17 +62,17 @@ type Directory = {items: Contact[]; total: number; stats: Record<string, number>
 
 type Condition = {field: string; operator: string; value: string};
 
-type Column = "gstNumber" | "bankAccounts" | "upi" | "name" | "email" | "phone" | "tags" | "owner" | "status" | "lastInteraction" | "nextFollowUp" | "updated" | "created";
+type Column = "state" | "city" | "pincode" | "country" | "gstNumber" | "bankAccounts" | "upi" | "name" | "email" | "phone" | "tags" | "owner" | "status" | "lastInteraction" | "nextFollowUp" | "updated" | "created";
 
-type Preferences = {financialColumnsVersion?: number; columns: Column[]; widths: Partial<Record<Column, number>>; card: boolean; favorites: number[]; presets: {name: string; filters: Condition[]; match: string}[]};
+type Preferences = {locationColumnsVersion?:number;financialColumnsVersion?: number; columns: Column[]; widths: Partial<Record<Column, number>>; card: boolean; favorites: number[]; presets: {name: string; filters: Condition[]; match: string}[]};
 
 const root = "/crm/contact-directory";
 
-const columns: Column[] = ["gstNumber", "bankAccounts", "upi", "name", "email", "phone", "tags", "owner", "status", "lastInteraction", "nextFollowUp", "updated", "created"];
+const columns: Column[] = ["state", "city", "pincode", "country","gstNumber", "bankAccounts", "upi", "name", "email", "phone", "tags", "owner", "status", "lastInteraction", "nextFollowUp", "updated", "created"];
 
-const titles: Record<Column, string> = {gstNumber: "Company GST number", bankAccounts: "Bank accounts", upi: "UPI IDs", name: "Contact / organization", email: "Email", phone: "Phone", tags: "Relationships", owner: "Owner", status: "Status", lastInteraction: "Last interaction", nextFollowUp: "Next follow-up", updated: "Updated", created: "Created"};
+const titles: Record<Column, string> = {state:"State", city:"City", pincode:"PIN code", country:"Country",gstNumber: "Company GST number", bankAccounts: "Bank accounts", upi: "UPI IDs", name: "Contact / organization", email: "Email", phone: "Phone", tags: "Relationships", owner: "Owner", status: "Status", lastInteraction: "Last interaction", nextFollowUp: "Next follow-up", updated: "Updated", created: "Created"};
 
-const defaultPreferences: Preferences = {financialColumnsVersion: 1, columns: ["name", "email", "phone", "tags", "owner", "status", "nextFollowUp", "updated", "gstNumber", "bankAccounts", "upi"], widths: {}, card: false, favorites: [], presets: []};
+const defaultPreferences: Preferences = {locationColumnsVersion:1,financialColumnsVersion: 1, columns: ["name", "email", "phone", "tags", "owner", "status", "nextFollowUp", "updated", "gstNumber", "bankAccounts", "upi", "state", "city", "pincode", "country"], widths: {}, card: false, favorites: [], presets: []};
 
 const date = (value?: string) => value ? new Date(value).toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"}) : "—";
 
@@ -79,7 +80,7 @@ const badgeClass = (tag: string) => ({lead: "blue", prospect: "cyan", customer: 
 
 function Badges({tags}: {tags: string[]}) { return <div className="uc-badges">{tags.map(tag => <span key={tag} className={`uc-badge uc-${badgeClass(tag)}`}>{tag}</span>)}</div>; }
 
-function loadPreferences(key: string): Preferences { try { const value = JSON.parse(localStorage.getItem(key) || "null"); return value ? {...defaultPreferences, ...value, columns: value.columns ? [...new Set<Column>([...value.columns.filter((x: Column) => columns.includes(x)), ...(value.financialColumnsVersion === 1 ? [] : ["gstNumber", "bankAccounts", "upi"] as Column[])])] : defaultPreferences.columns, financialColumnsVersion: 1} : defaultPreferences; } catch { return defaultPreferences; } }
+function loadPreferences(key: string): Preferences { try { const value = JSON.parse(localStorage.getItem(key) || "null"); if(value && value.locationColumnsVersion!==1){value.columns=[...new Set([...(value.columns||defaultPreferences.columns), ...locationFields.map(field=>field.id)])];value.locationColumnsVersion=1;} return value ? {...defaultPreferences, ...value, columns: value.columns ? [...new Set<Column>([...value.columns.filter((x: Column) => columns.includes(x)), ...(value.financialColumnsVersion === 1 ? [] : ["gstNumber", "bankAccounts", "upi"] as Column[])])] : defaultPreferences.columns, financialColumnsVersion: 1} : defaultPreferences; } catch { return defaultPreferences; } }
 
 
 
@@ -232,6 +233,8 @@ function DirectoryWorkspace({ title }: { title: string }) {
   const resize = (event: React.PointerEvent, key: Column) => {event.preventDefault(); const start = event.clientX; const initial = prefs.widths[key] || (key === "name" || key === "tags" ? 240 : 180); const move = (e: PointerEvent) => setPrefs(p => ({...p, widths: {...p.widths, [key]: Math.max(120, initial + e.clientX - start)}})); const up = () => {window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);}; window.addEventListener("pointermove", move); window.addEventListener("pointerup", up, {once: true});};
 
   function cell(row: Contact, column: Column) {
+    const location = locationFields.find(field=>field.id===column);
+    if(location) return locationValue(row,location)||"Not set";
 
     if (column === "gstNumber") return row.gstNumber || "—";
 

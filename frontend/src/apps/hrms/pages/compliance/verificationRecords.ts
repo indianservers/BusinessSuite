@@ -1,3 +1,5 @@
+import { useAuthStore } from "@/store/authStore";
+import { selectedBranch } from "@/lib/branch-context";
 export type VerificationCheck = {
   id: number; check_type: string; status: string; result: string | null;
   employee_document_id: number | null; document_url: string | null;
@@ -36,4 +38,11 @@ export type Vendor = {id: number; name: string; status: string};
 export function verificationError(error: unknown): string {
   const detail = (error as {response?: {data?: {detail?: unknown}}})?.response?.data?.detail;
   return typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map(v => v.msg || "Invalid value").join("; ") : "Could not save. Please retry.";
+}
+
+export function verificationPhoneScope(employeeId: number) {
+  const actor = useAuthStore.getState().user;
+  let context: unknown[] = [];
+  try { context = [sessionStorage.getItem("suite-tenant"), sessionStorage.getItem("suite-organization"), selectedBranch()]; } catch { /* Current in-memory identity still scopes the editor. */ }
+  return JSON.stringify([employeeId, actor?.id, actor?.employee_id, actor?.role, actor?.is_superuser, actor?.access, ...context]);
 }
