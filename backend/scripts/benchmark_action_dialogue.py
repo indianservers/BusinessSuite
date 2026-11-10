@@ -62,13 +62,19 @@ def main():
     for row in authored:
         actual=parse(row['text'],row['module']).intent
         if actual!=row['intent']:exemplar_failures.append({**row,'actual':actual})
-    report={'total':len(rows),'passed':len(rows)-len(failures),'by_kind':counts,'failures':failures,
+    from app.ai_operator.conversational_corpus import benchmark
+    natural=benchmark()
+    from app.ai_operator.realworld_action_corpus import benchmark as workplace_benchmark
+    workplace=workplace_benchmark()
+    from app.ai_operator.workplace_actions_v2 import benchmark as workplace_v2_benchmark
+    workplace_v2=workplace_v2_benchmark()
+    report={'total':len(rows),'passed':len(rows)-len(failures),'by_kind':counts,'failures':failures,'natural_actions':natural,'workplace_actions':workplace,'workplace_actions_v2':workplace_v2,
             'existing_development':{'passed':len(development)-len(recognition_failures),'total':len(development),'failures':recognition_failures},
             'authored_training_recognition':{'passed':len(authored)-len(exemplar_failures),'total':len(authored),'failures':exemplar_failures},
             'limits':'Synthetic authored planning cases, not independent language tests. No business actions, permission checks or deliveries are executed here; separate native integration tests cover those.'}
     (folder/'conversation-evaluation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2),flush=True)
-    if failures or recognition_failures or exemplar_failures:raise SystemExit(1)
+    if failures or recognition_failures or exemplar_failures or natural['failures'] or workplace['failures'] or workplace_v2['failures']:raise SystemExit(1)
 
 
 if __name__=='__main__':main()

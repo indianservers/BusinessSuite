@@ -57,3 +57,13 @@ def test_release_binding_rejects_wrong_job_and_signature(candidate):
     value=json.loads((folder/'release.json').read_text());value['signature']='0'*64
     (folder/'release.json').write_text(json.dumps(value))
     with pytest.raises(ValueError):release.verify(folder,1)
+
+
+def test_fresh_workplace_failure_blocks_activation_and_keeps_previous_release(candidate):
+    root,folder,write=candidate
+    (root/'active.json').write_text(json.dumps({'job_id':226}))
+    write('conversation-evaluation.json',{'total':684,'passed':684,'failures':[],
+        'workplace_actions_v2':{'total':150,'passed':149,'failures':[{'id':'workplace-v2-CRM-0-0'}]}})
+    assert not release.seal(folder,1,'dataset-digest')['passed']
+    with pytest.raises(ValueError):release.pointer(root,1)
+    assert json.loads((root/'active.json').read_text())['job_id']==226

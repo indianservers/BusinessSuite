@@ -45,6 +45,18 @@ def assess(folder,baseline=None):
     check('Dialogue numeric parity',metric(dialogue['portable_max_error'],0,1e-5),dialogue['portable_max_error'],'at most 0.00001')
     check('Authored conversation scenarios',conversations['total']>=600 and conversations['passed']==conversations['total'] and not conversations.get('failures'),
         f"{conversations['passed']}/{conversations['total']}",'all scenarios; at least 600')
+    natural=conversations.get('natural_actions')
+    if natural:
+        check('Conversational action programs',natural['total']>=100 and natural['passed']==natural['total'] and not natural.get('failures'),
+            f"{natural['passed']}/{natural['total']}",'all authored workflow probes; at least 100')
+    workplace=conversations.get('workplace_actions')
+    if workplace:
+        check('Workplace action regressions',workplace['total']>=150 and workplace['passed']==workplace['total'] and not workplace.get('failures'),
+            f"{workplace['passed']}/{workplace['total']}",'all realistic authored scenarios; at least 150')
+    workplace_v2=conversations.get('workplace_actions_v2')
+    if workplace_v2:
+        check('Workplace action batch 2',workplace_v2['total']>=150 and workplace_v2['passed']==workplace_v2['total'] and not workplace_v2.get('failures'),
+            f"{workplace_v2['passed']}/{workplace_v2['total']}",'all fresh authored scenarios; at least 150')
     check('Frozen unseen dialogue',unseen['total']>=120 and metric(unseen['passed']/max(unseen['total'],1),.75),
         unseen['passed']/max(unseen['total'],1),'at least 0.75 on 120+ frozen synthetic probes')
     check('Canonical actions and safety',native.get('model_sha256')==file_hash(folder/'bundle.json') and native.get('dialogue_sha256')==file_hash(folder/'dialogue.json') and native.get('tests',0)>=20 and native.get('failures')==0 and native.get('errors')==0 and native.get('skipped')==0,

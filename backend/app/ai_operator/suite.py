@@ -518,7 +518,7 @@ async def _command(data,request,db,user,scope):
     from app.ai_operator import suite_uploads as uploads
     attachment_context=uploads.context(db,user,data.conversation_id,data.attachment_ids)
     parent = owned(db,user,data.parent_run_id) if data.parent_run_id else None
-    workflow_parent=bool(parent and parent.status=='needs_clarification' and (parent.result or {}).get('workflow'))
+    workflow_parent=bool(parent and parent.status in {'needs_clarification','awaiting_approval'} and (parent.result or {}).get('workflow'))
     if parent and data.conversation_id:
         if parent.status in {'planning','queued','executing','waiting_pms','cancelling'}:
             raise HTTPException(409,'Wait for active work before continuing this conversation')
@@ -583,7 +583,9 @@ async def _command(data,request,db,user,scope):
     if data.provider=='local' and not data.local_plan:
         from app.ai_operator.workflows import local_plan as workflow_plan
         from app.ai_operator.local_tensorflow import runtime_scope
-        proposed,workflow_state=workflow_plan(data,parent,runtime_scope(db,user,data.workspace_id))
+        from app.ai_operator.conversational_actions import project_choice
+        choice=await project_choice(data,parent,request)
+        proposed,workflow_state=workflow_plan(data,parent,runtime_scope(db,user,data.workspace_id),project_choice=choice)
         if proposed:data.local_plan=Plan.model_validate(proposed)
     receipt_answer=None
     if data.conversation_id and data.provider=='local':

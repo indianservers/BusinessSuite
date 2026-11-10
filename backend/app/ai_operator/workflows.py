@@ -84,7 +84,7 @@ def failure(run,exc,started):
     return 'needs_reconciliation' if started else 'queued' if automatic else 'paused'
 
 
-def local_plan(data,parent,model_scope):
+def local_plan(data,parent,model_scope,project_choice=None):
     """Compose supported local actions, retaining missing fields on the server.
 
     Quoted payloads are never split. No arbitrary endpoints or model-generated
@@ -94,24 +94,54 @@ def local_plan(data,parent,model_scope):
     from app.ai_operator.local_nlp import parse,Interpretation
     from app.ai_operator.local_dialogue import continue_action
     from app.ai_operator.local_runtime import task_plan
-    prior=(parent.result or {}).get('workflow') if parent and parent.status=='needs_clarification' else None
-    if prior:
+    prior=(parent.result or {}).get('workflow') if parent and parent.status in {'needs_clarification','awaiting_approval'} else None
+    if prior and (parent.status=='awaiting_approval' or 'pending' not in prior):
+        from app.ai_operator.conversational_actions import amend
+        state,question=amend(prior,data.text,data.timezone,data.module)
+        if state.get('cancelled'):return {'summary':'Workflow draft cancelled. No actions were executed.','steps':[]},state
+        if question:return {'summary':'The existing workflow is unchanged. No new action has run.','question':question,'steps':[]},state
+    elif prior:
         state={**prior,'intents':[dict(v) for v in prior['intents']]}
         pos=state['pending'];old=state['intents'][pos]
-        current=parse(data.text,old['module'],timezone=data.timezone,model_scope=model_scope)
-        answer=continue_action(current,old,data.text,data.timezone,model_scope=model_scope)
+        reply=f'project #{project_choice}' if project_choice and old['slots'].get('_awaiting')=='project_id' else data.text
+        current=parse(reply,old['module'],timezone=data.timezone,model_scope=model_scope)
+        answer=continue_action(current,old,reply,data.timezone,model_scope=model_scope)
         if answer.intent=='cancelled':return {'summary':'Workflow draft cancelled. No actions were executed.','steps':[]},{'cancelled':True}
         if answer.intent!=old['intent'] or answer.module!=old['module']:
             return {'summary':'The collected workflow is unchanged. No actions have run.',
                 'question':f"Step {pos+1}: Please provide the requested {old['slots'].get('_awaiting','details').replace('_',' ')}, or cancel this draft and start a new workflow.",'steps':[]},state
         state['intents'][pos]={'module':answer.module,'intent':answer.intent,'slots':dict(answer.slots),'question':answer.question}
     else:
+        from app.ai_operator.conversational_actions import compose
+        proposal=compose(data.text,data.module)
+        if proposal and proposal.get('question'):
+            return {'summary':'I need to clarify this workflow before preparing actions.','question':proposal['question'],'steps':[]},None
+        if proposal and proposal.get('clauses'):
+            state={'intents':[],'project_id':data.project_id,'composer':'conversational-actions-v1'}
+            if proposal.get('new_project'):state.update(new_project=proposal['new_project'],project_id=None)
+            if len(proposal['clauses'])+int(bool(proposal.get('new_project')))>8:raise HTTPException(422,'Prepare at most eight actions in one review')
+            for clause in proposal['clauses']:
+                intent=parse(clause['text'],clause['module'],timezone=data.timezone,model_scope=model_scope)
+                natural=parse(clause.get('original') or clause['text'],clause['module'],timezone=data.timezone,model_scope=model_scope)
+                state.setdefault('recognition',[]).append({'module':natural.module,'predicted_intent':natural.intent,'neural_prediction':natural.neural,
+                    'canonical_intent':intent.intent,'note':'Trained recognition plus explicit action grammar; this never authorizes execution.'})
+                if intent.intent not in {'tasks.create','ticket.create','milestone.create'}:
+                    return {'summary':'No actions have run.','question':'Describe an explicit task, milestone or HR ticket for each item.','steps':[]},None
+                slots=dict(intent.slots)
+                if clause.get('parent_step'):slots['_parent_step']=clause['parent_step']
+                if clause.get('project_id'):
+                    if state.get('project_id') not in {None,clause['project_id']}:
+                        return {'summary':'No actions have run.','question':'Use one selected project per local workflow, or start a separate conversation for the other project.','steps':[]},None
+                    state['project_id']=clause['project_id']
+                state['intents'].append({'module':intent.module,'intent':intent.intent,'slots':slots,'question':intent.question})
+        else:
+            state=None
         # Split only separators outside quoted strings.
         parts=re.split(r'(?:\s+(?:and\s+then|then)\s+|;\s*)(?=(?:[^"“”]*["“][^"“”]*["”])*[^"“”]*$)',data.text,flags=re.I)
-        if len(parts)<2:return None,None
-        if len(parts)>8:raise HTTPException(422,'Prepare at most eight local workflow actions in one review')
-        state={'intents':[],'project_id':data.project_id}
-        for part in parts:
+        if state is None and len(parts)<2:return None,None
+        if state is None and len(parts)>8:raise HTTPException(422,'Prepare at most eight local workflow actions in one review')
+        if state is None:state={'intents':[],'project_id':data.project_id}
+        for part in ([] if state['intents'] else parts):
             if not re.match(r'^\s*(?:CRM|PMS|HRMS|HR)\s*:',part,re.I):
                 return {'summary':'No workflow actions have been prepared.','question':'Prefix each local step with CRM:, PMS: or HRMS: so its module is explicit. Finance and other actions require an enabled connected provider.','steps':[]},None
             intent=parse(part.strip(),data.module,timezone=data.timezone,model_scope=model_scope)
@@ -119,22 +149,31 @@ def local_plan(data,parent,model_scope):
                 return {'summary':'This local workflow needs a supported action for each step.','question':'Use CRM/PMS task creation, PMS milestone creation or HRMS ticket creation with explicit module names. Connected providers can plan other supported tools.','steps':[]},None
             state['intents'].append({'module':intent.module,'intent':intent.intent,'slots':dict(intent.slots),'question':intent.question})
     steps=[]
+    if state.get('new_project'):
+        steps.append({'tool':'pms.create_project','payload':{**state['new_project'],'project_key':'AI-'+data.request_key.replace('-','')[:12]},'depends_on':[]})
     for pos,item in enumerate(state['intents']):
         intent=Interpretation(item['module'],item['intent'],1,dict(item['slots']),item.get('question'))
         if intent.slots.get('project_id'):state['project_id']=intent.slots['project_id']
-        context=SimpleNamespace(project_id=state.get('project_id'),timezone=data.timezone,request_key=f'{data.request_key}-{pos}')
+        from uuid import uuid5,NAMESPACE_URL
+        context=SimpleNamespace(project_id=1 if state.get('new_project') else state.get('project_id'),timezone=data.timezone,request_key=str(uuid5(NAMESPACE_URL,f'suite:{data.request_key}:step:{pos}')))
         result=task_plan(intent,context,[],[])
         if result is None:raise HTTPException(422,'This workflow step is not supported by the local action catalog')
         state['intents'][pos]={**item,'slots':dict(intent.slots)}
         if result.get('question'):
             state['pending']=pos
+            if intent.slots.get('_awaiting')=='project_id':result['question']='Which project should contain this work? Reply with its exact name or project #ID in this workspace.'
             return {'summary':f'Preparing a {len(state["intents"])}-step workflow. No actions have run.',
                 'question':f'Step {pos+1}: '+result['question'],'steps':[]},state
         for step in result.get('steps',[]):
+            if state.get('new_project') and step['tool'].startswith('pms.'):step['record_id']={'$step':1,'field':'id'}
+            if intent.slots.get('_parent_step'):
+                step['payload']['parent_task_id']={'$step':intent.slots['_parent_step'],'field':'id'}
             step['depends_on']=[len(steps)] if steps else []
             steps.append(step)
     state.pop('pending',None)
     data.project_id=state.get('project_id')
+    modules={step['tool'].split('.',1)[0].upper() for step in steps}
+    if len(modules)==1:data.module=next(iter(modules))
     return {'summary':f'Review these {len(steps)} dependent actions across the selected modules. They execute in order; completed actions are retained if a later step stops.','steps':steps},state
 
 

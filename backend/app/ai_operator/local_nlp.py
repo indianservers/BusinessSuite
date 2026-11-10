@@ -139,7 +139,7 @@ def parse(text, module=None, *, timezone='Asia/Kolkata', instant=None, model_sco
     numbers={word:i for i,word in enumerate('zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen'.split())}
     date_text=re.sub(r'\bin (one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen) (days?|weeks?)\b',lambda m:f'in {numbers[m[1].lower()]} {m[2]}',unquoted,flags=re.I)
     date_text=re.sub(r'\b(?:the )?day after tomorrow\b','in 2 days',date_text,flags=re.I)
-    dates=re.search(r'\b(\d{4}-\d{2}-\d{2}|today|tomorrow|next (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|in \d{1,3} (?:days?|weeks?))\b',date_text,re.I)
+    dates=re.search(r'\b(\d{4}-\d{2}-\d{2}|today|tomorrow|next (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|in \d{1,3} (?:days?|weeks?)|end of (?:this )?month)\b',date_text,re.I)
     if dates:
         try: slots['due_date']=resolve_date(dates[1],timezone,today=now.date())
         except HTTPException: slots['invalid_date']=True

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -52,7 +53,9 @@ def _create_ticket_record(
     if not current_user.employee:
         raise HTTPException(status_code=400, detail="No employee profile")
 
-    ticket_number = f"TKT{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{current_user.employee.id:04d}"
+    # Several approved workflow steps can create tickets in the same second.
+    # Timestamp + employee ID collides; keep references within String(30).
+    ticket_number = 'TKT' + uuid4().hex[:27]
     category = db.query(HelpdeskCategory).filter(HelpdeskCategory.id == category_id).first() if category_id else None
     sla_hours = category.sla_hours if category else 24
     now = datetime.now(timezone.utc)

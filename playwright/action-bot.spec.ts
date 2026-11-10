@@ -1,6 +1,18 @@
 import {test,expect} from '../frontend/node_modules/playwright/test';
 import {mkdir} from 'node:fs/promises';
 
+test('multiline workplace message creates a valid single-line conversation title',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();
+ await page.getByRole('button',{name:'New bot conversation'}).click();
+ const input=page.getByRole('textbox',{name:'Message action bot'});await expect(input).toBeEnabled();
+ const message='Create tasks:\n- Check contract\n- Review trial feedback';
+ await input.fill(message);await page.getByRole('button',{name:'Send bot message'}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
+ const requests=await page.evaluate(()=>(window as any).__botRequests);
+ expect(requests.find((r:any)=>r.path.endsWith('/conversations')&&r.method==='post').body.title).toBe('Create tasks: - Check contract - Review trial feedback');
+ expect(requests.find((r:any)=>r.path.endsWith('/commands')).body.text).toBe(message);
+});
+
 test('workspace feedback is saved without approving a draft',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
  const input=page.getByRole('textbox',{name:'Message action bot'});await expect(input).toBeEnabled();await input.fill('Prepare feedback draft');await page.getByRole('button',{name:'Send bot message'}).click();

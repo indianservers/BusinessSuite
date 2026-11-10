@@ -8,7 +8,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-TESTS=('tests/test_suite_workflows.py','tests/test_suite_conversations.py','tests/test_suite_workspace.py','tests/test_local_nlp_workflows.py','tests/test_learning_feedback.py')
+TESTS=('tests/test_suite_workflows.py','tests/test_suite_conversations.py','tests/test_suite_workspace.py','tests/test_local_nlp_workflows.py','tests/test_learning_feedback.py','tests/test_conversational_actions.py')
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--model-dir',required=True);args=parser.parse_args()
