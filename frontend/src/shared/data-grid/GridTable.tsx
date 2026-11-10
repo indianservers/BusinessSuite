@@ -69,10 +69,13 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
     };
   });
   const signature = JSON.stringify(records);
-  const source = useMemo(() => {
+  const revision = useMemo(() => {
     let hash = 2166136261;
     for (let i = 0; i < signature.length; i++) hash = Math.imul(hash ^ signature.charCodeAt(i), 16777619);
-    const local = localGridSource(`${scope}:${instance}:${hash >>> 0}`, records, columns, row => row.id);
+    return hash >>> 0;
+  }, [signature]);
+  const source = useMemo(() => {
+    const local = localGridSource(`${scope}:${instance}`, records, columns, row => row.id);
     // Existing page exports retain their authorization. A table adapter cannot infer export permission.
     return allowExport ? local : { ...local, export: undefined, load: async (query: GridQuery, signal?: AbortSignal) => {
       const result = await local.load(query, signal);
@@ -87,7 +90,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
       dataScope="loaded" personalViews={personalViews} emptyContent={emptyState} detailsEnabled={!rows.some(row=>typeof row.props.onClick==="function"||typeof row.props.onClickCapture==="function"||hasRecordOpenControl(row.props.children))}
       hideSearch={hideSearch} externalPagination={externalPagination}
       initialQuery={{...(externalPagination ? {pageSize:200} : {}),...(defaultGroupBy ? {grouping:columns.filter(column=>column.title===defaultGroupBy).map(column=>column.id)} : {})}}
-      columns={columns} dataSource={source} getRowId={row => row.id}
+      columns={columns} dataSource={source} refreshKey={revision} getRowId={row => row.id}
       selectionEnabled={!hasSelection} exportFormats={["csv", "clipboard"]}
       initialLayout={{ visibility:Object.fromEntries(columns.filter(column=>defaultHiddenColumns?.includes(column.title)).map(column=>[column.id,false])), pinning: { left: hasSelection ? ["column-0", "column-1"] : ["column-0"], right: pinActions ? columns.filter(column => /^(actions?|quick actions)$/i.test(column.title)).map(column => column.id) : [] }, rowHeight: 64 }}
       rowProps={row => {
