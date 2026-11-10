@@ -13,6 +13,7 @@ export async function refreshCurrentAccess(client: QueryClient) {
     // new scope instead of leaving the reload blocked until the periodic refresh.
     if (JSON.stringify(options.queryKey) !== JSON.stringify(accessQueryOptions().queryKey)) continue;
     const state = useAuthStore.getState();
+    if (current.accessToken !== state.accessToken) continue;
     if (state.isAuthenticated && state.user && typeof data.managed === "boolean") {
       state.setUser({ ...state.user, access: data });
     }

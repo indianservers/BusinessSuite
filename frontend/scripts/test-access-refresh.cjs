@@ -18,10 +18,13 @@ function reset() { branch = null; company = 1; writes = []; state = { isAuthenti
  reset(); calls = 0;
  await refresh({ fetchQuery: async () => { calls++; if (calls === 1) { company = 2; state.user = { id: 2, role: 'viewer' }; return { managed: true, marker: 'old-account' }; } return { managed: true, marker: 'new-account' }; } });
  assert.equal(writes.length, 1); assert.equal(state.user.id, 2); assert.equal(state.user.access.marker, 'new-account');
+ reset(); state.accessToken = 'old-session'; calls = 0;
+ await refresh({ fetchQuery: async () => { calls++; if (calls === 1) { state.accessToken = 'new-session'; return { managed: true, marker: 'old-session' }; } return { managed: true, marker: 'new-session' }; } });
+ assert.equal(calls, 2); assert.equal(writes.length, 1); assert.equal(state.user.access.marker, 'new-session');
  reset(); await refresh({ fetchQuery: async () => { state.isAuthenticated = false; state.user = null; return { managed: true }; } });
  assert.equal(writes.length, 0); assert.equal(state.user, null);
  reset(); await refresh({ fetchQuery: async () => ({ unexpected: true }) }); assert.equal(writes.length, 0);
  reset(); calls = 0; await refresh({ fetchQuery: async () => { calls++; branch = String(calls); return { managed: true }; } }); assert.equal(calls, 3); assert.equal(writes.length, 0);
  reset(); await assert.rejects(refresh({ fetchQuery: async () => { throw Error('offline'); } }), /offline/); assert.equal(writes.length, 0);
- console.log('PASS permission refresh: default branch race, account/company change, logout, malformed response, bounded churn, offline');
+ console.log('PASS permission refresh: default branch race, account/company/session change, logout, malformed response, bounded churn, offline');
 })().catch(error => { console.error(error); process.exitCode = 1; });
