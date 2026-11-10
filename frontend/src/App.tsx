@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { accessQueryOptions } from "@/features/access/access-query";
+import { refreshCurrentAccess } from "@/features/access/refresh-current-access";
 import RoutePrefetch from "@/components/app/RoutePrefetch";
 import { lazyRoute } from "@/lib/lazy-route";
 import { LoadingState } from "@/components/ui/state";
@@ -148,13 +148,7 @@ export default function App() {
   }, [isHydrated, isAuthenticated]);
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return;
-    const load = () => {
-      const options=accessQueryOptions();
-      return queryClient.fetchQuery(options).then(data=>{
-        if(typeof data.managed!=="boolean"||JSON.stringify(options.queryKey)!==JSON.stringify(accessQueryOptions().queryKey))return;
-        const state=useAuthStore.getState();if(state.user)state.setUser({...state.user,access:data});
-      }).catch(()=>undefined);
-    };
+    const load = () => refreshCurrentAccess(queryClient).catch(() => undefined);
     load();
     const timer = window.setInterval(()=>{if(document.visibilityState!=="hidden")void load();}, 45000);
     window.addEventListener("focus", load);
