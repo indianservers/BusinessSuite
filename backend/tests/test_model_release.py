@@ -67,3 +67,37 @@ def test_fresh_workplace_failure_blocks_activation_and_keeps_previous_release(ca
     assert not release.seal(folder,1,'dataset-digest')['passed']
     with pytest.raises(ValueError):release.pointer(root,1)
     assert json.loads((root/'active.json').read_text())['job_id']==226
+
+
+@pytest.mark.parametrize('scenario_passed,fit_passed',[(269,270),(270,269)])
+def test_third_batch_cannot_activate_with_failed_scenario_or_training_draft(candidate,scenario_passed,fit_passed):
+    root,folder,write=candidate
+    (root/'active.json').write_text(json.dumps({'job_id':230}))
+    write('conversation-evaluation.json',{'total':684,'passed':684,'failures':[],
+        'workplace_actions_v3':{'total':270,'passed':scenario_passed,'failures':[] if scenario_passed==270 else ['failed scenario'],
+            'training_fit':{'total':270,'passed':fit_passed,'failures':[] if fit_passed==270 else ['wrong draft']}}})
+    assert not release.seal(folder,1,'dataset-digest')['passed']
+    with pytest.raises(ValueError):release.pointer(root,1)
+    assert json.loads((root/'active.json').read_text())['job_id']==230
+
+
+def test_fourth_batch_requires_every_new_training_draft_to_pass(candidate):
+    root,folder,write=candidate
+    (root/'active.json').write_text(json.dumps({'job_id':233}))
+    write('conversation-evaluation.json',{'total':684,'passed':684,'failures':[],
+        'workplace_actions_v4':{'total':150,'passed':150,'failures':[],
+            'training_fit':{'total':150,'passed':149,'failures':['wrong date direction']}}})
+    assert not release.seal(folder,1,'dataset-digest')['passed']
+    with pytest.raises(ValueError):release.pointer(root,1)
+    assert json.loads((root/'active.json').read_text())['job_id']==233
+
+
+def test_fifth_batch_failed_title_reference_blocks_activation(candidate):
+    root,folder,write=candidate
+    (root/'active.json').write_text(json.dumps({'job_id':235}))
+    write('conversation-evaluation.json',{'total':684,'passed':684,'failures':[],
+        'workplace_actions_v5':{'total':150,'passed':149,'failures':['ambiguous title selected'],
+            'training_fit':{'total':150,'passed':150,'failures':[]}}})
+    assert not release.seal(folder,1,'dataset-digest')['passed']
+    with pytest.raises(ValueError):release.pointer(root,1)
+    assert json.loads((root/'active.json').read_text())['job_id']==235

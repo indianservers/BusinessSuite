@@ -57,6 +57,23 @@ def assess(folder,baseline=None):
     if workplace_v2:
         check('Workplace action batch 2',workplace_v2['total']>=150 and workplace_v2['passed']==workplace_v2['total'] and not workplace_v2.get('failures'),
             f"{workplace_v2['passed']}/{workplace_v2['total']}",'all fresh authored scenarios; at least 150')
+    workplace_v3=conversations.get('workplace_actions_v3')
+    if workplace_v3:
+        check('Workplace action batch 3',workplace_v3['total']>=250 and workplace_v3['passed']==workplace_v3['total'] and not workplace_v3.get('failures'),
+            f"{workplace_v3['passed']}/{workplace_v3['total']}",'all fresh authored scenarios; at least 250')
+        fit=workplace_v3.get('training_fit') or {}
+        check('Workplace batch 3 command fit',fit.get('total',0)>=250 and fit.get('passed')==fit.get('total') and not fit.get('failures'),
+            f"{fit.get('passed',0)}/{fit.get('total',0)}",'all authored training commands prepare exact drafts; not generalization')
+    workplace_v4=conversations.get('workplace_actions_v4')
+    if workplace_v4:
+        fit=workplace_v4.get('training_fit') or {}
+        check('Workplace action batch 4',workplace_v4['total']>=150 and workplace_v4['passed']==workplace_v4['total'] and not workplace_v4.get('failures') and fit.get('total',0)>=150 and fit.get('passed')==fit.get('total') and not fit.get('failures'),
+            {'scenarios':f"{workplace_v4['passed']}/{workplace_v4['total']}",'fit':f"{fit.get('passed',0)}/{fit.get('total',0)}"},'all 150+ fresh authored scenarios and training draft checks')
+    workplace_v5=conversations.get('workplace_actions_v5')
+    if workplace_v5:
+        fit=workplace_v5.get('training_fit') or {}
+        check('Workplace action batch 5',workplace_v5['total']>=150 and workplace_v5['passed']==workplace_v5['total'] and not workplace_v5.get('failures') and fit.get('total',0)>=150 and fit.get('passed')==fit.get('total') and not fit.get('failures'),
+            {'scenarios':f"{workplace_v5['passed']}/{workplace_v5['total']}",'fit':f"{fit.get('passed',0)}/{fit.get('total',0)}"},'all 150+ fresh title-reference scenarios and training draft checks')
     check('Frozen unseen dialogue',unseen['total']>=120 and metric(unseen['passed']/max(unseen['total'],1),.75),
         unseen['passed']/max(unseen['total'],1),'at least 0.75 on 120+ frozen synthetic probes')
     check('Canonical actions and safety',native.get('model_sha256')==file_hash(folder/'bundle.json') and native.get('dialogue_sha256')==file_hash(folder/'dialogue.json') and native.get('tests',0)>=20 and native.get('failures')==0 and native.get('errors')==0 and native.get('skipped')==0,

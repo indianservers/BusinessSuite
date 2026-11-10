@@ -229,3 +229,240 @@ def test_append_does_not_flatten_new_dependencies_or_switch_project():
         assert question and changed==state,text
     clause=compose('Log a customer follow-up called Discuss HR requirements','CRM')['clauses'][0]
     assert clause['module']=='CRM' and clause['text'].startswith('CRM:')
+
+
+def test_third_batch_has_270_fresh_inputs_and_exact_conversation_programs():
+    from app.ai_operator.workplace_actions_v3 import training_examples,scenarios,benchmark
+    from app.ai_operator.workplace_actions_v2 import training_examples as v2
+    from app.ai_operator.realworld_action_corpus import training_examples as v1
+    from app.ai_operator.training import fingerprint
+    rows=training_examples();keys={fingerprint(r) for r in rows}
+    assert len(rows)==len(keys)==270
+    assert not keys&{fingerprint(r) for r in v1()+v2()}
+    assert not {r['text'] for r in rows}&{t for s in scenarios() for t in s['turns']}
+    report=benchmark()
+    assert report['passed']==report['total']==270,report['failures']
+    assert report['messages']==513
+    assert report['training_fit']['passed']==270,report['training_fit']['failures']
+
+
+@pytest.mark.parametrize('module',['CRM','PMS','HRMS'])
+def test_third_batch_preserves_numbered_titles_and_exact_field_edits(client,db,module):
+    from app.ai_operator.pms_agent import resolve_date
+    h,user,project,_=setup_suite(client,db)
+    if module=='HRMS':
+        from datetime import date
+        from app.models.employee import Employee
+        db.add(Employee(employee_id='BATCH-THREE',user_id=user.id,first_name='Third',last_name='QA',date_of_joining=date.today()));db.commit()
+    chat=new_chat(client,h);opts={'module':module,**({'project_id':project} if module=='PMS' else {})}
+    obj={'CRM':'tasks','PMS':'project tasks','HRMS':'HR tickets'}[module]
+    draft=send(client,h,chat,f'Create {obj}:\n1. Review reseller terms, pricing and approval\n2. Confirm regional coverage',**opts)
+    assert len(draft['plan']['steps'])==2
+    assert draft['plan']['steps'][0]['payload'].get('title',draft['plan']['steps'][0]['payload'].get('subject'))=='Review reseller terms, pricing and approval'
+    low=send(client,h,chat,'set the priority of all '+('tickets' if module=='HRMS' else 'tasks')+' to low',parent_run_id=draft['id'],**opts)
+    renamed=send(client,h,chat,'rename the second '+('ticket' if module=='HRMS' else 'task')+' to Confirm revised coverage',parent_run_id=low['id'],**opts)
+    dated=send(client,h,chat,'set the due date of item 2 to day after tomorrow',parent_run_id=renamed['id'],**opts)
+    if module=='HRMS':
+        assert dated['status']=='needs_clarification' and not dated['plan']['steps']
+        final=send(client,h,chat,'set the priority of item 2 to high',parent_run_id=dated['id'],**opts)
+    else:
+        assert dated['plan']['steps'][1]['payload']['due_date']==resolve_date('in 2 days')
+        shifted=send(client,h,chat,'push item 2 back by two days',parent_run_id=dated['id'],**opts)
+        assert shifted['plan']['steps'][1]['payload']['due_date']==resolve_date('in 4 days')
+        cleared=send(client,h,chat,'clear the due date of item 2',parent_run_id=shifted['id'],**opts)
+        assert not cleared['plan']['steps'][1]['payload'].get('due_date')
+        final=send(client,h,chat,'set the due date of item 1 to tomorrow',parent_run_id=cleared['id'],**opts)
+    assert client.post(f'{ROOT}/runs/{draft["id"]}/approve',headers=h,json={'plan_hash':draft['plan_hash']}).status_code==409
+    approve(client,h,final);tick(client,db)
+    saved=client.get(f'{ROOT}/runs/{final["id"]}',headers=h).json()
+    assert saved['status']=='succeeded',saved
+    if module=='HRMS':
+        from app.models.helpdesk import HelpdeskTicket
+        records={r.subject:r for r in db.query(HelpdeskTicket).all()}
+        assert records['Confirm revised coverage'].priority=='High'
+    else:
+        model=PMSTask if module=='PMS' else CRMTask
+        records={r.title:r for r in db.query(model).all()}
+        assert records['Confirm revised coverage'].due_date is None
+        assert str(records['Review reseller terms, pricing and approval'].due_date).startswith(resolve_date('tomorrow'))
+    assert records['Review reseller terms, pricing and approval'].priority=='Low'
+
+
+def test_forget_draft_cancels_without_creating_records(client,db):
+    h,_,_,_=setup_suite(client,db);chat=new_chat(client,h)
+    draft=send(client,h,chat,'Create tasks for Review the tender annexure, Confirm the concession terms',module='CRM')
+    cancelled=send(client,h,chat,'forget this draft',module='CRM',parent_run_id=draft['id'])
+    assert cancelled['status']=='cancelled',cancelled
+    assert db.query(CRMTask).count()==0
+    assert client.post(f'{ROOT}/runs/{draft["id"]}/approve',headers=h,json={'plan_hash':draft['plan_hash']}).status_code==409
+
+
+def test_singular_deadline_edits_require_unambiguous_context_and_base():
+    from types import SimpleNamespace
+    from app.ai_operator.workflows import local_plan
+    from app.ai_operator.conversational_actions import amend
+    from app.ai_operator.pms_agent import resolve_date
+    data=SimpleNamespace(text='Create a task called "Review warranty" due day after tomorrow',module='CRM',project_id=None,request_key=str(uuid4()),timezone='Asia/Kolkata')
+    plan,state=local_plan(data,None,None)
+    assert plan['steps'][0]['payload']['due_date']==resolve_date('in 2 days')
+    shifted,q=amend(state,'push it back by two days',data.timezone,'CRM')
+    assert not q and shifted['intents'][0]['slots']['due_date']==resolve_date('in 4 days')
+    cleared,q=amend(shifted,'clear its due date',data.timezone,'CRM')
+    assert not q and not cleared['intents'][0]['slots'].get('due_date')
+    unchanged,q=amend(cleared,'push it back by two days',data.timezone,'CRM')
+    assert q and unchanged==cleared
+
+
+def test_fourth_workplace_batch_is_distinct_and_produces_exact_drafts():
+    from app.ai_operator.workplace_actions_v4 import training_examples,scenarios,benchmark
+    from app.ai_operator.workplace_actions_v3 import training_examples as v3
+    from app.ai_operator.workplace_actions_v2 import training_examples as v2
+    from app.ai_operator.realworld_action_corpus import training_examples as v1
+    from app.ai_operator.training import fingerprint
+    rows=training_examples();keys={fingerprint(r) for r in rows}
+    assert len(rows)==len(keys)==150
+    assert not keys&{fingerprint(r) for r in v1()+v2()+v3()}
+    assert not {r['text'] for r in rows}&{t for s in scenarios() for t in s['turns']}
+    report=benchmark()
+    assert report['total']==report['passed']==150,report['failures']
+    assert report['messages']==300
+    assert report['training_fit']['passed']==150,report['training_fit']['failures']
+
+
+@pytest.mark.parametrize('module',['CRM','PMS','HRMS'])
+def test_fourth_batch_earlier_deadlines_and_natural_corrections_execute_exactly(client,db,module):
+    from app.ai_operator.pms_agent import resolve_date
+    h,user,project,_=setup_suite(client,db)
+    if module=='HRMS':
+        from datetime import date
+        from app.models.employee import Employee
+        db.add(Employee(employee_id='BATCH-FOUR',user_id=user.id,first_name='Fourth',last_name='QA',date_of_joining=date.today()));db.commit()
+    chat=new_chat(client,h);opts={'module':module,**({'project_id':project} if module=='PMS' else {})}
+    obj={'CRM':'customer follow-up','PMS':'project task','HRMS':'HR ticket'}[module]
+    a='Review the regulator annexure';b='Confirm customer entitlement'
+    text=f'Create a {obj} called Review dealer terms'+(' due tomorrow' if module!='HRMS' else '')+f', then add a {obj} called Confirm customer scope'+(' due in 2 weeks' if module!='HRMS' else '')
+    draft=send(client,h,chat,text,**opts)
+    both=send(client,h,chat,'make both high priority',parent_run_id=draft['id'],**opts)
+    assert all(s['payload']['priority']=='High' for s in both['plan']['steps'])
+    low=send(client,h,chat,"change item 2's priority to low",parent_run_id=both['id'],**opts)
+    renamed=send(client,h,chat,'rename item 2 as '+b,parent_run_id=low['id'],**opts)
+    titled=send(client,h,chat,'change the title of item 1 to '+a,parent_run_id=renamed['id'],**opts)
+    earlier=send(client,h,chat,'move item 2 earlier by one week',parent_run_id=titled['id'],**opts)
+    if module=='HRMS':
+        assert earlier['status']=='needs_clarification' and not earlier['plan']['steps']
+        final=send(client,h,chat,'rename the first ticket as '+a,parent_run_id=earlier['id'],**opts)
+    else:
+        assert earlier['plan']['steps'][1]['payload']['due_date']==resolve_date('in 1 week')
+        forward=send(client,h,chat,'bring item 2 forward by 2 days',parent_run_id=earlier['id'],**opts)
+        assert forward['plan']['steps'][1]['payload']['due_date']==resolve_date('in 5 days')
+        assert forward['plan']['steps'][0]['payload']['due_date']==resolve_date('tomorrow')
+        final=send(client,h,chat,'remove the due date from item 2',parent_run_id=forward['id'],**opts)
+    assert client.post(f'{ROOT}/runs/{draft["id"]}/approve',headers=h,json={'plan_hash':draft['plan_hash']}).status_code==409
+    approve(client,h,final);tick(client,db)
+    saved=client.get(f'{ROOT}/runs/{final["id"]}',headers=h).json()
+    assert saved['status']=='succeeded',saved
+    if module=='HRMS':
+        from app.models.helpdesk import HelpdeskTicket
+        records={r.subject:r for r in db.query(HelpdeskTicket).all()}
+    else:
+        model=PMSTask if module=='PMS' else CRMTask
+        records={r.title:r for r in db.query(model).all()}
+        assert records[b].due_date is None and str(records[a].due_date).startswith(resolve_date('tomorrow'))
+    assert records[a].priority=='High' and records[b].priority=='Low'
+
+
+def test_ambiguous_both_singular_rename_and_earlier_date_bounds_leave_state_unchanged():
+    from types import SimpleNamespace
+    from app.ai_operator.workflows import local_plan
+    from app.ai_operator.conversational_actions import amend
+    def state(text):
+        data=SimpleNamespace(text=text,module='CRM',project_id=None,request_key=str(uuid4()),timezone='Asia/Kolkata')
+        return local_plan(data,None,None)[1]
+    three=state('Create tasks for Call distributor, Review scope and Confirm rollout')
+    for text in ['make both high priority','change its title to Wrong target']:
+        unchanged,q=amend(three,text,'Asia/Kolkata','CRM');assert q and unchanged==three
+    one=state('Create a task called Review warranty')
+    renamed,q=amend(one,'change its title to Inspect item 2 reference','Asia/Kolkata','CRM')
+    assert not q and renamed['intents'][0]['slots']['title']=='Inspect item 2 reference'
+    one['intents'][0]['slots']['due_date']='0001-01-01'
+    unchanged,q=amend(one,'bring it forward by one day','Asia/Kolkata','CRM')
+    assert q and unchanged==one
+
+
+def test_fifth_batch_is_fresh_and_resolves_exact_draft_titles():
+    from app.ai_operator.workplace_actions_v5 import training_examples,scenarios,benchmark
+    from app.ai_operator.workplace_actions_v4 import training_examples as v4
+    from app.ai_operator.workplace_actions_v3 import training_examples as v3
+    from app.ai_operator.workplace_actions_v2 import training_examples as v2
+    from app.ai_operator.realworld_action_corpus import training_examples as v1
+    from app.ai_operator.training import fingerprint
+    rows=training_examples();keys={fingerprint(r) for r in rows}
+    assert len(rows)==len(keys)==150
+    assert not keys&{fingerprint(r) for r in v1()+v2()+v3()+v4()}
+    assert not {r['text'] for r in rows}&{t for s in scenarios() for t in s['turns']}
+    report=benchmark()
+    assert report['total']==report['passed']==150,report['failures']
+    assert report['messages']==300
+    assert report['training_fit']['passed']==150,report['training_fit']['failures']
+
+
+@pytest.mark.parametrize('module',['CRM','PMS','HRMS'])
+def test_fifth_batch_named_edits_use_only_unique_unapproved_items(client,db,module):
+    from app.ai_operator.pms_agent import resolve_date
+    h,user,project,_=setup_suite(client,db)
+    if module=='HRMS':
+        from datetime import date
+        from app.models.employee import Employee
+        db.add(Employee(employee_id='BATCH-FIVE',user_id=user.id,first_name='Fifth',last_name='QA',date_of_joining=date.today()));db.commit()
+    chat=new_chat(client,h);opts={'module':module,**({'project_id':project} if module=='PMS' else {})}
+    obj={'CRM':'customer follow-up','PMS':'project task','HRMS':'HR ticket'}[module]
+    draft=send(client,h,chat,f'Create a {obj} called Review warranty, then add a {obj} called Confirm customer entitlement',**opts)
+    missing=send(client,h,chat,'set "Missing title" to high priority',parent_run_id=draft['id'],**opts)
+    assert missing['status']=='needs_clarification' and not missing['plan']['steps']
+    high=send(client,h,chat,'mark "Confirm customer entitlement" high priority',parent_run_id=missing['id'],**opts)
+    assert high['plan']['steps'][1]['payload']['priority']=='High'
+    assert high['plan']['steps'][0]['payload'].get('priority','Medium')=='Medium'
+    renamed=send(client,h,chat,'rename "Confirm customer entitlement" to Verify item 1 reference',parent_run_id=high['id'],**opts)
+    dated=send(client,h,chat,'move "Verify item 1 reference" to tomorrow',parent_run_id=renamed['id'],**opts)
+    if module=='HRMS':
+        assert dated['status']=='needs_clarification' and not dated['plan']['steps']
+        dated=send(client,h,chat,'set "Verify item 1 reference" to low priority',parent_run_id=dated['id'],**opts)
+    else:
+        assert dated['plan']['steps'][1]['payload']['due_date']==resolve_date('tomorrow')
+        assert not dated['plan']['steps'][0]['payload'].get('due_date')
+    final=send(client,h,chat,'remove "Review warranty"',parent_run_id=dated['id'],**opts)
+    assert len(final['plan']['steps'])==1
+    assert client.post(f'{ROOT}/runs/{draft["id"]}/approve',headers=h,json={'plan_hash':draft['plan_hash']}).status_code==409
+    approve(client,h,final);tick(client,db)
+    result=client.get(f'{ROOT}/runs/{final["id"]}',headers=h).json()
+    assert result['status']=='succeeded',result
+    if module=='HRMS':
+        from app.models.helpdesk import HelpdeskTicket
+        values=db.query(HelpdeskTicket).all()
+        assert len(values)==1 and values[0].subject=='Verify item 1 reference' and values[0].priority=='Low'
+    else:
+        model=PMSTask if module=='PMS' else CRMTask
+        assert not db.query(model).filter_by(title='Review warranty').count()
+        saved=db.query(model).filter_by(title='Verify item 1 reference').one()
+        assert saved.priority=='High' and str(saved.due_date).startswith(resolve_date('tomorrow'))
+
+
+def test_named_targets_keep_duplicates_dependencies_and_new_project_offsets_safe():
+    from types import SimpleNamespace
+    from app.ai_operator.workflows import local_plan
+    from app.ai_operator.conversational_actions import amend
+    def state(text):
+        data=SimpleNamespace(text=text,module='PMS',project_id=12,request_key=str(uuid4()),timezone='Asia/Kolkata')
+        return local_plan(data,None,None)[1]
+    duplicate=state('Create project tasks for Review scope, Review scope')
+    unchanged,q=amend(duplicate,'rename "Review scope" to Wrong target','Asia/Kolkata','PMS')
+    assert q and unchanged==duplicate
+    parent=state('Create a project task called Release with subtasks Build, Test')
+    unchanged,q=amend(parent,'remove "Release"','Asia/Kolkata','PMS')
+    assert q and unchanged==parent
+    project=state('Create a project called Regional launch with tasks Design, Verify')
+    renamed,q=amend(project,'rename "Regional launch" to National launch','Asia/Kolkata','PMS')
+    assert not q and renamed['new_project']['name']=='National launch'
+    changed,q=amend(renamed,'set “Verify” to critical priority','Asia/Kolkata','PMS')
+    assert not q and changed['intents'][1]['slots']['priority']=='Critical'
+    assert changed['intents'][0]['slots'].get('priority')!='Critical'

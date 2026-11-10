@@ -795,7 +795,8 @@ async def _command(data,request,db,user,scope):
         run.plan = plan.model_dump(mode='json', exclude_none=True)
         run.plan_hash = digest(run.plan)
         run.snapshots = snapshots
-        run.status = 'needs_clarification' if plan.question else 'awaiting_approval' if plan.steps else 'answered'
+        cancelled_draft=bool(not plan.steps and not plan.question and (workflow_state or {}).get('cancelled'))
+        run.status = 'cancelled' if cancelled_draft else 'needs_clarification' if plan.question else 'awaiting_approval' if plan.steps else 'answered'
         if plan.steps:
             approval = AiActionApproval(user_id=user.id, module='CROSS', action_type='EXECUTE_SUITE_OPERATOR_PLAN',
                 proposed_action_json={'input': {'suite_run_id': run.id, 'plan_hash': run.plan_hash}, 'preview': run.plan},
@@ -804,7 +805,7 @@ async def _command(data,request,db,user,scope):
             db.flush()
             run.approval_id = approval.id
         if parent and parent.status in ('awaiting_approval','needs_clarification'):
-            parent.status='cancelled' if local_intent and local_intent.intent=='cancelled' else 'superseded'
+            parent.status='cancelled' if cancelled_draft or local_intent and local_intent.intent=='cancelled' else 'superseded'
             retire_drafts(db,parent)
             if parent.approval_id:
                 previous_approval=db.get(AiActionApproval,parent.approval_id)
