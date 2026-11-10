@@ -1,8 +1,11 @@
 import { useSyncExternalStore } from "react";
-import type { AxiosRequestConfig } from "axios";
+import type { AxiosRequestConfig as BaseAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/store/authStore";
 import { confirmedMutation, resourcePath, matchesRecordQuery, type RecordSaved } from "@/lib/record-changes";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
+
+// The portal imports this store without loading the suite API's Axios augmentation.
+type AxiosRequestConfig = BaseAxiosRequestConfig & { readOnlyPreview?: boolean; recordSync?: boolean; _recordSyncId?: string };
 
 export type SyncPhase = "pending" | "saved" | "error" | "review";
 export type SyncItem = { id:string; scope:string; resource:string; method:string; ids:(number|string)[]; operation:"create"|"update"|"delete"; patch:Record<string,unknown>; draft?:unknown; title:string; href:string; phase:SyncPhase; started:number; error?:string; confirmed?:Record<string,unknown>; durable?:boolean; origin?:HTMLElement|null };

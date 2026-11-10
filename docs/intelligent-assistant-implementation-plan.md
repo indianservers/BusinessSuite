@@ -80,4 +80,19 @@ Each phase ships only after its own acceptance checks. Phase 2 depends on shared
 
 ## Phase 1 implementation record
 
-Implementation and verified checks are recorded in the completion message. Remaining phase work must not be labeled shipped merely because supporting legacy code exists. No production credentials, customer data, external sends or deployment are needed for Phase 1 development.
+Implemented in the current checkout:
+
+- `GET /ai-operator/suite/briefing`: deterministic priorities and overdue/blocked project signals over canonical CRM/PMS/personal HR sources, with filters, timestamps, bounded coverage and explicit unavailable-source status.
+- Shared evidence helpers and validated source references in suite command results. Unsupported source references fail validation; responses with no references are labeled unsourced. This validates source identity, not independent factual entailment.
+- OpenAI/Gemini/local selection in the existing suite workspace. Local summaries and explicit CRM/PMS task drafts require no configured model; existing browser-local PMS inference remains available in PMS Assistant Studio.
+- Reviewed task drafts use the existing approvals, canonical writes, worker and receipts. Organization/branch changes clear scoped UI state and discard obsolete command responses.
+- No database migration or new model SDK dependency was needed.
+
+Verified on 10 November 2026:
+
+- Backend: 37 tests passed across `test_ai_daily_briefing.py`, `test_suite_operator.py` and `test_suite_module_agents.py`.
+- Browser: the isolated development fixture passed briefing/filter/source/provider/approval and branch-reset checks. All fixture data and provider responses are simulated.
+- Frontend: TypeScript check and production build passed. The build reports dependency annotation, mixed-import and large-chunk warnings.
+- Python compilation and changed-file whitespace checks passed.
+
+Live cloud calls were not verified: OpenAI and Gemini routing used mocked provider transports. Delivery risk is currently project-linked evidence, with PMS client IDs where explicitly linked; automatic CRM customer matching, full capacity analysis and monetary impact remain later-phase work. Invoice creation, full report exports and scheduled outbound reminders are not new Phase 1 features. Remaining phase work must not be labeled shipped merely because supporting legacy code exists. No production deployment or external message was performed.

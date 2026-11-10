@@ -1,3 +1,4 @@
+import CRMRowQuickActions from "../CRMRowQuickActions";
 import BusinessProfileFields from "@/shared/master-data/BusinessProfileFields";
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
@@ -810,7 +811,7 @@ function LeadWorkbench() {
           </div>
         ) : (
           <div className="lm-table-scroll">
-            <GridTable gridId="apps/crm/leads/LeadManagementPage:table-1" hideSearch externalPagination className="lm-table">
+            <GridTable gridId="apps/crm/leads/LeadManagementPage:table-1" hideSearch externalPagination pinActions className="lm-table">
               <thead>
                 <tr>
                   <th>
@@ -840,6 +841,7 @@ function LeadWorkbench() {
                   {columns.includes("score") && <th>Score</th>}
                   {columns.includes("follow") && <th>Follow-up</th>}
                   {columns.includes("action") && <th>Next action</th>}
+                  <th style={{width:210}}>Quick actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -989,6 +991,7 @@ function LeadWorkbench() {
                         )}
                       </td>
                     )}
+                    <td><CRMRowQuickActions record={lead} canEdit={!!bootstrap?.canManage && canEdit} onEdit={() => openLead(lead.id)}/></td>
                   </tr>
                 ))}
               </tbody>
