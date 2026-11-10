@@ -1,0 +1,64 @@
+@media(max-width:480px){
+ .leave-page{min-width:0}
+ .leave-page .leave-page-header .page-title{font-size:20px}
+ .leave-page .leave-page-header .page-description{font-size:12px;line-height:1.5}
+ .leave-page .leave-header-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .leave-page .leave-header-actions>*{min-width:0;white-space:normal}
+ .leave-page .leave-header-actions>:only-child{grid-column:1/-1}
+ .leave-page button{min-height:44px;min-width:44px}
+ .leave-page input:not([type=checkbox]),.leave-page select,.leave-page textarea{font-size:16px;min-height:44px;min-width:0}
+ .leave-page .leave-balances{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .leave-page .leave-balances>div>div{padding:12px}
+ .leave-page .leave-balances .truncate{white-space:normal;overflow:visible;overflow-wrap:anywhere}
+ .leave-page .leave-balances .text-2xl{font-size:22px}
+ .leave-page .leave-balances .leave-balance-note{grid-column:1/-1}
+ .leave-page .leave-secondary.mobile-disclosure{margin-top:12px;padding:0;overflow:visible}
+ .leave-page .leave-secondary>summary{min-height:44px;padding:10px 12px;gap:8px}
+ .leave-page .leave-secondary>div{padding:0 12px 12px}
+ .leave-page .leave-secondary>div>.kf-card{border:0;box-shadow:none;border-radius:0;background:transparent}
+ .leave-page .leave-secondary .leave-secondary-heading{display:none}
+ .leave-page .leave-secondary>div>.kf-card>div:last-child{padding:0}
+ .leave-page .leave-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:4px;overflow:visible}
+ .leave-page .leave-tabs button{padding:8px 4px;font-size:12px;white-space:normal;min-width:0}
+ .leave-page .leave-main-panel>div:first-child{padding:12px}
+ .leave-page .leave-calendar-days{gap:8px}
+ .leave-page .leave-calendar-day{display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;min-height:64px;padding:12px}
+ .leave-page .leave-calendar-day>div:first-child{flex-direction:column;align-items:flex-start;justify-content:flex-start}
+ .leave-page .leave-calendar-day>div:last-child{margin-top:0;min-width:0}
+ .leave-page .leave-calendar-day .truncate{white-space:normal;overflow:visible;overflow-wrap:anywhere}
+ .leave-page .leave-calendar-day :is(p,span,div){overflow-wrap:anywhere;min-width:0}
+ .leave-page .leave-calendar-person-info{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px}
+ .leave-page .leave-calendar-person-info>span:last-child{white-space:nowrap}
+ .leave-page .leave-calendar-more summary{display:list-item;min-height:44px;padding:10px 0;color:hsl(var(--primary));cursor:pointer}
+ .leave-page .leave-calendar-more>div{margin-top:8px}
+ .leave-page .mobile-approval-card{padding:12px}
+ .leave-page .mobile-approval-card :is(strong,p){overflow-wrap:anywhere}
+ .leave-page .mobile-approval-card footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .leave-page .leave-source-feedback{display:grid;justify-items:start;gap:8px;padding:12px;min-width:0;font-size:12px}
+ .leave-page .leave-source-feedback>[role=alert]{width:100%}
+ .leave-page .leave-source-feedback p{overflow-wrap:anywhere}
+ .leave-page .leave-balances>.leave-source-feedback{grid-column:1/-1;padding:0}
+}
+
+@media(max-width:480px){
+ .leave-apply-card{border:0;box-shadow:none;background:transparent}
+ .leave-apply-card .leave-apply-heading,.leave-apply-form .leave-apply-actions{display:none}
+ .leave-apply-card>div:last-child{padding:0}
+ .smart-create-body .leave-apply-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .leave-apply-form>div:not(:nth-of-type(3)):not(:nth-of-type(4)),.leave-apply-form>p{grid-column:1/-1}
+ .leave-apply-form>div{min-width:0}
+ .smart-create-body .leave-apply-form :is(input,select,textarea){font-size:16px;min-height:44px!important;min-width:0;width:100%}
+ .leave-apply-form [role=status]{overflow-wrap:anywhere;font-size:12px}
+}
+
+@media(max-width:480px){.leave-apply-sources .leave-source-feedback{display:grid;gap:8px;margin-bottom:12px;font-size:12px}.leave-apply-sources button{min-height:44px}.leave-apply-sources>p{font-size:12px;margin-bottom:12px}}
+
+@media(max-width:480px){.smart-create-body .leave-encash-create :is(input,select){font-size:16px;min-height:44px!important;min-width:0}.leave-encash-create label{font-size:12px;margin-bottom:-6px}.leave-encash-create .leave-source-feedback{display:grid;gap:8px}.leave-encash-create button{min-height:44px}}
+
+@media(max-width:480px){.leave-cancel-feedback{font-size:12px;overflow-wrap:anywhere;min-width:0}}
+
+@media(max-width:480px){.leave-encash-review{min-width:0}.leave-encash-review p{overflow-wrap:anywhere}.leave-encash-review>div:last-of-type{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+
+@media(max-width:480px){.smart-create-body .leave-account-create :is(input,select){font-size:16px;min-height:44px!important;min-width:0}.leave-account-create label{font-size:12px;margin-bottom:-6px}.leave-account-create button{min-height:44px}.leave-account-create p{overflow-wrap:anywhere}.leave-account-sources .leave-source-feedback{display:grid;gap:8px;font-size:12px;margin-bottom:12px}}
+
+@media(max-width:480px){.leave-maintenance-feedback{overflow-wrap:anywhere;min-width:0}}

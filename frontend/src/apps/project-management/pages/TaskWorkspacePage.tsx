@@ -331,7 +331,9 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
       "Task updated",
     );
   }
+  const transitionLeaveGuard = useRef<(()=>boolean)|undefined>();
   function chooseTab(next: string) {
+    if(tab === "review" && next !== tab && transitionLeaveGuard.current && !transitionLeaveGuard.current())return;
     setPage(1);
     if (embeddedTaskId) { setPanelTab(next); return; }
     setParams(current => { const updated = new URLSearchParams(current); updated.set("tab", next); return updated; }, { replace: true, state: location.state });
@@ -1305,7 +1307,7 @@ export default function TaskWorkspacePage({ embeddedTaskId, onTaskChanged }: { e
               {data.source_managed && (
                 <WorkReviewPanel taskId={id} onReviewed={refresh} />
               )}
-              <TransitionApprovals taskId={id} onChanged={refresh} disabled={busy} />
+              <TransitionApprovals taskId={id} onChanged={refresh} disabled={busy} registerLeaveGuard={guard=>{transitionLeaveGuard.current=guard;}} />
             </section>
           )}
           {(timer || (embeddedTaskId && tab === "time")) && (

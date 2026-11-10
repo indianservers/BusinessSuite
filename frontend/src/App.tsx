@@ -251,6 +251,7 @@ export default function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<ModuleDashboardPage />} />
+          <Route path="/settings/company/profile" element={<CentralSettingsRedirect section="company-profile" />} />
           <Route path="/settings/:section?" element={<SettingsHubPage />} />
           <Route path="/continue" element={<PostLoginPage />} />
           <Route path="/help" element={<SuiteHelpPage />} />

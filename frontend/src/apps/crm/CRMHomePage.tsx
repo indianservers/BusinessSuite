@@ -1,3 +1,4 @@
+import BusinessProfileFields from "@/shared/master-data/BusinessProfileFields";
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { useEffect, useState } from "react";
@@ -220,6 +221,7 @@ export default function CRMHomePage() {
                 />}
               </div>
             ))}
+            {["leads", "contacts", "companies"].includes(quickType) && <BusinessProfileFields services={quickDraft.services_offered} types={quickDraft.business_types} onChange={patchQuickDraft} disabled={quickSaving}/>}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">Required fields are validated by the existing CRM API.</p>
@@ -270,6 +272,8 @@ async function buildQuickCreatePayload(type: QuickCreateType, draft: Record<stri
       email: draft.email || undefined,
       phone: draft.phone || undefined,
       phone_country_code: draft.phone_country_code || undefined,
+      services_offered: draft.services_offered || "",
+      business_types: draft.business_types || "",
       source: draft.source || "Manual Entry",
       status: "New",
     };
@@ -283,6 +287,8 @@ async function buildQuickCreatePayload(type: QuickCreateType, draft: Record<stri
       email: draft.email || undefined,
       phone: draft.phone || undefined,
       phone_country_code: draft.phone_country_code || undefined,
+      services_offered: draft.services_offered || "",
+      business_types: draft.business_types || "",
       source: draft.source || "Manual Entry",
       status: "Active",
     };
@@ -294,6 +300,8 @@ async function buildQuickCreatePayload(type: QuickCreateType, draft: Record<stri
       email: draft.email || undefined,
       phone: draft.phone || undefined,
       phone_country_code: draft.phone_country_code || undefined,
+      services_offered: draft.services_offered || "",
+      business_types: draft.business_types || "",
       status: "Active",
       account_type: "Prospect",
     };

@@ -953,7 +953,17 @@
 
 .pa-sidebar nav.pa-categorized-navigation { display: block; overflow: auto; min-height: 0; }
 .pa-categorized-navigation .module-menu { padding: 0; }
+.pa-categorized-navigation .module-menu {
+  --sidebar-foreground: 270 30% 94%;
+  --muted-foreground: 270 20% 76%;
+  --sidebar-border: 270 25% 38%;
+  --background: 265 35% 24%;
+  --menu-accent: 270 85% 75%;
+}
 .pa-sidebar .pa-categorized-navigation .module-menu-heading { padding: 7px 8px; white-space: normal; font-size: 12px; }
+.pa-sidebar .pa-categorized-navigation button { color: hsl(var(--sidebar-foreground)); }
+.pa-sidebar .pa-categorized-navigation button:hover { background: hsl(var(--menu-accent) / .12); }
+.pa-sidebar .pa-categorized-navigation .module-menu-category.is-current > .module-menu-heading { color: hsl(var(--menu-accent)); background: hsl(var(--menu-accent) / .12); }
 .pa-sidebar .pa-categorized-navigation .module-menu-toolbar button { padding: 0; width: 28px; height: 28px; }
 .pa-sidebar .pa-categorized-navigation .module-menu-search button { padding: 4px; }
 @media (max-width: 600px) { .pa-sidebar nav.pa-categorized-navigation { max-height: 290px; } }

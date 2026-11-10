@@ -1,0 +1,22 @@
+@media(max-width:480px){
+ main.workflow-schemes{padding:12px;min-width:0}
+ main.workflow-schemes>:not([hidden])~:not([hidden]){margin-top:12px}
+ .workflow-schemes h1{font-size:20px;line-height:1.3}
+ .workflow-schemes p,.workflow-schemes summary{overflow-wrap:anywhere}
+ .workflow-schemes button,.workflow-schemes>a{min-height:44px;white-space:normal;overflow-wrap:anywhere}
+ .workflow-schemes>a{display:flex;align-items:center;font-size:14px}
+ .workflow-schemes select{min-height:44px;font-size:16px;max-width:100%;width:100%}
+ .workflow-schemes fieldset{min-width:0}
+ .workflow-schemes fieldset>label:has(>input[type=checkbox]){min-height:44px}
+ .workflow-schemes .scheme-rule-disclosure{padding:0;border:1px solid hsl(var(--border));border-radius:12px;background:hsl(var(--card))}
+ .workflow-schemes .scheme-rule-disclosure>summary{min-height:44px;padding:10px 12px;font-size:14px;line-height:1.5}
+ .workflow-schemes .scheme-rule-disclosure>div{padding:0 12px 12px}
+ .workflow-schemes .scheme-rule{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;border:0;padding:0}
+ .workflow-schemes .scheme-rule>label{min-width:0;font-size:13px}
+ .workflow-schemes .scheme-rule>fieldset{grid-column:1/-1}
+ .workflow-schemes .scheme-required>label{min-height:44px;font-size:13px}
+ .workflow-schemes .scheme-approver{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+ .workflow-schemes .scheme-approver>label{min-width:0;font-size:13px}
+ .workflow-schemes .scheme-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .workflow-schemes .scheme-actions>button:last-child{grid-column:1/-1}
+}

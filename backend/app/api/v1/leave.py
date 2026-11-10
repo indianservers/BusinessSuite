@@ -55,7 +55,7 @@ def _user_permissions(user: User) -> set[str]:
 
 
 def _is_hr_admin(user: User) -> bool:
-    return user.is_superuser or "hr_admin" in _user_permissions(user) or _role_name(user) in {"super_admin", "hr_admin", "hr_manager", "hr"}
+    return user.is_superuser or bool({"hr_admin", "leave_manage"}.intersection(_user_permissions(user)))
 
 
 def _department_id(value: str | None) -> int | None:
@@ -398,9 +398,13 @@ def leave_calendar(
     if (to_date - from_date).days > 92:
         raise HTTPException(status_code=400, detail="Calendar range cannot exceed 93 days")
 
-    role_name = _role_name(current_user)
-    can_view_all = current_user.is_superuser or role_name in {"super_admin", "hr_manager", "hr_admin", "hr"}
-    can_view_team = can_view_all or role_name in {"manager", "team_lead", "department_head"}
+    can_view_all = _is_hr_admin(current_user)
+    can_view_team = can_view_all or "leave_approve" in _user_permissions(current_user) or bool(
+        current_user.employee and db.query(Employee.id).filter(
+            Employee.reporting_manager_id == current_user.employee.id,
+            Employee.deleted_at.is_(None),
+        ).first()
+    )
 
     if scope == "all" and not can_view_all:
         scope = "team"

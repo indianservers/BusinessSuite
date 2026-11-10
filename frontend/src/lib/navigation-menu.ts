@@ -2,6 +2,60 @@ import { consolidateNavigation, operationAliases, type WorkspaceNavigation } fro
 
 type MenuItem = { to: string; label: string; group?: string };
 
+// Keep the business flow short; configuration always lives inside its module.
+export function moduleMenuNavigation<T extends MenuItem>(items: readonly T[], module: string): T[] {
+  const flow: Record<string, Record<string, string[]>> = {
+    hrms: {
+      "People": ["Overview", "People & organization", "Recruitment & employee lifecycle", "Performance & learning"],
+      "Time & pay": ["Attendance & leave", "Payroll & benefits"],
+      "Employee services": ["Approvals & requests", "Documents, assets & support", "Collaboration"],
+      "Reports & compliance": ["Reports & analytics", "Compliance & verification"],
+    },
+    crm: {
+      "Customers & leads": ["Dashboard", "Customer growth", "Customers & leads"],
+      "Sales": ["Sales & pipeline"],
+      "Activities & communication": ["Activities & planning", "Communication", "Collaboration", "Support & files"],
+      "Reports": ["Reports & forecasts"],
+    },
+    pms: {
+      "Projects & tasks": ["Overview", "Tasks & projects"],
+      "Planning & delivery": ["Planning & workload"],
+      "Team & collaboration": ["People & teams", "Collaboration"],
+      "Reports & finances": ["Reports & finances"],
+    },
+    srm: {
+      "Customers & sales": ["Overview", "Business relationships", "Sales & contracts", "Point of sale"],
+      "Products & inventory": ["Products & pricing", "Inventory & warehouses", "Purchasing & manufacturing"],
+      "Billing & collections": ["Billing & collections"],
+      "Reports": ["Reports & revenue"],
+    },
+    fam: {
+      "Accounts & transactions": ["Overview", "Accounts & opening balances", "Transactions & books"],
+      "Receivables & payables": ["Customers & receivables", "Purchases & payables"],
+      "Banking": ["Banking & reconciliation"],
+      "Reports & tax": ["GST & tax compliance"],
+      "Integrations": ["Integrations & posting"],
+    },
+  };
+  if (!flow[module]) return [...items];
+  const settings = "Settings & administration";
+  const seen = new Set<string>();
+  const result = items.flatMap(item => {
+    const path = item.to.split(/[?#]/)[0].replace(/\/+$/, "");
+    const canonical = operationAliases[path] || path;
+    const identity = canonical + (item.to.includes("?") ? "?" + item.to.split("?")[1] : "");
+    if (seen.has(identity)) return [];
+    seen.add(identity);
+    const configuration = /setting|administration|settings & tools|data management/i.test(item.group || "")
+      || /\/(settings|connectors|import-data|custom-fields|task-types|tags|workflow-designer|record-metadata|pipeline-settings|approval-settings|calendar-integrations|posting-rules|bank-rules|voucher-types|transaction-locking)(\/|$)/.test(path);
+    const group = configuration ? settings : Object.entries(flow[module]).find(([, groups]) => groups.includes(item.group || ""))?.[0] || item.group || "Other tools";
+    return [{ ...item, group }];
+  });
+  const order = [...Object.keys(flow[module]), "AI tools", "Other tools", settings];
+  const rank = (group?: string) => { const index = order.indexOf(group || ""); return index < 0 ? order.length - 2 : index; };
+  return result.sort((a, b) => rank(a.group) - rank(b.group));
+}
+
 // Only promote links already present in the caller's authorized navigation.
 // Root and /dashboard are aliases for a module's landing page, not submenus.
 export function moduleLandingNavigation<T extends MenuItem>(items: readonly T[], moduleKey: string) {
@@ -36,11 +90,12 @@ const labels: Record<string, string> = {
   "/crm/companies": "Companies", "/crm/accounts": "Companies", "/crm/contacts": "Contacts", "/crm/customer-360": "Customer overview",
   "/crm/lead-to-cash": "Sales to payment", "/crm/gantt": "Activity timeline",
   "/crm/quotes": "Quote builder", "/crm/quotations": "Quotes", "/crm/duplicates": "Duplicate records",
-  "/crm/settings": "Fields & preferences", "/crm/feature-checklist": "Feature availability",
+  "/crm/settings": "CRM settings", "/crm/feature-checklist": "Feature availability",
   "/hrms/approval-os": "Approvals", "/hrms/workflow": "Request inbox",
   "/hrms/fnf-settlements": "Final settlements", "/hrms/lms": "Learning & courses",
   "/hrms/background-verification": "Background checks", "/hrms/ess": "My dashboard",
   "/hrms/letters-certificates": "Letters & certificates",
+  "/hrms/settings": "HR settings", "/srm/settings": "Sales & inventory settings", "/fam/settings": "Finance settings",
   "/fam/ar": "Customer balances", "/fam/ap": "Supplier balances",
 };
 export const menuLabel = (item: MenuItem) => labels[item.to.split("?")[0]] || item.label;
@@ -53,7 +108,7 @@ export function menuItems<T extends MenuItem>(items: readonly T[]): WorkspaceNav
     const hasInternHub = internPages.some(item => item.to === "/hrms/interns");
     return consolidateNavigation(grouped).filter(item => !hasInternHub || !item.to.startsWith("/hrms/interns/"))
       .map(item => hasInternHub && item.to === "/hrms/interns" ? { ...item, pages: internPages } : item).map(item => item.pages?.length === 1 ? { ...item, label: item.pages[0].label } : item).sort((a, b) => {
-      const priority = ["/pms/my-work", "/pms/tasks", "/pms/projects", "/pms/workspaces"];
+      const priority = ["/hrms/settings", "/crm/settings", "/pms/settings", "/srm/settings", "/fam/settings", "/pms/my-work", "/pms/tasks", "/pms/projects", "/pms/workspaces"];
       const rank = (to: string) => priority.includes(to) ? priority.indexOf(to) : priority.length;
       return rank(a.to) - rank(b.to);
     });

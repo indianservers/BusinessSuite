@@ -16,6 +16,23 @@ export function workspacePageHref(to: string, search: string, workspaceId?: numb
 }
 
 // Presentation only: callers supply links already filtered by route permissions.
+const menuSubcategories: [string, string[]][] = [
+  ["Sales & contracts", ["/srm/sales-orders", "/srm/contracts", "/srm/engagements"]],
+  ["Products & pricing", ["/srm/inventory/items", "/srm/inventory/products", "/srm/inventory/price-lists", "/srm/inventory/batches"]],
+  ["Stock & warehouses", ["/srm/inventory/dashboard", "/srm/inventory/warehouses", "/srm/inventory/stock-summary", "/srm/inventory/opening-stock", "/srm/inventory/delivery-notes", "/srm/inventory/stock-transfers", "/srm/inventory/reconciliation"]],
+  ["Purchasing & manufacturing", ["/srm/inventory/purchase-orders", "/srm/inventory/manufacturing", "/srm/inventory/reorder-alerts"]],
+  ["Invoices & collections", ["/srm/invoice-drafts", "/srm/invoices", "/srm/payment-requests", "/srm/billing-plans", "/srm/collections"]],
+  ["Account setup", ["/fam/chart-of-accounts", "/fam/ledger-groups", "/fam/ledgers", "/fam/opening-balances"]],
+  ["Transactions & books", ["/fam/vouchers", "/fam/journal", "/fam/day-book", "/fam/ledger-entries", "/fam/bill-references", "/fam/bill-allocations"]],
+  ["Customers & receivables", ["/fam/customers", "/fam/parties", "/fam/ar"]],
+  ["Purchases & payables", ["/fam/purchase-bills", "/fam/purchases", "/fam/vendors", "/fam/ap", "/fam/expenses", "/fam/recurring-purchases", "/fam/purchase-register", "/fam/expense-register", "/fam/vendor-payments", "/fam/payables"]],
+  ["Banking & reconciliation", ["/fam/banking", "/fam/bank-accounts", "/fam/payment-modes", "/fam/bank-statements", "/fam/bank-reconciliation", "/fam/bank-book", "/fam/cash-book", "/fam/contra", "/fam/bank-charges"]],
+  ["Finance settings", ["/fam/settings", "/fam/financial-years", "/fam/cost-centers", "/fam/branches", "/fam/forms", "/fam/voucher-types", "/fam/transaction-locking", "/fam/bank-rules", "/fam/posting-rules", "/fam/gst/settings", "/fam/connectors", "/fam/import-data"]],
+  ["Sales & inventory settings", ["/srm/settings", "/srm/forms", "/srm/sales-inventory/source", "/srm/inventory/source", "/srm/connectors", "/srm/import-data"]],
+  ["HR settings", ["/hrms/settings", "/hrms/custom-fields", "/hrms/enterprise", "/hrms/workflow-designer", "/hrms/connectors", "/hrms/import-data"]],
+  ["Project settings", ["/pms/settings", "/pms/custom-fields", "/pms/task-types", "/pms/tags", "/pms/workflow-schemes", "/pms/automation", "/pms/connectors", "/pms/import-data"]],
+];
+
 const workspaces: [string, string[]][] = [
   ["Tasks", ["/pms/tasks", "/pms/navigator", "/pms/issue-navigator-pro"]],
   ["Software Delivery", ["/pms/software", "/pms/issues", "/pms/releases"]],
@@ -72,7 +89,7 @@ export function consolidateNavigation<T extends Link>(items: readonly T[]): Work
   const seen = new Set<string>();
   const result: WorkspaceNavigation<T>[] = [];
   for (const item of items) {
-    const workspace = workspaces.find(([, paths]) => paths.includes(item.to));
+    const workspace = [...menuSubcategories, ...workspaces].find(([, paths]) => paths.includes(item.to));
     if (!workspace) { result.push(item); continue; }
     const [label, paths] = workspace;
     const key = paths[0];

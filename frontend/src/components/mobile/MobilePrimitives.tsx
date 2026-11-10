@@ -1,5 +1,5 @@
 import { WhatsAppIcon } from "@/components/actions/BrandIcons";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 import { Filter, Mail, Phone, StickyNote } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useMobile } from "./useMobile";
@@ -29,8 +29,9 @@ export function MobileContactActions({ phone, email, onNote }: { phone?: string 
   const clean = phone?.replace(/[^\d+]/g, ""); const digits = clean?.replace(/\D/g, "");
   return <nav className="mobile-contact-strip" aria-label="Contact actions">{clean && <a aria-label="Call contact" data-action-tooltip="Call this contact" href={`tel:${clean}`}><Phone className="text-teal-600" size={18}/>Call</a>}{digits && <a aria-label="Send WhatsApp message" data-action-tooltip="Send WhatsApp message" href={`https://wa.me/${digits}`} target="_blank" rel="noreferrer"><WhatsAppIcon className="h-[18px] w-[18px] text-[#25D366]"/>WhatsApp</a>}{email && <a aria-label="Compose email to this contact" data-action-tooltip="Compose email to this contact" href={`mailto:${email}`}><Mail className="text-blue-600" size={18}/>Email</a>}{onNote && <button type="button" onClick={onNote}><StickyNote size={18}/>Add note</button>}</nav>;
 }
-export function MobileDisclosure({ title, children, maxWidth = 767 }: { title: string; children: ReactNode; maxWidth?: number }) {
+export function MobileDisclosure({ title, children, maxWidth = 767, keepMounted = false, className = "", initiallyOpen }: { title: string; children: ReactNode; maxWidth?: number; keepMounted?: boolean; className?: string; initiallyOpen?: boolean }) {
   const mobile = useMobile(maxWidth);
+  const [expanded,setExpanded] = useState(initiallyOpen ?? false);
   const detailsRef = useRef<HTMLDetailsElement>(null);
   // Native validation must be able to focus required controls inside disclosure.
   const revealInvalid = () => {
@@ -47,7 +48,8 @@ export function MobileDisclosure({ title, children, maxWidth = 767 }: { title: s
     observer.observe(details, {subtree:true, childList:true, attributes:true, attributeFilter:["aria-invalid", "role"]});
     return () => observer.disconnect();
   }, [mobile]);
-  return mobile ? <details ref={detailsRef} className="mobile-disclosure" onInvalidCapture={revealInvalid}><summary>{title}</summary><div>{children}</div></details> : <>{children}</>;
+  if(keepMounted)return <details ref={detailsRef} className={`${mobile ? "mobile-disclosure" : ""} ${className}`} open={!mobile || expanded} onToggle={event => {if(mobile)setExpanded(event.currentTarget.open);}} onInvalidCapture={revealInvalid}><summary style={!mobile ? {display:"none"} : undefined}>{title}</summary><div style={!mobile ? {display:"contents"} : undefined}>{children}</div></details>;
+  return mobile ? <details ref={detailsRef} {...(initiallyOpen === undefined ? {} : {open:expanded,onToggle:(event:SyntheticEvent<HTMLDetailsElement>)=>setExpanded(event.currentTarget.open)})} className={`mobile-disclosure ${className}`} onInvalidCapture={revealInvalid}><summary>{title}</summary><div>{children}</div></details> : <>{children}</>;
 }
 export function MobileSteps({ steps, current, onChange }: { steps: string[]; current: number; onChange: (index: number) => void }) {
   return <nav className="mobile-stepper" aria-label="Progress">{steps.map((label, index) => <button type="button" key={label} aria-current={index === current ? "step" : undefined} onClick={() => onChange(index)}><span>{index + 1}</span>{label}</button>)}</nav>;

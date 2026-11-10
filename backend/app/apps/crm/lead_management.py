@@ -717,6 +717,8 @@ def checked_values(values, partial=False):
         "website",
         "tags_text",
         "expected_close_date",
+        "services_offered",
+        "business_types",
     }
     normalized = core()._normalize_payload(values)
     unknown = set(normalized) - allowed

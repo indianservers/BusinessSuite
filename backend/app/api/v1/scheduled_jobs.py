@@ -72,6 +72,9 @@ def cron(response: Response, authorization: str = Header(""), db=Depends(get_db)
         result["intern_management"] = scheduled_tick(db,today())
         from app.apps.interns_hub.operations import scheduled_tick as workforce_tick
         result["workforce_operations"] = workforce_tick(db)
+    if is_app_enabled("hrms"):
+        from app.services.document_reminders import run_document_reminders
+        result["document_reminders"] = run_document_reminders(db)
     from app.shared.runtime import process_batch
     result["shared_services"] = process_batch(db, limit=10)
     if is_app_enabled("project_management"):

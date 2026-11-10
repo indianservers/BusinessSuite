@@ -352,7 +352,7 @@ def company_output(db, row):
             cache.setdefault(link.account_id, link)
         db.info["master_vendor_cache"] = cache
     vendor = db.info["master_vendor_cache"].get(row.id)
-    return {"branch_availability": profile_availability(db, row), "id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "status": row.status,
+    return {"branch_availability": profile_availability(db, row), "id": row.id, "name": row.name, "email": row.email, "phone": row.phone, "phone_country_code": row.phone_country_code, "website": row.website, "industry": row.industry, "services_offered": row.services_offered or [], "business_types": row.business_types or [], "status": row.status,
         **company_location(row, details),
         "country": row.country or "IN", "vendorClassification": vendor.category if vendor else None, "paymentTerms": vendor.payment_terms if vendor else None,
         "gstNumber": next((r.get("number", "") for r in (details.tax_registrations if details else []) if r.get("type", "").upper() in {"GST", "GSTIN"}), ""),
@@ -442,6 +442,8 @@ class CompanyInput(BaseModel):
     phone_country_code: str | None = Field(None, max_length=5)
     website: str | None = Field(None, max_length=200)
     industry: str | None = Field(None, max_length=120)
+    services_offered: list[str] | str | None = None
+    business_types: list[str] | str | None = None
     legalName: str | None = Field(None, max_length=180)
     tradeName: str | None = Field(None, max_length=180)
     entityKind: Literal["Individual", "Company"] | None = None
@@ -565,6 +567,10 @@ def write_company(db, actor, source, data, row=None):
         raise HTTPException(409, "Company changed. Reload before saving")
     row.name, row.email, row.phone, row.phone_country_code = data.name, email, phone, data.phone_country_code if phone else None
     row.website, row.industry, row.status, row.notes = data.website, data.industry, data.status, data.notes
+    from app.apps.crm.business_profile import normalize_profile_list
+    for field in ("services_offered", "business_types"):
+        if field in data.model_fields_set:
+            setattr(row, field, normalize_profile_list(getattr(data, field), field))
     if any("," in x or len(x) > 40 or x.strip().casefold() in {"employee", "user", "admin", "manager", "staff", "intern", "super admin"} for x in data.tags) or len(", ".join(data.tags)) > 500:
         raise HTTPException(422, "Use tags of up to 40 characters")
     row.tags_text = ", ".join(sorted(set(data.tags)))

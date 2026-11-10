@@ -276,7 +276,8 @@ def test_conversion_reuses_contact_and_blocks_unqualified(
     client, db, superuser_headers
 ):
     lead = create(
-        client, superuser_headers, email="convert@example.com", company_name="Company"
+        client, superuser_headers, email="convert@example.com", company_name="Company",
+        services_offered=["Accounting", "Consulting"], business_types=["B2B", "B2G"]
     )
     endpoint = ROOT + f"/leads/{lead['id']}"
     assert (
@@ -287,6 +288,8 @@ def test_conversion_reuses_contact_and_blocks_unqualified(
     )
     # Lead capture already links a canonical contact. Reuse that identity.
     contact = db.query(CRMContact).filter_by(organization_id=1, email="convert@example.com").one()
+    contact.services_offered = ["Training"]
+    contact.business_types = ["B2C"]
     # Simulate a legacy lead without an authoritative identity link so reuse
     # must be chosen explicitly from the conversion preview.
     from app.apps.crm.contact_identity import ContactIdentityLink
@@ -316,6 +319,13 @@ def test_conversion_reuses_contact_and_blocks_unqualified(
     )
     assert response.status_code == 200, response.text
     assert response.json()["contact"]["id"] == contact.id
+    db.refresh(contact)
+    assert contact.services_offered == ["Training", "Accounting", "Consulting"]
+    assert contact.business_types == ["B2C", "B2B", "B2G"]
+    from app.apps.crm.models import CRMCompany
+    company = db.get(CRMCompany, response.json()["company"]["id"])
+    assert company.services_offered == ["Accounting", "Consulting"]
+    assert company.business_types == ["B2B", "B2G"]
     assert db.query(CRMContact).count() == 1
 
 
@@ -843,3 +853,18 @@ def test_potential_bulk_promotion_reuses_bulk_preview_and_apply(client, superuse
     for ident in ids:
         detail = client.get(ROOT + f"/leads/{ident}", headers=superuser_headers).json()
         assert detail["details"]["recordType"] == "Lead"
+
+
+def test_lead_business_profile_validation_and_clearing(client, db, superuser_headers):
+    lead = create(client, superuser_headers, services_offered=" Accounting, Consulting\naccounting ", business_types=["b2b", "B2G", "B2B"])
+    assert lead["services_offered"] == ["Accounting", "Consulting"]
+    assert lead["business_types"] == ["B2B", "B2G"]
+    endpoint = ROOT + f"/leads/{lead['id']}"
+    invalid = client.patch(endpoint, headers=superuser_headers, json={"values": {"business_types": ["Other"]}})
+    assert invalid.status_code == 422
+    cleared = client.patch(endpoint, headers=superuser_headers, json={"values": {"services_offered": "", "business_types": []}})
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["services_offered"] == []
+    assert cleared.json()["business_types"] == []
+    db.expire_all()
+    assert db.get(CRMLead, lead["id"]).business_types == []

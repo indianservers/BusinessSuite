@@ -2,13 +2,15 @@
 Description=Business Suite API
 After=network-online.target postgresql.service redis-server.service
 Wants=network-online.target
+Requires=business-suite.socket
+After=business-suite.socket
 
 [Service]
 Type=simple
 User=businesssuite
 Group=businesssuite
 WorkingDirectory=/srv/business-suite/current/backend
-ExecStart=/srv/business-suite/current/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --no-proxy-headers
+ExecStart=/srv/business-suite/current/.venv/bin/uvicorn app.main:app --fd 3 --workers 1 --no-proxy-headers
 Restart=on-failure
 RestartSec=5
 TimeoutStartSec=180

@@ -1,3 +1,8 @@
+import { useMobile } from "@/components/mobile/useMobile";
+import { MobileSheet } from "@/components/mobile/MobilePrimitives";
+import { syncScope } from "@/shared/record-sync/store";
+import { useAuthStore } from "@/store/authStore";
+import { ArrowLeft } from "lucide-react";
 import RecordSectionNav from "@/components/RecordSectionNav";
 import { NativeSelect } from "@/components/ui/native-select";
 import PhoneActions from "../../components/PhoneActions";
@@ -5,6 +10,7 @@ import CompactForm from "../../components/forms/CompactForm";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { PhoneInput } from "../../lib/validation/PhoneInput";
 import "./profiles.css";
+import "./profile-management-mobile.css";
 
 export type ProfileRequest = (
   path: string,
@@ -130,7 +136,7 @@ function ProfileField({
   const id = useId();
   const [key, label, kind] = spec;
   return (
-    <div className="up-field">
+    <div className="up-field" data-profile-kind={kind}>
       <label htmlFor={id}>
         {label}
         {approval && editing && <small>HR review</small>}
@@ -331,36 +337,40 @@ function ConnectDialog({
   confirm,
   close,
   busy,
+  mobile = false,
+  error = "",
+  returnFocus,
 }: {
   preview: Values;
   confirm: (id: number) => void;
   close: () => void;
   busy: boolean;
+  mobile?: boolean;
+  error?: string;
+  returnFocus?: HTMLElement | null;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(
     String(preview.candidates[0]?.employeeId || ""),
   );
   useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-  return (
-    <dialog
-      className="up-connect-dialog"
-      ref={ref}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!busy) close();
-      }}
-    >
-      <h2>Connect profile by email</h2>
+    if (!mobile) ref.current?.showModal();
+  }, [mobile]);
+  useEffect(() => {
+    if (mobile && error) errorRef.current?.focus();
+  }, [mobile, error]);
+  const content = <>
+      {!mobile && <h2>Connect profile by email</h2>}
       <p>{preview.email}</p>
       <p>{preview.message}</p>
+      {mobile && error && <div className="up-error" role="alert" ref={errorRef} tabIndex={-1}>{error}</div>}
       {preview.candidates.length ? (
         <>
           <label>
             Matching employee
             <NativeSelect
+              disabled={mobile && busy}
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
             >
@@ -389,8 +399,9 @@ function ConnectDialog({
       <button className="up-button" disabled={busy} onClick={close}>
         Close
       </button>
-    </dialog>
-  );
+    </>;
+  if (mobile) return <MobileSheet open onClose={() => { if (!busy) close(); }} title="Connect profile by email" onClosed={() => { if (returnFocus?.isConnected && !ref.current?.open) returnFocus.focus(); }}><div className="up-root up-management-connect" aria-busy={busy}>{content}</div></MobileSheet>;
+  return <dialog className="up-connect-dialog" ref={ref} onCancel={event => { event.preventDefault(); if (!busy) close(); }}>{content}</dialog>;
 }
 
 export function UnifiedProfile({
@@ -399,14 +410,18 @@ export function UnifiedProfile({
   employeeId,
   onSaved,
   onDirtyChange,
+  onBusyChange,
   renderLoadError,
+  mobileManagement = false,
 }: {
   request: ProfileRequest;
   userId?: number;
   employeeId?: number;
   onSaved?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  onBusyChange?: (busy: boolean) => void;
   renderLoadError?: (message: string) => React.ReactNode;
+  mobileManagement?: boolean;
 }) {
   const path = employeeId
     ? `/profiles/employees/${employeeId}`
@@ -423,6 +438,52 @@ export function UnifiedProfile({
   const [reload, setReload] = useState(0);
   const [preview, setPreview] = useState<Values>();
   const [photoFailed, setPhotoFailed] = useState(false);
+  useAuthStore(state => state.user);
+  const [photoSelection, setPhotoSelection] = useState<{file:File;scope:string;error?:string;retryable?:boolean}>();
+  const [, refreshPhotoScope] = useState(0);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const photoButtonRef = useRef<HTMLButtonElement>(null);
+  const profileHeadingRef = useRef<HTMLHeadingElement>(null);
+  const photoFocusPending = useRef(false);
+  const photoErrorRef = useRef<HTMLDivElement>(null);
+  const photoInFlight = useRef(false);
+  function photoContextKey() { return JSON.stringify([syncScope(),useAuthStore.getState().user?.employee_id,path,profile?.employeeId]); }
+  const currentPhotoScope = photoContextKey();
+  const currentPhoto = photoSelection?.scope === currentPhotoScope ? photoSelection : undefined;
+  useEffect(() => {
+    if (!mobileManagement) return;
+    const refresh = () => refreshPhotoScope(value => value + 1);
+    const names = ["suite:organization-changed", "suite:branch-changed", "storage"];
+    names.forEach(name => window.addEventListener(name, refresh));
+    return () => names.forEach(name => window.removeEventListener(name, refresh));
+  }, [mobileManagement]);
+  useEffect(() => { if (mobileManagement && currentPhoto?.error) photoErrorRef.current?.focus(); }, [mobileManagement, currentPhoto]);
+  useEffect(() => {
+    if (mobileManagement && !busy && photoFocusPending.current) {
+      photoFocusPending.current = false;
+      (photoButtonRef.current || profileHeadingRef.current)?.focus();
+    }
+  }, [mobileManagement, busy, photoSelection]);
+  const [reviewRemarks, setReviewRemarks] = useState<Record<string, string>>({});
+  const [reviewError, setReviewError] = useState<{ id: number; message: string }>();
+  const reviewErrorRef = useRef<HTMLDivElement>(null);
+  const reviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const reviewFocusPending = useRef(false);
+  useEffect(() => {
+    if (mobileManagement && profile && reviewFocusPending.current && reviewHeadingRef.current) {
+      reviewFocusPending.current = false;
+      reviewHeadingRef.current.focus();
+    }
+  }, [mobileManagement, profile, tab]);
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
+  useEffect(() => {
+    if (mobileManagement && reviewError) reviewErrorRef.current?.focus();
+  }, [mobileManagement, reviewError, tab]);
+  const connectButtonRef = useRef<HTMLButtonElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (mobileManagement && error && !preview) errorRef.current?.focus();
+  }, [mobileManagement, error, preview]);
   useEffect(() => {
     let active = true;
     setProfile(undefined);
@@ -451,17 +512,19 @@ export function UnifiedProfile({
       (key) =>
         JSON.stringify(draft[key]) !== JSON.stringify(profile.values[key]),
     );
+  const reviewDirty = Object.values(reviewRemarks).some(value => value.length > 0);
+  const photoDirty = !!currentPhoto;
   useEffect(() => {
-    onDirtyChange?.(!!dirty);
-  }, [dirty, onDirtyChange]);
+    onDirtyChange?.(!!dirty || reviewDirty || photoDirty);
+  }, [dirty, reviewDirty, photoDirty, onDirtyChange]);
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && !reviewDirty && !photoDirty) return;
     const protect = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
     window.addEventListener("beforeunload", protect);
     return () => window.removeEventListener("beforeunload", protect);
-  }, [dirty]);
+  }, [dirty, reviewDirty, photoDirty]);
   const cancel = () => {
     if (dirty && !window.confirm("Discard unsaved profile changes?")) return;
     if (profile) setDraft(structuredClone(profile.values));
@@ -499,11 +562,39 @@ export function UnifiedProfile({
       setBusy(false);
     }
   };
+  async function uploadProfilePhoto(file: File, scope?: string) {
+    if (!profile) return;
+    if (scope !== undefined) {
+      if (busy || photoInFlight.current || dirty || !profile.canEdit) return;
+      if (scope !== photoContextKey()) { refreshPhotoScope(value => value + 1); return; }
+      setPhotoSelection(current => ({file,scope,retryable:current?.scope === scope && current.file === file && current.retryable}));
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      if (scope !== undefined) setPhotoSelection({file,scope,error:"Profile photos must be 3 MB or smaller"});
+      else setError("Profile photos must be 3 MB or smaller");
+      return;
+    }
+    const body = new FormData(); body.append("file", file);
+    photoInFlight.current = true;
+    setBusy(true); setError("");
+    try {
+      const result = await request(path + "/photo", {method:"POST",body});
+      if (scope === undefined || scope === photoContextKey()) {
+        if (scope !== undefined) photoFocusPending.current = true;
+        setProfile(result); setDraft(structuredClone(result.values)); setPhotoFailed(false);
+        setMessage("Profile photo updated across connected modules."); onSaved?.();
+      }
+      if (scope !== undefined) setPhotoSelection(current => current?.scope === scope && current.file === file ? undefined : current);
+    } catch (error) {
+      if (scope !== undefined) setPhotoSelection(current => current?.scope === scope && current.file === file ? {...current,error:errorText(error),retryable:true} : current);
+      else setError(errorText(error));
+    } finally { photoInFlight.current = false; setBusy(false); }
+  }
   if (!profile)
     return (
       <section className="up-root">
         {error ? renderLoadError?.(error) || (
-          <div className="up-error" role="alert">
+          <div className="up-error" role="alert" ref={errorRef} tabIndex={mobileManagement ? -1 : undefined}>
             {error}
             <button onClick={() => setReload((v) => v + 1)}>Retry</button>
           </div>
@@ -573,7 +664,7 @@ export function UnifiedProfile({
           </span>
           <div>
             <div className="up-kicker">CONNECTED PROFILE</div>
-            <h1>{profile.displayName || "My profile"}</h1>
+            <h1 ref={profileHeadingRef} tabIndex={mobileManagement ? -1 : undefined}>{profile.displayName || "My profile"}</h1>
             <p>{profile.loginEmail}</p>
             <div className="up-badges">
               <span>{profile.kind}</span>
@@ -588,48 +679,30 @@ export function UnifiedProfile({
         </div>
         <div className="up-actions">
           {profile.canEdit && (
-            <label className="up-button up-photo-control">
+            <>
+            {mobileManagement && <button ref={photoButtonRef} type="button" className="up-button" disabled={busy || !!dirty} onClick={() => photoInputRef.current?.click()}>Change photo</button>}
+            <label className="up-button up-photo-control" style={mobileManagement ? {display:"none"} : undefined}>
               Change photo
               <input
+                ref={photoInputRef}
                 type="file"
                 accept="image/png,image/jpeg"
                 aria-label="Upload profile photo"
                 disabled={busy || !!dirty}
-                onChange={async (event) => {
+                onChange={(event) => {
                   const file = event.target.files?.[0];
                   event.target.value = "";
                   if (!file) return;
-                  if (file.size > 3 * 1024 * 1024) {
-                    setError("Profile photos must be 3 MB or smaller");
-                    return;
-                  }
-                  const body = new FormData();
-                  body.append("file", file);
-                  setBusy(true);
-                  setError("");
-                  try {
-                    const result = await request(path + "/photo", {
-                      method: "POST",
-                      body,
-                    });
-                    setProfile(result);
-                    setDraft(structuredClone(result.values));
-                    setPhotoFailed(false);
-                    setMessage(
-                      "Profile photo updated across connected modules.",
-                    );
-                    onSaved?.();
-                  } catch (error) {
-                    setError(errorText(error));
-                  } finally {
-                    setBusy(false);
-                  }
+                  if (!mobileManagement) setPhotoSelection(undefined);
+                  void uploadProfilePhoto(file, mobileManagement ? photoContextKey() : undefined);
                 }}
               />
             </label>
+            </>
           )}
           {profile.canManage && !editing && (
             <button
+              ref={connectButtonRef}
               className="up-button"
               disabled={busy}
               onClick={async () => {
@@ -660,6 +733,12 @@ export function UnifiedProfile({
               {editing ? "Cancel editing" : "Edit profile"}
             </button>
           )}
+          {mobileManagement && profile.canEdit && currentPhoto && <div className="up-photo-feedback">
+            <p>Selected photo: {currentPhoto.file.name}</p>
+            {busy && photoInFlight.current && <p role="status">Uploading photo…</p>}
+            {currentPhoto.error && <div className="up-error" role="alert" tabIndex={-1} ref={photoErrorRef}>{currentPhoto.error}</div>}
+            {currentPhoto.retryable && <button type="button" className="up-button" disabled={busy || !!dirty} onClick={() => void uploadProfilePhoto(currentPhoto.file,currentPhoto.scope)}>Retry photo upload</button>}
+          </div>}
         </div>
       </header>
       <div className="up-summary">
@@ -698,19 +777,21 @@ export function UnifiedProfile({
         </div>
       )}
       {!!profile.certificationAlerts?.length && <aside role="status" className="profile-card"><h2>Certification expiry alerts</h2>{profile.certificationAlerts.map((certificate,index)=><p key={index}>{certificate.name}: {certificate.expired?"Expired":"Expires within 90 days"} · {certificate.expires}</p>)}</aside>}
-      {error && (
-        <div className="up-error" role="alert">
+      {error && !(mobileManagement && preview) && (
+        <div className="up-error" role="alert" ref={errorRef} tabIndex={mobileManagement ? -1 : undefined}>
           {error}
           <button
             type="button"
             onClick={() => {
               if (
-                !dirty ||
+                (!dirty && !reviewDirty && !photoDirty) ||
                 window.confirm(
                   "Discard this draft and reload the latest profile?",
                 )
-              )
+              ) {
+                setReviewRemarks({}); setPhotoSelection(undefined);
                 setReload((v) => v + 1);
+              }
             }}
           >
             Reload latest profile
@@ -881,7 +962,8 @@ export function UnifiedProfile({
           )}
           {tab === "Pending changes" && (
             <section className="up-section">
-              <h2>Changes awaiting HR review</h2>
+              <h2 ref={reviewHeadingRef} tabIndex={mobileManagement ? -1 : undefined}>Changes awaiting HR review</h2>
+              {mobileManagement && !profile.pendingRequests.length && <p role="status">No changes awaiting HR review.</p>}
               {profile.pendingRequests.map((change) => (
                 <article className="up-pending" key={change.id}>
                   <h3>
@@ -889,19 +971,24 @@ export function UnifiedProfile({
                   </h3>
                   <p>{change.reason}</p>
                   <dl>
-                    {Object.entries(change.values).map(([key, value]) => (
+                    {Object.entries(change.values).map(([key, value]) => {
+                      const rendered = typeof value === "object" && value !== null ? JSON.stringify(value) : text(value);
+                      return (
                       <div key={key}>
                         <dt>{labels[key] || key}</dt>
                         <dd>
-                          {typeof value === "object" && value !== null
-                            ? JSON.stringify(value)
-                            : text(value)}
+                          {mobileManagement && rendered.length > 240 ? <details className="up-review-value"><summary>View full requested value</summary><div>{rendered}</div></details> : rendered}
                         </dd>
                       </div>
-                    ))}
+                    );})}
                   </dl>
                   {profile.canReview && (
-                    <div className="up-actions">
+                    <>
+                    {mobileManagement && <>
+                      {reviewError && reviewError.id === change.id && <div className="up-error" role="alert" tabIndex={-1} ref={reviewErrorRef}>{reviewError.message}</div>}
+                      <label className="up-review-remarks">Review remarks (optional)<textarea rows={2} value={reviewRemarks[change.id] || ""} onChange={event => setReviewRemarks(current => ({...current, [change.id]:event.target.value}))}/></label>
+                    </>}
+                    <div className={`up-actions${mobileManagement ? " up-review-actions" : ""}`}>
                       {["approve", "reject"].map((action) => (
                         <button
                           key={action}
@@ -909,10 +996,12 @@ export function UnifiedProfile({
                           type="button"
                           disabled={busy}
                           onClick={async () => {
-                            const remarks = window.prompt(
+                            if (mobileManagement && busy) return;
+                            const remarks = mobileManagement ? reviewRemarks[change.id] || "" : window.prompt(
                               `${action === "approve" ? "Approve" : "Reject"} profile changes: review remarks`,
                             );
                             if (remarks === null) return;
+                            if (mobileManagement) { setReviewError(undefined); setError(""); }
                             setBusy(true);
                             try {
                               await request(
@@ -922,10 +1011,15 @@ export function UnifiedProfile({
                                   body: { remarks, applyChanges: true },
                                 },
                               );
+                              setReviewRemarks(current => { const next={...current}; delete next[change.id]; return next; });
+                              if (mobileManagement) {
+                                reviewFocusPending.current = true;
+                              }
                               setReload((v) => v + 1);
                               onSaved?.();
                             } catch (error) {
-                              setError(errorText(error));
+                              if (mobileManagement) setReviewError({id:change.id,message:errorText(error)});
+                              else setError(errorText(error));
                             } finally {
                               setBusy(false);
                             }
@@ -937,6 +1031,7 @@ export function UnifiedProfile({
                         </button>
                       ))}
                     </div>
+                    </>
                   )}
                 </article>
               ))}
@@ -975,8 +1070,12 @@ export function UnifiedProfile({
         <ConnectDialog
           preview={preview}
           busy={busy}
+          mobile={mobileManagement}
+          error={error}
+          returnFocus={connectButtonRef.current}
           close={() => setPreview(undefined)}
           confirm={async (employeeId) => {
+            if (mobileManagement) setError("");
             setBusy(true);
             try {
               const result = await request(
@@ -1001,125 +1100,71 @@ export function UnifiedProfile({
 }
 
 export function ProfileManagement({ request }: { request: ProfileRequest }) {
-  const [result, setResult] = useState<{ items: Values[]; total: number }>({
-    items: [],
-    total: 0,
-  });
+  const phone = useMobile(480);
+  const [result, setResult] = useState<{ items: Values[]; total: number }>({items: [], total: 0});
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number>();
   const [profileDirty, setProfileDirty] = useState(false);
+  const [profileBusy, setProfileBusy] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [reload, setReload] = useState(0);
+  const [mobileView, setMobileView] = useState("list");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const backRef = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     let active = true;
     const timer = setTimeout(() => {
       setLoading(true);
-      request(
-        `/profiles/directory?search=${encodeURIComponent(search)}&page=${page}`,
-      )
+      request(`/profiles/directory?search=${encodeURIComponent(search)}&page=${page}`)
         .then((data) => {
-          if (active) {
-            setResult(data);
-            setError("");
-          }
+          if (active) {setResult(data);setHasLoaded(true);setError("");}
         })
-        .catch((error) => {
-          if (active) setError(errorText(error));
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
+        .catch((error) => {if (active) setError(errorText(error));})
+        .finally(() => {if (active) setLoading(false);});
     }, 250);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [request, search, page]);
-  return (
-    <div className="up-root">
-      <header className="up-header">
-        <div>
-          <div className="up-kicker">PEOPLE</div>
-          <h1>Profile management</h1>
-          <p>Employees, interns and user accounts in your permitted scope.</p>
-        </div>
-        <label className="up-field">
-          Find a profile
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Name, email or employee code"
-          />
-        </label>
-      </header>
-      {error && (
-        <div role="alert" className="up-error">
-          {error}
-        </div>
-      )}
-      {loading ? (
-        <p role="status">Loading profiles…</p>
-      ) : (
-        <div className="up-directory">
-          {result.items.map((item) => (
-            <button
-              key={item.userId}
-              onClick={() => {
-                if (selected === item.userId) return;
-                if (
-                  profileDirty &&
-                  !window.confirm("Discard unsaved profile changes?")
-                )
-                  return;
-                setProfileDirty(false);
-                setSelected(item.userId);
-              }}
-              aria-pressed={selected === item.userId}
-            >
-              <span>
-                <strong>{item.displayName}</strong>
-                <small>{item.email}</small>
-              </span>
-              <span>{item.employeeCode || "Account only"}</span>
-              <span>
-                {item.kind} · {item.active ? "Active" : "Inactive"}
-              </span>
-            </button>
-          ))}
-          {!result.items.length && <p>No profiles match your search.</p>}
-        </div>
-      )}
-      <div className="up-actions up-pagination">
-        <span>{result.total} profiles</span>
-        <button
-          className="up-button"
-          disabled={page <= 1}
-          onClick={() => setPage((v) => v - 1)}
-        >
-          Previous
-        </button>
-        <span>Page {page}</span>
-        <button
-          className="up-button"
-          disabled={page * 30 >= result.total}
-          onClick={() => setPage((v) => v + 1)}
-        >
-          Next
-        </button>
-      </div>
-      {selected && (
-        <UnifiedProfile
-          key={selected}
-          request={request}
-          userId={selected}
-          onDirtyChange={setProfileDirty}
-        />
-      )}
+    return () => {active = false;clearTimeout(timer);};
+  }, [request, search, page, reload]);
+  useEffect(() => {
+    if(!phone || !selected)return;
+    if(mobileView === "profile")backRef.current?.focus();
+    else if(opener.current?.isConnected)opener.current.focus();
+    else searchRef.current?.focus();
+  },[phone,mobileView,selected]);
+  const list = <>
+    {phone && selected && <div className="up-management-resume"><button type="button" className="up-button" onClick={event => {opener.current=event.currentTarget;setMobileView("profile");}}>{profileDirty ? "Continue editing profile" : "Open selected profile"}</button></div>}
+    {error && <div role="alert" className="up-error">{error}{phone && <button type="button" className="up-button" disabled={loading} onClick={()=>{if(!loading){setLoading(true);setReload(value=>value+1);}}}>Retry profiles</button>}</div>}
+    {phone && error && hasLoaded && !loading && <p className="up-muted">Showing the last loaded results.</p>}
+    {loading ? <p role="status">Loading profiles…</p> : (!phone || hasLoaded) && <div className="up-directory">
+      {result.items.map(item => <button key={item.userId} disabled={phone && profileBusy} onClick={event => {
+        if(selected === item.userId){if(phone){opener.current=event.currentTarget;setMobileView("profile");}return;}
+        if(profileDirty && !window.confirm("Discard unsaved profile changes?"))return;
+        if(phone)opener.current=event.currentTarget;
+        setProfileDirty(false);setSelected(item.userId);setMobileView("profile");
+      }} aria-pressed={selected === item.userId}>
+        <span><strong>{item.displayName}</strong><small>{item.email}</small></span>
+        <span>{item.employeeCode || "Account only"}</span>
+        <span>{item.kind} · {item.active ? "Active" : "Inactive"}</span>
+      </button>)}
+      {!result.items.length && !(phone && error) && <p>No profiles match your search.</p>}
+    </div>}
+    <div className="up-actions up-pagination">
+      <span>{phone && !hasLoaded ? "—" : result.total} profiles</span>
+      <button className="up-button" disabled={page <= 1 || (phone && loading)} onClick={()=>{if(phone)setLoading(true);setPage(value=>value-1);}}>Previous</button>
+      <span>Page {page}</span>
+      <button className="up-button" disabled={page * 30 >= result.total || (phone && loading)} onClick={()=>{if(phone)setLoading(true);setPage(value=>value+1);}}>Next</button>
     </div>
-  );
+  </>;
+  return <div className="up-root up-management" data-mobile-view={mobileView}>
+    <header className="up-header">
+      <div><div className="up-kicker">PEOPLE</div><h1>Profile management</h1><p>Employees, interns and user accounts in your permitted scope.</p></div>
+      <label className="up-field">Find a profile<input ref={searchRef} type="search" value={search} onChange={event=>{if(phone)setLoading(true);setSearch(event.target.value);setPage(1);}} placeholder="Name, email or employee code"/></label>
+    </header>
+    <div className="up-management-list">{list}</div>
+    {phone && selected && mobileView === "profile" && <div className="up-management-profile-nav"><button ref={backRef} type="button" className="up-button" disabled={profileBusy} onClick={()=>setMobileView("list")}><ArrowLeft size={16}/>All profiles</button>{profileDirty && <span className="up-muted">Unsaved changes</span>}</div>}
+    <div className="up-management-detail">{selected && <UnifiedProfile key={selected} request={request} userId={selected} onDirtyChange={setProfileDirty} onBusyChange={phone ? setProfileBusy : undefined} mobileManagement={phone}/>}</div>
+  </div>;
 }

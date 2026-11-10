@@ -68,6 +68,7 @@ for module, entity, path, permission in [
     ("project_management", "project", "/project-management/projects/{id}", "pms_view"),
     ("project_management", "task", "/project-management/tasks/{id}", "pms_view"),
     ("srm", "invoice", "/srm/invoices/{id}", "srm_view"),
+    ("hrms", "asset", "/assets/{id}", "asset_view"),
     ("hrms", "leave", "/leave/requests/{id}", "leave_view"),
 ]:
     register_record(RecordContract(module, entity, path, permission))

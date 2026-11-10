@@ -11,6 +11,8 @@ from fastapi import HTTPException
 from fastapi.responses import FileResponse as LocalFileResponse, RedirectResponse
 from app.core.config import settings
 
+PRIVATE_FILE_CAPABILITY_VERSION = 2
+
 
 def storage_key(path: str) -> str:
     root = Path(settings.UPLOAD_DIR).resolve()
@@ -53,6 +55,8 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
                              options={"verify_exp": verify_exp,"require":["exp","path","purpose","aud"]}, audience="private-file")
         relative = payload["path"]
+        if payload.get("capability_version") != PRIVATE_FILE_CAPABILITY_VERSION:
+            raise HTTPException(403, "File link needs to be refreshed; open the record again")
         if payload.get("purpose") != "blob-download" or not isinstance(relative, str):
             raise ValueError("Invalid file token")
         if verify_exp and payload.get("access_portal_user"):
@@ -110,23 +114,28 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
                     expires = expires.replace(tzinfo=timezone.utc)
                 if not session or session.user_id != user.id or session.status.lower() != "active" or (expires and expires <= datetime.now(timezone.utc)):
                     raise HTTPException(403, "File session has been revoked")
-            if payload.get("access_project") or payload.get("access_task"):
+            if payload.get("access_project") or payload.get("access_task") or payload.get("access_document"):
                 from contextlib import ExitStack
                 from app.core.tenant_boundary import install
                 from app.access.service import resolved_grants, effective_objects
                 from app.apps.project_management.access import get_project_for_action, get_task_project_for_action
                 previous_company = getattr(user, "organization_id", None)
+                authorization_fields = ("_suite_grants", "_suite_permission_objects", "_suite_current_module",
+                                        "_suite_policy_version", "_suite_scope_active", "_suite_original_organization")
+                missing = object()
+                previous_authorization = {key: getattr(user, key, missing) for key in authorization_fields}
                 user.organization_id = company
                 try:
                     with ExitStack() as stack:
                         if policy:
-                            grants = resolved_grants(db, policy)
-                            grant = grants.get("project_management", {})
+                            grants = effective if payload.get("access_branch") is not None and effective is not None else resolved_grants(db, policy)
+                            module = "hrms" if payload.get("access_document") else "project_management"
+                            grant = grants.get(module, {})
                             if not grant.get("enabled") or "view" not in grant.get("actions", []):
                                 raise HTTPException(403, "File module access changed")
                             from app.access.scope import install_scope
                             user._suite_grants = grants
-                            user._suite_permission_objects = effective_objects(db, grants, "project_management")
+                            user._suite_permission_objects = effective_objects(db, grants, module)
                             stack.callback(install_scope(db, user, company, grants))
                         stack.callback(install(db, user, company))
                         if payload.get("access_branch") is not None:
@@ -136,7 +145,15 @@ def blob_token_path(token: str, *, verify_exp: bool = True, db=None) -> str:
                             get_task_project_for_action(db, int(payload["access_task"]), user)
                         elif payload.get("access_project"):
                             get_project_for_action(db, int(payload["access_project"]), user)
+                        if payload.get("access_document"):
+                            from app.core.file_record_access import validate_document
+                            validate_document(db, user, payload["access_document"], relative)
                 finally:
+                    for key, value in previous_authorization.items():
+                        if value is missing:
+                            user.__dict__.pop(key, None)
+                        else:
+                            setattr(user, key, value)
                     if previous_company is None:
                         user.__dict__.pop("organization_id", None)
                     else:
@@ -218,7 +235,7 @@ def materialize_file(path: str, *, db=None) -> str:
     return path
 
 
-def signed_file_url(path: str) -> str:
+def signed_file_url(path: str, *, document=None) -> str:
     if settings.STORAGE_BACKEND in {"local", "vercel_blob", "s3"}:
         storage_key(path)
         relative = Path(path).resolve().relative_to(Path(settings.UPLOAD_DIR).resolve()).as_posix()
@@ -230,6 +247,8 @@ def signed_file_url(path: str) -> str:
         elif actor.get("access_company") is not None:
             claims = {"access_user": actor["user_id"], "access_company": actor["access_company"], "access_session": actor.get("access_session"), "access_policy_version": actor.get("access_policy_version"), "access_role_id": actor.get("access_role_id"), "access_permissions": actor.get("access_permissions"), "access_module": actor.get("access_module"), "access_branch": actor.get("access_branch")}
             claims['access_branch_roles'] = actor.get('access_branch_roles')
+            if document is not None:
+                claims["access_document"] = document
         evidence = context.get() or {}
         if actor.get("access_module") == "project_management":
             projects, tasks = evidence.get("project_ids", set()), evidence.get("task_ids", set())
@@ -238,6 +257,7 @@ def signed_file_url(path: str) -> str:
             if len(tasks) == 1:
                 claims["access_task"] = next(iter(tasks))
         token = jwt.encode({"path": relative, "purpose": "blob-download", "aud": "private-file", **claims,
+                            "capability_version": PRIVATE_FILE_CAPABILITY_VERSION,
                             "exp": datetime.now(timezone.utc) + timedelta(seconds=settings.S3_SIGNED_URL_SECONDS)},
                            settings.SECRET_KEY, algorithm=settings.ALGORITHM)
         return f"{settings.BACKEND_PUBLIC_URL}/api/v1/files/blob?{urlencode({'token': token})}"
@@ -280,11 +300,15 @@ def sign_upload_references(value):
     if isinstance(value, list):
         return [sign_upload_references(item) for item in value]
     if isinstance(value, dict):
-        return {key: sign_upload_references(item) for key, item in value.items()}
+        from app.core.file_record_access import document_claim
+        document = document_claim(value)
+        return {key: signed_file_url(str(Path(settings.UPLOAD_DIR) / item[len("/uploads/"):]), document=document)
+                if document and key == "file_url" and isinstance(item, str) and item.startswith("/uploads/")
+                else sign_upload_references(item) for key, item in value.items()}
     return value
 
 
-def normalize_upload_references(value, *, db=None, actor_id=None, company_id=None, portal_token=None):
+def normalize_upload_references(value, *, db=None, actor_id=None, company_id=None, portal_token=None, branch_id=None):
     """Do not save expiring display links when a record is edited and resubmitted."""
     if isinstance(value, str) and settings.STORAGE_BACKEND in {"local", "vercel_blob", "s3"}:
         url = urlsplit(value)
@@ -311,13 +335,19 @@ def normalize_upload_references(value, *, db=None, actor_id=None, company_id=Non
                     expected_company = int(company_id) if company_id is not None else primary_company(db.get(User, int(actor_id)))
                     if int(claims.get("access_company", 0)) != expected_company:
                         raise HTTPException(403, "File reference belongs to another company")
+                    if claims.get("access_branch") is not None:
+                        from app.branches.service import context as branch_context
+                        actor = db.get(User, int(actor_id))
+                        target = branch_context(db, actor, expected_company, None if branch_id == "all" else branch_id)
+                        if str(claims["access_branch"]) != str(target.branch_id):
+                            raise HTTPException(403, "File reference belongs to another branch")
                 path = blob_token_path(tokens[0], db=db)
                 relative = Path(path).resolve().relative_to(Path(settings.UPLOAD_DIR).resolve()).as_posix()
                 return f"/uploads/{relative}"
     if isinstance(value, list):
-        return [normalize_upload_references(item, db=db, actor_id=actor_id, company_id=company_id, portal_token=portal_token) for item in value]
+        return [normalize_upload_references(item, db=db, actor_id=actor_id, company_id=company_id, portal_token=portal_token, branch_id=branch_id) for item in value]
     if isinstance(value, dict):
-        return {key: normalize_upload_references(item, db=db, actor_id=actor_id, company_id=company_id, portal_token=portal_token) for key, item in value.items()}
+        return {key: normalize_upload_references(item, db=db, actor_id=actor_id, company_id=company_id, portal_token=portal_token, branch_id=branch_id) for key, item in value.items()}
     return value
 
 

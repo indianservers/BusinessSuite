@@ -23,7 +23,7 @@ class NotificationService:
         return None
 
     @classmethod
-    def create_notification(cls, db: Session, data: NotificationCreate) -> Notification:
+    def create_notification(cls, db: Session, data: NotificationCreate, *, commit: bool = True) -> Notification:
         company_id = data.company_id
         channels = normalize_notification_channels(data.channels)
         recipient = SharedIdentityService.contact_for_user(db, data.user_id)
@@ -60,11 +60,12 @@ class NotificationService:
         expire_on_commit = db.expire_on_commit
         try:
             db.expire_on_commit = False
-            db.commit()
+            if commit:
+                db.commit()
         finally:
             db.expire_on_commit = expire_on_commit
         return notification
 
 
-def create_notification(db: Session, data: NotificationCreate) -> Notification:
-    return NotificationService.create_notification(db, data)
+def create_notification(db: Session, data: NotificationCreate, *, commit: bool = True) -> Notification:
+    return NotificationService.create_notification(db, data, commit=commit)

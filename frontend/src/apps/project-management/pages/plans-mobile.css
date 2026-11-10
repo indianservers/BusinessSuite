@@ -1,0 +1,23 @@
+@media(max-width:480px){
+ .pms-plans{min-width:0;overflow-wrap:anywhere}
+ .pms-plans>:not(:first-child){margin-top:12px}
+ .pms-plans .page-title{font-size:20px;line-height:1.3}
+ .pms-plans .page-description{font-size:13px;line-height:1.5}
+ .pms-plans>div.rounded-lg{padding:12px;font-size:13px;line-height:1.5}
+ .pms-plans .pms-plans-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .pms-plans-filters>input{grid-column:1/-1;max-width:none}
+ .pms-plans-filters :is(input:not([type=checkbox]),select){min-height:44px;font-size:16px;min-width:0;width:100%}
+ .pms-plans-filters label{min-height:44px;font-size:13px;line-height:1.4}
+ .pms-plans-filters input[type=checkbox]{width:20px;height:20px;flex-shrink:0}
+ .pms-plans>div.grid{gap:10px}
+ .pms-plans section[aria-label]{padding:12px;min-width:0}
+ .pms-plans section[aria-label] h2{font-size:18px}
+ .pms-plans section[aria-label] header{font-size:13px;line-height:1.5}
+ .pms-plans .mobile-disclosure{padding:0;border:0;background:transparent;border-radius:0}
+ .pms-plans section[aria-label]>.mobile-disclosure{margin:4px 0 0}
+ .pms-plans section[aria-label] header .suite-rich-content{white-space:normal;font-size:13px;line-height:1.5}
+ .pms-plans .mobile-disclosure>summary{min-height:44px}
+ .pms-plans li p{font-size:13px;line-height:1.5}
+ .pms-plans li a{min-height:44px;display:inline-flex;align-items:center;white-space:normal}
+ .pms-plans>section:last-child{font-size:13px;line-height:1.5}
+}

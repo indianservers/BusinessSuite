@@ -1,0 +1,11 @@
+[Unit]
+Description=Business Suite API listener retained across process restarts
+
+[Socket]
+ListenStream=127.0.0.1:8000
+Accept=no
+Backlog=1024
+Service=business-suite.service
+
+[Install]
+WantedBy=sockets.target

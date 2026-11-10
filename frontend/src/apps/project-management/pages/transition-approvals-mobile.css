@@ -1,0 +1,11 @@
+@media(max-width:480px){
+ main.transition-inbox{padding:12px;min-width:0}
+ main.transition-inbox>:not([hidden])~:not([hidden]){margin-top:12px}
+ .transition-inbox header{align-items:center;gap:8px}
+ .transition-inbox h1{font-size:20px;line-height:1.25;flex:1 1 160px;overflow-wrap:anywhere}
+ .transition-inbox header button{min-height:44px;white-space:normal}
+ .transition-inbox>p{line-height:1.5;overflow-wrap:anywhere}
+ .transition-inbox>div{padding-block:10px}
+ .transition-inbox>div>a{display:flex;align-items:center;min-height:44px;overflow-wrap:anywhere;font-size:15px;line-height:1.4}
+ .transition-inbox>div>p{overflow-wrap:anywhere;line-height:1.5}
+}

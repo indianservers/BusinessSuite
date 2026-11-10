@@ -63,9 +63,10 @@ export function SettingsHomeEntry() {
 
 
 
-export default function SettingsHubPage() {
+export default function SettingsHubPage({ sectionId, moduleHome, moduleLabel }: { sectionId?: string; moduleHome?: string; moduleLabel?: string } = {}) {
 
-  const {section} = useParams();
+  const params = useParams();
+  const section = sectionId || params.section;
 
   const {user,isAuthenticated,isHydrated} = useAuthStore();
 
@@ -77,7 +78,7 @@ export default function SettingsHubPage() {
 
   // Recheck the selected option on the server; stale client grants cannot open it.
 
-  const selected = useQuery({queryKey:["shared-setting",user?.id,company,section],queryFn:()=>api.get<Option>(`${base}/${section}`).then(r=>r.data),enabled:!!section&&!!option,retry:false,staleTime:0});
+  const selected = useQuery({queryKey:["shared-setting",user?.id,company,section],queryFn:()=>api.get<Option>(`${base}/options/${section}`).then(r=>r.data),enabled:!!section&&!!option,retry:false,staleTime:0});
 
   useEffect(()=>{if(section){window.scrollTo(0,0);document.getElementById("settings-page-title")?.focus({preventScroll:true});}},[section]);
   useEffect(()=>{document.title=section ? `${option?.title || "Settings"} · Settings` : "Settings";},[section,option?.title]);
@@ -91,25 +92,26 @@ export default function SettingsHubPage() {
 
   let directoryQuery="";try{directoryQuery=sessionStorage.getItem(directoryKey)||"";}catch{/* Navigation memory is optional. */}
 
-  const directoryUrl=`/settings${directoryQuery?`?${directoryQuery}`:""}`;
+  const directoryUrl=moduleHome || `/settings${directoryQuery?`?${directoryQuery}`:""}`;
 
   return <div className="settings-hub">
 
-    <header className="suite-app-bar settings-header"><Link to="/company-admin"><ArrowLeft size={18}/>Company Admin</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><div className="settings-branch-context"><BranchSwitcher/></div><button aria-label="Refresh settings" disabled={catalog.isFetching||selected.isFetching} aria-busy={catalog.isFetching||selected.isFetching} onClick={()=>{void catalog.refetch();if(section&&option)void selected.refetch();}}><RefreshCw size={18}/></button></header>
+    <header className="suite-app-bar settings-header"><Link to={moduleHome || "/company-admin"}><ArrowLeft size={18}/>{moduleLabel || "Company Admin"}</Link><span><Building2 size={18}/>{catalog.data?.companyName || "Your workspace"}</span><div className="settings-branch-context"><BranchSwitcher/></div><button aria-label="Refresh settings" disabled={catalog.isFetching||selected.isFetching} aria-busy={catalog.isFetching||selected.isFetching} onClick={()=>{void catalog.refetch();if(section&&option)void selected.refetch();}}><RefreshCw size={18}/></button></header>
 
     <main>
 
-      {section&&option&&<nav aria-label="Breadcrumb" className="settings-breadcrumb"><Link to={directoryUrl}>Settings</Link><span>/</span><Link to={`/settings?category=${encodeURIComponent(settingsCategory(option))}`}>{settingsCategory(option)}</Link><span>/</span><span aria-current="page">{option.title}</span></nav>}
+      {section&&option&&<nav aria-label="Breadcrumb" className="settings-breadcrumb"><Link to={directoryUrl}>{moduleLabel || "Settings"}</Link><span>/</span>{!moduleHome&&<><Link to={`/settings?category=${encodeURIComponent(settingsCategory(option))}`}>{settingsCategory(option)}</Link><span>/</span></>}<span aria-current="page">{option.title}</span></nav>}
 
       <div className="settings-heading"><div><p className="settings-eyebrow"><Settings size={16}/>WORKSPACE SETTINGS</p><h1 id="settings-page-title" tabIndex={-1}>{section && option ? option.title : "Settings"}</h1><p>{section&&option?option.description:"One place for your account, company and application preferences."}</p></div><div className="settings-access-note"><ShieldCheck size={20}/>Permissions apply to every change</div></div>
 
-      {section && <Link className="settings-back" to={directoryUrl}><ArrowLeft size={16}/>All settings</Link>}
+      {section && <Link className="settings-back" to={directoryUrl}><ArrowLeft size={16}/>{moduleLabel ? `Back to ${moduleLabel}` : "All settings"}</Link>}
 
       {catalog.isPending && <p role="status">Loading your allowed settings…</p>}
 
       {catalog.isError && <div role="alert" className="settings-panel">{errorMessage(catalog.error)} <Button type="submit" variant="outline" onClick={()=>void catalog.refetch()}>Retry</Button></div>}
 
-      {catalog.isSuccess && section && (!option || selected.isError) && <section className="settings-panel" role="alert"><h2>Setting unavailable</h2><p>Your current permissions do not allow this setting in this company.</p><Link to="/settings">Return to allowed settings</Link></section>}
+      {catalog.isSuccess && section && (!option || (selected.isError && (selected.error as any)?.response?.status === 403)) && <section className="settings-panel" role="alert"><h2>Setting unavailable</h2><p>Your current permissions do not allow this setting in this company.</p><Link to="/settings">Return to allowed settings</Link></section>}
+      {option && selected.isError && (selected.error as any)?.response?.status !== 403 && <section className="settings-panel" role="alert"><h2>Could not load setting</h2><p>{errorMessage(selected.error)}</p><Button variant="outline" onClick={()=>void selected.refetch()}>Retry</Button></section>}
 
       {!section && catalog.isSuccess && <SetupReadiness embedded />}
       {!section && catalog.isSuccess && <SettingsDirectory options={catalog.data.options} userId={user?.id} companyId={catalog.data.companyId}/>}

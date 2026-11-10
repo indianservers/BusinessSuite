@@ -81,7 +81,7 @@ def _can_finance(user: User) -> bool:
 
 
 def _can_hr_or_finance(user: User) -> bool:
-    return _can_finance(user) or "hr_admin" in _permissions(user) or _role_name(user) in {"hr", "hr_admin", "hr_manager", "super_admin"}
+    return _can_finance(user) or "hr_admin" in _permissions(user)
 
 
 def _employee_or_404(db: Session, employee_id: int) -> Employee:

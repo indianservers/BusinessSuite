@@ -91,6 +91,9 @@ def summary(kind: Kind, ident: int, source: Source = 'crm', db=Depends(get_db), 
               'status': getattr(row, 'status', None), 'customer': {'id': customer.id, 'name': customer.name} if customer else None,
               'fields': {key: getattr(row, key, None) for key in ('email', 'phone', 'phone_country_code', 'website', 'industry', 'priority', 'due_date', 'next_follow_up_at', 'owner_user_id')},
               'projects': [], 'project_count': None, 'relations': [], 'allowed_actions': [], 'sections': {}}
+    if kind in ('company', 'contact', 'lead'):
+        for field in ('services_offered', 'business_types'):
+            result['fields'][field] = ', '.join(getattr(row, field, None) or [])
     if kind in ('company', 'contact', 'lead', 'deal'):
         from app.apps.crm.api import router as crm
         for action, entity in [('note', 'notes'), ('task', 'tasks'), ('call', 'calls'), ('meeting', 'meetings')]:

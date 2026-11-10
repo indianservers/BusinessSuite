@@ -214,3 +214,21 @@ def test_customer_location_grouping_uses_saved_primary_address(client, db, super
             records = expanded.json()["rows"]
             assert len(records) == group["count"]
             assert all(record[field] == group["value"] for record in records)
+
+
+def test_customer_services_and_market_types(client, db, superuser_headers, directory_identity):
+    row = company(client, superuser_headers, name="Service customer", roles=["Customer"], services_offered="Accounting, Consulting", business_types=["B2B", "B2C"])
+    assert row["services_offered"] == ["Accounting", "Consulting"]
+    assert row["business_types"] == ["B2B", "B2C"]
+    endpoint = f"{ROOT}/companies/{row['id']}"
+    saved = client.patch(endpoint, headers=superuser_headers, json={"name": row["name"], "version": row["version"], "services_offered": ["Training"], "business_types": ["B2G"]})
+    assert saved.status_code == 200, saved.text
+    profile = client.get(endpoint, headers=superuser_headers).json()
+    assert profile["services_offered"] == ["Training"]
+    assert profile["business_types"] == ["B2G"]
+    # An older client omitting these fields must preserve the profile.
+    preserved = client.patch(endpoint, headers=superuser_headers, json={"name": row["name"], "version": profile["version"]})
+    assert preserved.status_code == 200, preserved.text
+    assert preserved.json()["services_offered"] == ["Training"]
+    invalid = client.patch(endpoint, headers=superuser_headers, json={"name": row["name"], "version": preserved.json()["version"], "business_types": ["B2X"]})
+    assert invalid.status_code == 422

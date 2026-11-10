@@ -1,0 +1,32 @@
+import { test, expect } from '../frontend/node_modules/playwright/test';
+
+test('unified workspace shows sources, filters, provider choice and exact action review', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/ai-workspace-qa.html');
+  const brief = page.getByRole('region', { name: 'Daily priorities and delivery risk' });
+  await expect(brief.getByText('Live native records · local analysis · no model request')).toBeVisible();
+  await expect(brief.getByRole('link', { name: 'Review filing documents' })).toHaveCount(2);
+  await page.getByLabel('Briefing module').selectOption('CRM');
+  await expect(brief.getByText('No matching priorities in the available sample.')).toBeVisible();
+  await page.getByLabel('Briefing module').selectOption('PMS');
+  await expect(brief.getByRole('link', { name: 'Review filing documents' })).toHaveCount(2);
+  await page.getByLabel('Assistant provider').selectOption('openai');
+  await page.getByLabel('Suite command').fill('Summarize this project');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.getByText('QA openai: source-backed project summary.')).toBeVisible();
+  await expect(page.getByText('Answer sources', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__assistantQaCommands[0].provider)).toBe('openai');
+  await page.getByLabel('Assistant provider').selectOption('local');
+  await page.getByRole('button', { name: 'Prepare CRM task', exact: true }).click();
+  await page.getByLabel('Suite command').fill('Create CRM task: Follow up with Acme');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Approve these exact actions' })).toBeVisible();
+  await expect(page.getByText('saved record #15', { exact: false })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Approve these exact actions' }).click();
+  await expect(page.getByText('saved record #15', { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__assistantQaCommands[1].provider)).toBe('local');
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('suite:branch-changed')));
+  await expect(page.getByText('saved record #15', { exact: false })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

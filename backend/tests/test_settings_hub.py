@@ -10,6 +10,25 @@ from app.db.init_db import SYSTEM_ROLES, SYSTEM_PERMISSIONS
 BASE = "/api/v1/access/settings"
 
 
+@pytest.mark.parametrize("superuser,admin", [(True, False), (False, True)])
+def test_company_administrators_can_open_profile_metadata(client, db, superuser, admin):
+    headers, _ = actor(db, superuser=superuser, admin=admin)
+    response = client.get(BASE + "/options/company-profile", headers=headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["id"] == "company-profile"
+    assert response.json()["editable"] is True
+    profile = client.get(BASE + "/company-profile", headers=headers)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["editable"] is True
+
+
+def test_profile_metadata_does_not_bypass_company_authorization(client, db):
+    headers, _ = actor(db)
+    assert client.get(BASE + "/options/company-profile", headers=headers).status_code == 403
+    assert client.get(BASE + "/options/company-profile", headers={
+        **headers, "X-Suite-Organization": "77"}).status_code == 403
+
+
 def actor(db, role="employee", permissions=(), superuser=False, grants=None, admin=False):
     existing = {p.name:p for p in db.query(Permission)}
     selected=[]
@@ -34,7 +53,8 @@ def test_every_seeded_role_has_no_implicit_admin_settings(client,db,definition):
     headers,u=actor(db,definition["name"],definition["permissions"],definition["name"]=="super_admin")
     result=client.get(BASE,headers=headers);assert result.status_code==200,result.text
     ids={o["id"] for o in result.json()["options"]}
-    assert {"account","preferences","company-profile"} <= ids
+    assert {"account","preferences"} <= ids
+    assert ("company-profile" in ids) == bool(u.is_superuser)
     if not u.is_superuser:
         assert not ids.intersection({"users","security","connections","communication","global","modules","ai"})
         for key in ["users","security","connections","communication","global","modules","ai"]:
@@ -46,9 +66,8 @@ def test_every_seeded_role_has_no_implicit_admin_settings(client,db,definition):
 def test_employee_cannot_write_company_or_discover_other_company(client,db):
     headers,u=actor(db)
     db.add(Company(id=77,name="Other tenant"));db.commit()
-    result=client.get(BASE,headers=headers);assert {o["id"] for o in result.json()["options"]}=={"account","preferences","company-profile"}
-    profile=client.get(BASE+"/company-profile",headers=headers).json()
-    assert not profile["editable"] and "gstin" not in profile["profile"]
+    result=client.get(BASE,headers=headers);assert {o["id"] for o in result.json()["options"]}=={"account","preferences"}
+    assert client.get(BASE+"/company-profile",headers=headers).status_code==403
     assert client.patch(BASE+"/company-profile",headers=headers,json={"name":"Changed"}).status_code==403
     assert client.get(BASE,headers={**headers,"X-Suite-Organization":"77"}).status_code==403
     assert client.get(BASE+"/security",headers=headers).status_code==403
@@ -129,7 +148,10 @@ def test_branch_settings_requires_branch_administration_not_hr_role(client, db):
 def test_view_only_and_disabled_grants_never_offer_configuration():
     for definition in SYSTEM_ROLES:
         ctx={"super":False,"admin":False,"managed":True,"permissions":set(),"grants":{m:{"enabled":True,"scope":"organization","actions":["view"],"permissions":definition["permissions"]} for m in ["hrms","crm","project_management","srm","fam","ai","interns_hub"]}}
-        assert {o[0] for o in OPTIONS if allows(o,ctx)}=={"account","preferences","company-profile"}
+        expected={"account","preferences"}
+        if "company_view" in definition["permissions"]:
+            expected.add("company-profile")
+        assert {o[0] for o in OPTIONS if allows(o,ctx)}==expected
 
 
 def test_settings_catalog_statuses_are_real_and_permission_scoped(client, db):
@@ -206,3 +228,38 @@ def test_email_configuration_status_does_not_claim_live_delivery(client, db, mon
     monkeypatch.setattr("app.shared.communications.provider_status", lambda: [{"channel":"email", "status":"unconfigured"}])
     option = next(o for o in client.get(BASE, headers=headers).json()["options"] if o["id"] == "communication")
     assert option["status"]["label"] == "Not configured"
+
+
+@pytest.mark.parametrize("permissions,enabled,scope,actions,allowed", [
+    ([], True, "organization", ["view"], False),
+    (["company_view"], True, "organization", ["view"], True),
+    (["company_view"], False, "organization", ["view"], False),
+    (["company_view"], True, "own", ["view"], False),
+    (["company_view"], True, "branch", ["view"], False),
+    (["company_view"], True, "organization", [], False),
+    (["company_manage"], True, "organization", ["configure"], True),
+    (["company_manage"], True, "organization", ["view"], False),
+])
+def test_company_profile_requires_explicit_company_grant(permissions, enabled, scope, actions, allowed):
+    option = next(o for o in OPTIONS if o[0] == "company-profile")
+    ctx = {"super": False, "admin": False, "managed": True,
+           "grants": {"hrms": {"enabled": enabled, "permissions": permissions,
+                               "scope": scope, "actions": actions}}}
+    assert bool(allows(option, ctx)) is allowed
+
+
+def test_explicit_company_view_is_read_only(client, db):
+    headers, user = actor(db, permissions=["company_view"], grants={"hrms": {"enabled": True, "permissions": ["company_view"], "actions": ["view"], "scope": "organization", "role": "custom"}})
+    from app.models.company import Branch
+    from app.branches.models import BranchPolicy, BranchGrant
+    branch = Branch(name="Company view branch", code="COMP-VIEW", company_id=1, organization_id=1, is_active=True)
+    db.add(branch); db.flush()
+    db.add(BranchPolicy(user_id=user.id, company_id=1, use_home_branch=False))
+    db.add(BranchGrant(user_id=user.id, company_id=1, branch_id=branch.id, can_write=False))
+    db.commit()
+    result = client.get(BASE + "/company-profile", headers=headers)
+    assert result.status_code == 200, result.text
+    assert result.json()["editable"] is False
+    assert "gstin" not in result.json()["profile"]
+    assert client.patch(BASE + "/company-profile", headers=headers,
+                        json={"name": "Unauthorized change"}).status_code == 403

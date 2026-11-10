@@ -14,7 +14,11 @@ const errors=[];const page=await context.newPage();page.on('pageerror',e=>errors
 fs.mkdirSync('outputs/setup-flow',{recursive:true});
 if(process.env.SETUP_FLOW_COMPLETE){
  for(const [route,title] of [['/pms/tasks','Task workspace'],['/crm/tasks','Task workspace'],['/crm/workspaces','Sales & Customer Workspaces']]){
+  const checked=page.waitForResponse(r=>r.url().includes('/api/v1/access/setup') && r.request().method()==='GET');
   await page.goto('http://127.0.0.1:5200'+route);
+  const state=await (await checked).json();
+  expect(state.moduleItems.filter(i=>['crm','project_management'].includes(i.module)).every(i=>i.ready)).toBe(true);
+  if(route==='/crm/workspaces') await expect(page.getByText('Setup Browser Sales',{exact:true})).toBeVisible({timeout:30000});
   await expect(page.getByRole('heading',{name:new RegExp('^'+title)})).toBeVisible({timeout:30000});
   await expect(page.getByRole('region',{name:'Workspace setup guide'})).toHaveCount(0);
   await page.screenshot({path:'outputs/setup-flow/'+route.replaceAll('/','_')+'-complete.png'});

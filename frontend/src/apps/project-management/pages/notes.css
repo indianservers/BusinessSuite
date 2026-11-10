@@ -1,1 +1,81 @@
 @import "../../../shared/productivity/notes.css";
+
+/* PMS phone workspace: retain the existing three-view navigation and editor. */
+@media (max-width: 480px) {
+  .pms-notes-workspace .notes-mobile-nav { padding: 4px; gap: 4px; }
+  .pms-notes-workspace .notes-mobile-nav button { flex: 1; justify-content: center; min-height: 44px; padding: 8px 4px; }
+  .pms-notes-workspace .notes-card-list > header { padding: 10px 8px; gap: 6px; }
+  .pms-notes-workspace .notes-card-list h2 { font-size: 18px; overflow-wrap: anywhere; }
+  .pms-notes-workspace .notes-card-list > header button,
+  .pms-notes-workspace .notes-list-controls button,
+  .pms-notes-workspace .notes-document-actions button,
+  .pms-notes-workspace .notes-document-actions summary,
+  .pms-notes-workspace .note-icon-toolbar > button { min-width: 44px; min-height: 44px; }
+  .pms-notes-workspace .notes-list-controls { flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
+  .pms-notes-workspace .notes-list-controls > label { min-height: 44px; display: flex; align-items: center; gap: 8px; }
+  .pms-notes-workspace .notes-list-search { margin: 6px 8px; }
+  .pms-notes-workspace input:not([type="checkbox"]):not([type="color"]):not(.notes-document-title),
+  .pms-notes-workspace select { min-height: 44px; font-size: 16px; }
+  .pms-notes-workspace .notes-search-tools summary,
+  .pms-notes-workspace .notes-associations summary,
+  .pms-notes-workspace .notes-support-panel > summary { min-height: 44px; display: flex; align-items: center; }
+  .pms-notes-workspace .notes-card { margin: 0 6px 6px; }
+  .pms-notes-workspace .notes-card strong { overflow-wrap: anywhere; }
+  .pms-notes-workspace .notes-card-open { padding: 10px; min-width: 0; }
+  .pms-notes-workspace .notes-paper { padding: 14px 12px 80px; }
+  .pms-notes-workspace input.notes-document-title { font-size: 24px; }
+  .pms-notes-workspace .notes-document-top { padding: 6px 8px; gap: 4px; }
+  .pms-notes-workspace .notes-document-actions { flex-wrap: wrap; gap: 4px; }
+  .pms-notes-workspace .notes-breadcrumbs { overflow-wrap: anywhere; min-width: 0; }
+  .pms-notes-workspace .note-icon-toolbar { gap: 2px; }
+  .pms-notes-workspace .notes-command-menu > div,
+  .pms-notes-workspace .notes-filter-panel,
+  .pms-notes-workspace .notes-associations > div { max-width: calc(100vw - 24px); min-width: 0; width: 260px; box-sizing: border-box; }
+  .pms-notes-workspace .notes-command-menu > div button { min-height: 44px; white-space: normal; text-align: left; }
+  .pms-notes-workspace .notes-writing-footer { flex-wrap: wrap; gap: 8px; }
+  .pms-notes-workspace .notes-writing-footer button { min-height: 44px; }
+  .pms-notes-workspace .ne-row > [role="treeitem"] { min-height: 44px; }
+  .pms-notes-dialog { width: calc(100vw - 16px); max-height: calc(100dvh - 24px); padding: 16px 12px; }
+  .pms-notes-dialog button, .pms-notes-dialog select, .pms-notes-dialog input:not([type="checkbox"]) { min-height: 44px; }
+  .pms-notes-dialog input:not([type="checkbox"]), .pms-notes-dialog select { font-size: 16px; }
+}
+
+@media (max-width: 480px) {
+  .pms-notes-workspace .notes-filter-panel button,
+  .pms-notes-workspace .notes-saved-searches button { min-height: 44px; min-width: 44px; }
+  .pms-notes-workspace .notes-filter-checkbox { min-height: 44px; display: flex; align-items: center; }
+  .pms-notes-workspace .notes-saved-searches > span { max-width: 100%; }
+  .pms-notes-workspace .notes-saved-searches button { white-space: normal; overflow-wrap: anywhere; }
+}
+
+@media (max-width: 480px) {
+  .pms-notes-workspace .notes-bulk-bar { flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
+  .pms-notes-workspace .notes-bulk-bar button,
+  .pms-notes-workspace .notes-action-undo button { min-width: 44px; min-height: 44px; }
+  .pms-notes-workspace .notes-action-undo { gap: 8px; padding: 6px 10px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  .pms-notes-workspace .notes-action-undo > span { flex: 1; overflow-wrap: anywhere; }
+}
+
+@media (max-width: 480px) {
+  .pms-notes-dialog .notes-share-row { flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 0; min-width: 0; }
+  .pms-notes-dialog .notes-share-row > span { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+  .pms-notes-dialog .notes-share-row > button { flex-shrink: 0; }
+  .pms-notes-dialog .notes-history-list > button,
+  .pms-notes-dialog .notes-history-list h3 { overflow-wrap: anywhere; }
+  .pms-notes-dialog .notes-dialog-form { min-width: 0; }
+  .pms-notes-dialog .notes-dialog-form form > input { min-width: 0; flex: 1 1 160px; }
+}
+
+@media (max-width: 480px) {
+  .pms-notes-dialog .notes-dialog-form { font-size: 13px; }
+  .pms-notes-dialog .notes-dialog-form p { color: #586477; }
+}
+
+/* This panel exists only for an invitation acknowledged in a phone session. */
+.pms-notes-dialog .notes-reader-recovery { border: 1px solid #ddd4f1; border-radius: 8px; padding: 12px; background: #f8f6ff; overflow-wrap: anywhere; }
+.pms-notes-dialog .notes-reader-recovery p { color: #586477; }
+.pms-notes-dialog .notes-reader-recovery button { min-height: 44px; margin-top: 8px; padding: 8px 12px; border: 1px solid #c4b5fd; border-radius: 6px; color: #5b21b6; background: white; }
+
+@media (max-width: 480px) {
+  .pms-notes-dialog button:disabled { opacity: .55; cursor: not-allowed; }
+}

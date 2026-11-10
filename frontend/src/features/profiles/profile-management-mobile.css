@@ -1,0 +1,56 @@
+.up-management-list,.up-management-detail { display:contents; }
+@media(max-width:480px) {
+ .up-root.up-management { padding:12px; min-width:0; }
+ .up-management > .up-header { gap:12px; margin-bottom:12px; }
+ .up-management > .up-header .up-kicker { display:none; }
+ .up-management > .up-header h1 { font-size:20px; margin:0 0 4px; }
+ .up-management > .up-header .up-field { width:100%; margin-bottom:0; }
+ .up-management > .up-header input { font-size:16px; min-height:44px; }
+ .up-management-list,.up-management-detail { display:block; min-width:0; }
+ .up-management[data-mobile-view="profile"] > :is(.up-header,.up-management-list),.up-management[data-mobile-view="list"] > .up-management-detail { display:none; }
+ .up-management-list .up-directory > button { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; padding:12px; min-height:44px; }
+ .up-management-list .up-directory > button > span:first-child { grid-column:1/-1; gap:2px; }
+ .up-management-list .up-directory strong { font-size:13px; overflow-wrap:anywhere; min-width:0; }
+ .up-management-list .up-directory small { font-size:12px; }
+ .up-management-list .up-directory > button > span { min-width:0; overflow-wrap:anywhere; }
+ .up-management-list .up-directory > button > span:not(:first-child) { font-size:12px; }
+ .up-management-list .up-directory > button > span:last-child { text-align:right; }
+ .up-management :is(.up-management-list,.up-management-profile-nav) .up-button { min-height:44px; }
+ .up-management-list .up-pagination { display:grid; grid-template-columns:minmax(0,1fr) auto auto auto; gap:6px; font-size:12px; }
+ .up-management-list .up-pagination .up-button { padding:8px; }
+ .up-management-resume { margin-bottom:12px; }
+ .up-management-profile-nav { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; scroll-margin-top:80px; }
+ .up-management-detail .up-root { padding:0; min-width:0; }
+ .up-management-detail .up-header { gap:12px; margin-bottom:12px; }
+ .up-management-detail .up-identity { gap:12px; align-items:flex-start; }
+ .up-management-detail .up-identity > div { min-width:0; }
+ .up-management-detail .up-avatar { width:56px; height:56px; font-size:22px; }
+ .up-management-detail .up-root h1 { font-size:20px; }
+ .up-management-detail :is(h1,h2,h3,p,span,small) { overflow-wrap:anywhere; }
+ .up-management-detail :is(button,.up-button) { min-height:44px; }
+ .up-management-detail input:not([type="checkbox"]):not([type="file"]),.up-management-detail select,.up-management-detail textarea { font-size:16px; min-height:44px; }
+ .up-management-detail .up-grid,.up-management-detail .up-read-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+ .up-management-detail .up-field[data-profile-kind]:not([data-profile-kind="number"]) { grid-column:1/-1; }
+ .up-management-detail .up-field > label { font-size:12px; }
+ .up-management-detail .up-check { min-height:44px; }
+ /* PhoneInput supplies inline font/min-height; keep its shared defaults elsewhere. */
+ .up-management-detail .up-field[data-profile-kind="phone"] input { font-size:16px !important; min-height:44px !important; }
+ .up-root.up-management-connect { padding:0; width:100%; min-width:0; }
+ .up-management-connect p { overflow-wrap:anywhere; font-size:13px; margin:8px 0; }
+ .up-management-connect label { display:grid; gap:8px; margin:16px 0; font-size:12px; }
+ .up-management-connect select { font-size:16px; min-height:44px; }
+ .up-management-connect .up-button { min-height:44px; margin:8px 8px 0 0; max-width:100%; white-space:normal; }
+ .mobile-experience-sheet:has(.up-management-connect) .mobile-sheet-handle { min-height:44px; }
+ .up-management-detail .up-pending { padding:12px; }
+ .up-management-detail .up-pending :is(dt,dd) { overflow-wrap:anywhere; min-width:0; }
+ .up-management-detail .up-pending dt { font-weight:600; }
+ .up-management-detail .up-pending dd { margin:4px 0 0; max-height:none; overflow:visible; font-size:13px; }
+ .up-management-detail .up-review-remarks { display:grid; gap:6px; margin:12px 0; font-size:12px; }
+ .up-management-detail .up-review-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; gap:8px; }
+ .up-management-detail .up-review-value summary { display:list-item; min-height:44px; padding:10px 0; cursor:pointer; color:var(--up-accent); }
+ .up-management-detail .up-review-value > div { overflow-wrap:anywhere; padding:4px 0 8px; }
+ .up-management-detail .up-photo-feedback { display:grid; gap:8px; flex-basis:100%; min-width:0; width:100%; }
+ .up-management-detail .up-photo-feedback p { margin:0; overflow-wrap:anywhere; }
+ .up-management-detail .up-photo-feedback .up-error { margin:0; }
+ .up-management-detail .up-photo-feedback .up-button { justify-self:start; }
+}

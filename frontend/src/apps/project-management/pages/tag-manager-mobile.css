@@ -1,0 +1,27 @@
+@media(max-width:480px){
+ .pms-tag-manager{min-width:0;overflow-wrap:anywhere}
+ .pms-tag-manager>:not(:first-child){margin-top:12px}
+ .pms-tag-source{padding:12px;border:1px solid hsl(var(--border));border-radius:10px;font-size:13px}
+ .pms-tag-source button{min-height:44px;margin-top:8px}
+ .pms-tag-manager>header{gap:8px}
+ .pms-tag-manager>header>div{flex:1;min-width:0}
+ .pms-tag-manager .page-title{font-size:20px;line-height:1.3}
+ .pms-tag-manager .page-description{font-size:13px;line-height:1.5}
+ .pms-tag-manager>header>a{display:flex;align-items:center;min-height:44px}
+ .pms-tag-filters{display:grid;gap:10px}
+ .pms-tag-filters>input{max-width:none;width:100%;font-size:16px;min-height:44px}
+ .pms-tag-filters>details{width:100%;min-width:0}
+ .pms-tag-filter-options{gap:10px;min-width:0}
+ .pms-tag-filter-options select{width:100%;min-width:0;font-size:16px;min-height:44px}
+ .pms-tag-filter-options label{min-height:44px}
+ .pms-tag-filter-options input[type=checkbox]{height:20px;width:20px}
+ .pms-tag-editor{padding:12px;min-width:0;overflow-wrap:anywhere}
+ .pms-tag-editor fieldset{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:12px}
+ .pms-tag-editor input{font-size:16px;min-height:44px;min-width:0;width:100%}
+ .smart-create-body .pms-tag-editor fieldset input:not([type=checkbox]):not([type=radio]):not([type=file]){min-height:44px;font-size:16px}
+ .pms-tag-editor fieldset button{grid-column:1/-1;min-height:44px;width:100%}
+ .pms-tag-delete{max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;padding:16px;overflow-wrap:anywhere}
+ .pms-tag-delete button{min-height:44px}
+ .pms-tag-delete>div:last-child{flex-wrap:wrap}
+ .pms-tag-delete>div:last-child button{flex:1}
+}

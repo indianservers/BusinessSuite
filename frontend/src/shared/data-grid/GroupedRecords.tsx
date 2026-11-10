@@ -8,7 +8,7 @@ import { writeClipboard } from "@/lib/clipboard";
 import RecordViewBar from "./RecordViewBar";
 import { useRecordPreferences, recordIdentity } from "./record-preferences";
 import { Star, Eye, Copy } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -17,7 +17,7 @@ import "./grouped-records.css";
 
 export type CollectionGroupField<T> = { id:string; label:string; value:(item:T)=>unknown };
 /** Groups page-owned cards without introducing another API or write path. */
-export default function GroupedRecords<T>({scope,items,fields,renderItem,gridClassName="",personalViews=true,tableColumns,onOpenRecord,hideSearch=false}:{scope:string;items:T[];fields:CollectionGroupField<T>[];renderItem:(item:T,index:number)=>ReactNode;gridClassName?:string;personalViews?:boolean;tableColumns?:GridColumn<T>[];onOpenRecord?:(item:T)=>void;hideSearch?:boolean}) {
+export default function GroupedRecords<T>({scope,items,fields,renderItem,gridClassName="",personalViews=true,tableColumns,onOpenRecord,hideSearch=false}:{scope:string;items:T[];fields:CollectionGroupField<T>[];renderItem:(item:T,index:number,closePreview?:(afterClose?:()=>void)=>void)=>ReactNode;gridClassName?:string;personalViews?:boolean;tableColumns?:GridColumn<T>[];onOpenRecord?:(item:T)=>void;hideSearch?:boolean}) {
   const user=useAuthStore(state=>state.user),location=useLocation();
   const key=`suite-card-groups:${user?.access?.companyId}:${user?.id}:${location.pathname}:${scope}`;
   const stored=useMemo(()=>{try{return localStorage.getItem(key)||"";}catch{return "";}},[key]);
@@ -25,6 +25,7 @@ export default function GroupedRecords<T>({scope,items,fields,renderItem,gridCla
   useEffect(()=>{setGroup(stored);setCollapsed(new Set());setLoaded(key);},[key]);
   useEffect(()=>{if(loaded===key)try{localStorage.setItem(key,group);}catch{/* Personal layout is optional. */}},[key,loaded,group]);
   const [previewItem,setPreviewItem]=useState<T|undefined>(),[notice,setNotice]=useState("");
+  const afterPreviewClose=useRef<(()=>void)|undefined>();
   const previewId=recordIdentity(previewItem);
   const previewRecord=previewItem===undefined?undefined:items.find(item=>previewId!==undefined?recordIdentity(item)===previewId:item===previewItem);
   useEffect(()=>{setPreviewItem(undefined);setNotice("");},[key]);
@@ -54,7 +55,7 @@ export default function GroupedRecords<T>({scope,items,fields,renderItem,gridCla
     </div>}
     {mode==="table" && columns.length>0 ? <LocalRecordGrid gridId={`${location.pathname}:${scope}:table`} title="Collection records" rows={displayed} columns={columns} getRowId={item=>recordIdentity(item)||String(items.indexOf(item))} personalViews={false} hideSearch={hideSearch} detailsEnabled={false} onOpen={openPreview} rowActions={[{id:"view",label:"View record and actions",quick:true,icon:Eye,run:openPreview}]}/> : !field?<div className={`${gridClassName} ${mode==="list"?"suite-record-list":""}`}>{displayed.map(render)}</div>:[...groups].map(([label,members])=><section className="suite-card-group" key={label}><button type="button" className="suite-card-group-heading" aria-label={`${collapsed.has(label)?"Expand":"Collapse"} ${field.label}: ${label}`} aria-expanded={!collapsed.has(label)} onClick={()=>setCollapsed(current=>{const next=new Set(current);if(next.has(label))next.delete(label);else next.add(label);return next;})}>{collapsed.has(label)?<ChevronRight size={13}/>:<ChevronDown size={13}/>}<GroupLabel color={categoryColors.get(label)} label={label} field={field.label} count={members.length}/></button>{!collapsed.has(label)&&<div className={`${gridClassName} ${mode==="list"?"suite-record-list":""}`}>{members.map(({item,index})=>render(item,index))}</div>}</section>)}
     {notice&&<p role="status" className="suite-record-empty">{notice}</p>}
-    <Dialog open={previewRecord!==undefined} onOpenChange={open=>{if(!open)setPreviewItem(undefined);}}><DialogContent className="max-h-[90dvh] overflow-auto"><DialogTitle>Record preview</DialogTitle>{previewRecord!==undefined&&renderItem(previewRecord,0)}</DialogContent></Dialog>
+    <Dialog open={previewRecord!==undefined} onOpenChange={open=>{if(!open)setPreviewItem(undefined);}}><DialogContent className="max-h-[90dvh] overflow-auto" onCloseAutoFocus={event=>{const next=afterPreviewClose.current;if(next){afterPreviewClose.current=undefined;event.preventDefault();requestAnimationFrame(next);}}}><DialogTitle>Record preview</DialogTitle>{previewRecord!==undefined&&renderItem(previewRecord,0,afterClose=>{afterPreviewClose.current=afterClose;setPreviewItem(undefined);})}</DialogContent></Dialog>
     {items.length>0&&!displayed.length&&<div className="suite-record-empty">No matching {mode}.<button type="button" onClick={()=>personal.setView("cards")}>Browse loaded records</button></div>}
   </section>;
 }

@@ -32,6 +32,31 @@ const menuSource = fs.readFileSync(require('node:path').join(__dirname, '../src/
 const menuMod = {exports:{}};
 new Function('exports', 'require', ts.transpileModule(menuSource, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(menuMod.exports, () => mod.exports);
 const {menuItems, menuLabel, menuMatches, menuPages} = menuMod.exports;
+const {moduleMenuNavigation} = menuMod.exports;
+for (const module of ['hrms', 'crm', 'pms', 'srm', 'fam']) {
+  const input = [
+    {to:`/${module}/settings`,label:'Settings',group:'Settings & tools'},
+    {to:`/${module}/settings`,label:'Repeated settings',group:'Other'},
+    {to:`/${module}/import-data`,label:'Import',group:'Data management'},
+    {to:`/${module}/connectors`,label:'Connectors',group:'Other'},
+  ];
+  const before = JSON.stringify(input);
+  const navigation = moduleMenuNavigation(input, module);
+  assert.equal(navigation.length, 3, `${module}: duplicate destination`);
+  assert(navigation.every(item => item.group === 'Settings & administration'), `${module}: scattered settings`);
+  assert.equal(JSON.stringify(input), before, 'Mutated authorized catalog');
+  const pages = menuItems(navigation).flatMap(menuPages);
+  assert.deepEqual(pages.map(page => page.to).sort(), navigation.map(page => page.to).sort(), `${module}: settings became unreachable`);
+}
+const simplified = moduleMenuNavigation([
+  {to:'/pms/tasks',label:'Tasks',group:'Tasks & projects'},
+  {to:'/pms/navigator',label:'Navigator',group:'Planning & workload'},
+  {to:'/pms/projects',label:'Projects',group:'Tasks & projects'},
+  {to:'/pms/settings',label:'Settings',group:'Settings & tools'},
+], 'pms');
+assert.deepEqual(simplified.map(item => item.to), ['/pms/tasks','/pms/projects','/pms/settings']);
+assert.equal(simplified[0].group, 'Projects & tasks');
+assert.equal(simplified.at(-1).group, 'Settings & administration');
 const grouped = [{to:'/crm/emails',label:'Emails',group:'Communication'}, {to:'/crm/campaigns',label:'Campaigns',group:'Marketing'}];
 assert.equal(menuItems(grouped).length, 2, 'Cross-category consolidation must retain distinct categories');
 assert.equal(menuLabel({to:'/pms/tasks',label:'Tasks'}), 'All tasks');

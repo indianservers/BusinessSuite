@@ -1,5 +1,5 @@
 """Letter and certificate management, scoped explicitly even for superusers."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import hashlib
 import json
 import re
@@ -54,7 +54,7 @@ def head_out(row):
 
 
 def document_out(row):
-    return fields(row, ["id", "reference", "recipient_type", "recipient_id", "recipient_name", "title", "document_type", "status", "issue_date", "template_version", "issued_at", "revoke_reason"])
+    return fields(row, ["id", "reference", "recipient_type", "recipient_id", "recipient_name", "title", "document_type", "status", "issue_date", "template_version", "issued_by", "issued_at", "revoke_reason"])
 
 
 def validate_head(db, user, data):
@@ -209,6 +209,11 @@ def recipients(employee_id: int | None = Query(None), kind: str = Query(default=
 def prepare(db, user, data, reference):
     check_applicant(user, data.recipient_type)
     template = scoped(db, StudioTemplate, user, data.template_id)
+    if "salary" in (template.document_type + " " + template.name).lower() and not can(user,"employee_sensitive_view","payroll_view"):
+        raise HTTPException(403,"Salary document access is required")
+    if data.recipient_type == "employee":
+        from app.services.metrics.queries import employee_records
+        if not employee_records(db,user).filter(Employee.id==data.recipient_id).first(): raise HTTPException(404,"Recipient not found")
     head = scoped(db, StudioLetterhead, user, data.letterhead_id)
     return template, make_snapshot(db, tenant(user), template, head, data, reference)
 
@@ -225,7 +230,9 @@ def preview(data: GenerateInput, db: Session = Depends(get_db), user=Depends(iss
 
 @router.post("/issue", status_code=201)
 def issue(data: GenerateInput, db: Session = Depends(get_db), user=Depends(issuer)):
-    request_hash = hashlib.sha256(json.dumps(data.model_dump(mode="json", exclude={"request_key"}), sort_keys=True).encode()).hexdigest()
+    hash_values=data.model_dump(mode="json",exclude={"request_key"})
+    if not hash_values.get("internal_notes"):hash_values.pop("internal_notes",None)
+    request_hash = hashlib.sha256(json.dumps(hash_values, sort_keys=True).encode()).hexdigest()
     def existing():
         row = db.query(StudioDocument).filter(StudioDocument.organization_id == tenant(user), StudioDocument.request_key == data.request_key).first()
         if row and row.request_hash != request_hash:
@@ -236,6 +243,8 @@ def issue(data: GenerateInput, db: Session = Depends(get_db), user=Depends(issue
         return document_out(row)
     reference = f"DOC-{data.issue_date.year}-{uuid4().hex[:16].upper()}"
     template, snapshot = prepare(db, user, data, reference)
+    snapshot["internal_notes"] = data.internal_notes
+    snapshot["template_name"] = template.name
     render_pdf(db, tenant(user), snapshot)  # Validate before recording issuance.
     row = StudioDocument(organization_id=tenant(user), reference=reference, template_id=template.id,
         template_version=template.version, recipient_type=data.recipient_type, recipient_id=data.recipient_id,
@@ -253,7 +262,7 @@ def issue(data: GenerateInput, db: Session = Depends(get_db), user=Depends(issue
 
 
 @router.get("/issued")
-def issued(employee_id: int | None = Query(None), q: str = Query(default="", max_length=150), skip: int = Query(default=0, ge=0), limit: int = Query(default=30, ge=1, le=100), db: Session = Depends(get_db), user=Depends(issuer)):
+def issued(status: str | None = None, issue_from: date | None = None, issue_to: date | None = None, sort: str = "issued_at", employee_id: int | None = Query(None), q: str = Query(default="", max_length=150), skip: int = Query(default=0, ge=0), limit: int = Query(default=30, ge=1, le=100), db: Session = Depends(get_db), user=Depends(issuer)):
     query = db.query(StudioDocument).filter(StudioDocument.organization_id == tenant(user))
     if employee_id:
         from app.services.metrics.queries import employee_records
@@ -261,16 +270,29 @@ def issued(employee_id: int | None = Query(None), q: str = Query(default="", max
         query = query.filter(StudioDocument.recipient_type == "employee", StudioDocument.recipient_id == employee_id)
     if not can(user, "employee_create", "intern_management_manage"):
         query = query.filter(StudioDocument.recipient_type == "employee")
+    if status:query=query.filter(StudioDocument.status==status)
+    if issue_from:query=query.filter(StudioDocument.issue_date>=issue_from)
+    if issue_to:query=query.filter(StudioDocument.issue_date<=issue_to)
     if q:
         pattern = "%" + q.replace("%", "\\%").replace("_", "\\_") + "%"
         query = query.filter(or_(StudioDocument.recipient_name.ilike(pattern, escape="\\"), StudioDocument.reference.ilike(pattern, escape="\\")))
-    return {"total": query.count(), "items": [document_out(row) for row in query.order_by(StudioDocument.id.desc()).offset(skip).limit(limit)]}
+    if not can(user,"employee_sensitive_view","payroll_view"):
+        query=query.filter(~StudioDocument.document_type.ilike("%salary%"),~StudioDocument.title.ilike("%salary%"))
+    column={"issued_at":StudioDocument.issued_at,"issue_date":StudioDocument.issue_date,"title":StudioDocument.title}.get(sort,StudioDocument.issued_at)
+    rows=query.order_by(column.asc() if sort=="title" else column.desc(),StudioDocument.id.desc()).offset(skip).limit(limit).all()
+    from app.models.user import User
+    issuers={u.id:u.email for u in db.query(User).filter(User.id.in_([r.issued_by for r in rows])).all()}
+    return {"total":query.count(),"items":[{**document_out(row),"issuer_name":issuers.get(row.issued_by,"Former authorized issuer"),"template_name":row.snapshot.get("template_name",row.document_type)} for row in rows]}
 
 
 @router.get("/issued/{identity}/pdf")
 def download(identity: int, db: Session = Depends(get_db), user=Depends(issuer)):
     row = scoped(db, StudioDocument, user, identity)
     check_applicant(user, row.recipient_type)
+    if "salary" in (row.document_type+" "+row.title).lower() and not can(user,"employee_sensitive_view","payroll_view"): raise HTTPException(403,"Salary document access is required")
+    if row.recipient_type=="employee":
+        from app.services.metrics.queries import employee_records
+        if not employee_records(db,user).filter(Employee.id==row.recipient_id).first():raise HTTPException(404,"Document not found")
     return pdf_response(render_pdf(db, tenant(user), row.snapshot, "REVOKED" if row.status == "Revoked" else ""), row.reference)
 
 
@@ -286,7 +308,7 @@ def revoke(identity: int, data: RevokeInput, db: Session = Depends(get_db), user
     return document_out(row)
 
 
-def starter_templates():
+def starter_templates(extended=False):
     def custom(key, label, type="text"):
         return {"key": key, "label": label, "type": type, "required": True, "default": ""}
     entries = [
@@ -306,11 +328,21 @@ def starter_templates():
         result.append(dict(starter_key=key, name=title, document_type=title, kind="certificate", orientation="landscape", recipient_scope="both", title=title,
             body="This certificate is presented to\n\n{{recipient.name}}\n\nwho " + phrase + " {{custom.program}} at {{company.name}}\nfrom {{custom.start_date}} to {{custom.end_date}}.\n\n{{custom.remarks}}",
             custom_fields=[custom("program", "Program or achievement"), custom("start_date", "Start date", "date"), custom("end_date", "End date", "date"), {**custom("remarks", "Remarks"), "required": False}]))
+    if extended:
+        for key,title,body,fields in [
+            ("salary","Salary Certificate","This is to certify that {{recipient.name}} ({{recipient.employee_code}}) is employed by {{company.name}}.\n\nApproved compensation: {{custom.approved_salary}}\nPeriod: {{custom.period}}\n\n{{custom.statement}}",[custom("approved_salary","Approved compensation"),custom("period","Compensation period"),custom("statement","Authorized salary statement","multiline")]),
+            ("confirmation","Confirmation Letter","Dear {{recipient.name}},\n\nYour employment is confirmed with effect from {{custom.effective_date}}.\n\n{{custom.terms}}",[custom("effective_date","Effective date","date"),custom("terms","Confirmation terms","multiline")]),
+            ("promotion","Promotion Letter","Dear {{recipient.name}},\n\nWe confirm your promotion to {{custom.position}}, effective {{custom.effective_date}}.\n\n{{custom.terms}}",[custom("position","New position"),custom("effective_date","Effective date","date"),custom("terms","Approved promotion terms","multiline")]),
+            ("transfer","Transfer Letter","Dear {{recipient.name}},\n\nYour transfer to {{custom.destination}} takes effect on {{custom.effective_date}}.\n\n{{custom.terms}}",[custom("destination","Approved department and location"),custom("effective_date","Effective date","date"),custom("terms","Transfer terms","multiline")]),
+            ("noc","No Objection Certificate","This is to certify that {{company.name}} has no objection to {{recipient.name}} undertaking {{custom.purpose}}.\n\n{{custom.statement}}",[custom("purpose","Purpose"),custom("statement","Approved statement","multiline")]),
+            ("warning","Warning Letter","Dear {{recipient.name}},\n\nSubject: {{custom.subject}}\n\n{{custom.details}}",[custom("subject","Subject"),custom("details","Approved warning details","multiline")]),
+        ]:
+            result.append(dict(starter_key=key,name=title,document_type=title,kind="letter",orientation="portrait",recipient_scope="employee",title=title,body=body,custom_fields=fields))
     return result
 
 
 @router.post("/initialize")
-def initialize(db: Session = Depends(get_db), user=Depends(editor)):
+def initialize(extended: bool = False, db: Session = Depends(get_db), user=Depends(editor)):
     org = tenant(user)
     # Serialize organization setup on PostgreSQL; unique starter keys protect retries.
     company = db.query(Company).filter(Company.id == org).with_for_update().first()
@@ -322,7 +354,7 @@ def initialize(db: Session = Depends(get_db), user=Depends(editor)):
         db.add(head)
         db.flush()
     existing = {key for (key,) in db.query(StudioTemplate.starter_key).filter(StudioTemplate.organization_id == org)}
-    for starter in starter_templates():
+    for starter in starter_templates(extended=extended):
         if starter["starter_key"] not in existing:
             db.add(StudioTemplate(**starter, organization_id=org, letterhead_id=head.id, created_by=user.id))
     db.commit()

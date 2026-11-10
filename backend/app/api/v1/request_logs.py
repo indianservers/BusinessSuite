@@ -13,19 +13,19 @@ router = APIRouter()
 
 
 def global_audit_admin(user: User = Depends(get_current_user)):
-    if not user.is_superuser and (not user.role or user.role.name not in {'admin', 'super_admin'}):
+    if not user.is_superuser:
         raise HTTPException(403, 'Administrator access required')
     return user
 
 
 def scoped_query(db, user):
-    if user.is_superuser or (user.role and user.role.name in {'admin', 'super_admin'}):
+    if user.is_superuser:
         return db.query(AuditLog), 'suite'
     from app.apps.project_management.models import PMSWorkspaceMember, PMSProject
     from app.apps.project_management.access import accessible_project_query
     workspace_ids = [m.workspace_id for m in db.query(PMSWorkspaceMember).filter(PMSWorkspaceMember.user_id == user.id, PMSWorkspaceMember.role.in_(['Owner', 'Admin'])).all()]
     names = {p.name for p in permission_objects(user)}
-    legacy_ids = [p.id for p in accessible_project_query(db, user).filter(PMSProject.workspace_id.is_(None)).all()] if 'pms_admin' in names or (user.role and user.role.name == 'pms_admin') else []
+    legacy_ids = [p.id for p in accessible_project_query(db, user).filter(PMSProject.workspace_id.is_(None)).all()] if 'pms_admin' in names else []
     if not workspace_ids and not legacy_ids:
         raise HTTPException(403, 'Workspace administrator access required')
     return db.query(AuditLog).filter(AuditLog.module == 'project-management', or_(AuditLog.workspace_id.in_(workspace_ids), AuditLog.project_id.in_(legacy_ids), AuditLog.user_id == user.id)), 'workspace'

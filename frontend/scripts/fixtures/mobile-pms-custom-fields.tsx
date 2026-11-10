@@ -1,0 +1,11 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter} from "react-router-dom";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
+import Page from "@/apps/project-management/pages/CustomFieldManagerPage";
+import {useAuthStore} from "@/store/authStore";
+import "@/index.css";
+import {refreshPageData} from "@/lib/page-refresh";
+let actor=1;Object.assign(window,{__fieldChanged:0,__fieldActor:()=>{useAuthStore.setState({user:{...useAuthStore.getState().user,id:++actor}});},__refreshPmsFields:()=>refreshPageData(new QueryClient()).catch(()=>undefined)});
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"qa@example.test",role:"admin",is_superuser:true}});
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/pms/custom-fields?entity=task"]}><Page onChanged={()=>{Object.assign(window,{__fieldChanged:(window as unknown as {__fieldChanged:number}).__fieldChanged+1});}}/></MemoryRouter></QueryClientProvider>);

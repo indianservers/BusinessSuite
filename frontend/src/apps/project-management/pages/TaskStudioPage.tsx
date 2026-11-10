@@ -521,6 +521,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   const [copyOpen, setCopyOpen] = useState(false);
   const [copyTasks, setCopyTasks] = useState<PMSTask[]>([]);
   const [copyLoading, setCopyLoading] = useState(false);
+  const copyInFlight = useRef(false);
   const [copyError, setCopyError] = useState("");
   const [copyLoaded, setCopyLoaded] = useState(false);
   const [draftAvailable, setDraftAvailable] = useState(false);
@@ -965,7 +966,8 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
   }
   async function loadCopy() {
     setCopyOpen(true);
-    if (copyLoading) return;
+    if (copyInFlight.current) return;
+    copyInFlight.current = true;
     setCopyLoading(true);
     setCopyError("");
     setCopyTasks([]);
@@ -977,6 +979,7 @@ export default function TaskStudioPage({embedded=false,initialTitle="",initialDe
     } catch (e) {
       setCopyError(workspaceError(e));
     } finally {
+      copyInFlight.current = false;
       setCopyLoading(false);
     }
   }

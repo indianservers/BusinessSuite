@@ -42,7 +42,7 @@ class PrivateUploadURLMiddleware(BaseHTTPMiddleware):
                         close = getattr(request.app.state, "business_os_close_session", True)
                         db = factory()
                         try:
-                            return normalize_upload_references(json.loads(body), db=db, actor_id=subject, company_id=organization, portal_token=request.headers.get("X-Portal-Session"))
+                            return normalize_upload_references(json.loads(body), db=db, actor_id=subject, company_id=organization, portal_token=request.headers.get("X-Portal-Session"), branch_id=request.headers.get("X-Suite-Branch"))
                         finally:
                             if close:
                                 db.close()

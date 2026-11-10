@@ -96,6 +96,8 @@ def allows(option, ctx):
         return False
     if key == "business-defaults":
         return can_edit_company(ctx)
+    if key == "company-profile":
+        return can_view_company(ctx)
     if key == "branches":
         return ctx.get("branch_manager", False)
     if key in GLOBAL_ONLY:
@@ -115,6 +117,15 @@ def allows(option, ctx):
         if org and grant.get("scope") not in {"organization", "all"}:
             return False
     return True
+
+
+def can_view_company(ctx):
+    if can_edit_company(ctx):
+        return True
+    grant = ctx["grants"].get("hrms", {})
+    return bool(grant.get("enabled") and "company_view" in grant.get("permissions", [])
+                and (not ctx["managed"] or (grant.get("scope") in {"organization", "all"}
+                     and "view" in grant.get("actions", []))))
 
 
 def can_edit_company(ctx):
@@ -340,6 +351,7 @@ def update_form_defaults(data: DefaultsUpdate, request: Request, module: str | N
     return {"saved": True, "version": row.version}
 
 
+@router.get("/options/{key}")
 @router.get("/{key}")
 def get_setting(key: str, db: Session = Depends(get_db), actor: User = Depends(get_current_user)):
     option, ctx = require_option(db, actor, key)

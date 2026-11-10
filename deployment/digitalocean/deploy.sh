@@ -19,6 +19,7 @@ git archive HEAD | tar -x -C "$RELEASE"
 ln -s "$BASE/shared/backend.env" "$RELEASE/backend/.env"
 python3 -m venv "$RELEASE/.venv"
 PY="$RELEASE/.venv/bin/python"
+"$PY" -m pip install --upgrade --no-deps --disable-pip-version-check "pip==26.2.2"
 "$PY" -m pip install --disable-pip-version-check -r "$RELEASE/backend/requirements.txt"
 ln -s "$BASE/shared/frontend.env" "$RELEASE/frontend/.env.production.local"
 export SUITE_RELEASE_SHA="$REV"
@@ -35,7 +36,9 @@ cd "$RELEASE/backend"
 "$PY" ../deployment/digitalocean/operations.py preflight
 # Stop writers before taking the matching database + uploads recovery copy.
 sudo systemctl stop business-suite-jobs.timer business-suite-backup.timer
-sudo systemctl stop business-suite-jobs.service business-suite-backup.service business-suite.service
+# Stop socket activation as well, so an arriving request cannot restart a writer
+# while the matching backup or schema migration is running.
+sudo systemctl stop business-suite.socket business-suite-jobs.service business-suite-backup.service business-suite.service
 STOPPED=1
 trap 'code=$?; if [[ ${STOPPED:-0} == 1 ]]; then echo "Deployment failed. Service remains stopped to protect schema consistency. Recovery: deployment/README.md. Release: $RELEASE" >&2; fi; exit "$code"' ERR
 "$PY" ../deployment/digitalocean/operations.py backup

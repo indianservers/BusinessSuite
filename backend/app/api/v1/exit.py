@@ -99,7 +99,8 @@ def complete_checklist_item(item_id: int, remarks: str | None = None, db: Sessio
     from app.models.asset import AssetAssignment
     if "access" in item.task_name.lower() and person.user and person.user.is_active:
         raise HTTPException(409, "Disable the linked login before signing off access clearance")
-    if "asset" in item.task_name.lower() and db.query(AssetAssignment.id).filter_by(employee_id=person.id, is_active=True).first():
+    from app.services.asset_lifecycle import blockers_for_employee
+    if "asset" in item.task_name.lower() and blockers_for_employee(db, current_user, person.id):
         raise HTTPException(409, "Return company assets before signing off clearance")
     item.is_completed = True
     item.completed_at = datetime.now(timezone.utc)
@@ -133,7 +134,9 @@ def complete_exit_record(record_id: int, db: Session = Depends(get_db), current_
     if not record:
         raise HTTPException(status_code=404, detail="Exit record not found")
     from app.models.asset import AssetAssignment
-    if db.query(AssetAssignment.id).filter(AssetAssignment.employee_id == record.employee_id, AssetAssignment.is_active.is_(True)).first():
+    db.query(Employee).filter(Employee.id == record.employee_id).populate_existing().with_for_update().one()
+    from app.services.asset_lifecycle import blockers_for_employee
+    if blockers_for_employee(db, current_user, record.employee_id):
         raise HTTPException(409, "Company assets are still assigned. Complete asset returns before closing the exit.")
     pending = db.query(ExitChecklistItem).filter(ExitChecklistItem.exit_record_id == record_id, ExitChecklistItem.is_completed == False).count()
     if pending:

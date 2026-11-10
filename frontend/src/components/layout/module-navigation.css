@@ -22,4 +22,4 @@
 .module-menu .module-menu-page-row{display:flex;align-items:center;gap:3px}.module-menu-page-row>a{flex:1;min-width:0}
 @media(pointer:coarse){.module-menu .module-menu-create{flex-basis:36px;width:36px;height:40px}}
 
-.module-menu-row>a>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.module-menu-page-row>a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.module-menu-row>a>span{white-space:normal;overflow-wrap:anywhere}.module-menu-page-row>a{white-space:normal;overflow-wrap:anywhere}

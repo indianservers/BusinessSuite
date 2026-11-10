@@ -54,6 +54,7 @@ const DocumentsPage = lazyRoute(() => import("@/apps/hrms/pages/documents/Docume
 const DocumentStudioPage = lazyRoute(() => import("@/apps/hrms/pages/documents/DocumentStudioPage"));
 const ExitPage = lazyRoute(() => import("@/apps/hrms/pages/exit/ExitPage"));
 const SettingsPage = lazyRoute(() => import("@/apps/hrms/pages/settings/SettingsPage"));
+const HRSettingsPage = lazyRoute(() => import("@/apps/hrms/pages/settings/HRSettingsPage"));
 const EngagementPage = lazyRoute(() => import("@/apps/hrms/pages/engagement/EngagementPage"));
 const BenefitsPage = lazyRoute(() => import("@/apps/hrms/pages/benefits/BenefitsPage"));
 const LMSPage = lazyRoute(() => import("@/apps/hrms/pages/lms/LMSPage"));
@@ -125,7 +126,7 @@ const moduleRoutes: FrontendRoute[] = [
   { path: "logs", element: <AdminLogsPage /> },
   { path: "company", element: <CentralSettingsRedirect section="company-profile" /> },
   { path: "org-chart", element: <OrgChartPage /> },
-  { path: "settings", element: <Navigate to="/settings" replace /> },
+  { path: "settings/:section?", element: <HRSettingsPage /> },
   { path: "assets", element: <AssetsPage /> },
   { path: "expenses", element: <ExpensesPage /> },
   { path: "onboarding", element: <OnboardingPage /> },

@@ -1,3 +1,4 @@
+import BusinessProfileFields from "@/shared/master-data/BusinessProfileFields";
 import { leadSourceOptions } from "@/lib/form-defaults";
 import { crmLocalDateTime } from "./dateTime";
 import RecordTemplatePicker from '@/shared/template-design/RecordTemplatePicker';
@@ -842,8 +843,8 @@ function RelatedRecords({ related }: { related: Record<string, unknown> }) {
 }
 
 function EditRecordModal({ record, title, saving, onClose, onSave }: { record: DetailRecord; title: string; saving: boolean; onClose: () => void; onSave: (data: CRMApiRecord) => Promise<void> }) {
-  const editableEntries = Object.entries(record).filter(([key, value]) => !readOnlyKeys.has(key) && !key.endsWith("_country_code") && typeof value !== "object");
-  const [draft, setDraft] = useState<CRMApiRecord>(() => ({...Object.fromEntries(editableEntries),...Object.fromEntries(Object.entries(record).filter(([key])=>key.endsWith("_country_code")))} as CRMApiRecord));
+  const editableEntries = Object.entries(record).filter(([key, value]) => !readOnlyKeys.has(key) && !key.endsWith("_country_code") && typeof value !== "object" && !["services_offered", "business_types"].includes(key));
+  const [draft, setDraft] = useState<CRMApiRecord>(() => ({...Object.fromEntries(editableEntries),...(Object.prototype.hasOwnProperty.call(record,"services_offered")?{services_offered:record.services_offered,business_types:record.business_types}:{}),...Object.fromEntries(Object.entries(record).filter(([key])=>key.endsWith("_country_code")))} as CRMApiRecord));
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden">
@@ -853,6 +854,7 @@ function EditRecordModal({ record, title, saving, onClose, onSave }: { record: D
         </CardHeader>
         <CardContent className="space-y-4 overflow-y-auto">
           <div className="grid gap-3 md:grid-cols-2">
+            {Object.prototype.hasOwnProperty.call(record, "services_offered") && <BusinessProfileFields services={draft.services_offered} types={draft.business_types} onChange={(key, value) => setDraft(current => ({...current, [key]: value}))} disabled={saving}/>}
             {editableEntries.map(([key]) => (
               <Field key={key} label={labelFor(key)}>
                 {phoneFields.has(key) ? <PhoneInput label={labelFor(key)} value={valueText(draft[key])} countryCode={valueText(draft[key+"_country_code"])} onChange={value=>setDraft(current=>({...current,[key]:value}))} onCountryCodeChange={value=>setDraft(current=>({...current,[key+"_country_code"]:value}))} /> : <Input value={valueText(draft[key])} onChange={(event) => setDraft((current: CRMApiRecord) => ({ ...current, [key]: event.target.value }))} />}
@@ -1495,6 +1497,7 @@ function detailValueText(value: unknown): string {
 function renderValue(key: string, value: unknown) {
   if (["notes","description","body","message","requirements"].includes(key)) return <RichTextContent legacyFormat="plain" value={String(value || "")}/>;
   if (value === null || value === undefined || value === "") return "-";
+  if (["services_offered", "business_types"].includes(key) && Array.isArray(value)) return value.join(", ") || "-";
   if (typeof value === "object" || typeof value === "boolean") return detailValueText(value);
   if (key === "lead_score") return `${Number(value)} / ${leadScoreLabel(Number(value))}`;
   if (key.toLowerCase().includes("amount") || key.toLowerCase().includes("revenue") || key === "total") return formatCurrency(Number(value));

@@ -1,0 +1,15 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter} from "react-router-dom";
+import {QueryClient,QueryClientProvider} from "@tanstack/react-query";
+import {useAuthStore} from "@/store/authStore";
+import {refreshPageData} from "@/lib/page-refresh";
+import {api} from "@/services/api";
+import Page from "@/apps/project-management/pages/TagManagerPage";
+import "@/index.css";
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"qa@example.test",role:"admin",is_superuser:true}});
+const client=new QueryClient();
+let settledWrites=0;
+api.interceptors.response.use(response=>{if(response.config.method!=="get")settledWrites++;return response;},error=>{if(error.config?.method!=="get")settledWrites++;return Promise.reject(error);});
+Object.assign(window,{__tagSettled:()=>settledWrites,__tagActor:(id:number)=>useAuthStore.setState({user:{...useAuthStore.getState().user,id}}),__tagRefresh:()=>refreshPageData(client).catch(()=>undefined)});
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/pms/tags"]}><Page/></MemoryRouter></QueryClientProvider>);

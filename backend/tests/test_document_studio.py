@@ -250,3 +250,66 @@ def test_frozen_migration_round_trip(folder, filename):
         migration.upgrade()
         assert "document_studio_documents" in inspect(connection).get_table_names()
     engine.dispose()
+
+
+def test_extended_starters_preserve_templates_and_salary_preview(client,db,studio):
+    headers,employee,templates,head=studio
+    initialized=client.post(BASE+"/initialize?extended=true",headers=headers)
+    assert initialized.status_code==200,initialized.text
+    all_templates=client.get(BASE+"/templates",headers=headers).json()
+    assert len(all_templates)==18
+    original={t["id"]:t for t in templates}
+    for template in all_templates:
+        if template["id"] in original:assert template==original[template["id"]]
+    salary=next(t for t in all_templates if t["name"]=="Salary Certificate")
+    data=dict(template_id=salary["id"],template_version=salary["version"],letterhead_id=head["id"],letterhead_version=head["version"],recipient_type="employee",recipient_id=employee.id,issue_date="2026-11-10",variables={"approved_salary":"INR 50,000 gross per month","period":"November 2026","statement":"Approved HR salary statement."},request_key=str(uuid4()))
+    response=client.post(BASE+"/preview",headers=headers,json=data)
+    assert "50,000" in pdf_text(response)
+    assert db.query(StudioDocument).count()==0
+
+
+@pytest.mark.parametrize("name,variables",[
+    ("Appointment Letter",{"terms":"Approved appointment terms and conditions."}),
+    ("Experience Letter",{"remarks":"Verified engineering responsibilities."}),
+    ("Relieving Letter",{"clearance":"All approved clearance formalities completed."}),
+])
+def test_employment_documents_preview_issue_and_reprint(client,db,studio,name,variables):
+    from app.models.company import Department,Designation
+    headers,employee,templates,head=studio
+    department=Department(name="Engineering",branch_id=employee.branch_id);db.add(department);db.flush()
+    designation=Designation(name="Software Engineer",department_id=department.id);db.add(designation);db.flush()
+    employee.department_id=department.id;employee.designation_id=designation.id;employee.date_of_exit=date(2026,10,31);db.commit()
+    template=next(t for t in templates if t["name"]==name)
+    data=dict(template_id=template["id"],template_version=template["version"],letterhead_id=head["id"],letterhead_version=head["version"],recipient_type="employee",recipient_id=employee.id,issue_date="2026-11-10",variables=variables,request_key=str(uuid4()))
+    preview=client.post(BASE+"/preview",headers=headers,json=data)
+    assert employee.first_name in pdf_text(preview)
+    assert db.query(StudioDocument).count()==0
+    issued=client.post(BASE+"/issue",headers=headers,json=data)
+    assert issued.status_code==201,issued.text
+    duplicate=client.post(BASE+"/issue",headers=headers,json=data)
+    assert duplicate.json()["id"]==issued.json()["id"]
+    assert name in pdf_text(client.get(BASE+f"/issued/{issued.json()['id']}/pdf",headers=headers))
+
+
+def test_salary_preview_requires_sensitive_access_even_for_an_issuer(client,db,studio):
+    from app.core.deps import get_current_user
+    from app.main import app
+    from app.models.user import User,Role,Permission
+    headers,employee,templates,head=studio
+    client.post(BASE+"/initialize?extended=true",headers=headers)
+    salary=next(t for t in client.get(BASE+"/templates",headers=headers).json() if t["name"]=="Salary Certificate")
+    data=dict(template_id=salary["id"],template_version=salary["version"],letterhead_id=head["id"],letterhead_version=head["version"],recipient_type="employee",recipient_id=employee.id,issue_date="2026-11-10",variables={"approved_salary":"Approved salary","period":"November 2026","statement":"Approved statement"},request_key=str(uuid4()))
+    role=Role(name="document_issuer_without_salary")
+    permission=db.query(Permission).filter_by(name="employee_update").first()
+    if not permission:permission=Permission(name="employee_update",module="hrms");db.add(permission)
+    role.permissions.append(permission);db.add(role);db.flush()
+    user=User(email="issuer-no-salary@example.com",hashed_password="unused",is_active=True,is_superuser=False,role_id=role.id)
+    user.organization_id=1;db.add(user);db.flush()
+    app.dependency_overrides[get_current_user]=lambda:user
+    try:
+        response=client.post(BASE+"/preview",headers=headers,json=data)
+        assert response.status_code==403,response.text
+        assert "Salary" in response.json()["detail"]
+        assert client.post(BASE+"/issue",headers=headers,json=data).status_code==403
+        assert db.query(StudioDocument).count()==0
+    finally:app.dependency_overrides.pop(get_current_user,None)

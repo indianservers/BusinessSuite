@@ -55,6 +55,8 @@ export type Lead = {
   phone?: string;
   phone_country_code?: string;
   company_name?: string;
+  services_offered?: string[];
+  business_types?: string[];
   job_title?: string;
   source?: string;
   status: string;

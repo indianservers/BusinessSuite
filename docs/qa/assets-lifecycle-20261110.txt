@@ -1,0 +1,75 @@
+Company Assets lifecycle implementation and QA - 10 November 2026
+
+Implemented
+- Existing assets and asset_assignments remain the source of truth. No second register, custody table, exit case table, notification queue, approval table or attachment table was introduced.
+- Atomic multi-asset handovers, tenant-scoped request-key reservation, deterministic row locking, unique active custody index, expected return dates, accessories and separate handover evidence.
+- Employee-only acknowledgment, retained transfer history, custody extensions, return requests and downloadable group handover receipts.
+- Physical returns are held as Pending Inspection. Inspector findings and before/after evidence are preserved. Approval OS decisions apply the domain transition in the same transaction.
+- Recoveries require enabled company policy, a policy reference and an independent authorized decision. Approved settlements retain a reference. No automatic employee charge or payroll deduction is created.
+- Approved exceptions for recorded loss, damage or missing accessories; configurable damage and missing-item clearance rules.
+- Employee reminders link to the existing Self Service asset panel. Shared asset evidence uploads additionally require asset_manage; unrelated HR edit permission is insufficient.
+- Existing exit cases and department checklists are reused. Pending return, inspection, recovery and required exceptions block asset clearance. Asset sign-off completes only asset checklist tasks; company-wide exit remains independent.
+- Private evidence and invoice uploads use the shared ServiceDocument adapter and authorized download API. Type signatures, quotas, version history and record access are enforced by that service.
+- Configurable reminder lead time, repeat interval, recipients and channels. Existing email worker/authenticated cron processes enabled policies. Delivery uses existing NotificationService and WhatsApp workspace controls. Tenant/branch checks and durable event keys prevent duplicate or unauthorized alerts.
+- PDF handover receipts and asset-only clearance certificates; CSV and Excel exports; paged custody/return registers, search, date filters, department filters, sorting and grouping; employee asset profiles and Asset 360 history.
+- Application sidebar, navigation, workspace switcher and global shell were not redesigned.
+
+Verification
+- SQLite lifecycle/security/exit/notification/Approval OS suite: 87 passed, 1 skipped (the PostgreSQL-only incremental DDL test passed separately on PostgreSQL).
+  Command from backend: venv/Scripts/python.exe -m pytest tests/test_asset_lifecycle.py tests/test_asset_controls.py tests/test_exit_date_integrity.py tests/test_notifications.py tests/test_approval_os.py -q
+- Isolated PostgreSQL lifecycle suite: 82 passed. Includes real two-session handover concurrency, tenant isolation, managed-role approval access, 1,001-record inventory, filtered exports, shared evidence and full exit reconciliation.
+  Command from repository root: backend/venv/Scripts/python.exe backend/scripts/run_asset_postgres_qa.py
+  Recorded run: .local/asset-lifecycle-pg-4711264047/results.xml
+- Final SQLite result file: outputs/asset-lifecycle-qa/sqlite-final-results.xml
+- Additional incremental PostgreSQL migration check: 1 passed against populated legacy-shaped tables in an isolated schema. Existing custody text survives and inspection/recovery foreign keys are added.
+  Recorded run: .local/asset-lifecycle-pg-9de36f3692/results.xml
+- Branch permission regression suite: 11 passed.
+- Responsive browser suite: 56 checks across 390, 768, 1280 and 1720 pixel viewports.
+  Command from frontend: node scripts/test-assets-redesign.cjs
+- Workflow browser suite passed: vehicle-specific registration, review/save, batch handover payload, receipt download, evidence upload, return, inspection approval, recovery proposal, reminder policy and mobile drawer overflow.
+  Command from frontend: node scripts/test-asset-workflows.cjs
+- npm run build passed (TypeScript and Vite production build). Existing third-party annotation/chunk-size warnings remain non-fatal.
+- Handover PDF pages 1 and 2 and clearance PDF were rendered and visually inspected for wrapping, repeated headers, legibility, scope wording and clipping.
+- Backend HTTP tests use real databases. Pre-deployment browser tests use isolated API fixtures. The additional live verification below uses the actual deployed API and a separate synthetic QA company.
+
+Migrations and activation
+- PostgreSQL migration: backend/alembic_postgresql/versions/pg_20261110_092_asset_lifecycle.py
+- Legacy chain migration: backend/alembic/versions/20261110_075_asset_lifecycle.py
+- Deploy the migration through the existing migration job before exposing the updated application. The deployed target is pg_20261110_092_asset_lifecycle. Do not apply unrelated local revisions as part of this release.
+- The migrations add fields/indexes to existing tables and retain historical records. If legacy data contains duplicate active custody, migration stops for reconciliation instead of deleting or rewriting records.
+- Downgrade deliberately refuses to discard accumulated custody and inspection evidence; use a pre-migration backup for rollback.
+- Configure Asset policy with designated approvers and company recovery rules. Without a named approver, super-administrator approval is required. Ordinary requesters cannot approve their own proposals.
+- Save an enabled reminder policy and use the existing background worker or authenticated scheduler. Company delivery settings must permit the selected channels. WhatsApp additionally requires an authorized sender, connected account, approved template and recipient consent.
+- Live email and WhatsApp delivery were not exercised against real recipients. Tests verify queueing, authorization, deduplication and integration; provider delivery remains dependent on existing account configuration.
+- PDF receipts describe recorded electronic acknowledgment accurately; they do not claim handwritten or cryptographic signatures. Clearance certificates explicitly cover company assets only.
+
+Live deployment and verification — 10 November 2026
+- Primary app: https://besterp.app/hrms/assets
+- Secondary frontend: https://app.indianservers.com/hrms/assets
+- Frontend base: 8fc1ee0797bd282483d8b2ed4b1728214d6fbf36; preserves the concurrent inventory-edit release.
+- Final candidate: cdf2b41b90c497d31d5fb3144daf8832b644e15bf20861b4c5222ba25f9a168f.
+- PostgreSQL revisions 091 and 092 applied on the active backend. Independent fresh connection verified persisted revision 092 and the runtime model schema.
+- A migration wrapper transaction issue was detected by the first live creation check and corrected. Fresh-connection verification and all subsequent live lifecycle checks passed.
+- Fresh root-private database dump and previous runtime source retained on the active host for rollback. Existing business records were retained.
+- Real live API: 38 core lifecycle checks passed, plus 16 extension/transfer/loss/exception/disposal/export checks.
+- Verified two-asset atomic handover and idempotent replay, duplicate assignment protection, employee-only acknowledgment, shared PDF upload/download and unauthenticated download denial.
+- Verified deduplicated in-app reminders, good and damaged returns, inspection gates, independent approvals, recovery proposal/approval/settlement with no payroll deduction, and repair completion.
+- Verified assets-only exit signoff, PDF clearance certificate, retained pending department checks and Initiated company exit status.
+- Verified extension, return request, transfer and new employee acknowledgment, loss inspection rejection/resubmission/approval, approved policy exception, retirement and disposal.
+- Live receipt and clearance PDFs rendered and visually inspected. PDF samples and desktop/mobile screenshots: outputs/asset-lifecycle-qa/live-*.
+- All QA writes belong to company 3, explicitly named Company Assets deployment QA 20261110; no real employee or asset was used. QA histories remain available for audit in the inactive QA company.
+- No external email/WhatsApp messages or financial transfers were performed. Provider delivery continues to depend on the existing company configuration.
+- Final browser verification: all four tabs passed on desktop (1600px) and mobile (390px), including loaded live inventory records, no JavaScript errors, no failed Assets API requests, and no clipped action-button text. Screenshots were visually inspected.
+- The secondary domain was verified at its live origin with valid hostname/SNI; its public edge intermittently timed out during the final run. The primary public app passed. Both live origins serve candidate cdf2b41b90c4 and healthy API/database responses.
+
+Public-domain reliability follow-up — 10 November 2026
+- Investigated app.indianservers.com through its normal Cloudflare/public DNS route, both IPv4 and IPv6.
+- Apache and active Nginx logs correlated the failed Assets requests at 08:04:03–08:04:06 UTC with an API restart at 08:04:02–08:04:28 UTC. Nginx reported connection refused to 127.0.0.1:8000. Current steady-state probes did not reproduce a separate edge timeout.
+- Applied systemd socket activation on the active backend. business-suite.socket retains the localhost listener while the single API worker restarts; Uvicorn inherits fd 3. No frontend, database schema or business records changed for this fix.
+- Controlled API restart while public requests were in flight: release.json remained 200 in 1.00s; health and authenticated Assets summary/capabilities queued and returned 200 in 28.23–30.98s. Responses carried Cloudflare headers, with no origin/DNS override.
+- Startup buffering does not guarantee availability through a prolonged outage. Stop both service and socket during database migrations to prevent request-triggered writer activation. Deployment templates, setup permissions and maintenance instructions were updated accordingly.
+- Final public browser acceptance used fresh browser contexts, normal public DNS, no host overrides and no API mocks. Inventory, Employee custody, Return history and Exit clearance all passed three times at desktop and mobile sizes: 24 tab checks. Required live API responses succeeded; no Assets request failures or JavaScript errors occurred.
+- Additional 64-request public probe: 22 static release and 21 health responses returned 200; 21 unauthenticated capabilities probes correctly returned 403. No transport timeouts or 5xx responses; maximum duration 3.97s.
+- New socket/service units passed systemd-analyze verify. Deployment and setup scripts passed bash syntax checks; deployment diff passed whitespace validation.
+- Evidence: .local/public-domain-qa/browser-results.json, restart-results.json and after-probes.json. Final screenshots: outputs/asset-lifecycle-qa/public-*.png.
+- API/socket and existing backup timer are active. Temporary verification session revoked; no employee/asset/company records were changed.

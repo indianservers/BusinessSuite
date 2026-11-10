@@ -99,9 +99,6 @@ def _is_ai_tool_tester(user: User) -> bool:
         return True
     if getattr(user, "_suite_grants", None) is not None:
         return "configure" in user._suite_grants.get("ai", {}).get("actions", [])
-    role_name = (user.role.name if user.role else "").lower().replace(" ", "_")
-    if role_name in {"admin", "super_admin", "developer"}:
-        return True
     permissions = {permission.name for permission in (permission_objects(user))}
     return bool(permissions.intersection({"settings_view", "settings_manage"}))
 
@@ -112,9 +109,6 @@ def _is_ai_admin(user: User) -> bool:
     if getattr(user, "_suite_grants", None) is not None:
         grant = user._suite_grants.get("ai", {})
         return "configure" in grant.get("actions", []) and "settings_manage" in {p.name for p in permission_objects(user)}
-    role_name = (user.role.name if user.role else "").lower().replace(" ", "_")
-    if role_name in {"admin", "super_admin", "developer"}:
-        return True
     permissions = {permission.name for permission in (permission_objects(user))}
     return bool(permissions.intersection({"settings_manage"}))
 

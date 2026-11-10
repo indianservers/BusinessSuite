@@ -2392,6 +2392,11 @@ def _serialize_approval_request_step(step: CRMApprovalRequestStep) -> dict[str, 
 
 def _validate_and_build(resource: Resource, payload: dict[str, Any], partial: bool = False) -> dict[str, Any]:
     data = _normalize_payload(payload)
+    if resource.model in {CRMLead, CRMContact, CRMCompany}:
+        from app.apps.crm.business_profile import normalize_profile_list
+        for field in ("services_offered", "business_types"):
+            if field in data:
+                data[field] = normalize_profile_list(data[field], field)
     protected = {"id", "version", "organization_id", "created_at", "updated_at", "deleted_at", "created_by", "updated_by", "created_by_user_id", "updated_by_user_id", "is_superuser", "role_id", "permissions", "password", "hashed_password", "paid_amount", "amount_paid", "balance_due", "payment_status", "provider_message_id", "storage_path", "file_path", "folder_id"}
     forbidden = protected.intersection(data)
     if forbidden:
@@ -8242,6 +8247,11 @@ def convert_lead(
         )
         db.add(contact)
         db.flush()
+
+    from app.apps.crm.business_profile import merge_business_profile
+    for destination in (company, contact):
+        if destination is not None:
+            merge_business_profile(destination, lead)
 
     previous_contact_lifecycle = contact.lifecycle_stage if contact else None
     previous_contact_tags = contact.tags_text if contact else None

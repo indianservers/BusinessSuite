@@ -1,0 +1,14 @@
+@media(max-width:480px){
+ .wf-inbox{gap:12px;min-width:0}
+ .wf-inbox h1{font-size:20px}
+ .wf-inbox header>p:not(.wf-eyebrow){font-size:12px;line-height:1.5}
+ .wf-inbox .wf-card{padding:12px;gap:10px}
+ .wf-inbox h2{font-size:16px;overflow-wrap:anywhere}
+ .wf-inbox .wf-notice>.wf-row{align-items:flex-start;gap:4px;font-size:12px}
+ .wf-inbox .wf-notice time{font-size:11px}
+ .wf-inbox .wf-message{font-size:14px;line-height:1.6}
+ .wf-inbox button{min-height:44px;white-space:normal}
+ .wf-inbox>footer.wf-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px}
+ .wf-inbox>footer span{text-align:center;font-size:12px}
+ .wf-inbox .wf-error,.wf-inbox .wf-success{overflow-wrap:anywhere}
+}

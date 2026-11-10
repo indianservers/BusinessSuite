@@ -9,6 +9,7 @@ from sqlalchemy import case, func, extract
 import csv
 import io
 from app.core.deps import get_current_user, get_db, RequirePermission
+from app.access.catalog import permission_objects
 from app.models.user import User
 from app.models.employee import Employee, EmployeeChangeRequest
 from app.models.attendance import Attendance, AttendanceRegularization, Holiday
@@ -595,7 +596,7 @@ def manager_dashboard(
     team_ids = []
     if employee:
         team_ids = [row.id for row in db.query(Employee.id).filter(Employee.reporting_manager_id == employee.id, Employee.deleted_at.is_(None)).all()]
-    if not team_ids and (current_user.is_superuser or (current_user.role and current_user.role.name in {"hr_manager", "super_admin"})):
+    if not team_ids and (current_user.is_superuser or "reports_manage" in {p.name for p in permission_objects(current_user)}):
         team_ids = [row.id for row in db.query(Employee.id).filter(Employee.status.in_(EMPLOYED), Employee.deleted_at.is_(None)).limit(50).all()]
     today = date.today()
     month_start = today.replace(day=1)

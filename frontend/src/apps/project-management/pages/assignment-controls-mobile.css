@@ -1,0 +1,13 @@
+@media(max-width:480px){
+ section.pms-assignment-controls{padding:12px;margin-bottom:calc(94px + env(safe-area-inset-bottom));grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;min-width:0;border-radius:12px}
+ .pms-assignment-controls>:is(h1,p,label){grid-column:1/-1;min-width:0}
+ .pms-assignment-controls h1{font-size:20px;line-height:1.3}
+ .pms-assignment-controls p{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+ .pms-assignment-controls .assignment-control-source{grid-column:1/-1;min-width:0;font-size:13px;overflow-wrap:anywhere}
+ .pms-assignment-controls button{min-height:44px}
+ .pms-assignment-controls label{font-size:13px;display:grid;gap:6px}
+ .pms-assignment-controls :is(input,select){min-width:0;width:100%;min-height:44px;font-size:16px}
+ .pms-assignment-controls[data-control-action=deadline]>label:has([aria-label="Control action"]),.pms-assignment-controls[data-control-action=deadline]>label:has([aria-label="Individual deadline"]){grid-column:auto}
+ .pms-assignment-controls .suite-mobile-action-bar{z-index:35}
+ .pms-assignment-controls [role=alert],.pms-assignment-controls [role=status]{padding:10px;border:1px solid hsl(var(--border));border-radius:8px}
+}

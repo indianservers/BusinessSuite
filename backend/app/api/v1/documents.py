@@ -39,6 +39,8 @@ from app.apps.srm.services.commercial import tenant
 router = APIRouter(prefix="/documents", tags=["Documents & Policies"], dependencies=[Depends(employee_tenant_scope)])
 from app.api.v1.document_studio import router as studio_router
 router.include_router(studio_router)
+from app.api.v1.document_vault import router as vault_router
+router.include_router(vault_router)
 
 
 def _validate_upload(file: UploadFile, extra_extensions: set[str] | None = None) -> str:
@@ -268,6 +270,9 @@ async def upload_certificate(
     certificate_number: str | None = Form(None),
     issue_date: str | None = Form(None),
     expiry_date: str | None = Form(None),
+    reminder_date: str | None = Form(None),
+    remarks: str | None = Form(None),
+    replace_certificate_id: int | None = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -281,6 +286,33 @@ async def upload_certificate(
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
 
+    from app.api.v1.document_vault import employees
+    if not employees(db,current_user).filter(Employee.id==employee_id).first(): raise HTTPException(404,"Employee not found")
+    if not replace_certificate_id and certificate_number and db.query(EmployeeCertificate).filter(EmployeeCertificate.employee_id==employee_id,EmployeeCertificate.certificate_number==certificate_number,EmployeeCertificate.certificate_type==certificate_type).first(): raise HTTPException(409,"This certificate reference already exists for this employee")
+    try:
+        parsed_issue, parsed_expiry = _parse_date(issue_date), _parse_date(expiry_date)
+    except ValueError: raise HTTPException(422,"Use valid issue and expiry dates")
+    if parsed_issue and parsed_expiry and parsed_expiry < parsed_issue: raise HTTPException(422,"Expiry date must be on or after issue date")
+    from app.shared.models import ServicePolicy
+    from app.api.v1.document_vault import records, audit
+    import hashlib
+    ext=(file.filename or "").rsplit(".",1)[-1].lower()
+    if ext not in {"pdf","doc","docx","jpg","jpeg","png"}: raise HTTPException(400,"Upload a PDF, Word document or image")
+    if reminder_date:
+        try: _parse_date(reminder_date)
+        except ValueError: raise HTTPException(422,"Use a valid reminder date")
+    content=file.file.read(settings.MAX_UPLOAD_SIZE_MB*1024*1024+1)
+    file.file.seek(0)
+    signatures={"pdf":(b"%PDF",),"png":(b"\x89PNG\r\n\x1a\n",),"jpg":(b"\xff\xd8",),"jpeg":(b"\xff\xd8",),"docx":(b"PK",),"doc":(b"\xd0\xcf\x11\xe0",)}
+    if not content.startswith(signatures[ext]): raise HTTPException(400,"File content does not match the selected document format")
+    digest=hashlib.sha256(content).hexdigest()
+    duplicate=db.query(ServicePolicy).filter(ServicePolicy.organization_id==tenant(current_user),ServicePolicy.scope_key==f"certificate-hash:{tenant(current_user)}:{employee_id}:{digest}").first()
+    if duplicate: raise HTTPException(409,"This file has already been uploaded for this employee")
+    old=None
+    if replace_certificate_id:
+        if not user_has_permission(current_user,"employee_update"): raise HTTPException(403,"HR document replacement permission is required")
+        old=records(db,current_user).filter(EmployeeCertificate.id==replace_certificate_id,EmployeeCertificate.employee_id==employee_id).first()
+        if not old: raise HTTPException(404,"Document to replace not found")
     file_url, content_type, size = _save_upload(file, f"certificates/{employee_id}", prefix="cert_")
     certificate = EmployeeCertificate(
         employee_id=employee_id,
@@ -301,7 +333,22 @@ async def upload_certificate(
         verification_status="Pending",
         uploaded_by=current_user.id,
     )
-    db.add(certificate)
+    if old:
+        db.add(ServicePolicy(scope_key=f"certificate-revision:{old.id}:{uuid.uuid4().hex}",organization_id=tenant(current_user),module_key="hrms",kind="certificate_revision",updated_by=current_user.id,values_json=EmployeeCertificateSchema.model_validate(old).model_dump(mode="json")))
+        for key in ("category","certificate_type","title","issuing_entity","issuing_entity_type","class_or_grade","course_or_program","certificate_number","issue_date","expiry_date","file_url","original_filename","content_type","file_size_bytes"):
+            setattr(old,key,getattr(certificate,key))
+        old.verification_status="Pending";old.verified_at=None;old.verified_by_user_id=None;old.verification_notes=None
+        old.verifier_name=old.verifier_company=old.verifier_designation=old.verifier_contact=None
+        old.uploaded_by=current_user.id;old.uploaded_at=datetime.now(timezone.utc)
+        certificate=old
+    db.add(certificate);db.flush()
+    db.add(ServicePolicy(scope_key=f"certificate-hash:{tenant(current_user)}:{employee_id}:{digest}",organization_id=tenant(current_user),module_key="hrms",kind="certificate_file_hash",updated_by=current_user.id,values_json={"certificate_id":certificate.id}))
+    metadata=db.query(ServicePolicy).filter(ServicePolicy.scope_key==f"certificate-metadata:{certificate.id}",ServicePolicy.organization_id==tenant(current_user)).first()
+    if not metadata:
+        metadata=ServicePolicy(scope_key=f"certificate-metadata:{certificate.id}",organization_id=tenant(current_user),module_key="hrms",kind="certificate_metadata",updated_by=current_user.id)
+        db.add(metadata)
+    metadata.values_json={"remarks":remarks or "","reminder_date":reminder_date or ""};metadata.updated_by=current_user.id
+    audit(db,current_user,certificate.id,"REPLACE" if old else "UPLOAD",certificate.title)
     db.commit()
     db.refresh(certificate)
     return certificate
@@ -314,11 +361,15 @@ def verify_certificate(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_update")),
 ):
-    if data.verification_status not in {"Pending", "Verified", "Rejected"}:
-        raise HTTPException(status_code=400, detail="verification_status must be Pending, Verified, or Rejected")
+    if data.verification_status not in {"Pending", "Verified", "Rejected", "Correction Required"}:
+        raise HTTPException(status_code=400, detail="verification_status must be Pending, Verified, Rejected, or Correction Required")
     certificate = db.query(EmployeeCertificate).filter(EmployeeCertificate.id == certificate_id).first()
     if not certificate:
         raise HTTPException(status_code=404, detail="Certificate not found")
+    from app.api.v1.document_vault import records, audit
+    if not records(db,current_user).filter(EmployeeCertificate.id==certificate_id).first(): raise HTTPException(404,"Certificate not found")
+    if data.verification_status in {"Rejected", "Correction Required"} and not (data.verification_notes or "").strip(): raise HTTPException(422,"A reason is required for rejection or correction")
+    audit(db,current_user,certificate_id,"VERIFY",data.verification_status)
     certificate.verification_status = data.verification_status
     certificate.verifier_name = data.verifier_name
     certificate.verifier_company = data.verifier_company
@@ -336,6 +387,7 @@ def verify_certificate(
 async def upload_certificate_import(
     employee_id: int | None = Form(None),
     remarks: str | None = Form(None),
+    process_metadata: bool = Form(False),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_update")),
@@ -353,6 +405,10 @@ async def upload_certificate_import(
         remarks=remarks,
     )
     db.add(batch)
+    if process_metadata:
+        from app.api.v1.document_vault import process_import
+        file.file.seek(0)
+        process_import(db,current_user,batch,file.file.read(),file.filename or "")
     db.commit()
     db.refresh(batch)
     return batch
@@ -393,7 +449,9 @@ def list_certificate_import_export_batches(
     db: Session = Depends(get_db),
     current_user: User = Depends(RequirePermission("employee_view")),
 ):
-    query = db.query(CertificateImportExportBatch)
+    from app.api.v1.document_vault import employees
+    from sqlalchemy import or_
+    query = db.query(CertificateImportExportBatch).filter(or_(CertificateImportExportBatch.employee_id.in_(employees(db,current_user).with_entities(Employee.id).subquery().select()), (CertificateImportExportBatch.employee_id.is_(None)) & CertificateImportExportBatch.requested_by.in_(db.query(User.id).filter(User.id==current_user.id))))
     if operation_type:
         query = query.filter(CertificateImportExportBatch.operation_type == operation_type)
     if employee_id:

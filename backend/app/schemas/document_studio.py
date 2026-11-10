@@ -56,6 +56,7 @@ class GenerateInput(StrictModel):
     issue_date: date
     variables: dict[str, str] = Field(default_factory=dict, max_length=20)
     request_key: str = Field(min_length=8, max_length=100)
+    internal_notes: str = Field(default="", max_length=2000)
 
 
 class RevokeInput(StrictModel):

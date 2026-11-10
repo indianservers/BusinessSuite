@@ -317,6 +317,11 @@ def ensure_crm_schema(db: Session) -> None:
             db.execute(text("UPDATE crm_leads SET lead_score = COALESCE(lead_score, 0)"))
             db.execute(text("UPDATE crm_leads SET lead_score_label = COALESCE(lead_score_label, rating, 'Cold')"))
             db.execute(text("UPDATE crm_leads SET lead_score_mode = COALESCE(lead_score_mode, 'automatic')"))
+        if table_name in {"crm_leads", "crm_contacts", "crm_companies"}:
+            for column_name in ("services_offered", "business_types"):
+                if column_name not in columns:
+                    db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} JSON"))
+                    columns.add(column_name)
         if table_name == "crm_contacts":
             for column_name, column_type in ENRICHMENT_CONTACT_COLUMNS.items():
                 if column_name not in columns:

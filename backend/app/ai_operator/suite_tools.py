@@ -185,6 +185,9 @@ SAFE_FIELDS.update({'ledger_name','ledger_code','voucher_type_name','voucher_typ
     'profitability_summary', 'margin_status', 'recent_invoices', 'total_count'})
 
 
+SAFE_FIELDS.update({'owner_user_id', 'assignee_user_id', 'assignee_user_ids', 'client_id'})
+
+
 def minimize(value: Any, depth=0):
     if depth > 5:
         return None

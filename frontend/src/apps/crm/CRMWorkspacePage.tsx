@@ -1,3 +1,4 @@
+import BusinessProfileFields, {profileText} from "@/shared/master-data/BusinessProfileFields";
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import { SmartCreateModal } from "@/shared/creation/SmartCreateModal";
 import CatalogEditor from "@/shared/catalog/CatalogEditor";
@@ -140,6 +141,8 @@ import { useAuthStore } from "@/store/authStore";
 import { crmApi, type CRMApiRecord, type CRMApiValue, type CRMApprovalRequest, type CRMApprovalWorkflow, type CRMCalendarEvent, type CRMDuplicateGroup, type CRMListParams, type CRMWinLossReport } from "./api";
 
 type CRMLead = {
+  services_offered?: string[];
+  business_types?: string[];
   id: number;
   name: string;
   company: string;
@@ -164,6 +167,8 @@ type CRMLead = {
 };
 
 type CRMContact = {
+  services_offered?: string[];
+  business_types?: string[];
   id: number;
   name: string;
   companyId?: number;
@@ -3134,6 +3139,7 @@ function LeadFormModal({ mode, lead, saving, error, owners, territories, statuse
           <CrmRecordFields state={{...customFieldForm,setValues:next=>{customFieldForm.setValues(next);setCustomDirty(true);}}}/>{customError&&<p role="alert" className="text-destructive">{customError}</p>}
           <FormSectionTabs label="lead form sections" active={leadTab} onChange={setLeadTab} sections={[{id:"section-0",label:"Contact details",content:(<LeadFormSection title="Contact details">
             <LeadFormField label="Lead name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter lead name" /></LeadFormField>
+            <BusinessProfileFields services={draft.services_offered} types={draft.business_types} onChange={patch} disabled={saving}/>
             <LeadFormField label="Company"><Input className="border-border bg-card text-foreground" value={valueText(draft.company)} onChange={(event) => patch("company", event.target.value)} placeholder="Enter company name" /></LeadFormField>
             <LeadFormField label="Email" error={fieldErrors.email}><Input className="border-border bg-card text-foreground" type="email" value={valueText(draft.email)} onChange={(event) => patch("email", event.target.value)} placeholder="Enter email address" /></LeadFormField>
             <LeadFormField label="Phone" error={fieldErrors.phone}><PhoneInput label="Phone" value={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} onChange={value=>patch("phone",value)} onCountryCodeChange={value=>patch("phone_country_code",value)} error={fieldErrors.phone} /></LeadFormField>
@@ -3236,6 +3242,8 @@ function leadFormInitial(lead: CRMLead | null): CRMApiRecord {
   return {
     name: lead?.name || "",
     company: lead?.company || "",
+    services_offered: profileText(lead?.services_offered),
+    business_types: profileText(lead?.business_types),
     email: lead?.email || "",
     phone: lead?.phone || "",
     phone_country_code: lead?.phone_country_code || (lead ? "" : defaultText("phone_country_code", "crm")),
@@ -3269,6 +3277,8 @@ function buildLeadPayload(draft: CRMApiRecord): CRMApiRecord {
     last_name: rest.join(" "),
     full_name: name,
     company_name: emptyToUndefined(draft.company),
+    services_offered: profileText(draft.services_offered),
+    business_types: profileText(draft.business_types),
     email: emptyToUndefined(draft.email),
     phone: emptyToUndefined(draft.phone),
     phone_country_code: emptyToUndefined(draft.phone_country_code),
@@ -3951,6 +3961,7 @@ export function ContactFormModal({ initialValues, mode, contact, saving, error, 
           <FormSectionTabs label="contact form sections" active={contactTab} onChange={setContactTab} sections={[{id:"basic",label:"Basic details",content:(<LeadFormSection title="Basic details"><div className="col-span-full"><BranchAvailability value={availability} editing={mode === "edit"} resource={mode === "edit" && contact ? {table:"crm_contacts", id:contact.id} : undefined} disabled={saving} onChange={setAvailability}/></div><LeadFormField label="Contact name" required error={fieldErrors.name}><Input className="border-border bg-card text-foreground" value={valueText(draft.name)} onChange={(event) => patch("name", event.target.value)} placeholder="Enter contact name" /></LeadFormField><LeadFormField label="Job title"><Input className="border-border bg-card text-foreground" value={valueText(draft.title)} onChange={(event) => patch("title", event.target.value)} placeholder="Enter job title" /></LeadFormField></LeadFormSection>)},{id:"contact",label:"Contact info",content:(<LeadFormSection title="Communication details"><CommunicationDraftEditor ownerId={mode==="edit"?contact?.id:undefined} value={Array.isArray(draft.communicationChannels)?draft.communicationChannels as unknown as CommunicationEntry[]:primaryEntries(valueText(draft.email),valueText(draft.phone),valueText(draft.phone_country_code))} onChange={(items,version)=>{patch("communicationChannels",items as unknown as CRMApiRecord[]);patch("communicationVersion",version);const email=items.find(x=>x.kind==="email"&&x.primary);const phone=items.find(x=>x.kind==="phone"&&x.primary);patch("email",email?.value||"");patch("phone",(phone?.value||"").replace(/[ ()-]/g,""));patch("phone_country_code",phone?.countryCode||"+91");}}/><SharedNumberConfirmation phone={valueText(draft.phone)} countryCode={valueText(draft.phone_country_code)} email={valueText(draft.email)} confirmed={draft.confirmShared===true} reason={valueText(draft.sharedReason)} onChange={(confirmed,reason)=>{patch("confirmShared",confirmed);patch("sharedReason",reason);}}/></LeadFormSection>)},{id:"financial",label:"Financial data",content:(<FinancialDataTab contactId={mode==="edit"?contact?.id:undefined} value={draft.financialData as unknown as FinancialData|undefined} onChange={data=>patch("financialData",data as unknown as CRMApiRecord)}/>)},{id:"company",label:"Company & ownership",content:(<LeadFormSection title="Relationship">
             <LeadFormField label="Company"><SharedCompanySelect value={valueText(draft.companyId)} onChange={value=>patch("companyId",value)} initial={companies.map(company=>({id:Number(company.id),name:String(company.name||company.company_name||company.id)}))}/></LeadFormField>
             <LeadFormField label="Source"><LeadFormSelect value={valueText(draft.source)} values={sources} onChange={(value) => patch("source", value)} /></LeadFormField>
+            <BusinessProfileFields services={draft.services_offered} types={draft.business_types} onChange={patch} disabled={saving}/>
             <LeadFormField label="Lifecycle stage"><LeadFormSelect value={valueText(draft.stage)} values={stages} onChange={(value) => patch("stage", value)} /></LeadFormField>
             <LeadFormField label="Status"><LeadFormSelect value={valueText(draft.status)} values={statuses} onChange={(value) => patch("status", value)} /></LeadFormField>
             <LeadFormField label="Owner"><NativeSelect className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground" value={valueText(draft.ownerId)} onChange={(event) => patch("ownerId", event.target.value)}><option value="">Unassigned</option>{owners.map((owner) => <option key={String(owner.id)} value={String(owner.userId || owner.user_id || owner.id)}>{String(owner.adminArea || owner.full_name || owner.email || owner.id)}</option>)}</NativeSelect></LeadFormField>
@@ -3974,6 +3985,8 @@ function contactFormInitial(contact: CRMContact | null): CRMApiRecord {
     phone: contact?.phone || "",
     phone_country_code: contact?.phone_country_code || (contact ? "" : defaultText("phone_country_code", "crm")),
     title: contact?.title || "",
+    services_offered: profileText(contact?.services_offered),
+    business_types: profileText(contact?.business_types),
     companyId: contact?.companyId || "",
     source: contact ? (contact.source || "Other") : defaultText("lead_source", "crm"),
     stage: contact?.stage || "Lead",
@@ -4005,6 +4018,8 @@ function buildContactPayload(draft: CRMApiRecord): CRMApiRecord {
     phone: emptyToUndefined(draft.phone),
     phone_country_code: emptyToUndefined(draft.phone_country_code),
     job_title: emptyToUndefined(draft.title),
+    services_offered: profileText(draft.services_offered),
+    business_types: profileText(draft.business_types),
     source: emptyToUndefined(draft.source) || "Other",
     lifecycle_stage: emptyToUndefined(draft.stage) || "Lead",
     status: emptyToUndefined(draft.status) || "Active",

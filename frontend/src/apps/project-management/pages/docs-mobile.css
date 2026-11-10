@@ -1,0 +1,45 @@
+@media (max-width: 480px) {
+  .pms-docs { min-width: 0; }
+  .pms-docs > header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: flex-start; }
+  .pms-docs > header h1 { font-size: 22px; }
+  .pms-docs > header p { font-size: 12px; line-height: 1.5; }
+  .pms-docs > header a { display: inline-flex; align-items: center; min-height: 44px; }
+  .pms-docs .pms-docs-library { padding: 10px; }
+  .pms-docs-library > button { min-height: 44px; }
+  .pms-docs-library > button strong { overflow-wrap: anywhere; }
+  .pms-docs-library input { min-height: 44px; font-size: 16px; }
+  .pms-docs-editor[aria-label="Document editor"] { padding: 12px; gap: 10px; }
+  .pms-docs-editor > .suite-compact-actions { gap: 6px; padding-block: 4px; }
+  .pms-docs-editor button, .pms-docs-editor summary { min-height: 44px; }
+  .pms-docs-editor input:not([type="checkbox"]):not([type="color"]):not([aria-label="Document title"]), .pms-docs-editor select { min-height: 44px; font-size: 16px; }
+  .pms-docs-editor input[aria-label="Document title"] { font-size: 20px; }
+  .pms-docs-editor .suite-rte-toolbar { gap: 2px; }
+  .pms-docs-editor .suite-rte-toolbar button { min-width: 44px; }
+  .pms-docs-editor section span { overflow-wrap: anywhere; min-width: 0; }
+  .pms-docs-editor button:disabled { opacity: .55; }
+  .pms-docs-editor .tiptap { overflow-wrap: anywhere; }
+}
+
+@media (max-width: 480px) {
+  .pms-docs-editor > .suite-compact-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pms-docs-editor > .suite-compact-actions > button,
+  .pms-docs-editor > .suite-compact-actions > details > summary { width: 100%; white-space: normal; padding: 8px; text-align: center; }
+  .pms-docs-editor[aria-label="Document editor"] > :not([hidden]) ~ :not([hidden]) { margin-top: 12px; }
+}
+@media (min-width: 360px) and (max-width: 480px) {
+  .pms-docs-editor > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 480px) {
+  .pms-docs-source { border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 12px; background: hsl(var(--muted) / .35); overflow-wrap: anywhere; font-size: 13px; line-height: 1.6; }
+  .pms-docs-source button { min-height: 44px; width: 100%; margin-top: 8px; }
+}
+
+@media (max-width: 480px) {
+  .pms-docs-editor > .suite-compact-actions > button { height: auto; }
+  /* The common creation footer forwards to this original save handler. */
+  .smart-create-window .pms-docs-editor[data-doc-creating] > .suite-compact-actions > [data-doc-save] { display: none; }
+  .smart-create-window .pms-docs-editor[data-doc-creating] > .suite-compact-actions > button:not([data-doc-save]) { grid-column: 1 / -1; }
+}
+
+@media (max-width: 480px) { .pms-docs-history { scroll-margin-top: 72px; } }

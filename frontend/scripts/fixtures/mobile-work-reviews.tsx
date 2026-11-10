@@ -1,0 +1,14 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import {QueryClient,QueryClientProvider,onlineManager} from '@tanstack/react-query';
+import Page from '@/apps/project-management/pages/WorkReviewsPage';
+import {useAuthStore} from '@/store/authStore';
+import '@/index.css';
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'fixture',user:{id:1,is_superuser:true,role:'admin'}});
+Object.assign(window,{__denyPmsReview:()=>{const user=useAuthStore.getState().user;if(user)useAuthStore.setState({user:{...user,is_superuser:false,role:'employee',access:{managed:true,companyId:1,companyName:'QA',memberships:[1],organizations:[],modules:[],grants:{project_management:{enabled:true,role:'employee',scope:'self',permissions:[],actions:[]}}}}});}});
+const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+onlineManager.setOnline(!location.search.includes('offline'));
+Object.assign(window,{__reviewOnline:(online:boolean)=>onlineManager.setOnline(online),__reviewRefetch:()=>client.refetchQueries({queryKey:['pms-work',undefined,undefined],exact:true})});
+const root=createRoot(document.getElementById('root')!);
+Object.assign(window,{__unmountReviews:()=>root.unmount()});
+root.render(<QueryClientProvider client={client}><MemoryRouter initialEntries={['/pms/reviews']}><main style={{padding:12}}><Page/></main></MemoryRouter></QueryClientProvider>);

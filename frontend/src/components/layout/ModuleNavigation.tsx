@@ -9,7 +9,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CheckCircle2, BarChart3, BriefcaseBusiness, ChevronDown, ChevronsDownUp, ChevronsUpDown, CircleHelp, FolderKanban, LayoutDashboard, MessagesSquare, Search, Settings2, Sparkles, Star, Users, X } from "lucide-react";
 import { canAccessRoute, getRoleNav, type RoleNavItem } from "@/lib/roles";
 import { activeWorkspace, workspacePageHref } from "@/lib/navigation-workspaces";
-import { menuItems, menuLabel, menuMatches, menuPages, moduleLandingNavigation } from "@/lib/navigation-menu";
+import { menuItems, menuLabel, menuMatches, menuPages, moduleLandingNavigation, moduleMenuNavigation } from "@/lib/navigation-menu";
 import { useAuthStore } from "@/store/authStore";
 import { defaultSuitePreferences, suiteScope, useSuitePreferences } from "@/store/suitePreferences";
 import PMSPersonalNavigation from "./PMSPersonalNavigation";
@@ -38,7 +38,7 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   const [query, setQuery] = useState("");
   const [submenus, setSubmenus] = useState<Record<string, boolean>>({});
   // Custom catalogs are already filtered by their server-side application permissions.
-  const available = customItems ? [...customItems] : getRoleNav(user?.role, user?.is_superuser, catalogPath)
+  let available = customItems ? [...customItems] : getRoleNav(user?.role, user?.is_superuser, catalogPath)
     .filter(item => canAccessRoute(item.to.split("?")[0], user?.role, user?.is_superuser));
   if (!available.some(item => item.to === sharedNotesPath) && canAccessRoute(sharedNotesPath, user?.role, user?.is_superuser)) {
     available.push({ to: sharedNotesPath, label: "Notes", icon: FileText, group: "Collaboration" });
@@ -58,6 +58,10 @@ export default function ModuleNavigation({ collapsed = false, onNavigate, worksp
   for (const [to, label] of supplemental) {
     if (!customItems && !available.some(item => item.to === to) && canAccessRoute(to, user?.role, user?.is_superuser)) available.push({to, label, icon: Settings2, group:moduleKey === "analytics" ? "Reports & insights" : "Customization Studio"});
   }
+  if (moduleKey === "hrms" && !available.some(item => item.to === "/hrms/settings") && canAccessRoute("/hrms/settings", user?.role, user?.is_superuser)) {
+    available.push({ to: "/hrms/settings", label: "HR settings", icon: Settings2, group: "Settings & administration" });
+  }
+  available = moduleMenuNavigation(available, moduleKey);
   const landing = moduleLandingNavigation(available, moduleKey);
   const consolidated = [...landing.direct, ...menuItems(landing.grouped)];
   const current = activeWorkspace(consolidated, location.pathname) || available.filter(item =>

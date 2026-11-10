@@ -35,6 +35,23 @@ That host resolves `besterp.app` directly to the new origin in `/etc/hosts`.
 Its former API and backup timer are disabled to keep one active database.
 The source database, files, release and pre-cutover configuration are retained.
 
+The active backend uses `business-suite.socket` to own `127.0.0.1:8000` and
+passes its listener to the single Uvicorn worker with `--fd 3`. Ordinary API
+process restarts retain the listening socket: requests queue during startup
+instead of receiving connection-refused 502 responses through the public proxy.
+This is startup buffering, not a second API worker or a guarantee against
+timeouts during a prolonged outage. On the existing host, the service override
+is `/etc/systemd/system/business-suite.service.d/socket-activation.conf`.
+
+Before a matching backup or schema migration, stop **both**
+`business-suite.socket` and `business-suite.service`, along with the relevant
+writer jobs/timers. Otherwise incoming requests can socket-activate the API
+during maintenance. The deployment script stops the socket before migrating;
+starting the API service starts its required socket. Keep migration maintenance
+bounded and verify `/health` before restoring traffic/jobs. To remove socket
+activation, stop both units, restore the host/port ExecStart, disable/remove the
+socket unit and override, then daemon-reload and start the service.
+
 Private runtime configuration is `/srv/business-suite/shared/backend.env`;
 uploads are `/srv/business-suite/shared/besterp-uploads`. The existing local
 backup timer runs on the new host and includes the active database, uploads,

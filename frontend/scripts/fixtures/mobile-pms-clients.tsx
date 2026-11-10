@@ -1,0 +1,13 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter} from "react-router-dom";
+import {QueryClient,QueryClientProvider,onlineManager} from "@tanstack/react-query";
+import {useAuthStore} from "@/store/authStore";
+import {api} from "@/services/api";
+import Page from "@/apps/project-management/pages/ClientsPage";
+import "@/index.css";
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"qa@example.test",role:"admin",is_superuser:true}});
+const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
+let settled=0;api.interceptors.response.use(response=>{if(response.config.method!=="get")settled++;return response;},error=>{if(error.config?.method!=="get")settled++;return Promise.reject(error);});
+Object.assign(window,{__clientActor:(id:number)=>useAuthStore.setState({user:{...useAuthStore.getState().user,id}}),__clientSettled:()=>settled,__clientRead:()=>client.refetchQueries({queryKey:["pms-clients"],type:"active"}).catch(()=>undefined),__clientOnline:(online:boolean)=>onlineManager.setOnline(online),__clientViewer:()=>useAuthStore.setState({user:{...useAuthStore.getState().user,is_superuser:false,access:{grants:{project_management:{enabled:true,permissions:["pms_manage_projects"],actions:[]}}}}})});
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/pms/clients"]}><Page/></MemoryRouter></QueryClientProvider>);

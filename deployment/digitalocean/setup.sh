@@ -23,14 +23,15 @@ if [[ ! -e /srv/business-suite/shared/interns-config.js ]]; then
         "$ROOT/deployment/digitalocean/interns-config.js.example" /srv/business-suite/shared/interns-config.js
 fi
 install -m 0644 "$ROOT"/deployment/digitalocean/business-suite*.service /etc/systemd/system/
+install -m 0644 "$ROOT"/deployment/digitalocean/business-suite.socket /etc/systemd/system/
 install -m 0644 "$ROOT"/deployment/digitalocean/business-suite*.timer /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable postgresql redis-server nginx business-suite.service \
+systemctl enable postgresql redis-server nginx business-suite.socket business-suite.service \
     business-suite-jobs.timer business-suite-backup.timer
 systemctl start postgresql redis-server
 cat > /etc/sudoers.d/business-suite <<'EOF'
 businesssuite ALL=(root) NOPASSWD: /usr/bin/systemctl stop business-suite-jobs.timer business-suite-backup.timer
-businesssuite ALL=(root) NOPASSWD: /usr/bin/systemctl stop business-suite-jobs.service business-suite-backup.service business-suite.service
+businesssuite ALL=(root) NOPASSWD: /usr/bin/systemctl stop business-suite.socket business-suite-jobs.service business-suite-backup.service business-suite.service
 businesssuite ALL=(root) NOPASSWD: /usr/bin/systemctl start business-suite.service
 businesssuite ALL=(root) NOPASSWD: /usr/bin/systemctl stop business-suite.service
 businesssuite ALL=(root) NOPASSWD: /usr/bin/systemctl start business-suite-jobs.timer business-suite-backup.timer

@@ -277,7 +277,7 @@ def get_request(request_id: int, db: Session = Depends(get_db), current_user: Us
 
 
 def _decide(request_id: int, decision: str, data: ApprovalDecision, db: Session, current_user: User) -> ApprovalRequest:
-    request = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id, ApprovalRequest.source_module != "power_apps").first()
+    request = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id, ApprovalRequest.source_module != "power_apps").populate_existing().with_for_update().first()
     if not request:
         raise HTTPException(status_code=404, detail="Approval request not found")
     if (request.context_json or {}).get("_shared"):
@@ -289,6 +289,11 @@ def _decide(request_id: int, decision: str, data: ApprovalDecision, db: Session,
         raise HTTPException(status_code=400, detail="Approval request is not pending")
     if not _can_decide_request(request, current_user):
         raise HTTPException(status_code=403, detail="Approval request is not assigned to the current user")
+    if (request.context_json or {}).get("asset_lifecycle"):
+        from app.services.asset_lifecycle import apply_approval
+        if not data.reason or len(data.reason.strip()) < 3:
+            raise HTTPException(422, "Record the approval decision reason")
+        apply_approval(db, current_user, request, decision, data.reason)
     before = request.status
     request.status = "Approved" if decision == "approve" else "Rejected"
     request.decision_reason = data.reason

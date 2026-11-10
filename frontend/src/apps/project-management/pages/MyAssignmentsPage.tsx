@@ -1,3 +1,5 @@
+import "./my-assignments-mobile.css";
+import {useMobile} from "@/components/mobile/useMobile";
 import {useModuleAction} from "@/hooks/use-module-action";
 import GridTable from "@/shared/data-grid/GridTable";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
@@ -6,7 +8,7 @@ import {
   RichTextContent,
   richTextPlainText,
 } from "@/components/rich-text/LazyRichText";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
@@ -14,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 type Row = Record<string, any>;
 export default function MyAssignmentsPage() {
+  const phone=useMobile(480);
   const canExecute=useModuleAction("create");
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
@@ -24,13 +27,39 @@ export default function MyAssignmentsPage() {
   const [percent, setPercent] = useState(0);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const { data, error } = useQuery<Row>({
+  const saving=useRef(false);
+  const detailHeading=useRef<HTMLHeadingElement>(null);
+  const [failed,setFailed]=useState(false);
+  const [dirty,setDirty]=useState(false);
+  const changed=()=>{if(phone)setDirty(true);};
+  function leaveDraft() {
+    if(!phone)return true;
+    if(saving.current)return false;
+    if(dirty && !window.confirm("Discard unsaved assignment changes? Notes, progress, and unsubmitted evidence will be lost."))return false;
+    setDirty(false);return true;
+  }
+  useEffect(()=>{
+    if(!phone || !dirty && !busy)return;
+    const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue="";};
+    const linkClick=(event:MouseEvent)=>{
+      if(event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
+      const anchor=(event.target as Element)?.closest?.("a[href]") as HTMLAnchorElement|null;
+      if(!anchor || anchor.hasAttribute("download") || anchor.target && anchor.target!=="_self")return;
+      const destination=new URL(anchor.href,window.location.href),current=new URL(window.location.href);
+      if(destination.origin===current.origin && destination.pathname===current.pathname && destination.search===current.search)return;
+      if(!leaveDraft()){event.preventDefault();event.stopPropagation();}
+    };
+    window.addEventListener("beforeunload",warn);document.addEventListener("click",linkClick,true);
+    return()=>{window.removeEventListener("beforeunload",warn);document.removeEventListener("click",linkClick,true);};
+  },[phone,dirty,busy]);
+  const source = useQuery<Row>({
     queryKey: ["pms-my-assignments", page],
     queryFn: () =>
       api
         .get("/project-management/work/assignments", { params: { page } })
         .then((r) => r.data),
   });
+  const {data,error}=source;
   const task = data?.items.find((r: Row) => r.id === selected);
   const locked =
     task &&
@@ -42,25 +71,30 @@ export default function MyAssignmentsPage() {
     task &&
     !locked &&
     !["Done", "In Review", "Cancelled"].includes(task.status);
-  async function action(operation: () => Promise<any>) {
-    if(!canExecute)return;
+  async function action(operation: () => Promise<any>, clearsDraft=false) {
+    if(!canExecute || phone && saving.current)return;
+    if(phone)saving.current=true;
+    setFailed(false);
     setBusy(true);
     setMessage("");
     try {
       await operation();
+      if(phone && clearsDraft)setDirty(false);
       await qc.invalidateQueries({ queryKey: ["pms-my-assignments"] });
       setMessage("Saved in the shared PMS history.");
     } catch (e: any) {
+      setFailed(true);
       setMessage(
         e.response?.data?.detail ||
           "Could not save; check the required fields.",
       );
     } finally {
+      saving.current=false;
       setBusy(false);
     }
   }
   return (
-    <div className="space-y-5">
+    <div className="my-assignments-page space-y-5">
       <h1 className="text-2xl font-bold">My PMS Assignments</h1>
       <p>
         Interns and employees use the same PMS execution and review records.
@@ -68,8 +102,11 @@ export default function MyAssignmentsPage() {
       <Link className="text-primary" to="/pms/batches">
         Batch Management →
       </Link>
-      {error && <p role="alert">Assignments could not load.</p>}
-      <div className="overflow-auto rounded-xl border bg-card">
+      {error && <p role="alert">Assignments could not load.{phone && data && " Showing the last loaded assignments."}</p>}
+      {phone && error && <Button variant="outline" disabled={source.isFetching || source.fetchStatus==="paused"} onClick={()=>void source.refetch()}>Retry assignments</Button>}
+      {phone && (source.isFetching || source.fetchStatus==="paused") && <p role="status">{source.fetchStatus==="paused" ? "Waiting for a connection to load assignments." : data ? "Refreshing assignments…" : "Loading assignments…"}</p>}
+      {phone && source.isSuccess && !source.isFetching && !data?.items?.length && <p role="status">No assignments on this page.</p>}
+      {(!phone || data !== undefined) && <div className="overflow-auto rounded-xl border bg-card">
         <GridTable gridId="apps/project-management/pages/MyAssignmentsPage:table-1" className="w-full text-left text-sm">
           <thead>
             <tr>
@@ -91,11 +128,16 @@ export default function MyAssignmentsPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    disabled={phone && busy}
                     onClick={() => {
+                      if(phone && selected===r.id) {detailHeading.current?.scrollIntoView({block:"start"});detailHeading.current?.focus({preventScroll:true});return;}
+                      if(!leaveDraft())return;
+                      if(phone)setLinks("");
                       setSelected(r.id);
                       setNotes(r.notes || "");
                       setPercent(r.progress);
                       setFiles([]);
+                      if(phone)requestAnimationFrame(()=>{detailHeading.current?.scrollIntoView({block:"start"});detailHeading.current?.focus({preventScroll:true});});
                     }}
                   >
                     Open Assignment
@@ -105,25 +147,25 @@ export default function MyAssignmentsPage() {
             ))}
           </tbody>
         </GridTable>
-      </div>
-      <div className="flex gap-3">
-        <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
+      </div>}
+      <div className="assignments-pagination flex gap-3">
+        <Button disabled={page === 1 || phone && busy} onClick={() => {if(leaveDraft()){if(phone)setSelected(undefined);setPage(page-1);}}}>
           Previous
         </Button>
         <span>
-          Page {page} · {data?.total || 0} assignments
+          Page {page} · {phone && data===undefined ? "—" : data?.total || 0} assignments
         </span>
         <Button
-          disabled={page * 50 >= (data?.total || 0)}
-          onClick={() => setPage(page + 1)}
+          disabled={page * 50 >= (data?.total || 0) || phone && busy}
+          onClick={() => {if(leaveDraft()){if(phone)setSelected(undefined);setPage(page+1);}}}
         >
           Next
         </Button>
       </div>
-      {message && <p role="status">{message}</p>}
+      {message && <p role={phone && failed ? "alert" : "status"}>{message}</p>}
       {task && (
-        <section className="grid gap-4 rounded-xl border bg-card p-5">
-          <h2 className="text-lg font-semibold">{task.title}</h2>
+        <section aria-busy={phone ? busy : undefined} className="grid gap-4 rounded-xl border bg-card p-5">
+          <h2 ref={detailHeading} tabIndex={phone ? -1 : undefined} className="text-lg font-semibold">{task.title}</h2>
           <div className="whitespace-pre-wrap">
             <RichTextContent value={task.description} />
           </div>
@@ -143,6 +185,7 @@ export default function MyAssignmentsPage() {
             task.start_date > new Date().toLocaleDateString("en-CA") && (
               <p role="status">Opens on {task.start_date}.</p>
             )}
+          {phone && busy && <p role="status">Saving assignment changes…</p>}
           {editable ? (
             <>
               <Button
@@ -158,22 +201,24 @@ export default function MyAssignmentsPage() {
               <label>
                 Progress %
                 <Input
+                  disabled={phone && busy}
                   aria-label="Progress percent"
                   type="number"
                   min={0}
                   max={99}
                   value={percent}
-                  onChange={(e) => setPercent(Number(e.target.value))}
+                  onChange={(e) => {changed();setPercent(Number(e.target.value));}}
                 />
               </label>
               <label>
                 Work notes
                 <RichTextField
+                  disabled={phone && busy}
                   data-legacy-format="markdown"
                   aria-label="Work notes"
                   className="min-h-28 w-full rounded border bg-background p-3"
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(e) => {changed();setNotes(e.target.value);}}
                 />
               </label>
               <Button
@@ -192,10 +237,11 @@ export default function MyAssignmentsPage() {
               <label>
                 Evidence links (one per line)
                 <textarea
+                  disabled={phone && busy}
                   aria-label="Evidence links"
                   className="w-full rounded border p-3"
                   value={links}
-                  onChange={(e) => setLinks(e.target.value)}
+                  onChange={(e) => {changed();setLinks(e.target.value);}}
                 />
               </label>
               <label>
@@ -206,6 +252,24 @@ export default function MyAssignmentsPage() {
                   multiple
                   disabled={busy||!canExecute}
                   onChange={async (e) => {
+                    if(phone) {
+                      const input=e.currentTarget, chosen=Array.from(input.files || []);
+                      if(!chosen.length || !canExecute || saving.current) return;
+                      changed();
+                      await action(async()=>{
+                        const failedNames:string[]=[];
+                        for(const file of chosen) {
+                          try {
+                            const form=new FormData();form.append("file",file);
+                            const response=await api.post(`/project-management/work/tasks/${task.id}/files`,form);
+                            setFiles(current=>[...current,response.data]);
+                          } catch { failedNames.push(file.name); }
+                        }
+                        if(failedNames.length) throw {response:{data:{detail:`Could not upload: ${failedNames.join(", ")}. Successful files are retained. Select the failed files to retry.`}}};
+                      });
+                      input.value="";
+                      return;
+                    }
                     for (const file of Array.from(e.target.files || [])) {
                       await action(async () => {
                         const form = new FormData();
@@ -243,6 +307,7 @@ export default function MyAssignmentsPage() {
                             confirmed: !draft,
                           },
                         ),
+                        true,
                       )
                     }
                   >

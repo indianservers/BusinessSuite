@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
-export default function PdfPreview({ file }: { file: Blob }) {
+export default function PdfPreview({
+  file,
+  zoomControls = false,
+}: {
+  file: Blob;
+  zoomControls?: boolean;
+}) {
+  const [zoom, setZoom] = useState(1);
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [width, setWidth] = useState(700);
@@ -74,7 +81,9 @@ export default function PdfPreview({ file }: { file: Blob }) {
       .then(async (page) => {
         if (!active || !canvas.current) return;
         const original = page.getViewport({ scale: 1 });
-        const viewport = page.getViewport({ scale: width / original.width });
+        const viewport = page.getViewport({
+          scale: (width * zoom) / original.width,
+        });
         const ratio = Math.min(window.devicePixelRatio || 1, 2);
         const target = canvas.current;
         target.width = Math.ceil(viewport.width * ratio);
@@ -110,9 +119,38 @@ export default function PdfPreview({ file }: { file: Blob }) {
       active = false;
       cancel?.();
     };
-  }, [document, pageNumber, width]);
+  }, [document, pageNumber, width, zoom]);
   return (
-    <div ref={container} className="min-w-0 space-y-3 overflow-hidden">
+    <div
+      ref={container}
+      className={`min-w-0 space-y-3 ${zoomControls ? "overflow-auto" : "overflow-hidden"}`}
+    >
+      {zoomControls && (
+        <div className="flex items-center justify-end gap-2 text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Zoom out"
+            disabled={zoom <= 0.5}
+            onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+          >
+            −
+          </Button>
+          <span aria-label="PDF zoom">{Math.round(zoom * 100)}%</span>
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Zoom in"
+            disabled={zoom >= 2}
+            onClick={() => setZoom((z) => Math.min(2, z + 0.25))}
+          >
+            +
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setZoom(1)}>
+            Fit page
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <Button
           variant="outline"
@@ -137,7 +175,7 @@ export default function PdfPreview({ file }: { file: Blob }) {
       {loading && <p role="status">Rendering private PDF…</p>}
       {error && <p role="alert">{error}</p>}
       <canvas
-        className="max-w-full rounded border bg-white"
+        className={`${zoomControls && zoom > 1 ? "" : "max-w-full"} rounded border bg-white`}
         ref={canvas}
         role="img"
         aria-label={`PDF page ${pageNumber}`}

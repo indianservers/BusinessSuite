@@ -141,7 +141,7 @@ export default function PowerAppsPage({ children }: { children?: ReactNode }) {
     navigate(
       route.split("?")[0] === "/power-apps/notes" ? sharedNotesPath : route.startsWith("/power-apps") ? studioPath(route, environment) : route,
     );
-  const toolkitGroup = (id: string) => productivityReferences.some(item => item.id === id) ? "Productivity references" : ["automations", "approvals"].includes(id) ? "Workflows & approvals"
+  const toolkitGroup = (id: string) => ["connectors", "activity"].includes(id) ? "Settings & administration" : productivityReferences.some(item => item.id === id) ? "Productivity references" : ["automations", "approvals"].includes(id) ? "Workflows & approvals"
     : ["forms", "tables", "app-builder", "documents"].includes(id) ? "Build & customize"
     : ["notifications", "search", "connectors", "ai-agents"].includes(id) ? "Connections & AI" : "Reports & activity";
   const toolkitItems = [{ to: studioPath("/power-apps", environment), label: "Overview", icon: Layers3, group: "Overview" },

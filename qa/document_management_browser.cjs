@@ -1,0 +1,105 @@
+const {chromium,expect}=require('../frontend/node_modules/playwright/test');
+const fs=require('node:fs');
+const root='http://127.0.0.1:1564/api/v1',origin='http://127.0.0.1:5202';
+(async()=>{
+const login=await(await fetch(root+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'admin@suiteqa.example.com',password:'SuiteQA@12345'})})).json();
+const headers={Authorization:'Bearer '+login.access_token,'Content-Type':'application/json','X-Suite-Organization':'1','X-Suite-Branch':'1'};
+async function api(path,method='GET',body){const r=await fetch(root+path,{method,headers,body:body?JSON.stringify(body):undefined});const d=await r.json();if(!r.ok)throw Error(path+JSON.stringify(d));return d;}
+const actor=await api('/auth/me'),access=await api('/access/me');
+await api('/documents/studio/initialize','POST');
+const initialIssued=(await api('/documents/studio/issued')).total;
+const browser=await chromium.launch();const context=await browser.newContext({viewport:{width:1720,height:1080}});
+await context.addInitScript(({login,actor,access})=>{sessionStorage.setItem('suite-organization','1');sessionStorage.setItem('suite-branch','1');sessionStorage.setItem('hrms-auth',JSON.stringify({state:{accessToken:login.access_token,refreshToken:login.refresh_token,isAuthenticated:true,user:{id:actor.id,email:actor.email,role:'admin',is_superuser:true,access}},version:0}));},{login,actor,access});
+const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));fs.mkdirSync('outputs/document-management',{recursive:true});
+try{
+ await page.goto(origin+'/hrms/documents');
+ await expect(page.getByRole('heading',{name:'Employee Document Vault',exact:true})).toBeVisible({timeout:60000});
+ await expect(page.getByText('Degree Certificate',{exact:true}).first()).toBeVisible();
+ await page.screenshot({path:'outputs/document-management/vault-desktop.png',fullPage:true});
+ console.log('PASS vault renders authorized live documents and six KPI cards');
+ await page.getByRole('textbox',{name:'Employee name / ID',exact:true}).fill('No such vault employee');
+ await expect(page.getByText('No records in this view. Your current filters and access still apply.',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Clear all',exact:true}).click();
+ await expect(page.getByText('Degree Certificate',{exact:true}).first()).toBeVisible();
+ await page.locator('.dv-kpi').nth(3).click();await expect(page.getByText('Passport',{exact:true}).first()).toBeVisible();
+ await expect(page.getByText('Degree Certificate',{exact:true})).toHaveCount(0);
+ await page.locator('.dv-kpi').nth(1).click();await expect(page.getByText('Degree Certificate',{exact:true}).first()).toBeVisible();
+ console.log('PASS search, empty state, reset and expiring KPI filter');
+
+ 
+ await page.getByTitle('Preview document',{exact:true}).first().click();
+ await expect(page.getByRole('dialog')).toBeVisible();
+ await expect(page.getByRole('img',{name:'PDF page 1',exact:true})).toBeVisible({timeout:30000});
+ console.log('PASS private certificate PDF preview');
+ await page.keyboard.press('Escape');
+ await page.goto(origin+'/hrms/letters-certificates');
+ await expect(page.getByRole('heading',{name:'Letters & Certificates Studio',exact:true})).toBeVisible({timeout:30000});
+ const templates=await api('/documents/studio/templates');const t=templates.find(t=>t.name==='Employment Verification Letter');
+ await page.getByRole('combobox',{name:'Template',exact:true}).selectOption(String(t.id));
+ const heads=await api('/documents/studio/letterheads');await page.getByRole('combobox',{name:'Letterhead',exact:true}).selectOption(String(heads[0].id));
+ const recipients=await api('/documents/studio/recipients');await page.getByRole('combobox',{name:'Recipient',exact:true}).selectOption(String(recipients[0].id));
+ await page.getByLabel('Verified employment status and purpose *',{exact:true}).fill('Active full-time employee. Issued for employment verification.');
+ await expect(page.getByRole('img',{name:'PDF page 1',exact:true})).toBeVisible({timeout:30000});
+ const issued=await api('/documents/studio/issued');expect(issued.total).toBe(initialIssued);
+ console.log('PASS live PDF preview renders actual HRMS records without issuance');
+ await expect(page.getByText('Page 1 of 1',{exact:true})).toBeVisible({timeout:30000});
+ await expect(page.getByText('Rendering private PDF…',{exact:true})).toHaveCount(0);
+ await page.screenshot({path:'outputs/document-management/studio-desktop.png',fullPage:true});
+ for(const width of [390,768]){await page.setViewportSize({width,height:1000});await page.screenshot({path:`outputs/document-management/studio-${width}.png`});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);await page.locator('.studio-preview-panel').scrollIntoViewIfNeeded();await expect(page.getByText('Page 1 of 1',{exact:true})).toBeVisible();await page.screenshot({path:`outputs/document-management/studio-${width}-preview.png`});const box=await page.getByRole('img',{name:'PDF page 1',exact:true}).boundingBox();expect(box.width).toBeLessThanOrEqual(width);}
+
+ await page.setViewportSize({width:390,height:1000});await page.goto(origin+'/hrms/documents');await expect(page.getByRole('heading',{name:'Employee Document Vault',exact:true})).toBeVisible();await expect(page.locator('.dv-kpi').first().locator('strong')).toHaveText('3');await page.screenshot({path:'outputs/document-management/vault-390.png'});await page.getByRole('button',{name:'Filters',exact:true}).first().click();await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+
+ await page.setViewportSize({width:1720,height:1080});
+ await page.getByRole('button',{name:'Upload Documents',exact:true}).click();
+ await page.getByRole('button',{name:/Amit Sharma.*VAULT-001/}).click();
+ await page.getByRole('combobox',{name:'Document category',exact:true}).selectOption('Identity');
+ await page.getByRole('textbox',{name:'Certificate type',exact:true}).fill('Browser identity certificate');
+ const uploadTitle='Browser upload '+Date.now();
+ await page.getByRole('textbox',{name:'Document title',exact:true}).fill(uploadTitle);
+ const binary=Buffer.from(await (await fetch(root+'/documents/certificates/1/file',{headers})).arrayBuffer());
+ await page.getByLabel('Certificate file',{exact:true}).setInputFiles({name:'browser-certificate.pdf',mimeType:'application/pdf',buffer:Buffer.concat([binary,Buffer.from('\n%'+Date.now())])});
+ const saved=page.waitForResponse(r=>r.url().endsWith('/documents/certificates')&&r.request().method()==='POST');
+ await page.getByRole('button',{name:'Upload document',exact:true}).click();expect((await saved).status()).toBe(201);
+ await page.getByRole('button',{name:'Documents',exact:true}).click();
+ await expect(page.getByText(uploadTitle,{exact:true})).toBeVisible();
+ await page.getByTitle('Preview document',{exact:true}).first().click();
+ const review=page.getByRole('dialog');await expect(review).toBeVisible();
+ await review.getByRole('combobox',{name:'Status',exact:true}).selectOption('Correction Required');
+ await review.getByRole('textbox',{name:'Reason / notes',exact:true}).fill('Please submit a clearer original.');
+ await review.getByRole('button',{name:'Save decision',exact:true}).click();
+ await expect(review).toHaveCount(0);
+ await expect.poll(async()=>(await api('/documents/certificates/library?q='+encodeURIComponent(uploadTitle))).items[0]?.verification_status).toBe('Correction Required');
+ console.log('PASS upload through UI and correction workflow with private preview');
+ await page.getByRole('button',{name:'Policies & Requirements',exact:true}).click();
+ await page.getByRole('button',{name:'Add requirement',exact:true}).click();
+ const policy=page.getByRole('dialog');
+ await policy.getByRole('textbox',{name:'Requirement title',exact:true}).fill('Required passport');
+ await policy.getByRole('textbox',{name:'Certificate type',exact:true}).fill('Passport');
+ await policy.getByRole('button',{name:'Save requirement',exact:true}).click();await expect(policy).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'Required passport',exact:true})).toBeVisible();
+ console.log('PASS scoped document requirement configured through UI');
+ await page.goto(origin+'/hrms/letters-certificates');
+ await page.getByRole('combobox',{name:'Template',exact:true}).selectOption(String(t.id));
+ await page.getByRole('combobox',{name:'Letterhead',exact:true}).selectOption(String(heads[0].id));
+ await page.getByRole('combobox',{name:'Recipient',exact:true}).selectOption(String(recipients[0].id));
+ await page.getByLabel('Verified employment status and purpose *',{exact:true}).fill('Approved employment verification.');
+ await expect(page.getByText('Page 1 of 1',{exact:true})).toBeVisible({timeout:30000});
+ const issuedResponse=page.waitForResponse(r=>r.url().endsWith('/documents/studio/issue')&&r.request().method()==='POST');
+ const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Issue & download',exact:true}).click();
+ expect((await issuedResponse).status()).toBe(201);await downloaded;
+ await expect.poll(async()=>(await api('/documents/studio/issued')).total).toBe(initialIssued+1);
+ console.log('PASS single official issuance and authorized PDF download');
+ await page.getByRole('button',{name:'Multiple employees',exact:true}).click();
+ const people=page.locator('.studio-batch-list input[type=checkbox]');await people.nth(0).check();await people.nth(1).check();
+ await expect(page.getByText('Page 1 of 1',{exact:true})).toBeVisible({timeout:30000});
+ await page.getByRole('button',{name:'Issue 2 documents',exact:true}).click();
+ await expect(page.getByRole('tab',{name:'Issued History',exact:true})).toHaveAttribute('aria-selected','true',{timeout:30000});
+ await expect.poll(async()=>(await api('/documents/studio/issued')).total).toBe(initialIssued+3);
+ console.log('PASS multiple personalized documents issued and registered in history');
+ await page.getByRole('button',{name:'View',exact:true}).first().click();
+ await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByText('Page 1 of 1',{exact:true})).toBeVisible({timeout:30000});await page.keyboard.press('Escape');
+ await page.getByRole('tab',{name:'Templates',exact:true}).click();await expect(page.getByRole('textbox',{name:'Search templates',exact:true})).toBeVisible();
+ console.log('PASS issued PDF reprint and template gallery');
+ expect(errors).toEqual([]);console.log('PASS desktop/mobile document layouts and no page exceptions');
+}finally{await page.screenshot({path:'outputs/document-management/latest-state.png',fullPage:true});await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1)});

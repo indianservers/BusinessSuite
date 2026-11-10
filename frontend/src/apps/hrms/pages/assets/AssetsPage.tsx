@@ -1,105 +1,554 @@
 import "./assets-mobile.css";
-import { useMobile } from "@/components/mobile/useMobile";
-import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
-import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
-import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
-import RecordMaintenance from "@/components/RecordMaintenance";
-import { useNewRecordFocus } from "@/hooks/use-new-record-focus";
-import GroupedRecords from "@/shared/data-grid/GroupedRecords";
-import { NativeSelect } from "@/components/ui/native-select";
-import CompactForm from "@/components/forms/CompactForm";
+import "./assets-workspace.css";
 import { useEffect, useState } from "react";
-import { Link, useSearchParams, useLocation } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bike, Laptop, Package } from "lucide-react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Box, Plus, RefreshCw, Zap } from "lucide-react";
 import { api, assetApi } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
+import { useDefinitionPermission } from "@/components/RecordDefinitionActions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
 import { usePageTitle } from "@/hooks/use-page-title";
 import EmployeeSearchSelect from "../../components/EmployeeSearchSelect";
+import AssetWorkspace, {
+  AssetMetrics,
+  type AssetSummary,
+} from "./AssetWorkspace";
+import AssetLifecycleGrid from "./AssetLifecycleGrid";
+import {
+  EmployeeAssetProfileButton,
+  Asset360Button,
+  AssetHandoverButton,
+  AssetRegistrationButton,
+  AssetPolicyButton,
+  AssetRecordWorkflow,
+  AssetExitActions,
+  useAssetRefresh,
+  type CustodyRow,
+} from "./AssetWorkflows";
 
-type Asset = { id: number; name: string; asset_tag: string; serial_number: string | null; status: string; category_id: number | null; warranty_expiry: string | null };
-type Assignment = { id: number; asset_name: string; asset_tag: string; employee_id: number; employee_name: string; assigned_date: string; returned_date: string | null; acknowledged: boolean; condition_at_return: string | null; acknowledged_at?: string | null; remarks?: string | null };
-type Clearance = { exit_id: number; employee_name: string; last_working_date: string | null; cleared: boolean; outstanding_assets: { assignment_id: number; name: string; asset_tag: string }[] };
-const errorText = (error: unknown) => { const detail = (error as { response?: { data?: { detail?: unknown } } }).response?.data?.detail; return typeof detail === "string" ? detail : "Please check the details and try again."; };
-
+type Category = { id: number; name: string };
+type Assignment = CustodyRow & {
+  employee_code?: string;
+  department?: string;
+  asset_category?: string;
+  branch?: string;
+  acknowledged_at?: string | null;
+  remarks?: string | null;
+};
+type Clearance = {
+  exit_id: number;
+  employee_id: number;
+  employee_name: string;
+  last_working_date: string | null;
+  cleared: boolean;
+  department?: string;
+  exit_type?: string;
+  exit_status?: string;
+  assets_assigned?: number;
+  assets_returned?: number;
+  issues?: { kind: string; asset_tag: string }[];
+  checklist?: {
+    id: number;
+    task_name: string;
+    department: string;
+    completed: boolean;
+  }[];
+  outstanding_assets: {
+    assignment_id: number;
+    asset_id?: number;
+    name: string;
+    asset_tag: string;
+  }[];
+};
+const errorText = (e: unknown) => {
+  const value = (e as { response?: { data?: { detail?: unknown } } }).response
+    ?.data?.detail;
+  return typeof value === "string"
+    ? value
+    : "Please check the details and try again.";
+};
 export default function AssetsPage() {
   usePageTitle("Company assets");
-  const phone = useMobile(480);
-  const [assetCreated, setAssetCreated] = useState(0);
-  const qc = useQueryClient();
-  const createRef = useNewRecordFocus();
-  const location = useLocation();
-  const user = useAuthStore(s => s.user);
-  const [params] = useSearchParams();
-  const [tab, setTab] = useState(params.get("view") === "clearance" ? "clearance" : "inventory");
-  useEffect(() => { if (location.hash === "#new-record") setTab("inventory"); }, [location.key, location.hash]);
-  const [search, setSearch] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [assetId, setAssetId] = useState("");
-  const [form, setForm] = useState({ name: "", asset_tag: "", serial_number: "", category_id: "", purchase_cost: "", description: "", purchase_date: "", warranty_expiry: "", brand: "", model: "" });
-  const [conditions, setConditions] = useState<Record<number, string>>({});
-  const permissions = useQuery({ queryKey: ["asset-permissions", user?.id], queryFn: () => api.get<{ can_manage: boolean }>("/assets/capabilities").then(r => r.data) });
-  const canManage = !!permissions.data?.can_manage;
-  const canCreate=useDefinitionPermission(["asset_manage"],"create"),canEdit=useDefinitionPermission(["asset_manage"],"edit"),canDelete=useDefinitionPermission(["asset_manage"],"delete"),canAssign=useDefinitionPermission(["asset_manage"],"assign");
-  const moduleGrant=user?.access?.grants.hrms,canAcknowledge=!!user?.is_superuser||!user?.access?.managed||!!moduleGrant?.enabled&&moduleGrant.actions.includes("edit");
-  const assets = useQuery({ queryKey: ["assets", user?.id, search], queryFn: () => assetApi.list({ search: search || undefined }).then(r => r.data as Asset[]) });
-  const available = useQuery({ queryKey: ["assets-available", user?.id], queryFn: () => assetApi.list({ status: "Available" }).then(r => r.data as Asset[]), enabled: canManage });
-  const categories = useQuery({ queryKey: ["asset-categories"], queryFn: () => assetApi.categories().then(r => r.data as { id: number; name: string }[]) });
-  const assignments = useQuery({ queryKey: ["asset-assignments", user?.id, tab], queryFn: () => api.get<Assignment[]>("/assets/assignments", { params: { active: tab !== "history" } }).then(r => r.data) });
-  const clearance = useQuery({ queryKey: ["asset-clearance", user?.id], queryFn: () => api.get<Clearance[]>("/assets/exit-clearance").then(r => r.data), enabled: tab === "clearance" });
-  const refresh = () => Promise.all(["assets", "assets-available", "asset-assignments", "asset-clearance", "employee-360", "my-team"].map(key => qc.invalidateQueries({ queryKey: [key] })));
-  const operation = useMutation({ mutationFn: async ({ action, id }: { action: string; id?: number }) => {
-    if (action === "create") return assetApi.create({ ...form, serial_number: form.serial_number.trim() || undefined, category_id: form.category_id ? Number(form.category_id) : undefined, purchase_cost: form.purchase_cost || undefined, purchase_date: form.purchase_date || undefined, warranty_expiry: form.warranty_expiry || undefined });
-    if (action === "assign") return assetApi.assign({ asset_id: Number(assetId), employee_id: Number(employeeId), assigned_date: new Date().toLocaleDateString("en-CA"), condition_at_assignment: "Good" });
-    if (action === "acknowledge") return api.put(`/assets/assignments/${id}/acknowledge`);
-    if (action === "repair-complete") return assetApi.update(id!, { status: "Available", condition: "Good" });
-    return assetApi.returnAsset(id!, conditions[id!] || "Good");
-  }, onSuccess: (_, variables) => {
-    toast({ title: variables.action === "return" ? "Asset returned; exit clearance updated" : "Asset record updated" });
-    if (variables.action === "create") { setForm({ name: "", asset_tag: "", serial_number: "", category_id: "", purchase_cost: "", description: "", purchase_date: "", warranty_expiry: "", brand: "", model: "" }); setAssetCreated(value => value + 1); }
-    if (variables.action === "assign") { setAssetId(""); setEmployeeId(""); }
-    refresh();
-  }, onError: error => toast({ title: "Asset update failed", description: errorText(error), variant: "destructive" }) });
-  const [categoryName, setCategoryName] = useState("");
-  const categoryMutation = useMutation({ mutationFn: () => assetApi.createCategory({ name: categoryName.trim() }).then(response => response.data as { id: number; name: string }), onSuccess: category => { setCategoryName(""); setForm(current => ({ ...current, category_id: String(category.id) })); qc.invalidateQueries({ queryKey: ["asset-categories"] }); }, onError: error => toast({ title: "Could not add category", description: errorText(error), variant: "destructive" }) });
-  const field = (key: keyof typeof form, label: string, required = false) => <label key={key} className="block space-y-1 text-sm">{label}<Input required={required} value={form[key]} type={key === "purchase_cost" ? "number" : key.endsWith("date") || key === "warranty_expiry" ? "date" : "text"} min={key === "purchase_cost" ? 0 : undefined} onChange={e => setForm({ ...form, [key]: e.target.value })} /></label>;
-  const essentialFields = [field("name", "Asset name (e.g. Honda bike / Dell laptop)", true),field("asset_tag", "Unique company asset tag", true),<label key="category" className="block text-sm">Category<NativeSelect aria-label={phone ? "Category" : undefined} loading={categories.isFetching} error={categories.isError} className="mt-1 h-10 w-full rounded-md border bg-background px-3" value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}><option value="">Uncategorized</option>{categories.data?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect></label>];
-  const optionalFields = [field("brand", "Brand"),field("model", "Model"),field("serial_number", "Serial / vehicle registration number"),field("purchase_cost", "Purchase cost"),field("purchase_date", "Purchase date"),field("warranty_expiry", "Warranty expiry"),field("description", "Handover notes / accessories")];
-  return <div className="hrms-assets-page space-y-5">
-    <header className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Company assets</h1><p className="text-sm text-muted-foreground">Bikes, laptops, phones and equipment: handovers, custody, returns and exit clearance.</p></div><Button variant="outline" onClick={refresh}>Refresh</Button></header>
-    <nav aria-label="Asset views" className="flex flex-wrap gap-2">{[["inventory", "Inventory"], ["custody", "Employee custody"], ["history", "Return history"], ["clearance", "Exit clearance"]].map(([id, label]) => <Button key={id} variant={tab === id ? "default" : "outline"} onClick={() => setTab(id)} aria-pressed={tab === id}>{label}</Button>)}</nav>
-    {tab === "inventory" && <div className={`grid items-start gap-5 ${canManage ? "xl:grid-cols-[22rem_1fr]" : ""}`}>
-      {canManage && (canCreate||canAssign) && <div className="space-y-5">{canCreate&&<SmartCreateSection title={<>Register an asset</>} size="compact" mobileSheet={phone} closeOnRecordSaved={!phone} completionRevision={phone ? assetCreated : 0}><Card><CardHeader><CardTitle className="text-base">Register an asset</CardTitle></CardHeader><CardContent><div ref={createRef}><CompactForm compactTabs={!phone} className="hrms-asset-create-form space-y-3" onSubmit={e => { e.preventDefault(); operation.mutate({ action: "create" }); }}>
-        {phone ? <div className="hrms-asset-essential">{essentialFields}</div> : essentialFields}
+  const user = useAuthStore((s) => s.user),
+    [params, setParams] = useSearchParams(),
+    location = useLocation();
+  const views = ["inventory", "custody", "history", "clearance"];
+  const [tab, setTab] = useState(
+    views.includes(params.get("view") || "")
+      ? params.get("view")!
+      : "inventory",
+  );
+  const [statusFilter, setStatusFilter] = useState(""),
+    [employeeId, setEmployeeId] = useState(""),
+    [assetId, setAssetId] = useState(""),
+    [categoryName, setCategoryName] = useState("");
+  const refresh = useAssetRefresh();
+  const permissions = useQuery({
+    queryKey: ["asset-permissions", user?.id],
+    queryFn: () =>
+      api
+        .get<{ can_manage: boolean }>("/assets/capabilities")
+        .then((r) => r.data),
+  });
+  const canManage = !!permissions.data?.can_manage,
+    canCreate = useDefinitionPermission(["asset_manage"], "create"),
+    canAssign = useDefinitionPermission(["asset_manage"], "assign"),
+    canEdit = useDefinitionPermission(["asset_manage"], "edit"),
+    canDelete = useDefinitionPermission(["asset_manage"], "delete");
+  const moduleGrant = user?.access?.grants.hrms,
+    canAcknowledge =
+      !!user?.is_superuser ||
+      !user?.access?.managed ||
+      (!!moduleGrant?.enabled && moduleGrant.actions.includes("edit"));
+  useEffect(() => {
+    if (location.hash === "#new-record") setTab("inventory");
+  }, [location.hash, location.key]);
+  const changeTab = (value: string) => {
+    setTab(value);
+    setParams(
+      (current) => {
+        current.set("view", value);
+        return current;
+      },
+      { replace: true },
+    );
+  };
+  const summary = useQuery({
+    queryKey: ["asset-summary", user?.id],
+    queryFn: () => api.get<AssetSummary>("/assets/summary").then((r) => r.data),
+  });
+  const categories = useQuery({
+    queryKey: ["asset-categories"],
+    queryFn: () => assetApi.categories().then((r) => r.data as Category[]),
+  });
+  const available = useQuery({
+    queryKey: ["assets-available", user?.id],
+    enabled: canManage,
+    queryFn: () =>
+      assetApi
+        .list({ status: "Available" })
+        .then(
+          (r) => r.data as { id: number; name: string; asset_tag: string }[],
+        ),
+  });
 
-        {phone ? <MobileDisclosure title="Identifiers, purchase & handover" maxWidth={480}><div className="hrms-asset-optional">{optionalFields}</div></MobileDisclosure> : optionalFields}
-
-        <Button disabled={operation.isPending}>Register asset</Button>
-      </CompactForm></div><details className="mt-4"><summary className="cursor-pointer text-sm">Add category (Bike, Laptop, etc.)</summary><SmartCreateSection nested title="Create asset category" size="compact"><CompactForm className="mt-2 flex gap-2" onSubmit={e => { e.preventDefault(); categoryMutation.mutate(); }}><Input aria-label="New asset category" value={categoryName} onChange={e => setCategoryName(e.target.value)} required maxLength={100} /><Button data-save-action disabled={!categoryName.trim() || categoryMutation.isPending}>Add</Button></CompactForm></SmartCreateSection></details></CardContent></Card></SmartCreateSection>}
-      {canAssign&&<MobileDisclosure title="Assign equipment" maxWidth={480}><Card className="hrms-asset-assign-card"><CardHeader><CardTitle className="text-base">Assign to employee</CardTitle></CardHeader><CardContent className="space-y-3"><label className="block text-sm">Available asset<NativeSelect aria-label={phone ? "Available asset" : undefined} loading={available.isFetching} error={available.isError} className="mt-1 h-10 w-full rounded-md border bg-background px-3" value={assetId} onChange={e => setAssetId(e.target.value)}><option value="">Select available asset</option>{available.data?.map(a => <option key={a.id} value={a.id}>{a.name} ({a.asset_tag})</option>)}</NativeSelect></label>
-        {available.isError && <p role="alert" className="text-sm text-destructive">Available assets could not load. Use Refresh to retry.</p>}
-        <EmployeeSearchSelect endpoint="/assets/employees" value={employeeId} onChange={setEmployeeId} /><p className="text-xs text-muted-foreground">Assign available equipment to active employees. Assets issued during notice remain part of exit clearance.</p><Button disabled={!assetId || !employeeId || operation.isPending} onClick={() => operation.mutate({ action: "assign" })}>Assign asset</Button>
-      </CardContent></Card></MobileDisclosure>}</div>}
-      <Card><CardHeader><CardTitle className="text-base">Inventory</CardTitle></CardHeader><CardContent className="space-y-3"><Input aria-label="Search inventory" placeholder="Name, asset tag or registration / serial" value={search} onChange={e => setSearch(e.target.value)} />
-        {assets.isPending && <p role="status">Loading inventory…</p>}{assets.isError && <p role="alert">Inventory could not load. Use Refresh to retry.</p>}
-        <GroupedRecords scope="hrms-assets" items={(assets.data) || []} fields={[{id:"status",label:"Status",value:asset=>asset.status},{id:"category",label:"Category",value:asset=>categories.data?.find(category=>category.id===asset.category_id)?.name || "Equipment"}]} gridClassName="space-y-2" renderItem={a => { const category = categories.data?.find(c => c.id === a.category_id)?.name || "Equipment"; const Icon = /bike|vehicle/i.test(category) ? Bike : /laptop|computer/i.test(category) ? Laptop : Package; return <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"><div className="flex items-center gap-3"><Icon className="h-5 w-5" /><div><p className="font-medium">{a.name}</p><p className="text-xs text-muted-foreground">{category} · {a.asset_tag} · {a.serial_number || "No serial recorded"}</p></div></div><div className="space-y-2"><Badge variant="outline">{a.status}</Badge><RecordMaintenance record={a as unknown as Record<string,unknown>} name={a.name} endpoint={`/assets/${a.id}`} fields={[{key:"name",label:"Asset name",required:true},{key:"serial_number",label:"Serial number"}]} queryKeys={["assets","assets-available"]} canEdit={canManage&&canEdit} canDelete={canManage&&canDelete}/>{a.warranty_expiry && <p className="text-xs text-muted-foreground">Warranty: {formatDate(a.warranty_expiry)}{a.warranty_expiry < new Date().toLocaleDateString("en-CA") ? " (expired)" : ""}</p>}{canManage && canEdit && a.status === "Under Repair" && <Button size="sm" variant="outline" disabled={operation.isPending} onClick={() => operation.mutate({ action: "repair-complete", id: a.id })}>Repair complete: make available</Button>}</div></div>; }}/>
-        {assets.data?.length === 0 && <p className="text-sm text-muted-foreground">No assets match this search.</p>}{assets.data?.length === 200 && <p className="text-sm text-muted-foreground">Showing 200 assets. Refine your search.</p>}
-      </CardContent></Card></div>}
-    {(tab === "custody" || tab === "history") && <Card><CardHeader><CardTitle className="text-base">{tab === "history" ? "Returned assets" : "Assigned equipment & handover"}</CardTitle></CardHeader><CardContent className="space-y-3">
-      {assignments.isPending && <p role="status">Loading custody records…</p>}{assignments.isError && <p role="alert">Custody records could not load. Use Refresh to retry.</p>}
-      <GroupedRecords scope="hrms-asset-custody" items={(assignments.data) || []} fields={[{id:"employee",label:"Employee",value:assignment=>assignment.employee_name},{id:"status",label:"Status",value:assignment=>assignment.returned_date?"Returned":"Assigned"}]} gridClassName="space-y-2" renderItem={row => <div key={row.id} className="flex flex-wrap justify-between gap-4 rounded-lg border p-4"><div><p className="font-medium">{row.asset_name} · {row.asset_tag}</p><Link className="text-sm underline" to={`/hrms/employees/${row.employee_id}`}>{row.employee_name}</Link><p className="text-xs text-muted-foreground">Assigned {formatDate(row.assigned_date)}{row.returned_date && ` · Returned ${formatDate(row.returned_date)} · ${row.condition_at_return}`}</p><Badge variant="outline">{row.acknowledged ? "Acknowledged" : "Awaiting employee acknowledgement"}</Badge>{row.acknowledged_at && <p className="text-xs text-muted-foreground">Acknowledged {formatDate(row.acknowledged_at)}</p>}{row.remarks && <p className="mt-2 break-words text-sm">Handover notes: {row.remarks}</p>}</div>
-        {tab !== "history" && <div className="flex flex-wrap items-center gap-2">{user?.employee_id === row.employee_id && !row.acknowledged && <Button size="sm" variant="outline" disabled={!canAcknowledge||operation.isPending} onClick={() => operation.mutate({ action: "acknowledge", id: row.id })}>Acknowledge receipt</Button>}{canManage && canAssign && <><label className="text-xs">Return condition<NativeSelect aria-label={`Return condition for ${row.asset_tag}`} className="ml-2 rounded border bg-background p-2" value={conditions[row.id] || "Good"} onChange={e => setConditions({ ...conditions, [row.id]: e.target.value })}>{["New", "Good", "Fair", "Poor", "Damaged"].map(c => <option key={c}>{c}</option>)}</NativeSelect></label><Button size="sm" variant="outline" disabled={operation.isPending} onClick={() => operation.mutate({ action: "return", id: row.id })}>Record return</Button></>}</div>}
-      </div>}/>{assignments.data?.length === 0 && <p className="text-sm text-muted-foreground">No {tab === "history" ? "returned" : "assigned"} assets.</p>}
-    </CardContent></Card>}
-    {tab === "clearance" && <Card><CardHeader><CardTitle className="text-base">Exit asset clearance</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">Exit closure is blocked until every company asset is returned. Damaged returns go to Under Repair.</p>
-      {clearance.isPending && <p role="status">Loading exits…</p>}{clearance.isError && <p role="alert">Exit clearance could not load. Use Refresh to retry.</p>}
-      <GroupedRecords scope="hrms-asset-clearance" items={(clearance.data) || []} fields={[{id:"status",label:"Status",value:record=>record.cleared?"Completed":"Pending return"}]} gridClassName="space-y-2" renderItem={row => <div key={row.exit_id} className="rounded-lg border p-4"><div className="flex flex-wrap justify-between gap-2"><p className="font-medium">{row.employee_name} · Last day {formatDate(row.last_working_date)}</p><Badge variant={row.cleared ? "success" : "warning"}>{row.cleared ? "Assets cleared" : `${row.outstanding_assets.length} awaiting return`}</Badge></div>{row.outstanding_assets.map(a => <p className="mt-2 text-sm" key={a.assignment_id}>{a.name} · {a.asset_tag}</p>)}{!row.cleared && <Button className="mt-3" variant="outline" onClick={() => setTab("custody")}>Open custody & returns</Button>}</div>}/>{clearance.data?.length === 0 && <p>No active exits require clearance.</p>}
-    </CardContent></Card>}
-  </div>;
+  const clearance = useQuery({
+    queryKey: ["asset-clearance", user?.id],
+    enabled: tab === "clearance",
+    queryFn: () =>
+      api.get<Clearance[]>("/assets/exit-clearance").then((r) => r.data),
+  });
+  const assign = useMutation({
+    mutationFn: () =>
+      assetApi.assign({
+        asset_id: Number(assetId),
+        employee_id: Number(employeeId),
+        assigned_date: new Date().toLocaleDateString("en-CA"),
+        condition_at_assignment: "Good",
+      }),
+    onSuccess: async () => {
+      setAssetId("");
+      setEmployeeId("");
+      await refresh();
+      toast({ title: "Asset assigned; employee acknowledgment pending" });
+    },
+    onError: (e) =>
+      toast({
+        title: "Assignment failed",
+        description: errorText(e),
+        variant: "destructive",
+      }),
+  });
+  const acknowledge = useMutation({
+    mutationFn: (id: number) =>
+      api.put(`/assets/assignments/${id}/acknowledge`),
+    onSuccess: refresh,
+    onError: (e) =>
+      toast({
+        title: "Acknowledgment failed",
+        description: errorText(e),
+        variant: "destructive",
+      }),
+  });
+  const addCategory = useMutation({
+    mutationFn: () => assetApi.createCategory({ name: categoryName.trim() }),
+    onSuccess: async () => {
+      setCategoryName("");
+      await refresh();
+      await categories.refetch();
+    },
+    onError: (e) =>
+      toast({
+        title: "Could not add category",
+        description: errorText(e),
+        variant: "destructive",
+      }),
+  });
+  return (
+    <div className="hrms-assets-page space-y-5">
+      <header className="asset-page-heading">
+        <div className="flex gap-3 items-center">
+          <span className="asset-symbol">
+            <Box size={26} />
+          </span>
+          <div>
+            <h1>Company Assets</h1>
+            <p>
+              Bikes, laptops, phones and equipment: handovers, custody, returns
+              and exit clearance.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {canManage && <AssetPolicyButton />}
+          <Button variant="outline" onClick={() => void refresh()}>
+            <RefreshCw size={15} />
+            Refresh
+          </Button>
+        </div>
+      </header>
+      <nav aria-label="Asset views" className="flex flex-wrap gap-2">
+        {[
+          ["inventory", "Inventory"],
+          ["custody", "Employee custody"],
+          ["history", "Return history"],
+          ["clearance", "Exit clearance"],
+        ].map(([id, label]) => (
+          <Button
+            key={id}
+            variant={tab === id ? "default" : "outline"}
+            aria-pressed={tab === id}
+            onClick={() => changeTab(id)}
+          >
+            {label}
+          </Button>
+        ))}
+      </nav>
+      {canManage && (canCreate || canAssign) && (
+        <div className="asset-quick-actions">
+          <span>
+            <Zap size={17} />
+            Quick actions
+          </span>
+          {canCreate && (
+            <AssetRegistrationButton
+              openRequest={
+                location.hash === "#new-record" ? location.key : undefined
+              }
+              categories={categories.data || []}
+              onSaved={() => void refresh()}
+            />
+          )}{" "}
+          {canAssign && <AssetHandoverButton />}
+          <Button variant="outline" onClick={() => changeTab("custody")}>
+            Record return
+          </Button>
+          <Button variant="outline" onClick={() => changeTab("history")}>
+            Inspect return
+          </Button>
+          <Button variant="outline" onClick={() => changeTab("clearance")}>
+            Process exit clearance
+          </Button>
+        </div>
+      )}
+      {tab === "inventory" && (
+        <>
+          <AssetMetrics summary={summary.data} onFilter={setStatusFilter} />
+          <div
+            className={`grid items-start gap-4 ${canManage ? "xl:grid-cols-[15rem_minmax(0,1fr)]" : ""}`}
+          >
+            {canManage && (
+              <aside className="asset-panel space-y-4">
+                <h2>Custody actions</h2>
+                {canAssign && (
+                  <>
+                    <label className="asset-form-field">
+                      Available asset
+                      <select
+                        aria-label="Available asset"
+                        value={assetId}
+                        onChange={(e) => setAssetId(e.target.value)}
+                      >
+                        <option value="">Select available asset</option>
+                        {available.data?.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({a.asset_tag})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {available.isError && (
+                      <p role="alert">
+                        Available assets could not load. Use Refresh to retry.
+                      </p>
+                    )}
+                    <EmployeeSearchSelect
+                      endpoint="/assets/employees"
+                      value={employeeId}
+                      onChange={setEmployeeId}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Assign one asset here or use Assign multiple assets for
+                      dates, accessories and a complete handover.
+                    </p>
+                    <Button
+                      disabled={!assetId || !employeeId || assign.isPending}
+                      onClick={() => assign.mutate()}
+                    >
+                      Assign asset
+                    </Button>
+                  </>
+                )}
+                {canCreate && (
+                  <details>
+                    <summary>Add asset category</summary>
+                    <form
+                      className="asset-form-grid mt-3"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        addCategory.mutate();
+                      }}
+                    >
+                      <Input
+                        aria-label="New asset category"
+                        required
+                        maxLength={100}
+                        value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                      />
+                      <Button
+                        disabled={!categoryName.trim() || addCategory.isPending}
+                      >
+                        <Plus size={14} />
+                        Add category
+                      </Button>
+                    </form>
+                  </details>
+                )}
+              </aside>
+            )}
+            <AssetWorkspace
+              categories={categories.data || []}
+              summary={summary.data}
+              status={statusFilter}
+              setStatus={setStatusFilter}
+              canEdit={canManage && canEdit}
+              canDelete={canManage && canDelete}
+            />
+          </div>
+        </>
+      )}
+      {(tab === "custody" || tab === "history") && (
+        <section className="asset-panel">
+          <div className="asset-panel-heading">
+            <div>
+              <h2>
+                {tab === "history"
+                  ? "Returned assets"
+                  : "Assigned equipment & handover"}
+              </h2>
+              <p>
+                {tab === "history"
+                  ? "Physical returns, inspection approvals and recovery proposals."
+                  : "Employee custody, acknowledgments, due dates and transfers."}
+              </p>
+            </div>
+            {canManage && canAssign && <AssetHandoverButton />}
+          </div>
+          <AssetLifecycleGrid
+            scope={`hrms-asset-${tab}`}
+            source={tab as "custody" | "history"}
+            items={[] as Assignment[]}
+            fields={[
+              {
+                id: "employee",
+                label: "Employee",
+                value: (r) => r.employee_name,
+              },
+              {
+                id: "department",
+                label: "Department",
+                value: (r) => r.department || "Unassigned",
+              },
+              {
+                id: "category",
+                label: "Asset type",
+                value: (r) => r.asset_category || "Uncategorized",
+              },
+              {
+                id: "branch",
+                label: "Branch / location",
+                value: (r) => r.branch || "Unspecified",
+              },
+              {
+                id: "status",
+                label: "Status",
+                value: (r) =>
+                  r.returned_date
+                    ? r.inspection_status || "Returned"
+                    : r.acknowledged
+                      ? "Acknowledged"
+                      : "Pending acknowledgment",
+              },
+            ]}
+            renderItem={(r) => (
+              <div className="asset-form-grid">
+                <h3>
+                  {r.asset_id ? (
+                    <Asset360Button
+                      assetId={r.asset_id}
+                      label={`${r.asset_name} · ${r.asset_tag}`}
+                      canManage={canManage && canEdit}
+                    />
+                  ) : (
+                    r.asset_name
+                  )}
+                </h3>
+                <Link
+                  className="text-violet-700 underline"
+                  to={`/hrms/employees/${r.employee_id}`}
+                >
+                  {r.employee_name} · {r.employee_code || r.employee_id}
+                </Link>
+                <EmployeeAssetProfileButton
+                  employeeId={r.employee_id}
+                  label="Employee asset profile"
+                  canManage={canManage && canAssign}
+                />
+                <p>
+                  {r.department} · Assigned {formatDate(r.assigned_date)}
+                </p>
+                <p>
+                  Expected return: {formatDate(r.expected_return_date ?? null)}
+                </p>
+                <Badge variant="outline">
+                  {r.acknowledged
+                    ? "Acknowledged"
+                    : "Awaiting employee acknowledgement"}
+                </Badge>
+                {r.acknowledged_at && (
+                  <p>Acknowledged {formatDate(r.acknowledged_at)}</p>
+                )}
+                {r.remarks && <p>Handover notes: {r.remarks}</p>}
+                {r.returned_date && (
+                  <p>
+                    Returned {formatDate(r.returned_date)} ·{" "}
+                    {r.condition_at_return} · Inspection {r.inspection_status}
+                  </p>
+                )}
+                {!r.returned_date &&
+                  !r.acknowledged &&
+                  user?.employee_id === r.employee_id && (
+                    <Button
+                      disabled={!canAcknowledge || acknowledge.isPending}
+                      onClick={() => acknowledge.mutate(r.id)}
+                    >
+                      Acknowledge receipt
+                    </Button>
+                  )}
+                <AssetRecordWorkflow
+                  row={r}
+                  canManage={canManage && canAssign}
+                />
+              </div>
+            )}
+          />
+        </section>
+      )}
+      {tab === "clearance" && (
+        <section className="asset-panel">
+          <div className="asset-panel-heading">
+            <div>
+              <h2>Exit asset clearance</h2>
+              <p>
+                Linked to existing employee exit cases. Asset sign-off never
+                completes company-wide offboarding.
+              </p>
+            </div>
+            <Link className="text-sm text-violet-700 underline" to="/hrms/exit">
+              Initiate or open existing exit
+            </Link>
+          </div>
+          {clearance.isPending ? (
+            <p role="status">Loading exits…</p>
+          ) : clearance.isError ? (
+            <p role="alert">
+              Exit clearance could not load. Use Refresh to retry.
+            </p>
+          ) : (
+            <AssetLifecycleGrid
+              scope="hrms-asset-clearance"
+              items={clearance.data || []}
+              fields={[
+                {
+                  id: "status",
+                  label: "Status",
+                  value: (r) =>
+                    r.cleared ? "Assets cleared" : "Awaiting action",
+                },
+              ]}
+              renderItem={(r) => (
+                <div className="asset-form-grid">
+                  <h3>{r.employee_name}</h3>
+                  <p>
+                    {r.department} · {r.exit_type} · Last working day{" "}
+                    {formatDate(r.last_working_date)}
+                  </p>
+                  <p>
+                    {r.assets_returned || 0} returned / {r.assets_assigned || 0}{" "}
+                    assignments
+                  </p>
+                  <Badge variant={r.cleared ? "success" : "warning"}>
+                    {r.cleared
+                      ? "Assets cleared"
+                      : `${r.outstanding_assets.length} awaiting return`}
+                  </Badge>
+                  {r.outstanding_assets.map((a) => (
+                    <div key={a.assignment_id}>
+                      {a.asset_id ? (
+                        <Asset360Button
+                          assetId={a.asset_id}
+                          label={`${a.name} · ${a.asset_tag}`}
+                          canManage={canManage && canEdit}
+                        />
+                      ) : (
+                        a.name
+                      )}
+                    </div>
+                  ))}
+                  <div className="asset-department-approvals">
+                    <h3>Existing department approvals</h3>
+                    {r.checklist?.map((t) => (
+                      <p key={t.id}>
+                        <span>{t.completed ? "✓" : "○"}</span> {t.department} ·{" "}
+                        {t.task_name}
+                      </p>
+                    ))}
+                  </div>
+                  <AssetExitActions
+                    exitId={r.exit_id}
+                    canManage={canManage && canAssign}
+                    issues={r.issues}
+                  />
+                  {!r.cleared && (
+                    <Button
+                      variant="outline"
+                      onClick={() => changeTab("custody")}
+                    >
+                      Open custody & returns
+                    </Button>
+                  )}
+                </div>
+              )}
+            />
+          )}
+        </section>
+      )}
+    </div>
+  );
 }

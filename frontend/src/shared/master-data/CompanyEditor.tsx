@@ -1,3 +1,4 @@
+import BusinessProfileFields, {profileText} from "./BusinessProfileFields";
 import {useRecordAutosave,useRecordDraft} from "@/hooks/use-record-autosave";
 import { defaultText, defaultPaymentTerms } from "@/lib/form-defaults";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
@@ -22,7 +23,7 @@ import {CommunicationDraftEditor,primaryEntries,transportEntries,type Communicat
 const tabs=['Basic details','Legal & tax','Contacts & addresses','Banking & other'];
 type Props={placement?:"create"|"quick_create";allowSaveNew?:boolean;source?:MasterSource;initial?:Company;seedName?:string;roles?:string[];recordLabel?:string;defaultEntityKind?:'Individual'|'Company';onClose:()=>void;onSaved:(company:Company,keepOpen?:boolean)=>void};
 type Row=Record<string,string>;
-const values=(record?:Company,seedName='')=>({name:record?.name||seedName,email:record?.email||'',phone:record?.phone||'',phone_country_code:record?.phone_country_code||(record?'':defaultText('phone_country_code')),website:record?.website||'',industry:record?.industry||'',country:record?countryIso(record.country):defaultText("country"),legalName:record?.legalName||record?.name||seedName,tradeName:record?.tradeName||'',businessType:canonicalBusinessType(record?.businessType),notes:record?.notes||'',status:record?.status||'Active',vendorClassification:record?.vendorClassification||'',paymentTerms:record?.paymentTerms||(record?'Due on receipt':defaultPaymentTerms())});
+const values=(record?:Company,seedName='')=>({services_offered:profileText(record?.services_offered),business_types:profileText(record?.business_types),name:record?.name||seedName,email:record?.email||'',phone:record?.phone||'',phone_country_code:record?.phone_country_code||(record?'':defaultText('phone_country_code')),website:record?.website||'',industry:record?.industry||'',country:record?countryIso(record.country):defaultText("country"),legalName:record?.legalName||record?.name||seedName,tradeName:record?.tradeName||'',businessType:canonicalBusinessType(record?.businessType),notes:record?.notes||'',status:record?.status||'Active',vendorClassification:record?.vendorClassification||'',paymentTerms:record?.paymentTerms||(record?'Due on receipt':defaultPaymentTerms())});
 
 export function CompanyQuickCreate({placement="create",allowSaveNew=true,source='crm',initial,seedName='',roles=['Prospect'],recordLabel='company',defaultEntityKind='Company',onClose,onSaved}:Props){
   const qc=useQueryClient(),formRef=useRef<HTMLFormElement>(null),nameRef=useRef<HTMLInputElement>(null);
@@ -91,9 +92,10 @@ export function CompanyQuickCreate({placement="create",allowSaveNew=true,source=
             <label>Phone<PhoneInput label="Company phone" value={form.phone} countryCode={form.phone_country_code} onChange={v=>patch('phone',v)} onCountryCodeChange={v=>{phoneCodeEdited.current=true;patch('phone_country_code',v);}}/></label>
             <label>Email<Input type="email" maxLength={150} value={form.email} onChange={e=>patch('email',e.target.value)}/></label>
             <label>Country<CountrySelect value={form.country} onChange={v=>{countryEdited.current=true;patch('country',v);}}/></label>
-            <label>Business type<BusinessTypeSelect country={form.country} value={form.businessType} onChange={v=>patch('businessType',v)}/></label>
+            <label>Legal business type<BusinessTypeSelect country={form.country} value={form.businessType} onChange={v=>patch('businessType',v)}/></label>
             <label>Website<Input placeholder="example.com" value={form.website} maxLength={200} onChange={e=>patch('website',e.target.value)}/></label>
             <label>Industry<Input value={form.industry} maxLength={120} onChange={e=>patch('industry',e.target.value)}/></label>
+            <BusinessProfileFields services={form.services_offered} types={form.business_types} onChange={patch} disabled={busy}/>
             {vendor&&<label>Vendor classification<NativeSelect searchable aria-label="Vendor classification" value={form.vendorClassification} onChange={e=>patch('vendorClassification',e.target.value)}><option value="">Not specified</option>{form.vendorClassification&&!businessDefinitions.vendorClassifications.includes(form.vendorClassification)&&<option value={form.vendorClassification}>{form.vendorClassification} (saved)</option>}{businessDefinitions.vendorClassifications.map(c=><option key={c}>{c}</option>)}</NativeSelect></label>}
           </div>
         </section>

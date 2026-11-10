@@ -966,6 +966,10 @@ def upload_document(
     actor: User = Depends(get_current_user),
 ):
     authorize(db, actor, companyId, module, "edit")
+    if module == "hrms" and entity == "asset":
+        from app.core.masking import user_has_permission
+        if not actor.is_superuser and not user_has_permission(actor, "asset_manage"):
+            raise HTTPException(403, "Asset management permission is required to attach lifecycle evidence")
     read_record(db, actor, companyId, module, entity, entityId)
     from app.core.config import settings as config
     from app.core.storage import persist_file

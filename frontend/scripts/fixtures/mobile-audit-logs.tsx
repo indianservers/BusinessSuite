@@ -1,0 +1,12 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter} from "react-router-dom";
+import {QueryClient,QueryClientProvider,onlineManager} from "@tanstack/react-query";
+import {useAuthStore} from "@/store/authStore";
+import Page from "@/apps/project-management/pages/AuditLogsPage";
+import "@/index.css";
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:"fixture",user:{id:1,email:"audit@example.test",role:"admin",is_superuser:true}});
+onlineManager.setOnline(!new URLSearchParams(location.search).has("offline"));
+const client=new QueryClient();
+Object.assign(window,{__auditOnline:(online:boolean)=>onlineManager.setOnline(online),__auditRead:()=>client.refetchQueries({queryKey:["admin-request-logs"],type:"active"}).catch(()=>undefined),__auditActor:(id:number)=>useAuthStore.setState({user:{...useAuthStore.getState().user,id}}),__auditFetching:()=>client.isFetching()});
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={client}><MemoryRouter><Page/></MemoryRouter></QueryClientProvider>);

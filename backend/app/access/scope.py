@@ -164,6 +164,10 @@ def install_scope(db, user, company, grants):
         return select(tasks.c.id).where(tasks.c.deleted_at.is_(None), or_(tasks.c.assignee_user_id.in_(ids), tasks.c.id.in_(select(assignments.c.task_id).where(assignments.c.user_id.in_(ids))), tasks.c.id.in_(group_tasks)))
 
     def predicate(model, stack=()):
+        if model.__module__ == "app.models.approval_os" and getattr(user, "_suite_current_module", None) == "hrms":
+            from app.services.asset_lifecycle import approval_scope as asset_approval_scope
+            asset_approval = asset_approval_scope(model, user, company, grants)
+            if asset_approval is not None:return asset_approval
         from app.apps.power_apps.approvals.scope import predicate as approval_predicate
         approval = approval_predicate(model,user,company,grants)
         if approval is not None:return approval
@@ -482,6 +486,9 @@ def install_scope(db, user, company, grants):
         # Reuse its decision only within this flush; later flushes recheck scope.
         parent_checks = {}
         for item in session.new | session.dirty | session.deleted:
+            if type(item).__module__ == "app.models.approval_os" and getattr(user, "_suite_current_module", None) == "hrms":
+                from app.services.asset_lifecycle import approval_domain_write as asset_approval_write
+                if asset_approval_write(session,item,user,company):continue
             from app.apps.power_apps.approvals.scope import domain_write
             if domain_write(session,item,user,company):continue
             if type(item).__module__ == "app.models.company":

@@ -257,8 +257,16 @@ def process_email(db, limit=25):
     scheduled = prepare_scheduled_email(db, limit=5)
     engagement = prepare_engagement_email(db, limit=limit) if is_app_enabled("hrms") else 0
     reminders = enqueue_due_reminders(db, limit=limit)
+    if is_app_enabled("hrms"):
+        from app.services.asset_reminders import enqueue_all_asset_reminders, dispatch_asset_whatsapp
+        asset_reminders = enqueue_all_asset_reminders(db, limit=limit)
+        asset_whatsapp = dispatch_asset_whatsapp(db, limit=limit)
+    else:
+        asset_reminders = asset_whatsapp = 0
     result = drain_outbox(db, limit, deadline=deadline)
     result["reminders_queued"] = reminders
+    result["asset_reminders_queued"] = asset_reminders
+    result["asset_whatsapp_processed"] = asset_whatsapp
     result['customer_communications'] = customer
     result["scheduled"] = scheduled
     result["report_delivery"] = domain_reports
