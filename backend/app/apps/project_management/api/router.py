@@ -571,6 +571,10 @@ async def pms_realtime_socket(websocket: WebSocket, token: str | None = None, br
     db = SessionLocal()
     branch_cleanup = None
     try:
+        # A signed identity must never fall through to another company's database.
+        if payload.get("tenant") != db.info.get("tenant_uuid"):
+            await websocket.close(code=1008)
+            return
         current_user = db.query(User).filter(User.id == int(user_id)).first()
         if not current_user or not current_user.is_active:
             await websocket.close(code=1008)

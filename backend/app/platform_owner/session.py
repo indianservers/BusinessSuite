@@ -1,5 +1,5 @@
 from functools import lru_cache
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
@@ -21,7 +21,12 @@ def platform_factory():
     return sessionmaker(bind=engine, autoflush=False)
 
 
-def get_platform_db():
+def get_platform_db(request: Request):
+    from app.core.route_policy import is_public
+    if not is_public(request.url.path):
+        from app.platform_owner.auth import validate_platform_bearer
+        scheme, _, raw = request.headers.get("authorization", "").partition(" ")
+        validate_platform_bearer(raw if scheme.lower() == "bearer" else "")
     with platform_factory()() as db:
         try:
             yield db

@@ -21,6 +21,20 @@ class PlatformLogin(BaseModel):
     password: str = Field(min_length=1, max_length=72)
 
 
+def validate_platform_bearer(raw: str):
+    """Reject missing/wrong-realm credentials before owner storage is opened."""
+    if raw.startswith("po_"):
+        import re
+        if re.fullmatch(r"po_[A-Za-z0-9_-]{32,128}", raw):
+            return
+        raise HTTPException(401, "Indian Servers platform owner sign-in required")
+    try:
+        jwt.decode(raw, settings.PLATFORM_SECRET_KEY, algorithms=["HS256"], issuer=ISSUER, audience=AUDIENCE,
+            options={"require": ["exp", "sub", "iss", "aud", "version", "sid"]})
+    except (jwt.PyJWTError, ValueError, TypeError):
+        raise HTTPException(401, "Indian Servers platform owner sign-in required") from None
+
+
 def current_platform_admin(request: Request, credentials=Depends(security), db: Session = Depends(get_platform_db)):
     raw = credentials.credentials if credentials else ""
     if raw.startswith("po_"):
