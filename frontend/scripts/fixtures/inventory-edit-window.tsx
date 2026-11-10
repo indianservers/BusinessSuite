@@ -1,0 +1,10 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {useAuthStore} from '@/store/authStore';
+import FAMWorkspacePage from '@/apps/fam/FAMWorkspacePage';
+import '@/index.css';
+const resource=new URLSearchParams(location.search).get('resource')||'units',module=new URLSearchParams(location.search).get('module')||'fam';
+useAuthStore.setState({isAuthenticated:true,isHydrated:true,accessToken:'fixture',user:{id:1,email:'qa@example.invalid',role:'super_admin',is_superuser:true}});
+const kind=resource==='units'?'inventoryUnits':resource==='stock-groups'?'inventoryStockGroups':'inventoryWarehouses';
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter initialEntries={['/'+module+'/inventory/'+resource]}><FAMWorkspacePage kind={kind}/></MemoryRouter></QueryClientProvider>);
