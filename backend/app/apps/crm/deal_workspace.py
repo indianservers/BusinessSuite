@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import Integer, cast, func, or_, and_, case, literal, union_all, select
-from sqlalchemy.orm import Session, joinedload, aliased
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_db, RequirePermission
 from app.models.user import User
@@ -300,8 +300,12 @@ def conversion(currency: str = "", pipeline_id: int | None = None, owner_id: int
     new_stage = cast(CRMTimelineEvent.metadata_json["new"].as_string(), Integer)
     old_stage = cast(CRMTimelineEvent.metadata_json["old"].as_string(), Integer)
     entries = history.with_entities(CRMTimelineEvent.record_id.label("deal_id"), new_stage.label("stage_id")).filter(new_stage.is_not(None)).distinct().subquery()
-    source_stage, destination = aliased(CRMPipelineStage), aliased(CRMPipelineStage)
-    progression = history.join(source_stage, source_stage.id == old_stage).join(destination, destination.id == new_stage).filter(source_stage.organization_id == org, destination.organization_id == org, source_stage.pipeline_id == destination.pipeline_id, or_(destination.is_won.is_(True), destination.stage_type == "won", and_(destination.position > source_stage.position, destination.is_lost.is_(False), destination.stage_type != "lost"))).with_entities(CRMTimelineEvent.record_id.label("deal_id"), old_stage.label("stage_id")).distinct().subquery()
+    # Apply the ordinary stage ownership filters inside a concrete selectable.
+    # Reusing ORM aliases here makes injected table-level criteria refer to the
+    # unaliased stage table inside the history subquery on PostgreSQL.
+    stages = db.query(CRMPipelineStage).filter(CRMPipelineStage.organization_id == org).subquery()
+    source_stage, destination = stages.alias("conversion_source_stage"), stages.alias("conversion_destination_stage")
+    progression = history.join(source_stage, source_stage.c.id == old_stage).join(destination, destination.c.id == new_stage).filter(source_stage.c.organization_id == org, destination.c.organization_id == org, source_stage.c.pipeline_id == destination.c.pipeline_id, or_(destination.c.is_won.is_(True), destination.c.stage_type == "won", and_(destination.c.position > source_stage.c.position, destination.c.is_lost.is_(False), destination.c.stage_type != "lost"))).with_entities(CRMTimelineEvent.record_id.label("deal_id"), old_stage.label("stage_id")).distinct().subquery()
     result = db.query(CRMPipelineStage.id, CRMPipelineStage.name, CRMPipelineStage.is_won, CRMPipelineStage.is_lost, CRMDeal.currency, func.count(entries.c.deal_id), func.count(progression.c.deal_id)).select_from(entries).join(CRMDeal, CRMDeal.id == entries.c.deal_id).join(CRMPipelineStage, CRMPipelineStage.id == entries.c.stage_id).outerjoin(progression, and_(progression.c.deal_id == entries.c.deal_id, progression.c.stage_id == entries.c.stage_id)).filter(CRMPipelineStage.organization_id == org).group_by(CRMPipelineStage.id, CRMPipelineStage.name, CRMPipelineStage.is_won, CRMPipelineStage.is_lost, CRMPipelineStage.position, CRMDeal.currency).order_by(CRMPipelineStage.position).all()
     return {"items": [{"stage_id": identity, "name": name, "currency": code or "Unknown", "entries": count, "progressed": progressed, "conversion_rate": round(progressed / count * 100, 2) if count and not (won or lost) else None, "terminal": bool(won or lost)} for identity, name, won, lost, code, count, progressed in result], "definition": "Distinct currently permitted deals with a recorded entry into each stage form the cohort. Conversion means a recorded move to a later stage in the current stage order or to Won, excluding Lost and backwards moves. Terminal stages have no onward rate. Reordering stages changes the interpretation of older transitions. Missing historical entries are excluded, never inferred. Filters apply to the current deal cohort."}
 
