@@ -226,7 +226,12 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
       qc.invalidateQueries({ queryKey: ["employee-job-options"] });
       qc.invalidateQueries({ queryKey: ["employee-manager-options"] });
       qc.invalidateQueries({ queryKey: ["employees"] });
-      setParams({});
+      if (onClose) onClose();
+      else {
+        const next = new URLSearchParams(params);
+        next.delete("edit");
+        setRouteParams(next);
+      }
     },
     onError: (err:unknown) => {
       if(getApiErrorMessage(err).includes("profile changed"))setSaveConflict(true);

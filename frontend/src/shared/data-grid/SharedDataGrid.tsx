@@ -725,10 +725,12 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   }, [selectionContext]);
   const signature = querySignature(query);
   useEffect(() => {
-    currentQuery.current = signature;
+    currentQuery.current = JSON.stringify([signature, query.page, props.refreshKey, dataSource.key]);
+  }, [signature, query.page, props.refreshKey, dataSource.key]);
+  useEffect(() => {
     setChildren({});
     setExpanded({});
-  }, [signature, query.page, props.refreshKey, dataSource.key]);
+  }, [signature, query.page, dataSource.key]);
   const recordSyncItems = useRecordSync();
   const request = useQuery({
     queryKey: [
@@ -1049,7 +1051,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         path: [],
       });
   }
-  async function loadBranch(path: GridGroup["path"], parent: string, page = 1) {
+  async function loadBranch(path: GridGroup["path"], parent: string, page = 1, fresh = false) {
     const originalSignature = currentQuery.current;
     setLoadingGroups((s) => new Set(s).add(parent));
     try {
@@ -1063,7 +1065,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           props.refreshKey,
         ],
         queryFn: async ({ signal }) => validateGridResult(await dataSource.load(branchQuery, signal)),
-        staleTime: 15000,
+        staleTime: fresh ? 0 : 15000,
       });
       if (originalSignature !== currentQuery.current) return;
       const normalized = normalize(response),
@@ -1092,6 +1094,20 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       });
     }
   }
+  // A successful edit refreshes the data, while the user's expanded groups stay open.
+  useEffect(() => {
+    if (!request.data || request.isPlaceholderData) return;
+    const opened = table.getRowModel().flatRows.filter(row => row.original.group && row.getIsExpanded());
+    const version = currentQuery.current;
+    void Promise.all(opened.map(async row => {
+      const loaded = children[row.id] || [];
+      const more = loaded.find(node => node.more)?.more;
+      const pages = more ? more.page - 1 : Math.max(1, Math.ceil(loaded.length / query.pageSize));
+      for (let page = 1; page <= pages && version === currentQuery.current; page++) {
+        await loadBranch(row.original.group!.path, row.id, page, true);
+      }
+    }));
+  }, [request.dataUpdatedAt, props.refreshKey]);
   const [expandingAll, setExpandingAll] = useState(false);
   async function expandLoadedGroups() {
     if (expandingAll) return;
