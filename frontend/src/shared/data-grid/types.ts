@@ -180,7 +180,7 @@ export type SharedDataGridProps<T> = {
   initialQuery?: Partial<GridQuery>;
   queryState?: GridQuery;
   initialLayout?: Partial<GridLayout>;
-  refreshKey?: number;
+  refreshKey?: number | string;
   selectedIds?: string[];
   onSelectionChange?: (records: T[], ids: string[]) => void;
   onQueryChange?: (query: GridQuery) => void;
