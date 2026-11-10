@@ -1,3 +1,4 @@
+import EmployeeCRMWorkspaceAccess from "./EmployeeCRMWorkspaceAccess";
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
 import EmployeeDocumentsPanel from "./EmployeeDocumentsPanel";
@@ -1011,7 +1012,7 @@ export default function EmployeeDetailPage({ employeeId, initialEditing = false,
 
       {activeTab === "documents" && <EmployeeDocumentsPanel profileVersion={emp.profile_version} employeeId={Number(id)} documents={emp.documents||[]} canVerify={canEditProfile&&!emp.restricted_fields?.includes("documents")} canUpload={(canEditProfile||ownEmployeeId===Number(id))&&!emp.restricted_fields?.includes("documents")}/>}
 
-      {activeTab === "account" && loginAccountCard}
+      {activeTab === "account" && <>{loginAccountCard}<EmployeeCRMWorkspaceAccess key={emp.user_id || "unlinked"} userId={emp.user_id}/></>}
 
       {activeTab === "bank" && (
         <Card>

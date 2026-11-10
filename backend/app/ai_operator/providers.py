@@ -4,6 +4,8 @@ import hashlib
 import json
 import time
 from decimal import Decimal
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import or_
 
 import httpx
 from cryptography.fernet import Fernet, InvalidToken
@@ -23,12 +25,23 @@ def encrypt_key(key):
     return cipher().encrypt(key.strip().encode()).decode()
 
 
+def circuit_open(db, user, config, usage_scope):
+    """Three consecutive transient failures pause this owner's same-scope adapter for 5 minutes."""
+    rows = db.query(OperatorApiLog).filter_by(user_id=user.id, scope_key=usage_scope, provider=config.provider, model=config.model).filter(
+        OperatorApiLog.created_at >= datetime.now(timezone.utc)-timedelta(minutes=5),
+        or_(OperatorApiLog.error_code.is_(None), OperatorApiLog.error_code != 'PROVIDER_CIRCUIT_OPEN')).order_by(OperatorApiLog.id.desc()).limit(3).all()
+    return len(rows) == 3 and all(r.status != 'success' and (r.http_status == 429 or r.http_status and r.http_status >= 500 or r.error_code in {'PROVIDER_TIMEOUT','PROVIDER_CONNECTION_OR_KEY_ERROR'}) for r in rows)
+
+
 def generate_json(db, user, config, *, prompt, schema, run_id=None, purpose="plan", output_type=None,
                   usage_scope=None, module='PMS', suite_run_id=None):
     started = time.monotonic()
     log = OperatorApiLog(scope_key=usage_scope or config.scope_key, module=module, suite_run_id=suite_run_id, user_id=user.id, run_id=run_id,
         provider=config.provider, model=config.model, purpose=purpose, status="failed", duration_ms=0)
     try:
+        if suite_run_id and circuit_open(db, user, config, usage_scope or config.scope_key):
+            log.error_code = 'PROVIDER_CIRCUIT_OPEN'
+            raise HTTPException(503, log.error_code)
         if not config.data_sharing_allowed or (purpose != "test" and not config.enabled):
             raise HTTPException(409, "Provider is disabled or data sharing is blocked")
         key = cipher().decrypt(config.encrypted_key.encode()).decode()
@@ -131,7 +144,7 @@ def generate_json(db, user, config, *, prompt, schema, run_id=None, purpose="pla
         log.status = "success"
         return result
     except HTTPException:
-        log.error_code = "PROVIDER_NOT_ENABLED"
+        log.error_code = log.error_code or "PROVIDER_NOT_ENABLED"
         raise
     except httpx.HTTPStatusError as exc:
         log.error_code = f"PROVIDER_HTTP_{exc.response.status_code}"

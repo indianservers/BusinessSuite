@@ -30,6 +30,8 @@ export default function EngagementInbox({whatsappOnly=false}:{whatsappOnly?:bool
   const [reply,setReply]=useState<ReplyTarget|null>(null),[composerLocked,setComposerLocked]=useState(false);
   useEffect(()=>{setReply(null);setComposerLocked(false);},[params.get('conversation')]);
   useEffect(()=>{setBefore(undefined);if(offerings.length||tag.trim()||priority)setChannel('whatsapp');},[offerings,tag,priority]);
+  const [lastSelected,setLastSelected]=usePreference<string>(`last-conversation:${whatsappOnly?'whatsapp':'all'}`,'');
+  const restoreSelection=useRef(true);
   const [search,setSearch]=useState(''),[term,setTerm]=useState(''),[view,setView]=useState(params.get('view')||'all'),[channel,setChannel]=useState(whatsappOnly?'whatsapp':'all'),[before,setBefore]=useState<number>(),[cursor,setCursor]=useState<string>();
   const [details,setDetails]=useState(()=>window.innerWidth>1200),[settings,setSettings]=useState(false),[saveName,setSaveName]=useState(''),[saved,setSaved]=usePreference<SavedView[]>('saved-inbox-views',[]);
   const [listWidth,setListWidth]=usePreference('inbox-list-width',280),[detailWidth,setDetailWidth]=usePreference('inbox-details-width',280);
@@ -69,11 +71,18 @@ export default function EngagementInbox({whatsappOnly=false}:{whatsappOnly?:bool
     if(snoozed||item.status==='resolved')return false;
     return view==='unread'?item.unread>0:view==='mine'?item.assignedUserId===inbox.data?.userId:view==='unassigned'?!item.assignedUserId:view==='awaiting'?item.lastDirection==='inbound':view==='waiting'?item.lastDirection==='outbound':true;
   });
+  useEffect(()=>{
+    if(!restoreSelection.current || !inbox.data)return;
+    restoreSelection.current=false;
+    if(selected || window.innerWidth<=650)return;
+    const first=rows.find(item=>item.key===lastSelected)||rows[0];
+    if(first)select(first.key);
+  },[inbox.data,selected]);
   const visibleEvents=events.filter(event=>(!from||localDateKey(event.createdAt)>=from)&&(!until||localDateKey(event.createdAt)<=until));
   const matches=visibleEvents.filter(event=>find.trim()&&(event.body+' '+event.subject+' '+(event.attachments||[]).map(a=>a.name).join(' ')).toLowerCase().includes(find.trim().toLowerCase()));
   const firstUnread=visibleEvents.find(event=>event.direction==='inbound'&&(event.channel==='whatsapp'?event.id>(conversation?.whatsappReadId||0):event.key.startsWith('reply:')&&event.id>(conversation?.emailReadId||0)))?.key;
   function jump(offset:number){const index=(matchIndex+offset+matches.length)%matches.length;setMatchIndex(index);document.getElementById('event-'+matches[index]?.key)?.scrollIntoView({block:'center',behavior:'smooth'});}
-  function select(key:string){setDetails(window.innerWidth>1400);setParams(p=>{const next=new URLSearchParams(p);if(!whatsappOnly)next.set('section','inbox');next.set('conversation',key);return next;});}
+  function select(key:string){setLastSelected(key);setDetails(window.innerWidth>1400);setParams(p=>{const next=new URLSearchParams(p);if(!whatsappOnly)next.set('section','inbox');next.set('conversation',key);return next;});}
   return <section className="cc-inbox-workspace"><div className="cc-section-title"><div><h2>{whatsappOnly?'Team inbox':'Customer inbox'}</h2><p>Organize conversations, manage ownership, and stay connected to your CRM.</p></div><div className="cc-toolbar"><Link to="/crm/communication-hub?section=matching">Review customer matches</Link><Button variant="outline" size="sm" aria-expanded={settings} onClick={()=>setSettings(!settings)}><SlidersHorizontal size={15}/>Workspace preferences</Button></div></div>
     {settings&&<div className="cc-preferences"><label>Conversation list width<input type="range" min="220" max="380" step="10" value={listWidth} onChange={e=>setListWidth(Number(e.target.value))}/><output>{listWidth}px</output></label><label>Customer details width<input type="range" min="240" max="380" step="10" value={detailWidth} onChange={e=>setDetailWidth(Number(e.target.value))}/><output>{detailWidth}px</output></label><label>Save current filters as<input maxLength={60} value={saveName} onChange={e=>setSaveName(e.target.value)} placeholder="e.g. My unread WhatsApp"/></label><Button size="sm" disabled={!saveName.trim()} onClick={()=>{setSaved([...saved.filter(v=>v.name!==saveName.trim()),{name:saveName.trim(),view,channel,search,offerings,tag,priority,advanced}]);setSaveName('');}}>Save view</Button>{saved.map(item=><button key={item.name} aria-label={`Remove saved view ${item.name}`} onClick={()=>setSaved(saved.filter(v=>v.name!==item.name))}>{item.name} ×</button>)}</div>}
     <div ref={root} className={`cc-inbox ${selected?'has-conversation':''} ${details?'has-details':''}`} style={{height,'--cc-list-width':`${listWidth}px`,'--cc-details-width':`${detailWidth}px`} as CSSProperties}>

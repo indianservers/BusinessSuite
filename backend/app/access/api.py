@@ -29,6 +29,8 @@ from app.models.company import Company
 from app.common.services.identity import SharedIdentityService
 
 router = APIRouter(prefix="/access", tags=["Master Suite Users & Access"])
+from app.access.signup_onboarding import router as onboarding_router
+router.include_router(onboarding_router)
 from app.access.settings_hub import router as settings_router
 router.include_router(settings_router)
 from app.access.setup import router as setup_router

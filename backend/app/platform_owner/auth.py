@@ -73,6 +73,10 @@ def current_platform_admin(request: Request, credentials=Depends(security), db: 
             session.last_seen_at = svc.now(); db.commit()
     except (jwt.PyJWTError, ValueError, HTTPException):
         raise HTTPException(401, "Indian Servers platform owner sign-in required") from None
+    if admin.role=='model_trainer':
+        path=request.url.path.removeprefix('/api/v1')
+        if not (path=='/platform/me' or path=='/platform/nlp-training' or path.startswith('/platform/nlp-training/') or path=='/platform/sessions/revoke'):
+            raise HTTPException(403,'This platform account has access only to NLP training')
     return admin
 
 
@@ -97,7 +101,7 @@ def session_result(admin, request, db):
 def login(data: PlatformLogin, request: Request, db: Session):
     from app.core.request_limits import consume
     from app.core.middleware.audit import client_addresses
-    email = str(data.email).lower()
+    email = str(data.email).strip().lower()
     retry = consume(db, [("platform-login-ip:" + str(client_addresses(request)[0]), 20, 900),
                          ("platform-login-account:" + email, 5, 900)])
     db.commit()

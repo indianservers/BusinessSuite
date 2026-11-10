@@ -7,6 +7,8 @@ from sqlalchemy.engine import URL, make_url
 
 
 class Settings(BaseSettings):
+    LOCAL_NLP_MODEL_DIR: str = ""
+    LOCAL_NLP_TRAINING_DIR: str = ""
     FORM16_TRUST_ROOTS_PEM: str = ""
     IMPORT_QUICKBOOKS_CLIENT_ID: str = ""
     IMPORT_QUICKBOOKS_CLIENT_SECRET: str = ""
@@ -142,6 +144,11 @@ class Settings(BaseSettings):
 
     # Email
     EMAIL_PROVIDER: str = "auto"
+    EMAIL_SITE: str = ""
+    SITE_SES_SMTP_SERVER: str = ""
+    SITE_SES_SMTP_PORT: int = 587
+    SITE_SES_SMTP_USERNAME: str = ""
+    SITE_SES_SMTP_PASSWORD: str = Field(default="", repr=False)
     EMAIL_NOTIFICATIONS_ENABLED: bool = True
     EMAIL_WORKER_ENABLED: bool = True
     SES_REGION: str = ""

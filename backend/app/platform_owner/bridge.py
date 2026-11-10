@@ -36,7 +36,7 @@ def usage(db, tenant):
     users = db.query(User).filter(User.id.in_(members)).all()
     from app.models.file_storage import StorageObject
     size = db.query(func.coalesce(func.sum(StorageObject.size), 0)).filter_by(organization_id=tenant.company_id).scalar()
-    activated = any(user.is_active for user in users)
+    activated = any(user.is_active and user.last_login for user in users)
     since = s.now()-timedelta(days=30)
     from sqlalchemy import text, inspect
     from app.models.audit import AuditLog
@@ -104,7 +104,7 @@ def invitation(db, tenant, revoke=False):
     if not membership: raise HTTPException(409, "Customer admin membership is unavailable")
     user = db.get(User, membership.user_id)
     if not user or user.email != tenant.admin_email: raise HTTPException(409, "Reconcile the customer's primary admin first")
-    if user.is_active and not revoke: raise HTTPException(409, "The customer already activated their account")
+    if user.is_active and user.last_login and not revoke: raise HTTPException(409, "The customer already activated their account")
     if revoke:
         user.password_reset_token, user.password_reset_expires = None, None; db.commit(); return None
     from app.api.v1.auth import _hash_reset_token

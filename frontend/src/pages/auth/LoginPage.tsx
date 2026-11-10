@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Loader2, ShieldCheck, Headphones, UsersRound, Layers, Mail, LockKeyhole, LogIn } from "lucide-react";
 import { type FirebaseOptions } from "firebase/app";
 import { setRememberSession, useAuthStore } from "@/store/authStore";
-import { authApi } from "@/services/api";
+import { api, authApi } from "@/services/api";
 import { getApiBaseUrl } from "@/config/runtime";
 import { loginDestination } from "@/lib/login";
 import { modules } from "@/lib/moduleCatalog";
@@ -30,6 +30,13 @@ type AuthResponse = {
   role: string | null;
   is_superuser: boolean;
   employee_id?: number;
+  workspace_required?: boolean;
+  workspaces?: {workspace:string;name:string}[];
+  identity_token?: string;
+  identity_provider?: "google" | "microsoft";
+  workspace?: string;
+  approval_required?: boolean;
+  application_url?: string;
   mfa_required?: boolean;
   mfa_token?: string;
 };
@@ -76,6 +83,8 @@ export default function LoginPage() {
   const [method, setMethod] = useState<"totp" | "recovery">("totp");
   const [code, setCode] = useState("");
   const [ssoBusy, setSsoBusy] = useState(false);
+  const [workspaceChoice,setWorkspaceChoice]=useState<AuthResponse>();
+  const [statusBusy, setStatusBusy] = useState(false);
   const handoffStarted = useRef(false);
   const redirectStarted = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -141,6 +150,17 @@ export default function LoginPage() {
 
   const finish = useCallback(
     (data: AuthResponse) => {
+      if(data.workspace_required){setWorkspaceChoice(data);return;}
+      if(data.workspace)sessionStorage.setItem("suite-tenant",data.workspace);
+      if (data.approval_required && data.application_url) {
+        const target = new URL(data.application_url, window.location.origin);
+        if (target.origin === window.location.origin && target.pathname.startsWith("/platform/public/")) {
+          navigate(target.pathname, { replace: true });
+        } else {
+          setSuccess("Waiting for approval. Your application is being reviewed.");
+        }
+        return;
+      }
       if (data.mfa_required && data.mfa_token) {
         setMfaToken(data.mfa_token);
         setError("");
@@ -370,6 +390,8 @@ export default function LoginPage() {
               Continue to {selectedModule.name} after signing in.
             </p>
           )}
+          {workspaceChoice && <section className="suite-login-note"><h2>Choose your approved workspace</h2>{workspaceChoice.workspaces?.map(choice=><button className="suite-secondary" disabled={ssoBusy} key={choice.workspace} onClick={async()=>{setSsoBusy(true);try{const {data}=await api.post("/auth/firebase/login",{token:workspaceChoice.identity_token,provider:workspaceChoice.identity_provider,workspace:choice.workspace},{headers:{"X-Suite-Tenant":""}});setWorkspaceChoice(undefined);finish(data)}catch(err){setError(errorMessage(err,"Could not open this workspace. Sign in again."))}finally{setSsoBusy(false)}}}>{choice.name}</button>)}</section>}
+          {view==="login" && <p><Link to="/login?application=1">Applied already? Check application status</Link></p>}
           {error && (
             <p
               ref={errorRef}
@@ -711,6 +733,23 @@ export default function LoginPage() {
                       ))}
                 </div>
               )}
+              <details className="suite-application-status" open={params.get("application")==="1"}>
+                <summary>Applied and waiting for approval?</summary>
+                <p>Use Google above with your application email, or receive a private status link by email.</p>
+                <form className="suite-form" onSubmit={async (event) => {
+                  event.preventDefault(); setError(""); setStatusBusy(true);
+                  const form = new FormData(event.currentTarget);
+                  try {
+                    const { data } = await api.post("/auth/signup/status-link", { email: form.get("application_email") });
+                    setSuccess(data.message);
+                  } catch (err) { setError(errorMessage(err, "Could not send a status link. Please try again.")); }
+                  finally { setStatusBusy(false); }
+                }}>
+                  <label htmlFor="application-email">Application email</label>
+                  <input id="application-email" name="application_email" type="email" autoComplete="email" required defaultValue={email || ""}/>
+                  <button className="suite-secondary" disabled={statusBusy}>{statusBusy ? "Sending…" : "Email my application status link"}</button>
+                </form>
+              </details>
               {(firebase.isPending || providers.isPending) && (
                 <p role="status" className="suite-login-note">
                   Checking company sign-in optionsâ€¦

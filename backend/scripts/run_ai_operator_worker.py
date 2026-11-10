@@ -14,16 +14,28 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--batch-size", type=int, default=20)
+    parser.add_argument("--suite-only", action="store_true",help="Process only explicitly approved suite actions; do not dispatch unrelated scheduled jobs")
     args = parser.parse_args()
     while True:
         with SessionLocal() as db:
-            result = process_batch(db, limit=max(1, min(args.batch_size, 100)))
+            result = [] if args.suite_only else process_batch(db, limit=max(1, min(args.batch_size, 100)))
         from app.ai_operator.suite import process_suite_batch
         from app.main import app
         with SessionLocal() as db:
             suite_count = asyncio.run(process_suite_batch(db, app, limit=max(1, min(args.batch_size, 100))))
         if suite_count:
             print({'suite_processed': suite_count}, flush=True)
+        if args.suite_only:
+            from app.ai_operator.workflows import process_suite_children
+            with SessionLocal() as db:
+                children=process_suite_children(db,limit=max(1,min(args.batch_size,100)))
+            if children:print({'suite_child_jobs':children},flush=True)
+        if not args.suite_only:
+            from app.ai_operator.training import process_training
+            with SessionLocal() as db:
+                training=process_training(db)
+            if training['processed']:
+                print({'nlp_training_processed':training['processed']},flush=True)
         if result:
             print(result, flush=True)  # Counts only; never commands or credentials.
         if args.once:

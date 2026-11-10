@@ -1,3 +1,4 @@
+import { isLocationField, locationLast } from "./record-location";
 import { useRecordSync, rowSync } from "@/shared/record-sync/store";
 import { withEditNavigation } from "@/lib/edit-navigation";
 import { SyncRing } from "@/shared/record-sync/RecordSyncItems";
@@ -54,6 +55,7 @@ import {
   useSensors,
   useDroppable,
   closestCenter,
+  pointerWithin,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
@@ -204,11 +206,12 @@ export function GroupingPanel({
   const drop = useDroppable({ id: "grid-group-zone" });
   return (
     <div
+      aria-label="Column grouping drop zone"
       className={`udg-grouping ${drop.isOver ? "is-over" : ""}`}
       ref={drop.setNodeRef}
     >
       <Layers size={15} />
-      <span>Group</span>
+      <span title="Drag a column header here to group records">Group · Drag columns here</span>
       <SortableContext
         items={query.grouping.map((id) => `group-column:${id}`)}
         strategy={horizontalListSortingStrategy}
@@ -230,7 +233,7 @@ export function GroupingPanel({
         ))}
       </SortableContext>
       {!query.grouping.length && (
-        <small title="Drag a column here to group records">{loadedOnly ? "Loaded rows" : "All matching records"}</small>
+        <small>Drag a column header here to group {loadedOnly ? "loaded rows" : "records"}</small>
       )}
       <NativeSelect
         aria-label="Add grouping column"
@@ -318,12 +321,13 @@ function Header<T>({
       >
         <GripVertical size={12} />
       </button>
-      {definition.header ? <div className="udg-legacy-heading"><Icon size={13} aria-hidden="true"/>{definition.header}</div> : <button
+      {definition.header ? <div className="udg-legacy-heading" {...drag.listeners}><Icon size={13} aria-hidden="true"/>{definition.header}</div> : <button
         type="button"
         className="udg-sort-button"
-        disabled={definition.sortable === false}
-        onClick={column.getToggleSortingHandler()}
-        title="Click to sort; Shift-click for multiple columns"
+        {...drag.listeners}
+        aria-disabled={definition.sortable === false || undefined}
+        onClick={definition.sortable === false ? undefined : column.getToggleSortingHandler()}
+        title="Drag to group or reorder; click to sort; Shift-click for multiple columns"
       >
         <Icon size={13} aria-hidden="true" />
         <span>{definition.title}</span>
@@ -593,7 +597,21 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const mobile = useMobile();
   const [mobileTable, setMobileTable] = useRouteViewState(`grid:${gridId}:mobile-table`, false);
   const [selecting, setSelecting] = useState(false);
-  const baseLayout = props.viewMode ? {...storedLayout,view:props.viewMode} : storedLayout;
+  const quickColumns = columns.filter(column => /^quick actions$/i.test(column.title));
+  const quickIds = quickColumns.map(column => column.id);
+  const locationIds = columns.filter(column => isLocationField(column.title)).map(column => column.id);
+  const completeOrder = [...storedLayout.order, ...columns.map(column => column.id).filter(id => !storedLayout.order.includes(id))];
+  const baseLayout = {
+    ...storedLayout,
+    ...(props.viewMode ? {view:props.viewMode} : {}),
+    order: locationLast(completeOrder.filter(id => !quickIds.includes(id)), id => columns.find(column => column.id === id)?.title || "").concat(quickIds),
+    visibility: {...storedLayout.visibility, ...Object.fromEntries(quickIds.map(id => [id, true]))},
+    sizes: {...storedLayout.sizes, ...Object.fromEntries(quickColumns.map(column => [column.id, Math.max(250, column.width || 250, storedLayout.sizes[column.id] || 0)]))},
+    pinning: {
+      left: (storedLayout.pinning.left || []).filter(id => !quickIds.includes(id) && !locationIds.includes(id)),
+      right: [...(storedLayout.pinning.right || []).filter(id => !quickIds.includes(id) && !locationIds.includes(id)), ...quickIds],
+    },
+  };
   const layout = mobile && !mobileTable && baseLayout.view === "grid" ? { ...baseLayout, view: "cards" as const } : baseLayout;
   const presets = mobilePresets(columns, user?.id);
   const [expandedCards, setExpandedCards] = useState<string[]>([]);
@@ -623,7 +641,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     [notice, setNotice] = useState(""),
     [actionError, setActionError] = useState("");
   const [children, setChildren] = useState<Record<string, Node<T>[]>>({}),
-    [expanded, setExpanded] = useState<ExpandedState>({}),
+    [expanded, setExpanded] = useState<ExpandedState>(true),
     [loadingGroups, setLoadingGroups] = useState<Set<string>>(new Set());
   const [internalSelection, setInternalSelection] = useState<string[]>([]),
     selection = props.selectedIds ?? internalSelection;
@@ -668,7 +686,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     setViews(initial.views);
     setSearch(initial.query.search);
     setChildren({});
-    setExpanded({});
+    setExpanded(true);
     history.current = [];
     selectedCache.current.clear();
   }, [preferenceKey]);
@@ -724,12 +742,14 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     }
   }, [selectionContext]);
   const signature = querySignature(query);
+  const automaticGroupLoads = useRef(new Set<string>());
   useEffect(() => {
     currentQuery.current = JSON.stringify([signature, query.page, props.refreshKey, dataSource.key]);
   }, [signature, query.page, props.refreshKey, dataSource.key]);
   useEffect(() => {
     setChildren({});
-    setExpanded({});
+    setExpanded(true);
+    automaticGroupLoads.current.clear();
   }, [signature, query.page, dataSource.key]);
   const recordSyncItems = useRecordSync();
   const request = useQuery({
@@ -1015,7 +1035,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       to = String(event.over?.id || "");
     if (from.startsWith("column:")) {
       const id = from.slice(7);
-      if (to === "grid-group-zone") {
+      if (to === "grid-group-zone" || to.startsWith("group-column:")) {
         if (
           columns.find((c) => c.id === id)?.groupable !== false &&
           !query.grouping.includes(id) &&
@@ -1094,6 +1114,25 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       });
     }
   }
+  // Grouping keeps records visible by default, including each nested level.
+  // Bound concurrent branch requests and remember failures until the query changes
+  // so an unavailable branch cannot cause an automatic retry loop.
+  useEffect(() => {
+    if (!request.data || request.isPlaceholderData) return;
+    const version = currentQuery.current;
+    const pending = table.getRowModel().rows.filter(row =>
+      row.original.group && row.getIsExpanded() && !children[row.id] &&
+      !automaticGroupLoads.current.has(row.id),
+    );
+    void (async () => {
+      for (let index = 0; index < pending.length; index += 3) {
+        if (version !== currentQuery.current) return;
+        const batch = pending.slice(index, index + 3).filter(row => !automaticGroupLoads.current.has(row.id));
+        batch.forEach(row => automaticGroupLoads.current.add(row.id));
+        await Promise.all(batch.map(row => loadBranch(row.original.group!.path, row.id)));
+      }
+    })();
+  }, [nodes, expanded, request.data, request.isPlaceholderData]);
   // A successful edit refreshes the data, while the user's expanded groups stay open.
   useEffect(() => {
     if (!request.data || request.isPlaceholderData) return;
@@ -1872,7 +1911,11 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       )}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={args => {
+          const hits = pointerWithin(args);
+          const groupZone = hits.find(hit => hit.id === "grid-group-zone");
+          return groupZone ? [groupZone] : hits.length ? hits : closestCenter(args);
+        }}
         onDragEnd={dragEnd}
       >
         <GroupingPanel columns={columns} query={query} change={changeQuery} loadedOnly={props.dataScope === "loaded"}

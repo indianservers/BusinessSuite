@@ -151,7 +151,7 @@ def release(db, conn, key, error):
 
 
 def invoke(
-    db, user, conn, action_id, data, *, confirmed=False, key, run_id=None, step_id=None
+    db, user, conn, action_id, data, *, confirmed=False, key, run_id=None, step_id=None, retain_output=True
 ):
     """Commit dispatch intent before IO; uncertain writes never automatically repeat."""
     RequirePermission("power_apps_execute")(user)
@@ -298,7 +298,8 @@ def invoke(
     op.status = (
         "uncertain" if error and error.uncertain else "failed" if error else "succeeded"
     )
-    op.output = output if not error else None
+    retained_output = output if retain_output else {'source_read': True, 'retained': False}
+    op.output = retained_output if not error else None
     op.error_category = error.category if error else None
     op.error = str(error)[:400] if error else None
     release(db, conn, operation_key, error)
@@ -328,7 +329,7 @@ def invoke(
             ),
             duration_ms=int((time.monotonic() - started) * 1000),
             error_category=op.error_category,
-            response_preview=output if not error else None,
+            response_preview=retained_output if not error else None,
         )
     )
     db.commit()

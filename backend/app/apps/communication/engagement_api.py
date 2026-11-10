@@ -403,7 +403,15 @@ def summary(db:Session=Depends(get_db),user=Depends(view)):
         ids=[i['id'] for i in result['items'] if i['kind']=='whatsapp']
         failed=db.query(func.count(WhatsAppMessage.id)).filter(WhatsAppMessage.organization_id==wa.organization(user),WhatsAppMessage.contact_id.in_(ids),WhatsAppMessage.status.in_(['failed','reconciliation_required'])).scalar()
     if email_access(user):
-        failed+=db.query(func.count(CustomerDelivery.id)).filter(CustomerDelivery.organization_id==wa.organization(user),CustomerDelivery.status.in_(['failed','blocked'])).scalar()
+        # Match the same authorized inbox page as the other queue counters.
+        # Organization-wide delivery counts would reveal other branches' activity.
+        recipients=set()
+        for item in result['items']:
+            row,branch,_=resolve(db,user,item['kind'],item['id'])
+            recipients.update((recipient.id,branch) for recipient in associated_recipients(db,user,item['kind'],row,branch))
+        if recipients:
+            allowed=or_(*(and_(CustomerDelivery.recipient_id==identity,CustomerDelivery.branch_id==branch) for identity,branch in recipients))
+            failed+=db.query(func.count(CustomerDelivery.id)).filter(CustomerDelivery.organization_id==wa.organization(user),CustomerDelivery.channel=='email',allowed,CustomerDelivery.status.in_(['failed','blocked'])).scalar()
     return {**result['counts'],'deliveryIssues':failed,'conversationCount':len(result['items']),'hasMore':bool(result['nextBefore'])}
 
 

@@ -46,6 +46,11 @@ export function Dialog({ title, children, onClose }: {
     const creating = /^(new|create|add|invite|schedule|generate)\b/i.test(title);
     useEffect(() => { if (creating) return; const listener = (e: KeyboardEvent) => { if (e.key === "Escape" && Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).filter(dialog=>dialog.getClientRects().length>0).at(-1) === nativeDialog.current)
         onClose(); }; window.addEventListener("keydown", listener); return () => window.removeEventListener("keydown", listener); }, [onClose, creating]);
+    useEffect(()=>{if(creating)return;const previous=document.activeElement as HTMLElement|null;const root=nativeDialog.current;
+        const controls=()=>Array.from(root?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]')||[]).filter(el=>el.getClientRects().length>0);
+        controls()[0]?.focus();const trap=(e:KeyboardEvent)=>{if(e.key!=="Tab"||!root?.contains(document.activeElement)||root.querySelector("dialog[open]"))return;const list=controls();const first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}};
+        root?.addEventListener("keydown",trap);return()=>{root?.removeEventListener("keydown",trap);if(previous?.isConnected)previous.focus()};
+    },[creating]);
     if (creating) return <SmartCreateModal definition={{entity:"platform-record",title,presentation:"page",size:"standard"}} onClose={onClose}>{children}</SmartCreateModal>;
     return <div className="po-overlay"><section ref={nativeDialog} role="dialog" aria-modal="true" aria-label={title} className="po-dialog"><header><h2>{title}</h2><button type="button" aria-label="Close dialog" onClick={onClose}>×</button></header>{children}</section></div>;
 }

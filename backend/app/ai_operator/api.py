@@ -34,6 +34,20 @@ from app.ai_operator.suite import router as suite_router
 router.include_router(suite_router)
 from app.ai_operator.briefing import router as briefing_router
 router.include_router(briefing_router)
+from app.ai_operator.reporting import router as reporting_router
+router.include_router(reporting_router)
+from app.ai_operator.reminders import router as reminders_router
+router.include_router(reminders_router)
+from app.ai_operator.commitments import router as commitments_router
+router.include_router(commitments_router)
+from app.ai_operator.operations import router as operations_router
+router.include_router(operations_router)
+from app.ai_operator.local_api import router as local_router
+router.include_router(local_router)
+from app.ai_operator.query_memory import router as query_memory_router
+router.include_router(query_memory_router)
+from app.ai_operator.training import router as training_router
+router.include_router(training_router)
 from app.ai_operator.deadline_radar import router as workspace_router
 router.include_router(workspace_router)
 

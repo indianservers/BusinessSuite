@@ -68,7 +68,7 @@ const SharedServicesPage = lazyRoute(() => import("@/features/access/SharedServi
 const ControlCenter = lazyRoute(() => import("@/features/access/ControlCenter"));
 const UserAccess360 = lazyRoute(() => import("@/features/access/ControlCenter").then(m => ({ default: m.UserAccess360 })));
 const UsersAccessPage = lazyRoute(() => import("@/features/access/UsersAccessPage"));
-const AccessInvitationPage = lazyRoute(() => import("@/features/access/UsersAccessPage").then(m => ({ default: m.AccessInvitationPage })));
+const AccessInvitationPage = lazyRoute(() => import("@/pages/auth/TrialInvitationPage"));
 
 const appRoutes: Record<string, FrontendRoute[]> = {
   hrms: hrmsRoutes,

@@ -72,6 +72,7 @@ class Strict(BaseModel):
 class Policy(Strict):
     timezone: str = 'Asia/Kolkata'
     auto_enabled: bool = False
+    expires_at: datetime | None = None
     allowed_tools: list[Literal['update_task']] = Field(default_factory=list, max_length=1)
     max_steps: int = Field(default=3, ge=1, le=3)
     weekdays: list[int] = Field(default_factory=lambda: [0,1,2,3,4], min_length=1, max_length=7)
@@ -82,6 +83,8 @@ class Policy(Strict):
 
     @model_validator(mode='after')
     def check(self):
+        if self.expires_at and self.expires_at.tzinfo is None:
+            raise ValueError('Policy expiry needs a timezone')
         try:ZoneInfo(self.timezone)
         except (ValueError,ZoneInfoNotFoundError):raise ValueError('Unknown calendar timezone')
         if any(d < 0 or d > 6 for d in self.weekdays) or len(self.skills) > 100 or any(len(v)>20 or any(len(s)>80 for s in v) for v in self.skills.values()):
@@ -114,6 +117,10 @@ def validate_artifact(db, user, data):
     elif data.kind=='policy':
         _require_ai_admin(user)
         policy=Policy.model_validate(body)
+        if policy.auto_enabled and policy.expires_at is None:
+            policy.expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        if policy.auto_enabled and policy.expires_at <= datetime.now(timezone.utc):
+            raise HTTPException(422,'Standing consent must have a future expiry')
         context=local_context(data.project_id,db,user)
         collaborator_ids={str(p['id']) for p in context['collaborators']}
         if set(policy.skills)-collaborator_ids or set(map(str,policy.away_user_ids))-collaborator_ids:
@@ -144,8 +151,16 @@ def validate_artifact(db, user, data):
         playbook=owned(db,user,body.get('playbook_id',0))
         if playbook.project_id!=data.project_id or playbook.kind!='playbook' or body.get('trigger') not in ('overdue','blocked','task_created','status_changed'):
             raise HTTPException(422,'Choose a playbook and supported project event')
+        try:
+            expires = datetime.fromisoformat(str(body.get('expires_at') or (datetime.now(timezone.utc)+timedelta(days=30)).isoformat()).replace('Z','+00:00'))
+            maximum = body.get('max_runs', 20)
+            if expires.tzinfo is None or expires <= datetime.now(timezone.utc) or expires > datetime.now(timezone.utc)+timedelta(days=366) or type(maximum) is not int or not 1 <= maximum <= 100:
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise HTTPException(422,'Rules need a future timezone-aware expiry within one year and a 1–100 run limit') from None
         return {'playbook_id':playbook.id,'trigger':body['trigger'],'enabled':bool(body.get('enabled',False)),
-                'autonomous':bool(body.get('autonomous',False)),'fingerprint':None,'last_run_id':None}
+                'autonomous':bool(body.get('autonomous',False)),'fingerprint':None,'last_run_id':None,
+                'expires_at':expires.isoformat(),'max_runs':maximum,'run_count':0,'stop_on_failure':True}
     return body
 
 
@@ -375,6 +390,8 @@ def check_standing_consent(db,user,run):
     if policy_row.project_id!=run.project_id or rule.project_id!=run.project_id or policy_row.kind!='policy' or rule.kind!='rule' or policy_row.revision!=binding['policy_revision'] or rule.revision!=binding['rule_revision']:
         raise HTTPException(403,'AUTO_POLICY_REVOKED')
     policy=Policy.model_validate(policy_row.payload);plan=TaskPlan.model_validate(run.plan)
+    if rule_stop_reason(rule.payload, executing=True) or policy.expires_at and policy.expires_at <= datetime.now(timezone.utc):
+        raise HTTPException(403,'AUTO_POLICY_EXPIRED_OR_STOPPED')
     if not policy.auto_enabled or not rule.payload.get('enabled') or not rule.payload.get('autonomous') or len(plan.steps)>policy.max_steps or not all(
         s.tool in policy.allowed_tools and s.changes and set(s.changes.model_dump(exclude_none=True))<={'status','priority'} for s in plan.steps):
         raise HTTPException(403,'AUTO_POLICY_REVOKED')
@@ -528,12 +545,30 @@ def metrics(project_id:int,db:Session=Depends(get_db),user:User=Depends(get_curr
         'limits':'Latest 100 project runs/evaluations and 200 personal provider calls in this scope; unknown prices are not zero cost.'}
 
 
+def rule_stop_reason(body, *, executing=False, instant=None):
+    instant = instant or datetime.now(timezone.utc)
+    if body.get('expires_at'):
+        try:
+            expiry = datetime.fromisoformat(body['expires_at'].replace('Z','+00:00'))
+            if expiry.tzinfo is None or expiry <= instant: return 'Rule expired'
+        except (ValueError, TypeError):
+            return 'Invalid rule expiry'
+    maximum = body.get('max_runs', 20)
+    count = body.get('run_count', 0)
+    if type(maximum) is not int or type(count) is not int or maximum < 1 or count < 0:
+        return 'Invalid rule run budget'
+    if count > maximum or count == maximum and not executing:
+        return 'Rule run limit reached'
+    return None
+
+
 def tick_rules(db,limit=10):
     """Owner permissions are rechecked on every tick; fingerprints suppress repeats."""
     rows=db.query(AssistantArtifact).filter_by(kind='rule').filter(AssistantArtifact.payload['enabled'].as_boolean().is_(True)).order_by(AssistantArtifact.updated_at,AssistantArtifact.id).limit(500).all()
     checked=created=0
     for row in rows:
         if checked>=limit:break
+        db.refresh(row, with_for_update=True)
         body=dict(row.payload)
         if not body.get('enabled'):continue
         if body.get('next_check_at') and body['next_check_at']>datetime.now(timezone.utc).isoformat():continue
@@ -543,6 +578,17 @@ def tick_rules(db,limit=10):
             user=db.get(User,row.user_id)
             if not user or not user.is_active:raise HTTPException(403,'Owner unavailable')
             owned(db,user,row.id)
+            stop = rule_stop_reason(body)
+            if stop:
+                row.payload={**body,'enabled':False,'error':stop};db.commit();continue
+            if body.get('last_run_id'):
+                previous = db.get(OperatorRun, body['last_run_id'])
+                if not previous or previous.status in {'failed','partial','reconciliation_required','cancelled'}:
+                    stop = 'Previous run needs review'
+                elif previous.status != 'succeeded':
+                    row.payload=body; db.commit(); continue
+            if stop:
+                row.payload={**body,'enabled':False,'error':stop};db.commit();continue
             tasks=db.query(PMSTask).filter_by(project_id=row.project_id,deleted_at=None).order_by(PMSTask.id).limit(501).all()
             if len(tasks)>500:raise HTTPException(422,'Project exceeds rule observation limit')
             trigger=body['trigger']
@@ -566,9 +612,11 @@ def tick_rules(db,limit=10):
             if playbook.kind!='playbook' or playbook.project_id!=row.project_id:raise HTTPException(422,'Playbook scope changed')
             request=Request({'type':'http','method':'POST','path':'/internal/assistant-rule','headers':[],'client':('127.0.0.1',0)})
             result=preview(PlanInput(project_id=row.project_id,plan=TaskPlan.model_validate(playbook.payload['plan']),request_key=f'rule:{row.id}:{signature}:{row.revision}'),request,db,user)
-            body['last_run_id']=result['id'];body['error']=None
+            body['last_run_id']=result['id'];body['error']=None;body['run_count']=body.get('run_count',0)+1
             row.payload=body;db.commit();created+=1
             policy=policy_for(db,user,row.project_id)
+            if policy.expires_at and policy.expires_at <= datetime.now(timezone.utc):
+                row.payload={**body,'enabled':False,'error':'Standing consent expired'};db.commit();continue
             plan=TaskPlan.model_validate(result['plan'])
             # Standing consent is restricted to small status/priority updates.
             if body.get('autonomous') and policy.auto_enabled and len(plan.steps)<=policy.max_steps and all(

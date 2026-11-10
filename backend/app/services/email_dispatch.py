@@ -64,6 +64,19 @@ def branch_recipient_allowed(db, record, user_id, company_id):
 
 
 def _deliver(db, row, *, notification=None):
+    if isinstance(row, EmailOutbox) and row.module == 'ai_reminder':
+        from app.ai_operator.reminders import email_scope
+        try:
+            with email_scope(db, row) as quiet:
+                if quiet:
+                    row.status = 'ai_deferred'
+                    db.commit()
+                    return
+                _deliver_authorized(db, row, notification=notification)
+        except (HTTPException, ValueError):
+            row.status, row.error = 'suppressed', 'Reviewed reminder authorization is no longer available'
+            db.commit()
+        return
     if isinstance(row, EmailOutbox) and row.module == 'customer_communication':
         from app.apps.communication.customer_models import CustomerDelivery
         from app.apps.communication.customer_service import actor_scope, email_policy, sync_delivery
@@ -254,6 +267,14 @@ def process_email(db, limit=25):
     customer = process_customer_communications(db, limit)
     from app.services.domain_report_delivery import dispatch as dispatch_reports
     domain_reports = dispatch_reports(db)
+    if is_app_enabled('project_management'):
+        from app.ai_operator.reminders import dispatch as dispatch_ai_reminders
+        ai_reminders = dispatch_ai_reminders(db, limit=limit)
+        from app.ai_operator.commitments import reconcile as reconcile_ai_commitments
+        ai_commitments = reconcile_ai_commitments(db)
+    else:
+        ai_reminders = {'processed': 0}
+        ai_commitments = {'sources_checked': 0}
     scheduled = prepare_scheduled_email(db, limit=5)
     engagement = prepare_engagement_email(db, limit=limit) if is_app_enabled("hrms") else 0
     reminders = enqueue_due_reminders(db, limit=limit)
@@ -270,6 +291,8 @@ def process_email(db, limit=25):
     result['customer_communications'] = customer
     result["scheduled"] = scheduled
     result["report_delivery"] = domain_reports
+    result['ai_reminders'] = ai_reminders
+    result['ai_commitments'] = ai_commitments
     result["engagement_queued"] = engagement
     result["notifications"] = drain_notifications(db, limit, deadline=deadline)
     result["shared_notifications"] = drain_email(db, limit, deadline=deadline) if email.email_configured() else 0

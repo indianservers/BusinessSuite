@@ -207,3 +207,27 @@ def test_workspace_admin_cannot_promote_or_remove_administrators(client, db, stu
     denied = client.put(base + "/" + row["id"], json=payload("crm", expected_version=row["version"], members=[]), headers=actor_headers)
     assert denied.status_code == 403, denied.text
     assert client.get(base + "/" + row["id"], headers=actor_headers).json()["can_manage"]
+
+def test_crm_member_picker_includes_people_after_first_hundred(client, db, studio):
+    from app.models.user import User
+    from app.access.models import AccessMembership
+    from app.branches.models import BranchGrant
+    headers = studio[3]
+    branch = int(headers["X-Suite-Branch"])
+    emails = [f"aaa-workspace-{i:03}@test.com" for i in range(105)] + ["vishnu@indianservers.com"]
+    for email in emails:
+        user = User(email=email, hashed_password="unused", is_active=True)
+        db.add(user)
+        db.flush()
+        db.add(AccessMembership(user_id=user.id, company_id=1, active=True))
+        db.add(BranchGrant(user_id=user.id, company_id=1, branch_id=branch, can_write=True))
+    db.commit()
+    base = "/api/v1/crm/workspace-directory"
+    response = client.get(base + "/eligible-people", headers=headers)
+    assert response.status_code == 200, response.text
+    rows = response.json()
+    assert set(emails) <= {row["email"] for row in rows}
+    target = next(row for row in rows if row["email"] == "vishnu@indianservers.com")
+    created = client.post(base, json=payload("crm", members=[{"user_id": target["user_id"], "role": "Member"}]), headers=headers)
+    assert created.status_code == 201, created.text
+    assert created.json()["members"] == [{"user_id": target["user_id"], "role": "Member"}]

@@ -1,0 +1,286 @@
+COMMUNICATION CENTER 2.0 — IMPLEMENTATION AUDIT
+Date: 10 November 2026
+
+Existing architecture inspected before changes
+- CRM communication routes use CommunicationHubPage via frontend/src/apps/crm/routes.tsx.
+- WhatsAppCloudPanel owns existing account status, provider template synchronization, composer, legacy history, profile and connection settings.
+- EngagementInbox combines WhatsApp and customer email history with CRM context, assignment, read cursors, queues, search, saved views, snooze and matching. It refreshes through existing bounded polling; no new realtime service was added.
+- Composer retains browser-scoped drafts, original idempotent request IDs, attachment/reply handling and template/service-window restrictions.
+- CampaignWorkspace retains email campaign audience preview, exclusion review, draft, schedule, cancellation and explicit send confirmation.
+- CustomerCommunications retains customer automations and WhatsApp campaigns with approved template selection, personalization, preview and reviewed launch.
+- WhatsAppCommunicationWorkspace retains shared contact/lead recipient targeting, invoices, consent/eligibility checks, preview, scheduling and interrupted-send reconciliation.
+- BusinessContext and ChatCreateActions retain contacts, leads, deals, quotations, invoices, tasks, notes and follow-ups.
+- Existing Power Apps AutomationBuilder/AutomationEditorPage already provide visual graph authoring, node configuration, execution/version infrastructure. Communication navigation links to this engine; it does not create another engine.
+- Provider routes, webhook signature validation, encrypted credentials, original identifiers, connection settings and message stores were not changed.
+- Isolation and permission enforcement remain in existing API dependencies and WhatsApp contact_access/record_access paths.
+
+Implemented in this change
+- One shared eight-tab Communication Center shell on existing communication/WhatsApp routes.
+- Existing WhatsApp route/channel context retained when switching major tabs; redundant inner WhatsApp navigation hidden when embedded.
+- Premium gradient header, backend-derived account indicator, compact cards, responsive layouts and working links to specialized tools.
+- Overview uses real health summary, analytics, inbox and campaign endpoints. Queue counters are explicitly page-scoped; WhatsApp totals cover authorized records across the selected rolling period.
+- Real incoming/outgoing activity chart, actionable queue insights, recent customer activity, campaign links and quick actions.
+- Settings landing page links existing connection/profile, template, channel/email, delivery, consent, matching and audit tools.
+- Automation landing page reuses customer rules and links the existing visual editor/execution history.
+- Desktop inbox restores the last available conversation, falling back to the first visible authorized thread. Mobile retains list-first navigation.
+- Analytics adds a confirmed-delivery funnel and daily CSV export. It labels incoming messages separately rather than inventing a response rate.
+- Template query cache now includes company/branch/user scope.
+
+Limits relative to the complete supplied brief
+- This is an extension of existing capability, not a completed replacement of every requested backend feature.
+- Analytics remains WhatsApp-specific. A cross-channel date/owner/campaign analytics API and measured cross-channel response rates are not implemented here. No fabricated email/SMS read receipts are shown.
+- Existing WhatsApp and email campaign editors remain channel-specific rather than one new three-stage omnichannel wizard.
+- Automation graph authoring remains in the existing Power Apps editor, linked from Communication Center; it is not a newly embedded graph editor.
+- Existing account architecture returns one active connection. A multi-sender selection/routing redesign is not implemented.
+- SMS/push are not advertised as configured or enabled. Additional provider configuration and capabilities require existing authorized backend support.
+- Settings landing page reuses existing permission enforcement and policy tools. It does not introduce new role grants or a new unified sending-window/retry policy editor.
+- Existing polling and history APIs remain. No websocket/subscription backend or new unlimited unified message-history cursor was added.
+- Previous-period comparisons are omitted until matching interval metrics exist; period filters on Overview apply to the explicitly labelled WhatsApp activity, not current queue counters.
+- Live production account connectivity and live recipient delivery were not tested. Provider transport is stubbed in isolated tests. No production sends or integration configuration writes were performed.
+- Not deployed.
+
+Frontend component inventory
+frontend/src/apps/communication/api.ts
+frontend/src/apps/communication/communication-workspace.ts
+frontend/src/apps/communication/CommunicationHubPage.tsx
+frontend/src/apps/communication/CommunicationSendReview.tsx
+frontend/src/apps/communication/CustomerCommunications.tsx
+frontend/src/apps/communication/CustomerEmailSettings.tsx
+frontend/src/apps/communication/CustomerMatchButton.tsx
+frontend/src/apps/communication/whatsapp-communication.css
+frontend/src/apps/communication/WhatsAppCloudPanel.tsx
+frontend/src/apps/communication/WhatsAppCommunicationPage.tsx
+frontend/src/apps/communication/WhatsAppCommunicationWorkspace.tsx
+frontend/src/apps/communication/center/AutomationWorkspace.tsx
+frontend/src/apps/communication/center/CampaignWorkspace.tsx
+frontend/src/apps/communication/center/center.css
+frontend/src/apps/communication/center/CommunicationHome.tsx
+frontend/src/apps/communication/center/CommunicationSettings.tsx
+frontend/src/apps/communication/center/CustomerMatchingReview.tsx
+frontend/src/apps/communication/center/DeliveryWorkspace.tsx
+frontend/src/apps/communication/center/EmailComposer.tsx
+frontend/src/apps/communication/center/EngagementInbox.tsx
+frontend/src/apps/communication/center/GuidedTools.tsx
+frontend/src/apps/communication/center/premium.css
+frontend/src/apps/communication/center/PublicCustomerForm.tsx
+frontend/src/apps/communication/center/SendReminders.tsx
+frontend/src/apps/communication/center/shared.tsx
+frontend/src/apps/communication/center/time.ts
+frontend/src/apps/communication/center/TimelineExplorer.tsx
+frontend/src/apps/communication/center/WorkspaceHero.tsx
+frontend/src/apps/communication/whatsapp/Analytics.tsx
+frontend/src/apps/communication/whatsapp/BusinessContext.tsx
+frontend/src/apps/communication/whatsapp/CampaignTemplatePicker.tsx
+frontend/src/apps/communication/whatsapp/ChatCreateActions.tsx
+frontend/src/apps/communication/whatsapp/Composer.tsx
+frontend/src/apps/communication/whatsapp/ConnectionPanel.tsx
+frontend/src/apps/communication/whatsapp/EmbeddedSignup.tsx
+frontend/src/apps/communication/whatsapp/Inbox.tsx
+frontend/src/apps/communication/whatsapp/InboxFilters.tsx
+frontend/src/apps/communication/whatsapp/LinkConversation.tsx
+frontend/src/apps/communication/whatsapp/MessageMedia.tsx
+frontend/src/apps/communication/whatsapp/ProfilePanel.tsx
+frontend/src/apps/communication/whatsapp/QuotedMessage.tsx
+frontend/src/apps/communication/whatsapp/RecipientConsent.tsx
+frontend/src/apps/communication/whatsapp/SentMessages.tsx
+frontend/src/apps/communication/whatsapp/TemplatesPanel.tsx
+frontend/src/apps/communication/whatsapp/types.ts
+frontend/src/apps/communication/whatsapp/whatsapp.css
+
+Backend/service inventory
+backend/app/api/v1/whatsapp_cloud.py
+backend/app/services/whatsapp.py
+backend/app/services/whatsapp_workspace.py
+backend/app/services/whatsapp_hub.py
+backend/app/services/whatsapp_media.py
+backend/app/services/whatsapp_replies.py
+backend/app/services/whatsapp_inbox_filters.py
+backend/app/services/whatsapp_communication.py
+backend/app/apps/communication/engagement_api.py
+backend/app/apps/communication/customer_api.py
+backend/app/apps/communication/customer_service.py
+backend/app/apps/communication/customer_transport.py
+backend/app/apps/communication/customer_events.py
+backend/app/apps/communication/customer_inbound.py
+backend/app/apps/communication/api/router.py
+backend/app/shared/communications.py
+backend/app/shared/whatsapp_models.py
+backend/app/apps/communication/models.py
+backend/app/apps/communication/customer_models.py
+backend/app/apps/communication/engagement_models.py
+
+Existing model inventory (no added tables)
+backend/app/shared/whatsapp_models.py WhatsAppConnection
+backend/app/shared/whatsapp_models.py WhatsAppOnboarding
+backend/app/shared/whatsapp_models.py WhatsAppContact
+backend/app/shared/whatsapp_models.py WhatsAppMessage
+backend/app/shared/whatsapp_models.py WhatsAppReceipt
+backend/app/apps/communication/models.py CommunicationEmailTemplate
+backend/app/apps/communication/models.py CommunicationEmailMessage
+backend/app/apps/communication/models.py CommunicationEmailAttachment
+backend/app/apps/communication/models.py CommunicationWebform
+backend/app/apps/communication/models.py CommunicationWebformField
+backend/app/apps/communication/models.py CommunicationWebformSubmission
+backend/app/apps/communication/models.py CommunicationAutoResponseRule
+backend/app/apps/communication/models.py CommunicationCampaign
+backend/app/apps/communication/models.py CommunicationCampaignMember
+backend/app/apps/communication/models.py CommunicationCampaignSend
+backend/app/apps/communication/models.py CommunicationConsent
+backend/app/apps/communication/models.py CommunicationOptOut
+backend/app/apps/communication/models.py CommunicationWhatsAppTemplate
+backend/app/apps/communication/models.py CommunicationTimelineEvent
+backend/app/apps/communication/models.py CommunicationDeliveryLog
+backend/app/apps/communication/customer_models.py CustomerRecipient
+backend/app/apps/communication/customer_models.py CustomerBinding
+backend/app/apps/communication/customer_models.py CustomerCommunicationSettings
+backend/app/apps/communication/customer_models.py CustomerEmailConnection
+backend/app/apps/communication/customer_models.py CustomerAutomation
+backend/app/apps/communication/customer_models.py CustomerEvent
+backend/app/apps/communication/customer_models.py CustomerDelivery
+backend/app/apps/communication/customer_models.py CustomerShipment
+backend/app/apps/communication/customer_models.py CustomerPreferenceToken
+backend/app/apps/communication/customer_models.py CustomerConversationNote
+backend/app/apps/communication/customer_models.py CustomerEmailReply
+backend/app/apps/communication/engagement_models.py ConversationWorkflow
+backend/app/apps/communication/engagement_models.py ConversationReading
+
+Existing endpoint inventory (paths relative to router prefixes)
+backend/app/api/v1/whatsapp_cloud.py GET /status
+backend/app/api/v1/whatsapp_cloud.py GET /webhook
+backend/app/api/v1/whatsapp_cloud.py POST /webhook
+backend/app/api/v1/whatsapp_cloud.py GET /profile
+backend/app/api/v1/whatsapp_cloud.py POST /profile/picture
+backend/app/api/v1/whatsapp_cloud.py POST /connection
+backend/app/api/v1/whatsapp_cloud.py POST /connection/environment
+backend/app/api/v1/whatsapp_cloud.py DELETE /connection
+backend/app/api/v1/whatsapp_cloud.py POST /onboarding/start
+backend/app/api/v1/whatsapp_cloud.py POST /onboarding/complete
+backend/app/api/v1/whatsapp_cloud.py GET /templates
+backend/app/api/v1/whatsapp_cloud.py POST /templates
+backend/app/api/v1/whatsapp_cloud.py POST /messages
+backend/app/api/v1/whatsapp_cloud.py GET /messages/by-request/{request_id}
+backend/app/api/v1/whatsapp_cloud.py GET /messages
+backend/app/api/v1/whatsapp_cloud.py GET /recipient
+backend/app/api/v1/whatsapp_cloud.py POST /consent
+backend/app/api/v1/whatsapp_cloud.py GET /conversations
+backend/app/api/v1/whatsapp_cloud.py POST /conversations/match-customers
+backend/app/api/v1/whatsapp_cloud.py GET /conversations/{contact_id}/matches
+backend/app/api/v1/whatsapp_cloud.py GET /conversations/{contact_id}/messages
+backend/app/api/v1/whatsapp_cloud.py POST /connection/inbound-branch
+backend/app/api/v1/whatsapp_cloud.py POST /connection/check
+backend/app/api/v1/whatsapp_cloud.py POST /connection/register
+backend/app/api/v1/whatsapp_cloud.py POST /conversations/{contact_id}/link
+backend/app/api/v1/whatsapp_cloud.py POST /conversations/{contact_id}/media
+backend/app/api/v1/whatsapp_cloud.py GET /messages/{message_id}/media
+backend/app/api/v1/whatsapp_cloud.py GET /conversations/{contact_id}/context
+backend/app/api/v1/whatsapp_cloud.py GET /analytics
+backend/app/api/v1/whatsapp_cloud.py POST /workspace/recipients
+backend/app/api/v1/whatsapp_cloud.py POST /workspace/schedule
+backend/app/api/v1/whatsapp_cloud.py GET /workspace/schedules/{request_id}
+backend/app/apps/communication/engagement_api.py GET /inbox
+backend/app/apps/communication/engagement_api.py GET /conversations/{kind}/{identity}
+backend/app/apps/communication/engagement_api.py POST /conversations/{kind}/{identity}/read
+backend/app/apps/communication/engagement_api.py POST /conversations/{kind}/{identity}/snooze
+backend/app/apps/communication/engagement_api.py PUT /conversations/{kind}/{identity}/workflow
+backend/app/apps/communication/engagement_api.py GET /assignees
+backend/app/apps/communication/engagement_api.py GET /records
+backend/app/apps/communication/engagement_api.py GET /delivery/{kind}/{identity}
+backend/app/apps/communication/engagement_api.py GET /health-summary
+backend/app/apps/communication/engagement_api.py GET /email-eligibility
+backend/app/apps/communication/customer_api.py GET /recipients
+backend/app/apps/communication/customer_api.py POST /recipients
+backend/app/apps/communication/customer_api.py PUT /recipients/{identity}
+backend/app/apps/communication/customer_api.py GET /recipients/{identity}/bindings
+backend/app/apps/communication/customer_api.py POST /recipients/{identity}/bindings
+backend/app/apps/communication/customer_api.py DELETE /bindings/{identity}
+backend/app/apps/communication/customer_api.py GET /automations
+backend/app/apps/communication/customer_api.py POST /automations
+backend/app/apps/communication/customer_api.py PUT /automations/{identity}
+backend/app/apps/communication/customer_api.py POST /automations/{identity}/preview
+backend/app/apps/communication/customer_api.py POST /automations/{identity}/launch
+backend/app/apps/communication/customer_api.py GET /deliveries
+backend/app/apps/communication/customer_api.py POST /deliveries/{identity}/cancel
+backend/app/apps/communication/customer_api.py POST /deliveries/{identity}/retry
+backend/app/apps/communication/customer_api.py GET /settings
+backend/app/apps/communication/customer_api.py PUT /settings
+backend/app/apps/communication/customer_api.py GET /dashboard
+backend/app/apps/communication/customer_api.py GET /shipments
+backend/app/apps/communication/customer_api.py POST /shipments
+backend/app/apps/communication/customer_api.py PUT /shipments/{identity}
+backend/app/apps/communication/customer_api.py POST /recipients/{identity}/notes
+backend/app/apps/communication/customer_api.py GET /recipients/{identity}/history
+backend/app/apps/communication/customer_api.py POST /recipients/{identity}/assignment
+backend/app/apps/communication/customer_api.py POST /recipients/{identity}/read
+backend/app/apps/communication/customer_api.py POST /recipients/{identity}/preference-link
+backend/app/apps/communication/customer_api.py GET /email-connection
+backend/app/apps/communication/customer_api.py PUT /email-connection
+backend/app/apps/communication/customer_api.py POST /email-connection/receiver-secret
+backend/app/apps/communication/customer_api.py GET /{token}
+backend/app/apps/communication/customer_api.py POST /{token}
+backend/app/apps/communication/customer_inbound.py POST /{organization_id}
+backend/app/apps/communication/api/router.py GET /{slug}
+backend/app/apps/communication/api/router.py POST /{slug}/submit
+
+Changed implementation files
+frontend/src/apps/communication/CommunicationHubPage.tsx
+frontend/src/apps/communication/WhatsAppCloudPanel.tsx
+frontend/src/apps/communication/CustomerCommunications.tsx
+frontend/src/apps/communication/center/CommunicationHome.tsx
+frontend/src/apps/communication/center/EngagementInbox.tsx
+frontend/src/apps/communication/center/WorkspaceHero.tsx (new)
+frontend/src/apps/communication/center/CommunicationSettings.tsx (new)
+frontend/src/apps/communication/center/AutomationWorkspace.tsx (new)
+frontend/src/apps/communication/center/premium.css (new)
+frontend/src/apps/communication/whatsapp/Analytics.tsx
+frontend/src/apps/communication/whatsapp/ChatCreateActions.tsx
+
+Validation
+- TypeScript: npx tsc --noEmit --incremental passed.
+- Existing isolated backend regression: 111 passed, 4 warnings, 70.70 seconds.
+  Suites: test_whatsapp_cloud, test_whatsapp_workspace, test_whatsapp_hub,
+  test_whatsapp_hub_audit, test_whatsapp_hub_remaining,
+  test_whatsapp_communication_workspace, test_communication_engagement,
+  test_communication_campaigns, test_communication_campaign_consent,
+  test_communication_rbac, test_communication_opt_out, test_customer_communications.
+- Opt-in real frontend + isolated real API browser integration passed after fixes:
+  test_whatsapp_hub_browser_e2e.py, 1 passed, 4 warnings, 37.77 seconds.
+  Tests quoted reply, attachment upload/send, note, assignment/status, deal,
+  quotation, invoice, PMS task/link, follow-up scheduling/completion, approved
+  template variables, signed inbound webhook, inbound deduplication, read receipt,
+  unknown contact creation/link, campaign preview/schedule/dedup/cancel and analytics.
+  External Meta transport was stubbed. No real customer messages were sent.
+- Browser smoke: node scripts/test-communication-premium.cjs passed at widths
+  1440, 768 and 390. Exercises all eight tabs, active state, account status,
+  tab shortcuts, CSV download, disconnected sender state, dark mode, overflow
+  checks and JavaScript errors. Uses isolated API fixtures, not production metrics.
+- Browser screenshots reviewed at desktop and phone widths. Artifacts under
+  outputs/communication-center-2/overview-{1440,768,390}.png.
+- git diff --check on communication changes passed.
+- During verification, duplicate embedded WhatsApp tabs were removed. An invoice
+  completion/next CRM task modal timing issue was addressed by awaiting CRM context
+  refresh before completing the creation action; creation buttons stay disabled
+  until that refresh finishes. The end-to-end scenario then passed.
+- No schema migrations, new messaging tables, credential changes or production writes.
+
+Additional corrections and validation
+- Overview labels unread messages, matching the backend sum rather than claiming
+  that this number counts conversations.
+- Health summary now restricts email failure counts to recipients/branches represented
+  in the authorized inbox page. WhatsApp customer-delivery rows are not counted a
+  second time as email failures. Added test_communication_center_summary.py covering
+  visible email failure, hidden-branch email failure and WhatsApp duplicate exclusion.
+- Production build: npm run build passed. Vite reported existing mixed static/dynamic
+  import, large-chunk and dependency annotation warnings; these did not fail the build.
+- Active-tab query gating added to CustomerCommunications and WhatsAppCloudPanel.
+- Alt+1 through Alt+8 switch primary tabs without taking shortcuts from input fields.
+- New backend changed file: backend/app/apps/communication/engagement_api.py.
+- New backend regression: backend/tests/test_communication_center_summary.py.
+
+Final regression result
+112 passed, 4 warnings in 72.62 seconds across the backend suites above plus
+new summary isolation coverage. Earlier runs used an incomplete test fixture
+without required BranchOwnership rows; the corrected fixture and full suite pass.
+The real-API browser integration also passed after the creation-transition fix.
+
+Remaining acceptance work is listed under Limits above. In particular, this change
+must not be represented as completion of every feature in the supplied master prompt.

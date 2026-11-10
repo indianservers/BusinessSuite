@@ -1,3 +1,4 @@
+import { ApplicantJourney, ApplicantLinkRecovery } from "./ApplicantJourney";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { LayoutDashboard, Users, Building2, ClipboardList, Mail, BarChart3, Settings, Wallet, Activity, UserCog, LogOut, Search, Star } from "lucide-react";
@@ -7,9 +8,11 @@ import Signups from "./Signups";
 import Customers from "./Customers";
 import Reports from "./Reports";
 import Databases from "./Databases";
+import NlpTraining from "./NlpTraining";
 import { Team, Records, Plans, SettingsPage, Operations, Profile, Audit } from "./Workspaces";
 import "./platform.css";
 const pages = [
+    ["nlp-training", "NLP training", Activity, "nlp.train"],
     ["overview", "Overview", LayoutDashboard, "reports.read"], ["signups", "Signups", Users, "signup.read"],
     ["customers", "Clients", Building2, "tenant.read"], ["plans", "Plans & billing", Wallet, "billing.read"],
     ["team", "Team", UserCog, "staff.manage"], ["tasks", "Tasks", ClipboardList, ""],
@@ -50,9 +53,11 @@ function PublicLink() {
     const [done, setDone] = useState("");
     const [busy, setBusy] = useState(false);
     const r = result.data;
+    useEffect(() => { if(r?.kind!=="tracking" || !["pending","under_review","awaiting_applicant"].includes(r.status)) return; const timer=setInterval(()=>{if(document.visibilityState==="visible")result.refresh()},15000); return ()=>clearInterval(timer); }, [r?.kind,r?.status,token]);
     async function act(action: string, values: Data = {}) { setBusy(true); setError(""); try {
         const { data } = await api.post(`/platform/public/${token}`, { action, values });
         setDone(data.message);
+        if(r?.kind==="tracking")result.refresh();
     }
     catch (e) {
         setError(message(e));
@@ -60,15 +65,13 @@ function PublicLink() {
     finally {
         setBusy(false);
     } }
-    return <main className="po-public"><p>INDIAN SERVERS · PRIVATE LINK</p><section className="po-panel"><Loading busy={result.busy} error={result.error}/>{r && <><h1>{r.title}</h1><p>{r.applicant || r.customer || r.email}</p><small>Expires {date(r.expires_at)}</small>{r.message && <div className="po-notice">{r.message}</div>}{done ? <div role="status" className="po-notice">{done}</div> : <>
-    {r.kind === "tracking" && <><p>Status: <Badge>{r.status}</Badge></p>{["pending", "under_review", "awaiting_applicant"].includes(r.status) && <button disabled={busy} onClick={() => { if (window.confirm("Withdraw this trial request?"))
-                void act("withdraw"); }}>Withdraw application</button>}</>}
-    {r.kind === "correction" && <form className="po-form" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); void act("correct", Object.fromEntries(f.entries())); }}>{Object.entries(r.fields as Data).map(([key, value]) => <label key={key}>{key.split("_").join(" ")}<input name={key} defaultValue={value || ""} type={key === "email" ? "email" : "text"} required={key !== "company_name" && key !== "notes"}/></label>)}<button disabled={busy} className="po-primary">Save corrections</button></form>}
+    return <main className="po-public"><p>INDIAN SERVERS · PRIVATE LINK</p><section className="po-panel"><Loading busy={result.busy && !result.data} error={result.error}/>{result.error&&<ApplicantLinkRecovery/>}{r && <><h1>{r.title}</h1><p>{r.applicant || r.customer || r.email}</p><small>Expires {date(r.expires_at)}</small>{r.message && <div className="po-notice">{r.message}</div>}{done && <div role="status" className="po-notice">{done}</div>}{!done || r.kind==="tracking" ? <>
+    {["tracking","correction"].includes(r.kind) && <ApplicantJourney data={r} act={act} refresh={result.refresh} busy={busy}/>}
     {["staff_invitation", "password_reset"].includes(r.kind) && <form className="po-form" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); if (f.get("password") !== f.get("confirm")) {
                 setError("Passwords do not match");
                 return;
             } void act("activate", { password: f.get("password") }); }}><label>New password<input type="password" name="password" minLength={12} maxLength={72} autoComplete="new-password" required/></label><label>Confirm password<input type="password" name="confirm" minLength={12} maxLength={72} autoComplete="new-password" required/></label><button className="po-primary" disabled={busy}>Save password</button></form>}
-    {["transfer_consent", "support_consent"].includes(r.kind) && <div className="po-actions"><button className="po-primary" disabled={busy} onClick={() => void act("approve")}>Confirm request</button>{r.kind === "support_consent" && <button disabled={busy} onClick={() => void act("decline")}>Decline</button>}</div>}</>}<Alert error={error}/></>}</section></main>;
+    {["transfer_consent", "support_consent"].includes(r.kind) && <div className="po-actions"><button className="po-primary" disabled={busy} onClick={() => void act("approve")}>Confirm request</button>{r.kind === "support_consent" && <button disabled={busy} onClick={() => void act("decline")}>Decline</button>}</div>}</> : null}<Alert error={error}/></>}</section></main>;
 }
 function Shell() {
     const location = useLocation();
@@ -90,6 +93,7 @@ function Shell() {
     if (!owner.data)
         return <main className="po-content"><Loading busy={owner.busy} error={owner.error}/><button onClick={owner.refresh}>Retry</button></main>;
     const me = owner.data;
+    if(me.role==='model_trainer')return <OwnerContext.Provider value={{me,refresh:owner.refresh}}><main className="po-content"><div className="po-actions"><strong>Indian Servers · Model training</strong><button onClick={async()=>{try{await api.post('/platform/sessions/revoke',{action:'all',reason:'Trainer signed out',values:{id:me.session_id}})}finally{sessionStorage.removeItem(platformTokenKey);window.location.assign('/platform/login')}}}>Sign out</button></div>{location.pathname!='/platform/nlp-training'?<Navigate to="/platform/nlp-training" replace/>:<NlpTraining/>}</main></OwnerContext.Provider>;
     const visible = pages.filter(p => !p[3] || me.permissions.includes(p[3])).sort((a, b) => Number((me.preferences.favorites || []).includes(b[0])) - Number((me.preferences.favorites || []).includes(a[0])));
     const first = visible[0]?.[0] || "profile";
     return <OwnerContext.Provider value={{ me, refresh: owner.refresh }}><div className={"po-shell" + (me.preferences.compact_rows ? " po-compact" : "")}><aside className="po-nav"><div className="po-brand"><strong>Indian Servers</strong><span>Platform Owner</span></div><nav>{visible.map(([path, label, Icon]) => <div className="po-nav-row" key={path}><NavLink to={`/platform/${path}`} onClick={() => setMatches(undefined)}><Icon size={17}/>{label}</NavLink><button aria-label={`Favorite ${label}`} title={`Favorite ${label}`} onClick={async () => { const old = me.preferences.favorites || []; try {
@@ -104,6 +108,6 @@ function Shell() {
     finally {
         sessionStorage.removeItem(platformTokenKey);
         window.location.assign("/platform/login");
-    } }}><LogOut size={14}/>Sign out</button></footer></aside><div className="po-main"><header className="po-topbar"><div className="po-actions"><Search size={17}/><input aria-label="Search owner portal" placeholder="Search signups and customers…" value={search} onChange={e => setSearch(e.target.value)}/></div><small>{me.name} · Local owner workspace</small><button onClick={() => navigate("/platform/profile")}>My account</button></header><main className="po-content"><Alert error={error}/>{matches && <section className="po-panel"><h2>Search results</h2>{[...(matches.signups || []).map((r: Data) => ({ ...r, type: "signup" })), ...(matches.customers || []).map((r: Data) => ({ ...r, type: "customer" }))].map((r: Data) => <p key={r.type + r.id}><button onClick={() => { navigate(`/platform/${r.type === "signup" ? "signups" : "customers"}?selected=${r.id}`); setSearch(""); }}>{r.name} · {r.status}</button></p>)}</section>}<Routes><Route index element={<Navigate to={me.preferences?.default_page && visible.some(p => p[0] === me.preferences.default_page) ? `/platform/${me.preferences.default_page}` : `/platform/${first}`} replace/>}/><Route path="overview" element={<Reports overview/>}/><Route path="reports" element={<Reports />}/><Route path="signups" element={<Signups />}/><Route path="signup-requests" element={<Navigate to="/platform/signups" replace/>}/><Route path="customers" element={<Customers />}/><Route path="databases" element={<Databases />}/><Route path="team" element={<Team />}/><Route path="plans" element={<Plans />}/><Route path="tasks" element={<Records key="tasks" workspace="tasks"/>}/><Route path="communications" element={<Records key="communications" workspace="communications"/>}/><Route path="operations" element={<Operations />}/><Route path="audit" element={<Audit />}/><Route path="settings" element={<SettingsPage />}/><Route path="profile" element={<Profile />}/><Route path="*" element={<Navigate to="/platform" replace/>}/></Routes></main></div></div></OwnerContext.Provider>;
+    } }}><LogOut size={14}/>Sign out</button></footer></aside><div className="po-main"><header className="po-topbar"><div className="po-actions"><Search size={17}/><input aria-label="Search owner portal" placeholder="Search signups and customers…" value={search} onChange={e => setSearch(e.target.value)}/></div><small>{me.name} · Local owner workspace</small><button onClick={() => navigate("/platform/profile")}>My account</button></header><main className="po-content"><Alert error={error}/>{matches && <section className="po-panel"><h2>Search results</h2>{[...(matches.signups || []).map((r: Data) => ({ ...r, type: "signup" })), ...(matches.customers || []).map((r: Data) => ({ ...r, type: "customer" }))].map((r: Data) => <p key={r.type + r.id}><button onClick={() => { navigate(`/platform/${r.type === "signup" ? "signups" : "customers"}?selected=${r.id}`); setSearch(""); }}>{r.name} · {r.status}</button></p>)}</section>}<Routes><Route index element={<Navigate to={me.preferences?.default_page && visible.some(p => p[0] === me.preferences.default_page) ? `/platform/${me.preferences.default_page}` : `/platform/${first}`} replace/>}/><Route path="nlp-training" element={me.permissions.includes("nlp.train")?<NlpTraining/>:<Navigate to="/platform" replace/>}/><Route path="overview" element={<Reports overview/>}/><Route path="reports" element={<Reports />}/><Route path="signups" element={<Signups />}/><Route path="signup-requests" element={<Navigate to="/platform/signups" replace/>}/><Route path="customers" element={<Customers />}/><Route path="databases" element={<Databases />}/><Route path="team" element={<Team />}/><Route path="plans" element={<Plans />}/><Route path="tasks" element={<Records key="tasks" workspace="tasks"/>}/><Route path="communications" element={<Records key="communications" workspace="communications"/>}/><Route path="operations" element={<Operations />}/><Route path="audit" element={<Audit />}/><Route path="settings" element={<SettingsPage />}/><Route path="profile" element={<Profile />}/><Route path="*" element={<Navigate to="/platform" replace/>}/></Routes></main></div></div></OwnerContext.Provider>;
 }
 export default function PlatformApp() { return <div className="po-root"><Routes><Route path="/platform/login" element={<Login />}/><Route path="/platform/public/:token" element={<PublicLink />}/><Route path="/platform/*" element={<Shell />}/></Routes></div>; }

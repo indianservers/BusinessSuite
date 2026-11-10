@@ -167,6 +167,8 @@ def _device_name(request: Request | None, explicit: str | None = None) -> str:
 
 
 def _token_response(db: Session, user: User, request: Request | None = None, trusted_device: bool = False, device_name: str | None = None, portal: str | None = None, auth_provider: str | None = None) -> TokenResponse:
+    from app.platform_owner.signup_journey import start_trial
+    start_trial(db,user)
     from app.core.audit_context import set_audit_actor
     set_audit_actor(user)
     session = UserSession(
@@ -460,6 +462,7 @@ class FirebaseLoginInput(BaseModel):
     token: str = Field(min_length=20, max_length=16384)
     module: Literal["hrms", "crm", "project_management", "srm", "fam"] | None = None
     provider: Literal["google", "microsoft"] = "google"
+    workspace: str | None = Field(default=None,pattern=r"^[a-z0-9-]{3,64}$")
 
 
 @router.post("/firebase/login")
@@ -481,7 +484,17 @@ def firebase_login(data: FirebaseLoginInput, request: Request, db: Session = Dep
         raise HTTPException(503, "Google sign-in is temporarily unavailable; please try again") from None
     except Exception:
         raise HTTPException(401, "Sign-in identity could not be verified") from None
+    from app.db.tenant import current_tenant
     user = db.query(User).filter(func.lower(User.email) == identity['email'].lower()).first()
+    if settings.TENANT_DATABASES_ENABLED and not current_tenant.get():
+        from app.access.workspace_login import discover
+        discovered=discover(identity,data,request,user)
+        if discovered is not None:return discovered
+    if not user or not user.is_active:
+        from app.access.applicant_login import verified_applicant_login
+        applicant = verified_applicant_login(identity['email'])
+        if applicant:
+            return applicant
     if user and not user.is_active:
         from app.apps.project_management.people_management import restore_due_suspension
         restore_due_suspension(db, user)

@@ -8,7 +8,7 @@ import { useMobile } from "@/components/mobile/useMobile";
 import { LoadingState } from "@/components/ui/state";
 import SuiteContextBar from "@/components/suite/SuiteContextBar";
 import PageContextMenu from "@/components/app/PageContextMenu";
-import PMSAssistant from "@/apps/project-management/components/PMSAssistant";
+import ActionBot from "@/components/ai-agents/ActionBot";
 import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -23,7 +23,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getProductForContext } from "@/lib/products";
 import "./mobile-workspaces.css";
 
-export default function AppLayout() { return <AppLayoutContent/>; }
+export default function AppLayout() { return <><AppLayoutContent/><ActionBot/></>; }
 
 function AppLayoutContent() {
   const location = useLocation();
@@ -52,7 +52,7 @@ function AppLayoutContent() {
   }
 
   if (["/pms", "/pms/"].includes(location.pathname) || (location.pathname === "/pms/workspaces" && (["workspace","task","invite"].some(key=>new URLSearchParams(location.search).has(key)) || new URLSearchParams(location.search).has("new") && new URLSearchParams(location.search).get("new") !== "workspace"))) {
-    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><PMSAssistant /><MobileModuleDock /></div>;
+    return <div className="mobile-dock-fullscreen flex h-dvh flex-col overflow-hidden" style={{"--pms-assistant-left":"274px"} as import("react").CSSProperties}><div className="min-h-0 flex-1 overflow-hidden"><PageContextMenu /><ErrorBoundary resetKey={location.pathname+location.search}><Suspense fallback={<LoadingState />}><FormDefaultsGate><PageWorkTools /><Outlet /></FormDefaultsGate></Suspense></ErrorBoundary></div><SessionTimeoutWarning /><MobileModuleDock /></div>;
   }
 
   return (
@@ -86,7 +86,6 @@ function AppLayoutContent() {
         {!mobileLead && <BackToTop />}
       </div>
       <SessionTimeoutWarning />
-      {!mobileLead && !isPeopleDirectory && <PMSAssistant />}
 
       {!mobileLead && <MobileModuleDock />}
       {/* Mobile overlay */}

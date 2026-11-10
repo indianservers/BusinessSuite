@@ -132,6 +132,10 @@ LEGACY = {
     "pms_get_team_workload": ("PMS", "pms.get_team_workload", "pms_view", False),
 }
 SUITE = {
+    'crm.send_lead_message': ('CRM','POST','/crm/growth/greetings/send',('crm_manage','crm_admin','crm_leads_manage')),
+    'crm.create_reminder': ('CRM','POST','/ai-operator/suite/reminders/create-approved',()),
+    'pms.create_reminder': ('PMS','POST','/ai-operator/suite/reminders/create-approved',()),
+    'hrms.create_reminder': ('HRMS','POST','/ai-operator/suite/reminders/create-approved',()),
     "crm.create_task": (
         "CRM",
         "POST",
@@ -240,6 +244,15 @@ SUITE = {
 # Explicitly reviewed module memory and lookup capabilities. Keep this registry
 # independent of runtime tool registration so new code does not self-authorize.
 SUITE.update({
+    'crm.people': ('CRM', 'GET', '/users/search', ()),
+    'crm.report': ('CRM', 'GET', '/ai-operator/suite/reports/CRM', ()),
+    'pms.report': ('PMS', 'GET', '/ai-operator/suite/reports/PMS', ()),
+    'hrms.report': ('HRMS', 'GET', '/ai-operator/suite/reports/HRMS', ()),
+    'srm.report': ('SRM', 'GET', '/ai-operator/suite/reports/SRM', ()),
+    'hrms.team_availability': ('HRMS', 'GET', '/leave/team-calendar', ()),
+    'hrms.pending_leave': ('HRMS', 'GET', '/leave/requests', ('leave_approve',)),
+    'hrms.policies': ('HRMS', 'GET', '/documents/policies', ()),
+    'pms.create_milestone': ('PMS', 'POST', '/project-management/projects/{record_id}/milestones', ('pms_manage_tasks', 'pms_admin')),
     'hrms.ticket_categories':('HRMS','GET','/helpdesk/categories',()),
     'hrms.my_tickets':('HRMS','GET','/helpdesk/tickets',()),
     'crm.companies':('CRM','GET','/crm/companies',()),

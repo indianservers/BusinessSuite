@@ -401,11 +401,11 @@ def read_tool(db, user, intent):
     if intent.tool == "customers.search":
         from app.apps.srm.commercial_api import customers
 
-        result = customers(q=intent.query, after=0, db=db, user=user)
+        result = customers(q=intent.query, after=0, db=db, user=user, ids=None)
         if not result["items"] and intent.query:
             from difflib import SequenceMatcher
 
-            candidates = customers(q="", after=0, db=db, user=user)["items"]
+            candidates = customers(q="", after=0, db=db, user=user, ids=None)["items"]
             result["items"] = [
                 r
                 for r in candidates

@@ -1,6 +1,6 @@
 import GridRecordPane from "@/shared/data-grid/GridRecordPane";
 import { useEffect, useState, type ReactNode } from "react";
-import { Mail, Eye, Phone, Maximize2, X, Pencil } from "lucide-react";
+import { Mail, Eye, Phone, MessageSquare, Maximize2, X, Pencil } from "lucide-react";
 import { WhatsAppIcon } from "@/components/actions/BrandIcons";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function RecordQuickActions({ record, onView, onMessage, onEdit }: { reco
   const blocked = communicationBlocked(record);
   return <div className="record-quick-actions" onClick={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
     <button className="record-quick-action email" aria-label={`Email ${record.name}`} title={blocked ? "Communication is blocked for this record" : record.email ? "Compose email" : "No email recorded"} disabled={blocked || !record.email} onClick={() => onMessage("email")}><Mail size={16}/></button>
+    <a className="record-quick-action message" aria-label={`Message ${record.name}`} title={blocked ? "Communication is blocked for this record" : record.phone ? "Compose text message" : "No phone recorded"} aria-disabled={blocked || !record.phone} href={!blocked && record.phone ? `sms:${record.phone.startsWith("+") ? record.phone : `${record.phone_country_code || record.phoneCountryCode || ""}${record.phone}`}` : undefined} onClick={event => {if (blocked || !record.phone) event.preventDefault();}}><MessageSquare size={16}/></a>
     <button className="record-quick-action whatsapp" aria-label={`WhatsApp ${record.name}`} title={blocked ? "Communication is blocked for this record" : whatsappNumber(record) ? "Compose WhatsApp message" : "A phone number with country code is required"} disabled={blocked || !whatsappNumber(record)} onClick={() => onMessage("whatsapp")}><WhatsAppIcon width={16} height={16}/></button>
     {record.phone && !blocked && <a className="record-quick-action call" aria-label={`Call ${record.name}`} title="Call" href={`tel:${record.phone.startsWith("+") ? record.phone : `${record.phone_country_code || record.phoneCountryCode || ""}${record.phone}`}`}><Phone size={16}/></a>}
     <button className="record-quick-action view" aria-label={`Open ${record.name} popup`} title="Open record popup" onClick={onView}><Eye size={16}/></button>

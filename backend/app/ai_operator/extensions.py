@@ -3,6 +3,7 @@
 Model output is a draft. Canonical PMS operations execute only after approval.
 """
 import json
+import math
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
@@ -422,7 +423,14 @@ def capacity(project_id: int, week_start: date, db: Session = Depends(get_db), u
     visible = [p.id for p in db.query(PMSProject).filter_by(deleted_at=None, organization_id=project.organization_id)
         if can_access_project(db, p, user, "manage_tasks")]
     tasks = db.query(PMSTask).filter(PMSTask.project_id.in_(visible), PMSTask.deleted_at.is_(None),
-        PMSTask.status.notin_(["Done", "Completed", "Cancelled"])).all()
+        PMSTask.status.notin_(["Done", "Completed", "Closed", "Cancelled", "Canceled", "Resolved"])).order_by(PMSTask.id).limit(2001).all()
+    limited = len(tasks) > 2000
+    tasks = tasks[:2000]
+    def weekdays(first, last):
+        if last < first: return 0
+        days = (last-first).days+1
+        weeks, remainder = divmod(days,7)
+        return weeks*5 + sum((first.weekday()+offset)%7 < 5 for offset in range(remainder))
     result = []
     for person in people:
         override = db.query(PMSUserCapacity).filter_by(organization_id=project.organization_id, user_id=person.id, week_start_date=start).first()
@@ -431,17 +439,18 @@ def capacity(project_id: int, week_start: date, db: Session = Depends(get_db), u
             ids = task.assignee_user_ids or ([task.assignee_user_id] if task.assignee_user_id else [])
             if person.id not in ids:
                 continue
-            if not task.start_date or not task.due_date or task.estimated_hours is None:
+            if not task.start_date or not task.due_date or task.estimated_hours is None or not math.isfinite(float(task.estimated_hours)) or float(task.estimated_hours) < 0:
                 missing += 1
                 continue
-            working = [task.start_date + timedelta(days=i) for i in range((task.due_date-task.start_date).days+1)
-                if (task.start_date+timedelta(days=i)).weekday() < 5]
+            working = weekdays(task.start_date, task.due_date)
             if working:
-                assigned += float(task.estimated_hours) / len(set(ids)) * sum(start <= d <= end for d in working) / len(working)
+                assigned += float(task.estimated_hours) / len(set(ids)) * weekdays(max(start,task.start_date), min(end,task.due_date)) / working
+            else:
+                missing += 1
         available = float(override.capacity_hours) if override else 40.0
         result.append({"user_id": person.id, "email": person.email, "capacity_hours": available,
             "allocated_hours": round(assigned, 2), "overload_hours": round(max(0, assigned-available), 2), "unscheduled_tasks": missing})
-    return {"week_start": start, "items": result,
+    return {"week_start": start, "items": result, "workload_partial": limited,
         "assumptions": "Monday–Friday; estimates spread equally across working days and assignees. Authorized projects only. Weekly PMS capacity overrides default 40h. Leave/holiday calendars are not yet deducted."}
 
 

@@ -22,6 +22,10 @@ from app.platform_owner import service as s
 from app.access.signup import SignupInput, ReviewInput, review_signup, available_modules
 
 router = APIRouter(prefix="/platform", tags=["Indian Servers Platform Owner"])
+from app.platform_owner.nlp_training import router as nlp_training_router
+router.include_router(nlp_training_router)
+from app.platform_owner.signup_journey_api import router as signup_journey_router
+router.include_router(signup_journey_router)
 from app.platform_owner.clients import router as clients_router
 router.include_router(clients_router)
 from app.platform_owner.company_removal import router as company_removal_router
@@ -203,7 +207,7 @@ def create_signup(data: SignupCreate, actor=Depends(current_platform_admin), db:
     s.require(actor, "signup.create")
     if db.query(Signup.id).filter_by(email=str(data.email).lower()).first():
         raise HTTPException(409, "A signup already uses this email")
-    row = Signup(**data.model_dump(exclude={"consent", "website", "sample_data_requested"}), assigned_to=actor.id)
+    row = Signup(**data.model_dump(exclude={"consent", "website", "sample_data_requested", "marketing_consent", "identity_proof"}), assigned_to=actor.id)
     if data.sample_data_requested:
         row.workflow = {**(row.workflow or {}), "sample_data_requested": True}
     db.add(row); db.flush()
@@ -270,6 +274,7 @@ def apply_signup_action(db, actor, row, action, reason, values):
         s.require(actor, "signup.edit")
         if row.status not in s.REVIEWABLE | {"withdrawn"}: raise HTTPException(409, "This review is already complete")
         row.status = action
+        if action=="under_review":row.workflow={**row.workflow,"reviewing":{"id":actor.id,"name":actor.name,"at":s.now().isoformat()}}
     elif action == "legal_hold":
         s.require(actor, "signup.delete")
         if not isinstance(values.get("enabled"), bool): raise HTTPException(422, "Legal hold enabled must be a boolean")
@@ -330,11 +335,16 @@ def bulk(data: Bulk, actor=Depends(current_platform_admin), db: Session = Depend
 @router.post("/signups/{ident}/review")
 def review(ident: int, data: ReviewInput, request: Request, actor=Depends(current_platform_admin),
            db: Session = Depends(get_platform_db), business: Session = Depends(get_db)):
+    s.require(actor,"signup.review")
+    if data.version is None:
+        raise HTTPException(422,"Reload the application and include its current version before making a decision")
     try:
         return review_signup(ident, data, request, actor, db, business)
     except HTTPException as exc:
-        if exc.status_code in {409, 422}:
+        if exc.status_code in {409, 422, 503}:
             row = s.signup_for(db, actor, ident, "signup.review")
+            if exc.status_code==503 and row.status=="approved":
+                raise
             db.add(PlatformRecord(kind="provisioning", title="Review needs attention", state="failed", owner_id=actor.id,
                 signup_id=row.id, data={"error": str(exc.detail), "review": data.model_dump(), "retryable": row.status in s.REVIEWABLE}))
             db.commit()
@@ -345,8 +355,12 @@ def review(ident: int, data: ReviewInput, request: Request, actor=Depends(curren
 def request_info(ident: int, data: Change, actor=Depends(current_platform_admin), db: Session = Depends(get_platform_db)):
     row = s.signup_for(db, actor, ident, "signup.edit", lock=True)
     if row.status not in s.REVIEWABLE: raise HTTPException(409, "Review already complete")
+    fields=data.values.get("fields",["name","company_name","email","phone","notes"])
+    instructions=data.values.get("instructions",{})
+    if not fields or set(fields)-{"name","company_name","email","phone","notes"} or set(instructions)-set(fields) or any(not isinstance(v,str) or len(v)>500 for v in instructions.values()):
+        raise HTTPException(422,"Choose valid correction fields and short instructions")
     record, url = s.issue_link(db, "correction", "Please update your trial application", row.email, actor, signup_id=row.id,
-                              data={"message": data.reason})
+                              data={"message": data.values.get("applicant_message",data.reason),"fields":fields,"instructions":instructions})
     row.status, row.version = "awaiting_applicant", row.version+1
     s.event(db, actor, "signup.information_requested", "signup", row.id, data.reason)
     db.commit()

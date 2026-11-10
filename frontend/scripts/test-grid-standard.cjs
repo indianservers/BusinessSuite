@@ -59,6 +59,10 @@ async function browserTests() {
     await page.goto(`${base}/qa-grid-standard`);
     const shared = page.getByTestId("shared"), adapter = page.getByTestId("adapter");
     await shared.getByLabel("Remove grouping Status").waitFor();
+    await shared.getByRole("checkbox", { name: "Select row Record 2", exact: true }).waitFor();
+    await shared.getByLabel("Add grouping column").selectOption("name");
+    await shared.getByRole("checkbox", { name: "Select row Record 1", exact: true }).waitFor();
+    await shared.getByLabel("Remove grouping Name").click();
     if (await shared.getByLabel("Remove grouping Status").count()) await shared.getByLabel("Remove grouping Status").click();
     await shared.getByRole("checkbox", { name: "Select row Record 1", exact: true }).waitFor();
     await shared.getByLabel("Rows per page", {exact:true}).selectOption("0");
@@ -101,7 +105,7 @@ async function browserTests() {
     assert.equal(await shared.getByRole("complementary").count(), 0);
     await shared.getByLabel("Add grouping column").selectOption("status");
     await shared.getByRole("button", { name: /Open.*17/ }).waitFor();
-    await shared.getByRole("button", { name: /Open.*17/ }).click();
+    assert.equal(await shared.getByRole("button", { name: /Open.*17/ }).getAttribute("aria-expanded"), "true");
     await shared.getByRole("checkbox", { name: "Select row Record 2", exact: true }).waitFor();
     await shared.getByRole("checkbox", { name: "Select row Record 2", exact: true }).click();
     await shared.getByRole("button", { name: "Fail update", exact: true }).click();

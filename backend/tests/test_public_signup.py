@@ -38,6 +38,7 @@ from app.core.config import settings
 from app.core.security import get_password_hash
 from app.platform_owner.models import PlatformBase, PlatformAdmin, PlatformRecord
 from app.platform_owner.session import get_platform_db
+from tests.test_intern_signup_settings import firebase_identity
 
 
 @pytest.fixture(autouse=True)
@@ -150,21 +151,89 @@ def test_approval_activation_and_duplicate_review(client, db, platform_headers):
     approved = approve(client, db, platform_headers, row)
     db._platform_db.refresh(row)
     user = db.get(User, row.user_id)
-    assert not user.is_superuser and not user.is_active
+    assert not user.is_superuser and user.is_active
     assert row.company_id != existing_id
     assert db.query(AccessMembership).filter_by(user_id=user.id, company_id=row.company_id, is_admin=True).one()
     policy = db.query(AccessPolicy).filter_by(user_id=user.id).one()
-    assert policy.status == "invited" and set(policy.grants) == {"crm"}
+    assert policy.status == "active" and set(policy.grants) == {"crm"}
     assert policy.grants["crm"]["scope"] == "organization"
     mail = db.query(EmailOutbox).filter_by(event_key=f"signup-approved:{row.id}").one()
-    assert mail.status == "held_local" and approved["invitation_url"] in mail.body
-    # No active login until the holder of the invitation sets a password.
+    assert mail.status == "queued" and approved["invitation_url"] in mail.body
+    # Email/password login still needs the one-time password setup.
     assert client.post(ROOT + "/login", json={"email": row.email, "password": PASSWORD}).status_code != 200
     token = activate(client, approved)
     assert client.post(ROOT + "/reset-password", json={"token": token, "new_password": PASSWORD}).status_code == 400
     login(client, row.email)
     repeated = client.post(ROOT + f"/signup-requests/{row.id}/review", headers=platform_headers, json={"decision": "approve", "reason": "Review twice", "modules": ["crm"]})
     assert repeated.status_code == 409
+
+
+def test_approved_applicant_can_use_verified_google_without_setting_password(client, db, platform_headers, firebase_identity, monkeypatch):
+    monkeypatch.setattr(settings, "FIREBASE_PROJECT_ID", "test-project")
+    monkeypatch.setattr(settings, "FIREBASE_WEB_CONFIG", {"apiKey": "test", "authDomain": "test-project.firebaseapp.com", "projectId": "test-project", "appId": "test"})
+    row = submit(client, db, "approved-google@example.com")
+    payload = {"token": firebase_identity(email=row.email), "module": "crm"}
+    from contextlib import nullcontext
+    from app.access import applicant_login
+    monkeypatch.setattr(settings, "PLATFORM_DATABASE_URL", "postgresql://test/platform")
+    monkeypatch.setattr(applicant_login, "platform_factory", lambda: lambda: nullcontext(db._platform_db))
+    pending = client.post(ROOT + "/firebase/login", json=payload)
+    assert pending.status_code == 200, pending.text
+    assert pending.json()["approval_required"] is True and "access_token" not in pending.json()
+    status_path = urlparse(pending.json()["application_url"]).path.replace("/platform/public/", "/api/v1/platform/public/")
+    status = client.get(status_path)
+    assert status.status_code == 200 and status.json()["status"] == "pending"
+    assert "Waiting for approval" in status.json()["message"]
+    assert client.get("/api/v1/auth/me").status_code in {401, 403}
+    approve(client, db, platform_headers, row)
+    response = client.post(ROOT + "/firebase/login", json=payload)
+    assert response.status_code == 200, response.text
+    assert response.json()["email"] == row.email and response.json()["is_superuser"] is False
+    assert response.json()["access_token"]
+    assert client.post(ROOT + "/firebase/login", json={**payload, "module": "fam"}).status_code == 403
+    user = db.query(User).filter_by(email=row.email).one()
+    user.is_active = False
+    db.commit()
+    assert client.post(ROOT + "/firebase/login", json=payload).status_code == 403
+    assert client.post(ROOT + f"/signup-requests/{row.id}/review", headers=platform_headers,
+                       json={"decision": "approve", "reason": "Duplicate approval", "modules": ["crm"]}).status_code == 409
+    db.refresh(user)
+    assert not user.is_active
+
+
+def test_email_applicant_status_requires_private_link_and_hides_unknown_emails(client, db):
+    row = submit(client, db, "pending-email@example.com")
+    response = client.post(ROOT + "/signup/status-link", json={"email": row.email})
+    assert response.status_code == 202
+    unknown = client.post(ROOT + "/signup/status-link", json={"email": "unknown@example.com"})
+    assert unknown.status_code == 202 and unknown.json() == response.json()
+    mail = db.query(EmailOutbox).filter_by(subject="Your BestERP application status").one()
+    assert mail.status == "queued" and mail.recipient == row.email
+    url = next(line for line in mail.body.splitlines() if "/platform/public/" in line)
+    path = urlparse(url).path.replace("/platform/public/", "/api/v1/platform/public/")
+    assert client.get(path).json()["status"] == "pending"
+    assert client.get(path + "invalid").status_code == 404
+    assert db.query(User).filter_by(email=row.email).first() is None
+
+
+def test_approval_access_finalization_can_be_retried_after_owner_commit(client, db, platform_headers, monkeypatch):
+    from app.access import signup_activation
+    row = submit(client, db, "retry-activation@example.com")
+    real = signup_activation.enable_approved_signup
+    def fail(*args):
+        raise RuntimeError("Finalization interrupted")
+    monkeypatch.setattr(signup_activation, "enable_approved_signup", fail)
+    response=client.post(ROOT+f"/signup-requests/{row.id}/review",headers=platform_headers,json={"decision":"approve","reason":"Approve for recovery test","modules":["crm"]})
+    assert response.status_code==503, response.text
+    db._platform_db.refresh(row)
+    assert row.status == "approved"
+    user = db.query(User).filter_by(email=row.email).one()
+    assert not user.is_active
+    monkeypatch.setattr(signup_activation, "enable_approved_signup", real)
+    approve(client, db, platform_headers, row)
+    db.refresh(user)
+    assert user.is_active
+    assert db.query(EmailOutbox).filter_by(event_key=f"signup-approved:{row.id}").one().status == "queued"
 
 
 def test_trial_workspace_isolation_and_expiry(client, db, platform_headers):

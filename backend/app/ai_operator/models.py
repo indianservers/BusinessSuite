@@ -147,3 +147,4 @@ class OperatorMonitor(Base):
 from app.ai_operator.assistant_models import AssistantConversation, AssistantMessage  # noqa: F401
 from app.ai_operator.workbench_models import AssistantArtifact, AssistantSignal  # noqa: F401
 from app.ai_operator.suite_models import SuiteRun  # noqa: F401
+from app.ai_operator.query_models import NlpQuery,NlpDataset  # noqa: F401

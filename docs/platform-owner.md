@@ -37,6 +37,16 @@ Customer migrations remain under the existing `alembic.ini` and must be run usin
 a privileged migration connection (set `DATABASE_URL` for that process only).
 Platform migrations are explicit; HTTP requests never create schema objects.
 
+Production signup has the same requirements. Provision the platform database
+before enabling `/signup`, apply `alembic_platform.ini upgrade head` using an
+operator migration connection, and configure both platform settings in the
+private backend environment before restarting the API. The runtime role needs
+CONNECT, schema USAGE, table DML and sequence privileges; schema ownership and
+CREATE privileges should remain with the migration operator. Include the
+platform database in backups independently of the customer database. A new
+platform store also needs an explicitly provisioned platform administrator to
+review requests; public submissions alone never create an administrator.
+
 Local owner bootstrap: `owner@indianservers.com` uses the existing local bootstrap
 password hash. It is an independent identity; changing either account later does
 not change the other. Owner tokens expire in eight hours with a configurable
@@ -51,13 +61,39 @@ created workspace without creating another. Rejecting a request with an existing
 provisioning receipt is blocked. A recovered approval relies on the queued
 invitation email rather than persisting an activation token in its receipt.
 
-Public signup submissions grant no login access. Company admins cannot list,
+Before approval, a verified Google identity or private emailed status link can
+open only the applicant status page, displaying “Waiting for approval”. No
+customer session or business data access is granted. After the owner approval
+commits, the customer account and approved module policy become active, and the
+held approval email is released to the delivery worker. The applicant can sign
+in with Google using their application email without setting a suite password,
+or use the emailed invitation to set a password once. Activation finalization
+is idempotent and retryable; subsequent approval retries never reactivate a
+suspended customer account. Company admins cannot list,
 approve or reject the platform signup queue, even if their role label contains
 “Super Admin”. The platform portal has its own session storage and sign-out.
 
 Validation: `venv/Scripts/python -m pytest tests/test_public_signup.py -q` uses
 two independent SQLite test stores. Local verification also checks actual
 PostgreSQL connections and denies cross-database access in both directions.
+## Signup journey controls
+
+The production signup journey has a three-step public form, private applicant
+status/correction pages and a version-checked approval preview. On Signups,
+expand **Signup routing, trial rules and conversion funnel** to configure
+reviewer routing, email alerts, reminder intervals and trial-start defaults.
+Approval-time starts remain the default; first-sign-in starts apply only when
+chosen for a new approval. Existing trial dates are not changed automatically.
+
+The production platform worker runs bounded mail/routing/milestone work every
+30 seconds. Owner communication intents are bridged idempotently to the normal
+email outbox. Provider acceptance is reported separately from confirmed
+delivery. Approved requests show access progress, guarded resends and an
+incomplete-step retry that does not reactivate restricted accounts.
+
+See [the 30-feature implementation and QA report](qa/signup-approval-30-2026-11-10.md)
+for scope, reproduction commands, validation limits and release recovery details.
+
 # Client management workspace
 
 The local `/platform/customers` page is now labelled **Clients**. It provides a paginated directory with business/admin/workspace/tag search, lifecycle/application/priority filters, attention queues, sorting and filtered CSV export. Portfolio totals follow the same filters and the operator's assignment scope. Contracted monthly revenue is grouped by currency and includes active contracts only; it is not cash received.

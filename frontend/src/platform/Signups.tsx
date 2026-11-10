@@ -1,3 +1,4 @@
+import { SignupJourneySettings, SignupReviewPanel } from "./SignupJourney";
 import {SmartCreateSection} from "@/shared/creation/SmartCreateSection";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -35,6 +36,7 @@ export default function Signups() {
     if (!allowed(me, "signup.read"))
         return <Alert error="Your platform role cannot view signup records."/>;
     return <><header className="po-heading"><div><h1>Signups</h1><p>Review company and individual ERP enquiries in one place.</p></div><div className="po-actions">{allowed(me, "signup.export") && <button onClick={() => download("/platform/signup-export", "platform-signups.csv").catch(e => setError(message(e)))}>Export permitted requests</button>}{allowed(me, "signup.create") && <button className="po-primary" onClick={() => setCreate(true)}>New signup</button>}</div></header><Alert error={error}/>{notice && <div className="po-notice" role="status">{notice}</div>}
+    <SignupJourneySettings/>
     <section className="po-panel"><div className="po-filters"><label>Search<input value={filters.search} onChange={e => filter("search", e.target.value)} placeholder="Name, email, phone or company"/></label><label>Status<select value={filters.status} onChange={e => filter("status", e.target.value)}>{states.map(s => <option key={s}>{s}</option>)}</select></label><label>Type<select value={filters.applicant_type} onChange={e => filter("applicant_type", e.target.value)}><option value="">All applicants</option><option>company</option><option>individual</option></select></label><label>Assigned to<select value={filters.assignee} onChange={e => filter("assignee", e.target.value)}><option value="">Everyone</option><option value="0">Unassigned</option>{staff.data?.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label></div>
     <details><summary>More filters and saved views</summary><div className="po-filters"><label>Source<input value={filters.source} onChange={e => filter("source", e.target.value)}/></label><label>Application<select value={filters.module} onChange={e => filter("module", e.target.value)}><option value="">All applications</option>{me.modules.map((m: Data) => <option key={m.key} value={m.key}>{m.label}</option>)}</select></label><label>Priority<select data-priority-badge data-priority={filters.priority} value={filters.priority} onChange={e => filter("priority", e.target.value)}><option value="">All</option>{["low", "normal", "high"].map(x => <option key={x}>{x}</option>)}</select></label><label>From<input type="date" value={filters.start} onChange={e => filter("start", e.target.value)}/></label><label>Through<input type="date" value={filters.end} onChange={e => filter("end", e.target.value)}/></label></div><div className="po-filters"><label>Saved view<select defaultValue="" onChange={e => { const view = views.data?.find(r => r.id === Number(e.target.value)); if (view) {
         setFilters({ ...fresh, ...view.data.filters });
@@ -93,9 +95,7 @@ function DetailForm({ row, staff, refresh, onPurged }: {
     const [notice, setNotice] = useState("");
     const [busy, setBusy] = useState(false);
     const [reason, setReason] = useState("");
-    const [decision, setDecision] = useState("approve");
     const [purgeConfirm, setPurgeConfirm] = useState(false);
-    const templates = useData<Data[]>("/platform/records/template");
     const editable = ["pending", "under_review", "awaiting_applicant"].includes(row.status) && allowed(me, "signup.edit");
     async function operation(action: string, values: Data = {}) { setBusy(true); setError(""); try {
         const { data } = await api.post(`/platform/signups/${row.id}/action`, { action, reason: reason || "Updated from signup workspace", values });
@@ -129,33 +129,7 @@ function DetailForm({ row, staff, refresh, onPurged }: {
         catch (err) {
             setError(message(err));
         } }}>Prepare status link</button></div>{purgeConfirm && <section className="po-note" role="alert"><strong>Permanently purge applicant personal data?</strong><p>This cannot be undone. Retention and legal hold checks still apply to request #{row.id}.</p><button type="button" className="po-danger" disabled={busy} onClick={async () => { setPurgeConfirm(false); await operation("delete"); }}>Confirm permanent purge</button><button type="button" onClick={() => setPurgeConfirm(false)}>Cancel purge</button></section>}</form>}
-    {tab === "review" && <div className="po-form">{!!row.duplicates.length && <section className="po-note"><h3>Possible duplicates</h3>{row.duplicates.map((r: Data) => <p key={r.id}>#{r.id} · {r.name} · {r.match} · {r.status}</p>)}</section>}{["pending", "under_review", "awaiting_applicant"].includes(row.status) && allowed(me, "signup.review") ? <>
-      <fieldset><legend>Review checklist</legend>{[["identity", "Business / applicant identity reviewed"], ["duplicates", "Possible duplicate records checked"], ["modules", "Requested applications checked"]].map(([key, label]) => <label className="po-check" key={key}><input type="checkbox" checked={!!draft.checklist[key]} onChange={e => setDraft({ ...draft, checklist: { ...draft.checklist, [key]: e.target.checked } })}/>{label}</label>)}<button disabled={busy} onClick={async () => { try {
-                await api.patch(`/platform/signups/${row.id}`, { version: row.version, reason: "Review checklist completed", checklist: draft.checklist });
-                refresh();
-            }
-            catch (err) {
-                setError(message(err));
-            } }}>Save checklist</button></fieldset>
-      <label>Reason template<select defaultValue="" onChange={e => { const t = templates.data?.find(t => t.id === Number(e.target.value)); if (t)
-                setReason(t.data.body || t.title); }}><option value="">Choose a template</option>{templates.data?.filter(t => t.state !== "archived").map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</select></label><form className="po-form" onSubmit={async (e) => { e.preventDefault(); setBusy(true); setError(""); const f = new FormData(e.currentTarget); try {
-                const { data } = await api.post(`/platform/signups/${row.id}/review`, { decision, reason, modules, trial_days: Number(f.get("trial_days") || 14), seats: Number(f.get("seats") || 5), storage_mib: Number(f.get("storage_mib") || 1024) });
-                setNotice(data.invitation_url ? `Approved. Local invitation: ${data.invitation_url}` : "Review saved.");
-                refresh();
-            }
-            catch (err) {
-                setError(message(err));
-            }
-            finally {
-                setBusy(false);
-            } }}><label>Decision<select value={decision} onChange={e => setDecision(e.target.value)}><option value="approve">Approve trial</option><option value="reject">Reject application</option></select></label>{decision === "approve" && <><ModulePicker value={modules} onChange={setModules}/><div className="po-form-grid"><label>Trial days<input name="trial_days" type="number" min={1} max={90} defaultValue={me.settings.trial_days} required/></label><label>Seats<input name="seats" type="number" min={1} max={10000} defaultValue={me.settings.seats} required/></label><label>Storage allowance (MiB)<input name="storage_mib" type="number" min={100} max={1048576} defaultValue={me.settings.storage_mib} required/></label></div></>}<label>Review reason<textarea value={reason} onChange={e => setReason(e.target.value)} required minLength={3}/></label><div className="po-actions"><button className="po-primary" disabled={busy}>Confirm {decision === "approve" ? "approval" : "rejection"}</button><button type="button" disabled={busy || reason.length < 3} onClick={async () => { try {
-                const { data } = await api.post(`/platform/signups/${row.id}/request-info`, { action: "request_info", reason });
-                setNotice(`Correction link prepared: ${data.url}`);
-                refresh();
-            }
-            catch (err) {
-                setError(message(err));
-            } }}>Request more information</button></div></form></> : <p>This application has no pending review action.</p>}{row.records?.filter((r: Data) => r.kind === "provisioning").map((r: Data) => <section key={r.id} className="po-note"><h3>{r.title} · {r.state}</h3>{r.data.steps && <div className="po-progress">{r.data.steps.map((x: string) => <span key={x}>{x}</span>)}</div>}{r.data.error && <p>{r.data.error}</p>}</section>)}</div>}
+    {tab === "review" && <SignupReviewPanel row={row} refresh={refresh}/>}
     {tab === "notes" && <><button className="po-primary" onClick={()=>setNoteOpen(true)}>Add internal note</button>{noteOpen && <SmartCreateSection title="Add internal note" autoOpen onClose={()=>setNoteOpen(false)}><form className="po-form" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); try {
         await api.post("/platform/records/note", { title: f.get("title"), signup_id: row.id, data: { body: f.get("body") } });
         refresh();setNoteOpen(false);

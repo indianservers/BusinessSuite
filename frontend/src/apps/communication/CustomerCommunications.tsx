@@ -138,10 +138,10 @@ function Field({
   );
 }
 
-export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnly?:boolean}={}) {
+export default function CustomerCommunications({whatsappOnly=false,initialTab="overview"}:{whatsappOnly?:boolean;initialTab?:string}={}) {
   const scope=useCenterScope();
   const [queryParams]=useSearchParams();
-  const [tab, setTab] = useState(queryParams.get("customerTab")||"overview");
+  const [tab, setTab] = useState(queryParams.get("customerTab")||initialTab);
   useEffect(()=>{if(queryParams.get("customerTab"))setTab(queryParams.get("customerTab")!);},[queryParams.get("customerTab")]);
   const [recipient, setRecipient] = useState<Row>(initialRecipient);
   const [recipientEdit, setRecipientEdit] = useState<number | null>(null);
@@ -180,19 +180,23 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
   const dashboard = useQuery({
     queryKey: ["customer-comms", scope, "dashboard"],
     queryFn: () => load("/dashboard"),
+    enabled: tab === "overview",
     refetchInterval: 15000,
   });
   const recipients = useQuery({
     queryKey: ["customer-comms", scope, "recipients"],
     queryFn: () => load("/recipients"),
+    enabled: ["customers","automations"].includes(tab),
   });
   const rules = useQuery({
     queryKey: ["customer-comms", scope, "rules"],
     queryFn: () => load("/automations"),
+    enabled: tab === "automations",
   });
   const deliveries = useQuery({
     queryKey: ["customer-comms", scope, "deliveries"],
     queryFn: () => load("/deliveries"),
+    enabled: tab === "deliveries",
     refetchInterval: 15000,
   });
   const shipments = useQuery({
@@ -203,6 +207,7 @@ export default function CustomerCommunications({whatsappOnly=false}:{whatsappOnl
   const settings = useQuery({
     queryKey: ["customer-comms", scope, "settings"],
     queryFn: () => load("/settings"),
+    enabled: tab === "settings",
   });
   const history = useQuery({
     queryKey: ["customer-comms", scope, "history", selected],

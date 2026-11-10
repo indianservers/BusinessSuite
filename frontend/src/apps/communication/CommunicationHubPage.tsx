@@ -5,9 +5,9 @@ import { contentToHtml, RICH_TEXT_PREFIX } from "@/components/rich-text/content"
 import { Input } from "@/components/ui/input";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { useState } from "react";
+import { useEffect,useState } from "react";
 import { useMutation,useQuery,useQueryClient } from "@tanstack/react-query";
-import { Home,Inbox,Mail,Layers,Megaphone,Settings2,MessageCircle } from "lucide-react";
+import { Home,Inbox,Mail,Layers,Megaphone,Settings2,MessageCircle,Workflow,BarChart3 } from "lucide-react";
 import { useLocation,useNavigate } from "react-router-dom";
 import { communicationApi } from "./api";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,11 @@ import CustomerCommunications from './CustomerCommunications';
 import SendReminders from './center/SendReminders';
 import BirthdaysPage from '@/shared/master-data/BirthdaysPage';
 import CommunicationHome from './center/CommunicationHome';
+import WorkspaceHero from './center/WorkspaceHero';
+import Analytics from './whatsapp/Analytics';
+import CommunicationSettings from './center/CommunicationSettings';
+import AutomationWorkspace from './center/AutomationWorkspace';
+import './center/premium.css';
 import EngagementInbox from './center/EngagementInbox';
 import CustomerMatchingReview from './center/CustomerMatchingReview';
 import EmailComposer from './center/EmailComposer';
@@ -32,12 +37,13 @@ type Destination={label:string;path:string;section:string};
 const groups=[
  {key:'hub',label:'Overview',icon:Home,path:'/crm/communication-hub',children:[] as Destination[]},
  {key:'inbox',label:'Inbox',icon:Inbox,path:'/crm/communication-hub?section=inbox',children:[{label:'All channels',path:'/crm/communication-hub?section=inbox',section:'inbox'},{label:'WhatsApp inbox',path:'/crm/whatsapp/inbox',section:'whatsapp-inbox'},{label:'Customer matching',path:'/crm/communication-hub?section=matching',section:'matching'},{label:'Customer workspace',path:'/crm/communication-hub?section=customers',section:'customers'}]},
- {key:'reminders',label:'Send reminders',icon:MessageCircle,path:'/crm/send-reminders',children:[] as Destination[]},
- {key:'birthdays',label:'Contact birthdays',icon:Home,path:'/crm/birthdays',children:[] as Destination[]},
- {key:'compose',label:'Compose',icon:Mail,path:'/crm/emails',children:[{label:'Email',path:'/crm/emails',section:'emails'},{label:'WhatsApp',path:'/crm/whatsapp',section:'whatsapp-send'}]},
+
+ {key:'compose',label:'Compose',icon:Mail,path:'/crm/emails',children:[{label:'Email',path:'/crm/emails',section:'emails'},{label:'WhatsApp',path:'/crm/whatsapp?workspace=send',section:'whatsapp-send'}]},
+ {key:'campaigns',label:'Campaigns',icon:Megaphone,path:'/crm/campaigns',children:[{label:'WhatsApp campaigns',path:'/crm/whatsapp?workspace=campaigns',section:'whatsapp-campaigns'},{label:'Email campaigns',path:'/crm/campaigns',section:'campaigns'},{label:'Customer automations',path:'/crm/communication-hub?section=customers&customerTab=automations',section:'automations'}]},
  {key:'templates',label:'Templates',icon:Layers,path:'/crm/email-templates',children:[{label:'Email templates',path:'/crm/email-templates',section:'templates'},{label:'WhatsApp templates',path:'/crm/whatsapp/templates',section:'whatsapp-templates'}]},
- {key:'campaigns',label:'Campaigns',icon:Megaphone,path:'/crm/campaigns',children:[{label:'Email campaigns',path:'/crm/campaigns',section:'campaigns'},{label:'Customer automations',path:'/crm/communication-hub?section=customers&customerTab=automations',section:'automations'}]},
- {key:'settings',label:'Settings & tools',icon:Settings2,path:'/crm/consents',children:[{label:'Consent',path:'/crm/consents',section:'consents'},{label:'Webforms',path:'/crm/webforms',section:'webforms'},{label:'Auto-responses',path:'/crm/auto-responses',section:'auto-responses'},{label:'Delivery workspace',path:'/crm/delivery-logs',section:'delivery-logs'},{label:'Timeline',path:'/crm/communication-timeline',section:'timeline'},{label:'WhatsApp connection',path:'/crm/whatsapp/settings',section:'whatsapp-settings'},{label:'Business profile',path:'/crm/whatsapp/profile',section:'whatsapp-profile'}]}
+ {key:'automations',label:'Automations',icon:Workflow,path:'/crm/communication-hub?section=automations&customerTab=automations',children:[] as Destination[]},
+ {key:'analytics',label:'Analytics',icon:BarChart3,path:'/crm/communication-hub?section=analytics',children:[] as Destination[]},
+ {key:'settings',label:'Settings',icon:Settings2,path:'/crm/communication-hub?section=settings',children:[{label:'Overview',path:'/crm/communication-hub?section=settings',section:'settings'},{label:'Send reminders',path:'/crm/send-reminders',section:'reminders'},{label:'Contact birthdays',path:'/crm/birthdays',section:'birthdays'},{label:'Consent',path:'/crm/consents',section:'consents'},{label:'Webforms',path:'/crm/webforms',section:'webforms'},{label:'Auto-responses',path:'/crm/auto-responses',section:'auto-responses'},{label:'Delivery workspace',path:'/crm/delivery-logs',section:'delivery-logs'},{label:'Timeline',path:'/crm/communication-timeline',section:'timeline'},{label:'WhatsApp connection',path:'/crm/whatsapp/settings',section:'whatsapp-settings'},{label:'Business profile',path:'/crm/whatsapp/profile',section:'whatsapp-profile'}]}
 ];
 function sectionFor(path:string){if(path.includes('/send-reminders'))return 'reminders';if(path.includes('/birthdays'))return 'birthdays';if(path.includes('/email-templates'))return 'templates';if(path.includes('/emails'))return 'emails';if(path.includes('/webforms'))return 'webforms';if(path.includes('/campaigns'))return 'campaigns';if(path.includes('/consents'))return 'consents';if(path.includes('/whatsapp'))return 'whatsapp';if(path.includes('/auto-responses'))return 'auto-responses';if(path.includes('/delivery-logs'))return 'delivery-logs';if(path.includes('/communication-timeline'))return 'timeline';return 'hub';}
 export default function CommunicationHubPage(){
@@ -45,21 +51,32 @@ export default function CommunicationHubPage(){
  const aliases:Record<string,string>={'email-templates':'templates',logs:'delivery-logs','delivery-logs':'delivery-logs'};
  const requested=query.get('section')||query.get('tab')||query.get('operation')||'';
  const section=location.pathname.includes('/whatsapp')?'whatsapp':requested?(aliases[requested]||requested):sectionFor(location.pathname);
- const waTab=location.pathname.split('/').pop();
- const active=section==='whatsapp'?`whatsapp-${waTab==='whatsapp'?'send':waTab}`:section;
- const group=['reminders','birthdays'].includes(section)?section:section==='whatsapp'?(waTab==='templates'?'templates':['settings','profile'].includes(waTab||'')?'settings':waTab==='whatsapp'?'compose':'inbox'):['inbox','matching','customers'].includes(section)?query.get('customerTab')==='automations'?'campaigns':'inbox':section==='emails'?'compose':section==='templates'?'templates':section==='campaigns'?'campaigns':section==='hub'?'hub':'settings';
- const current=groups.find(g=>g.key===group)!;
+ const waTab=query.get('workspace')||location.pathname.split('/').pop();
+ const active=section==='whatsapp'?`whatsapp-${waTab==='whatsapp'?'inbox':waTab}`:section;
+ const group=['analytics','automations'].includes(section)?section:['settings','reminders','birthdays'].includes(section)?'settings':section==='whatsapp'?(waTab==='analytics'?'analytics':waTab==='campaigns'?'campaigns':waTab==='send'?'compose':waTab==='templates'?'templates':['settings','profile'].includes(waTab||'')?'settings':'inbox'):['inbox','matching','customers'].includes(section)?query.get('customerTab')==='automations'?'campaigns':'inbox':section==='emails'?'compose':section==='templates'?'templates':section==='campaigns'?'campaigns':section==='hub'?'hub':'settings';
+ const current=groups.find(g=>g.key===group)||groups[0];
+ const destination=(key:string,path:string)=>section==='whatsapp'?({inbox:'/crm/whatsapp/inbox',compose:'/crm/whatsapp?workspace=send',campaigns:'/crm/whatsapp?workspace=campaigns&customerTab=automations',templates:'/crm/whatsapp/templates',analytics:'/crm/whatsapp?workspace=analytics',settings:'/crm/whatsapp/settings'} as Record<string,string>)[key]||path:path;
  const accessible=(path:string)=>canAccessRoute(path.split('?')[0],user?.role,user?.is_superuser);
- if(section==='whatsapp')return <div className="cc-center cc-whatsapp-hub" key={scope}><WhatsAppCloudPanel/></div>;
- return <div className={`cc-center${section==='whatsapp'&&waTab==='inbox'?' cc-whatsapp-inbox':''}`} key={scope}><header className="cc-shell-heading"><div className="cc-shell-title"><span><MessageCircle size={23}/></span><h1>Communication Center</h1></div><p>Customer conversations, campaigns and delivery work in one place.</p><nav className="cc-primary-nav" aria-label="Communication sections">{groups.filter(g=>accessible(g.path)||g.children.some(c=>accessible(c.path))).map(({key,label,path,icon:Icon})=><button key={key} aria-current={key===group?'page':undefined} onClick={()=>navigate(path)}><Icon size={16}/>{label}</button>)}</nav>{current.children.length>0&&<nav className="cc-secondary-nav" aria-label="Communication tools">{current.children.filter(c=>accessible(c.path)).map(child=><button key={child.path} aria-current={child.section===active||child.section==='automations'&&query.get('customerTab')==='automations'?'page':undefined} onClick={()=>navigate(child.path)}>{child.label}</button>)}</nav>}</header><div className="cc-shell-content">{section==='reminders'?<SendReminders/>:section==='birthdays'?<BirthdaysPage source="crm"/>:section==='hub'?<CommunicationHome/>:section==='inbox'?<EngagementInbox/>:section==='matching'?<CustomerMatchingReview/>:section==='customers'?<CustomerCommunications/>:section==='templates'?<Templates/>:section==='emails'?<EmailComposer/>:section==='campaigns'?<CampaignWorkspace/>:section==='webforms'?<GuidedTools key="webforms" mode="webforms"/>:section==='auto-responses'?<GuidedTools key="auto-responses" mode="auto-responses"/>:section==='consents'?<GuidedTools key="consents" mode="consents"/>:section==='timeline'?<TimelineExplorer/>:section==='whatsapp'?<WhatsAppCloudPanel/>:['delivery-logs','deliveries'].includes(section)?<DeliveryWorkspace/>:<CommunicationHome/>}</div></div>;
+
+ useEffect(()=>{
+   const shortcut=(event:KeyboardEvent)=>{
+     if(!event.altKey||event.ctrlKey||event.metaKey||!/^[1-8]$/.test(event.key))return;
+     if((event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]'))return;
+     const target=groups.filter(g=>accessible(g.path)||g.children.some(c=>accessible(c.path)))[Number(event.key)-1];
+     if(target){event.preventDefault();navigate(destination(target.key,target.path));}
+   };
+   window.addEventListener('keydown',shortcut);return()=>window.removeEventListener('keydown',shortcut);
+ },[section,location.pathname,location.search,user]);
+ return <div className={`cc-center${section==='whatsapp'&&waTab==='inbox'?' cc-whatsapp-inbox':''}`} key={scope}><header className="cc-shell-heading"><WorkspaceHero/><nav className="cc-primary-nav" aria-label="Communication sections">{groups.filter(g=>accessible(g.path)||g.children.some(c=>accessible(c.path))).map(({key,label,path,icon:Icon},index)=><button title={`${label} · Alt+${index+1}`} key={key} aria-current={key===group?'page':undefined} onClick={()=>navigate(destination(key,path))}><Icon size={16}/>{label}</button>)}</nav>{current.children.length>0&&<nav className="cc-secondary-nav" aria-label="Communication tools">{current.children.filter(c=>accessible(c.path)).map(child=><button key={child.path} aria-current={child.section===active||child.section==='automations'&&query.get('customerTab')==='automations'?'page':undefined} onClick={()=>navigate(child.path)}>{child.label}</button>)}</nav>}</header><div className="cc-shell-content">{section==='settings'?<CommunicationSettings/>:section==='analytics'?<Analytics/>:section==='automations'?<AutomationWorkspace/>:section==='reminders'?<SendReminders/>:section==='birthdays'?<BirthdaysPage source="crm"/>:section==='hub'?<CommunicationHome/>:section==='inbox'?<EngagementInbox/>:section==='matching'?<CustomerMatchingReview/>:section==='customers'?<CustomerCommunications/>:section==='templates'?<Templates/>:section==='emails'?<EmailComposer/>:section==='campaigns'?<CampaignWorkspace/>:section==='webforms'?<GuidedTools key="webforms" mode="webforms"/>:section==='auto-responses'?<GuidedTools key="auto-responses" mode="auto-responses"/>:section==='consents'?<GuidedTools key="consents" mode="consents"/>:section==='timeline'?<TimelineExplorer/>:section==='whatsapp'?<WhatsAppCloudPanel embedded/>:['delivery-logs','deliveries'].includes(section)?<DeliveryWorkspace/>:<CommunicationHome/>}</div></div>;
 }
 
 function Templates() {
  const [templateOpen,setTemplateOpen]=useState(false);
   const qc = useQueryClient();
+ const scope = useCenterScope();
   const user = useAuthStore(state => state.user);
   const canManage = Boolean(user?.is_superuser || !user?.access?.managed || Object.values(user?.access?.grants || {}).some(grant => grant.enabled && grant.permissions.includes("communication_templates_manage")));
-  const query = useQuery({queryKey:["communication-templates"],queryFn:communicationApi.templates});
+  const query = useQuery({queryKey:["communication-templates",scope],queryFn:communicationApi.templates});
   const [id,setId]=useState<number | null>(null);
   const [draft,setDraft]=useState({name:"",subject:"",content:"",module_name:"lead"});
   const [error,setError]=useState("");

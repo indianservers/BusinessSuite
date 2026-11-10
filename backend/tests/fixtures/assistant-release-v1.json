@@ -1,0 +1,22 @@
+{
+  "version": "assistant-release-v1",
+  "purpose": "Deterministic integration and policy acceptance; not a model reasoning leaderboard",
+  "suites": [
+    "tests/test_local_tensorflow.py",
+    "tests/test_local_nlp_model.py",
+    "tests/test_local_nlp_workflows.py",
+    "tests/test_ai_operator.py",
+    "tests/test_ai_operations.py",
+    "tests/test_ai_daily_briefing.py",
+    "tests/test_ai_native_operations.py",
+    "tests/test_suite_operator.py",
+    "tests/test_suite_module_agents.py",
+    "tests/test_assistant_workbench.py",
+    "tests/test_ai_reminders.py",
+    "tests/test_ai_commitments.py",
+    "tests/test_ai_followthrough_migration.py"
+  ],
+  "dimensions": ["source identity and bounded factual totals", "reviewed native workflow receipts", "ambiguity and exact quotations", "untrusted business text", "owner and tenant boundaries", "revoked sources and standing consent", "connector failures and unknown send outcomes", "measured routing and missing-cost handling"],
+  "live_gates": ["Google and Microsoft consent and recovery", "configured model generation", "production delivery receipts", "equivalent-data ClickUp comparison"],
+  "comparison_status": "not_performed"
+}

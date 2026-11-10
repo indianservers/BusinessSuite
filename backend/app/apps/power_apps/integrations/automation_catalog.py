@@ -2178,6 +2178,11 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key)
                 else quote(str(value), safe="")
             ),
         )
+    if host == 'graph.microsoft.com':
+        if data.get('mailbox') == 'me':
+            route = route.replace('/users/me/', '/me/', 1)
+        if conn.connector_id == 'microsoft_calendar' and data.get('calendar_id') == 'primary':
+            route = route.replace('/calendars/primary/', '/calendar/', 1)
     query = {
         remote: data[local] for remote, local in spec["query"].items() if local in data
     }

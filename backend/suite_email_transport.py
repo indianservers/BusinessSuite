@@ -4,9 +4,28 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid, getaddresses
+from urllib.parse import urlsplit
+from html import escape
 
 
 logger = logging.getLogger(__name__)
+
+
+def site_sender(settings):
+    """Only operator-owned deployment settings select the platform identity."""
+    site = getattr(settings, 'EMAIL_SITE', '').strip().lower()
+    if not site:
+        return None
+    identities = {'bestschool': ('BestSchool', 'info@bestschool.app', 'https://bestschool.app'),
+                  'besterp': ('BestERP', 'info@besterp.app', 'https://besterp.app')}
+    if site not in identities:
+        raise RuntimeError('Unsupported EMAIL_SITE')
+    identity = identities[site]
+    url = urlsplit(settings.FRONTEND_PUBLIC_URL)
+    # Deployment aliases use EMAIL_SITE and the canonical public URL, never Host.
+    if url.scheme != 'https' or url.netloc not in {site + '.app', 'www.' + site + '.app'} or url.path not in {'', '/'} or url.query or url.fragment:
+        raise RuntimeError('EMAIL_SITE requires its canonical HTTPS FRONTEND_PUBLIC_URL')
+    return identity
 
 
 def email_provider(settings):
@@ -19,6 +38,8 @@ def email_provider(settings):
 
 
 def email_configured(settings):
+    if site_sender(settings) and getattr(settings, 'SITE_SES_SMTP_SERVER', ''):
+        return bool(settings.SITE_SES_SMTP_USERNAME and settings.SITE_SES_SMTP_PASSWORD)
     if email_provider(settings) == "ses":
         return bool(settings.SES_FROM or settings.INTERN_HUB_SES_FROM)
     return bool(settings.MAIL_SERVER and settings.MAIL_USERNAME and settings.MAIL_PASSWORD and settings.MAIL_FROM)
@@ -58,13 +79,42 @@ def send_message(message: EmailMessage, recipients=None, *, source=None, setting
         del message["Bcc"]
     provider = email_provider(settings)
     sender = (settings.SES_FROM or settings.INTERN_HUB_SES_FROM) if provider == "ses" else settings.MAIL_FROM
-    source = source or formataddr((settings.SES_FROM_NAME if provider == "ses" else settings.MAIL_FROM_NAME, sender))
+    legacy_source = formataddr((settings.SES_FROM_NAME if provider == "ses" else settings.MAIL_FROM_NAME, sender))
+    identity = site_sender(settings)
+    use_site_transport = False
+    if identity:
+        name, site_address, _ = identity
+        expected = formataddr((name, site_address))
+        if source is None or source == expected:
+            source, sender = expected, site_address
+            use_site_transport = True
+        else:
+            addresses = getaddresses([source])
+            # Explicit legacy sources are server-owned callers such as Interns Hub.
+            # Incoming message From is always overwritten; it never selects a site.
+            allowed = {sender, getattr(settings, 'INTERN_HUB_SES_FROM', '')}
+            if len(addresses) != 1 or addresses[0][1] not in allowed or any(c in source for c in '\r\n'):
+                raise ValueError('Sender override is not allowed for this site')
+            sender = addresses[0][1]
+    source = source or legacy_source
+    if use_site_transport:
+        plain = message.get_body(preferencelist=('plain',))
+        if plain is not None and message.get_body(preferencelist=('html',)) is None and not message.is_multipart():
+            message.add_alternative('<html lang="en"><body><h1>' + escape(name) + '</h1><p>' +
+                escape(plain.get_content()).replace('\n', '<br>') + '</p><p><a href="' + identity[2] +
+                '">Open ' + escape(name) + '</a></p></body></html>', subtype='html')
     if "From" in message:
         message.replace_header("From", source)
     else:
         message["From"] = source
     if "Message-ID" not in message:
         message["Message-ID"] = make_msgid(domain=sender.split("@")[-1])
+    if use_site_transport and getattr(settings, 'SITE_SES_SMTP_SERVER', ''):
+        if settings.SITE_SES_SMTP_SERVER != 'email-smtp.us-east-1.amazonaws.com' or settings.SITE_SES_SMTP_PORT != 587:
+            raise RuntimeError('Site SES SMTP requires the us-east-1 STARTTLS endpoint on port 587')
+        return _smtp(message, recipients, host=settings.SITE_SES_SMTP_SERVER, port=587,
+            username=settings.SITE_SES_SMTP_USERNAME, password=settings.SITE_SES_SMTP_PASSWORD,
+            sender=sender, implicit_tls=False, starttls=True)
     if provider == "ses":
         host = settings.SES_SMTP_SERVER or settings.INTERN_HUB_SES_SMTP_SERVER
         if host:
@@ -84,5 +134,5 @@ def send_message(message: EmailMessage, recipients=None, *, source=None, setting
             payload["ConfigurationSetName"] = settings.SES_CONFIGURATION_SET
         return client.send_raw_email(**payload)["MessageId"]
     return _smtp(message, recipients, host=settings.MAIL_SERVER, port=settings.MAIL_PORT,
-        username=settings.MAIL_USERNAME, password=settings.MAIL_PASSWORD, sender=settings.MAIL_FROM,
+        username=settings.MAIL_USERNAME, password=settings.MAIL_PASSWORD, sender=sender,
         implicit_tls=settings.MAIL_SSL_TLS, starttls=settings.MAIL_STARTTLS)

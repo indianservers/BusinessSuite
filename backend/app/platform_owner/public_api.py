@@ -35,10 +35,36 @@ def preview(token: str, request: Request, db: Session = Depends(get_platform_db)
     if row.kind in {"tracking", "correction"}:
         signup = db.get(PlatformSignupRequest, row.signup_id)
         if not signup or signup.deleted_at: raise HTTPException(404, "Request no longer available")
+        if row.data.get("recipient") and row.data["recipient"].lower()!=signup.email.lower():
+            raise HTTPException(404,"This link is no longer valid. Request a fresh link using your current application email.")
         result["status"] = signup.status
         result["applicant"] = signup.company_name or signup.name
+        result.update({"reference":f"BS-{signup.id:06d}","email":signup.email,"modules":signup.requested_modules,
+            "submitted_at":signup.created_at,"last_checked_at":s.now(),"support_url":"/help",
+            "review_target_hours":s.settings_for(db)["sla_hours"],
+            "elapsed_business_hours":round(s.business_hours_between(signup.created_at,s.now(),s.settings_for(db)),1)})
+        from app.platform_owner.models import PlatformEvent
+        safe_actions={"signup.received":"Submitted","signup.under_review":"Under review","signup.information_requested":"Action needed",
+            "signup.corrected_by_applicant":"Corrections received","signup.approved":"Approved","signup.rejected":"Decision made","signup.withdrawn_by_applicant":"Withdrawn"}
+        result["timeline"]=[{"label":safe_actions[e.action],"at":e.created_at} for e in db.query(PlatformEvent).filter_by(entity="signup",entity_id=signup.id).order_by(PlatformEvent.id) if e.action in safe_actions]
+        if row.kind == "tracking":
+            result["message"] = "Waiting for approval. You can access your workspace once your application is approved." if signup.status in s.REVIEWABLE else "Your application has been " + signup.status.replace("_", " ") + "."
+            if signup.status == "approved":
+                from app.core.config import settings
+                from app.platform_owner.models import PlatformTenantDatabase
+                placement = db.query(PlatformTenantDatabase).filter_by(signup_id=signup.id, status="ready").first()
+                result["login_url"] = settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/login" + ("?tenant=" + placement.workspace_code if placement else "")
+                result["message"]="Your application is approved. Continue with Google using your application email, or request a fresh email password setup link below."
+            elif signup.status=="awaiting_applicant":
+                correction=db.query(PlatformRecord).filter_by(signup_id=signup.id,kind="correction",state="pending").order_by(PlatformRecord.id.desc()).first()
+                result["message"]="We need a few details before completing your review. Open the correction link in your latest email."
+            elif signup.status=="rejected":
+                result["message"]=signup.workflow.get("applicant_message") or "We cannot approve this request at this time. Contact Help & support to discuss your options."
+            elif signup.status=="withdrawn":
+                result["message"]="You withdrew this application. Contact support if you want to apply again."
         if row.kind == "correction":
-            result["fields"] = {k: getattr(signup,k) for k in ["name", "company_name", "email", "phone", "notes"]}
+            result["fields"] = {k: getattr(signup,k) for k in row.data.get("fields",["name", "company_name", "email", "phone", "notes"]) if k!="company_name" or signup.applicant_type=="company"}
+            result["instructions"]=row.data.get("instructions",{})
             result["message"] = row.data.get("message", "")
     elif row.kind in {"staff_invitation", "password_reset"}:
         result["email"] = row.data["recipient"]
@@ -55,16 +81,41 @@ def submit(token: str, data: PublicAction, request: Request, db: Session = Depen
     limit(db, request)
     row = s.public_record(db, token)
     if row.kind == "tracking":
-        if data.action != "withdraw": raise HTTPException(422, "Unknown applicant action")
-        signup = db.get(PlatformSignupRequest, row.signup_id)
-        if signup.status not in s.REVIEWABLE: raise HTTPException(409, "Review is already complete")
-        signup.status, signup.version = "withdrawn", signup.version+1
-        s.event(db, None, "signup.withdrawn_by_applicant", "signup", signup.id)
+        signup = db.query(PlatformSignupRequest).filter_by(id=row.signup_id).with_for_update().first()
+        if not signup or signup.deleted_at or row.data.get("recipient",signup.email).lower()!=signup.email.lower():
+            raise HTTPException(404,"This application link is no longer valid")
+        from app.platform_owner.signup_journey import mail
+        if data.action=="password_link" and signup.status=="approved":
+            from app.core.request_limits import consume
+            retry=consume(db,[(f"signup-password-link:{signup.id}",3,3600)])
+            db.commit()
+            if retry:raise HTTPException(429,"Please wait before requesting another link",headers={"Retry-After":str(retry)})
+            from app.platform_owner.signup_journey import business_for
+            from app.api.v1.auth import _hash_reset_token
+            from app.models.user import User
+            from app.core.config import settings
+            import secrets
+            with business_for(db,business,signup) as target:
+                user=target.get(User,signup.user_id)
+                if not user or user.email.lower()!=signup.email.lower():raise HTTPException(409,"Contact support to reconcile this account")
+                raw=secrets.token_urlsafe(40)
+                user.password_reset_token,user.password_reset_expires=_hash_reset_token(raw),s.now()+timedelta(hours=48)
+                target.commit()
+            from app.platform_owner.models import PlatformTenantDatabase
+            placement=db.query(PlatformTenantDatabase).filter_by(signup_id=signup.id,status="ready").first()
+            url=settings.FRONTEND_PUBLIC_URL.rstrip("/")+"/invite-access?token="+raw+("&tenant="+placement.workspace_code if placement else "")
+            mail(db,signup,"Set your BestERP password",f"Set your password once using this private link (48 hours):\n{url}",f"password-link:{signup.id}:{s.digest(raw)}")
+        elif data.action=="withdraw":
+            if signup.status not in s.REVIEWABLE: raise HTTPException(409, "Review is already complete")
+            signup.status, signup.version = "withdrawn", signup.version+1
+            s.event(db, None, "signup.withdrawn_by_applicant", "signup", signup.id)
+            mail(db,signup,"Your BestERP application was withdrawn","Your withdrawal has been recorded. No business access has been granted. Contact support if you want to apply again.",f"withdrawn:{signup.id}:{signup.version}")
+        else:raise HTTPException(422,"This action is not available for the current application status")
     elif row.kind == "correction":
         signup = db.query(PlatformSignupRequest).filter_by(id=row.signup_id).with_for_update().first()
         if not signup or signup.status != "awaiting_applicant": raise HTTPException(409, "Corrections are no longer requested")
         values = data.values
-        if set(values)-{"name", "company_name", "email", "phone", "notes"}: raise HTTPException(422, "Unknown application field")
+        if set(values)-set(row.data.get("fields",["name", "company_name", "email", "phone", "notes"])): raise HTTPException(422, "Only the requested correction fields can be changed")
         before = s.encode(signup)
         from app.access.signup import SignupInput
         try:
@@ -76,8 +127,11 @@ def submit(token: str, data: PublicAction, request: Request, db: Session = Depen
             raise HTTPException(422,"Please check the applicant name, company, email and phone fields") from None
         if db.query(PlatformSignupRequest.id).filter(PlatformSignupRequest.email == checked.email, PlatformSignupRequest.id != signup.id).first():
             raise HTTPException(409, "That email is already used by another request")
+        if "email" in values and checked.email!=signup.email:
+            signup.workflow={**signup.workflow,"email_verified":False}
         for key in values: setattr(signup,key,getattr(checked,key))
         signup.status, signup.version, row.state = "under_review", signup.version+1, "completed"
+        row.token_hash=None
         s.event(db, None, "signup.corrected_by_applicant", "signup", signup.id, before=before, after=s.encode(signup))
     elif row.kind in {"staff_invitation", "password_reset"}:
         password = str(data.values.get("password", ""))

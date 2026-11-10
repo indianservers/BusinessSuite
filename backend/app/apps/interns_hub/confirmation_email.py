@@ -19,7 +19,7 @@ def deliver_ses(**payload):
     message["To"] = ", ".join(payload["Destination"]["ToAddresses"])
     message["Subject"] = payload["Message"]["Subject"]["Data"]
     message.set_content(payload["Message"]["Body"]["Text"]["Data"])
-    source = None if settings.SES_FROM else payload["Source"]
+    source = payload["Source"]
     return {"MessageId": send_message(message, payload["Destination"]["ToAddresses"], source=source)}
 
 

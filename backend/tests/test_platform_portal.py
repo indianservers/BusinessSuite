@@ -92,9 +92,11 @@ def test_staff_roles_assigned_scopes_and_cross_scope_duplicate_visibility(client
 def test_checklist_and_trial_entitlements_are_enforced(client,db,platform_headers,platform_store):
     platform_store.query(PlatformRecord).filter_by(kind="settings").one().data={"require_checklist":True};platform_store.commit()
     row=submit(client,db)
-    payload={"decision":"approve","reason":"Valid trial","modules":["crm"],"seats":3,"storage_mib":500,"trial_days":7}
+    payload={"decision":"approve","reason":"Valid trial","modules":["crm"],"seats":3,"storage_mib":500,"trial_days":7,"version":row.version}
     call(client,platform_headers,"post",f"/signups/{row.id}/review",payload,422)
     call(client,platform_headers,"patch",f"/signups/{row.id}",{"version":1,"reason":"Practical checks complete","checklist":{"identity":True,"duplicates":True,"modules":True}})
+    platform_store.refresh(row)
+    payload["version"]=row.version
     call(client,platform_headers,"post",f"/signups/{row.id}/review",payload)
     tenant=platform_store.query(PlatformTenant).one()
     assert tenant.config["seats"]==3 and tenant.config["storage_mib"]==500
@@ -113,7 +115,7 @@ def test_correction_and_status_links_are_private_single_application_capabilities
     assert client.post(ROOT+"/public/"+token,json={"action":"correct","values":{"name":"Replay"}}).status_code==404
     tracking=call(client,platform_headers,"post",f"/signups/{row.id}/tracking-link")["url"].rsplit("/",1)[-1]
     preview=client.get(ROOT+"/public/"+tracking).json()
-    assert preview["status"]=="under_review" and "email" not in preview
+    assert preview["status"]=="under_review" and preview["email"]==row.email
     assert client.get(ROOT+"/public/not-a-real-token").status_code==404
 
 

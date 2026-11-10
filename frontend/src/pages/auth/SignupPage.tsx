@@ -1,83 +1,42 @@
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { phoneError } from "@/lib/validation";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Building2, ShieldCheck, LayoutGrid, UsersRound, Handshake, Layers, ShoppingCart, Database, Zap, ArrowRight, UserRound, Mail, Pencil, UserPlus, Phone } from "lucide-react";
+import { api } from "@/services/api";
 import "./suite-signup.css";
 
-import { Button } from "@/components/ui/button";
-import { api } from "@/services/api";
-import { errorMessage } from "@/apps/crm/leads/api";
-
-export default function SignupPage() {
-  const [modules, setModules] = useState<{key: string; label: string}[]>();
-  const [selected, setSelected] = useState<string[]>([]);
-  const [kind, setKind] = useState("company");
-  const [phone, setPhone] = useState("");
-  const [phoneCode, setPhoneCode] = useState("+91");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [sent, setSent] = useState(false);
-  const load = () => {
-    setError("");
-    void api.get("/auth/signup/options").then(r => setModules(r.data.modules))
-      .catch(() => setError("Could not load available applications. Please retry."));
-  };
-  useEffect(load, []);
-  return <main className={`trial-page trial-${kind}`}>
-    <div className="trial-layout">
-      <aside className="trial-intro">
-        <Link to="/" className="trial-brand"><span className="trial-logo"><LayoutGrid size={32}/></span><span><strong>Business Suite</strong><small>Your Connected Workspace</small></span></Link>
-        <div className="trial-pitch"><h2>{kind === "company" ? <>Run your business<br/>in one connected<br/><em>workspace</em></> : <>One workspace for<br/>your entire business</>}</h2><p>{kind === "company" ? "A unified suite to manage your people, projects, finance, sales, and inventory — all in one place." : "Try Business Suite with a free software trial and experience a connected, simpler way to manage your work—built for individuals and teams."}</p></div>
-        <div className="trial-illustration" aria-hidden="true"><div className="trial-orbit"/><div className="trial-dashboard"><div className="trial-dashboard-sidebar"><LayoutGrid size={20}/><i/><i/><i/><i/></div><div className="trial-dashboard-body"><strong><LayoutGrid size={15}/> Business Suite</strong><div className="trial-dashboard-widgets"><div className="trial-chart"><span/><span/><span/><span/><span/></div><div className="trial-donut"/><div className="trial-lines"><i/><i/><i/></div><div className="trial-lines"><i/><i/><i/></div></div></div></div></div>
-        <div className="trial-benefits">{[[Zap,"All-in-One Business Suite","HRMS, CRM, Projects, Sales & Inventory, and Finance"],[ShieldCheck,"Secure & Private","Your data is isolated and always protected"],[UsersRound,"Built for Growing Businesses","A scalable workspace for teams of any size"]].map(([Icon,title,description])=>{const BenefitIcon=Icon as typeof Zap;return <div className="trial-benefit" key={String(title)}><span><BenefitIcon size={25}/></span><div><strong>{String(title)}</strong><p>{String(description)}</p></div></div>;})}</div>
-      </aside>
-    <div className="trial-form-area">
-      <div className="trial-signin">Already registered? <Link to="/login">Sign in <ArrowRight size={15}/></Link></div>
-      <section className="trial-card"><header className="trial-card-heading"><span className="trial-heading-icon">{kind === "company" ? <Building2 size={30}/> : <UserPlus size={30}/>}</span><div>
-        <h1 className="text-2xl font-semibold">Sign up for a software trial</h1>
-        <p className="mt-2 text-sm text-slate-600">For companies and individuals. Tell us what you need; our team will review your request before granting access.</p></div></header>
-        {sent ? <div role="status" className="mt-6 space-y-4 rounded-xl border border-green-200 bg-green-50 p-5"><h2 className="font-semibold">Request submitted</h2><p>We’ll review your request. If approved, you’ll receive an email invitation to set your password and access your workspace.</p><p className="text-sm">No account access has been granted yet. Your trial duration and applications are confirmed on approval.</p><Button asChild><Link to="/login">Back to sign in</Link></Button></div> : <form className="trial-form" onSubmit={async e => {
-          e.preventDefault(); setError("");
-          if (!selected.length) { setError("Select at least one application to trial."); return; }
-          const form = new FormData(e.currentTarget);
-          setBusy(true);
-          try {
-            await api.post("/auth/signup", {
-              applicant_type: kind, name: String(form.get("name") || "").trim(),
-              company_name: kind === "company" ? String(form.get("company_name") || "").trim() : null,
-              email: String(form.get("email") || "").trim(), phone, phone_country_code: phoneCode,
-              requested_modules: selected, notes: String(form.get("notes") || "").trim(),
-              source: (new URLSearchParams(window.location.search).get("utm_source") || "website").slice(0, 80),
-              campaign: (new URLSearchParams(window.location.search).get("utm_campaign") || "").slice(0, 120),
-              consent: form.get("consent") === "on", website: String(form.get("website") || ""),
-              sample_data_requested: kind === "company" && form.get("sample_data_requested") === "on",
-            });
-            setSent(true);
-          } catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
-        }}>
-          <fieldset disabled={busy} className="trial-fields">
-            <legend className="mb-2 text-sm font-medium">I am signing up as</legend>
-            <div className="trial-kind">{[["company", "Company"], ["individual", "Individual"]].map(([value, label]) => <label className={kind===value?"selected":""} key={value}><input type="radio" name="applicant_type" value={value} checked={kind === value} onChange={() => setKind(value)}/>{label}</label>)}</div>
-            <div className="trial-contact-grid">
-              <label className={`trial-field ${kind === "individual" ? "trial-name-wide" : ""}`}><span><UserRound size={16}/> Your name</span><input className="block w-full rounded-md border p-3" placeholder="Enter your full name" name="name" autoComplete="name" required minLength={2} maxLength={150}/></label>
-              {kind === "company" && <label className="trial-field"><span><Building2 size={16}/> Company name</span><input className="block w-full rounded-md border p-3" placeholder="Enter your company name" name="company_name" autoComplete="organization" required maxLength={150}/></label>}
-              <label className="trial-field"><span><Mail size={16}/> Email</span><input className="block w-full rounded-md border p-3" placeholder="Enter your work email" name="email" type="email" autoComplete="email" required maxLength={100}/></label>
-              <div className="trial-field"><span><Phone size={16}/> Phone</span><PhoneInput placeholder="Enter phone number" label="Phone" name="phone" value={phone} countryCode={phoneCode} onChange={setPhone} onCountryCodeChange={setPhoneCode} required disabled={busy}/></div>
-            </div>
-            <fieldset className="trial-applications"><legend><LayoutGrid size={19}/> Applications you want to try</legend>
-              {!modules && <p role="status" className="text-sm">Loading applications…</p>}
-              <div className="trial-app-grid">{modules?.map(m => {const config = /hrms/i.test(m.key)?[UsersRound,"HRMS","Manage people and attendance"]:/crm/i.test(m.key)?[Handshake,"CRM","Manage customers and relationships"]:/project|pms/i.test(m.key)?[Layers,"Projects","Plan, track, and deliver projects"]:/srm|inventory|sales/i.test(m.key)?[ShoppingCart,"Sales & Inventory","Handle sales, orders, and inventory"]:/fam|finance/i.test(m.key)?[Database,"Finance & Accounting","Manage accounts, expenses, and reports"]:[LayoutGrid,m.label,""];const Icon=config[0] as typeof LayoutGrid;return <label key={m.key} className={selected.includes(m.key)?"selected":""}><input type="checkbox" checked={selected.includes(m.key)} onChange={e => setSelected(v => e.target.checked ? [...v, m.key] : v.filter(k => k !== m.key))}/><span className="trial-app-icon"><Icon size={24}/></span><span><strong>{String(config[1])}</strong><small>{String(config[2])}</small></span></label>;})}</div>
-            </fieldset>
-            <label className="trial-notes"><span><Pencil size={17}/> What would you like to manage? <span className="text-slate-500">(optional)</span></span><textarea className="block min-h-24 w-full rounded-md border p-3" placeholder="e.g., employee management, customer relationships, project tracking, inventory, accounting, etc." name="notes" maxLength={2000}/></label>
-            <div className="hidden" aria-hidden="true"><label>Website<input name="website" tabIndex={-1} autoComplete="off"/></label></div>
-            {kind === "company" && <label className="trial-consent"><input type="checkbox" name="sample_data_requested"/><span>Ask me to import sample data after company approval. Includes 300+ fictional records per approved application, with an option to delete them.</span></label>}
-            <label className="trial-consent"><input className="mt-1" type="checkbox" name="consent" required/><span>I agree to be contacted about this trial request and understand that access requires approval.</span></label>
-            {error && <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}{!modules && <Button type="button" variant="link" onClick={load}>Retry</Button>}</div>}
-            <Button type="submit" className="trial-submit" disabled={busy || !modules?.length}>{busy ? "Submitting…" : <>Request trial access <ArrowRight size={20}/></>}</Button>
-          </fieldset>
-        </form>}
-      </section>
-    </div>
-    </div>
-  </main>;
+type Values = {name:string;company_name:string;email:string;phone:string;phone_country_code:string;applicant_type:"company"|"individual";requested_modules:string[];notes:string;sample_data_requested:boolean};
+const fresh:Values={name:"",company_name:"",email:"",phone:"",phone_country_code:"+91",applicant_type:"company",requested_modules:[],notes:"",sample_data_requested:false};
+const draftKey="besterp-signup-draft-v1";
+function clearDraft(){try{localStorage.removeItem(draftKey)}catch{}}
+export default function SignupPage(){
+  const [params]=useSearchParams();const policy=params.get("policy");
+  const [v,setV]=useState<Values>(fresh),[step,setStep]=useState(0),[modules,setModules]=useState<{key:string;label:string}[]>([]),[errors,setErrors]=useState<Record<string,string>>({}),[busy,setBusy]=useState(false),[sent,setSent]=useState(false),[saveDraft,setSaveDraft]=useState(false),[saved,setSaved]=useState<Values>(),[consent,setConsent]=useState(false),[marketing,setMarketing]=useState(false),[metrics,setMetrics]=useState(false),[proof,setProof]=useState(""),[google,setGoogle]=useState(false),[policies,setPolicies]=useState<{terms:string[];privacy:string[];version:string}>();
+  const heading=useRef<HTMLHeadingElement>(null);const summary=useRef<HTMLDivElement>(null);const session=useRef(crypto.randomUUID());
+  function change<K extends keyof Values>(key:K,value:Values[K]){setV(old=>({...old,[key]:value}));if(key==="email")setProof("");setErrors(old=>{const next={...old};delete next[key];return next})}
+  function track(event:string){if(!metrics)return;const source=(params.get("utm_source")||"website").replace(/[^a-z0-9_-]/gi,"").slice(0,40)||"website";void api.post("/auth/signup/telemetry",{event,source,session:session.current}).catch(()=>{})}
+  async function load(){try{const r=await api.get("/auth/signup/options");setModules(r.data.modules)}catch{setErrors({form:"Applications could not load. Please retry."})}}
+  useEffect(()=>{void load();void api.get("/auth/firebase/config").then(r=>setGoogle(!!r.data.enabled)).catch(()=>{});try{const draft=JSON.parse(localStorage.getItem(draftKey)||"null");if(draft?.expires>Date.now()&&draft.values&&typeof draft.values.email==="string"&&Array.isArray(draft.values.requested_modules))setSaved(draft.values);else clearDraft()}catch{clearDraft()}},[]);
+  useEffect(()=>{if(policy)void api.get("/auth/signup/policies").then(r=>setPolicies(r.data)).catch(()=>setErrors({form:"Policy information could not load. Please retry."}))},[policy]);
+  useEffect(()=>{if(saveDraft&&!sent){try{localStorage.setItem(draftKey,JSON.stringify({expires:Date.now()+86400000,values:v}))}catch{setSaveDraft(false);setErrors({form:"This browser could not save your draft. You can continue without saving on this device."})}}},[v,saveDraft,sent]);
+  useEffect(()=>{heading.current?.focus();document.title=`${sent?"Request submitted":policy?"Application "+policy:`Step ${step+1} of 3: ${["Your identity","Workspace needs","Review application"][step]}`} · BestERP`;},[step,sent,policy]);
+  useEffect(()=>{if(Object.keys(errors).length)summary.current?.focus()},[errors]);
+  useEffect(()=>{if(metrics)track(["started","identity_complete","needs_complete"][step])},[step,metrics]);
+  async function verifyGoogle(){setBusy(true);setErrors({});try{const {verifySignupGoogle}=await import("@/services/firebaseLogin");const data=await verifySignupGoogle();setV(old=>({...old,email:data.email,name:data.name||old.name}));setProof(data.identity_proof)}catch{setErrors({email:"Google verification could not finish. Try again or enter your email instead."})}finally{setBusy(false)}}
+  function validate(){const e:Record<string,string>={};if(step===0){if(v.name.trim().length<2)e.name="Enter your full name (at least 2 characters).";if(v.applicant_type==="company"&&v.company_name.trim().length<2)e.company_name="Enter your company name.";if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email))e.email="Enter an email address you control.";const phoneIssue=phoneError(v.phone,v.phone_country_code,true,false);if(phoneIssue)e.phone=phoneIssue;}if(step===1&&!v.requested_modules.length)e.requested_modules="Choose at least one application.";if(step===2&&!consent)e.consent="Confirm that you understand the review and essential communications.";setErrors(e);return !Object.keys(e).length}
+  async function submit(){if(!validate())return;setBusy(true);try{await api.post("/auth/signup",{...v,company_name:v.applicant_type==="company"?v.company_name:null,consent,sample_data_requested:v.applicant_type==="company"&&v.sample_data_requested,marketing_consent:marketing,identity_proof:proof,source:(params.get("utm_source")||"website").slice(0,80),campaign:(params.get("utm_campaign")||"").slice(0,120),website:""});track("submitted");setSent(true);clearDraft();setSaved(undefined)}catch(err){const detail=(err as {response?:{data?:{detail?:unknown}}}).response?.data?.detail;const e:Record<string,string>={};if(Array.isArray(detail))for(const item of detail){const key=item.loc?.at(-1)||"form";e[key]=item.msg||"Please check this value."}else e.form=typeof detail==="string"?detail:"Could not submit your application. Your answers are preserved; please retry.";if(e.email||e.name||e.phone||e.company_name)setStep(0);else if(e.requested_modules)setStep(1);setErrors(e)}finally{setBusy(false)}}
+  function field(key:"name"|"company_name"|"email",label:string,type="text"){return <div className="trial-field"><label htmlFor={`signup-${key}`}><span>{label}</span><input id={`signup-${key}`} name={key} type={type} autoComplete={key==="name"?"name":key==="email"?"email":"organization"} value={v[key]} maxLength={key==="email"?100:150} onChange={e=>change(key,e.target.value)} aria-invalid={!!errors[key]} aria-describedby={errors[key]?`error-${key}`:undefined} required/></label>{errors[key]&&<small id={`error-${key}`} role="alert">{errors[key]}</small>}</div>}
+  const domain=v.email.split("@")[1]?.toLowerCase();const suggested=({"gmail.con":"gmail.com","gmal.com":"gmail.com","gmial.com":"gmail.com","outlook.con":"outlook.com"} as Record<string,string>)[domain];
+  if(policy)return <main className="signup-policy"><h1 ref={heading} tabIndex={-1}>{policy==="privacy"?"Application privacy":"Trial application terms"}</h1><p>Operational information · Version {policies?.version||"2026-11-10"}</p>{(policy==="privacy"?policies?.privacy:policies?.terms)?.map(p=><p key={p}>{p}</p>)}{errors.form&&<p role="alert">{errors.form}</p>}<Link to="/signup">Back to application</Link> · <Link to="/help">Help & support</Link></main>;
+  return <main className={`trial-page trial-${v.applicant_type}`}><a className="signup-skip" href="#signup-heading">Skip to application</a><div className="trial-layout"><aside className="trial-intro"><Link to="/" className="trial-brand"><strong>BestERP</strong></Link><div className="trial-pitch"><h2>Your business. <br/>One connected workspace.</h2><p>Choose the applications you need. We’ll review your request and confirm your trial before granting access.</p></div><ol className="signup-explainer"><li>Apply without a password</li><li>Track review with your application email</li><li>After approval, use Google or set a password once</li></ol><p>Trial dates and allowances are confirmed on approval. No subscription is purchased by applying.</p><Link to="/help">Questions? Help & support</Link></aside><div className="trial-form-area"><div className="trial-signin"><Link to="/login">Sign in</Link> · <Link to="/login?application=1">Check application status</Link></div><section className="trial-card"><h1 id="signup-heading" ref={heading} tabIndex={-1}>Sign up for a software trial</h1>{sent?<section role="status"><h2>Request submitted</h2><p>We’ll send a receipt and private status link to your application email. If you applied before, use Check application status rather than submitting again.</p><p>No business access is granted while waiting. After approval, use Google with the same email or use the invitation to set a password once.</p><Link className="signup-primary" to="/login?application=1">Check application status</Link><p><Link to="/login">Back to sign in</Link></p></section>:<>
+  <nav aria-label="Application progress" className="signup-steps">{["Your identity","Workspace needs","Review"].map((s,i)=><span key={s} aria-current={step===i?"step":undefined}>{i+1}. {s}</span>)}</nav>
+  {saved&&!saveDraft&&<div role="status" className="signup-note">A draft is saved on this device. <button type="button" onClick={()=>{setV({...fresh,...saved});setSaveDraft(true);setSaved(undefined)}}>Restore draft</button> <button type="button" onClick={()=>{clearDraft();setSaved(undefined)}}>Delete draft</button></div>}
+  <div className="signup-options"><label><input type="checkbox" checked={saveDraft} onChange={e=>{setSaveDraft(e.target.checked);if(!e.target.checked)clearDraft()}}/>Save my draft on this device for 24 hours</label><label><input type="checkbox" checked={metrics} onChange={e=>setMetrics(e.target.checked)}/>Share basic form progress to help improve signup (optional)</label></div>
+  {!!Object.keys(errors).length&&<div ref={summary} tabIndex={-1} role="alert" className="signup-errors"><strong>Please check your application</strong><ul>{Object.entries(errors).map(([key,msg])=><li key={key}><a href={`#signup-${key}`} onClick={e=>{e.preventDefault();document.getElementById(`signup-${key}`)?.focus()}}>{msg}</a></li>)}</ul>{!modules.length&&<button type="button" onClick={()=>void load()}>Retry loading applications</button>}</div>}
+  <form className="trial-form" noValidate onSubmit={e=>{e.preventDefault();if(step<2){if(validate()){setErrors({});setStep(step+1)}}else void submit()}}><fieldset disabled={busy} className="trial-fields"><legend className="signup-step-title">Step {step+1} of 3: {["Your identity","Workspace needs","Review application"][step]}</legend>
+  {step===0&&<>{google&&<button type="button" className="signup-secondary" onClick={()=>void verifyGoogle()}>Continue with Google to prefill details</button>}{proof&&<p role="status">Google email verified: {v.email}</p>}<fieldset className="trial-kind"><legend>I am applying as</legend>{(["company","individual"] as const).map(k=><label key={k}><input type="radio" name="applicant_type" checked={v.applicant_type===k} onChange={()=>change("applicant_type",k)}/>{k==="company"?"Company":"Individual"}</label>)}</fieldset>{field("name","Your name")}{v.applicant_type==="company"&&field("company_name","Company name")}{field("email","Application email","email")}<small>Use this same email for status updates and sign-in after approval.</small>{suggested&&<p className="signup-note">Did you mean <button type="button" onClick={()=>change("email",v.email.split("@")[0]+"@"+suggested)}>{v.email.split("@")[0]}@{suggested}</button>? We won’t change it automatically.</p>}<PhoneInput id="signup-phone" name="phone" label="Phone" value={v.phone} countryCode={v.phone_country_code} onChange={value=>change("phone",value)} onCountryCodeChange={value=>change("phone_country_code",value)} error={errors.phone} required/></>}
+  {step===1&&<><fieldset id="signup-requested_modules" tabIndex={-1} className="trial-applications"><legend>Applications you want to try</legend><div className="trial-app-grid">{modules.map(m=><label key={m.key} className={v.requested_modules.includes(m.key)?"selected":""}><input type="checkbox" checked={v.requested_modules.includes(m.key)} onChange={e=>change("requested_modules",e.target.checked?[...v.requested_modules,m.key]:v.requested_modules.filter(k=>k!==m.key))}/><strong>{m.label}</strong></label>)}</div>{errors.requested_modules&&<p role="alert">{errors.requested_modules}</p>}</fieldset><label className="trial-field">What would you like to manage? (optional)<textarea value={v.notes} maxLength={2000} onChange={e=>change("notes",e.target.value)}/></label>{v.applicant_type==="company"&&<label className="trial-consent"><input type="checkbox" checked={v.sample_data_requested} onChange={e=>change("sample_data_requested",e.target.checked)}/>Offer optional, removable sample data after approval</label>}<p>Optional questions can be skipped.</p></>}
+  {step===2&&<><div className="signup-review"><h2>Confirm your application email</h2><strong>{v.email}</strong><p>{v.name}{v.applicant_type==="company"?` · ${v.company_name}`:""}</p><p>{v.phone_country_code} {v.phone}</p><p>Requested: {modules.filter(m=>v.requested_modules.includes(m.key)).map(m=>m.label).join(", ")}</p><p>Your reviewer confirms the trial duration, start rule, seats and storage before access is granted.</p><button type="button" onClick={()=>setStep(0)}>Correct contact details</button></div><label className="trial-consent"><input id="signup-consent" type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>I understand access requires approval and agree to essential communications about this request.</label><p><Link to="/signup?policy=terms" target="_blank" rel="noopener">Trial application terms</Link> · <Link to="/signup?policy=privacy" target="_blank" rel="noopener">Application privacy</Link></p><label className="trial-consent"><input type="checkbox" checked={marketing} onChange={e=>setMarketing(e.target.checked)}/>I would also like product news and offers (optional)</label></>}
+  <div className="signup-navigation">{step>0&&<button type="button" className="signup-secondary" onClick={()=>{setErrors({});setStep(step-1)}}>Back</button>}<button className="signup-primary" disabled={busy||!modules.length}>{busy?"Please wait…":step===2?"Request trial access":"Continue"}</button></div></fieldset></form></>}
+  </section></div></div></main>;
 }

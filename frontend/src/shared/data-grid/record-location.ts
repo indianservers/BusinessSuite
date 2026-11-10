@@ -18,3 +18,11 @@ export function locationValue(item: unknown, field: typeof locationFields[number
   }
   return "";
 }
+
+/** Match address fields exactly so workflow state and country calling codes stay put. */
+export function isLocationField(label: string): boolean {
+  return /^(?:(?:billing|shipping|present|permanent)\s+)?(?:city|country|state(?:\s*\/\s*region)?|region|pin\s*code|postal\s*code|zip(?:\s*code)?)(?:\s*\*)?$/i.test(label.trim().replace(/_/g, " "));
+}
+export function locationLast<T>(items: T[], label: (item: T) => string): T[] {
+  return [...items.filter(item => !isLocationField(label(item))), ...items.filter(item => isLocationField(label(item)))];
+}

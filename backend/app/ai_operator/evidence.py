@@ -17,6 +17,12 @@ def records(value):
 
 def source_link(tool, row, project_id=None):
     ident = row.get('id')
+    if tool.endswith('.report'):
+        return '/ai-agents/operator'
+    if tool == 'hrms.policies':
+        return '/documents'
+    if tool == 'crm.people':
+        return '/crm/tasks'
     if tool.startswith('pms.'):
         if tool == 'pms.tasks' and type(ident) is int:
             return f'/pms/tasks/{ident}'
@@ -26,6 +32,8 @@ def source_link(tool, row, project_id=None):
         entity = tool.split('.')[1]
         entity = {'task': 'tasks', 'deal': 'deals', 'lead': 'leads'}.get(entity, entity)
         return f'/crm/{entity}'
+    if tool.startswith('srm.'):
+        return {'srm.invoices':'/srm/invoices','srm.invoice':'/srm/invoices','srm.inventory':'/srm/inventory','srm.sales_orders':'/srm/sales-orders'}.get(tool,'/srm')
     return '/leave' if tool == 'hrms.my_leave' else '/helpdesk'
 
 

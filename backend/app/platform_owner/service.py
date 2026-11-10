@@ -7,8 +7,9 @@ from sqlalchemy import or_
 from app.platform_owner.models import PlatformAdmin, PlatformEvent, PlatformRecord, PlatformSignupRequest, PlatformTenant
 
 ALL_PERMISSIONS = {"signup.read", "signup.create", "signup.edit", "signup.review", "signup.archive", "signup.delete", "signup.export",
-    "tenant.read", "tenant.manage", "billing.read", "billing.manage", "staff.manage", "reports.read", "settings.manage", "audit.read", "tools.manage"}
+    "tenant.read", "tenant.manage", "billing.read", "billing.manage", "staff.manage", "reports.read", "settings.manage", "audit.read", "tools.manage", "nlp.train"}
 ROLES = {
+    "model_trainer": {"nlp.train"},
     "owner": ALL_PERMISSIONS,
     "reviewer": {"signup.read", "signup.edit", "signup.review", "signup.archive", "tenant.read", "reports.read"},
     "sales": {"signup.read", "signup.create", "signup.edit", "tenant.read", "reports.read"},
@@ -114,6 +115,10 @@ def issue_link(db, kind, title, recipient, actor=None, signup_id=None, tenant_id
     url = settings.FRONTEND_PUBLIC_URL.rstrip("/") + "/platform/public/" + raw
     permission = "staff.manage" if kind in {"staff_invitation","password_reset"} else "tenant.manage" if kind=="transfer_consent" else "tools.manage" if kind=="support_consent" else "signup.review"
     local_mail(db, recipient, title, f"{title}\n\n{url}\n\nThis private link expires {row.expires_at.isoformat()}.", actor, signup_id, tenant_id,permission)
+    if signup_id and kind in {"correction", "tracking"}:
+        from app.platform_owner.signup_journey import mail
+        signup=db.get(PlatformSignupRequest,signup_id)
+        mail(db,signup,title,f"{title}\n\n{url}\n\nThis private link expires {row.expires_at.isoformat()}.",f"{kind}:{signup_id}:{row.id}")
     return row, url
 
 

@@ -263,7 +263,7 @@ def router_for(domain):
         candidates.update(uid for uid, in db.query(User.id).filter(User.is_superuser.is_(True)).all())
         users = db.query(User).filter(User.is_active.is_(True), User.id.in_(candidates))
         if q.strip(): users = users.filter(User.email.ilike("%" + q.strip() + "%"))
-        return [{"user_id": u.id, "email": u.email} for u in users.order_by(User.email).limit(100).all() if company in company_ids(db, u)]
+        return [{"user_id": u.id, "email": u.email} for u in users.order_by(User.email).all() if company in company_ids(db, u)]
     @child.get("/activity")
     def recent_activity(db: Session = Depends(get_db), actor=Depends(get_current_user)):
         visible_items = listing(db, domain, actor)["items"]

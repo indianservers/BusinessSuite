@@ -1,5 +1,54 @@
 import { test, expect } from '../frontend/node_modules/playwright/test';
 
+test('local command library selects local intelligence and previews lead outreach without sending',async({page})=>{
+  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('/ai-workspace-qa.html');
+  await page.getByText('Local command library · 100+ examples per module',{exact:true}).click();
+  await page.getByLabel('Local example module').selectOption('CRM');
+  await page.getByRole('button',{name:'Load local command examples',exact:true}).click();
+  await expect(page.getByText('CRM: 120 commands',{exact:false})).toBeVisible();
+  await page.getByRole('button',{name:'CRM: send a message to all leads',exact:false}).click();
+  await expect(page.getByLabel('Assistant provider')).toHaveValue('local');
+  await page.getByRole('button',{name:'Send',exact:true}).click();
+  await expect(page.getByText('Which channel: email, WhatsApp or SMS?',{exact:false})).toBeVisible();
+  await page.getByLabel('Suite command').fill('email all leads subject "Check-in" body "Hello {{name}}"');
+  await page.getByRole('button',{name:'Send',exact:true}).click();
+  const result=page.getByRole('region',{name:'Local command result'});
+  await expect(result.getByText('Message preview only: 1 eligible; 1 blocked. Nothing sent.')).toBeVisible();
+  await expect(result.getByText('Customer has opted out of this channel',{exact:false})).toBeVisible();
+  await expect(result.getByText('Review and approve the exact send action below. No other page is needed.')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
+  expect(await page.evaluate(()=>(window as any).__assistantQaCommands.every((row:any)=>row.provider==='local'))).toBe(true);
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('suite:branch-changed')));
+  await expect(page.getByRole('region',{name:'Local command result'})).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('operations show explicit links and projections and create bounded reviewed rules', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/ai-workspace-qa.html');
+  const panel = page.getByRole('region', { name: 'Business operations' });
+  await panel.getByRole('button', { name: 'Load customer delivery', exact: true }).click();
+  await expect(panel.getByRole('link', { name: 'customer: Acme QA customer' })).toBeVisible();
+  await expect(panel.getByText('Deal link missing or unavailable under current access')).toBeVisible();
+  await panel.getByRole('button', { name: 'Preview capacity scenario', exact: true }).click();
+  await panel.getByLabel('Scenario person').selectOption('7');
+  await panel.getByLabel('Additional scenario hours').fill('30');
+  await panel.getByRole('button', { name: 'Preview capacity scenario', exact: true }).click();
+  await expect(panel.getByText('Person #7:', { exact: false })).toContainText('overload 10h');
+  await panel.getByRole('button', { name: 'Inspect playbooks and memory', exact: true }).click();
+  await panel.getByLabel('Operational playbook').selectOption('88');
+  await panel.getByLabel('Rule proposal limit').fill('2');
+  await panel.getByRole('button', { name: 'Enable reviewed proposals', exact: true }).click();
+  expect(await page.evaluate(() => (window as any).__qaOperationalRules[0].payload)).toMatchObject({ autonomous: false, max_runs: 2, enabled: true });
+  await panel.getByRole('button', { name: 'Load assistant health', exact: true }).click();
+  await expect(panel.getByText('Missing costs are not zero.')).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('suite:branch-changed')));
+  await expect(panel.getByRole('link', { name: 'customer: Acme QA customer' })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('unified workspace shows sources, filters, provider choice and exact action review', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -29,4 +78,124 @@ test('unified workspace shows sources, filters, provider choice and exact action
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('suite:branch-changed')));
   await expect(page.getByText('saved record #15', { exact: false })).toHaveCount(0);
   expect(errors).toEqual([]);
+});
+
+test('native report filters, CSV download and invoice draft preview stay in the shared workspace', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/ai-workspace-qa.html');
+  const operations = page.getByRole('region', { name: 'Native reports and reviewed actions' });
+  await operations.getByLabel('Report status').fill('To Do');
+  await operations.getByRole('button', { name: 'Run report', exact: true }).click();
+  await expect(operations.getByText('2 matching / 2 scanned', { exact: false })).toBeVisible();
+  const downloadEvent = page.waitForEvent('download');
+  await operations.getByRole('button', { name: 'Download CSV' }).click();
+  expect((await downloadEvent).suggestedFilename()).toBe('crm-tasks-report.csv');
+  await operations.getByRole('button', { name: 'Prepare action', exact: true }).click();
+  await operations.getByLabel('Native action').selectOption('srm.draft_invoice');
+  await operations.getByLabel('Invoice customer').selectOption('7');
+  await operations.getByLabel('Invoice line 1 description').fill('Implementation services');
+  await operations.getByLabel('Invoice line 1 quantity').fill('2');
+  await operations.getByLabel('Invoice line 1 unit_price').fill('1250.50');
+  await operations.getByRole('button', { name: 'Preview exact action' }).click();
+  await expect(page.getByRole('button', { name: 'Approve these exact actions' })).toBeVisible();
+  const command = await page.evaluate(() => (window as any).__assistantQaCommands.at(-1));
+  expect(command.provider).toBe('local');
+  expect(command.local_plan.steps[0]).toMatchObject({ tool: 'srm.draft_invoice', payload: { customer_id: 7, currency: 'INR', lines: [{ description: 'Implementation services', quantity: '2', unit_price: '1250.50' }] } });
+  expect(command.local_plan.steps[0].payload).not.toHaveProperty('status');
+  expect(errors).toEqual([]);
+});
+
+test('follow-through requires reminder approval and commitment confirmation and shows both connector setups', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/ai-workspace-qa.html');
+  const panel = page.getByRole('region', { name: 'Reminders commitments and connected communication' });
+  await panel.getByLabel('Reminder record').selectOption('1');
+  await panel.getByLabel('Reminder title').fill('Follow delivery');
+  await panel.getByRole('button', { name: 'Preview reminder', exact: true }).click();
+  await expect(panel.getByLabel('Exact reminder review')).toContainText('qa@example.test');
+  expect(await page.evaluate(() => (window as any).__qaReminderApprovals)).toBe(0);
+  await panel.getByRole('button', { name: 'Approve exact reminder', exact: true }).click();
+  expect(await page.evaluate(() => (window as any).__qaReminderApprovals)).toBe(1);
+  await panel.getByRole('button', { name: 'Cancel unsent reminders', exact: true }).click();
+  await expect(panel.getByText('cancelled · in_app')).toBeVisible();
+  await panel.getByRole('button', { name: 'Commitments', exact: true }).click();
+  await panel.getByLabel('Commitment transcript').fill('Alice: I will send the proposal by 2030-01-10.');
+  await panel.getByRole('button', { name: 'Extract commitment drafts', exact: true }).click();
+  await expect(panel.getByRole('button', { name: 'Prepare commitment task' })).toHaveCount(0);
+  await panel.getByLabel('Commitment 1-1 owner').selectOption('7');
+  await panel.getByRole('button', { name: 'Confirm owner and date', exact: true }).click();
+  await panel.getByRole('button', { name: 'Prepare commitment task', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Approve these exact actions' })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__assistantQaCommands.at(-1).commitment_id)).toBe(1);
+  await panel.getByRole('button', { name: 'Connections', exact: true }).click();
+  await panel.getByRole('button', { name: 'Check connection health', exact: true }).click();
+  await expect(panel.getByText('Google Gmail', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Microsoft Outlook', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Microsoft Calendar', { exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+
+test('typed confirmation approves the reviewed action without another model command',async({page})=>{
+ await page.goto('/ai-workspace-qa.html');
+ await page.getByLabel('Suite command').fill('CRM: email all leads subject "Check-in" body "Hello {{name}}"');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Suite plan review'})).not.toContainText('private-preview-token');
+ await page.getByLabel('Suite command').fill('yes');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Suite plan review'})).toContainText('succeeded');
+ expect(await page.evaluate(()=>(window as any).__qaSuiteApprovals)).toBe(1);
+ expect(await page.evaluate(()=>(window as any).__assistantQaCommands.length)).toBe(1);
+});
+
+test('new conversation clears pending action context without approving it',async({page})=>{
+ await page.goto('/ai-workspace-qa.html');
+ await page.getByLabel('Suite command').fill('CRM: email all leads subject "Check-in" body "Hello {{name}}"');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
+ await page.getByRole('button',{name:'New conversation',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Suite plan review'})).toHaveCount(0);
+ await expect(page.getByLabel('Suite command')).toHaveValue('');
+ await page.getByLabel('Suite command').fill('CRM: what are todays jobs');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ expect(await page.evaluate(()=>(window as any).__assistantQaCommands.at(-1).parent_run_id)).toBeUndefined();
+ expect(await page.evaluate(()=>(window as any).__qaSuiteApprovals||0)).toBe(0);
+ await expect(page.getByRole('button',{name:'Approve these exact actions'})).toHaveCount(0);
+});
+
+test('ambiguous yes keeps the question and conversation until an actual title is supplied',async({page})=>{
+ await page.goto('/ai-workspace-qa.html');
+ await page.getByLabel('Suite command').fill('CRM: create a conversation task');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Suite plan review'})).toContainText('What title should I use?');
+ await page.getByLabel('Suite command').fill('yes');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Suite plan review'})).toContainText('Please provide a short task title');
+ await expect(page.getByRole('button',{name:'Approve these exact actions'})).toHaveCount(0);
+ await page.getByLabel('Suite command').fill('Review the synthetic request');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Action conversation'})).toContainText('yes');
+ const requests=await page.evaluate(()=>(window as any).__assistantQaCommands);
+ expect(requests[1].parent_run_id).toBe(1000);
+ expect(requests[2].parent_run_id).toBe(1001);
+ expect(await page.evaluate(()=>(window as any).__qaSuiteApprovals||0)).toBe(0);
+});
+
+test('typed new conversation resets context without submitting or approving an action',async({page})=>{
+ await page.goto('/ai-workspace-qa.html');
+ await page.getByLabel('Suite command').fill('CRM: email all leads subject "Check-in" body "Hello {{name}}"');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Approve these exact actions'})).toBeVisible();
+ await page.getByLabel('Suite command').fill('please start a fresh conversation');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Suite plan review'})).toHaveCount(0);
+ expect(await page.evaluate(()=>(window as any).__assistantQaCommands.length)).toBe(1);
+ expect(await page.evaluate(()=>(window as any).__qaSuiteApprovals||0)).toBe(0);
+ await page.getByLabel('Suite command').fill('CRM: what are todays jobs');
+ await page.getByRole('button',{name:'Send',exact:true}).click();
+ expect(await page.evaluate(()=>(window as any).__assistantQaCommands.at(-1).parent_run_id)).toBeUndefined();
 });

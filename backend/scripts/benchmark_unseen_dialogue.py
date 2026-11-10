@@ -1,0 +1,27 @@
+"""Evaluate frozen wording after model selection; never train on these probes."""
+import argparse
+import json
+import os
+from pathlib import Path
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+
+
+def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--model-dir',required=True);args=parser.parse_args()
+    folder=Path(args.model_dir).resolve();os.environ['LOCAL_NLP_MODEL_DIR']=str(folder);os.environ['LOCAL_NLP_TRAINING_DIR']=str(folder/'isolated-unseen-evaluation')
+    from app.ai_operator.dialogue_unseen import cases
+    from app.ai_operator.dialogue_tensorflow import predict
+    failures=[];rows=cases();by_class={}
+    for row in rows:
+        prediction=predict(row['module'],row['intent'],row['pending'],row['text'])
+        success=bool(prediction and prediction['act']==row['act'])
+        metric=by_class.setdefault(row['act'],{'passed':0,'total':0});metric['total']+=1;metric['passed']+=int(success)
+        if not success:failures.append({**row,'actual':prediction['act'] if prediction else None})
+    report={'total':len(rows),'passed':len(rows)-len(failures),'accuracy':(len(rows)-len(failures))/len(rows),'by_class':by_class,'failures':failures,
+            'limits':'120 authored wording probes, excluded from training and model selection. Small synthetic set, not production accuracy. Predictions do not authorize execution.'}
+    (folder/'unseen-dialogue-evaluation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+    print(json.dumps({k:v for k,v in report.items() if k!='failures'},indent=2))
+
+
+if __name__=='__main__':main()

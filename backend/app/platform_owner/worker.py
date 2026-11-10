@@ -19,11 +19,25 @@ def check_once():
 
 
 async def run():
-    if settings.ENVIRONMENT != "development" or not settings.PLATFORM_DATABASE_URL or make_url(settings.PLATFORM_DATABASE_URL).host not in {"127.0.0.1", "localhost"}:
+    if settings.ENVIRONMENT == "test" or not settings.PLATFORM_DATABASE_URL:
         return
+    cycles=0
     while True:
-        await asyncio.sleep(300)
+        await asyncio.sleep(30)
         try:
-            await asyncio.to_thread(check_once)
+            await asyncio.to_thread(signup_cycle)
+            cycles+=1
+            if cycles%10==0 and settings.ENVIRONMENT=="development" and make_url(settings.PLATFORM_DATABASE_URL).host in {"127.0.0.1","localhost"}:
+                await asyncio.to_thread(check_once)
         except Exception as exc:
             logger.warning("Local platform due-work check failed: %s", type(exc).__name__)
+
+
+def signup_cycle():
+    from app.platform_owner.session import platform_factory
+    from app.db.session import LegacySessionLocal
+    from app.platform_owner.signup_journey import due_work,deliver,synchronize_logins
+    with platform_factory()() as owner,LegacySessionLocal() as business:
+        due_work(owner)
+        deliver(owner,business)
+        synchronize_logins(owner,business)

@@ -3,3 +3,5 @@
 @media(max-width:639px){.record-directory-header h1{font-size:21px}.record-directory-grid{padding:6px}.record-quick-action{width:36px;height:36px}.record-message-dialog{max-height:95dvh!important;overflow:auto}.record-directory-header>div:last-child{flex-wrap:wrap}}
 
 .record-directory table th,.record-directory table td{white-space:nowrap}.record-directory table th{font-size:11px}.record-directory table td{font-size:12px}
+
+.record-quick-action[aria-disabled="true"]{opacity:.4;cursor:not-allowed}

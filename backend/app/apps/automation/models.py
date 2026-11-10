@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, Index
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
@@ -236,4 +236,9 @@ class AutomationScheduledJob(Base):
     last_error = Column(Text)
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    __table_args__ = (Index('uq_ai_job_request', organization_id, created_by, job_type,
+        payload_json['ai_request_key'].as_string(), unique=True,
+          postgresql_where=job_type.in_(['ai_reminder', 'ai_commitments','ai_nlp_training']),
+          sqlite_where=job_type.in_(['ai_reminder', 'ai_commitments','ai_nlp_training'])),)
 

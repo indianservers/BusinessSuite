@@ -88,7 +88,10 @@ def process_operator_queue() -> dict:
     from app.ai_operator.jobs import process_batch
     db = SessionLocal()
     try:
-        return process_batch(db)
+        result=process_batch(db)
+        from app.ai_operator.training import process_training
+        result['nlp_training']=process_training(db)
+        return result
     finally:
         db.close()
 

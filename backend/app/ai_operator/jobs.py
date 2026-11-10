@@ -91,13 +91,15 @@ def queue_approved_plan(db, user, approval):
     return approval
 
 
-def claim(db, *, now=None):
+def claim(db, *, now=None, run_ids=None):
     now = now or now_utc()
     # CAS works on SQLite too; PostgreSQL avoids waiting on other workers.
     eligible = or_((OperatorJob.status == "queued") & (OperatorJob.available_at <= now),
                    (OperatorJob.status == "running") & (OperatorJob.lease_until < now))
     for _ in range(5):
-        job_id = db.query(OperatorJob.id).filter(eligible).order_by(OperatorJob.available_at, OperatorJob.id).with_for_update(skip_locked=True).limit(1).scalar()
+        query=db.query(OperatorJob.id).filter(eligible)
+        if run_ids is not None:query=query.filter(OperatorJob.run_id.in_(run_ids))
+        job_id = query.order_by(OperatorJob.available_at, OperatorJob.id).with_for_update(skip_locked=True).limit(1).scalar()
         if job_id is None:
             db.commit()
             return None
@@ -305,17 +307,18 @@ def process_claim(db, job_id, token):
             scope_user._suite_current_module,scope_user._suite_permission_objects,scope_user._suite_grants = previous_permissions
 
 
-def process_batch(db, *, limit=20, time_budget=50):
+def process_batch(db, *, limit=20, time_budget=50, run_ids=None, include_schedulers=True):
     import time
     start, counts = time.monotonic(), {}
     for _ in range(min(limit, 100)):
         if time.monotonic() - start >= time_budget:
             break
-        claimed = claim(db)
+        claimed = claim(db,run_ids=run_ids)
         if not claimed:
             break
         result = process_claim(db, *claimed)
         counts[result] = counts.get(result, 0) + 1
+    if not include_schedulers:return counts
     from app.ai_operator.extensions import check_monitors
     monitors = check_monitors(db, limit=min(limit, 20))
     if monitors["checked"]:

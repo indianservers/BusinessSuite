@@ -1,0 +1,14 @@
+import { Link } from 'react-router-dom';
+import { ShieldCheck, Layers, Workflow, Clock3, History, Mail, Radio, Users } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/services/api';
+import { useCenterScope } from './shared';
+import { whatsappBase, type Status } from '../whatsapp/types';
+
+export default function CommunicationSettings(){
+  const scope=useCenterScope();
+  const status=useQuery({queryKey:['whatsapp',scope,'status'],queryFn:async()=>(await api.get<Status>(whatsappBase+'/status')).data,staleTime:60000});
+  const data=status.data;
+  const tools=[{title:'WhatsApp Business',icon:ShieldCheck,description:'Existing sender, connection verification, inbound branch routing and business profile.',path:'/crm/whatsapp/settings'}, {title:'Template library',icon:Layers,description:'Meta approval statuses, synchronization and reusable email content.',path:'/crm/whatsapp/templates'}, {title:'Channels & email',icon:Mail,description:'Customer email sender and reply receiver configuration.',path:'/crm/communication-hub?section=customers&customerTab=settings'}, {title:'Automations',icon:Workflow,description:'Event triggers, delivery rules and existing workflow execution.',path:'/crm/communication-hub?section=automations&customerTab=automations'}, {title:'Delivery & retries',icon:Clock3,description:'Inspect provider evidence and retry only eligible failed requests.',path:'/crm/delivery-logs'}, {title:'Consent & exclusions',icon:Users,description:'Communication preferences, opt-outs and authorized recipient eligibility.',path:'/crm/consents'}, {title:'Audit timeline',icon:History,description:'Review recorded communication activity and delivery history.',path:'/crm/communication-timeline'}, {title:'Customer matching',icon:Radio,description:'Resolve unlinked conversations and conflicting phone matches.',path:'/crm/communication-hub?section=matching'}];
+  return <section className="cc-settings-overview"><div className="cc-section-title"><div><h2>Communication settings</h2><p>Connections, delivery policies and access to your existing communication tools.</p></div></div><article className="cc-channel-summary"><ShieldCheck size={27}/><div><h3>{data?.connection?.businessName||'WhatsApp Business integration'}</h3><p>{status.isPending?'Loading account…':status.isError?'Account status could not be loaded.':data?.connection?.displayNumber||'No sending number returned by the account service.'}</p></div><span className="cc-status">{status.isError?'Unavailable':data?.configured?'Configured':status.isPending?'Checking…':'Setup required'}</span><span className="cc-status">Webhook: {data?.webhookConfigured?'configured':'not confirmed'}</span></article><div className="cc-settings-grid">{tools.map(({title,icon:Icon,description,path})=><Link key={title} to={path}><Icon size={23}/><div><h3>{title}</h3><p>{description}</p></div><span aria-hidden>→</span></Link>)}</div></section>;
+}

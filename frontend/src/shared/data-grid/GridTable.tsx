@@ -44,7 +44,7 @@ export default function GridTable({ children, gridId, allowExport = false, pinAc
   const records: RecordRow[] = rows.map((row, i) => ({ id: String(row.key ?? i), values: elements(row.props.children).map((cell,index) => /\bpriority\b/i.test(gridHeaderText(headers[index]?.props.children).trim()) ? cellPriority(cell) || gridCellText(cell).trim() : gridCellText(cell).trim()) }));
   const hasSelection = headers.some(h => contains(h.props.children, checkbox)) || rows.some(row => contains(row.props.children, checkbox));
   const titles = headers.map(header => gridHeaderText(header.props.children));
-  const statusIndex = titles.findIndex(title => /^(status|stage|state|approval status|billing status|employment status)$/i.test(title));
+  const statusIndex = titles.findIndex(title => /^(status|stage|approval status|billing status|employment status)$/i.test(title));
   const identityMatch = titles.findIndex(title => /^(sales order|billing plan|engagement|name|title|task|project|employee|lead|contact|company|customer|account|record|document|file|item|product|invoice|order|contract|campaign)(\s*\/.*)?$/i.test(title));
   const identityIndex = identityMatch >= 0 ? identityMatch : hasSelection ? 1 : 0;
   const columns: GridColumn<RecordRow>[] = headers.map((header, index) => {

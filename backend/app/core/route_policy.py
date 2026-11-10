@@ -19,7 +19,7 @@ PUBLIC_CAPABILITIES = (
     r"/power-apps/native-hooks/[^/]+",
     r"/power-apps/native-apps/[^/]+/[^/]+",
     r"/power-apps/integrations/oauth/callback",
-    r"/auth/signup(?:/options)?",
+    r"/auth/signup(?:/options|/status-link|/identity|/policies|/telemetry|/invitation)?",
     r"/auth/platform/login",
     r"/platform/(?:password-reset|public/[^/]+)",
     r"/auth/(branding|login|refresh|forgot-password|reset-password|mfa/verify|firebase/(config|login))",

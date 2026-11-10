@@ -1,6 +1,6 @@
 import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, GoogleAuthProvider, OAuthProvider, inMemoryPersistence, setPersistence, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "firebase/auth";
-import { authApi } from "./api";
+import { api, authApi } from "./api";
 
 export const SOCIAL_REDIRECT_KEY = "suite-social-redirect-provider";
 type SocialFirebaseOptions = FirebaseOptions & { googleAuthDomain?: string };
@@ -34,7 +34,10 @@ export async function completeGoogleRedirect(config: SocialFirebaseOptions) {
   try {
     const result = await getRedirectResult(auth);
     if (!result) throw new Error("Google did not return a sign-in result. Check that browser storage is available and try again.");
-    return await authApi.firebaseLogin(await result.user.getIdToken(), undefined, "google");
+    const token=await result.user.getIdToken();
+    const response=await authApi.firebaseLogin(token, undefined, "google");
+    if(response.data.workspace_required)response.data={...response.data,identity_token:token,identity_provider:"google"};
+    return response;
   } finally {
     sessionStorage.removeItem(SOCIAL_REDIRECT_KEY);
     sessionStorage.removeItem("suite-social-redirect-remember");
@@ -49,10 +52,24 @@ export async function socialFirebaseLogin(config: SocialFirebaseOptions, module:
   provider.setCustomParameters({prompt:"select_account"});
   try {
     const result = await signInWithPopup(auth,provider);
-    return await authApi.firebaseLogin(await result.user.getIdToken(), module, identityProvider);
+    const token=await result.user.getIdToken();
+    const response=await authApi.firebaseLogin(token, module, identityProvider);
+    if(response.data.workspace_required)response.data={...response.data,identity_token:token,identity_provider:identityProvider};
+    return response;
   } finally {
     await signOut(auth);
   }
+}
+
+export async function verifySignupGoogle(){
+  const {data}=await authApi.firebaseConfig();
+  const auth=socialAuth(data.firebase_config,"google");
+  await setPersistence(auth,inMemoryPersistence);
+  const provider=new GoogleAuthProvider();provider.setCustomParameters({prompt:"select_account"});
+  try{
+    const result=await signInWithPopup(auth,provider);
+    return (await api.post("/auth/signup/identity",{token:await result.user.getIdToken()})).data;
+  }finally{await signOut(auth)}
 }
 
 export async function socialStepUp(identityProvider: "google" | "microsoft") {

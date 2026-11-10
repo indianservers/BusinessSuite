@@ -92,6 +92,17 @@ The source module's export grant, company membership and owner checks protect
 these operations; company storage administration still requires its existing
 privileges. Backend rollback files are in `/root/notes-connect-deploy/before`.
 
+The 10 November row-action and employee-workspace update is deployed on both
+suite hosts as `suite-builds/row-workspace-20261110-v2`. It uses production revision
+`03e457e3` plus the employee workspace assignment controls, searchable member
+pickers, and workspace save-refresh ordering. HRMS employee Account tabs assign
+CRM/HRMS memberships through the module workspace APIs and PMS memberships through
+its native member API. The shared eligible-people endpoint no longer truncates
+at 100 users; company and branch checks remain enforced. No schema migration was
+required. Backend rollback source is retained under
+`shared/row-workspace-20261110`; previous frontend targets are recorded in each
+release's `shared/row-workspace-20261110-v2/frontend-deployed.json`.
+
 ## Previous shared Apache deployment
 
 The migration to `164.92.119.35` uses the existing Apache server on Ubuntu 22.04,
@@ -109,11 +120,13 @@ separate, fresh Droplet.
   02:30 India time, 14-day retention, private `shared/backups` directory.
 - The `business-suite` Let's Encrypt certificate covers both hostnames. HTTP
   verification uses `/srv/business-suite/acme`; renewal reloads Apache.
-- Both apps use Amazon SES (AWS Mail Manager SMTP) through the shared email
-  transport, sender `noreply@indianservers.com`, region `us-east-1`. Credentials
-  remain only in the private server settings. Email notifications, the background
-  delivery worker, and Interns Hub email are enabled; a test was confirmed in
-  the owner's inbox on 9 November 2026.
+- BestERP uses the shared email transport with dedicated SES SMTP credentials,
+  region `us-east-1`, and sender `BestERP <info@besterp.app>`. Interns Hub keeps
+  its existing `noreply@indianservers.com` sender and Mail Manager credentials.
+  Credentials remain only in private server settings. See [SES deployment
+  settings](../docs/ses-email.md). BestERP passed SES SMTP authentication on
+  10 November 2026; no new integration emails were sent. The earlier legacy
+  sender inbox test does not verify delivery from the new site sender.
 
 The public Cloudflare cutover was verified on 9 November 2026. Both former
 Vercel projects are paused. Both login pages and local-database health checks

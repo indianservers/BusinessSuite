@@ -1,3 +1,5 @@
+import TrialWelcome from "./auth/TrialWelcome";
+import "./auth/suite-signup.css";
 import { useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +16,7 @@ export default function PostLoginPage() {
   const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
   const [selectionError, setSelectionError] = useState("");
   const [selecting, setSelecting] = useState(false);
+  const onboarding=useQuery({queryKey:["trial-onboarding",user?.id],queryFn:()=>api.get("/access/onboarding").then(r=>r.data),enabled:isHydrated&&isAuthenticated&&!!user,retry:false});
   const access = useQuery({
     queryKey: ["dashboard-access", user?.id],
     queryFn: () =>
@@ -72,6 +75,8 @@ export default function PostLoginPage() {
         Preparing your authorized workspaceâ€¦
       </main>
     );
+  if(onboarding.isLoading)return <main className="suite-page" role="status">Preparing your welcome checklist…</main>;
+  if(onboarding.data?.available&&!onboarding.data.done)return <TrialWelcome data={onboarding.data} refresh={()=>void onboarding.refetch()}/>;
   const organizations = access.data?.organizations || [];
   if (organizations.length > 1 && selectedCompany === null)
     return (

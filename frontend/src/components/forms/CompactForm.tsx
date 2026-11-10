@@ -1,3 +1,4 @@
+import { isLocationField } from "@/shared/data-grid/record-location";
 import { Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useMemo, useRef, useState, type FormEvent, type FormHTMLAttributes, type ReactElement, type ReactNode } from "react";
 import "./compact-forms.css";
 import { useMobile } from "@/components/mobile/useMobile";
@@ -18,7 +19,30 @@ function heading(element: ReactElement<ElementProps>): string {
   for (const child of Children.toArray(element.props.children)) { const node = asElement(child); if (!node) continue; const name = componentName(node); if (/^h[1-4]$|legend|CardTitle/i.test(name)) return text(node.props.children); if (/header|CardHeader/.test(name)) { const value = findHeading(node.props.children); if (value) return value; } }
   return "";
 }
+// Order React children so keyboard navigation follows the visible field order.
+function locationFieldsLast(nodes: ReactNode): ReactNode {
+  const children = Children.toArray(nodes).map(node => {
+    const element = asElement(node);
+    if (!element || !element.props.children || typeof element.props.children === "function") return node;
+    const ordered = locationFieldsLast(element.props.children);
+    return cloneElement(element, {children: !Array.isArray(element.props.children) && Children.count(element.props.children) === 1 ? Children.toArray(ordered)[0] : ordered});
+  });
+  const isLocation = (node: ReactNode) => {
+    const element = asElement(node);
+    if (!element) return false;
+    const name = componentName(element);
+    if (!(name === "label" || typeof element.props.label === "string" || /^(input|select|textarea)$/.test(name))) return false;
+    return isLocationField(String(element.props.label || element.props['aria-label'] || element.props.name || (name === "label" ? Children.toArray(element.props.children).filter(child => typeof child === "string").join(" ").trim() : text(element.props.children))));
+  };
+  const fields = children.filter(isLocation);
+  if (!fields.length) return children;
+  const rest = children.filter(node => !isLocation(node));
+  const footer = rest.findIndex(node => {const element=asElement(node);return !!element && /^(button|Button|footer)$/.test(componentName(element));});
+  rest.splice(footer < 0 ? rest.length : footer, 0, ...fields);
+  return rest;
+}
 function category(label: string) {
+  if (isLocationField(label)) return "Location";
   if (/^(name|title|type|code|sku|identifier|reference|first name|last name|full name|employee|task title)|\brequired\b/i.test(label)) return "Basic details";
   if (/email|phone|mobile|address|city|country|company|website|contact/i.test(label)) return "Contact & company";
   if (/price|amount|currency|tax|discount|salary|revenue|bank|payment|cost|rate|quantity/i.test(label)) return "Pricing & finance";
@@ -66,7 +90,7 @@ function analyse(children: ReactNode, phone = false) {
   const initialCategories = [...new Set([...units.values()].map(unit => unit.section))];
   const basic = initialCategories.find(label=>/basic|essential|overview|general/i.test(label)) || initialCategories[0];
   for(const unit of units.values())if(/^(?:\d+[. ]*)?(?:assignment|members|team members|ownership|people & access)$/i.test(unit.section))unit.section=basic;
-  const categories = [...new Set([...units.values()].map(unit => unit.section))];
+  const categories = [...new Set([...units.values()].map(unit => unit.section))].sort((a,b) => Number(a === "Location") - Number(b === "Location"));
   const groupLabels = categories.length > 3 ? [...categories.slice(0, 2), "More details"] : categories;
   groups.push(...groupLabels);
   for (const [key, unit] of units) {
@@ -78,6 +102,7 @@ function analyse(children: ReactNode, phone = false) {
 
 /** Native form semantics, refs and payloads are retained; only long unsectioned forms gain navigation. */
 const CompactForm = forwardRef<HTMLFormElement, FormHTMLAttributes<HTMLFormElement> & { compactTabs?: boolean; renderAs?: "form" | "div" }>(({ children, className, compactTabs = true, renderAs = "form", onInvalidCapture, onInputCapture, onChangeCapture, onSubmit, ...props }, ref) => {
+  children = useMemo(() => locationFieldsLast(children), [children]);
   const phone = useMobile(480);
   const plan = useMemo(() => analyse(children, phone), [children, phone]); const [active, setActive] = useState(0); const [validation, setValidation] = useState(""); const handlingInvalid = useRef(false); const id = useId(); const nativeForm = useRef<HTMLFormElement | null>(null);
   const enabled = compactTabs && plan.enabled, current = Math.min(active, Math.max(0, plan.groups.length - 1));
