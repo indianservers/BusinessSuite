@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Archive,
@@ -89,6 +89,9 @@ export default function DealsDataGrid({
   clearFilters,
   removeFilter,
   loadFilters,
+  savedViewsHost,
+  savedViewsExtra,
+  active = true,
 }: {
   base: Record<string, unknown>;
   refreshKey: number;
@@ -106,6 +109,9 @@ export default function DealsDataGrid({
   clearFilters?: () => void;
   removeFilter?: (id: string) => void;
   loadFilters?: (context: Record<string, unknown>) => void;
+  savedViewsHost?: HTMLElement | null;
+  savedViewsExtra?: ReactNode;
+  active?: boolean;
 }) {
   const navigate = useNavigate(),
     [searchParams] = useSearchParams();
@@ -340,6 +346,11 @@ export default function DealsDataGrid({
   return (
     <SharedDataGrid<Deal>
       compactControls
+      savedViewsHost={savedViewsHost}
+      savedViewsExtra={savedViewsExtra}
+      savedViewsLabel="Saved views"
+      savedViewsTitle="Personal table views"
+      hideViewControls={!active}
       workspaceId={
         searchParams.get("workspaceId") ||
         searchParams.get("workspace_id") ||

@@ -15,12 +15,15 @@ export type PipelineBoardProps = {
   onMove?: (move: PipelineMove) => void | Promise<void>; onOpen?: (record: PipelineRecord) => void;
   onAdd?: (stageId: string) => void; disabled?: boolean; reorder?: boolean; loading?: boolean;
   actions?: PipelineAction[]; notice?: ReactNode; viewState?:Record<string,string|boolean>; onApplyView?:(state:Record<string,string|boolean>)=>void; context?:PipelineContext; renderDetails?:(record:PipelineRecord)=>ReactNode; onNextAction?:(record:PipelineRecord)=>void;
+  settingsOpen?: boolean; settingsReturnFocus?:HTMLElement|null; onSettingsOpenChange?: (open:boolean)=>void; compactOverview?: boolean;
 };
 
 /** Shared presentation. Every mutation is committed by a domain adapter. */
-export default function PipelineBoard({ label, title, description, stages, records, toolbar, onMove, onOpen, onAdd, disabled=false, reorder=true, loading=false, actions=[], notice, context, renderDetails, onNextAction, viewState, onApplyView }: PipelineBoardProps) {
+export default function PipelineBoard({ label, title, description, stages, records, toolbar, onMove, onOpen, onAdd, disabled=false, reorder=true, loading=false, actions=[], notice, context, renderDetails, onNextAction, viewState, onApplyView,settingsOpen,onSettingsOpenChange,compactOverview=false,settingsReturnFocus }: PipelineBoardProps) {
   const [active,setActive]=useState<PipelineRecord>();
-  const [settings,setSettings]=useState(false),[selectedId,setSelectedId]=useState<string>();
+  const [localSettings,setLocalSettings]=useState(false),[selectedId,setSelectedId]=useState<string>();
+  const settings=settingsOpen ?? localSettings;
+  const setSettings=(open:boolean)=>{setLocalSettings(open);onSettingsOpenChange?.(open);};
   const experience=usePipelinePreferences(context,label,viewState,onApplyView),p=experience.preferences;
   const ages=useRecordedStageAges(context,records);
   const enriched=records.map(r=>{const metadata=ages[r.id];const age=metadata?.days??r.stageAgeDays;const next=metadata?.next_action_at||r.nextActionAt;const threshold=stages.find(s=>s.id===r.stageId)?.agingDays;return {...r,nextActionAt:next,activity:!r.isClosed&&metadata&&"next_action_at" in metadata?(next?new Date(next)<new Date()?"overdue" as const:"scheduled" as const:"missing" as const):r.activity,activityLabel:next?`Next action: ${new Date(next).toLocaleString()}`:r.activityLabel,stageAgeDays:age,stalled:!r.isClosed&&age!==undefined&&!!threshold&&age>=threshold};});
@@ -61,7 +64,7 @@ export default function PipelineBoard({ label, title, description, stages, recor
   const owners=[...new Set(enriched.map(r=>r.owner).filter((owner):owner is string=>!!owner&&owner!=="—"))];
   const noun=context?.module==="project_management"?"tasks":context?.module==="hrms"?"candidates":context?.module==="crm"?"deals":"records";
   const completion=enriched.length?Math.round(finished/enriched.length*100):0;
-  return <section className={`pipeline-workspace pipeline-density-${p.density}`} aria-label={label} aria-busy={busy||loading}>
+  const overview = <>
     <header className="pipeline-hero"><div className="pipeline-hero-copy"><span className="pipeline-eyebrow"><Sparkles size={13}/> {context?.module==="project_management"?"PROJECT DELIVERY":context?.module==="hrms"?"TALENT & RECRUITMENT":context?.module==="crm"?"CUSTOMER GROWTH":"SALES OPERATIONS"}</span><h2>{title||label}</h2><p>{description||"A clear view of your work. Every stage, every next step, in one place."}</p><div className="pipeline-hero-meta"><span><span className="pipeline-live-dot"/> {loading?"Refreshing board":"Live workspace"}</span><span>{stages.length} stages</span><span>Metrics reflect loaded {noun}</span></div></div><div className="pipeline-hero-art" aria-hidden="true"><Layers3 size={36}/><span><CircleCheck size={20}/></span><span><TrendingUp size={18}/></span></div></header>
     <div className="pipeline-metrics" aria-label="Pipeline overview">
       <Metric icon={<Layers3 size={22}/>} label={`Loaded ${noun}`} value={enriched.length} detail="Across this board" tone="violet"/>
@@ -70,7 +73,10 @@ export default function PipelineBoard({ label, title, description, stages, recor
       <Metric icon={<UsersRound size={22}/>} label="Owners" value={owners.length} detail={owners.length?<span className="pipeline-avatar-stack">{owners.slice(0,3).map(owner=><span key={owner} title={owner}>{initials(owner)}</span>)}{owners.length>3&&<span>+{owners.length-3}</span>}</span>:"No named owners on loaded cards"} tone="violet"/>
       <div className="pipeline-metric pipeline-metric-completion"><div className="pipeline-completion-ring" style={{"--completion":`${completion}%`} as CSSProperties} role="progressbar" aria-label="Closed records" aria-valuenow={completion} aria-valuemin={0} aria-valuemax={100}><span>{completion}%</span></div><div><span className="pipeline-metric-label">{context?.module==="project_management"?"Completion":"Closed"}</span><strong>{finished}<small> / {enriched.length}</small></strong><span className="pipeline-metric-detail">Completed or closed outcomes</span></div></div>
     </div>
-    <div className="pipeline-toolbar">{toolbar}<button type="button" className="pipeline-icon-button" aria-label="Board options and saved views" onClick={()=>setSettings(true)}><SlidersHorizontal size={16}/></button></div>
+  </>;
+  return <section className={`pipeline-workspace pipeline-density-${p.density}`} aria-label={label} aria-busy={busy||loading}>
+    {compactOverview?<details className="pipeline-compact-overview"><summary>{title||label} overview · {enriched.length} loaded {noun}</summary>{overview}</details>:overview}
+    <div className="pipeline-toolbar">{toolbar}<button type="button" className="pipeline-icon-button" aria-label={settingsOpen===undefined?"Board options and saved views":"Board display options"} onClick={()=>setSettings(true)}><SlidersHorizontal size={16}/></button></div>
     {(p.queue!=="all"||p.search||p.owner)&&<div className="pipeline-notice">{visible.length} of {records.length} loaded records · {p.queue}<button type="button" className="ml-3 underline" onClick={()=>experience.update({queue:"all",search:"",owner:""})}>Clear view filters</button></div>}
     <div className="pipeline-sr-only" role="status" aria-live="polite">{message}</div>
     {error && <p className="pipeline-error" role="alert">{error}</p>}
@@ -82,7 +88,7 @@ export default function PipelineBoard({ label, title, description, stages, recor
       {active && actions.length>0 && <div className="pipeline-drop-actions">{actions.map(a=><ActionDrop key={a.id} action={a}/>)}</div>}
       <DragOverlay>{active ? <div className="pipeline-card pipeline-overlay"><CardBody record={active}/></div>:null}</DragOverlay>
     </DndContext>
-    <PipelineDrawer open={settings} onClose={()=>setSettings(false)} title="Board options"><PipelinePreferencesPanel state={experience}/></PipelineDrawer>
+    <PipelineDrawer returnFocus={settingsReturnFocus} open={settings} onClose={()=>setSettings(false)} title="Board options"><PipelinePreferencesPanel state={experience} audienceLabel={title||label}/></PipelineDrawer>
     <PipelineDrawer open={!!selected} onClose={()=>setSelectedId(undefined)} title={selected?.title||"Record details"}>{selected&&<>
       {renderDetails?renderDetails(selected):<><p className="text-sm text-muted-foreground">{selected.subtitle}</p><dl className="pipeline-detail-summary"><dt>Stage</dt><dd>{stages.find(s=>s.id===selected.stageId)?.name}</dd><dt>Owner</dt><dd>{selected.owner||"Unassigned"}</dd><dt>Value / effort</dt><dd>{selected.value||"—"}</dd><dt>Next action</dt><dd>{selected.nextActionAt?new Date(selected.nextActionAt).toLocaleString():selected.activityLabel||"Not scheduled"}</dd><dt>Time in stage</dt><dd>{selected.stageAgeDays===undefined?"Not yet recorded":`${selected.stageAgeDays} days`}</dd></dl>{selected.content}</>}
       <div className="flex gap-2 my-4">{onOpen&&<button type="button" className="pipeline-primary" onClick={()=>{setSelectedId(undefined);onOpen(selected);}}>Open full record</button>}{onNextAction&&<button type="button" className="pipeline-primary" disabled={disabled} onClick={()=>onNextAction(selected)}>Schedule next action</button>}</div>

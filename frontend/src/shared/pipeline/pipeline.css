@@ -52,3 +52,6 @@
 @media(max-width:767px){.pipeline-metrics{display:flex;overflow-x:auto;gap:9px;padding-bottom:7px;scrollbar-width:thin;scrollbar-color:#dbc9ee transparent;scroll-snap-type:x proximity}.pipeline-metric{flex:0 0 157px;min-height:96px;scroll-snap-align:start}.pipeline-metric-completion{flex-basis:205px;min-height:96px;justify-content:flex-start}.pipeline-hero-meta>span:last-child{font-size:9px}.pipeline-empty-art{margin-top:0}}
 
 .pipeline-status-badge{color:var(--stage-color,var(--card-accent,#8141ce));background:color-mix(in srgb,var(--stage-color,var(--card-accent,#8141ce)) 9%,white)}.dark .pipeline-status-badge{background:color-mix(in srgb,var(--stage-color,var(--card-accent)) 20%,#241c31);color:#d7b5fc}
+.pipeline-compact-overview>summary{cursor:pointer;padding:6px 12px;font-size:12px;color:hsl(var(--muted-foreground))}
+.pipeline-compact-overview>summary:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:-2px}
+@media(max-width:650px){.pipeline-compact-overview>summary{min-height:44px;display:flex;align-items:center}}

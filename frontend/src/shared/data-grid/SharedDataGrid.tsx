@@ -506,9 +506,9 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const titleColumn = props.columns.find(c => !/^(select|actions?|quick actions)$/i.test(c.title)) || props.columns[0];
   const title = focused === undefined ? "" : String(titleColumn?.accessor?.(focused) ?? (focused as Record<string, unknown>)[titleColumn?.id] ?? "Record");
   return <div className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
-    <div className="udg-workspace-main">{enabled&&!props.compactControls&&<RecordViewBar compact={props.compactControls} scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>}
+    <div className="udg-workspace-main">{enabled&&!props.hideViewControls&&!props.compactControls&&<RecordViewBar compact={props.compactControls} scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>}
     <GridEngine {...props}
-      toolbarExtra={props.compactControls ? <>{enabled&&<RecordViewBar compact scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>} {props.toolbarExtra}</> : props.toolbarExtra}
+      toolbarExtra={props.compactControls ? <>{enabled&&!props.hideViewControls&&<RecordViewBar compact scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>} {props.toolbarExtra}</> : props.toolbarExtra}
       dataSource={source} columns={enhancedColumns}
       viewMode={enabled?(mode==="cards"||mode==="category"||mode==="tags"?"cards":mode==="list"?"list":"grid"):props.viewMode}
       collectionGroup={mode==="category"?category?.id:mode==="tags"?tags?.id:undefined}
@@ -1717,6 +1717,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
             </div>
           );
   const savedViewControls = <SavedViewsManager
+          title={props.savedViewsTitle}
           label={props.savedViewsLabel || (props.compactControls ? "Table layouts" : undefined)}
           extra={props.savedViewsExtra}
           views={views}

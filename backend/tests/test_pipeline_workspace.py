@@ -51,6 +51,26 @@ def test_named_project_board_projects_tasks_without_reassigning_storage(client, 
     assert client.get(f"{PMS}/projects/{project['id']}/board",headers=headers[2],params={"board_id":board_id}).status_code in (403,404)
 
 
+def test_crm_saved_views_keep_personal_and_company_audiences_separate(client, db, company):
+    from tests.test_pms_workspaces import account
+    headers, _, _ = company
+    _, peer_auth = account(db, "crm-view-peer@example.test", True)
+    peer_headers = {**headers[0], **peer_auth}
+    url = f"{BASE}/crm/pipeline:all/views"
+    private = client.post(url, headers=headers[0], json={"name":"Private seller view","shared":False,"preferences":{"module_filters":{"owner_id":"123"}}})
+    shared = client.post(url, headers=headers[0], json={"name":"Company board view","shared":True,"preferences":{"queue":"attention"}})
+    assert private.status_code == 201, private.text
+    assert shared.status_code == 201, shared.text
+    owner_views = client.get(url, headers=headers[0]).json()["views"]
+    assert {view["name"] for view in owner_views} == {"Private seller view", "Company board view"}
+    peer = client.get(url, headers=peer_headers)
+    assert peer.status_code == 200, peer.text
+    assert [(view["name"], view["shared"]) for view in peer.json()["views"]] == [("Company board view", True)]
+    foreign = client.get(url, headers=headers[2])
+    assert foreign.status_code == 200, foreign.text
+    assert foreign.json()["views"] == []
+
+
 def test_capacity_is_enforced_for_create_and_move_with_transactional_history(client, db, company):
     headers, _, project = company
     db.commit()

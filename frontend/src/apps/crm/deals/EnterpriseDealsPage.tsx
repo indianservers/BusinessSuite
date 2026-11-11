@@ -44,6 +44,8 @@ import { crmApi } from "../api";
 import CRMStageDialog from "../CRMStageDialog";
 import { dealError, dealMoney, dealOptions, label } from "./deal-utils";
 import "./deals.css";
+import * as Popover from "@radix-ui/react-popover";
+import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
 
 const Capture = lazy(() =>
   import("../CRMWorkspacePage").then((module) => ({
@@ -142,6 +144,8 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
     sorting: [{ id: "updated_at", desc: true }],
   }));
   const [gridReady, setGridReady] = useState(false);
+  const [savedViewsHost,setSavedViewsHost]=useState<HTMLDivElement|null>(null);
+  const [boardSettingsOpen,setBoardSettingsOpen]=useState(false);
   const [selectedRecords, setSelectedRecords] = useState<Row[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useRouteViewState<Filters>("filters",empty),
@@ -198,7 +202,10 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
   }, [key, loadedKey, columnOrder, hidden, widths, pinned, views]);
   useEffect(() => {
     const timer = setTimeout(
-      () => setFilters((current) => current.search===search?current:({ ...current, search })),
+      () => {
+        setFilters((current) => current.search===search?current:({ ...current, search }));
+        setGridQuery(current=>current.search===search?current:({...current,search,page:1,path:[]}));
+      },
       300,
     );
     return () => clearTimeout(timer);
@@ -614,6 +621,14 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
           </p>
         </div>
         <div className="ed-actions">
+          <div ref={setSavedViewsHost} className="ed-saved-views"/>
+          {canCreate && (
+            <Button onClick={() => setCreate(true)}>
+              <Plus size={16} />
+              Create deal
+            </Button>
+          )}
+          <MobileDisclosure title="More" keepMounted maxWidth={650} className="ed-secondary-actions">
           <Link className="ed-link-button" to="/crm/pipeline-settings">
             <Settings2 size={16} />
             Pipelines
@@ -626,12 +641,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
             <RefreshCw size={16} />
           </Button>
           {canCreate && <CRMDataTransfer entity="deals" importOnly onImported={()=>setReload(v=>v+1)}/>}
-          {canCreate && (
-            <Button onClick={() => setCreate(true)}>
-              <Plus size={16} />
-              Create deal
-            </Button>
-          )}
+          </MobileDisclosure>
         </div>
       </header>
       {error && (
@@ -990,8 +1000,11 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
         <LoadingState label="Loading Deals" variant="table"/>
       ) : (
         <>
-          {mode === "grid" && (
+          {<div hidden={mode!=="grid"} style={mode!=="grid"?{display:"none"}:undefined}>
             <DealsDataGrid
+              active={mode==="grid"}
+              savedViewsHost={savedViewsHost}
+              savedViewsExtra={<section className="ed-saved-board-views"><h3>Board views</h3><p>Personal and team views stored by the existing Board service. Team sharing remains subject to board access.</p><Popover.Close asChild><button type="button" className="udg-control" onClick={()=>{setMode("kanban");setBoardSettingsOpen(true);}}>Open Board views and sharing</button></Popover.Close></section>}
               base={params}
               refreshKey={reload}
               initialQuery={gridQuery}
@@ -1002,6 +1015,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
                 setSelected(ids);
               }}
               onResult={(result) => {
+                if(mode!=="grid")return;
                 setData({
                   items: result.rows,
                   total: result.total,
@@ -1052,18 +1066,19 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
                 ) as Filters;
                 setFilters(restored);
                 setSearch(restored.search);
+                setMode("grid");
               }}
             />
-          )}
+          </div>}
           {dealLensModes.includes(mode) && <RecordLensViews scope={`crm-deals:${filters.pipeline_id || "all"}`} view={mode} records={rows.map(row => ({id:String(row.id),title:String(row.name || "Untitled deal"),subtitle:row.company_name || lookup("companies",row.company_id),status:row.stage_name || lookup("pipeline-stages",row.stage_id) || row.status,owner:row.owner_name || lookup("deal-workspace/assignees",row.owner_user_id),value:dealMoney(row.amount,row.currency),start:row.planning?.start_date || row.start_date,due:row.expected_close_date,updated:row.updated_at,color:stageOptions.find(stage => stage.id === row.stage_id)?.color,tags:[row.priority || "Medium",row.currency || ""]}))} onOpen={record => setLensPreview(record.id)}/>}
           {mode === "cards" && (
             <div className="ed-shared-cards">{rows.map(card)}</div>
           )}
-          {mode === "kanban" && <PipelineBoard
-            title={String(options.pipelines?.find(p=>String(p.id)===filters.pipeline_id)?.name||"Sales pipeline")} description="Build relationships, track every opportunity and keep the next conversation moving." label="Sales pipeline" viewState={filters} onApplyView={saved=>{const restored=Object.fromEntries(Object.keys(empty).map(key=>[key,key==="no_next"?!!saved[key]:String(saved[key]||"")])) as Filters;setFilters(restored);setSearch(restored.search);}} context={{module:"crm",scope:`pipeline:${filters.pipeline_id||"all"}`,kind:"deal"}} renderDetails={record=><PipelineDomainDetails module="crm" id={record.id}/>} onAdd={canCreate?stageId=>{setCaptureStage(Number(stageId));setCreate(true);}:undefined} reorder={false} disabled={loading}
+          {mode === "kanban" && <PipelineBoard compactOverview settingsReturnFocus={savedViewsHost?.querySelector("button")} settingsOpen={boardSettingsOpen} onSettingsOpenChange={setBoardSettingsOpen}
+            title={String(options.pipelines?.find(p=>String(p.id)===filters.pipeline_id)?.name||(filters.pipeline_id?"Selected pipeline":"All permitted pipelines"))} description="Build relationships, track every opportunity and keep the next conversation moving." label="Sales pipeline" viewState={filters} onApplyView={saved=>{const restored=Object.fromEntries(Object.keys(empty).map(key=>[key,key==="no_next"?!!saved[key]:String(saved[key]||"")])) as Filters;setFilters(restored);setSearch(restored.search);}} context={{module:"crm",scope:`pipeline:${filters.pipeline_id||"all"}`,kind:"deal"}} renderDetails={record=><PipelineDomainDetails module="crm" id={record.id}/>} onAdd={canCreate?stageId=>{setCaptureStage(Number(stageId));setCreate(true);}:undefined} reorder={false} disabled={loading}
             loading={loading && !data}
             notice={`Showing ${rows.length} of ${data?.total ?? rows.length} deals · page ${page}. Stage totals cover all matching deals.`}
-            toolbar={<>{canCreate && <button type="button" className="pipeline-primary" onClick={() => {setCaptureStage(undefined);setCreate(true);}}><Plus size={14}/> Deal</button>}<PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/><div className="pipeline-toolbar-end"><select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}><option value="updated_at:desc">Sort: Recently updated</option><option value="next_follow_up_at:asc">Sort: Next activity</option><option value="amount:desc">Sort: Highest value</option><option value="name:asc">Sort: Name</option></select><button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}>Filter</button><select aria-label="Board pipeline" value={filters.pipeline_id} onChange={e=>setFilters(f=>({...f,pipeline_id:e.target.value,stage_id:""}))}><option value="">All pipelines</option>{(options.pipelines || []).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><Link to="/crm/pipeline-settings" className="ed-link-button" aria-label="Customize pipeline"><Settings2 size={15}/></Link></div></>}
+            toolbar={<><PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/><div className="pipeline-toolbar-end"><select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}><option value="updated_at:desc">Sort: Recently updated</option><option value="next_follow_up_at:asc">Sort: Next activity</option><option value="amount:desc">Sort: Highest value</option><option value="name:asc">Sort: Name</option></select><button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}>Filter</button></div></>}
             stages={stageOptions.map(stage=>({id:String(stage.id),name:filters.pipeline_id?String(stage.name):`${options.pipelines?.find(p=>String(p.id)===String(stage.pipeline_id || stage.pipelineId))?.name || "Pipeline"} · ${stage.name}`,canAdd:!stage.is_won&&!stage.is_lost,color:stage.color,probability:stage.probability,wipLimit:stage.wip_limit,agingDays:stage.stagnation_days||14,count:(summary?.stages||[]).filter((t:Row)=>t.stage_id===stage.id).reduce((sum:number,t:Row)=>sum+t.count,0),summary:<>{(summary?.stages || []).filter((total:Row)=>total.stage_id===stage.id).map((total:Row)=><span key={total.currency}>{total.count} deals · {dealMoney(total.amount,total.currency)}</span>)}{!(summary?.stages || []).some((total:Row)=>total.stage_id===stage.id)&&<span>0 deals</span>}</>}))}
             records={rows.map(row=>({id:String(row.id),stageId:String(row.stage_id),title:String(row.name),priority:row.priority,description:row.description,subtitle:row.company_name||lookup("companies",row.company_id),value:dealMoney(row.amount,row.currency),owner:row.owner_name||lookup("deal-workspace/assignees",row.owner_user_id),ownerId:Number(row.owner_user_id)||undefined,nextActionAt:row.next_follow_up_at||undefined,isClosed:row.status==="Won"||row.status==="Lost",labelColor:stageOptions.find(s=>s.id===row.stage_id)?.color,activity:!row.next_follow_up_at?"missing":new Date(row.next_follow_up_at)<new Date()?"overdue":"scheduled",activityLabel:row.next_follow_up_at?`Next activity: ${new Date(row.next_follow_up_at).toLocaleString()}`:"No next activity"}))}
             onOpen={record=>navigate(`/crm/deals/${record.id}`)}

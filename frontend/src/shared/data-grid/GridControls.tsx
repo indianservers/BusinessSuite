@@ -203,6 +203,7 @@ export function ColumnManager<T>({
 export function SavedViewsManager({
   views,
   label = "Saved views",
+  title,
   save,
   load,
   remove,
@@ -210,6 +211,7 @@ export function SavedViewsManager({
 }: {
   views: GridSavedView[];
   label?: string;
+  title?: string;
   save: (name: string) => void;
   load: (view: GridSavedView) => void;
   remove: (id: string) => void;
@@ -225,7 +227,7 @@ export function SavedViewsManager({
       <Popover.Portal>
         <Popover.Content className="udg-popover" align="end" sideOffset={8}>
           <header>
-            <strong>My {label.toLowerCase()}</strong>
+            <strong>{title || `My ${label.toLowerCase()}`}</strong>
             <Popover.Close aria-label="Close saved views">
               <X size={15} />
             </Popover.Close>

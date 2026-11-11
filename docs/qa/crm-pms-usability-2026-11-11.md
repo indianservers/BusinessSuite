@@ -27,7 +27,7 @@ The complete seven-phase improvement goal remains active. The batches below redu
 ## Remaining acceptance checklist
 
 1. Phase 1: normal-state three-record layout measured for live PMS and the real CRM shell with eight disposable records (see Batch 4). Continue failure-notice layouts and complete phone workflows; screenshots alone do not close this phase.
-2. Phase 2: PMS has one task search, shared filter state and Saved views entry point. Continue CRM saved-configuration consolidation, preference isolation/legacy acceptance and coherent quick/advanced filter entry points across modules.
+2. Phase 2: PMS and CRM now have a common Saved views entry point on their work surfaces. Continue preference isolation/legacy acceptance, personal record-subset continuity and coherent quick/advanced filter entry points across modules. See Batch 5 for CRM storage/audience distinctions.
 3. Phase 3: predictable title opening and cell editing; aligned preview/full task and CRM behavior; focus/scroll/selection preservation; deep links and Back; labels, monetary/date formatting and consolidated row actions.
 4. Phase 4: complete deal summary and next-action queues; log call and schedule follow-up journey; matching queue counts and access scope.
 5. Phase 5: contextual capture defaults, progressive fields, drafts and custom-field validation; role-specific setup and templates.
@@ -105,3 +105,29 @@ This batch does not prove record opening/focus/scroll recovery, task/deal mutati
 The local QA named view/filter snapshot remains available for review. No task/deal business record or provider configuration was changed. Full access isolation, failed-write/stale-edit recovery and the phase 3–7 journeys remain open; CRM's separate legacy Board saved configuration also needs consolidation.
 
 To repeat the CRM layout fixture, run `npx vite --host 127.0.0.1 --port 5199 --strictPort` from `frontend`, then open `http://127.0.0.1:5199/crm-usability-qa.html` in the in-app browser. Use a separate loopback port from the authenticated application. Type-check it with `npx tsc --noEmit -p scripts/fixtures/tsconfig.crm-usability.json`.
+
+## Batch 5 — CRM saved-view entry point and compact Board
+
+### Changes and preservation
+
+- **Saved views** is a single header entry available across deal presentations. Its **Personal table views** section reuses existing browser-local grid definitions and their current keys. Loading one restores the table presentation, filters and layout. A clearly labeled link opens the existing server-backed Board view service, including its personal/team distinctions and permission-controlled sharing. No replacement storage or preference engine was introduced.
+- The grid stays mounted but hidden outside Table so its manager remains available. Its record-view tabs are removed from the active view strip while another workflow is shown. Hidden grid results cannot overwrite the Board's flat result set.
+- Board search now updates the collection's grid query as well as its server filter, avoiding contradictory searches when returning to Table.
+- The CRM Board's hero/metrics are collapsed under an explicit scope/loaded-count overview. All metrics and display options remain available. The canonical Pipeline quick filter and header Create deal replace duplicate Board toolbar copies; stage-specific creation stays available.
+- Phone headers keep Saved views and Create deal visible. Pipelines, Refresh and Import are available under **More** through the existing responsive disclosure component; desktop keeps them inline.
+- Pipeline drawers capture their opener and accept a fallback focus target. Closing Board settings now returns to Saved views when launched through the common menu, rather than leaving focus on the page body. Existing callers retain their default uncollapsed overview and settings control.
+- Board view copy explains that personal views are private to the user, team views are visible to people who already have board access in the company, and sharing a definition grants no record access. Backend ServicePolicy storage, access checks and role requirements are unchanged.
+
+### Verification
+
+- TypeScript no-emit passed before the final responsive header changes. Source plus the CRM fixture also passed the focused fixture TypeScript configuration. The final production build (TypeScript and Vite) passed after the responsive changes. Existing dependency annotation, mixed-import and large-chunk warnings remain.
+- Shared-grid unit tests and all 12 pending-search assertions passed after the search synchronization change.
+- Existing backend personal-preference/team-view/tenant-scope regression passed. Added a CRM-specific real-API test: the owner sees private and team definitions, another user in the same company sees only the team definition, and a foreign company sees neither. That test passed. These use disposable databases; they do not certify a deployed environment or every managed role. The first attempt used the system Python and failed on missing `pydantic_settings`; rerunning with `backend/venv/Scripts/python.exe` passed.
+- Authenticated local UI: one Saved views button in Table and Board; Board has one primary search, one Pipeline picker and one Create deal action. Collapsed Board overview expands to expose metrics. Its existing QA deal title was within the 720px viewport (approximately y574.5–612.5 before removing the remaining duplicate toolbar actions).
+- Editing Board search to Srikrishna → Table retained the same visible search and one matching record. Saved **QA Srik table 20261111**, changed Board search to QA Smart, then loaded the table view: Table/Srikrishna/one record were restored. Cold reload retained the named view. This browser-local QA definition remains available for review.
+- At 1280×720, the grouped Table header remained at y449.5–489.5, with two live records at y523.5–651.5. At 1440×900 the common menu and restored two-record table were inspected. The eight-record normal-layout fixture from Batch 4 remains the three-record layout evidence; it is not evidence for server-backed Board view writes.
+- At 390×844 document width was 390. More exposed Pipelines, Refresh and Import, then collapsed again. The Saved views popover was 310px wide and ended at y717; the Board settings drawer was 390×844. Escape returned focus to Saved views. Loading the named table view restored its Srikrishna search. An impossible query gave zero matching records; clearing restored two. No team view was published from the live application and no deal/task was changed.
+- The shared checkout's concurrent main-entry hot reload again produced a duplicate-root DOM error. A cold reload recovered it; the final UI journeys above were repeated against the recovered preview. This is recorded separately from the saved-view results.
+- Screenshots in `.local/crm-pms-usability/`: `crm-saved-views-table-1280.png`, `crm-saved-views-board-1280.png`, `crm-saved-views-phone-header.png`, `crm-saved-views-menu-390.png`, `crm-saved-views-menu-1440.png`. Viewport overrides were reset.
+
+Remaining collection acceptance includes older-format saved-view fixtures, multi-user browser-preference isolation, personal Favorites/Frequent subset continuity across different workflows, and failure-notice layouts. Phase 3–7 business journeys and the final complete requirement audit remain outstanding.

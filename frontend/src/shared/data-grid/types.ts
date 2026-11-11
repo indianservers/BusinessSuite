@@ -171,6 +171,8 @@ export type SharedDataGridProps<T> = {
   savedViewsHost?: HTMLElement | null;
   savedViewsExtra?: ReactNode;
   savedViewsLabel?: string;
+  savedViewsTitle?: string;
+  hideViewControls?: boolean;
   personalViews?: boolean;
   personalScope?: string;
   viewMode?: GridLayout["view"];
