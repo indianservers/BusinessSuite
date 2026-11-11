@@ -21,11 +21,13 @@ export const operators: [GridOperator, string][] = [
 ];
 export default function FilterBuilder<T>({
   columns,
+  dataScope,
   value,
   close,
   apply,
 }: {
   columns: GridColumn<T>[];
+  dataScope?: "all" | "loaded";
   value: GridFilter;
   close: () => void;
   apply: (filter: GridFilter) => void;
@@ -257,13 +259,13 @@ export default function FilterBuilder<T>({
     >
       <Dialog.Portal>
         <Dialog.Overlay className="udg-overlay" />
-        <Dialog.Content className="udg-dialog udg-mobile-filter">
+        <Dialog.Content aria-modal="true" className="udg-dialog udg-mobile-filter">
           <header>
             <Filter size={18} />
             <div>
               <Dialog.Title>Advanced filters</Dialog.Title>
               <Dialog.Description>
-                Conditions run on the full permitted dataset.
+                {dataScope === "loaded" ? "Conditions run on records loaded in this workspace." : "Conditions run on the full permitted dataset."}
               </Dialog.Description>
             </div>
             <Dialog.Close aria-label="Close filter builder">
@@ -272,11 +274,11 @@ export default function FilterBuilder<T>({
           </header>
           {groupEditor(draft, setDraft)}
           <footer className="udg-dialog-footer">
-            <button onClick={() => setDraft({ logic: "and", rules: [] })}>
+            <button type="button" onClick={() => setDraft({ logic: "and", rules: [] })}>
               Clear conditions
             </button>
-            <button onClick={close}>Cancel</button>
-            <button className="udg-primary" onClick={() => apply(draft)}>
+            <button type="button" onClick={close}>Cancel</button>
+            <button type="button" className="udg-primary" onClick={() => apply(draft)}>
               Apply filters
             </button>
           </footer>

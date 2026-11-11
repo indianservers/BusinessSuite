@@ -19,7 +19,8 @@ const fields: Record<string, Field[]> = {
 export function createFormTemplate(id: string): Definition {
   const d = fresh();
   const template = formTemplates.find(t => t.id === id);
-  if (!template || id === "blank") return { ...d, description: "", fields: [], workflow: { ...d.workflow, title_field: "" } };
+  if (!template) return d;
+  if (id === "blank") return { ...d, description: "", fields: [], workflow: { ...d.workflow, title_field: "" } };
   d.name = template.name;
   d.description = template.description + ". Fill in the details below to get started.";
   d.accent = template.color;

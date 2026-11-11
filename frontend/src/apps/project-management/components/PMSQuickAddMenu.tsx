@@ -8,7 +8,7 @@ import NewMenu, { type NewAction } from "@/components/app/NewMenu";
 import { contextualDestination } from "@/shared/creation/registry";
 
 
-export default function PMSQuickAddMenu({ children }: { children?: (actions: NewAction[]) => ReactNode } = {}) {
+export default function PMSQuickAddMenu({ children }: { children?: (actions: NewAction[], loading?: boolean) => ReactNode } = {}) {
   const location = useLocation();
   const routerNavigate = useNavigate();
   const navigate = (path: string) => routerNavigate(contextualDestination(path, location));
@@ -42,5 +42,5 @@ export default function PMSQuickAddMenu({ children }: { children?: (actions: New
   }
   if (context && ["Owner", "Admin"].includes(context.role)) actions.push({ label: "Project", description: `Organize work in ${context.name}`, icon: Folder, menuPaths: ["/pms/projects"], onSelect: () => navigate(`/pms/projects/new?workspace_id=${context.id}`) }, { label: "User / invitation", description: "Invite a person with a secure share link", icon: Users, menuPaths: ["/pms/members", "/pms/people"], onSelect: () => open("user") });
   if (canAccessRoute("/pms/projects/new", user?.role, user?.is_superuser)) actions.push({ label: "Workspace", description: "Create a workspace for a team", icon: LayoutGrid, menuPaths: ["/pms/workspaces"], onSelect: () => open("workspace") });
-  return children ? <>{children(loading ? [] : actions)}</> : <NewMenu actions={actions} disabled={loading} />;
+  return children ? <>{children(loading ? [] : actions, loading)}</> : <NewMenu actions={actions} disabled={loading} />;
 }

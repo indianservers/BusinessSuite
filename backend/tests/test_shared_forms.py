@@ -640,3 +640,15 @@ def test_numeric_conditions_keep_full_precision(setup):
         ).status_code
         == 201
     )
+
+def test_canvas_dimensions_persist_through_publish(setup):
+    c, *_ = setup
+    design = definition()
+    for field in design["fields"]:
+        field.update(width="half", height=128)
+    form = publish(c, design)
+    restored = c.get(f'/forms/{form["id"]}').json()
+    public = c.get(f'/forms/public/{form["slug"]}').json()
+    for snapshot in (restored["draft"], public["definition"]):
+        assert [field["width"] for field in snapshot["fields"]] == ["half", "half"]
+        assert [field["height"] for field in snapshot["fields"]] == [128, 128]

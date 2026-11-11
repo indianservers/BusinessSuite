@@ -160,7 +160,7 @@ export default function FormsPage() {
     } else if (page === "new") {
       const d = createFormTemplate(new URLSearchParams(location.search).get("template") || "default");
       setDraft(d);
-      setSelected(d.fields[0].id);
+      setSelected(d.fields[0]?.id || "");
       setDirty(true);
       setTab("Build");
     }
@@ -464,6 +464,7 @@ export default function FormsPage() {
               {tab === "Build" && (
                 <>
                   <FormBuilder
+                    key={`${moduleKey}:${formId || location.search}`}
                     draft={draft}
                     selected={selected}
                     setSelected={setSelected}

@@ -4,7 +4,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'backend'))
-local=ROOT/'.local';local.mkdir(exist_ok=True)
+local=Path(os.environ.get('CREATION_QA_ROOT',str(ROOT/'.local'))).resolve();local.mkdir(parents=True,exist_ok=True)
 keyfile=local/'creation-live/keys.json'
 if not keyfile.exists():keyfile.write_text(json.dumps({'SECRET_KEY':secrets.token_urlsafe(48),'REFRESH_SECRET_KEY':secrets.token_urlsafe(48)}),encoding='utf-8')
 os.environ.update(ENVIRONMENT='test',DEBUG='false',BACKEND_PUBLIC_URL='http://127.0.0.1:1596',FRONTEND_PUBLIC_URL='http://127.0.0.1:1596',DATABASE_URL='sqlite:///'+str(local/'creation-live/verification.sqlite'),INSTALLED_APPS='hrms,crm,project_management,srm,fam,power_apps',STORAGE_BACKEND='local',UPLOAD_DIR=str(local/'creation-live/uploads'),SECRET_KEY_PREVIOUS='',REFRESH_SECRET_KEY_PREVIOUS='',OPENAI_API_KEY='',ANTHROPIC_API_KEY='',GEMINI_API_KEY='',MAIL_USERNAME='',MAIL_PASSWORD='',MAIL_SERVER='',FIREBASE_PROJECT_ID='',FIREBASE_WEB_CONFIG='{}',CRM_WHATSAPP_PROVIDER='mock',CRM_WHATSAPP_ACCESS_TOKEN='',CRM_WHATSAPP_PHONE_NUMBER_ID='',CRM_WHATSAPP_BUSINESS_ACCOUNT_ID='',CRM_WHATSAPP_APP_ID='',CRM_WHATSAPP_EMBEDDED_CONFIG_ID='',BUSINESSSUITE_BACKUP_SCHEDULER='false',SEED_DEMO_DATA='false',SECURITY_RATE_LIMIT_ENABLED='false',DB_POOL_SIZE='100',DB_MAX_OVERFLOW='100')

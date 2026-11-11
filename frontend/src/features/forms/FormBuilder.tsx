@@ -15,6 +15,7 @@ import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
+  rectSortingStrategy,
   sortableKeyboardCoordinates,
   arrayMove,
 } from "@dnd-kit/sortable";
@@ -202,7 +203,7 @@ export default function FormBuilder({
     setSelected(f.id);
   }
   function reorder(from: number, to: number) {
-    if (to < 0 || to >= draft.fields.length) return;
+    if (from < 0 || to < 0 || to >= draft.fields.length) return;
     const fields = arrayMove(draft.fields, from, to);
     const seen = new Set<string>();
     if (
@@ -320,7 +321,7 @@ export default function FormBuilder({
               onChange={(e) => edit({ ...draft, description: e.target.value })}
             />
           </div>
-          {canvas ? <FormResponse definition={draft} mobile={mobile} disabled={false} submit={async () => {}} editor={{ selected, select: setSelected, label: (id, label) => patch(id, {label}) }} /> : <SortableContext
+          {canvas ? <SortableContext items={draft.fields.map(f => f.id)} strategy={rectSortingStrategy}><FormResponse definition={draft} mobile={mobile} disabled={false} submit={async () => {}} editor={{ selected, select: setSelected, label: (id, label) => patch(id, {label}), resize: patch }} /></SortableContext> : <SortableContext
             items={draft.fields.map((f) => f.id)}
             strategy={verticalListSortingStrategy}
           >
@@ -364,7 +365,7 @@ export default function FormBuilder({
             ＋ Add question
           </button>
           </div>
-          <div className="form-canvas-footer"><span>{draft.fields.length} / 60 fields · Click a field to edit</span><label>Zoom <select aria-label="Canvas zoom" value={zoom} onChange={e => setZoom(Number(e.target.value))}>{[50, 75, 100, 125].map(n => <option key={n} value={n}>{n}%</option>)}</select></label></div>
+          <div className="form-canvas-footer"><span>{draft.fields.length} / 60 fields · Drag ⠿ to arrange · Drag ↘ to resize</span><label>Zoom <select aria-label="Canvas zoom" value={zoom} onChange={e => setZoom(Number(e.target.value))}>{[50, 75, 100, 125].map(n => <option key={n} value={n}>{n}%</option>)}</select></label></div>
         </CanvasDropZone>
         <aside className="forms-panel forms-properties">
           <h2>
@@ -378,9 +379,12 @@ export default function FormBuilder({
             <>
               <label>
                 Field width
-                <NativeSelect value={field.width || "auto"} onChange={e => patch(field.id, {width: e.target.value as "auto" | "full"})}>
-                  <option value="auto">Fit grid column</option><option value="full">Full row</option>
+                <NativeSelect value={field.width || "auto"} onChange={e => patch(field.id, {width: e.target.value as Question["width"]})}>
+                  <option value="auto">Fit grid column</option><option value="full">Full row</option><option value="half">Half · 2 per row</option><option value="third">Third · 3 per row</option><option value="two-thirds">Two thirds</option><option value="quarter">Quarter · 4 per row</option><option value="three-quarters">Three quarters</option>
                 </NativeSelect>
+              </label>
+              <label>Field height
+                <input aria-label="Field height" type="number" min={48} max={600} key={`${field.id}:${field.height}`} defaultValue={field.height || ""} placeholder="Automatic" onBlur={e => { const height = e.target.value ? Number(e.target.value) : null; if (height === null || (Number.isInteger(height) && height >= 48 && height <= 600)) patch(field.id, { height }); else e.target.value = String(field.height || ""); }} />
               </label>
               <label>
                 Label

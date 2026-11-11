@@ -165,6 +165,8 @@ export type GridAction<T> = {
   run: (row: T) => void | Promise<void>;
 };
 export type SharedDataGridProps<T> = {
+  /** Compact nested table controls without discarding personal views or summaries. */
+  compactControls?: boolean;
   personalViews?: boolean;
   personalScope?: string;
   viewMode?: GridLayout["view"];

@@ -22,6 +22,7 @@ if os.environ.get("SUITE_QA_POSTGRES_URL"):
 os.environ.update(
     ENVIRONMENT="test", DEBUG="false",
     DATABASE_URL=qa_database,
+    PLATFORM_DATABASE_URL=qa_database, TENANT_DATABASES_ENABLED="false",
     SECRET_KEY=secrets.token_urlsafe(48), REFRESH_SECRET_KEY=secrets.token_urlsafe(48),
     SECRET_KEY_PREVIOUS="", REFRESH_SECRET_KEY_PREVIOUS="",
     INSTALLED_APPS="hrms,crm,project_management,srm,fam,power_apps",

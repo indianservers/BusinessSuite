@@ -1,6 +1,40 @@
 import {test,expect} from '../frontend/node_modules/playwright/test';
 import {mkdir} from 'node:fs/promises';
 
+test('coordinator preserves followups and creates an inactive reviewed workflow',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await page.getByRole('tab',{name:'Workflows',exact:true}).click();
+ await page.getByRole('combobox',{name:'Coordinator intelligence',exact:true}).selectOption('local');
+ await page.getByRole('textbox',{name:'Coordinator message',exact:true}).fill('Delivery coordinator: create a customer recovery task');await page.getByRole('button',{name:'Propose specialist workflow',exact:true}).click();
+ await expect(page.getByRole('article',{name:'Coordinator design',exact:true})).toContainText('revision 1');
+ await page.getByRole('textbox',{name:'Coordinator message',exact:true}).fill('Call it Delivery recovery');await page.getByRole('button',{name:'Propose specialist workflow',exact:true}).click();
+ await expect(page.getByRole('article',{name:'Coordinator design',exact:true})).toContainText('Delivery recovery · revision 2');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/start')).length)).toBe(0);
+ await page.getByRole('button',{name:'Create reviewed workflow preview',exact:true}).click();
+ await expect(page.getByRole('article',{name:'Agent workflow preview',exact:true})).toContainText('Delivery recovery');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/start')).length)).toBe(0);
+ await page.getByRole('button',{name:'Start this exact workflow',exact:true}).click();
+ await page.getByRole('button',{name:'Review combined results #301',exact:true}).click();
+ await expect(page.getByRole('region',{name:'Combined specialist results',exact:true})).toContainText('awaiting approval');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+});
+
+test('knowledge conversation returns citations and keeps a read-only followup',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
+ await expect(page.getByRole('textbox',{name:'Message action bot'})).toBeEnabled();
+ await page.getByRole('tab',{name:'Files (0)',exact:true}).click();
+ await page.getByLabel('Upload bot files',{exact:true}).setInputFiles({name:'policy.txt',mimeType:'text/plain',buffer:Buffer.from('Escalation owners review stalled commitments.')});
+ await expect(page.getByRole('tab',{name:'Files (1)',exact:true})).toBeVisible();
+ await page.getByRole('combobox',{name:'Bot intelligence',exact:true}).selectOption('local');
+ const input=page.getByRole('textbox',{name:'Message action bot'});await input.fill('Search knowledge for: escalation owners');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByRole('button',{name:'policy.txt',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'policy.txt',exact:true}).click();await expect(page.getByRole('tab',{name:'Files (1)',exact:true})).toHaveAttribute('aria-selected','true');
+ await input.fill('What about stalled commitments?');await page.getByRole('button',{name:'Send bot message',exact:true}).click();
+ await expect(page.getByRole('button',{name:'policy.txt',exact:true})).toHaveCount(2);
+ await expect(page.getByRole('button',{name:'Approve these exact actions',exact:true})).toHaveCount(0);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+});
+
 test('unified workspace manages skills finds cited file excerpts and shows activity',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
  for(const label of ['Chats','Agents','Skills','Tools','Connections','Knowledge','Schedules','Artifacts','Activity'])await expect(page.getByRole('tab',{name:label,exact:true})).toBeVisible();

@@ -140,6 +140,42 @@ def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depe
 def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):return public(owned(db,user,ident))
 
 
+@router.get('/{ident}/results')
+def results(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    """Fresh private aggregation, never a cached claim of completed work."""
+    run=owned(db,user,ident);items=[]
+    from app.ai_operator.suite_conversations import owned as chat_owned
+    from app.ai_agents.security import limits
+    for node,spec in zip(run.result['nodes'],run.result['spec']['nodes']):
+        item={'step':node['step'],'agent_name':run.result['agents'][str(spec['agent_id'])]['name'],
+            'status':'not_started','summary':'No agent run has been prepared.','citations':[],'receipts':[]}
+        if node.get('run_id'):
+            chat_owned(db,user,node['conversation_id'])
+            child=occurrence_run(db,user,node,spec['agent_id'])
+            receipts=[{k:v for k,v in receipt.items() if k in {'step','tool','status','record_id','artifact_id','artifact_revision'}} for receipt in child.receipts or []]
+            item.update(status=child.status,run_id=child.id,conversation_id=node['conversation_id'],
+                summary=(child.plan or {}).get('summary','No answer was produced.')[:900],
+                citations=(child.result or {}).get('citations',[])[:8],receipts=receipts[:12])
+            if child.status=='succeeded':item['summary']=f'{sum(r.get("status")=="succeeded" for r in receipts)} action receipts confirmed. Open the conversation for the reviewed changes.'
+        items.append(item)
+    completed=sum(i['status'] in ('answered','succeeded') for i in items)
+    summary=f'{completed}/{len(items)} specialist steps completed. '
+    if run.status=='workflow_cancelled':summary+='Workflow stopped; completed receipts remain recorded.'
+    elif completed<len(items):summary+='The remaining steps are pending, need review or require recovery.'
+    else:summary+='Read the combined answers and confirmed receipts below; source coverage remains that of each specialist.'
+    response={'workflow_id':run.id,'name':run.command,'status':run.status.removeprefix('workflow_'),'complete':completed==len(items) and run.status=='workflow_succeeded',
+        'summary':summary,'items':items,'aggregation':'Server-authorized specialist answers and confirmed receipts; no additional model synthesis.'}
+    # Keep every step and status, reducing detail instead of silently omitting a
+    # specialist from the combined result when a disclosure budget is small.
+    import json
+    cap=limits(db,company(user))['max_result_bytes']
+    if len(json.dumps(response,default=str).encode())>cap:
+        response['disclosure_limited']=True
+        for item in items:item.update(summary=item['summary'][:300],citations=item['citations'][:2],receipts=item['receipts'][:2])
+    if len(json.dumps(response,default=str).encode())>cap:raise HTTPException(422,'Combined results exceed the disclosure limit; open the individual specialist conversations')
+    return response
+
+
 @router.post('/{ident}/resume')
 def resume(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     run=owned(db,user,ident,True)

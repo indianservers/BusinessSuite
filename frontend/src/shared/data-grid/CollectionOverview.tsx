@@ -1,21 +1,22 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CalendarDays, GanttChart, Layers, ZoomIn, ZoomOut } from "lucide-react";
 import { DAY, scheduleRecords, statusCounts, type CollectionField } from "./collection-model";
 import { groupAppearance } from "./GroupLabel";
 import "./collection-overview.css";
 const dateLabel = (day: number) => new Date(day).toLocaleDateString("en-IN", {day:"2-digit",month:"short",year:"numeric",timeZone:"UTC"});
-export default function CollectionOverview<T>({rows,fields,total,onOpen}:{rows:T[];fields:CollectionField<T>[];total?:number;onOpen?:(row:T)=>void}) {
+export default function CollectionOverview<T>({rows,fields,total,onOpen,compact=false,children}:{rows:T[];fields:CollectionField<T>[];total?:number;onOpen?:(row:T)=>void;compact?:boolean;children?:ReactNode}) {
   const [open,setOpen] = useState(false), [zoom,setZoom] = useState(1);
   const counts = statusCounts(rows,fields), schedule = scheduleRecords(rows,fields);
   const first = schedule.length ? Math.min(...schedule.map(r=>r.start)) : 0;
   const last = schedule.length ? Math.max(...schedule.map(r=>r.end)) : first;
   const days = (last-first)/DAY+1, tickCount=Math.min(6,Math.max(1,Math.ceil((last-first)/DAY+1))), width = Math.max(600,Math.min(4000,days*12))*zoom;
-  return <div className="suite-collection-overview">
+  const content=<div className="suite-collection-overview">
     <div className="suite-collection-counts" aria-label="Collection summary counts">
       <div className="suite-count-total"><span className="suite-count-icon"><Layers size={15} aria-hidden="true"/></span><span>Loaded records<strong>{rows.length.toLocaleString()}</strong></span></div>
       {total!==undefined && <div><span className="suite-count-icon"><Layers size={15} aria-hidden="true"/></span><span>Matching records<strong>{total.toLocaleString()}</strong></span></div>}
       {counts.map(({title,count})=>{const {Icon,tone}=groupAppearance(title,"Status");return <div key={title} className={`suite-count-${tone}`}><span className="suite-count-icon"><Icon size={15} aria-hidden="true"/></span><span>{title}<strong>{count.toLocaleString()}</strong></span></div>;})}
     </div>
+    {children}
     {schedule.length>0 && <section className="suite-collection-schedule" aria-label="Record schedule">
       <button type="button" className="suite-gantt-toggle" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><GanttChart size={14} aria-hidden="true"/>Gantt<span>{schedule.length} scheduled / {rows.length} loaded</span></button>
       {open && <><header><span><CalendarDays size={14} aria-hidden="true"/>{dateLabel(first)} – {dateLabel(last)}</span><div><button type="button" aria-label="Zoom out schedule" disabled={zoom<=.5} onClick={()=>setZoom(value=>Math.max(.5,value-.5))}><ZoomOut size={15}/></button><span>{Math.round(zoom*100)}%</span><button type="button" aria-label="Zoom in schedule" disabled={zoom>=3} onClick={()=>setZoom(value=>Math.min(3,value+.5))}><ZoomIn size={15}/></button></div></header>
@@ -24,4 +25,5 @@ export default function CollectionOverview<T>({rows,fields,total,onOpen}:{rows:T
       {schedule.map((record,index)=><div className="suite-gantt-row" key={index}><div className="suite-gantt-label">{onOpen?<button type="button" onClick={()=>onOpen(record.row)} title={record.title}>{record.title}</button>:<span title={record.title}>{record.title}</span>}</div><div className="suite-gantt-track" style={{width}}><span className="suite-gantt-bar" style={{left:`${(record.start-first)/DAY/days*100}%`,width:`${(record.end-record.start+DAY)/DAY/days*100}%`}} title={`${record.title}: ${dateLabel(record.start)} – ${dateLabel(record.end)}${record.progress!==undefined?` · ${record.progress}% complete`:""}`}><span style={{width:`${record.progress??0}%`}}/>{record.progress!==undefined&&<small>{record.progress}%</small>}</span></div></div>)}</div></div></>}
     </section>}
   </div>;
+  return compact ? <details className="suite-compact-overview"><summary>Summary · {rows.length.toLocaleString()} loaded</summary>{content}</details> : content;
 }

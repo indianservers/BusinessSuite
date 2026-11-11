@@ -23,7 +23,8 @@ export type Question = {
   help: string;
   placeholder: string;
   required: boolean;
-  width?: "auto" | "full";
+  width?: "auto" | "full" | "half" | "third" | "two-thirds" | "quarter" | "three-quarters";
+  height?: number | null;
   options: string[];
   min: number | null;
   max: number | null;

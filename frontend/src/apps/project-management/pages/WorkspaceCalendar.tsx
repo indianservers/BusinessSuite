@@ -22,6 +22,7 @@ const shift = (s: string, days: number) => {
 };
 const colors = ["#2563eb", "#7c3aed", "#047857", "#be185d", "#b45309"];
 type Props = {
+  sharedFilters?: boolean;
   tasks: WorkTask[];
   members: WorkspaceMember[];
   projects: WorkspaceProject[];
@@ -32,6 +33,7 @@ type Props = {
   onRefresh?: () => Promise<void>;
 };
 export default function WorkspaceCalendar({
+  sharedFilters = false,
   tasks,
   members,
   projects,
@@ -331,7 +333,7 @@ export default function WorkspaceCalendar({
           Display options
         </button>
       </div>
-      <div className="wc-filters">
+      {!sharedFilters && <div className="wc-filters">
         <input
           aria-label="Search calendar tasks"
           placeholder="Search titles or task keys…"
@@ -398,7 +400,7 @@ export default function WorkspaceCalendar({
         >
           Clear filters
         </button>
-      </div>
+      </div>}
       {settings && (
         <fieldset className="wc-settings">
           <legend>Saved display preferences</legend>

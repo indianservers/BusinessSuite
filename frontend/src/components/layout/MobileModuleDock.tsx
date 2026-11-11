@@ -163,7 +163,7 @@ export default function MobileModuleDock() {
   return <>
 
     <MobileExperience /><MobileTools onQuickActions={() => setSelected(current)} quickActionsLabel={`${current.label} shortcuts`} />
-    <ModuleNewMenu>{actions => <NewMenu key={location.key} actions={actions} floating />}</ModuleNewMenu>
+    <ModuleNewMenu>{(actions, loading) => <NewMenu key={location.key} actions={actions} disabled={loading} floating />}</ModuleNewMenu>
 
     <nav className="mobile-module-dock" aria-label={`${module.toUpperCase()} mobile navigation`}>
 

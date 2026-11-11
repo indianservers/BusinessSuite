@@ -17,6 +17,7 @@ let savedAgents:any[]=[];
 let agentSchedules:any[]=[];
 let agentWorkflows:any[]=[];
 let builder:any=null;const builderMessages:any[]=[];
+let coordinator:any=null;const coordinatorMessages:any[]=[];
 let librarySkills:any[]=[];const libraryVersions=new Map<number,any[]>();
 const chatFiles=new Map<number,any[]>();let fileSeq=0;
 window.addEventListener('suite:branch-changed',()=>{chats=[];chatRuns.clear()});
@@ -24,6 +25,11 @@ api.defaults.adapter=async config=>{
  const path=config.url||'',body=typeof config.data==='string'?JSON.parse(config.data):config.data;
  requests.push({path,method:config.method,body});let data:any={};
  if(path.endsWith('/builder/model-status'))data={active:true,tensorflow_version:'2.20.0',training_commands:640};
+ else if(path.endsWith('/agents/coordinator'))data={items:coordinator?[coordinator]:[]};
+ else if(path.endsWith('/coordinator/messages')){coordinator={context_id:82,revision:(coordinator?.revision||0)+1,draft:{name:body.text.startsWith('Call it ')?body.text.slice(8):'Customer recovery',nodes:[{agent_id:71,instructions:'Create CRM task called Customer recovery',depends_on:[]}]},agents:{'71':{name:'Delivery coordinator'}},preview_hash:'d'.repeat(64),provider:'local'};coordinatorMessages.push({text:body.text});data=coordinator}
+ else if(path.endsWith('/coordinator/82/apply')){const flow={id:301,name:coordinator.draft.name,status:'preview',spec:{nodes:coordinator.draft.nodes},agents:coordinator.agents,nodes:[{step:1,state:'pending'}],preview_hash:'b'.repeat(64)};agentWorkflows.push(flow);coordinator={...coordinator,workflow_id:301};data={...coordinator,workflow_preview:flow}}
+ else if(path.endsWith('/coordinator/82'))data={...coordinator,messages:coordinatorMessages};
+ else if(path.endsWith('/workflows/301/results'))data={workflow_id:301,name:agentWorkflows[0].name,status:'waiting',complete:false,summary:'0/1 specialist steps completed. The remaining step needs review.',aggregation:'Server-authorized specialist answers and confirmed receipts.',items:[{step:1,agent_name:'Delivery coordinator',status:'awaiting_approval',summary:'Review this exact task before execution.',citations:[],receipts:[]}]};
  else if(path.endsWith('/agents/builder'))data={items:builder?[builder]:[]};
  else if(path.endsWith('/builder/messages')){const name=body.text.startsWith('Call it ')?body.text.slice(8):'Delivery coordinator';builder={context_id:81,revision:(builder?.revision||0)+1,config:{name,instructions:'Prepare reviewed customer followups.',modules:['CRM'],tools:['crm.create_task'],memory:[],provider:'preferred'},draft:{name},provider:'local',question:null,preview_hash:'c'.repeat(64),knowledge:[],schedule:null};builderMessages.push({text:body.text,proposal:{question:null}});data=builder}
  else if(path.endsWith('/builder/81/apply')){const agent={id:71,...builder.config,revision:1,skill_ids:[],connection_ids:[],mcp_ids:[]};savedAgents.push(agent);builder={...builder,agent_id:71};data={...builder,agent,schedule_preview:null}}
@@ -76,6 +82,10 @@ api.defaults.adapter=async config=>{
   const missing=body.text==='create a task';
   run={id:++seq,command:body.text,status:missing?'needs_clarification':body.text==='what are todays jobs'?'answered':'awaiting_approval',plan_hash:'0'.repeat(64),plan:{summary:missing?'I need a title.':body.text==='what are todays jobs'?'No jobs in this development sample.':'Review this exact task.',...(missing?{question:'What title should I use?'}:{}),steps:missing||body.text==='what are todays jobs'?[]:[{tool:'crm.create_task',payload:{title:body.text,preview_token:'hidden-signature'}}]},receipts:[]};data=run;
   run.result={request:body};
+  if(/^Search knowledge for:|^What about /i.test(body.text)){
+   const file=(chatFiles.get(body.conversation_id)||[])[0];run.status='answered';run.plan={summary:file?'Retrieved source excerpts: Escalation owners review stalled commitments.':'No matching excerpts were found.',steps:[]};
+   run.result.citations=file?[{id:`upload:${file.id}:0`,file_id:file.id,label:file.name,href:`#bot-attachment-${file.id}`}]:[];
+  }
   if(body.text==='create artifact sample'||/^Edit artifact #501:/.test(body.text)){
    const editing=body.text!=='create artifact sample';run.plan={summary:'Review this artifact draft.',steps:[{tool:editing?'crm.edit_artifact':'crm.create_artifact',payload:{title:'Customer proposal',kind:'document',content:editing?'Original proposal. Added timeline.':'Original proposal.',columns:[],rows:[],...(editing?{artifact_id:501,expected_revision:artifactVersions.length}:{})}}]};run.artifactSample=true;
   }

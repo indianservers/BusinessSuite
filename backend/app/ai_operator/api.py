@@ -42,6 +42,8 @@ from app.ai_operator.agent_templates import router as agent_templates_router
 router.include_router(agent_templates_router)
 from app.ai_operator.agent_builder import router as agent_builder_router
 router.include_router(agent_builder_router)
+from app.ai_operator.agent_coordinator import router as agent_coordinator_router
+router.include_router(agent_coordinator_router)
 from app.ai_operator.workspace_search import router as workspace_search_router
 router.include_router(workspace_search_router)
 from app.ai_operator.writing_api import router as writing_router

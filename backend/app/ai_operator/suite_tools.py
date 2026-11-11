@@ -170,6 +170,11 @@ TOOLS = {
         ('title', 'task_key', 'description', 'priority', 'estimated_hours', 'start_date', 'due_date', 'assignee_user_id', 'assignee_user_ids', 'milestone_id', 'parent_task_id'), 'app.apps.project_management.schemas:PMSTaskCreate', '/project-management/projects/{record_id}'),
 }
 
+for _knowledge_module in ('CRM','PMS','HRMS','SRM','FAM'):
+    TOOLS[f'{_knowledge_module.lower()}.search_knowledge']=Tool(_knowledge_module,'GET','/ai-operator/suite/workspace/conversation-search',
+        'Search current conversation uploads and authorized module records by meaning and keywords. Return cited bounded excerpts, not business totals. A saved agent searches only its separately selected native read tools.',
+        fields=('query','mode','include_records'),model='app.ai_operator.workspace_search:KnowledgeQuery')
+
 TOOLS["hrms.approve_leave"] = Tool("HRMS", "PUT", "/leave/requests/{record_id}/approve", "Apply an independently approved leave decision through HRMS.", ("leave_approve",), ("status", "review_remarks"), "app.schemas.leave:LeaveApprovalRequest", "/leave/requests/{record_id}")
 
 # These reads preserve each canonical module's tenant, role and record filters.
@@ -282,6 +287,7 @@ def catalog():
 
 
 def minimize_source(name, value):
+    if name.endswith('.search_knowledge'):return value
     if name.endswith(('.artifact','.artifacts','.connector_read')):
         return value
     if name.endswith('.report'):

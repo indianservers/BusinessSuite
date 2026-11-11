@@ -4,6 +4,11 @@ import CompactForm from "@/components/forms/CompactForm";
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { displayed, type Answer, type Definition } from "./formsTypes";
+import CanvasField, { fieldStyle, type CanvasEditor } from "./CanvasField";
+import type { Question } from "./formsTypes";
+function ResponseField({ field, columns, editor, children }: { field: Question; columns: number; editor?: CanvasEditor; children: ReactNode }) {
+  return editor ? <CanvasField field={field} columns={columns} editor={editor}>{children}</CanvasField> : <div className="form-live-field" style={fieldStyle(field, columns)}>{children}</div>;
+}
 export default function FormResponse({
   definition,
   disabled,
@@ -19,7 +24,7 @@ export default function FormResponse({
   submit: (a: Record<string, Answer>) => Promise<void>;
   mobile?: boolean;
   publicForm?: boolean;
-  editor?: { selected: string; select: (id: string) => void; label: (id: string, label: string) => void };
+  editor?: CanvasEditor;
   footer?: ReactNode;
   onFiles?: (files: Record<string, File>) => void;
 }) {
@@ -86,8 +91,7 @@ export default function FormResponse({
       )}
       <fieldset disabled={disabled} className="form-response-grid" style={{ "--form-columns": definition.settings?.columns || 1 } as CSSProperties}>
         {fields.map((f) => (
-          <div className={`form-live-field ${["section", "page"].includes(f.type) || f.width === "full" ? "field-full" : ""} ${editor ? "editable-field" : ""} ${editor?.selected === f.id ? "editing-field" : ""}`} key={f.id}>
-            {editor && <button type="button" className="form-field-edit-target" aria-label={`Edit ${f.label}`} aria-pressed={editor.selected === f.id} onClick={() => editor.select(f.id)} />}
+          <ResponseField key={f.id} field={f} columns={definition.settings?.columns || 1} editor={editor}>
             {["section", "page"].includes(f.type) ? (
               <h3>{f.label}</h3>
             ) : (
@@ -240,7 +244,7 @@ export default function FormResponse({
               </>
             )}
             {f.help && <small>{f.help}</small>}
-          </div>
+          </ResponseField>
         ))}
         {currentPage === pages.length - 1 && footer && <div className="field-full">{footer}</div>}
         {currentPage > 0 && (

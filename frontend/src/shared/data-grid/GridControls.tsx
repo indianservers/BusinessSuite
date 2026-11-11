@@ -202,11 +202,13 @@ export function ColumnManager<T>({
 
 export function SavedViewsManager({
   views,
+  label = "Saved views",
   save,
   load,
   remove,
 }: {
   views: GridSavedView[];
+  label?: string;
   save: (name: string) => void;
   load: (view: GridSavedView) => void;
   remove: (id: string) => void;
@@ -216,12 +218,12 @@ export function SavedViewsManager({
     <Popover.Root>
       <Popover.Trigger className="udg-control">
         <Bookmark size={15} />
-        Saved views
+        {label}
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content className="udg-popover" align="end" sideOffset={8}>
           <header>
-            <strong>My saved views</strong>
+            <strong>My {label.toLowerCase()}</strong>
             <Popover.Close aria-label="Close saved views">
               <X size={15} />
             </Popover.Close>

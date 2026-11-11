@@ -211,7 +211,7 @@ export function GroupingPanel({
       ref={drop.setNodeRef}
     >
       <Layers size={15} />
-      <span title="Drag a column header here to group records">Group · Drag columns here</span>
+      <span title="Drag a column header here to group records">Group Â· Drag columns here</span>
       <SortableContext
         items={query.grouping.map((id) => `group-column:${id}`)}
         strategy={horizontalListSortingStrategy}
@@ -505,8 +505,9 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const titleColumn = props.columns.find(c => !/^(select|actions?|quick actions)$/i.test(c.title)) || props.columns[0];
   const title = focused === undefined ? "" : String(titleColumn?.accessor?.(focused) ?? (focused as Record<string, unknown>)[titleColumn?.id] ?? "Record");
   return <div className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
-    <div className="udg-workspace-main">{enabled&&<RecordViewBar scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>}
+    <div className="udg-workspace-main">{enabled&&!props.compactControls&&<RecordViewBar compact={props.compactControls} scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>}
     <GridEngine {...props}
+      toolbarExtra={props.compactControls ? <>{enabled&&<RecordViewBar compact scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>} {props.toolbarExtra}</> : props.toolbarExtra}
       dataSource={source} columns={enhancedColumns}
       viewMode={enabled?(mode==="cards"||mode==="category"||mode==="tags"?"cards":mode==="list"?"list":"grid"):props.viewMode}
       collectionGroup={mode==="category"?category?.id:mode==="tags"?tags?.id:undefined}
@@ -814,6 +815,8 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   const changeQuery = (next: GridQuery, replaceSearch = false) => {
     const composed = mergePendingGridSearch(query, next, search, replaceSearch);
     setQuery(composed);
+    // Publish shared workspace filters before another view can unmount this table.
+    if (props.compactControls && props.queryState) props.onQueryChange?.(composed);
     setSearch(composed.search);
     setActionError("");
   };
@@ -1714,7 +1717,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         }
       }}
     >
-      {props.overview !== false && collectionLocation.pathname !== "/pms/projects" && result && <CollectionOverview rows={summaryRecords} fields={columns.filter(c=>!/^(__suite_|actions|select)/.test(c.id)).map(c=>({id:c.id,title:c.title,value:(row:T)=>c.accessor?c.accessor(row):(row as Record<string,unknown>)[c.id]}))} total={props.dataScope === "loaded" ? undefined : result.total} onOpen={onOpen}/>}
+      {!props.compactControls && props.overview !== false && collectionLocation.pathname !== "/pms/projects" && result && <CollectionOverview compact={props.compactControls} rows={summaryRecords} fields={columns.filter(c=>!/^(__suite_|actions|select)/.test(c.id)).map(c=>({id:c.id,title:c.title,value:(row:T)=>c.accessor?c.accessor(row):(row as Record<string,unknown>)[c.id]}))} total={props.dataScope === "loaded" ? undefined : result.total} onOpen={onOpen}/>}
       {props.statistics && result
         ? props.statistics(result)
         : result && !!result.aggregates?.length && (
@@ -1732,7 +1735,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               ))}
             </div>
           )}
-      {visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
+      {!props.compactControls && visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
       <GridToolbar
         search={search}
         hideSearch={props.hideSearch}
@@ -1743,7 +1746,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         layout={layout}
         updateLayout={updateLayout}
         views={props.viewMode ? [props.viewMode] : props.views || ["grid"]}
-        extra={props.toolbarExtra}
+        extra={props.compactControls ? <>{props.overview !== false && result && <CollectionOverview compact rows={summaryRecords} fields={columns.filter(c=>!/^(__suite_|actions|select)/.test(c.id)).map(c=>({id:c.id,title:c.title,value:(row:T)=>c.accessor?c.accessor(row):(row as Record<string,unknown>)[c.id]}))} total={props.dataScope === "loaded" ? undefined : result.total} onOpen={onOpen}>{visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title}/>}</CollectionOverview>} {props.toolbarExtra}</> : props.toolbarExtra}
         undo={historySize ? undo : undefined}
         reset={() =>
           updateLayout({ ...defaultLayout(columns), ...props.initialLayout })
@@ -1756,6 +1759,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           autoFit={autoFit}
         />
         <SavedViewsManager
+          label={props.compactControls ? "Table layouts" : undefined}
           views={views}
           save={(name) =>
             setViews((v) =>
@@ -2370,6 +2374,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       </footer>}
       {filterOpen && (
         <FilterBuilder
+          dataScope={props.dataScope}
           columns={columns}
           value={query.filters}
           close={() => setFilterOpen(false)}

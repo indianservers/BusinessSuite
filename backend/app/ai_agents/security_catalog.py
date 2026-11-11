@@ -274,6 +274,9 @@ SUITE.update({
     # Recovery can propose only the current non-deleting TaskPlan contract.
     'pms.undo':('PMS','POST','/ai-operator/workbench/runs',('pms_manage_tasks','pms_manage_projects','pms_admin')),
 })
+for _knowledge_module in ('CRM','PMS','HRMS','SRM','FAM'):
+    SUITE[f'{_knowledge_module.lower()}.search_knowledge']=(_knowledge_module,'GET','/ai-operator/suite/workspace/conversation-search',())
+
 for _module in ('CRM','PMS','HRMS'):
     for _name,_method,_path in (
         ('create_artifact','POST','/ai-operator/suite/artifacts/create-approved'),

@@ -43,7 +43,8 @@ class Question(Strict):
     help: str = Field(default="", max_length=500)
     placeholder: str = Field(default="", max_length=160)
     required: bool = False
-    width: Literal["auto", "full"] = "auto"
+    width: Literal["auto", "full", "half", "third", "two-thirds", "quarter", "three-quarters"] = "auto"
+    height: int | None = Field(default=None, ge=48, le=600)
     options: list[str] = Field(default_factory=list, max_length=50)
     min: float | None = None
     max: float | None = None

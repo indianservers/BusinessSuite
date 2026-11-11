@@ -40,6 +40,10 @@ def source_link(tool, row, project_id=None):
 def issue_sources(context, retrieved_at):
     result = []
     for index, packet in enumerate(context, 1):
+        if packet['tool'].endswith('.search_knowledge'):
+            for item in records(packet['records']):
+                result.append({k:v for k,v in item.items() if k in {'id','tool','record_id','file_id','kind','start','end','label','href','retrieved_at'}})
+            continue
         for row in records(packet['records']):
             ident = row.get('id')
             if type(ident) is not int or ident <= 0:

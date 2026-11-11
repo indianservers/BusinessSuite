@@ -9,7 +9,7 @@ import NewMenu, { type NewAction } from "./NewMenu";
 const QuickTaskCapture = lazy(() => import("@/apps/project-management/components/QuickTaskCapture"));
 
 /** Reuse the destination's own editor, validation, and authorization. */
-export default function WorkspaceCreateMenu({ actions, children }: { actions: NewAction[]; children?: (actions: NewAction[]) => ReactNode }) {
+export default function WorkspaceCreateMenu({ actions, children, loading = false }: { actions: NewAction[]; children?: (actions: NewAction[], loading?: boolean) => ReactNode; loading?: boolean }) {
   const location = useLocation(), navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   const [capture, setCapture] = useState<"Sheet" | "Artifact" | "Clip" | null>(null);
@@ -55,7 +55,7 @@ export default function WorkspaceCreateMenu({ actions, children }: { actions: Ne
     add(label, label === "Sheet" ? "Attach a spreadsheet in Files" : label === "Clip" ? "Attach a recorded video in Files" : "Attach a deliverable in Files", icon, `${root}/files`, () => setCapture(label));
   }
   const combined = [...actions, ...extra];
-  return <>{children ? children(combined) : <NewMenu actions={combined} />}
+  return <>{children ? children(combined, loading) : <NewMenu actions={combined} disabled={loading} />}
     {quickTask && <Suspense fallback={<p role="status">Loading quick task…</p>}><QuickTaskCapture subtask={quickTask === "subtask"} close={() => setQuickTask(null)}/></Suspense>}
     <Dialog open={!!capture} onOpenChange={open => { if (!open) setCapture(null); }}>
       <DialogContent><DialogTitle>{capture === "Sheet" ? "Attach a sheet" : capture === "Clip" ? "Attach a clip" : "Attach an artifact"}</DialogTitle>

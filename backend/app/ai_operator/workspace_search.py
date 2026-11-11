@@ -2,7 +2,7 @@
 import json,math,re
 from collections import Counter
 from datetime import datetime,timezone
-from fastapi import APIRouter,Depends,HTTPException,Request
+from fastapi import APIRouter,Depends,HTTPException,Request,Query
 from pydantic import Field,field_validator
 from sqlalchemy.orm import Session
 from typing import Literal
@@ -33,6 +33,37 @@ def document_features(text):
 # Only fixed native read endpoints; external connectors are not implicitly
 # searched. The same canonical routers and role/row filters run on every search.
 SOURCES={'crm.leads','crm.deals','crm.tasks','pms.projects','pms.tasks','hrms.directory','hrms.policies','srm.invoices','srm.inventory','fam.cost_centers','fam.vouchers'}
+
+
+class KnowledgeQuery(Strict):
+    query:str=Field(min_length=1,max_length=500)
+    mode:Literal['hybrid','semantic','lexical']='hybrid'
+    include_records:bool=True
+
+
+def module_sources(module,project_id=None,allowed=None):
+    return sorted(name for name in SOURCES if name.startswith(module.lower()+'.')
+        and (name!='pms.tasks' or project_id) and (allowed is None or name in allowed))
+
+
+def conversational_query(text,followup=False):
+    # An explicit retrieval command, never a catch-all for action requests.
+    match=re.fullmatch(r'\s*(?:search|find|look up)\s+(?:(?:my|our|the)\s+)?knowledge\s*(?:for\s*:?|:)\s*(.{1,500})\s*',text,re.I|re.S)
+    if not match and followup:match=re.fullmatch(r'\s*(?:what about|and what about|how about|search instead for|now search for)\s+(.{1,500})\s*',text,re.I|re.S)
+    if not match or re.search(r'\b(?:then|and)\s+(?:create|send|update|delete|assign|approve)\b',match[1],re.I):return None
+    return match[1].strip()
+
+
+def local_answer(context):
+    packets=[p['records'] for p in context if p['tool'].endswith('.search_knowledge')]
+    found=[item for packet in packets if isinstance(packet,dict) for item in packet.get('items',[])]
+    if not found:return {'summary':'No matching excerpts were found in the selected authorized source samples. This does not establish that no matching business records exist.','steps':[],'source_ids':[]}
+    selected=[];lines=['Retrieved source excerpts, not independently verified facts. These are bounded samples; no actions were executed.']
+    for item in found[:4]:
+        line=f"\n[{item['id']}] {item['label']}: {item['excerpt'][:350]}"
+        if sum(map(len,lines))+len(line)>1950:break
+        lines.append(line);selected.append(item['id'])
+    return {'summary':'\n'.join(lines),'steps':[],'source_ids':selected}
 
 
 def upload_chunks(db,user,conversation_id):
@@ -93,6 +124,27 @@ class KnowledgeSearch(Search):
     include_uploads:bool=True
     tools:list[Literal['crm.leads','crm.deals','crm.tasks','pms.projects','pms.tasks','hrms.directory','hrms.policies','srm.invoices','srm.inventory','fam.cost_centers','fam.vouchers']]=Field(default_factory=list,max_length=6)
     project_id:int|None=Field(default=None,gt=0)
+
+
+@router.get('/conversation-search')
+async def conversation_search(request:Request,conversation_id:int=Query(gt=0),
+    module:Literal['CRM','PMS','HRMS','SRM','FAM']='CRM',query:str=Query(min_length=1,max_length=500),
+    mode:Literal['hybrid','semantic','lexical']='hybrid',include_records:bool=True,project_id:int|None=Query(default=None,gt=0),
+    agent_id:int|None=Query(default=None,gt=0),db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+    from app.ai_operator.suite_conversations import owned
+    from app.ai_operator.suite import Step,check_tool
+    chat=owned(db,user,conversation_id)
+    check_tool(db,user,chat.workspace_id,Step(tool=f'{module.lower()}.search_knowledge'),False)
+    allowed=None
+    if agent_id:
+        from types import SimpleNamespace
+        from app.ai_operator.saved_agents import context
+        data=SimpleNamespace(agent_id=agent_id,workspace_id=chat.workspace_id,module=module,project_id=project_id,provider='preferred')
+        profile=context(db,user,data,None)
+        if f'{module.lower()}.search_knowledge' not in profile['tools']:raise HTTPException(403,'Knowledge search is outside this agent tools')
+        allowed=profile['tools'];project_id=data.project_id
+    return await knowledge_search(KnowledgeSearch(conversation_id=conversation_id,query=query,mode=mode,
+        project_id=project_id,tools=module_sources(module,project_id,allowed) if include_records else [],limit=4),request,db,user)
 
 
 @router.get('/search-status')

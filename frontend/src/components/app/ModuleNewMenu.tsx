@@ -11,7 +11,7 @@ import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMen
 import WorkspaceCreateMenu from "./WorkspaceCreateMenu";
 import { contextualDestination } from "@/shared/creation/registry";
 
-export default function ModuleNewMenu({ children }: { children?: (actions: NewAction[]) => ReactNode } = {}) {
+export default function ModuleNewMenu({ children }: { children?: (actions: NewAction[], loading?: boolean) => ReactNode } = {}) {
   const { pathname, search } = useLocation();
   const [crmQuick,setCRMQuick]=useState("");
   useEffect(() => { setCRMQuick(""); }, [pathname]);
@@ -107,5 +107,5 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
       add(label, `Configure a new ${label.toLowerCase()}`, FileText, `/admin/customization/${kind}?new=${kind}`, definitionCreate(["customization_manage", "customization_admin"]));
     }
   }
-  return pathname.startsWith("/pms") ? <PMSQuickAddMenu>{pmsActions => <WorkspaceCreateMenu actions={[...pmsActions, ...actions]}>{children}</WorkspaceCreateMenu>}</PMSQuickAddMenu> : <>{pathname.startsWith("/crm") ? <WorkspaceCreateMenu actions={actions}>{children}</WorkspaceCreateMenu> : children ? children(actions) : <NewMenu actions={actions} />}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} direct={crmQuick === "lead"} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>{window.dispatchEvent(new CustomEvent("crm:records-changed"));}}/></Suspense>}</>;
+  return pathname.startsWith("/pms") ? <PMSQuickAddMenu>{(pmsActions, loading) => <WorkspaceCreateMenu loading={loading} actions={[...pmsActions, ...actions]}>{children}</WorkspaceCreateMenu>}</PMSQuickAddMenu> : <>{pathname.startsWith("/crm") ? <WorkspaceCreateMenu actions={actions}>{children}</WorkspaceCreateMenu> : children ? children(actions) : <NewMenu actions={actions} />}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} direct={crmQuick === "lead"} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>{window.dispatchEvent(new CustomEvent("crm:records-changed"));}}/></Suspense>}</>;
 }
