@@ -16,6 +16,7 @@ import NoteOutline from "./NoteOutline";
 import { NoteSections } from "./noteSections";
 import NoteBlockDragHandle from "@/components/rich-text/BlockDragHandle";
 import "./notes.css";
+import { EditorWritingActions } from "@/components/ai-agents/WritingActions";
 
 export type NoteEditorProps = RichTextEditorProps & { AttachmentView?: ComponentType<NodeViewProps & { noteId?: number }>; noteId?: number; onImage?: (file: File) => Promise<{ id: number; filename: string }>; onFile?: (file:File)=>Promise<{id:number;filename:string}>; onReady?: (editor: Editor) => void; onReference?: (kind: "task" | "project") => void; onNoteLink?:()=>void };
 export default function NoteEditor({ AttachmentView, value, onChange, onSelection, readOnly, noteId, onImage, onFile, onAttach, onReady, onReference, onNoteLink }: NoteEditorProps) {
@@ -85,6 +86,14 @@ export default function NoteEditor({ AttachmentView, value, onChange, onSelectio
   const applySlash=(run:()=>void)=>{const to=editor.state.selection.from,from=to-(slash?.length||0)-1;if(from<0||editor.state.doc.textBetween(from,to)!==`/${slash||""}`){setSlash(null);return;}editor.chain().focus().deleteRange({from,to}).run();run();setSlash(null);};
   return <div ref={writerRoot} className={`note-writer suite-rte suite-rte-document ${fullscreen?"note-writer-fullscreen":""}`} onDragOver={e=>{if(!readOnly&&e.dataTransfer.types.includes("Files")){e.preventDefault();e.dataTransfer.dropEffect="copy";}}} onDropCapture={e=>{if(!readOnly&&e.dataTransfer.files.length){e.preventDefault();e.stopPropagation();void receiveFiles(Array.from(e.dataTransfer.files));}}} onPasteCapture={e=>{if(!readOnly&&e.clipboardData.files.length){e.preventDefault();void receiveFiles(Array.from(e.clipboardData.files));}}} onBeforeInputCapture={()=>{interacted.current=true;}} onPointerDownCapture={()=>{interacted.current=true;}} onKeyDownCapture={e=>{interacted.current=true;if(e.key==="Escape"){setFullscreen(false);setSlash(null);}if(slash!==null&&slashCommands.length&&["ArrowDown","ArrowUp","Enter","Tab"].includes(e.key)){e.preventDefault();e.stopPropagation();if(e.key==="ArrowDown"||e.key==="ArrowUp")setSlashIndex(index=>(index+(e.key==="ArrowDown"?1:-1)+slashCommands.length)%slashCommands.length);else applySlash(slashCommands[Math.min(slashIndex,slashCommands.length-1)].run);}}}>
     <NoteOutline editor={editor}/>
+    {!readOnly && <EditorWritingActions title="Note" text={()=>editor.state.selection.empty?editor.getText():editor.state.doc.textBetween(editor.state.selection.from,editor.state.selection.to,'\n')} onApply={text=>{
+      interacted.current=true;
+      const range=editor.state.selection.empty?{from:0,to:editor.state.doc.content.size}:{from:editor.state.selection.from,to:editor.state.selection.to};
+      let protectedContent=false;
+      editor.state.doc.nodesBetween(range.from,range.to,node=>{if(['image','privateImage','table'].includes(node.type.name))protectedContent=true;});
+      if(protectedContent||editor.state.doc.textContent.length-editor.state.doc.textBetween(range.from,range.to).length+text.length>200000)return false;
+      return editor.chain().focus().insertContentAt(range,text.split('\n').map(line=>({type:'paragraph',content:line?[{type:'text',text:line}]:[]}))).run();
+    }}/>}
     {!readOnly && <div role="toolbar" aria-label="Note content formatting" className="note-icon-toolbar">
       {tool("Undo (Ctrl+Z)",Undo2,()=>{editor.chain().focus().undo().run();},false,!editor.can().undo())}{tool("Redo (Ctrl+Y)",Redo2,()=>{editor.chain().focus().redo().run();},false,!editor.can().redo())}
       <i/>

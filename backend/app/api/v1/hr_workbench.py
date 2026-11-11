@@ -83,6 +83,31 @@ def summary(row, user):
             "phone": row.phone_number if sensitive else mask_phone(row.phone_number)}
 
 
+@router.get("/request-context")
+def request_context(
+    employee_id: int | None = Query(None, gt=0),
+    kind: Literal["leave", "expense"] = "leave",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    own = current_user.employee.id if current_user.employee else None
+    if employee_id is None and own is None:
+        raise HTTPException(400, "Link an employee profile before submitting a request")
+    person = employee(db, current_user, employee_id or own)
+    manager = person.reporting_manager
+    manager_name = f"{manager.first_name} {manager.last_name}".strip() if manager else None
+    return {
+        "employee_id": person.id,
+        "employee_name": f"{person.first_name} {person.last_name}".strip(),
+        "department": person.department.name if person.department else None,
+        "branch": person.branch.name if person.branch else None,
+        "manager_name": manager_name,
+        "approval_path": ([manager_name or "Authorized HR reviewer", "Finance review"] if kind == "expense" else [manager_name or "Authorized HR reviewer"]),
+        "routing_note": ("Manager review, followed by finance review. Authorized HR reviewers may review within their scope." if kind == "expense" else "Your reporting manager is notified when linked to an account. A reviewer with leave approval permission decides the request."),
+        "initial_status": "submitted" if kind == "expense" else "Pending",
+    }
+
+
 def version(row):
     return hashlib.sha256(json.dumps([row.id, str(row.updated_at), row.status, row.user_id,
         row.user.is_active if row.user else None, str(row.user.updated_at) if row.user else None,

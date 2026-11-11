@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import ConnectorWorkflows from './ConnectorWorkflows';
+import GoogleLeadForms from './GoogleLeadForms';
 
 type App = {id:string;name:string;category:string;description:string;modules:string[];implemented:boolean;authorization:string[];destination:string|null;actions:string[];setup:string[];documentation_url:string|null;blocked_reason?:string};
 const modules:Record<string,string>={crm:'CRM',pms:'Projects',hrms:'HRMS',srm:'Sales',fam:'Finance'};
@@ -23,7 +24,9 @@ export default function ConnectorCatalog(){
   const visible=scoped.filter(app=>(!category||category===app.category)&&`${app.name} ${app.description}`.toLowerCase().includes(search.toLowerCase()));
   return <section className="space-y-5">
     <header><p className="text-sm text-muted-foreground">{module?modules[module]:'Common workspace'}</p><h1 className="text-2xl font-semibold">Connectors & authorization</h1><p>One shared catalog. Connections use the existing secure authorization workspace and remain subject to your permissions.</p></header>
+    {module==='crm'&&<aside className="rounded-lg border p-4 space-y-2"><h2 className="font-semibold">Connect your lead sources</h2><p>Authorize Facebook Lead Ads or LinkedIn Lead Forms, select a source below, and review the first import before enabling automatic imports. Monitor each job’s last success and retry status here.</p><div className="flex flex-wrap gap-3"><Link className="underline" to="/power-apps/integrations?connector=facebook_lead_ads">Connect Facebook</Link><Link className="underline" to="/power-apps/integrations?connector=linkedin_lead_forms">Connect LinkedIn</Link><Link className="underline" to="/crm/leads">Open lead workbench</Link></div></aside>}
     <ConnectorWorkflows module={module}/>
+    {module==='crm'&&<GoogleLeadForms/>}
     <nav className="flex flex-wrap gap-3" aria-label="Connector modules"><Link to="/connectors">All connectors</Link>{Object.entries(modules).map(([id,label])=><Link key={id} to={`/${id}/connectors`}>{label}</Link>)}</nav>
     <div className="flex flex-wrap gap-3"><label className="flex items-center gap-2"><Search size={18}/><Input aria-label="Search connectors" placeholder="Search apps" value={search} onChange={e=>setSearch(e.target.value)}/></label><NativeSelect aria-label="Connector category" value={category} onChange={e=>setCategory(e.target.value)}><option value="">All categories</option>{[...new Set(scoped.map(app=>app.category))].sort().map(c=><option key={c}>{c}</option>)}</NativeSelect></div>
     {query.isLoading&&<p role="status">Loading connectors…</p>}{query.isError&&<div role="alert">Could not load connectors. <Button onClick={()=>query.refetch()}>Retry</Button></div>}

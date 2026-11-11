@@ -39,6 +39,12 @@ def worker_tick(db, worker_id):
         poll_tick(db)
         from app.apps.power_apps.integrations.automation_triggers import poll_tick as connector_poll_tick
         connector_poll_tick(db)
+        from app.apps.power_apps.integrations.marketplace_sync import dispatch_due as connector_sync_due
+        connector_sync_due(db)
+        from app.apps.power_apps.integrations.google_leads import dispatch_due as lead_forms_due
+        lead_forms_due(db)
+        from app.apps.power_apps.integrations.health_alerts import dispatch as connector_expiry_alerts
+        connector_expiry_alerts(db)
         from app.apps.power_apps.runtime_retention import purge_payloads
 
         purge_payloads(db)

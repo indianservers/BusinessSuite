@@ -32,8 +32,9 @@ def fit():
     return rows,idf,vectors
 
 
-def fit_rows(rows,max_vocabulary=None):
-    counts=[features(row['text']) for row in rows]
+def fit_rows(rows,max_vocabulary=None,feature_extractor=None):
+    extractor=feature_extractor or features
+    counts=[extractor(row['text']) for row in rows]
     df=Counter(term for row in counts for term in row)
     if max_vocabulary:
         base={term for row in examples() for term in features(row['text'])}

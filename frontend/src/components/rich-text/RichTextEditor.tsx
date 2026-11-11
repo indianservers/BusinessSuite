@@ -10,6 +10,7 @@ import { Plugin } from "@tiptap/pm/state";
 import { CheckSquare, AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, ChevronDown, Code2, Eraser, Highlighter, IndentDecrease, IndentIncrease, Italic, Link2, List, ListOrdered, Maximize2, Minimize2, Minus, MoreHorizontal, Paperclip, Quote, Redo2, Strikethrough, Table2, Underline, Undo2, X } from "lucide-react";
 import { contentToHtml, fontFamilies, fontSizes, RICH_TEXT_PREFIX, safeLink, sanitizeRichHtml, richTextPlainText } from "./content";
 import "./rich-text.css";
+import { EditorWritingActions } from "@/components/ai-agents/WritingActions";
 
 export type RichTextEditorProps = {
   value: string; onChange?: (value: string) => void; onBlur?: () => void;
@@ -109,6 +110,15 @@ export default function RichTextEditor({ value, onChange, onBlur, onSelection, r
   const style = editor.isActive("heading") ? String(editor.getAttributes("heading").level) : "paragraph";
   return <div className={`suite-rte suite-rte-${variant} ${fullscreen ? "suite-rte-fullscreen" : ""} ${locked ? "suite-rte-locked" : ""} ${className}`}
     onKeyDownCapture={onKeyDown} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) onBlur?.(); }}>
+    {!readOnly && <EditorWritingActions disabled={disabled} title={label} text={()=>editor.state.selection.empty?editor.getText():editor.state.doc.textBetween(editor.state.selection.from,editor.state.selection.to,'\n')} onApply={text=>{
+      if(maxLength&&text.length>maxLength)return false;
+      const range=editor.state.selection.empty?{from:0,to:editor.state.doc.content.size}:{from:editor.state.selection.from,to:editor.state.selection.to};
+      let protectedContent=false;
+      editor.state.doc.nodesBetween(range.from,range.to,node=>{if(['image','privateImage','table'].includes(node.type.name))protectedContent=true;});
+      if(protectedContent)return false;
+      if(maxLength&&editor.state.doc.textContent.length-editor.state.doc.textBetween(range.from,range.to).length+text.length>maxLength)return false;
+      return editor.chain().focus().insertContentAt(range,text.split('\n').map(line=>({type:'paragraph',content:line?[{type:'text',text:line}]:[]}))).run();
+    }}/>}
     {!readOnly && <div role="toolbar" aria-label={`${label} formatting`} className="suite-rte-toolbar">
       <div className="suite-rte-tools">{tool("Undo (Ctrl+Z)", Undo2, () => { editor.chain().focus().undo().run(); }, undefined, !editor.can().undo())}
         {tool("Redo (Ctrl+Shift+Z)", Redo2, () => { editor.chain().focus().redo().run(); }, undefined, !editor.can().redo())}</div>

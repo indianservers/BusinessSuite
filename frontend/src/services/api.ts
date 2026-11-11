@@ -11,6 +11,9 @@ import { confirmedMutation, recordSavedEvent } from "@/lib/record-changes";
 
 declare module "axios" {
   interface AxiosRequestConfig {
+    /** Shared with the record cache, including consumers outside the app shell. */
+    _recordSyncBypass?: boolean;
+    _recordSyncBackground?: boolean;
     /** Use an entity-owned optimistic implementation instead of the shared tracker. */
     recordSync?: boolean;
     _recordSyncId?: string;

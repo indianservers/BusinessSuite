@@ -30,6 +30,16 @@ if __name__ == "__main__":
             with SessionLocal() as db:
                 children=process_suite_children(db,limit=max(1,min(args.batch_size,100)))
             if children:print({'suite_child_jobs':children},flush=True)
+        # Explicitly activated agent schedules only prepare scoped conversations.
+        # They cannot approve or enqueue their proposed business changes.
+        from app.ai_operator.agent_schedules import dispatch as schedule_agents
+        with SessionLocal() as db:
+            scheduled=asyncio.run(schedule_agents(db,app,limit=5))
+        if scheduled['processed']:print({'agent_schedules_prepared':scheduled['processed']},flush=True)
+        from app.ai_operator.agent_workflows import dispatch as orchestrate_agents
+        with SessionLocal() as db:
+            orchestrated=asyncio.run(orchestrate_agents(db,app,limit=5))
+        if orchestrated['processed']:print({'agent_workflows_prepared':orchestrated['processed']},flush=True)
         if not args.suite_only:
             from app.ai_operator.training import process_training
             with SessionLocal() as db:

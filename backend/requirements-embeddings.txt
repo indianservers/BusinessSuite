@@ -1,0 +1,4 @@
+# Install into a separate server environment, not the browser or API venv.
+onnxruntime==1.23.2
+tokenizers==0.22.1
+numpy==2.2.6

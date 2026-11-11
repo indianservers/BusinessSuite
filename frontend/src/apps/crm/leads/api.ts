@@ -4,6 +4,7 @@ import { getApiBaseUrl } from "@/config/runtime";
 
 export type Stage = { name: string; required: string[]; allowedNext: string[] };
 export type AssignmentRule = { field: string; equals: string; ownerId: number };
+export type SellerAvailability = {ownerId:number;enabled:boolean;timezone:string;days:number[];startMinute:number;endMinute:number;maxActiveLeads:number|null};
 export type Sequence = {
   name: string;
   steps: { day: number; type: string; title: string }[];
@@ -23,7 +24,7 @@ export type Settings = {
   slaHours: number;
   staleDays: number;
   preventDuplicates: boolean;
-  assignment: { mode: string; ownerIds: number[]; rules: AssignmentRule[] };
+  assignment: { mode: string; ownerIds: number[]; rules: AssignmentRule[]; availability?:SellerAvailability[] };
   sequences: Sequence[];
   workflows: Workflow[];
 };

@@ -1,4 +1,5 @@
 import EmployeeDuplicateWarning from "./EmployeeDuplicateWarning";
+import { announceCreated } from "@/shared/creation/CreationOutcome";
 import { useRecordDraft } from "@/hooks/use-record-autosave";
 import { CurrencySelect } from "@/lib/validation/business";
 import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
@@ -9,7 +10,7 @@ import RichTextEditor, { RichTextContent, richTextPlainText } from "@/components
 import { PhoneInput } from "@/lib/validation/PhoneInput";
 import { phoneError, textError } from "@/lib/validation";
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -122,6 +123,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
   const [allowContactDuplicate,setAllowContactDuplicate]=useState(false);
   const customFieldForm=useCrmFieldForm("employees","create");
   const navigate = useNavigate();
+  const [createParams] = useSearchParams();
+  const contextId = (key: string) => /^\d+$/.test(createParams.get(key) || "") ? Number(createParams.get(key)) : undefined;
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -176,7 +179,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
     formState: { errors },
   } = useForm<z.input<typeof schema>, unknown, FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { salary_currency: defaultText("payroll_currency", "hrms"), cost_center_id: defaultId("cost_center_id", "hrms"), branch_id: defaultId("branch_id", "hrms"), department_id: defaultId("department_id", "hrms"), shift_id: defaultId("shift_id", "hrms"), employment_type: defaultText("employment_type", "hrms"), create_user_account: false, last_name: "", phone_number_country_code: defaultText("phone_country_code", "hrms"), alternate_phone_country_code: defaultText("phone_country_code", "hrms"), emergency_contact_number_country_code: defaultText("phone_country_code", "hrms") },
+    defaultValues: { salary_currency: defaultText("payroll_currency", "hrms"), cost_center_id: defaultId("cost_center_id", "hrms"), branch_id: contextId("branch_id") || defaultId("branch_id", "hrms"), department_id: contextId("department_id") || defaultId("department_id", "hrms"), reporting_manager_id: contextId("reporting_manager_id"), shift_id: defaultId("shift_id", "hrms"), employment_type: defaultText("employment_type", "hrms"), create_user_account: false, last_name: "", phone_number_country_code: defaultText("phone_country_code", "hrms"), alternate_phone_country_code: defaultText("phone_country_code", "hrms"), emergency_contact_number_country_code: defaultText("phone_country_code", "hrms") },
     mode: "onBlur",
   });
 
@@ -197,6 +200,7 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
       employeeApi.create({...cleanEmployeePayload(data),custom_fields:customFieldForm.validate(),allow_contact_duplicate:allowContactDuplicate}),
     onSuccess: (res) => {
       clearEmployeeDraft();
+      announceCreated({ title: "Employee created", href: `/hrms/employees/${res.data.id}`, next: [{ label: "Upload onboarding documents", href: `/hrms/documents?tab=Upload%20Documents&employee_id=${res.data.id}` }] });
       setSubmitError(null);
       toast({ title: "Employee created successfully!", variant: "default" });
       if (onCreated) onCreated(res.data); else navigate(`/hrms/employees/${res.data.id}`);
@@ -299,6 +303,8 @@ export default function AddEmployeePage({ onCreated }: { onCreated?: (employee: 
 
       <EmployeeDuplicateWarning values={{personal_email:watch("personal_email"),phone_number:watch("phone_number"),phone_number_country_code:watch("phone_number_country_code")}} acknowledged={allowContactDuplicate} onAcknowledge={setAllowContactDuplicate}/>
       {/* Step indicator */}
+      <p role="status" className="text-sm text-muted-foreground">Step {currentStep + 1} of {steps.length} · {steps[currentStep]}. Your progress is saved for this session.</p>
+      <progress aria-label="Employee onboarding progress" value={currentStep + 1} max={steps.length} className="h-2 w-full accent-primary"/>
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
         {steps.map((step, i) => (
           <div key={step} className="flex items-center gap-2">

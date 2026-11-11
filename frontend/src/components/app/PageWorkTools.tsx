@@ -7,6 +7,7 @@ import { available, collectPageContext, type PageContextAction } from "@/lib/pag
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import "./page-work-tools.css";
+import WritingActions from "@/components/ai-agents/WritingActions";
 
 type Visit = { path: string; title: string };
 /** Reuses page-owned controls: no parallel write paths or permissions. */
@@ -70,7 +71,7 @@ export default function PageWorkTools({portalScope}: {portalScope?: string} = {}
     return () => window.removeEventListener("keydown", keyboard);
   }, [scope]);
   const recent = (portalScope ? visits : (savedRecent || []).map(path=>({path,title:path.split("/").filter(Boolean).map(part=>part.replace(/-/g," ")).join(" / ")}))).filter(v => v.path !== location.pathname + location.search && v.path.startsWith("/") && !v.path.startsWith("//") && (portalScope ? v.path.startsWith(`/portal/${portalScope.split(":")[1]}`) : !v.path.startsWith("/portal/") && canAccessRoute(v.path.split("?")[0], user?.role, user?.is_superuser)));
-  return <div className="page-work-tools" data-context-menu-ignore data-page-work-tools>
+  return <><WritingActions/><div className="page-work-tools" data-context-menu-ignore data-page-work-tools>
     <button type="button" onClick={showActions} aria-keyshortcuts="Alt+Shift+A" title="Page actions and keyboard shortcuts (Alt+Shift+A)">Page actions</button>
     {notice && <span role="status" className="sr-only">{notice}</span>}
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className="page-actions-dialog" onCloseAutoFocus={event => { const action = selected.current; selected.current = undefined; if (action) { event.preventDefault(); requestAnimationFrame(() => { if (available(action.source)) action.run(); }); } }}>
@@ -82,5 +83,5 @@ export default function PageWorkTools({portalScope}: {portalScope?: string} = {}
       <button type="button" onClick={() => { void navigator.clipboard.writeText(window.location.href).then(() => setNotice("Page link copied"), () => setNotice("Could not copy page link")); }}>Copy page link</button>
       {!!recent.length && <section><h3 className="font-medium">Recently visited</h3><nav className="page-actions-list" aria-label="Recently visited pages">{recent.filter(v => v.title.toLowerCase().includes(query.toLowerCase())).slice(0, 8).map(v => <Link key={v.path} to={v.path} onClick={() => setOpen(false)}>{v.title}</Link>)}</nav></section>}
     </DialogContent></Dialog>
-  </div>;
+  </div></>;
 }

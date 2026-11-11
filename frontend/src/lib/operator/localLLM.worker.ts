@@ -36,14 +36,15 @@ self.onmessage=async(event:MessageEvent)=>{
       buffers.length=0;
       model=new TfjsLlama(manifest.modelTopology,tf.io.decodeWeights(data,group.weights));
       self.postMessage({id,result:{backend:tf.getBackend()}});
-    }else if(type==='generate') {
+    }else if(type==='generate'||type==='write') {
       if(!model || !tokenizer)throw new Error('Model is not loaded');
       const chat=messages[0]?.role==='system'?messages:[{role:'system',content:'You are a helpful AI assistant named SmolLM, trained by Hugging Face'},...messages];
       // Assistant prefill discourages conversational prose in this JSON-only tool.
-      const prefix='{"kind":';
+      const writing=type==='write';
+      const prefix=writing?'':'{"kind":';
       const prompt=chat.map((m:{role:string;content:string})=>`<|im_start|>${m.role}\n${m.content}<|im_end|>\n`).join('')+'<|im_start|>assistant\n'+prefix;
       const ids=tokenizer.encode(prompt,{add_special_tokens:false}).ids;
-      const maxNew=768,maxContext=4096;
+      const maxNew=writing?320:768,maxContext=4096;
       if(ids.length+maxNew>maxContext){self.postMessage({id,error:'Local context exceeds 4096 tokens',reason:'context_limit'});return;}
       model.reset();const generated:number[]=[];
       let logits:tf.Tensor1D|undefined;
@@ -57,7 +58,7 @@ self.onmessage=async(event:MessageEvent)=>{
           content=prefix+tokenizer.decode(generated,{skip_special_tokens:true});
           // Stop at a complete JSON object instead of asking this small model
           // to spend more tokens generating a trailing explanation or EOS.
-          try {const reply=JSON.parse(content);if(reply && typeof reply.kind==='string' && typeof reply.message==='string'){stopped=true;break;}}catch{/* Incomplete prefix */}
+          if(!writing)try {const reply=JSON.parse(content);if(reply && typeof reply.kind==='string' && typeof reply.message==='string'){stopped=true;break;}}catch{/* Incomplete prefix */}
           logits=model.forward([next]);
           if(step%8===0)await new Promise(r=>setTimeout(r,0));
         }

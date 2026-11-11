@@ -38,13 +38,14 @@ def parse(content,name):
             book=load_workbook(io.BytesIO(content),read_only=True,data_only=False,keep_links=False)
             try:
                 sheet=book.worksheets[0]
+                if (sheet.max_row or 0)>202 or (sheet.max_column or 0)>31:notes.append('Sheet contains rows or columns outside the parsing preview.')
                 if len(book.worksheets)>1:notes.append('Only the first sheet is included; upload other sheets separately.')
                 for values in sheet.iter_rows(max_row=202,max_col=31,values_only=True):
                     row=[]
                     for value in values:
                         if isinstance(value,str) and value.startswith('='):
                             notes.append('Formula cells are omitted; formulas are never evaluated.');value=''
-                        if isinstance(value,datetime):value=value.date().isoformat()
+                        if isinstance(value,datetime):value=value.isoformat() if value.hour or value.minute or value.second or value.microsecond else value.date().isoformat()
                         elif isinstance(value,date):value=value.isoformat()
                         if value is not None and len(str(value))>1000:notes.append('Long cell values are limited to 1,000 characters.')
                         row.append(str(value)[:1000] if value is not None else '')
@@ -57,6 +58,7 @@ def parse(content,name):
             if suffix=='.csv':
                 for i,row in enumerate(csv.reader(io.StringIO(text))):
                     if i>=202:notes.append('Table preview is limited to 200 data rows.');break
+                    if len(row)>31:notes.append('Table columns outside the parsing preview are omitted.')
                     if any(len(v)>1000 for v in row):notes.append('Long cell values are limited to 1,000 characters.')
                     rows.append([v[:1000] for v in row[:31]])
         elif suffix=='.docx':
@@ -143,6 +145,8 @@ def context(db,user,conversation_id,ids):
 
 def spreadsheet_plan(row,request_key):
     """An explicit user request turns table rows into a reviewed local draft."""
+    if row.arguments.get('format','.csv') not in {'.csv','.xlsx'}:
+        raise HTTPException(422,'Use CSV or XLSX for complete action imports. Documents and PDFs remain source context, not automatic table imports.')
     rows=(row.result or {}).get('rows') or []
     if len(rows)<2:raise HTTPException(422,'Use a table with module and title headers plus at least one data row')
     headers=[re.sub(r'\s+','_',v.strip().casefold()) for v in rows[0]]
@@ -153,8 +157,10 @@ def spreadsheet_plan(row,request_key):
     if set(headers)-allowed:raise HTTPException(422,'Remove unsupported columns before creating action drafts')
     steps=[]
     for index,values in enumerate(rows[1:],1):
+        if any(str(v).strip() for v in values[len(headers):]):raise HTTPException(422,f'Row {index}: data exists beyond the declared columns')
         record=dict(zip(headers,values));module=record.get('module','').strip().upper();title=record.get('title','').strip()
         if module not in {'CRM','PMS','HRMS'} or not title:raise HTTPException(422,f'Row {index}: use CRM/PMS/HRMS and a nonempty title')
+        if module!='PMS' and record.get('project_id'):raise HTTPException(422,f'Row {index}: project_id applies only to PMS tasks')
         payload={'title':title}
         for key in ('priority','due_date','description'):
             if record.get(key):payload[key]=record[key]

@@ -39,7 +39,7 @@ function ImportWorkspaceContent({module}:{module:string}){
  const refreshConnections=async()=>{if(module==="fam")setConnections((await api.get<Connections>(base+"/connections")).data);};
  async function run(action:()=>Promise<void>){if(working.current)return;working.current=true;setBusy(true);setError("");try{await action();}catch(e){setError(transferError(e));}finally{working.current=false;setBusy(false);}}
  function reset(){++request.current;setFile(undefined);setTable(undefined);setBatch(undefined);setMapping({});setOptions(initialOptions());setStep(0);setPage(0);setAck(false);setError("");}
- useEffect(()=>{let active=true;reset();setCatalog([]);setHistory([]);setConnections(undefined);void api.get<Spec[]>(base+"/catalog").then(({data})=>{if(active){setCatalog(data);setEntity(data[0]?.key||"");}}).catch(e=>{if(active)setError(transferError(e));});return()=>{active=false;++request.current;};},[base,company]);
+ useEffect(()=>{let active=true;reset();setCatalog([]);setHistory([]);setConnections(undefined);void api.get<Spec[]>(base+"/catalog").then(({data})=>{if(active){setCatalog(data);const requested=new URLSearchParams(location.search).get("entity");setEntity(data.find(spec=>spec.key===requested)?.key||data[0]?.key||"");}}).catch(e=>{if(active)setError(transferError(e));});return()=>{active=false;++request.current;};},[base,company]);
  useEffect(()=>{if(!catalog.length)return;void refreshHistory().catch(e=>setError(transferError(e)));if(module==="fam")void refreshConnections().catch(e=>setError(transferError(e)));},[base,catalog.length]);
  useEffect(()=>{
   if(module!=="fam")return;const params=new URLSearchParams(location.search);const code=params.get("code"),state=params.get("state");if(!code||!state)return;

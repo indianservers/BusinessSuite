@@ -21,8 +21,8 @@ def install(profile, a):
     profile('facebook_lead_ads','Facebook Lead Ads','CRM','graph.facebook.com',
         'https://developers.facebook.com/docs/marketing-api/guides/lead-ads/retrieving/',[
         a('test','Verify token identity','GET','/v24.0/me',query={'fields':'id,name'}),
-        a('list_forms','Read Page lead forms','GET','/v24.0/{page_id}/leadgen_forms','page_id',query={'limit':25}),
-        a('list_leads','Read form leads','GET','/v24.0/{form_id}/leads','form_id',query={'limit':25}),
+        a('list_forms','Read Page lead forms','GET','/v24.0/{page_id}/leadgen_forms','page_id',query={'limit':100,'fields':'id,name,status'}),
+        a('list_leads','Read form leads','GET','/v24.0/{form_id}/leads','form_id',query={'limit':25,'fields':'id,created_time,ad_id,form_id,field_data'}),
     ])
     profile('mailchimp','Mailchimp','Email','us1.api.mailchimp.com',
         'https://mailchimp.com/developer/marketing/guides/quick-start/',[

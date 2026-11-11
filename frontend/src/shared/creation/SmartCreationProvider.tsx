@@ -10,6 +10,7 @@ import { SmartCreateModal } from "./SmartCreateModal";
 import { CreationContent } from "./CreationContent";
 import { CreationDialogEnhancements } from "./CreationDialogEnhancements";
 import ErrorBoundary from "@/components/app/ErrorBoundary";
+import CreationOutcome, { announceCreated } from "./CreationOutcome";
 
 type Frame = { key: string; location: Location; definition: CreationDefinition; onCreated?: (record?: unknown) => void; trigger: HTMLElement | null; scope: string; previousTitle: string; existingDialogs: HTMLElement[] };
 type CreationApi = { open: (destination: string, onCreated?: (record?: unknown) => void) => boolean };
@@ -89,6 +90,7 @@ export function SmartCreationProvider({ children, routes }: { children: ReactNod
     });
   }
   return <CreationContext.Provider value={{ open }}><UNSAFE_NavigationContext.Provider value={{ ...navigation, navigator: adapted }}>{children}</UNSAFE_NavigationContext.Provider>
+    <CreationOutcome />
     <CreationDialogEnhancements />
     {frames.map(frame => <CreationHost key={frame.key} frame={frame} routes={routes} close={() => close(frame)} />)}
   </CreationContext.Provider>;
@@ -127,6 +129,12 @@ function CreationHost({ frame, routes, close }: { frame: Frame; routes: Frontend
     const module = frame.location.pathname.split('/')[1];
     if (module === "crm") window.dispatchEvent(new Event('crm:records-changed'));
     window.dispatchEvent(new CustomEvent('suite:creation-completed', { detail: { destination: frame.location.pathname, entity: frame.definition.entity } }));
+    if (!["lead", "employee", "leave"].includes(frame.definition.entity)) {
+      const data = record && typeof record === "object" ? record as { id?: number; task?: { id?: number } } : undefined;
+      const id = data?.id || data?.task?.id;
+      const resource = ({ task: "/pms/tasks", project: "/pms/projects", contact: "/crm/contacts", deal: "/crm/deals", company: "/crm/companies", customer: "/crm/customers" } as Record<string, string>)[frame.definition.entity];
+      announceCreated({ title: `${frame.definition.entity.replace(/([A-Z])/g, " $1")} ${frame.definition.mode === "edit" ? "updated" : "created"}`, href: resource && id ? `${resource}/${id}` : undefined });
+    }
     frame.onCreated?.(record);
     if (keepOpen) setSavedRevision(revision => revision + 1); else close();
   };

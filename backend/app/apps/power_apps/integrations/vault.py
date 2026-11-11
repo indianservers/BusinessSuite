@@ -97,6 +97,8 @@ def public_connection(row):
     }
     if row.expires_at and utc(row.expires_at) <= now():
         data["health"] = "expired"
+    from app.apps.power_apps.integrations.health_alerts import expiry_status
+    data['expiry_status'] = expiry_status(row)
     data["live_verified"] = bool(row.last_verified_at and data["health"] == "healthy")
     return data
 

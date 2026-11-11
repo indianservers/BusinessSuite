@@ -276,7 +276,9 @@ def invoke(
                 output = adapters.provider_action(
                     conn, action_id, parsed, transport, headers, values, operation_key
                 )
-        output = scrub(output, [*values.values(), *headers.values()])
+        from app.apps.power_apps.integrations.marketplace_actions import structured_import_read
+        output = scrub(output, [*values.values(), *headers.values()],
+            redact_debug_strings=not structured_import_read(conn.connector_id,action_id))
         safe_data(output)
         if len(json.dumps(output)) > 65536:
             raise IntegrationFailure(

@@ -1,4 +1,7 @@
 import {useMobile} from "@/components/mobile/useMobile";
+import { useLocation } from "react-router-dom";
+import RequestReviewContext from "../../components/RequestReviewContext";
+import { announceCreated } from "@/shared/creation/CreationOutcome";
 import "./expenses-mobile.css";
 import { CurrencySelect } from "@/lib/validation/business";
 import { defaultText, defaultNumber, defaultId, defaultOwner, defaultPaymentTerms, defaultDateAfter, formDefaults, displayDate, displayNumber } from "@/lib/form-defaults";
@@ -15,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 export default function ExpenseClaimForm({ employeeId }: { employeeId: number }) {
   const phone=useMobile(480);
+  const location=useLocation();
   const [completionRevision, setCompletionRevision] = useState(0);
   const userId = useAuthStore(s => s.user?.id), qc = useQueryClient();
   const draftKey = `hrms-expense-draft:${userId}:${employeeId}`;
@@ -24,6 +28,7 @@ export default function ExpenseClaimForm({ employeeId }: { employeeId: number })
   const [file, setFile] = useState<File | null>(null);
   useEffect(() => { sessionStorage.setItem(draftKey, JSON.stringify({ form, pendingId })); }, [draftKey, form, pendingId]);
   const submit = useMutation({ mutationFn: async () => {
+    if (file && (!/\.(pdf|png|jpe?g)$/i.test(file.name) || !file.size || file.size > 5 * 1024 * 1024)) throw new Error("Choose a non-empty PDF, PNG or JPEG receipt up to 5 MB.");
     const id = pendingId || (await api.post("/expenses/claims", { ...form, employee_id: employeeId })).data.id as number;
     setPendingId(id);
     if (file) {
@@ -31,9 +36,10 @@ export default function ExpenseClaimForm({ employeeId }: { employeeId: number })
       const response = await api.post<{ duplicate_claim_ids: number[] }>(`/expenses/claims/${id}/receipt`, body, { headers: { "Content-Type": "multipart/form-data" } });
       if (response.data.duplicate_claim_ids.length) toast({ title: "Potential duplicate receipt", description: `This receipt also appears on claim IDs ${response.data.duplicate_claim_ids.join(", ")}. Ask the reviewer to check before payment.` });
     } else if (pendingId) throw new Error("Choose the receipt again to retry its upload.");
-  }, onSuccess: () => { setCompletionRevision(value=>value+1); setForm(empty); setPendingId(null); setFile(null); sessionStorage.removeItem(draftKey); qc.invalidateQueries({ queryKey: ["expense-statement"] }); qc.invalidateQueries({ queryKey: ["my-team"] }); toast({ title: "Expense claim submitted" }); }, onError: (error: unknown) => { const detail = (error as { response?: { data?: { detail?: unknown } }; message?: string }).response?.data?.detail; toast({ title: "Expense submission needs attention", description: typeof detail === "string" ? detail : (error as Error).message || "Your entered values are preserved. Retry when ready.", variant: "destructive" }); } });
+    return id;
+  }, onSuccess: (id) => { announceCreated({ title: `Expense claim #${id} submitted`, status: "Awaiting manager review", href: `/hrms/expenses?employee_id=${employeeId}`, next: [{label:"Track claim",href:`/hrms/expenses?employee_id=${employeeId}`}] }); setCompletionRevision(value=>value+1); setForm(empty); setPendingId(null); setFile(null); sessionStorage.removeItem(draftKey); qc.invalidateQueries({ queryKey: ["expense-statement"] }); qc.invalidateQueries({ queryKey: ["my-team"] }); toast({ title: "Expense claim submitted" }); }, onError: (error: unknown) => { const detail = (error as { response?: { data?: { detail?: unknown } }; message?: string }).response?.data?.detail; toast({ title: "Expense submission needs attention", description: typeof detail === "string" ? detail : (error as Error).message || "Your entered values are preserved. Retry when ready.", variant: "destructive" }); } });
   const submissionDetail = (submit.error as {response?:{data?:{detail?:unknown}}}|null)?.response?.data?.detail;
-  return <SmartCreateSection title="Submit expense claim" mobileSheet={phone} completionRevision={completionRevision} closeOnRecordSaved={false}><Card className="hrms-expense-claim-form"><CardHeader><CardTitle className="text-base">Submit an expense</CardTitle></CardHeader><CardContent><CompactForm className="grid gap-3 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); submit.mutate(); }}>
+  return <SmartCreateSection title="Submit expense claim" autoOpen={location.hash === "#new-record"} mobileSheet={phone} completionRevision={completionRevision} closeOnRecordSaved={false}><Card className="hrms-expense-claim-form"><CardHeader><CardTitle className="text-base">Submit an expense</CardTitle></CardHeader><CardContent><RequestReviewContext kind="expense" employeeId={employeeId}/><CompactForm className="grid gap-3 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); if (!submit.isPending) submit.mutate(); }}>
     {submit.isError && <p role="alert" className="text-sm text-destructive sm:col-span-2">{typeof submissionDetail === "string" ? submissionDetail : "Could not submit this expense. Your entered values are retained."}</p>}
     {pendingId && <p role="status" className="text-sm sm:col-span-2">Claim #{pendingId} was created. Re-select its receipt and retry the upload; this will not create another claim.</p>}
     <label className="text-sm">Category<Input required disabled={!!pendingId} value={form.claim_type} onChange={e => setForm({ ...form, claim_type: e.target.value })} /></label><label className="text-sm">Expense date<Input required disabled={!!pendingId} type="date" max={new Date().toLocaleDateString("en-CA")} value={form.expense_date} onChange={e => setForm({ ...form, expense_date: e.target.value })} /></label>

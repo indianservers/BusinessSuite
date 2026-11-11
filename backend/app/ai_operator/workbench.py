@@ -110,10 +110,8 @@ def validate_artifact(db, user, data):
         from app.ai_operator.deadline_radar import RadarConfig
         return RadarConfig.model_validate(body).model_dump()
     if data.kind=='memory':
-        if set(body)-{'text','category'} or not isinstance(body.get('text'),str) or not 1<=len(body['text'])<=2000:
-            raise HTTPException(422,'Memory needs text, up to 2000 characters')
-        if body.get('category','preference') not in ('preference','decision','terminology','constraint'):
-            raise HTTPException(422,'Choose a supported memory category')
+        from app.ai_operator.suite_memory import MemoryText
+        body=MemoryText.model_validate(body).model_dump(mode='json')
     elif data.kind=='policy':
         _require_ai_admin(user)
         policy=Policy.model_validate(body)
@@ -221,16 +219,25 @@ def project_today(db,user,project_id):
     return datetime.now(ZoneInfo(policy_for(db,user,project_id).timezone)).date()
 
 
-def memory_context(db,user,project_id):
+def _project_memory_context(db,user,project_id,limit=20):
     from app.ai_agents.security import verify
     result = []
-    for r in items(db,user,project_id,'memory').order_by(AssistantArtifact.id.desc()).limit(20):
+    for r in items(db,user,project_id,'memory').order_by(AssistantArtifact.id.desc()).limit(limit):
+        from app.ai_operator.suite_memory import active
+        if not active(r.payload):continue
         try:
             verify(db,user,r.security_context,history=True)
         except HTTPException:
             continue  # Retain quarantined history without disclosing it to the model.
-        result.append({'id':r.id,'category':r.payload.get('category','preference'),'text':r.payload['text']})
+        result.append({'id':r.id,'category':r.payload.get('category','preference'),'text':r.payload['text'],
+                       'revision':r.revision,'expires_at':r.payload.get('expires_at')})
     return result
+
+
+def memory_context(db,user,project_id):
+    from app.ai_operator.agent_memory import collect
+    project,_=access(db,user,project_id)
+    return collect(db,user,project.workspace_id,'PMS',project_id)
 
 
 class PlanInput(Strict):

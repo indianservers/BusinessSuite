@@ -22,6 +22,30 @@ from app.ai_operator.provider_scope import resolve_provider
 from app.apps.project_management.access import get_project_for_action
 
 router = APIRouter(prefix="/ai-operator", tags=["AI Operator"])
+from app.ai_operator.intelligence import router as intelligence_router
+router.include_router(intelligence_router)
+from app.ai_operator.agent_memory import router as memory_router
+router.include_router(memory_router)
+from app.ai_operator.artifacts import router as artifact_router
+router.include_router(artifact_router)
+from app.ai_operator.saved_agents import router as saved_agents_router
+router.include_router(saved_agents_router)
+from app.ai_operator.agent_connectors import router as agent_connectors_router
+router.include_router(agent_connectors_router)
+from app.ai_operator.agent_mcp import router as agent_mcp_router
+router.include_router(agent_mcp_router)
+from app.ai_operator.agent_schedules import router as agent_schedules_router
+router.include_router(agent_schedules_router)
+from app.ai_operator.agent_workflows import router as agent_workflows_router
+router.include_router(agent_workflows_router)
+from app.ai_operator.agent_templates import router as agent_templates_router
+router.include_router(agent_templates_router)
+from app.ai_operator.agent_builder import router as agent_builder_router
+router.include_router(agent_builder_router)
+from app.ai_operator.workspace_search import router as workspace_search_router
+router.include_router(workspace_search_router)
+from app.ai_operator.writing_api import router as writing_router
+router.include_router(writing_router)
 from app.ai_operator.extensions import router as extensions_router
 router.include_router(extensions_router)
 from app.ai_operator.assistant_api import router as assistant_router

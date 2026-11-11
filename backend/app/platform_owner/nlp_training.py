@@ -151,7 +151,7 @@ def baseline_release():
 def native_evaluation(directory):
     repo=Path(__file__).resolve().parents[3]
     subprocess.run([sys.executable,str(repo/'backend/scripts/evaluate_action_release.py'),'--model-dir',str(directory/'model')],
-        cwd=repo/'backend',check=True,timeout=390,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        cwd=repo/'backend',check=True,timeout=630,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
 
 def process(db,ident):

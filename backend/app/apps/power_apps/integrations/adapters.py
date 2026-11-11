@@ -60,7 +60,7 @@ def status_error(response, mutates=False):
     )
 
 
-def decode(response, secrets):
+def decode(response, secrets, *, redact_debug_strings=True):
     try:
         value = json.loads(response.body) if response.body else {}
     except (ValueError, UnicodeDecodeError):
@@ -70,7 +70,7 @@ def decode(response, secrets):
             raise IntegrationFailure(
                 "response", "Binary responses require a dedicated file adapter"
             ) from None
-    return scrub(value, secrets)
+    return scrub(value, secrets, redact_debug_strings=redact_debug_strings)
 
 
 def http_action(conn, data, transport, headers, secrets, operation_key, signed=False):

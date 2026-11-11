@@ -8,7 +8,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-TESTS=('tests/test_suite_workflows.py','tests/test_suite_conversations.py','tests/test_suite_workspace.py','tests/test_local_nlp_workflows.py','tests/test_learning_feedback.py','tests/test_conversational_actions.py')
+TESTS=('tests/test_suite_workflows.py','tests/test_suite_conversations.py','tests/test_suite_workspace.py','tests/test_local_nlp_workflows.py','tests/test_learning_feedback.py','tests/test_conversational_actions.py','tests/test_bot_reliability.py')
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--model-dir',required=True);args=parser.parse_args()
@@ -18,7 +18,7 @@ def main():
     report=folder/'action-release-tests.xml'
     with (folder/'action-release-tests.log').open('w',encoding='utf-8') as log:
         result=subprocess.run([sys.executable,'-m','pytest',*TESTS,'-q','--tb=short','--disable-warnings','--junitxml='+str(report)],
-            cwd=backend,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=360)
+            cwd=backend,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=600)
     root=ET.parse(report).getroot();suites=list(root.iter('testsuite'))
     counts={key:sum(int(s.attrib.get(key,0)) for s in suites) for key in ('tests','failures','errors','skipped')}
     if result.returncode and not counts['failures'] and not counts['errors']:counts['errors']=1

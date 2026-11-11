@@ -1,4 +1,7 @@
 import { MobileDisclosure } from "@/components/mobile/MobilePrimitives";
+import { useRecordDraft } from "@/hooks/use-record-autosave";
+import { announceCreated } from "@/shared/creation/CreationOutcome";
+import RequestReviewContext from "../../components/RequestReviewContext";
 import "./leave-mobile.css";
 import { SmartCreateSection } from "@/shared/creation/SmartCreateSection";
 import {useDefinitionPermission} from "@/components/RecordDefinitionActions";
@@ -250,6 +253,10 @@ export default function LeavePage() {
   const applyOpener = useRef<HTMLButtonElement>(null);
   const [applyCloseRevision, setApplyCloseRevision] = useState(0);
   const requestedFrom=watch("from_date"),requestedTo=watch("to_date"),requestedType=watch("leave_type_id"),requestedMode=watch("leave_mode");
+  const leaveDraft = useRecordDraft("hrms:leave:application", watch(), reset, hasEmployeeProfile);
+  const applicationCalendar = useQuery({ queryKey: ["leave-application-calendar", user?.id, requestedFrom, requestedTo], enabled: showApplyForm && !!requestedFrom && !!requestedTo && requestedTo >= requestedFrom && Date.parse(requestedTo) - Date.parse(requestedFrom) <= 366 * 86400000, queryFn: () => leaveApi.calendar({ from_date: requestedFrom, to_date: requestedTo, scope: "mine" }).then(response => response.data as { days: LeaveCalendarDay[] }) });
+  const applicationHolidays = applicationCalendar.data?.days.flatMap(day => day.holidays) || [];
+  const applicationOverlaps = [...new Map((applicationCalendar.data?.days.flatMap(day => day.employees_on_leave) || []).filter(request => ["Pending", "Approved"].includes(request.status)).map(request => [request.id, request])).values()];
   const requestedDays=requestedFrom&&requestedTo&&requestedTo>=requestedFrom?(requestedMode==="Half-day"?0.5:Math.round((Date.parse(requestedTo)-Date.parse(requestedFrom))/86400000)+1):0;
   const selectedBalance=balances?.find(b=>b.leave_type_id===Number(requestedType));
   const applyMutation = useMutation({
@@ -258,6 +265,8 @@ export default function LeavePage() {
       leaveApi.apply({ ...data, leave_type_id: Number(data.leave_type_id) }),
     onSuccess: () => {
       toast({ title: "Leave application submitted" });
+      leaveDraft();
+      announceCreated({ title: "Leave application submitted", status: "Pending", href: "/hrms/leave", next: [{ label: "Track request", href: "/hrms/leave" }] });
       reset();
       setShowApplyForm(false);
       qc.invalidateQueries({ queryKey: ["leave-balance"] });
@@ -537,12 +546,14 @@ export default function LeavePage() {
         <p>{maintenanceKind==="accruals" ? "Leave accruals" : "Leave carry-forward"}: {activeMaintenance.isPending ? "processing…" : activeMaintenance.isError ? String((activeMaintenance.error as {response?:{data?:{detail?:string}}})?.response?.data?.detail || "Could not complete this run. Please retry.") : `${(activeMaintenance.data?.data as {processed?:number})?.processed ?? 0} balance rows updated.`}</p>
       </div>}
       {showApplyForm && (
-        <SmartCreateModal definition={{ entity: "leave", title: "Apply for leave", presentation: "page", size: "standard" }} mobileSheet={phone} returnFocus={phone ? applyOpener.current : undefined} closeRequestRevision={applyCloseRevision} busy={applyMutation.isPending} onClose={() => { if (phone) { reset(); applyMutation.reset(); } setShowApplyForm(false); }}>
+        <SmartCreateModal definition={{ entity: "leave", title: "Apply for leave", presentation: "page", size: "standard" }} mobileSheet={phone} returnFocus={phone ? applyOpener.current : undefined} closeRequestRevision={applyCloseRevision} busy={applyMutation.isPending} onClose={() => { setShowApplyForm(false); }}>
         <Card className="leave-apply-card">
           <CardHeader className="leave-apply-heading">
             <CardTitle className="text-base">Apply for Leave</CardTitle>
           </CardHeader>
           <CardContent>
+            <RequestReviewContext kind="leave" employeeId={user?.employee_id || undefined}/>
+            <p role="status" className="my-2 text-xs text-muted-foreground">{leaveDraft.status === "restored" ? "Restored your unfinished leave application." : leaveDraft.status === "unavailable" ? "Draft storage unavailable; keep this window open." : "Your application draft is saved in this browser session."}</p>
             {phone && <div className="leave-apply-sources">
               <LeaveSourceNotice label="application balances" source={balanceSource} hasData={balances !== undefined}/>
               {!balances?.length && <LeaveSourceNotice label="application leave types" source={leaveTypesSource} hasData={leaveTypes !== undefined}/>}
@@ -601,11 +612,15 @@ export default function LeavePage() {
                 {errors.reason && <div id={phone ? `${applyFieldId}-reason-error` : undefined} role={phone ? "alert" : undefined} className="text-xs text-red-500"><RichTextContent legacyFormat="plain" value={errors.reason.message}/></div>}
               </div>
 
+              <aside className="rounded border p-3 text-sm sm:col-span-2" aria-label="Leave date context">
+                <p><strong>Holidays and overlapping requests</strong></p>
+                {!requestedFrom || !requestedTo ? <p>Choose a date range to check your calendar.</p> : applicationCalendar.isFetching ? <p role="status">Checking selected dates…</p> : applicationCalendar.isError ? <p role="alert">Calendar could not load. <button type="button" onClick={() => void applicationCalendar.refetch()}>Retry date check</button></p> : applicationCalendar.data ? <><p>{applicationHolidays.length ? applicationHolidays.map(holiday => `${holiday.name} (${holiday.holiday_date})`).join(" · ") : "No applicable holidays in this range."}</p>{applicationOverlaps.length ? <p role="alert">Existing requests: {applicationOverlaps.map(request => `#${request.id}: ${request.from_date}–${request.to_date} (${request.status})`).join("; ")}. Review the dates before submitting.</p> : <p>No pending or approved requests overlap.</p>}</> : <p>Choose a valid date range of up to one year for this preview.</p>}
+              </aside>
               <div className="leave-apply-actions flex gap-3 sm:col-span-2">
                 <Button data-save-action={phone ? "" : undefined} type="submit" disabled={!canApply||applyMutation.isPending}>
                   {applyMutation.isPending ? "Submitting..." : "Submit Application"}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => phone ? setApplyCloseRevision(v => v + 1) : setShowApplyForm(false)}>
+                <Button type="button" variant="outline" onClick={() => setApplyCloseRevision(v => v + 1)}>
                   Cancel
                 </Button>
               </div>

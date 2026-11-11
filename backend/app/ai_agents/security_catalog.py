@@ -268,11 +268,23 @@ SUITE.update({
     'fam.voucher':('FAM','GET','/fam/vouchers/{record_id}',()),
     'hrms.remember':('HRMS','POST','/ai-operator/suite/memories',()),
     'crm.remember':('CRM','POST','/ai-operator/suite/memories',()),
+    'pms.remember_module':('PMS','POST','/ai-operator/suite/memories',()),
     'srm.remember':('SRM','POST','/ai-operator/suite/memories',()),
     'fam.remember':('FAM','POST','/ai-operator/suite/memories',()),
     # Recovery can propose only the current non-deleting TaskPlan contract.
     'pms.undo':('PMS','POST','/ai-operator/workbench/runs',('pms_manage_tasks','pms_manage_projects','pms_admin')),
 })
+for _module in ('CRM','PMS','HRMS'):
+    for _name,_method,_path in (
+        ('create_artifact','POST','/ai-operator/suite/artifacts/create-approved'),
+        ('edit_artifact','POST','/ai-operator/suite/artifacts/edit-approved'),
+        ('artifacts','GET','/ai-operator/suite/artifacts'),
+        ('artifact','GET','/ai-operator/suite/artifacts/current')):
+        SUITE[f'{_module.lower()}.{_name}']=(_module,_method,_path,())
+    SUITE[f'{_module.lower()}.connector_read']=(_module,'GET','/ai-operator/suite/agents/connectors/read',())
+    SUITE[f'{_module.lower()}.connector_action']=(_module,'POST','/ai-operator/suite/agents/connectors/execute-approved',())
+    SUITE[f'{_module.lower()}.mcp_action']=(_module,'POST','/ai-operator/suite/agents/mcp/execute-approved',())
+
 ASSISTANT = (
     "customers.search",
     "projects.search",

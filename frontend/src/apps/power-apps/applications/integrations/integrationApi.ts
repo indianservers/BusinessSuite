@@ -61,6 +61,7 @@ export type Connection = {
   enabled: boolean;
   writes_enabled: boolean;
   health: string;
+  expiry_status?: 'expired' | 'expiring' | null;
   revision: number;
   scopes: string[];
   sharing?: number[];

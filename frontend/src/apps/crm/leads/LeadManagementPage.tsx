@@ -1,4 +1,5 @@
 import CRMRowQuickActions from "../CRMRowQuickActions";
+import { announceCreated } from "@/shared/creation/CreationOutcome";
 import BusinessProfileFields from "@/shared/master-data/BusinessProfileFields";
 import { locationFields, locationValue } from "@/shared/data-grid/record-location";
 import { SmartCreateAction } from "@/shared/creation/SmartCreateAction";
@@ -33,6 +34,7 @@ import CatalogAssociations, { CatalogLinesEditor } from "@/shared/catalog/Catalo
 import { linePayload, type CatalogLine } from "@/shared/catalog/api";
 import {CRMInteractionDialog} from "../SalesActions";
 import { api } from "@/services/api";
+import SellerAvailabilityEditor from './SellerAvailabilityEditor';
 import { useRefreshableEffect } from "@/lib/page-refresh";
 import { RichTextField, RichTextContent, richTextPlainText } from "@/components/rich-text/LazyRichText";
 import React, { useEffect, useRef, useState } from "react";
@@ -471,6 +473,7 @@ function LeadWorkbench() {
       <nav className="lm-links" aria-label="Related CRM tools">
         <Link to={potential ? "/crm/leads" : "/crm/potential-clients"}>{potential ? "Leads" : "Potential Clients"}</Link>
         <Link to="/crm/webforms">Website forms</Link>
+        <Link to="/crm/connectors">Lead sources & connectors</Link>
         <Link to="/crm/communication-hub">Communications</Link>
         <Link to="/crm/calendar">Calendar & scheduling</Link>
         <Link to="/crm/duplicates?entity=lead">Duplicate review & merge</Link>
@@ -1147,6 +1150,7 @@ export function CaptureDialog({
   const customFieldForm=useCrmFieldForm("leads",placement);
   const mobile = useMobile();
   const [expandedMobileCapture, setExpandedMobileCapture] = useState(false);
+  const quickCapture = placement === "quick_create";
   const key = `${potential ? "potential" : "lead"}-capture-draft-${bootstrap.userId}`;
   const automaticRouting =
     bootstrap.settings.assignment.mode !== "manual" ||
@@ -1207,6 +1211,7 @@ export function CaptureDialog({
             e.preventDefault();
             if (captureSubmitting.current) return;
             const nameMissing = !values.full_name?.trim();
+            if (quickCapture && !values.email?.trim() && !values.phone?.trim()) { setStep(0); setError("Add a phone number or email so you can follow up with this lead."); return; }
             const contactError = emailError(values.email) || phoneError(values.phone, values.phone_country_code);
             if (nameMissing || contactError) {
               setStep(nameMissing ? 0 : 1);
@@ -1239,6 +1244,7 @@ export function CaptureDialog({
               clearFullDraft();
               sessionStorage.removeItem(key);
               sessionStorage.removeItem(`${key}:catalog`);
+              announceCreated({ title: `${values.full_name.trim()} created`, href: `/crm/leads/${response.data.id}`, status: values.status || bootstrap.settings.stages[0]?.name || "New", next: [{ label: "Schedule call", href: `/crm/calls?lead_id=${response.data.id}` }, { label: "Add follow-up", href: `/crm/activities?new=activities&lead_id=${response.data.id}` }] });
               saved(response.data.id);
             } catch (err) {
               setError(errorMessage(err));
@@ -1255,10 +1261,10 @@ export function CaptureDialog({
             <p className="lead-create-subtitle">{["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
-              {mobile && <label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>}
+              {(mobile || quickCapture) && <><label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{quickCapture && field("email", "Email", "e.g. john@company.com", "email")}</>}
               <label className="lead-create-field">Lead Source<span className="lead-create-control"><Target size={20}/><NativeSelect value={values.source || defaultText("lead_source", "crm")} onChange={e => update("source", e.target.value)}>{[...new Set([...(values.source ? [values.source] : [defaultText("lead_source", "crm")]), ...leadSourceOptions()])].map(source => <option key={source} value={source}>{source === "Manual" ? "Manual Entry" : source}</option>)}</NativeSelect></span></label>
-              {mobile && <button type="button" className="mobile-filter-trigger" onClick={() => setExpandedMobileCapture(v => !v)} aria-expanded={expandedMobileCapture}>{expandedMobileCapture ? "Fewer details" : "More details"}</button>}
-              {(!mobile || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
+              {(mobile || quickCapture) && <button type="button" className="mobile-filter-trigger" onClick={() => setExpandedMobileCapture(v => !v)} aria-expanded={expandedMobileCapture}>{expandedMobileCapture ? "Fewer details" : "More details"}</button>}
+              {(!(mobile || quickCapture) || expandedMobileCapture) && <><label className="lead-create-field">Lead Stage<span className="lead-create-control"><BarChart3 size={20}/><NativeSelect value={values.status || bootstrap.settings.stages[0]?.name || "New"} onChange={e => update("status", e.target.value)}>{bootstrap.settings.stages.filter(stage => stage.name !== "Converted").map(stage => <option key={stage.name} value={stage.name}>{stage.name === "New" ? "New Lead" : stage.name}</option>)}</NativeSelect></span></label>
               <label className="lead-create-field">Priority<span data-priority-badge data-priority={priority} className="lead-create-control"><Flag size={20}/><span className={`lead-priority-dot lead-priority-${priority.toLowerCase()}`}/><NativeSelect value={priority} onChange={e => setPriority(e.target.value)}>{["Low", "Medium", "High"].map(value => <option key={value}>{value}</option>)}</NativeSelect></span></label>
               <label className="lead-create-field lead-create-notes">Notes<span className="lead-create-control"><FileText size={20}/><textarea maxLength={500} placeholder="Add a quick note about this lead, requirements, or context..." value={values.notes || ""} onChange={e => update("notes", e.target.value)}/></span><small>{values.notes?.length || 0}/500</small></label></>}
             </div>}
@@ -2552,6 +2558,7 @@ function WorkflowSettings({
                 </label>
               ))}
               <section className="lm-section">
+                <SellerAvailabilityEditor assignment={settings.assignment} owners={bootstrap.owners} onChange={availability=>setSettings(s=>({...s,assignment:{...s.assignment,availability}}))}/>
                 <h3>Assignment rules</h3>
                 <p>
                   First matching rule wins; otherwise use the distribution

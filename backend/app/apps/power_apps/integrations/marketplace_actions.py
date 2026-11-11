@@ -11,6 +11,16 @@ TARGETS={'facebook_lead_ads':('crm','leads'),'linkedin_lead_forms':('crm','leads
  'trello':('pms','tasks'),'zendesk':('crm','activities'),'docusign':('crm','activities')}
 
 
+def structured_import_read(connector_id, action_id):
+    """Only authorized business reads may retain phone numbers and numeric IDs.
+
+    Debug redaction is still the default everywhere else; credential/key removal
+    applies to these reads as well. This allowlist is code-owned, never user input.
+    """
+    return (connector_id in TARGETS and action_id == 'sync_page') or (
+        connector_id == 'facebook_lead_ads' and action_id in {'list_forms','list_leads'})
+
+
 def extend(profiles,a):
     pages={
       'facebook_lead_ads':('/v24.0/{resource_id}/leads','resource_id cursor'),
@@ -54,7 +64,7 @@ def build(conn,action,data,path,body):
         if key in {'mailchimp','activecampaign','linkedin_lead_forms','zendesk','cloudtalk','docusign','apollo'}:
             if not cursor.isdigit() or int(cursor)>10000000: raise IntegrationFailure('schema','Invalid numeric sync cursor')
             offset=int(cursor)
-        if key=='facebook_lead_ads': query={'limit':50,**({'after':cursor} if cursor!='0' else {})}
+        if key=='facebook_lead_ads': query={'limit':50,'fields':'id,created_time,ad_id,form_id,field_data',**({'after':cursor} if cursor!='0' else {})}
         elif key=='mailchimp': query={'count':50,'offset':offset}
         elif key=='activecampaign': query={'limit':50,'offset':offset}
         elif key=='linkedin_lead_forms':
@@ -111,7 +121,10 @@ def page_result(conn,args,result):
         raise IntegrationFailure('response','Invalid enrichment response')
     if key=='facebook_lead_ads':
         rows=result.get('data',[])
-        if result.get('paging',{}).get('next'): next_cursor=result.get('paging',{}).get('cursors',{}).get('after')
+        if result.get('paging',{}).get('next'):
+            next_cursor=result.get('paging',{}).get('cursors',{}).get('after')
+            if not isinstance(next_cursor,str) or not next_cursor:
+                raise IntegrationFailure('response','Facebook returned another page without a continuation cursor')
     elif key=='mailchimp':
         rows=result.get('members',[])
         if int(cursor)+len(rows)<int(result.get('total_items',0)): next_cursor=str(int(cursor)+len(rows))
@@ -164,7 +177,16 @@ def normalize(key,row):
         result.update(subject=(key+' #'+str(identity)+' '+str(row.get('emailSubject',row.get('subject',''))))[:180],activity_type='Note',body=str(row.get('description',row.get('status',''))))
     else:
         data=row.get('attributes',row)
-        if key=='facebook_lead_ads': data={f.get('name'): (f.get('values') or [''])[0] for f in row.get('field_data',[])}
+        if key=='facebook_lead_ads':
+            fields=row.get('field_data',[])
+            if not isinstance(fields,list) or len(fields)>200:
+                raise IntegrationFailure('response','Invalid Facebook lead answers')
+            data={}
+            for field in fields:
+                if not isinstance(field,dict) or not isinstance(field.get('name'),str) or not isinstance(field.get('values'),list):
+                    raise IntegrationFailure('response','Invalid Facebook lead answer')
+                # Preserve all selections, including custom multiple-choice answers.
+                data[field['name']]='; '.join(str(v) for v in field['values'])[:16000]
         if key=='linkedin_lead_forms':
             answers=row.get('formResponse',{}).get('answers',[])
             data={str(a.get('questionId')):a.get('answerDetails',{}).get('textQuestionAnswer',{}).get('answer','') for a in answers}
@@ -176,6 +198,22 @@ def normalize(key,row):
         if isinstance(email,list): email=(email[0].get('email','') if email and isinstance(email[0],dict) else '')
         if not email and data.get('emails'): email=data['emails'][0].get('email','') if isinstance(data['emails'][0],dict) else data['emails'][0]
         result.update(full_name=name,first_name=first or (name.split(' ')[0] if name else ''),last_name=last,email=email,phone=data.get('phone',data.get('phone_number','')),source=key)
+        if str(result.get('phone','')).strip().startswith('+'):
+            import phonenumbers
+            try:
+                parsed=phonenumbers.parse(str(result['phone']),None)
+                if phonenumbers.is_valid_number(parsed): result['phone_country_code']='+'+str(parsed.country_code)
+            except phonenumbers.NumberParseException:
+                pass  # Invalid values remain visible in import preview; never guess a region.
+        if key=='facebook_lead_ads':
+            result.update(company_name=data.get('company_name',''),job_title=data.get('job_title',''))
+            result.update({'meta_'+field:str(row[field]) for field in ('ad_id','form_id','created_time') if row.get(field) is not None})
+            result.update({'answer_'+field:value for field,value in data.items()})
+            # Native notes retain attribution and custom answers even with default mapping.
+            details=[f'Meta lead ID: {identity}']
+            details.extend(f'{field}: {row[field]}' for field in ('ad_id','form_id','created_time') if row.get(field) is not None)
+            details.extend(f'{field}: {value}' for field,value in data.items() if field not in {'full_name','first_name','last_name','email','phone','phone_number','company_name','job_title'})
+            result['notes']='\n'.join(details)[:16000]
         # Keep unmapped LinkedIn answers available for the existing mapping review.
         if key=='linkedin_lead_forms': result.update({k:str(v) for k,v in data.items() if k.isdigit()})
     return {k:str(v)[:16000] if v is not None else '' for k,v in result.items()}

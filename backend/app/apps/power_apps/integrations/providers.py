@@ -986,7 +986,9 @@ def execute(conn, action_id, parsed, transport, headers, secrets, operation_key,
     )
     mutates = spec.get('force_write',False) or (spec["method"] not in {"GET", "HEAD"} and action_id != "test" and not spec.get('read_only'))
     status_error(response, mutates)
-    result = decode(response, [*secrets.values(), *headers.values()])
+    from app.apps.power_apps.integrations.marketplace_actions import structured_import_read
+    result = decode(response, [*secrets.values(), *headers.values()],
+        redact_debug_strings=not structured_import_read(conn.connector_id,action_id))
     if isinstance(result, dict) and (
         result.get("ok") is False
         or result.get('error')

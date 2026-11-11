@@ -95,7 +95,20 @@ def local_plan(data,parent,model_scope,project_choice=None):
     from app.ai_operator.local_dialogue import continue_action
     from app.ai_operator.local_runtime import task_plan
     prior=(parent.result or {}).get('workflow') if parent and parent.status in {'needs_clarification','awaiting_approval'} else None
-    if prior and (parent.status=='awaiting_approval' or 'pending' not in prior):
+    if not prior:
+        from app.ai_operator.local_writing import chat_plan
+        writing = chat_plan(data.text)
+        if writing is not None:
+            return writing, None
+    amended=None
+    if prior and parent.status=='needs_clarification' and 'pending' in prior and not project_choice:
+        from app.ai_operator.conversational_actions import amend
+        candidate,question=amend(prior,data.text,data.timezone,data.module)
+        if not question:amended=candidate
+    if amended is not None:
+        state=amended
+        if state.get('cancelled'):return {'summary':'Workflow draft cancelled. No actions were executed.','steps':[]},state
+    elif prior and (parent.status=='awaiting_approval' or 'pending' not in prior):
         from app.ai_operator.conversational_actions import amend
         state,question=amend(prior,data.text,data.timezone,data.module)
         if state.get('cancelled'):return {'summary':'Workflow draft cancelled. No actions were executed.','steps':[]},state
@@ -119,7 +132,7 @@ def local_plan(data,parent,model_scope,project_choice=None):
         if proposal and proposal.get('clauses'):
             state={'intents':[],'project_id':data.project_id,'composer':'conversational-actions-v1'}
             if proposal.get('new_project'):state.update(new_project=proposal['new_project'],project_id=None)
-            if len(proposal['clauses'])+int(bool(proposal.get('new_project')))>8:raise HTTPException(422,'Prepare at most eight actions in one review')
+            if len(proposal['clauses'])+int(bool(proposal.get('new_project')))>12:raise HTTPException(422,'Prepare at most twelve actions in one review')
             for clause in proposal['clauses']:
                 intent=parse(clause['text'],clause['module'],timezone=data.timezone,model_scope=model_scope)
                 natural=parse(clause.get('original') or clause['text'],clause['module'],timezone=data.timezone,model_scope=model_scope)
@@ -139,7 +152,7 @@ def local_plan(data,parent,model_scope,project_choice=None):
         # Split only separators outside quoted strings.
         parts=re.split(r'(?:\s+(?:and\s+then|then)\s+|;\s*)(?=(?:[^"“”]*["“][^"“”]*["”])*[^"“”]*$)',data.text,flags=re.I)
         if state is None and len(parts)<2:return None,None
-        if state is None and len(parts)>8:raise HTTPException(422,'Prepare at most eight local workflow actions in one review')
+        if state is None and len(parts)>12:raise HTTPException(422,'Prepare at most twelve local workflow actions in one review')
         if state is None:state={'intents':[],'project_id':data.project_id}
         for part in ([] if state['intents'] else parts):
             if not re.match(r'^\s*(?:CRM|PMS|HRMS|HR)\s*:',part,re.I):
@@ -150,12 +163,13 @@ def local_plan(data,parent,model_scope,project_choice=None):
             state['intents'].append({'module':intent.module,'intent':intent.intent,'slots':dict(intent.slots),'question':intent.question})
     steps=[]
     if state.get('new_project'):
-        steps.append({'tool':'pms.create_project','payload':{**state['new_project'],'project_key':'AI-'+data.request_key.replace('-','')[:12]},'depends_on':[]})
+        payload={**state['new_project']};payload.setdefault('project_key','AI-'+data.request_key.replace('-','')[:12])
+        steps.append({'tool':'pms.create_project','payload':payload,'depends_on':[]})
     for pos,item in enumerate(state['intents']):
         intent=Interpretation(item['module'],item['intent'],1,dict(item['slots']),item.get('question'))
         if intent.slots.get('project_id'):state['project_id']=intent.slots['project_id']
         from uuid import uuid5,NAMESPACE_URL
-        context=SimpleNamespace(project_id=1 if state.get('new_project') else state.get('project_id'),timezone=data.timezone,request_key=str(uuid5(NAMESPACE_URL,f'suite:{data.request_key}:step:{pos}')))
+        context=SimpleNamespace(project_id=1 if state.get('new_project') else intent.slots.get('_record_id') or state.get('project_id'),timezone=data.timezone,request_key=str(uuid5(NAMESPACE_URL,f'suite:{data.request_key}:step:{pos}')))
         result=task_plan(intent,context,[],[])
         if result is None:raise HTTPException(422,'This workflow step is not supported by the local action catalog')
         state['intents'][pos]={**item,'slots':dict(intent.slots)}
@@ -165,6 +179,12 @@ def local_plan(data,parent,model_scope,project_choice=None):
             return {'summary':f'Preparing a {len(state["intents"])}-step workflow. No actions have run.',
                 'question':f'Step {pos+1}: '+result['question'],'steps':[]},state
         for step in result.get('steps',[]):
+            if intent.slots.get('_draft_payload'):
+                from copy import deepcopy
+                payload=deepcopy(intent.slots['_draft_payload'])
+                for field in ('title','name','subject','priority','due_date'):payload.pop(field,None)
+                if 'task_key' in payload:step['payload'].pop('task_key',None)
+                step['payload']={**payload,**step['payload']}
             if state.get('new_project') and step['tool'].startswith('pms.'):step['record_id']={'$step':1,'field':'id'}
             if intent.slots.get('_parent_step'):
                 step['payload']['parent_task_id']={'$step':intent.slots['_parent_step'],'field':'id'}

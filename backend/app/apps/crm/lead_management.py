@@ -12,6 +12,7 @@ import re
 import zipfile
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -91,7 +92,7 @@ DEFAULTS = {
     "slaHours": 24,
     "staleDays": 7,
     "preventDuplicates": True,
-    "assignment": {"mode": "manual", "ownerIds": [], "rules": []},
+    "assignment": {"mode": "manual", "ownerIds": [], "rules": [], "availability": []},
     "sequences": [
         {
             "name": "Standard follow-up",
@@ -304,7 +305,32 @@ def validate_transition(settings, lead, values, details, converting=False):
 
 def assign(db, user, lead, settings, details=None):
     assignment = settings["assignment"]
+    row = None
+    if assignment.get('availability') or assignment['mode'] != 'manual':
+        row = db.query(CRMLeadManagementConfig).filter_by(organization_id=lead.organization_id).with_for_update().first()
+    policies={p['ownerId']:p for p in assignment.get('availability',[])}
+    counts=None
+    def available(ident):
+        nonlocal counts
+        policy=policies.get(ident)
+        if not policy: return True
+        if not policy.get('enabled',True): return False
+        local=now().astimezone(ZoneInfo(policy['timezone']))
+        minute=local.hour*60+local.minute
+        if local.weekday() not in policy['days'] or not policy['startMinute']<=minute<policy['endMinute']: return False
+        capacity=policy.get('maxActiveLeads')
+        if capacity is None: return True
+        if counts is None:
+            counts=dict(db.query(CRMLead.owner_user_id,func.count(CRMLead.id)).outerjoin(CRMLeadOperatingState,
+                and_(CRMLeadOperatingState.lead_id==CRMLead.id,CRMLeadOperatingState.organization_id==lead.organization_id)).filter(
+                CRMLead.organization_id==lead.organization_id,CRMLead.id!=lead.id,CRMLead.deleted_at.is_(None),
+                CRMLead.is_converted.is_not(True),
+                CRMLead.status.notin_(['Converted','Lost']),
+                func.coalesce(CRMLeadOperatingState.data_json['archived'].as_boolean(),False).is_(False)
+            ).group_by(CRMLead.owner_user_id).all())
+        return counts.get(ident,0)<capacity
     owner_ids = assignment.get("ownerIds", [])
+    rule_deferred=False
     for rule in assignment.get("rules", []):
         matched = (
             any(
@@ -317,18 +343,20 @@ def assign(db, user, lead, settings, details=None):
         )
         if matched:
             check_owner(db, user, rule["ownerId"])
+            if not available(rule['ownerId']):
+                rule_deferred=True
+                continue
             lead.owner_user_id = rule["ownerId"]
             return
     if owner_ids and assignment["mode"] != "manual":
-        # Lock the tenant configuration to serialize round-robin allocation.
-        row = (
-            db.query(CRMLeadManagementConfig)
-            .filter_by(organization_id=lead.organization_id)
-            .with_for_update()
-            .first()
-        )
+        # The configuration lock above serializes capacity and round-robin choices.
         for ident in owner_ids:
             check_owner(db, user, ident)
+        owner_ids=[ident for ident in owner_ids if available(ident)]
+        if not owner_ids:
+            lead.owner_user_id=None
+            event(db,lead,user,'assignment_deferred','Awaiting an available salesperson')
+            return
         if assignment["mode"] == "workload":
             counts = dict(
                 db.query(CRMLead.owner_user_id, func.count(CRMLead.id))
@@ -363,6 +391,9 @@ def assign(db, user, lead, settings, details=None):
                     **row.settings_json,
                     "assignmentCursor": cursor + 1,
                 }
+    elif rule_deferred:
+        lead.owner_user_id=None
+        event(db,lead,user,'assignment_deferred','Awaiting an available salesperson')
 
 
 def workflow(db, lead, user, trigger, settings):
@@ -575,6 +606,9 @@ def after_existing_api(db, user, lead, before=None, owner_was_provided=False):
             "Email",
             "WhatsApp",
             "Webform",
+            "facebook_lead_ads",
+            "linkedin_lead_forms",
+            "google_ads",
         }
         event(db, lead, user, "created", "Lead captured", {"status": lead.status})
         if not owner_was_provided and core()._crm_can_assign_beyond_self(user):
@@ -621,10 +655,21 @@ class AssignmentRule(Strict):
     ownerId: int = Field(gt=0)
 
 
+class SellerAvailability(Strict):
+    ownerId:int=Field(gt=0)
+    enabled:bool=True
+    timezone:str=Field(default='Asia/Kolkata',min_length=1,max_length=80)
+    days:list[int]=Field(default_factory=lambda:list(range(7)),max_length=7)
+    startMinute:int=Field(default=0,ge=0,le=1439)
+    endMinute:int=Field(default=1440,ge=1,le=1440)
+    maxActiveLeads:int|None=Field(default=None,ge=1,le=100000)
+
+
 class Assignment(Strict):
     mode: Literal["manual", "round_robin", "workload"] = "manual"
     ownerIds: list[int] = Field(default_factory=list, max_length=100)
     rules: list[AssignmentRule] = Field(default_factory=list, max_length=100)
+    availability:list[SellerAvailability]=Field(default_factory=list,max_length=100)
 
 
 class SequenceStep(Strict):
@@ -926,6 +971,15 @@ def save_settings(
         r["ownerId"] for r in values["assignment"]["rules"]
     ]:
         check_owner(db, user, ident)
+    policies=values['assignment']['availability']
+    if len({p['ownerId'] for p in policies})!=len(policies): raise HTTPException(422,'Use one availability policy per salesperson')
+    configured=set(values['assignment']['ownerIds'])|{r['ownerId'] for r in values['assignment']['rules']}
+    for policy in policies:
+        if policy['ownerId'] not in configured: raise HTTPException(422,'Availability needs a configured assignment salesperson')
+        try: ZoneInfo(policy['timezone'])
+        except (ZoneInfoNotFoundError,ValueError): raise HTTPException(422,'Choose a valid IANA time zone') from None
+        if any(day not in range(7) for day in policy['days']) or len(set(policy['days']))!=len(policy['days']) or policy['startMinute']>=policy['endMinute']:
+            raise HTTPException(422,'Choose unique working days and an end time after the start time')
     for rule in values["workflows"]:
         if rule["stage"] and rule["stage"] not in names:
             raise HTTPException(422, "Workflow stage is not configured")

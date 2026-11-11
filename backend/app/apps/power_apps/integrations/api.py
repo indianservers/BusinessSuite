@@ -242,3 +242,7 @@ def callback(state: str, code: str, db: Session = Depends(get_db)):
 
 from app.apps.power_apps.integrations.marketplace_sync import router as marketplace_sync_router
 router.include_router(marketplace_sync_router)
+from app.apps.power_apps.integrations.lead_hooks import router as lead_hooks_router
+router.include_router(lead_hooks_router)
+from app.apps.power_apps.integrations.google_leads import router as google_leads_router
+router.include_router(google_leads_router)

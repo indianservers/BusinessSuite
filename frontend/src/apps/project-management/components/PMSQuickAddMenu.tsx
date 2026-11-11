@@ -5,11 +5,13 @@ import { api } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute } from "@/lib/roles";
 import NewMenu, { type NewAction } from "@/components/app/NewMenu";
+import { contextualDestination } from "@/shared/creation/registry";
 
 
 export default function PMSQuickAddMenu({ children }: { children?: (actions: NewAction[]) => ReactNode } = {}) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
+  const navigate = (path: string) => routerNavigate(contextualDestination(path, location));
   const user = useAuthStore(s => s.user);
   const [context, setContext] = useState<{ id: number; role: string; name: string }>();
   const [loading, setLoading] = useState(true);

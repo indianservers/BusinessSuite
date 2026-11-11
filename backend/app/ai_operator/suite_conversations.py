@@ -55,12 +55,14 @@ def listing(db,user,workspace_id):
     return result
 
 
-def create(db,user,data):
+def create(db,user,data,commit=True):
     from app.ai_operator.suite import authorize
     scope=authorize(db,user,data.workspace_id)
     row=AssistantConversation(user_id=user.id,organization_id=company(user),workspace_id=data.workspace_id,
         title=data.title,references={'suite_conversation':True,'scope_key':scope,'suite_last_active':datetime.now(timezone.utc).isoformat()})
-    db.add(row);db.commit();db.refresh(row)
+    db.add(row)
+    if commit:db.commit();db.refresh(row)
+    else:db.flush()
     return public(row)
 
 

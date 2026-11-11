@@ -87,10 +87,20 @@ export function contextualDestination(destination: string, origin: { pathname: s
     if (project && !target.searchParams.has("projectId")) target.searchParams.set("projectId", project);
     const workspace = source.get("workspace") || source.get("workspace_id");
     if (workspace && !target.searchParams.has("workspace")) target.searchParams.set("workspace", workspace);
+    for (const [sourceKey, targetKey] of [["assignee_id", "people"], ["sprint_id", "sprintId"], ["sprintId", "sprintId"]]) {
+      const value = source.get(sourceKey);
+      if (value && /^\d+$/.test(value) && !target.searchParams.has(targetKey)) target.searchParams.set(targetKey, value);
+    }
   }
   if (target.pathname === "/pms/projects/new") {
     const workspace = source.get("workspace") || source.get("workspace_id");
     if (workspace && !target.searchParams.has("workspace_id")) target.searchParams.set("workspace_id", workspace);
+  }
+  if (target.pathname.startsWith("/hrms/") && origin.pathname.startsWith("/hrms/")) {
+    for (const key of ["branch_id", "department_id", "reporting_manager_id", "employee_id"]) {
+      const value = source.get(key);
+      if (value && /^\d+$/.test(value) && !target.searchParams.has(key)) target.searchParams.set(key, value);
+    }
   }
   return target.pathname + target.search + target.hash;
 }

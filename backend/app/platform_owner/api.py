@@ -24,6 +24,8 @@ from app.access.signup import SignupInput, ReviewInput, review_signup, available
 router = APIRouter(prefix="/platform", tags=["Indian Servers Platform Owner"])
 from app.platform_owner.nlp_training import router as nlp_training_router
 router.include_router(nlp_training_router)
+from app.platform_owner.action_benchmark import router as action_benchmark_router
+router.include_router(action_benchmark_router)
 from app.platform_owner.signup_journey_api import router as signup_journey_router
 router.include_router(signup_journey_router)
 from app.platform_owner.clients import router as clients_router

@@ -1,4 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useRecordDraft } from "@/hooks/use-record-autosave";
+import { announceCreated } from "@/shared/creation/CreationOutcome";
 import { useSmartCreation } from "@/shared/creation/SmartCreationProvider";
 import CrmRecordFields, { useCrmFieldForm } from "@/shared/custom-fields/CrmRecordFields";
 import { CompanyQuickCreate } from "@/shared/master-data/CompanySelect";
@@ -54,16 +56,36 @@ function CRMCreationShortcut({type,close,saved}:CRMQuickCreateProps){
  return null;
 }
 function CRMQuickCreateForm({type,close,saved}:CRMQuickCreateProps){
+ const location=useLocation(),submitting=useRef(false);
  const customEntity=type==="contact"?"contacts":type==="company"?"companies":["task","reminder"].includes(type)?"tasks":"";
  const customFieldForm=useCrmFieldForm(customEntity,"quick_create");
  const user=useAuthStore(s=>s.user);const [dueAt,setDueAt]=useState("");const [name,setName]=useState("");const [email,setEmail]=useState("");const [phone,setPhone]=useState("");const [code,setCode]=useState("+91");const [bootstrap,setBootstrap]=useState<Bootstrap>();const [error,setError]=useState("");const [busy,setBusy]=useState(false);
+ const clearDraft=useRecordDraft(`crm:quick:${type}:${location.pathname}${location.search}`,{name,dueAt},draft=>{setName(draft.name);setDueAt(draft.dueAt);},["reminder","activity"].includes(type));
+ const context:Record<string,number>={}; const current=new URLSearchParams(location.search);
+ for(const key of ["company_id","contact_id","lead_id","deal_id"]){const value=current.get(key);if(value&&/^\d+$/.test(value))context[key]=Number(value);}
+ const currentRecord=location.pathname.match(/^\/crm\/(leads|deals|contacts|companies|customers)\/(\d+)(?:\/360)?$/);if(currentRecord)context[({leads:"lead_id",deals:"deal_id",contacts:"contact_id"} as Record<string,string>)[currentRecord[1]]||"company_id"]=Number(currentRecord[2]);
+ const suggestDate=(days:number)=>{const date=new Date();date.setDate(date.getDate()+days);date.setHours(9,0,0,0);setDueAt(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}T09:00`);};
  useEffect(()=>{if(type==="lead")void leadsApi.bootstrap().then(r=>setBootstrap(r.data)).catch(e=>setError(errorMessage(e)));},[type]);
  if(type==="task")return <Suspense fallback={<p role="status">Loading task form…</p>}><TaskQuickCreate close={close} saved={saved}/></Suspense>;
- if(type==="contact")return <Suspense fallback={<p role="status">Loading contact form�</p>}><ContactQuickCreate close={close} saved={saved}/></Suspense>;
+ if(type==="contact")return <Suspense fallback={<p role="status">Loading contact form…</p>}><ContactQuickCreate close={close} saved={saved}/></Suspense>;
  if(type==="company")return <CompanyQuickCreate recordLabel="company" onClose={close} onSaved={(_,keepOpen)=>{saved();if(!keepOpen)close();}}/>;
  if(type==="customer")return <CompanyQuickCreate roles={["Customer"]} recordLabel="customer" defaultEntityKind="Individual" onClose={close} onSaved={(_,keepOpen)=>{saved();if(!keepOpen)close();}}/>;
  if(type==="deal")return <Suspense fallback={<p role="status">Loading deal form…</p>}><QuickDealDialog placement="create" close={close} saved={saved}/></Suspense>;
- if(type==="lead"&&bootstrap)return <CaptureDialog placement="create" bootstrap={bootstrap} close={close} saved={()=>{saved();close();}}/>;
- async function create(){setBusy(true);setError("");try{if(type==="reminder"){if(!dueAt)throw new Error("Choose a reminder date and time");const due=new Date(dueAt).toISOString();await crmApi.create("tasks",{customFields:customFieldForm.validate(),title:name,due_date:due,reminder_at:due,status:"To Do",owner_user_id:user?.id});saved();close();return;}const resource=type==="company"?"companies":`${type}${type==="activity"?"ies":"s"}`;const entity=type==="activity"?"activities":resource;const payload=type==="contact"?{first_name:name.split(" ")[0],full_name:name,email:email||null,phone:phone||null,phone_country_code:code,owner_user_id:user?.id}:type==="task"?{title:name,owner_user_id:user?.id}:type==="activity"?{subject:name,title:name,activity_type:"task",owner_user_id:user?.id,status:"Pending"}:{name,owner_user_id:user?.id};await crmApi.create(entity,{...payload,...(customEntity?{customFields:customFieldForm.validate()}:{})});saved();close();}catch(e){setError(errorMessage(e));}finally{setBusy(false);}}
- return <Dialog open onOpenChange={v=>{if(!v&&!busy)close();}}><DialogContent><DialogTitle>Quick Create {type}</DialogTitle>{type==="lead"?<p>Loading lead capture…</p>:<CompactForm className="space-y-3" onSubmit={e=>{e.preventDefault();void create();}}><label className="block text-sm">{["task","activity","reminder"].includes(type)?"Title":"Name"}<Input required value={name} maxLength={180} onChange={e=>setName(e.target.value)}/></label>{type==="contact"&&<><label className="block text-sm">Email<Input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><PhoneInput value={phone} countryCode={code} onChange={setPhone} onCountryCodeChange={setCode}/></>}<>{type==="reminder"&&<label className="block text-sm">Remind me at<Input aria-label="Reminder date and time" type="datetime-local" required value={dueAt} onChange={e=>setDueAt(e.target.value)}/></label>}</>{customEntity&&<CrmRecordFields state={customFieldForm}/>}<p className="text-xs text-muted-foreground">Unsaved draft. Values remain here after an error.</p><Button disabled={busy||!name.trim()||(type==="reminder"&&!dueAt)}>{busy?"Saving…":type==="customer"?"Create customer":type==="reminder"?"Create reminder":"Create record"}</Button></CompactForm>}{error&&<p role="alert" className="text-destructive">{error}</p>}</DialogContent></Dialog>;
+ if(type==="lead"&&bootstrap)return <CaptureDialog placement="quick_create" bootstrap={bootstrap} close={close} saved={()=>{saved();close();}}/>;
+ async function create(){
+  if(submitting.current)return;submitting.current=true;setBusy(true);setError("");
+  try{
+   if(type==="reminder"){
+    if(!dueAt)throw new Error("Choose a reminder date and time");
+    if(new Date(dueAt).getTime()<=Date.now())throw new Error("Choose a future reminder time");
+    const due=new Date(dueAt).toISOString();
+    await crmApi.create("tasks",{...context,customFields:customFieldForm.validate(),title:name.trim(),due_date:due,reminder_at:due,status:"To Do",owner_user_id:user?.id});
+    clearDraft();announceCreated({title:"Reminder created",href:"/crm/tasks",status:"To Do"});saved();close();return;
+   }
+   const entity=type==="activity"?"activities":`${type}s`;
+   const payload=type==="activity"?{subject:name.trim(),title:name.trim(),activity_type:"task",owner_user_id:user?.id,status:"Pending"}:{name:name.trim(),owner_user_id:user?.id};
+   await crmApi.create(entity,{...context,...payload,...(customEntity?{customFields:customFieldForm.validate()}:{})});clearDraft();saved();close();
+  }catch(e){setError(errorMessage(e));}finally{submitting.current=false;setBusy(false);}
+ }
+ return <Dialog open onOpenChange={v=>{if(!v&&!busy)close();}}><DialogContent><DialogTitle>Quick Create {type}</DialogTitle>{type==="lead"?<p>Loading lead capture…</p>:<CompactForm className="space-y-3" aria-busy={busy} onSubmit={e=>{e.preventDefault();void create();}}><label className="block text-sm">Title<Input required disabled={busy} value={name} maxLength={180} onChange={e=>setName(e.target.value)}/></label>{type==="reminder"&&<><div className="flex gap-2"><Button type="button" variant="outline" disabled={busy} onClick={()=>suggestDate(1)}>Tomorrow, 9 AM</Button><Button type="button" variant="outline" disabled={busy} onClick={()=>suggestDate(7)}>Next week, 9 AM</Button></div><label className="block text-sm">Remind me at<Input disabled={busy} aria-label="Reminder date and time" type="datetime-local" required value={dueAt} onChange={e=>setDueAt(e.target.value)}/></label><p className="text-xs text-muted-foreground">Times use your device’s local time zone. {Object.keys(context).length?"Linked to the current customer or sales record.":"Personal reminder."}</p></>}{customEntity&&<CrmRecordFields state={customFieldForm}/>}<p role="status" className="text-xs text-muted-foreground">{clearDraft.status==="restored"?"Restored your unfinished reminder.":clearDraft.status==="unavailable"?"Draft storage is unavailable. Keep this window open.":"Draft saved for this browser session."}</p><Button disabled={busy||!name.trim()||(type==="reminder"&&!dueAt)}>{busy?"Saving…":type==="reminder"?"Create reminder":"Create record"}</Button></CompactForm>}{error&&<p role="alert" className="text-destructive">{error}</p>}</DialogContent></Dialog>;
 }

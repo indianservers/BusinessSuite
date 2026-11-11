@@ -169,23 +169,28 @@ class Response:
     duration_ms: int
 
 
-def scrub(value, secrets=()):
+def scrub(value, secrets=(), *, redact_debug_strings=True):
     from app.apps.power_apps.authoring import redact_debug
 
     if isinstance(value, dict):
         return {
-            str(k): scrub(v, secrets)
+            str(k): scrub(v, secrets, redact_debug_strings=redact_debug_strings)
             for k, v in value.items()
             if not SENSITIVE.search(str(k))
             and not str(k).startswith("__")
             and str(k) not in {"constructor", "prototype"}
         }
     if isinstance(value, list):
-        return [scrub(v, secrets) for v in value]
+        return [scrub(v, secrets, redact_debug_strings=redact_debug_strings) for v in value]
     if isinstance(value, str):
         for secret in sorted({str(s) for s in secrets if s}, key=len, reverse=True):
             value = value.replace(secret, "[REDACTED]")
-        return redact_debug(value)
+            value = value.replace(quote(secret, safe=''), "[REDACTED]")
+        # Provider pagination URLs may include credentials not present verbatim
+        # in the saved token. Keep them redacted even for structured imports.
+        value = re.sub(r'(?i)([?&](?:access_token|refresh_token|api[_-]?key|client_secret|password|signature)=)[^&#\s]+',
+            r'\1[REDACTED]', value)
+        return redact_debug(value) if redact_debug_strings else value
     return value
 
 

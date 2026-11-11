@@ -271,13 +271,23 @@ def prepare(db, spec, source, ctx, user, existing=None, check_period=True):
     return values
 
 
+def identity_fields(spec, values):
+    # Lead forms often ask for a phone instead of email. Match the normalized
+    # number together with its country code rather than inventing an email.
+    if spec.module == 'crm' and spec.key == 'leads' and not values.get('email'):
+        if not values.get('phone') or not values.get('phone_country_code'):
+            raise ValueError('A lead needs an email or a phone number with its calling code')
+        return ('phone', 'phone_country_code')
+    return spec.identity
+
+
 def candidates(db, spec, values, ctx, user):
     model = spec.model
     query = db.query(model)
     for key in tenant_keys(model):
         if hasattr(model, key):
             query = query.filter(func.coalesce(getattr(model, key), 1) == ctx.company_id)
-    for key in spec.identity:
+    for key in identity_fields(spec, values):
         value = values.get(key)
         if value is None or value == "":
             raise ValueError(f"Duplicate matching requires {key}")
@@ -314,6 +324,10 @@ def preview(db, batch, spec, mapping, options, ctx, user):
     missing = [field["label"] for field in spec.fields if field["required"] and field["key"] not in mapping and not constants.get(field["key"])]
     if missing:
         raise HTTPException(422, "Map required fields: " + ", ".join(missing))
+    if spec.module == 'crm' and spec.key == 'leads':
+        supplied = set(mapping) | {key for key,value in constants.items() if value}
+        if 'email' not in supplied and not {'phone','phone_country_code'} <= supplied:
+            raise HTTPException(422, 'Map email or both phone and calling code for lead matching')
     if options.get("duplicates", "skip") not in {"skip", "update", "error"}:
         raise HTTPException(422, "Choose a duplicate policy")
     rows, seen, changes = [], set(), {}
@@ -339,7 +353,8 @@ def preview(db, batch, spec, mapping, options, ctx, user):
                     if key in values and values[key] != prepared.get(key):
                         row["values"][key] = prepared[key]
                         suggestions.append(f"{key}: normalize phone/calling-code format")
-                identity = tuple(str(prepared.get(key, "")).lower() for key in spec.identity)
+                match_fields = identity_fields(spec, prepared)
+                identity = tuple(str(prepared.get(key, "")).lower() for key in match_fields)
                 if identity in seen:
                     row["action"] = "skip"
                     suggestions.append("Duplicate within this file: later occurrence skipped")
@@ -350,7 +365,7 @@ def preview(db, batch, spec, mapping, options, ctx, user):
                         row["match_id"] = match.id
                         row["before_hash"] = digest(snapshot(match))
                         row["action"] = options.get("duplicates", "skip")
-                        suggestions.append("Existing record found using " + ", ".join(spec.identity))
+                        suggestions.append("Existing record found using " + ", ".join(match_fields))
                         if row["action"] == "error":
                             errors.append("Duplicate record found; choose skip or update")
                         if row["action"] == "update":
@@ -408,6 +423,8 @@ def commit(db, batch, spec, ctx, user):
     # synchronization listeners. They belong to this import's undo receipt too.
     tracked = {}
     auxiliary = {"crm_contacts", "suite_contact_identity_links", "suite_contact_channels"}
+    if spec.module == 'crm' and spec.key == 'leads':
+        auxiliary.update({'crm_lead_operating_states','crm_activities','crm_tasks','crm_timeline_events','notifications'})
     def track(session, *_):
         for row in list(session.new | session.dirty):
             if row.__table__.name not in auxiliary or row in tracked:
@@ -482,6 +499,11 @@ def _commit(db, batch, spec, ctx, user):
                 record = model(**values)
                 db.add(record)
             db.flush()
+            if spec.module == 'crm' and spec.key == 'leads' and existing is None:
+                from app.apps.crm.lead_management import after_existing_api, state
+                state(db, record)
+                after_existing_api(db, user, record, owner_was_provided=False)
+                db.flush()
             capture(changes, record, before)
     batch.changes_json = changes
     batch.status, batch.committed_at = "imported", now()

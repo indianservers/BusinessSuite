@@ -32,7 +32,7 @@ def sync_catalog(user=Depends(view)):
 
 @router.get('/sources/{kind}')
 def source_options(kind:str,db=Depends(get_db),user=Depends(view)):
-    if kind in {'contacts','activities'}:
+    if kind in {'leads','contacts','activities'}:
         from app.apps.crm.productivity import rows
         records=rows(db,user,kind).limit(200).all()
         return {'items':[{'id':r.id,'label':getattr(r,'full_name',None) or r.subject} for r in records]}
@@ -45,7 +45,7 @@ def source_options(kind:str,db=Depends(get_db),user=Depends(view)):
             except HTTPException: continue
             choices.append({'id':row.id,'label':row.title})
         return {'items':choices}
-    raise HTTPException(422,'Choose contacts, activities or tasks')
+    raise HTTPException(422,'Choose leads, contacts, activities or tasks')
 
 
 class JobInput(BaseModel):
@@ -76,7 +76,7 @@ class WorkflowInput(BaseModel):
     model_config=ConfigDict(extra='forbid')
     connection_id:int=Field(gt=0)
     action_id:str=Field(max_length=80)
-    source_kind:str=Field(pattern='^(contacts|activities|tasks)$')
+    source_kind:str=Field(pattern='^(leads|contacts|activities|tasks)$')
     source_id:int=Field(gt=0)
     settings:dict[str,str]=Field(default_factory=dict)
     expected_hash:str|None=None
@@ -86,7 +86,9 @@ class WorkflowInput(BaseModel):
 
 def workflow_payload(db,user,conn,data):
     allowed={'upsert_contact':'contacts','create_contact':'contacts','enrich_person':'contacts','create_draft':'contacts','create_ticket':'activities','create_card':'tasks'}
-    if allowed.get(data.action_id)!=data.source_kind: raise HTTPException(422,'Choose the native record type for this workflow')
+    expected=allowed.get(data.action_id)
+    if expected!=data.source_kind and not (expected=='contacts' and data.source_kind=='leads'):
+        raise HTTPException(422,'Choose the native record type for this workflow')
     if data.source_kind=='tasks':
         from app.apps.project_management.access import get_task_project_for_action
         record,_=get_task_project_for_action(db,data.source_id,user,'browse')
@@ -99,8 +101,11 @@ def workflow_payload(db,user,conn,data):
     fingerprint=imports.digest(imports.snapshot(record))
     if data.expected_hash is not None and data.expected_hash!=fingerprint: raise HTTPException(409,'Native record changed; preview the workflow again')
     derived={}
-    if data.source_kind=='contacts':
-        derived={'email':record.email or '', 'first_name':record.first_name,'last_name':record.last_name or '', 'name':record.full_name}
+    if data.source_kind in {'leads','contacts'}:
+        name=record.full_name or ''
+        parts=name.split(maxsplit=1)
+        derived={'email':record.email or '', 'first_name':getattr(record,'first_name',None) or (parts[0] if parts else ''),
+            'last_name':getattr(record,'last_name',None) or (parts[1] if len(parts)>1 else ''), 'name':name}
     elif data.source_kind=='activities': derived={'title':record.subject,'text':record.body or record.description or ''}
     else: derived={'title':record.title,'text':record.description or ''}
     from app.apps.power_apps.integrations.registry import get_action
@@ -135,7 +140,48 @@ def execute_workflow(data:WorkflowInput,environment:str='development',db=Depends
 
 
 def public(row):
-    return {'id':row.id,'version':row.version,**{k:v for k,v in row.values_json.items() if k not in {'lease','lease_until'}}}
+    values = {k:v for k,v in row.values_json.items() if k not in {'lease','lease_until'}}
+    health = 'paused' if not values.get('enabled') else (
+        'attention' if values.get('retryable') is False and values.get('state') == 'error' else
+        'retrying' if values.get('state') == 'error' else
+        'running' if row.values_json.get('lease_until') and utc(datetime.fromisoformat(row.values_json['lease_until'])) > now() else
+        'healthy' if values.get('last_success_at') else 'pending')
+    return {'id':row.id,'version':row.version,**values,'health':health}
+
+
+def failure_details(error, failures, provider):
+    """Persist only controlled messages, never provider payloads or credentials."""
+    detail = error.detail if isinstance(error, HTTPException) else None
+    category = error.category if isinstance(error, IntegrationFailure) else (
+        str(detail.get('category', 'request')) if isinstance(detail, dict) else
+        'permission' if isinstance(error, HTTPException) and error.status_code in {401,403} else
+        'schema' if isinstance(error, HTTPException) and error.status_code in {404,422} else 'internal')
+    uncertain = error.uncertain if isinstance(error, IntegrationFailure) else bool(isinstance(detail,dict) and detail.get('uncertain'))
+    retryable = error.retryable if isinstance(error, IntegrationFailure) else bool(isinstance(detail,dict) and detail.get('retryable'))
+    # A credit-consuming request needs explicit review before a fresh attempt.
+    retryable = bool(retryable and not uncertain and provider != 'surfe' and failures < 8)
+    messages = {
+        'auth': 'Reconnect the provider account and verify lead access.',
+        'authentication': 'Reconnect the provider account and verify lead access.',
+        'permission': 'Check provider access and native module permissions.',
+        'scope': 'Reconnect with the required provider permissions.',
+        'schema': 'Review the resource selection and field mapping.',
+        'disabled': 'Enable the connection before retrying.',
+        'rate_limit': 'Provider rate limit reached. Sync will retry after backoff.',
+        'network': 'Provider connection failed. Sync will retry after backoff.',
+        'response': 'The provider response could not be imported. Review the connection and resource.',
+        'server': 'The provider is unavailable. Sync will retry after backoff.',
+        'remote': 'The provider rejected the request. Review its status in the request journal.',
+    }
+    message = messages.get(category, 'Sync failed. Review the connection, resource and import permissions.')
+    if category=='remote' and retryable: message = 'The provider is unavailable. Sync will retry after backoff.'
+    if uncertain or provider == 'surfe': message = 'Review the previous provider request before another attempt; it may have completed or consumed credits.'
+    if failures >= 8: message = 'Automatic retries stopped after repeated failures. Review the connection and retry manually.'
+    requested = error.retry_after if isinstance(error,IntegrationFailure) else (detail.get('retry_after',0) if isinstance(detail,dict) else 0)
+    delay = min(86400,max(60 * 2 ** min(failures - 1, 10), int(requested or 0)))
+    return {'error_category':category,'retryable':retryable,'uncertain':uncertain,
+            'consecutive_failures':failures,'last_error':message,'last_failure_at':now().isoformat(),
+            'next_at':(now()+timedelta(seconds=delay)).isoformat()}
 
 
 def get_job(db,user,ident,environment,request,lock=False):
@@ -221,7 +267,7 @@ def run_page(db,user,ident,environment,request):
     row,conn,spec,ctx=get_job(db,user,ident,environment,request,True)
     values=dict(row.values_json)
     if not values['enabled']: raise HTTPException(409,'Sync job is paused')
-    if values.get('lease_until') and datetime.fromisoformat(values['lease_until'])>now(): raise HTTPException(409,'Sync is already running')
+    if values.get('lease_until') and utc(datetime.fromisoformat(values['lease_until']))>now(): raise HTTPException(409,'Sync is already running')
     if values['state']=='idle':
         values.update(cursor='0',cycle=str(uuid4()),state='ready',pages=0,changed=0)
     lease=str(uuid4());expected=row.version
@@ -267,9 +313,11 @@ def run_page(db,user,ident,environment,request):
                     db.add(marker)
                 marker.values_json={'fingerprint':fingerprint,'batch_id':batch.id}
         next_cursor=page['next_cursor']
+        rescan=int(row.values_json.get('wake_sequence',0))>int(values.get('wake_sequence',0))
         history=[*values['batches'],*([batch.id] if batch else [])][-100:]
         row.values_json={**row.values_json,'lease':None,'lease_until':None,'cursor':next_cursor or '0','state':'idle' if next_cursor is None else 'in_progress',
-            'last_error':None,'last_success_at':now().isoformat(),'next_at':(now()+timedelta(minutes=values['interval_minutes'] if next_cursor is None else 1)).isoformat(),
+            'last_error':None,'error_category':None,'retryable':None,'uncertain':False,'consecutive_failures':0,
+            'last_success_at':now().isoformat(),'next_at':(now()+timedelta(minutes=0 if rescan else values['interval_minutes'] if next_cursor is None else 1)).isoformat(),
             'pages':values['pages']+1,'changed':values['changed']+len(changed),'batches':history}
         row.version+=1
         vault.audit(db,conn,user,'sync_page_completed',{'job_id':ident,'changed':len(changed),'batch_id':batch.id if batch else None,'complete':next_cursor is None})
@@ -278,8 +326,9 @@ def run_page(db,user,ident,environment,request):
         db.rollback()
         current=db.query(ServicePolicy).filter_by(id=ident,organization_id=conn.organization_id,kind='connector_sync').with_for_update().first()
         if current and current.values_json.get('lease')==lease:
-            current.values_json={**current.values_json,'lease':None,'lease_until':None,'state':'error','last_error':'Sync failed; review authorization, source settings and import permissions before retrying.',
-                'next_at':(now()+timedelta(minutes=5)).isoformat()};current.version+=1;db.commit()
+            failures=int(current.values_json.get('consecutive_failures',0))+1
+            current.values_json={**current.values_json,'lease':None,'lease_until':None,'state':'error',
+                **failure_details(error,failures,conn.connector_id)};current.version+=1;db.commit()
         raise
 
 
@@ -287,11 +336,24 @@ def dispatch_due(db):
     from types import SimpleNamespace
     from app.models.user import User
     from app.access.service import activate_run_context,release_run_context,background_scope
-    rows=db.query(ServicePolicy).filter_by(kind='connector_sync').limit(1000).all()
+    # Keyset batches avoid starvation without holding a server-side cursor across
+    # run_page's commits (PostgreSQL closes those cursors on commit).
+    upper=db.query(ServicePolicy.id).filter_by(kind='connector_sync').order_by(ServicePolicy.id.desc()).first()
+    def candidates():
+        last=0
+        while upper:
+            batch=db.query(ServicePolicy).filter(ServicePolicy.kind=='connector_sync',ServicePolicy.id>last,
+                ServicePolicy.id<=upper[0]).order_by(ServicePolicy.id).limit(100).all()
+            if not batch: break
+            last=batch[-1].id
+            yield from batch
+    rows=candidates()
     succeeded=failed=0
     for job in rows:
         value=job.values_json
-        if not value.get('enabled') or not value.get('automatic') or datetime.fromisoformat(value['next_at'])>now(): continue
+        if not value.get('enabled') or not value.get('automatic') or utc(datetime.fromisoformat(value['next_at']))>now(): continue
+        if value.get('state')=='error' and value.get('retryable') is False: continue
+        if value.get('lease_until') and utc(datetime.fromisoformat(value['lease_until']))>now(): continue
         user=db.get(User,job.updated_by)
         if not user or not user.is_active: continue
         try:

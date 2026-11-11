@@ -240,5 +240,8 @@ class AutomationScheduledJob(Base):
     __table_args__ = (Index('uq_ai_job_request', organization_id, created_by, job_type,
         payload_json['ai_request_key'].as_string(), unique=True,
           postgresql_where=job_type.in_(['ai_reminder', 'ai_commitments','ai_nlp_training']),
-          sqlite_where=job_type.in_(['ai_reminder', 'ai_commitments','ai_nlp_training'])),)
+          sqlite_where=job_type.in_(['ai_reminder', 'ai_commitments','ai_nlp_training'])),
+        Index('uq_ai_agent_schedule_request',organization_id,created_by,job_type,
+            payload_json['ai_request_key'].as_string(),unique=True,
+            postgresql_where=job_type=='ai_agent_schedule',sqlite_where=job_type=='ai_agent_schedule'),)
 

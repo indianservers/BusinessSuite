@@ -588,6 +588,7 @@ export default function DocumentUploadTools({
             }}
           >
             <Label>Files · choose or drag & drop</Label>
+            <p className="text-xs text-muted-foreground">Choose the category that matches the employee certificate or onboarding document. Accepted files: PDF, Word (.doc/.docx), JPEG and PNG; non-empty, up to 20 MB each. Upload distinct certificate references separately. HR policy determines which documents are required.</p>
             <Input
               disabled={phone && uploadMutation.isPending}
               ref={fileInput}

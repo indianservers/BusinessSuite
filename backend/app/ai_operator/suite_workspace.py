@@ -7,7 +7,7 @@ from app.ai_operator.suite_tools import Strict
 
 class DraftChange(Strict):
     step: int = Field(ge=1,le=12)
-    field: Literal['title','name','subject','description','priority','due_date','start_date','owner_user_id','assignee_user_id','assignee_user_ids','reason','from_date','to_date','body']
+    field: Literal['title','name','subject','description','priority','due_date','start_date','owner_user_id','assignee_user_id','assignee_user_ids','reason','from_date','to_date','body','content']
     value: Any
 
 class DraftRevision(Strict):
@@ -16,6 +16,53 @@ class DraftRevision(Strict):
     changes: list[DraftChange] = Field(min_length=1,max_length=40)
 
 EDITABLE={'crm.create_task','crm.update_task','pms.create_task','pms.create_project','pms.create_milestone','hrms.create_ticket','hrms.request_leave'}
+EDITABLE.update(f'{m}.{a}_artifact' for m in ('crm','pms','hrms') for a in ('create','edit'))
+
+
+def draft_workflow(plan):
+    """Recover conversational state from a canonically validated create draft.
+
+    Keep its complete payload; natural follow-ups may change supported fields
+    but must not discard assignees, descriptions or existing parent IDs. Complex
+    references outside the local composer remain in the native review editor.
+    """
+    tools={'crm.create_task':('CRM','tasks.create','title'),
+        'pms.create_task':('PMS','tasks.create','title'),
+        'pms.create_milestone':('PMS','milestone.create','name'),
+        'hrms.create_ticket':('HRMS','ticket.create','subject')}
+    def refs(value):
+        if isinstance(value,dict):return '$step' in value or any(refs(v) for v in value.values())
+        return isinstance(value,list) and any(refs(v) for v in value)
+    if not plan.steps or len(plan.steps)>12 or plan.question:return None
+    state={'intents':[],'composer':'validated-server-draft-v1','project_id':None}
+    projects=set()
+    for index,step in enumerate(plan.steps,1):
+        payload=deepcopy(step.payload)
+        if step.tool=='pms.create_project':
+            if index!=1 or refs(payload):return None
+            state['new_project']=payload
+            continue
+        if step.tool not in tools:return None
+        module,intent,title_field=tools[step.tool]
+        remaining={k:v for k,v in payload.items() if k!='parent_task_id'}
+        if refs(remaining):return None
+        slots={'action_verb':'create','title':payload[title_field],'_draft_payload':payload}
+        for field in ('priority','due_date'):
+            if field in payload and payload[field] is not None:slots[field]=payload[field]
+        if intent=='ticket.create':slots['body']=payload.get('description') or payload[title_field]
+        parent=payload.get('parent_task_id')
+        if isinstance(parent,dict):
+            if set(parent)!={'$step','field'} or parent.get('field')!='id' or not isinstance(parent.get('$step'),int):return None
+            slots['_parent_step']=parent['$step']
+        if module=='PMS':
+            if isinstance(step.record_id,dict):
+                if not state.get('new_project') or step.record_id!={'$step':1,'field':'id'}:return None
+            elif type(step.record_id) is int:projects.add(step.record_id);slots['_record_id']=step.record_id
+            else:return None
+        state['intents'].append({'module':module,'intent':intent,'slots':slots,'question':None})
+    if not state['intents'] and not state.get('new_project'):return None
+    if len(projects)==1:state['project_id']=next(iter(projects))
+    return state
 
 def revised_plan(run,data):
     from app.ai_operator.suite import Plan
@@ -53,5 +100,6 @@ def result_cards(run):
                 if type(project) is int:href=f'/pms/projects/{project}'
         cards.append({'id':f'{run.id}-{index}','step':index,'kind':'record' if receipt else 'draft',
             'title':str(payload.get('title') or payload.get('subject') or payload.get('name') or tool.replace('.',' '))[:220],
-            'tool':tool,'status':receipt.get('status','succeeded') if receipt else run.status,'record_id':record,'href':href})
+            'tool':tool,'status':receipt.get('status','succeeded') if receipt else run.status,'record_id':record,'href':href,
+            'artifact_id':receipt.get('artifact_id') if receipt else None,'artifact_revision':receipt.get('artifact_revision') if receipt else None})
     return cards

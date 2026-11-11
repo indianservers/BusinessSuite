@@ -8,6 +8,8 @@ import { useAuthStore } from "@/store/authStore";
 import { canAccessRoute, getRoleKey } from "@/lib/roles";
 import NewMenu, { type NewAction } from "./NewMenu";
 import PMSQuickAddMenu from "@/apps/project-management/components/PMSQuickAddMenu";
+import WorkspaceCreateMenu from "./WorkspaceCreateMenu";
+import { contextualDestination } from "@/shared/creation/registry";
 
 export default function ModuleNewMenu({ children }: { children?: (actions: NewAction[]) => ReactNode } = {}) {
   const { pathname, search } = useLocation();
@@ -15,16 +17,15 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
   useEffect(() => { setCRMQuick(""); }, [pathname]);
   const routerNavigate = useNavigate();
   const navigate = (path: string) => {
-    if (!/^\/(srm|crm)(\/|$)/.test(pathname)) return routerNavigate(path);
-    const destination = new URL(path, window.location.origin), current = new URLSearchParams(search);
-    for (const key of ["customer_id", "company_id", "contact_id", "sales_order_id", "contract_id", "engagement_id"]) {
+    const destination = new URL(contextualDestination(path, { pathname, search }), window.location.origin), current = new URLSearchParams(search);
+    for (const key of ["customer_id", "company_id", "contact_id", "lead_id", "deal_id", "sales_order_id", "contract_id", "engagement_id"]) {
       const value = current.get(key);
       if (value && /^\d+$/.test(value) && !destination.searchParams.has(key)) destination.searchParams.set(key, value);
     }
     const record = pathname.match(/^\/srm\/(customers|sales-orders|contracts|engagements)\/(\d+)(?:\/360)?$/);
     if (record) destination.searchParams.set(({ customers: "customer_id", "sales-orders": "sales_order_id", contracts: "contract_id", engagements: "engagement_id" } as Record<string, string>)[record[1]], record[2]);
-    const crmRecord = pathname.match(/^\/crm\/(companies|customers|contacts)\/(\d+)(?:\/360)?$/);
-    if (crmRecord) destination.searchParams.set(crmRecord[1] === "contacts" ? "contact_id" : "company_id", crmRecord[2]);
+    const crmRecord = pathname.match(/^\/crm\/(companies|customers|contacts|leads|deals)\/(\d+)(?:\/360)?$/);
+    if (crmRecord) destination.searchParams.set(({contacts:"contact_id",leads:"lead_id",deals:"deal_id"} as Record<string,string>)[crmRecord[1]] || "company_id", crmRecord[2]);
     return routerNavigate(destination.pathname + destination.search + destination.hash);
   };
 
@@ -45,7 +46,7 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
   };
   if (pathname.startsWith("/crm")) {
     const manages = !!user?.is_superuser || (moduleGrant ? moduleGrant.enabled && moduleGrant.actions.includes("create") : privileged || ["crm_super_admin", "crm_org_admin", "crm_sales_manager", "crm_sales_executive"].includes(role));
-    const quick=(label:string,type:string,icon:NewAction["icon"],path:string)=>{if(manages&&(user?.is_superuser||!moduleGrant||moduleGrant.permissions.some(p=>["crm_admin","crm_manage",`crm_${({lead:"leads",customer:"companies",reminder:"activities",contact:"contacts",company:"companies",deal:"deals",task:"activities",activity:"activities"} as Record<string,string>)[type]}_manage`].includes(p)))&&canAccessRoute(path,user?.role,user?.is_superuser))actions.push({label,description:`Quick capture ${label.toLowerCase()}`,icon,menuPaths:[path],onSelect:()=>type === "reminder" ? setCRMQuick(type) : navigate(type === "task" ? "/pms/tasks/new" : `${path}?new=${type === "customer" ? "customers" : type === "company" ? "companies" : type === "activity" ? "activities" : type + "s"}`)});};
+    const quick=(label:string,type:string,icon:NewAction["icon"],path:string)=>{if(manages&&(user?.is_superuser||!moduleGrant||moduleGrant.permissions.some(p=>["crm_admin","crm_manage",`crm_${({lead:"leads",customer:"companies",reminder:"activities",contact:"contacts",company:"companies",deal:"deals",task:"activities",activity:"activities"} as Record<string,string>)[type]}_manage`].includes(p)))&&canAccessRoute(path,user?.role,user?.is_superuser))actions.push({label,description:type === "task" ? "Opens PMS · create a linked delivery task" : `Quick capture ${label.toLowerCase()}`,icon,menuPaths:[path],onSelect:()=>["reminder","lead"].includes(type) ? setCRMQuick(type) : navigate(type === "task" ? "/pms/tasks/new" : `${path}?new=${type === "customer" ? "customers" : type === "company" ? "companies" : type === "activity" ? "activities" : type + "s"}`)});};
     quick("Add Lead","lead",UserPlus,"/crm/leads");quick("Add Customer","customer",Users,"/crm/customers");quick("Reminder","reminder",Bell,"/crm/tasks");quick("Contact","contact",Users,"/crm/contacts");quick("Company","company",Building2,"/crm/companies");quick("Deal","deal",Wallet,"/crm/deals");quick("Task","task",CheckCircle2,"/crm/tasks");quick("Activity","activity",CalendarDays,"/crm/activities");
     add("Product", "Manage the CRM product catalog", ShoppingBag, "/crm/products?new=products", manages && (!!user?.is_superuser || !moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
     add("Service", "Manage the CRM service catalog", ShoppingBag, "/crm/services?new=services", manages && (!!user?.is_superuser || !moduleGrant || moduleGrant.permissions.some(p=>["crm_admin","crm_manage","crm_products_manage"].includes(p))));
@@ -72,6 +73,10 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
     add("Generate Letter", "Open employee letters and certificates", FileText, "/hrms/letters-certificates?new=letter", ["admin","hr"].includes(hrRole));
     add("Apply Leave", "Apply for time off", CalendarDays, "/hrms/leave?new=leave", !!user?.employee_id);
     add("Support ticket", user?.employee_id ? "Ask your support team for help" : "Link an employee profile to raise tickets", LifeBuoy, "/hrms/helpdesk?new=ticket", true, !user?.employee_id);
+    add("Submit expense", "Submit a claim and receipt for manager and finance review", Wallet, "/hrms/expenses#new-record", !!user?.employee_id);
+    add("Upload document", "Upload employee certificates · PDF, Word or images, up to 20 MB", FileText, "/hrms/documents?tab=Upload%20Documents", !!user?.employee_id || ["admin","hr"].includes(hrRole));
+    add("Bulk add employees", "Import employees with mapping, validation and error preview", Users, "/hrms/import-data?entity=employees", !!user?.is_superuser || (moduleGrant ? moduleGrant.actions.includes("create") && moduleGrant.actions.includes("import") && moduleGrant.permissions.includes("employee_create") : ["admin","hr"].includes(hrRole)));
+    for (const action of actions) action.label = ({"Add Employee":"Add employee","Apply Leave":"Apply for leave","Correct Attendance":"Correct attendance","Generate Letter":"Generate letter"} as Record<string,string>)[action.label] || action.label;
   }
   // Only expose creation destinations with a real form/intent; reports and audit pages stay navigation-only.
   const definitionCreate = (permissions: string[]) => !!user?.is_superuser || (user?.access
@@ -102,5 +107,5 @@ export default function ModuleNewMenu({ children }: { children?: (actions: NewAc
       add(label, `Configure a new ${label.toLowerCase()}`, FileText, `/admin/customization/${kind}?new=${kind}`, definitionCreate(["customization_manage", "customization_admin"]));
     }
   }
-  return pathname.startsWith("/pms") ? <PMSQuickAddMenu>{children ? pmsActions => children([...pmsActions, ...actions]) : undefined}</PMSQuickAddMenu> : <>{children ? children(actions) : <NewMenu actions={actions} />}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>{window.dispatchEvent(new CustomEvent("crm:records-changed"));}}/></Suspense>}</>;
+  return pathname.startsWith("/pms") ? <PMSQuickAddMenu>{pmsActions => <WorkspaceCreateMenu actions={[...pmsActions, ...actions]}>{children}</WorkspaceCreateMenu>}</PMSQuickAddMenu> : <>{pathname.startsWith("/crm") ? <WorkspaceCreateMenu actions={actions}>{children}</WorkspaceCreateMenu> : children ? children(actions) : <NewMenu actions={actions} />}{pathname.startsWith("/crm")&&crmQuick&&<Suspense fallback={<p role="status">Loading quick capture…</p>}><CRMQuickCreate key={crmQuick} direct={crmQuick === "lead"} type={crmQuick} close={()=>setCRMQuick("")} saved={()=>{window.dispatchEvent(new CustomEvent("crm:records-changed"));}}/></Suspense>}</>;
 }

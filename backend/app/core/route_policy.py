@@ -19,6 +19,8 @@ PUBLIC_CAPABILITIES = (
     r"/power-apps/native-hooks/[^/]+",
     r"/power-apps/native-apps/[^/]+/[^/]+",
     r"/power-apps/integrations/oauth/callback",
+    r"/power-apps/integrations/lead-hooks/[^/]+",
+    r"/power-apps/integrations/lead-form-hooks/[^/]+",
     r"/auth/signup(?:/options|/status-link|/identity|/policies|/telemetry|/invitation)?",
     r"/auth/platform/login",
     r"/platform/(?:password-reset|public/[^/]+)",

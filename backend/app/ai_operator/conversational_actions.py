@@ -133,6 +133,8 @@ def compose(text,module=None):
     # such as "Research and development" is not an extra business operation.
     outside=r'(?=(?:[^"“”]*["“][^"“”]*["”])*[^"“”]*$)'
     separator=r'(?:\s+(?:and then|then|also)\s+|;\s*|\s+and\s+(?=(?:(?:CRM|PMS|HRMS|HR)\s*:\s*)?'+VERB+r'\s+'+OBJECT+r'))'+outside
+    sequential=r"(?:after that|afterwards|once that is done|once that\x27s done|finally|next)"
+    separator=r'(?:'+separator[:-len(outside)]+r'|\s*[,;.]?\s+'+sequential+r'[,;:]?\s+(?=(?:(?:CRM|PMS|HRMS|HR)\s*:\s*)?'+VERB+r'\s+'+OBJECT+r'))'+outside
     parts=re.split(separator,text,flags=re.I)
     # Preserve the old exact single-action path and its slot-filling metadata.
     extended_date=bool(re.search(r'\b(?:due|by|for)\s+(?:'+WEEKDAY+r'|day after tomorrow|end of (?:this )?month)\s*$',structural(text),re.I))
@@ -144,7 +146,7 @@ def compose(text,module=None):
         joined=bool(re.search(r'\b(?:and|then|also)\s+'+VERB+r'\b',structural(text),re.I))
         return {'question':'I could not identify every action. Give each task, milestone or HR ticket a clear title. Use a connected provider for broader project/document generation.'} if len(parts)>1 or joined else None
     if not clauses:return None
-    if len(clauses)>8:raise HTTPException(422,'Prepare at most eight actions in one review')
+    if len(clauses)>12:raise HTTPException(422,'Prepare at most twelve actions in one review')
     return {'clauses':clauses}
 
 def amend(state,text,timezone,module=None):
@@ -152,6 +154,7 @@ def amend(state,text,timezone,module=None):
     from app.ai_operator.pms_agent import resolve_date
     state=deepcopy(state);text=clean(text);intents=state['intents']
     if unsafe(text):return state,'I cannot bypass review, consent or permissions.'
+    text=re.sub(r'^change title to\s+(.+)$',r'rename it to \1',text,flags=re.I)
     if re.fullmatch(r'(?:cancel|cancel it|cancel (?:this|the) (?:workflow|plan|draft)|forget (?:this|the) (?:workflow|plan|draft)|never mind|stop)',text,re.I):return {'cancelled':True},None
     possessive=re.fullmatch(r'(set|change|update)\s+(.+?)[\x27’]s\s+(priority|title|due date|deadline)\s+to\s+(.+)',text,re.I)
     if possessive:text=possessive[1]+' the '+possessive[3]+' of '+possessive[2]+' to '+possessive[4]
@@ -183,7 +186,7 @@ def amend(state,text,timezone,module=None):
     # Normalize only the leading reference; a new quoted title containing
     # "item 2" is user content and must remain byte-for-byte unchanged.
     numbered=re.match(r'^(rename|call|remove|move|schedule|set|make|change|clear|push)\s+(?:the\s+)?(?:item|task|ticket|action)\s+#?([1-9]\d*)(?=\s|$)',text,re.I)
-    names=('first','second','third','fourth','fifth','sixth','seventh','eighth')
+    names=('first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth','eleventh','twelfth')
     if numbered:
         index=int(numbered[2])
         if index>len(intents)+int(bool(state.get('new_project'))):return state,'That item number is not in this draft.'
@@ -191,12 +194,12 @@ def amend(state,text,timezone,module=None):
     target=r'(?:it|both|this (?:task|ticket|item)|them(?: all)?|all(?: the)? (?:tasks|tickets|items|actions)|everything)'
     priority=re.fullmatch(r'(?:make|set|change)\s+('+target+r')(?:\s+to)?\s+(high|medium|low|urgent|critical)(?:\s+priority)?',text,re.I)
     due=re.fullmatch(r'(?:move|schedule|set)\s+('+target+r')\s+(?:to|for)\s+('+DATE+')',text,re.I)
-    ordinals={'first':0,'second':1,'third':2,'fourth':3,'fifth':4,'sixth':5,'seventh':6,'eighth':7,'last':len(intents)-1}
-    rename=re.fullmatch(r'(?:rename|call)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|last|it)(?:\s+(?:one|task|ticket|item|action))?\s+(?:(?:to|as)\s+)?(.+)',text,re.I)
-    remove=re.fullmatch(r'(?:remove|drop)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|last)(?:\s+(?:one|task|ticket|item|action))?',text,re.I)
-    ordinal_priority=re.fullmatch(r'(?:make|set|change)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|last)(?:\s+(?:one|task|ticket|item|action))?(?:\s+to)?\s+(high|medium|low|urgent|critical)(?:\s+priority)?',text,re.I)
-    ordinal_due=re.fullmatch(r'(?:move|schedule|set)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|last)(?:\s+(?:one|task|ticket|item|action))?\s+(?:to|for)\s+('+DATE+')',text,re.I)
-    reference=r'(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|last|it)(?:\s+(?:one|task|ticket|item|action))?'
+    ordinals={'first':0,'second':1,'third':2,'fourth':3,'fifth':4,'sixth':5,'seventh':6,'eighth':7,'ninth':8,'tenth':9,'eleventh':10,'twelfth':11,'last':len(intents)-1}
+    rename=re.fullmatch(r'(?:rename|call)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|last|it)(?:\s+(?:one|task|ticket|item|action))?\s+(?:(?:to|as)\s+)?(.+)',text,re.I)
+    remove=re.fullmatch(r'(?:remove|drop)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|last)(?:\s+(?:one|task|ticket|item|action))?',text,re.I)
+    ordinal_priority=re.fullmatch(r'(?:make|set|change)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|last)(?:\s+(?:one|task|ticket|item|action))?(?:\s+to)?\s+(high|medium|low|urgent|critical)(?:\s+priority)?',text,re.I)
+    ordinal_due=re.fullmatch(r'(?:move|schedule|set)\s+(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|last)(?:\s+(?:one|task|ticket|item|action))?\s+(?:to|for)\s+('+DATE+')',text,re.I)
+    reference=r'(?:the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|last|it)(?:\s+(?:one|task|ticket|item|action))?'
     clear_due=re.fullmatch(r'clear\s+'+reference+r'\s+due date',text,re.I)
     shift_due=re.fullmatch(r'push\s+'+reference+r'\s+(back|ahead) by\s+([1-9]\d{0,2})\s+(days?|weeks?)',text,re.I)
     if (priority or due) and (priority or due)[1].lower() in {'it','this task','this ticket','this item'} and len(intents)+int(bool(state.get('new_project')))!=1:
@@ -253,10 +256,11 @@ def amend(state,text,timezone,module=None):
             if not title or len(title)>220:return state,'Use a nonempty title of at most 220 characters.'
             intents[index]['slots']['title']=title
         else:
-            if any(i['slots'].get('_parent_step')==index+1 for i in intents):return state,'That task has subtasks in this draft. Remove its subtasks first.'
+            removed_step=index+1+int(bool(state.get('new_project')))
+            if any(i['slots'].get('_parent_step')==removed_step for i in intents):return state,'That task has subtasks in this draft. Remove its subtasks first.'
             intents.pop(index)
             for intent in intents:
-                if intent['slots'].get('_parent_step',0)>index+1:intent['slots']['_parent_step']-=1
+                if intent['slots'].get('_parent_step',0)>removed_step:intent['slots']['_parent_step']-=1
             if not intents:return {'cancelled':True},None
     elif re.match(r'^(?:also\s+)?'+VERB+r'\b',text,re.I):
         from app.ai_operator.local_nlp import parse
@@ -266,7 +270,7 @@ def amend(state,text,timezone,module=None):
             if single:proposal={'clauses':[single]}
         if not proposal or not proposal.get('clauses'):return state,'Describe the additional task or HR ticket with a title.'
         if proposal.get('new_project') or any(c.get('parent_step') for c in proposal['clauses']):return state,'Start a new conversation for a new project or parent/subtask structure; I will not flatten its dependencies into this draft.'
-        if len(intents)+len(proposal['clauses'])+int(bool(state.get('new_project')))>8:raise HTTPException(422,'Prepare at most eight actions in one review')
+        if len(intents)+len(proposal['clauses'])+int(bool(state.get('new_project')))>12:raise HTTPException(422,'Prepare at most twelve actions in one review')
         if any(c.get('project_id') and c['project_id']!=state.get('project_id') for c in proposal['clauses']):return state,'The added task belongs to a different project. Start a separate conversation for that project.'
         for clause in proposal['clauses']:
             intent=parse(clause['text'],clause['module'],timezone=timezone)
