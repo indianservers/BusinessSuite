@@ -15,7 +15,7 @@ The complete seven-phase improvement goal remains active. This first batch reduc
 
 ## Verification
 
-- Frontend TypeScript no-emit check passed after the initial component changes. Production build result is recorded below when complete.
+- Frontend TypeScript no-emit check passed after the initial component changes. The full production build (TypeScript and Vite) passed after the final changes. Existing dependency annotation, mixed-import and large-chunk warnings remain. The updated writing runner also passed Node syntax validation.
 - In-app browser inspection used the authenticated local preview at localhost:5186 and its existing QA workspace. No business task, deal, document, membership or automation was changed.
 - Confirmed menu recipe visibility, Escape returning focus to AI writing, opening Write task description, and closing the draft returning focus to the same trigger.
 - Confirmed Workspace overview expands, exposes the delivery pipeline and survives a reload. The saved preference was returned to collapsed after verification.
