@@ -31,6 +31,7 @@ function AppLayoutContent() {
   const { user } = useAuthStore();
   const product = getProductForContext(location.pathname, user?.role, user?.is_superuser);
   const isWorkspaceDirectory = /^\/(pms|crm|hrms|srm|fam)\/workspaces\/?$/.test(location.pathname);
+  const isDealCollection = /^\/crm\/(deals|pipeline)\/?$/.test(location.pathname);
   const isPeopleDirectory = location.pathname === "/pms/people" || location.pathname === "/pms/directory" || /^\/pms\/people\/\d+$/.test(location.pathname);
   const isMessaging = /^\/(pms|crm|hrms|srm|fam)\/messages\/?$/.test(location.pathname) || /^\/crm\/whatsapp\/inbox\/?$/.test(location.pathname);
   const isPosTerminal = location.pathname === "/srm/pos" || location.pathname === "/srm/pos/terminal";
@@ -75,8 +76,8 @@ function AppLayoutContent() {
         }`}
       >
         {!mobileLead && <Topbar onMenuClick={() => setSidebarOpen(true)} />}
-        <main id="suite-main" tabIndex={-1} className={`kf-main suite-page-surface min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory || isWorkspaceDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
-          {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory || isWorkspaceDirectory ? null : <Breadcrumbs />}
+        <main id="suite-main" tabIndex={-1} className={`kf-main suite-page-surface min-w-0 flex-1 overflow-y-auto overflow-x-hidden animate-fade-in ${mobileLead || isPeopleDirectory || isWorkspaceDirectory ? "p-0" : isPosTerminal ? "bg-slate-950 p-0" : isMessaging ? "p-3" : isDealCollection ? "px-3 py-2 pb-24 lg:px-6" : "p-4 pb-24 md:p-5 md:pb-24 lg:p-6 lg:pb-24"}`}>
+          {mobileLead || isPosTerminal || isMessaging || isPeopleDirectory || isWorkspaceDirectory || isDealCollection ? null : <Breadcrumbs />}
           {!mobileLead && !isMessaging && !isPeopleDirectory && <WorkspaceEnhancements terminal={isPosTerminal} />}
           <SetupReadiness embedded />
           <ErrorBoundary resetKey={location.pathname+location.search}>

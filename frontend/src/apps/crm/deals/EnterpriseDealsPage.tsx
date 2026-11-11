@@ -256,12 +256,6 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
       active = false;
     };
   }, [reload]);
-  useEffect(() => {
-    if (mode === "kanban" && !filters.pipeline_id && options.pipelines?.length) {
-      const pipeline = options.pipelines.find(p => p.is_default) || options.pipelines[0];
-      setFilters(f => ({...f, pipeline_id: String(pipeline.id), stage_id: ""}));
-    }
-  }, [mode, filters.pipeline_id, options.pipelines]);
   const params = useMemo(
     () =>
       Object.fromEntries(
@@ -611,13 +605,12 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
     );
   }
   return (
-    <main className={`ed-workspace ${mode === "kanban" ? "ed-pipeline-workspace" : ""}`} aria-busy={loading}>
+    <main className={`ed-workspace ed-collection ${mode === "kanban" ? "ed-pipeline-workspace" : ""}`} aria-busy={loading}>
       <header className="ed-header">
-        <div>
-          <p className="ed-eyebrow">VYAPARACRM / SALES</p>
+        <div className="ed-collection-heading">
           <h1>Deals</h1>
           <p className="ed-muted">
-            Your pipeline, commitments, and next decisions.
+            Permitted opportunities
           </p>
         </div>
         <div className="ed-actions">
@@ -656,7 +649,8 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
-      {mode !== "kanban" && <div className="ed-summary">
+      {mode !== "kanban" && <details className="ed-summary ed-sales-overview">
+      <summary>Sales overview · {counts.open ?? "—"} open · {counts.overdue ?? "—"} overdue follow-ups</summary>
       <section className="ed-stats ed-stats-primary" aria-label="Deal statistics">
         {[
           ["Open deals", counts.open],
@@ -691,7 +685,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
         ))}
         </section>
       </details>
-      </div>}
+      </details>}
       <WorkspaceViewBar scope="crm-deals" label="Deal views" active={mode} views={dealViews} onChange={setMode} primary={["grid","kanban","forecast"]}/>
       <section className="ed-controls">
         <div className="ed-toolbar">
@@ -1069,8 +1063,8 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
             title={String(options.pipelines?.find(p=>String(p.id)===filters.pipeline_id)?.name||"Sales pipeline")} description="Build relationships, track every opportunity and keep the next conversation moving." label="Sales pipeline" viewState={filters} onApplyView={saved=>{const restored=Object.fromEntries(Object.keys(empty).map(key=>[key,key==="no_next"?!!saved[key]:String(saved[key]||"")])) as Filters;setFilters(restored);setSearch(restored.search);}} context={{module:"crm",scope:`pipeline:${filters.pipeline_id||"all"}`,kind:"deal"}} renderDetails={record=><PipelineDomainDetails module="crm" id={record.id}/>} onAdd={canCreate?stageId=>{setCaptureStage(Number(stageId));setCreate(true);}:undefined} reorder={false} disabled={loading}
             loading={loading && !data}
             notice={`Showing ${rows.length} of ${data?.total ?? rows.length} deals · page ${page}. Stage totals cover all matching deals.`}
-            toolbar={<>{canCreate && <button type="button" className="pipeline-primary" onClick={() => {setCaptureStage(undefined);setCreate(true);}}><Plus size={14}/> Deal</button>}<PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/><div className="pipeline-toolbar-end"><select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}><option value="updated_at:desc">Sort: Recently updated</option><option value="next_follow_up_at:asc">Sort: Next activity</option><option value="amount:desc">Sort: Highest value</option><option value="name:asc">Sort: Name</option></select><button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}>Filter</button><select aria-label="Board pipeline" value={filters.pipeline_id} onChange={e=>setFilters(f=>({...f,pipeline_id:e.target.value,stage_id:""}))}>{(options.pipelines || []).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><Link to="/crm/pipeline-settings" className="ed-link-button" aria-label="Customize pipeline"><Settings2 size={15}/></Link></div></>}
-            stages={stageOptions.map(stage=>({id:String(stage.id),name:String(stage.name),canAdd:!stage.is_won&&!stage.is_lost,color:stage.color,probability:stage.probability,wipLimit:stage.wip_limit,agingDays:stage.stagnation_days||14,count:(summary?.stages||[]).filter((t:Row)=>t.stage_id===stage.id).reduce((sum:number,t:Row)=>sum+t.count,0),summary:<>{(summary?.stages || []).filter((total:Row)=>total.stage_id===stage.id).map((total:Row)=><span key={total.currency}>{total.count} deals · {dealMoney(total.amount,total.currency)}</span>)}{!(summary?.stages || []).some((total:Row)=>total.stage_id===stage.id)&&<span>0 deals</span>}</>}))}
+            toolbar={<>{canCreate && <button type="button" className="pipeline-primary" onClick={() => {setCaptureStage(undefined);setCreate(true);}}><Plus size={14}/> Deal</button>}<PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/><div className="pipeline-toolbar-end"><select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}><option value="updated_at:desc">Sort: Recently updated</option><option value="next_follow_up_at:asc">Sort: Next activity</option><option value="amount:desc">Sort: Highest value</option><option value="name:asc">Sort: Name</option></select><button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}>Filter</button><select aria-label="Board pipeline" value={filters.pipeline_id} onChange={e=>setFilters(f=>({...f,pipeline_id:e.target.value,stage_id:""}))}><option value="">All pipelines</option>{(options.pipelines || []).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><Link to="/crm/pipeline-settings" className="ed-link-button" aria-label="Customize pipeline"><Settings2 size={15}/></Link></div></>}
+            stages={stageOptions.map(stage=>({id:String(stage.id),name:filters.pipeline_id?String(stage.name):`${options.pipelines?.find(p=>String(p.id)===String(stage.pipeline_id || stage.pipelineId))?.name || "Pipeline"} · ${stage.name}`,canAdd:!stage.is_won&&!stage.is_lost,color:stage.color,probability:stage.probability,wipLimit:stage.wip_limit,agingDays:stage.stagnation_days||14,count:(summary?.stages||[]).filter((t:Row)=>t.stage_id===stage.id).reduce((sum:number,t:Row)=>sum+t.count,0),summary:<>{(summary?.stages || []).filter((total:Row)=>total.stage_id===stage.id).map((total:Row)=><span key={total.currency}>{total.count} deals · {dealMoney(total.amount,total.currency)}</span>)}{!(summary?.stages || []).some((total:Row)=>total.stage_id===stage.id)&&<span>0 deals</span>}</>}))}
             records={rows.map(row=>({id:String(row.id),stageId:String(row.stage_id),title:String(row.name),priority:row.priority,description:row.description,subtitle:row.company_name||lookup("companies",row.company_id),value:dealMoney(row.amount,row.currency),owner:row.owner_name||lookup("deal-workspace/assignees",row.owner_user_id),ownerId:Number(row.owner_user_id)||undefined,nextActionAt:row.next_follow_up_at||undefined,isClosed:row.status==="Won"||row.status==="Lost",labelColor:stageOptions.find(s=>s.id===row.stage_id)?.color,activity:!row.next_follow_up_at?"missing":new Date(row.next_follow_up_at)<new Date()?"overdue":"scheduled",activityLabel:row.next_follow_up_at?`Next activity: ${new Date(row.next_follow_up_at).toLocaleString()}`:"No next activity"}))}
             onOpen={record=>navigate(`/crm/deals/${record.id}`)}
             onMove={data?.can_manage?({record,stageId})=>setTransition({id:Number(record.id),stage:Number(stageId)}):undefined}

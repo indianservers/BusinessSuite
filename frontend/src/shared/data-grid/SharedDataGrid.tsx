@@ -1695,6 +1695,23 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     return /[\t\n\r"]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   };
   const chartColumn = columns.find(column => column.type === "status");
+  const statistics = props.statistics && result
+        ? props.statistics(result)
+        : result && !!result.aggregates?.length && (
+            <div className="udg-statistics">
+              <div>
+                <span>Matching records</span>
+                <strong>{result.total.toLocaleString()}</strong>
+              </div>
+              {result.aggregates?.map((a) => (
+                <div key={a.currency}>
+                  <span>Total value · {a.currency}</span>
+                  <strong>{formatMoney(a.sum, a.currency)}</strong>
+                  <small>Average {formatMoney(a.avg, a.currency)}</small>
+                </div>
+              ))}
+            </div>
+          );
   return (
     <section
       className="udg"
@@ -1718,23 +1735,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       }}
     >
       {!props.compactControls && props.overview !== false && collectionLocation.pathname !== "/pms/projects" && result && <CollectionOverview compact={props.compactControls} rows={summaryRecords} fields={columns.filter(c=>!/^(__suite_|actions|select)/.test(c.id)).map(c=>({id:c.id,title:c.title,value:(row:T)=>c.accessor?c.accessor(row):(row as Record<string,unknown>)[c.id]}))} total={props.dataScope === "loaded" ? undefined : result.total} onOpen={onOpen}/>}
-      {props.statistics && result
-        ? props.statistics(result)
-        : result && !!result.aggregates?.length && (
-            <div className="udg-statistics">
-              <div>
-                <span>Matching records</span>
-                <strong>{result.total.toLocaleString()}</strong>
-              </div>
-              {result.aggregates?.map((a) => (
-                <div key={a.currency}>
-                  <span>Total value · {a.currency}</span>
-                  <strong>{formatMoney(a.sum, a.currency)}</strong>
-                  <small>Average {formatMoney(a.avg, a.currency)}</small>
-                </div>
-              ))}
-            </div>
-          )}
+      {!props.compactControls && statistics}
       {!props.compactControls && visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title} />}
       <GridToolbar
         search={search}
@@ -1746,7 +1747,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
         layout={layout}
         updateLayout={updateLayout}
         views={props.viewMode ? [props.viewMode] : props.views || ["grid"]}
-        extra={props.compactControls ? <>{props.overview !== false && result && <CollectionOverview compact rows={summaryRecords} fields={columns.filter(c=>!/^(__suite_|actions|select)/.test(c.id)).map(c=>({id:c.id,title:c.title,value:(row:T)=>c.accessor?c.accessor(row):(row as Record<string,unknown>)[c.id]}))} total={props.dataScope === "loaded" ? undefined : result.total} onOpen={onOpen}>{visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title}/>}</CollectionOverview>} {props.toolbarExtra}</> : props.toolbarExtra}
+        extra={props.compactControls ? <>{props.overview !== false && result && <CollectionOverview compact rows={summaryRecords} fields={columns.filter(c=>!/^(__suite_|actions|select)/.test(c.id)).map(c=>({id:c.id,title:c.title,value:(row:T)=>c.accessor?c.accessor(row):(row as Record<string,unknown>)[c.id]}))} total={props.dataScope === "loaded" ? undefined : result.total} onOpen={onOpen}>{statistics}{visibleRecords.length > 0 && columns.find(column => column.type === "status") && <SuiteDistribution records={visibleRecords} field={columns.find(column => column.type === "status")!.id} label={columns.find(column => column.type === "status")!.title}/>}</CollectionOverview>} {props.toolbarExtra}</> : props.toolbarExtra}
         undo={historySize ? undo : undefined}
         reset={() =>
           updateLayout({ ...defaultLayout(columns), ...props.initialLayout })

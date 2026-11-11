@@ -28,3 +28,7 @@
 .suite-collection-counts strong { font-size:24px; font-weight:750; line-height:1.1; }
 .dark .suite-collection-counts > div { color:hsl(var(--count-color)/1); background:hsl(var(--count-color)/.08); }
 @media(max-width:640px) { .suite-collection-counts { flex-wrap:nowrap; overflow-x:auto; } .suite-collection-counts > div { flex:0 0 150px; } }
+.suite-compact-overview>summary,.suite-compact-views>summary{padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
+.suite-compact-overview>summary:focus-visible,.suite-compact-views>summary:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:2px}
+.suite-compact-overview[open]>.suite-collection-overview,.suite-compact-views[open]>.suite-record-view-tools{padding:8px;border:1px solid hsl(var(--border));border-radius:6px;background:hsl(var(--background))}
+@media(max-width:640px){.suite-compact-overview>summary,.suite-compact-views>summary{min-height:44px;display:flex;align-items:center}}

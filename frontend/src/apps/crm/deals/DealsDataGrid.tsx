@@ -339,6 +339,7 @@ export default function DealsDataGrid({
   const selectedIds = useMemo(() => selected.map(String), [selected]);
   return (
     <SharedDataGrid<Deal>
+      compactControls
       workspaceId={
         searchParams.get("workspaceId") ||
         searchParams.get("workspace_id") ||

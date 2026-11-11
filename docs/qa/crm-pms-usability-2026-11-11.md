@@ -2,7 +2,7 @@
 
 ## Scope and goal status
 
-The complete seven-phase improvement goal remains active. This first batch reduces page chrome and makes the PMS overview optional. It does not complete first-screen acceptance, collection-control consolidation, record consistency, seller queues, capture/onboarding improvements, advanced-feature packaging or deeper collaboration work.
+The complete seven-phase improvement goal remains active. The batches below reduce page chrome and consolidate PMS filters. PMS first-screen acceptance has been measured; CRM has improved but still needs a representative collection with at least three records. Record consistency, seller queues, capture/onboarding, advanced-feature packaging and deeper collaboration work remain open.
 
 ## Batch 1 changes
 
@@ -57,3 +57,26 @@ The shared filter dialog now describes its loaded-record scope. During live poin
 - Final frontend TypeScript no-emit check and production build passed after the read-only lookup fix. Existing Vite dependency annotation, mixed-import and large-chunk warnings remain.
 
 The full goal remains active. PMS collection layout and filter continuity have stronger evidence now; CRM layout, unified saved configuration and the phase 3–7 business journeys remain open.
+
+## Batch 3 — CRM collection surface and explicit Board scope
+
+### Changes
+
+- Deals has one page title with a short access-scope explanation. The redundant application breadcrumb is omitted only on the deal/pipeline collections; module navigation, Explore pages, sidebar, global actions and direct record breadcrumbs remain available.
+- Sales overview is collapsed initially. It retains the three primary metrics and More sales metrics, including separate-currency totals. The grid uses the existing compact-controls option: presentation choices and record summary are disclosures. Filtered aggregate totals are inside Summary rather than in a separate row. Noncompact grids retain their existing statistics placement.
+- The desktop browser-save stack is collapsed into a count/state disclosure. Expanding it exposes all original review/retry/discard controls; Escape closes the disclosure and focuses its summary. This prevents recovered copies from continuously covering collection controls. Phone sync status keeps its existing sheet. No saved copy is deleted, retried or resubmitted automatically.
+- Switching to Board no longer silently picks the first/default pipeline. All pipelines is explicit, and stage names include pipeline names in that scope. Search and the selected pipeline survive Table → Board → Table. Existing transition dialogs and backend validation remain in charge of writes.
+
+### Browser verification
+
+Authenticated local QA branch, two existing deals, no deliberate deal writes or external communications:
+
+- Before at 1280×720, first deal y1044.5–1108.5; final inline-heading layout places it at y523.5–587.5, second y587.5–651.5 with the existing Stage grouping retained. Both page and main scroller were at zero. At 1440×900 the same two grouped rows fit. These bounds measure layout, not performance. The dataset has only two deals: **the explicit three-record CRM acceptance remains unproven**, even though the measured remaining space can accommodate another 64px row. A representative three-record fixture is still required. A freshness/error notice can also consume additional height and must be included in failure-layout acceptance.
+- Before/after screenshots: `.local/crm-pms-usability/crm-deals-before-1280.png`, `crm-deals-after-1280.png`, `crm-deals-after-1440.png`, `crm-deals-after-390.png`.
+- Expanded Sales overview and checked the original primary counts. Expanded Summary with pointer and checked loaded/matching counts, INR sum ₹1.00, average ₹0.50 and Stage distribution. Mixed-currency totals still need a fresh multi-currency acceptance dataset.
+- Impossible search returned zero records; clearing restored two. Search QA Smart Deal returned one; All pipelines Board displayed that same deal in Enterprise Solutions · Qualification; returning Table retained one. The earlier automatic pipeline selection had hidden that deal and is now removed.
+- Expanded the five recovered browser copies, checked all review controls remained available, then Escape closed and returned focus to the status summary. No draft was discarded.
+- At 390×844 document width was 390px. Existing phone record cards remain enabled. Keyboard Enter opens Presentation and exposes Table/Cards/List/category/frequent/favorite choices. The zero-result phone state and successful clear were checked. Advanced filter Apply was the actual pointer hit target and closed the modal successfully; existing saved copies did not obstruct it. Viewport was reset.
+- Shared grid unit regression passed after statistics relocation. The production build and subsequent TypeScript no-emit check passed. Final inline-heading text/CSS changes were checked live, including a pointer hit-test proving Explore pages remains accessible beside Page actions. Existing Vite warnings remain; no performance benchmark or deployed acceptance was run.
+
+This batch does not prove record opening/focus/scroll recovery, task/deal mutations, stale-edit recovery, workflow approvals, access-role isolation or later phases. Those journeys remain required.
