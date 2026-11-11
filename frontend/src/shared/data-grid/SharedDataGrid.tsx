@@ -474,6 +474,25 @@ function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
   const [focused, setFocused] = useState<T>();
   const [previewRows,setPreviewRows] = useState<T[]>([]);
   const [previewNotice,setPreviewNotice] = useState("");
+  const workspaceElement = useRef<HTMLDivElement>(null);
+  const lastRecordControl = useRef<{id:string;element:HTMLElement}>();
+  const previewOrigin = useRef<{id:string;element?:HTMLElement}>();
+  const rememberPreviewControl = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return;
+    const control=target.closest<HTMLElement>('button,a,[data-record-open]'), row=control?.closest<HTMLElement>('[data-grid-record-id]');
+    if (control&&row?.dataset.gridRecordId) lastRecordControl.current={id:row.dataset.gridRecordId,element:control};
+  };
+  const returnPreviewFocus = () => {
+    const origin = previewOrigin.current;
+    requestAnimationFrame(() => {
+      const root = workspaceElement.current;
+      if (!root || !origin) return;
+      const row = Array.from(root.querySelectorAll<HTMLElement>('[data-grid-record-id]')).find(element=>element.dataset.gridRecordId===origin.id&&element.getClientRects().length);
+      const target = origin.element?.isConnected && origin.element.getClientRects().length ? origin.element : row?.querySelector<HTMLElement>('button[aria-label="Record quick actions"]') ?? row?.querySelector<HTMLElement>('button[title="Preview record"]') ?? row?.querySelector<HTMLElement>('a,button') ?? root.querySelector<HTMLElement>('input');
+      target?.focus({preventScroll:true});
+    });
+  };
+  const closePreview = () => { setFocused(undefined);setPreviewNotice("");returnPreviewFocus(); };
   const location = useLocation();
   const personal = useRecordPreferences(`${location.pathname}:${props.workspaceId || "organization"}:${props.personalScope || props.gridId}`);
   const enabled = props.personalViews !== false;
@@ -511,23 +530,27 @@ function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
   const enhancedColumns=enabled?[favoriteColumn,...props.columns]:props.columns;
   useEffect(() => setFocused(undefined), [props.dataSource.key, location.pathname, location.search]);
   const canPreview = props.detailsEnabled !== false && !props.onSelectRecord;
-  const preview = (row: T) => {track(row);setFocused(row);};
+  const preview = (row: T) => {
+    const id = props.getRowId(row), active = document.activeElement;
+    previewOrigin.current = {id,element:lastRecordControl.current?.id===id ? lastRecordControl.current.element : active instanceof HTMLElement && active!==document.body && !active.closest('[role="menu"]') ? active : undefined};
+    track(row);setPreviewNotice("");setFocused(row);
+  };
   const titleColumn = props.columns.find(c => !/^(select|actions?|quick actions)$/i.test(c.title)) || props.columns[0];
   const title = focused === undefined ? "" : String(titleColumn?.accessor?.(focused) ?? (focused as Record<string, unknown>)[titleColumn?.id] ?? "Record");
-  return <div className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
+  return <div ref={workspaceElement} onPointerDownCapture={event=>rememberPreviewControl(event.target)} onKeyDownCapture={event=>{if(event.key==="Enter"||event.key===" ")rememberPreviewControl(event.target);}} className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
     <div className="udg-workspace-main">{enabled&&!props.hideViewControls&&!props.compactControls&&<RecordViewBar compact={props.compactControls} scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>}
     <GridEngine {...props}
       toolbarExtra={props.compactControls ? <>{enabled&&!props.hideViewControls&&<RecordViewBar compact scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>} {props.toolbarExtra}</> : props.toolbarExtra}
       dataSource={source} columns={enhancedColumns}
       viewMode={enabled?(mode==="cards"||mode==="category"||mode==="tags"?"cards":mode==="list"?"list":"grid"):props.viewMode}
       collectionGroup={mode==="category"?category?.id:mode==="tags"?tags?.id:undefined}
-      rowProps={row=>{const original=props.rowProps?.(row)||{};return {...original,onClickCapture:event=>{original.onClickCapture?.(event);const target=event.target as HTMLElement;if(target.closest("button,a,[data-record-open]")&&!target.closest("[data-record-personal]"))track(row);}};}}
+      rowProps={row=>{const original=props.rowProps?.(row)||{};return {...original,"data-grid-record-id":props.getRowId(row),onClickCapture:event=>{original.onClickCapture?.(event);const target=event.target as HTMLElement,control=target.closest<HTMLElement>('button,a,[data-record-open]');if(control&&!target.closest("[data-record-personal]")){lastRecordControl.current={id:props.getRowId(row),element:control};track(row);}}};}}
       onVisibleRecordsChange={records => {setPreviewRows(records);props.onVisibleRecordsChange?.(records);}}
       onSelectRecord={props.onSelectRecord || (canPreview ? preview : undefined)}
       onOpen={props.onOpen ? row=>{track(row);props.onOpen!(row);} : (canPreview ? preview : undefined)}
       rowActions={[...(canPreview ? [{ id: "suite-preview", label: "Preview record", icon: Eye, quick: true, run: preview }] : []),...(enabled?[{id:"suite-favorite",label:"Toggle favorite",icon:Star,run:(row:T)=>personal.toggle(props.getRowId(row))},{id:"suite-copy-name",label:"Copy record name",icon:Copy,run:(row:T)=>writeClipboard(titleFor(row))}]:[]),...(props.rowActions || []).map(action=>({...action,run:(row:T)=>{track(row);return action.run(row);}}))]}
     /></div>
-    {focused !== undefined && <GridRecordPane title={title} close={() => setFocused(undefined)} expand={props.onOpen ? () => props.onOpen?.(focused) : undefined}>
+    {focused !== undefined && <GridRecordPane title={title} close={closePreview} managedFocusReturn expand={props.onOpen ? () => props.onOpen?.(focused) : undefined}>
       <div className="flex flex-wrap gap-2 pb-3" role="group" aria-label="Record preview navigation">
         <button type="button" disabled={previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))<=0} onClick={()=>setFocused(previewRows[previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))-1])}>Previous record</button>
         <button type="button" disabled={previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))<0 || previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))>=previewRows.length-1} onClick={()=>setFocused(previewRows[previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))+1])}>Next record</button>
@@ -1285,7 +1308,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
     });
     const more = expandedCards.includes(getRowId(record));
     const actionFields = columns.filter(column => layout.visibility[column.id] !== false && /^(actions?|quick actions)$/i.test(column.title));
-    return <article data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{props.rowProps?.(record)?.onClick?.(event as any);if(!event.defaultPrevented && !(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))onOpen?.(record);}}>
+    return <article data-grid-record-id={getRowId(record)} data-priority-row={!!priorityFor(record)} data-priority={priorityFor(record)} key={getRowId(record)} {...recordPreviewProps(record)} onClickCapture={event=>props.rowProps?.(record)?.onClickCapture?.(event as any)} onClick={event=>{props.rowProps?.(record)?.onClick?.(event as any);if(!event.defaultPrevented && !(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))selectRecord(record);}} onDoubleClick={event=>{if(!(event.target as HTMLElement).closest("button,a,input,select,textarea,summary"))onOpen?.(record);}}>
       {columns.find(column=>column.id==="__suite_favorite")?.render?.(record)}
       {mobile && (selecting || selection.length > 0) && props.selectionEnabled !== false && <label className="udg-card-select"><input type="checkbox" aria-label={`Select record ${getRowId(record)}`} checked={selection.includes(getRowId(record))} onChange={event => emitSelection(event.target.checked ? [...new Set([...selection, getRowId(record)])] : selection.filter(id => id !== getRowId(record)))} />Select</label>}
       {mobile && columns.filter(column => /^(select|selection)$/i.test(column.title)).map(column => <div className="udg-card-select" key={column.id}>{displayFor(record, column)}</div>)}
