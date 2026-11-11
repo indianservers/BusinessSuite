@@ -1,6 +1,7 @@
-// Layout acceptance only. All suite API calls stay in this adapter; no business writes.
+// Layout and selection-recovery acceptance. API calls stay in this adapter; no business writes.
 import { createRoot } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { useState } from "react";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import AppLayout from "../../src/components/layout/AppLayout";
@@ -20,6 +21,13 @@ const user = { id: 98261, email: "usability@example.test", name: "QA Seller", ro
 useAuthStore.setState({ isHydrated: true, isAuthenticated: true, accessToken: "local-fixture", user });
 const records = Array.from({length: 8}, (_, i) => ({id:i+1,name:`Fixture opportunity ${i+1}`,company_name:"Fixture company",company_id:1,pipeline_id:1,pipeline_name:"Service sales",stage_id:1,stage_name:"Qualification",owner_user_id:user.id,owner_name:user.name,amount:1000+i,currency:i%2?"USD":"INR",probability:20,status:"Open",priority:"Medium",version:1,expected_close_date:"2026-12-10",next_follow_up_at:null,updated_at:"2026-11-11T10:00:00Z"}));
 type Deal = typeof records[number];
+let failSelectionRestore=false, revokeFirstRecord=false;
+const selectionQA=new URLSearchParams(location.search).has("selection");
+function SelectionControls(){
+  const [failure,setFailure]=useState(false),[revoked,setRevoked]=useState(false);
+  if(!selectionQA)return null;
+  return <aside aria-label="Disposable selection test controls" style={{position:"fixed",right:16,bottom:80,zIndex:99999,background:"white",padding:12,border:"1px solid",maxWidth:300}}><button type="button" onClick={()=>{failSelectionRestore=!failure;setFailure(!failure);}}>{failure?"Allow selection restore":"Fail selection restore"}</button><button type="button" onClick={()=>{revokeFirstRecord=!revoked;setRevoked(!revoked);}}>{revoked?"Allow first fixture record":"Revoke first fixture record"}</button><p>Read-only fixture controls. No business account or record is changed.</p></aside>;
+}
 const columns:GridColumn<Deal>[] = [
   {id:"name",title:"Deal name"},{id:"stage_id",title:"Stage",type:"category",accessor:r=>r.stage_name},
   {id:"company_id",title:"Company",accessor:r=>r.company_name},{id:"owner_user_id",title:"Owner"},
@@ -34,8 +42,9 @@ api.defaults.adapter = async config => {
   let data:unknown=[];
   if(path.endsWith("/grid/query")) {
     const query=JSON.parse(params.get("state")||"null") as GridQuery|null;
+    if(selectionQA&&failSelectionRestore&&query?.recordIds?.length)throw new AxiosError("Disposable selection restore failure","ERR_NETWORK",config);
     const base=JSON.parse(params.get("base")||"{}");
-    const permitted=records.filter(r=>(!base.pipeline_id||String(r.pipeline_id)===String(base.pipeline_id))&&(!base.owner_id||String(r.owner_user_id)===String(base.owner_id))&&(!base.search||r.name.toLowerCase().includes(String(base.search).toLowerCase())));
+    const permitted=records.filter(r=>(!revokeFirstRecord||r.id!==1)&&(!base.pipeline_id||String(r.pipeline_id)===String(base.pipeline_id))&&(!base.owner_id||String(r.owner_user_id)===String(base.owner_id))&&(!base.search||r.name.toLowerCase().includes(String(base.search).toLowerCase())));
     const result=await localGridSource("fixture-deals",permitted,columns,r=>String(r.id)).load(query||emptyQuery());
     data={...result,permissions:{edit:false,export:false,archive:false,assign:false},context:{summary:{counts:{open:result.total,closing_month:0,overdue:0},currencies:[],definitions:{}}}};
   } else if(path.endsWith("/deal-workspace/pipelines")) data={items:[{id:1,name:"Service sales",is_default:true}]};
@@ -48,4 +57,4 @@ api.defaults.adapter = async config => {
   else if(path.includes("notifications")) data={items:[],unread:0,total:0};
   return {data,status:200,statusText:"OK",headers:{},config};
 };
-createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false},mutations:{retry:false}}})}><MemoryRouter initialEntries={["/crm/deals"]}><Routes><Route element={<AppLayout/>}><Route path="/crm/deals" element={<ModuleWorkspaceFrame module="crm"><EnterpriseDealsPage/></ModuleWorkspaceFrame>}/></Route></Routes></MemoryRouter></QueryClientProvider>);
+createRoot(document.getElementById("root")!).render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false},mutations:{retry:false}}})}><MemoryRouter initialEntries={["/crm/deals"]}><SelectionControls/><Routes><Route element={<AppLayout/>}><Route path="/crm/deals/:id" element={<main><h1>Disposable record destination</h1><Link to="/crm/deals">Return to fixture list</Link></main>}/><Route path="/crm/deals" element={<ModuleWorkspaceFrame module="crm"><EnterpriseDealsPage/></ModuleWorkspaceFrame>}/></Route></Routes></MemoryRouter></QueryClientProvider>);

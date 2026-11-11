@@ -14,6 +14,7 @@ import CRMDataTransfer from "../CRMDataTransfer";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import DealsDataGrid, { dealGridSource } from "./DealsDataGrid";
 import { personalQuery, type GridPersonalFilter } from "@/shared/data-grid/personal-filter";
+import { withAllRows } from "@/shared/data-grid/all-rows-source";
 import {
   emptyQuery,
   type GridQuery,
@@ -140,6 +141,11 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
   const canCreate=useDefinitionPermission(["crm_deals_manage","crm_manage","crm_admin"],"create");
   const queryClient = useQueryClient();
   const key = `crm-deal-workspace:${user?.access?.companyId}:${user?.id}`;
+  const selectionScope = JSON.stringify([user?.id,user?.role,user?.primary_role,user?.access,sessionStorage.getItem("suite-tenant"),sessionStorage.getItem("suite-organization"),sessionStorage.getItem("suite-branch")]);
+  const [selectionSnapshot,setSelectionSnapshot] = useRouteViewState<{context:string;ids:number[]}>("deal-selection",{context:"",ids:[]});
+  const [selectionRestored,setSelectionRestored] = useState("");
+  const [selectionRestoreError,setSelectionRestoreError] = useState("");
+  const [selectionRetry,setSelectionRetry] = useState(0);
   const [gridQuery, setGridQuery] = useState<GridQuery>(() => ({
     ...emptyQuery(),
     sorting: [{ id: "updated_at", desc: true }],
@@ -170,8 +176,10 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
     [editing, setEditing] = useState<number>(),
     [transition, setTransition] = useState<{ id: number; stage?: number }>();
   useCreateIntent(kind => { if (kind === "deals" && canCreate) setCreate(true); });
-  const [selected, setSelected] = useState<number[]>([]),
-    [busy, setBusy] = useState(false),
+  const [selectionState,setSelectionState] = useState<{scope:string;ids:number[]}>({scope:selectionScope,ids:[]});
+  const selected = selectionState.scope===selectionScope ? selectionState.ids : [];
+  const setSelected = (update:number[]|((previous:number[])=>number[])) => setSelectionState(previous=>({scope:selectionScope,ids:typeof update==="function"?update(previous.scope===selectionScope?previous.ids:[]):update}));
+  const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
   const [columnOrder, setColumnOrder] = useState(columns),
     [hidden, setHidden] = useState<string[]>([]),
@@ -275,6 +283,30 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
       ),
     [filters],
   );
+  const selectionContext = JSON.stringify([params,gridQuery.search,gridQuery.filters,personalFilter?.kind]);
+  const selectionRestoreKey = JSON.stringify([selectionScope,selectionContext]);
+  const selectionRestoreReady = gridReady && personalFilter!==undefined && gridQuery.search===filters.search;
+  useEffect(() => {
+    if (!selectionRestoreReady || selectionRestored===selectionRestoreKey) return;
+    const controller = new AbortController();
+    setSelected([]);setSelectedRecords([]);setSelectionRestoreError("");
+    const remembered = selectionSnapshot.context===selectionContext ? selectionSnapshot.ids : [];
+    if (!remembered.length) { setSelectionRestored(selectionRestoreKey);return; }
+    // Reuse the access-checked grid query. Intersect personal scope before
+    // loading only remembered IDs, in bounded pages, with current row versions.
+    const permittedSubset = collectionQuery.recordIds===undefined ? undefined : new Set(collectionQuery.recordIds);
+    const ids = remembered.map(String).filter(id=>!permittedSubset||permittedSubset.has(id));
+    void withAllRows(dealGridSource(params)).load({...collectionQuery,recordIds:ids,recordIdentity:"id",grouping:[],path:[],page:1,pageSize:0},controller.signal).then(result=>{
+      if(controller.signal.aborted)return;
+      const byId = new Map(result.rows.map(row=>[Number(row.id),row]));
+      const restored = remembered.filter(id=>byId.has(id));
+      setSelectedRecords(restored.map(id=>byId.get(id)!));setSelected(restored);setSelectionRestored(selectionRestoreKey);
+    }).catch(()=>{if(!controller.signal.aborted)setSelectionRestoreError("Could not restore your selection. No records are selected. Retry to check the remembered records again.");});
+    return ()=>controller.abort();
+  }, [selectionRestoreKey,selectionRestoreReady,selectionRestored,selectionRetry]);
+  useEffect(()=>{
+    if(selectionRestoreReady&&selectionRestored===selectionRestoreKey)setSelectionSnapshot({context:selectionContext,ids:selected});
+  },[JSON.stringify(selected),selectionRestoreKey,selectionRestored,selectionRestoreReady]);
   useEffect(() => {
     const changed = (event: Event) => {
       const change=(event as CustomEvent<RecordSaved>).detail;
@@ -665,6 +697,8 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
+      {selectionRestoreReady&&selectionRestored!==selectionRestoreKey&&selectionSnapshot.context===selectionContext&&selectionSnapshot.ids.length>0&&!selectionRestoreError&&<p role="status">Checking remembered selection…</p>}
+      {selectionRestoreError && <div role="alert">{selectionRestoreError}<Button variant="outline" size="sm" onClick={()=>setSelectionRetry(value=>value+1)}>Retry selection restore</Button><Button variant="ghost" size="sm" onClick={()=>{setSelectionSnapshot({context:selectionContext,ids:[]});setSelectionRestored(selectionRestoreKey);setSelectionRestoreError("");}}>Clear remembered selection</Button></div>}
       {mode !== "kanban" && <details className="ed-summary ed-sales-overview">
       <summary>Sales overview · {counts.open ?? "—"} open · {counts.overdue ?? "—"} overdue follow-ups</summary>
       <section className="ed-stats ed-stats-primary" aria-label="Deal statistics">
@@ -1020,6 +1054,10 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
               queryState={gridReady ? gridQuery : undefined}
               selected={selected}
               onSelection={(records, ids) => {
+                if(ids.length||selectionRestored===selectionRestoreKey){
+                  setSelectionSnapshot({context:selectionContext,ids});
+                  setSelectionRestored(selectionRestoreKey);setSelectionRestoreError("");
+                }
                 setSelectedRecords(records);
                 setSelected(ids);
               }}
