@@ -3,6 +3,7 @@ export type NavigationView = {
   search: string;
   scrollTop: number;
   scrollLeft: number;
+  recordFocus?: { grid: string; id: string; kind: "link" | "preview" | "menu" };
   values?: Record<string, unknown>;
 };
 const entries = new Map<string, NavigationView>();

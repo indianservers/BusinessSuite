@@ -44,12 +44,13 @@ export default function RouteContent({ children }: { children: ReactNode }) {
         : undefined;
     let pending = !!restore,
       frame = 0;
+    let recordFocus = restore?.recordFocus;
+    let focusPending = action === "POP" && !!recordFocus;
     // Route children can shrink the scroll container before layout-effect cleanup.
     // Retain the last observed position rather than saving that clamped DOM value.
     let position = { top: restore?.scrollTop || 0, left: restore?.scrollLeft || 0 };
     const apply = () => {
-      if (!pending) return;
-      scroll.scrollTo({
+      if (pending) scroll.scrollTo({
         top: restore!.scrollTop,
         left: restore!.scrollLeft,
         behavior: "instant",
@@ -57,6 +58,16 @@ export default function RouteContent({ children }: { children: ReactNode }) {
       // Cached rows can briefly provide enough height before responsive/query
       // reconciliation shrinks them again. Keep restoring through layout changes
       // until the user takes control of this surface.
+      if (focusPending && recordFocus) {
+        const grid = Array.from(element.querySelectorAll<HTMLElement>('[data-grid-id]')).find(node=>node.dataset.gridId===recordFocus!.grid);
+        const row = grid && Array.from(grid.querySelectorAll<HTMLElement>('[data-grid-record-id]')).find(node=>node.dataset.gridRecordId===recordFocus!.id&&node.getClientRects().length);
+        const selector = recordFocus.kind === "link" ? 'a[href]' : recordFocus.kind === "preview" ? 'button[title="Preview record"]' : 'button[aria-haspopup="menu"]';
+        const target = row?.querySelector<HTMLElement>(selector) ?? row?.querySelector<HTMLElement>('a[href]') ?? row?.querySelector<HTMLElement>('button[aria-label="Record quick actions"]');
+        if (target && !target.matches(':disabled') && target.getClientRects().length) {
+          target.focus({preventScroll:true});
+          focusPending = false;
+        }
+      }
     };
     const persist = () => {
       if (!form && !pending && navigationViews.isScope(scope))
@@ -64,6 +75,7 @@ export default function RouteContent({ children }: { children: ReactNode }) {
           search: location.search,
           scrollTop: position.top,
           scrollLeft: position.left,
+          recordFocus,
         });
     };
     const save = () => {
@@ -73,7 +85,15 @@ export default function RouteContent({ children }: { children: ReactNode }) {
     };
     const interact = () => {
       pending = false;
+      focusPending = false;
       save();
+    };
+    const rememberFocus = (event: FocusEvent) => {
+      if (!(event.target instanceof HTMLElement)) return;
+      const control = event.target.closest<HTMLElement>('a[href],button'), row = control?.closest<HTMLElement>('[data-grid-record-id]'), grid = row?.closest<HTMLElement>('[data-grid-id]');
+      if (!control || !row?.dataset.gridRecordId || !grid?.dataset.gridId) return;
+      const kind = control.matches('a[href]') ? "link" : control.getAttribute('title') === 'Preview record' ? "preview" : control.getAttribute('aria-haspopup') === 'menu' ? "menu" : undefined;
+      if (kind) recordFocus = {grid:grid.dataset.gridId,id:row.dataset.gridRecordId,kind};
     };
     scroll.scrollTo({
       top: restore?.scrollTop || 0,
@@ -85,18 +105,24 @@ export default function RouteContent({ children }: { children: ReactNode }) {
       frame = requestAnimationFrame(apply);
     });
     observer.observe(element);
+    const focusObserver = new MutationObserver(() => { if (focusPending) apply(); });
+    focusObserver.observe(element, {childList:true,subtree:true});
     apply();
+    scroll.addEventListener("focusin", rememberFocus);
     scroll.addEventListener("scroll", save, { passive: true });
     scroll.addEventListener("wheel", interact, { passive: true });
     scroll.addEventListener("touchstart", interact, { passive: true });
     scroll.addEventListener("pointerdown", interact, { passive: true });
     scroll.addEventListener("keydown", interact);
-    // Leave focus on the clicked navigation control. Keyboard users can use the existing skip link.
+    // Only browser-history returns restore a loaded record control. Other routes
+    // keep their existing navigation/skip-link focus behavior.
     return () => {
       persist();
       observer.disconnect();
+      focusObserver.disconnect();
       cancelAnimationFrame(frame);
       scroll.removeEventListener("scroll", save);
+      scroll.removeEventListener("focusin", rememberFocus);
       scroll.removeEventListener("wheel", interact);
       scroll.removeEventListener("touchstart", interact);
       scroll.removeEventListener("pointerdown", interact);

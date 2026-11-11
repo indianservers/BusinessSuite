@@ -537,7 +537,7 @@ function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
   };
   const titleColumn = props.columns.find(c => !/^(select|actions?|quick actions)$/i.test(c.title)) || props.columns[0];
   const title = focused === undefined ? "" : String(titleColumn?.accessor?.(focused) ?? (focused as Record<string, unknown>)[titleColumn?.id] ?? "Record");
-  return <div ref={workspaceElement} onPointerDownCapture={event=>rememberPreviewControl(event.target)} onKeyDownCapture={event=>{if(event.key==="Enter"||event.key===" ")rememberPreviewControl(event.target);}} className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
+  return <div ref={workspaceElement} data-grid-id={props.gridId} onPointerDownCapture={event=>rememberPreviewControl(event.target)} onKeyDownCapture={event=>{if(event.key==="Enter"||event.key===" ")rememberPreviewControl(event.target);}} className={`udg-workspace ${focused !== undefined ? "has-details" : ""}`}>
     <div className="udg-workspace-main">{enabled&&!props.hideViewControls&&!props.compactControls&&<RecordViewBar compact={props.compactControls} scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>}
     <GridEngine {...props}
       toolbarExtra={props.compactControls ? <>{enabled&&!props.hideViewControls&&<RecordViewBar compact scope={props.gridId} view={mode} change={personal.setView} category={category?.title} tags={!!tags} server={!!props.dataSource.personalIdentity}/>} {props.toolbarExtra}</> : props.toolbarExtra}
