@@ -1211,11 +1211,11 @@ export function CaptureDialog({
             e.preventDefault();
             if (captureSubmitting.current) return;
             const nameMissing = !values.full_name?.trim();
-            if (quickCapture && !values.email?.trim() && !values.phone?.trim()) { setStep(0); setError("Add a phone number or email so you can follow up with this lead."); return; }
+            if (quickCapture && !nameMissing && !values.email?.trim() && !values.phone?.trim()) { setStep(0); setError("Add a phone number or email so you can follow up with this lead."); return; }
             const contactError = emailError(values.email) || phoneError(values.phone, values.phone_country_code);
             if (nameMissing || contactError) {
               setStep(nameMissing ? 0 : 1);
-              setError(nameMissing ? "Lead name is required. Everything else can be added later." : String(contactError));
+              setError(nameMissing ? quickCapture ? "Lead name and one contact method are required." : "Lead name is required. Everything else can be added later." : String(contactError));
               requestAnimationFrame(() => captureForm.current?.querySelector<HTMLInputElement>(nameMissing ? '[aria-label="Lead Name *"]' : values.email ? '[aria-label="Email"]' : 'input[type="tel"]')?.focus());
               return;
             }
@@ -1258,7 +1258,7 @@ export function CaptureDialog({
           <nav className="lead-create-steps" role="tablist" aria-label="Lead creation sections" onKeyDown={event => { const next = event.key === "ArrowRight" ? (step + 1) % captureTabs.length : event.key === "ArrowLeft" ? (step - 1 + captureTabs.length) % captureTabs.length : event.key === "Home" ? 0 : event.key === "End" ? captureTabs.length - 1 : -1; if (next >= 0) { event.preventDefault(); setStep(next); event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus(); } }}>{captureTabs.map((title, index) => <button key={title} type="button" role="tab" id={`lead-capture-tab-${index}`} aria-controls="lead-capture-panel" aria-selected={step === index} tabIndex={step === index ? 0 : -1} onClick={() => setStep(index)}><span aria-hidden="true">{index + 1}</span>{title}{index === 4 && catalogLines.length > 0 ? ` (${catalogLines.length})` : ""}</button>)}</nav>
           <div className="lead-create-body" id="lead-capture-panel" role="tabpanel" aria-labelledby={`lead-capture-tab-${step}`}>
             <h3>{["Basic Information", "Contact Information", "Company Details", "Additional Information", "Products & services"][step]}</h3>
-            <p className="lead-create-subtitle">{["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
+            <p className="lead-create-subtitle">{quickCapture && step === 0 ? "Add a name and either a phone number or email. Reveal more details when needed." : ["Only the lead name is required. Fill other details now or add them later.", "Email and phone are optional. Add whichever you have.", "Company details are optional and can be updated later.", "Use the default assignment or choose who will take this opportunity forward.", "Link relevant products and services. This section is optional."][step]}</p>
             {step === 0 && <div className="lead-create-grid">
               {field("full_name", "Lead Name *", "e.g. John Smith")}
               {(mobile || quickCapture) && <><label className="lead-create-field">Phone<PhoneInput value={values.phone || ""} countryCode={values.phone_country_code || ""} onChange={phone => update("phone", phone)} onCountryCodeChange={code => update("phone_country_code", code)}/></label>{quickCapture && field("email", "Email", "e.g. john@company.com", "email")}</>}

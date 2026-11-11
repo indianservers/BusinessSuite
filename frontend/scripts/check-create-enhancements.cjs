@@ -29,6 +29,7 @@ const importBatch={id:'qa-import',entity:'employees',filename:'employees.csv',so
     } else if(path.endsWith('/workspaces')) data=[{id:7,name:'QA workspace',role:'Owner'}];
     else if(path==='/project-management/projects') data=[project];
     else if(path==='/project-management/projects/10') data=project;
+    else if(path==='/project-management/tasks/42') data={id:42,title:'Parent delivery',project_id:10,parent_task_id:null};
     else if(path.endsWith('/task-studio/options')) data={people:[{id:1,name:'QA Owner'}],can_edit:true};
     else if(path.endsWith('/projects/10/sprints')) data=[{id:2,name:'Current sprint',status:'Active'}];
     else if(path.endsWith('/projects/10/tasks')) data=[{id:42,title:'Parent delivery',parent_task_id:null}];
@@ -52,6 +53,7 @@ const importBatch={id:'qa-import',entity:'employees',filename:'employees.csv',so
     else if(path==='/project-management/docs') data=[];
     else if(path==='/imports/hrms/catalog') data=[{key:'other',label:'Other records',fields:importFields,identity:[],note:''},{key:'employees',label:'Employees',fields:importFields,identity:[],note:'Review all rows before importing.'}];
     else if(path==='/imports/hrms/history') data=[];
+    else if(path==='/imports/sample-data/status') data={requested:false,modules:[],batch:null};
     else if(path.includes('/imports/hrms/lookups/')) data={};
     return route.fulfill({json:data});
    });
@@ -89,7 +91,8 @@ const importBatch={id:'qa-import',entity:'employees',filename:'employees.csv',so
    await page.reload(); await choose('Quick task');
    await expect(page.getByLabel('Title',{exact:true})).toHaveValue('Recover this draft');
    failTask=false;
-   await visit('/pms/tasks/42?projectId=10&workspace=7'); await choose('Subtask');
+   await visit('/pms/tasks/42?workspace=7'); await choose('Subtask');
+   await expect(page.getByLabel('Quick task project')).toHaveValue('10');
    await expect(page.getByLabel('Parent task',{exact:true})).toHaveValue('42');
    console.log(`PMS quick save, defaults, templates, repeat creation, undo, failure and draft recovery passed (${width}px)`);
 

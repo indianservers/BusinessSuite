@@ -25,14 +25,19 @@ def main():
     chunks=[{'text':text,'source':{'id':ident}} for ident,text,_ in CASES]
     start=time.monotonic();results=[]
     for expected,_,query in CASES:
-        found,engine=rank_chunks(chunks,query,'semantic')
-        predicted=found[0]['id'] if found else None
-        results.append({'query':query,'expected':expected,'actual':predicted,'passed':expected==predicted,'semantic_used':engine['semantic_used']})
+        modes={}
+        for mode in ('semantic','hybrid'):
+            found,engine=rank_chunks(chunks,query,mode)
+            predicted=found[0]['id'] if found else None
+            modes[mode]={'actual':predicted,'passed':expected==predicted,'semantic_used':engine['semantic_used']}
+        results.append({'query':query,'expected':expected,**modes})
     report={'model':MODEL,'revision':REVISION,'kind':'authored synthetic English retrieval; not independent real-world evaluation',
-        'cases':len(results),'passed':sum(r['passed'] for r in results),'duration_seconds':round(time.monotonic()-start,2),'results':results}
+        'cases':len(results),'semantic_passed':sum(r['semantic']['passed'] for r in results),'hybrid_passed':sum(r['hybrid']['passed'] for r in results),
+        'development_note':'Hybrid includes curated business vocabulary. These examples informed that vocabulary; this is a development check, not a held-out score.',
+        'duration_seconds':round(time.monotonic()-start,2),'results':results}
     (directory()/'synthetic-evaluation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2))
-    return 0 if report['passed']==len(results) else 1
+    return 0 if report['hybrid_passed']==len(results) else 1
 
 
 if __name__=='__main__':raise SystemExit(main())

@@ -71,7 +71,8 @@ export default function PageWorkTools({portalScope}: {portalScope?: string} = {}
     return () => window.removeEventListener("keydown", keyboard);
   }, [scope]);
   const recent = (portalScope ? visits : (savedRecent || []).map(path=>({path,title:path.split("/").filter(Boolean).map(part=>part.replace(/-/g," ")).join(" / ")}))).filter(v => v.path !== location.pathname + location.search && v.path.startsWith("/") && !v.path.startsWith("//") && (portalScope ? v.path.startsWith(`/portal/${portalScope.split(":")[1]}`) : !v.path.startsWith("/portal/") && canAccessRoute(v.path.split("?")[0], user?.role, user?.is_superuser)));
-  return <><WritingActions/><div className="page-work-tools" data-context-menu-ignore data-page-work-tools>
+  return <><div className="page-work-tools" data-context-menu-ignore data-page-work-tools>
+    <WritingActions presentation="menu"/>
     <button type="button" onClick={showActions} aria-keyshortcuts="Alt+Shift+A" title="Page actions and keyboard shortcuts (Alt+Shift+A)">Page actions</button>
     {notice && <span role="status" className="sr-only">{notice}</span>}
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className="page-actions-dialog" onCloseAutoFocus={event => { const action = selected.current; selected.current = undefined; if (action) { event.preventDefault(); requestAnimationFrame(() => { if (available(action.source)) action.run(); }); } }}>

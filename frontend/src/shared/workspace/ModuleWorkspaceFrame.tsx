@@ -68,7 +68,7 @@ export default function ModuleWorkspaceFrame({module,children}:{module:"crm"|"pm
   useEffect(()=>{if(ready===preferenceKey)try{localStorage.setItem(preferenceKey,JSON.stringify(pinned));}catch{/* Navigation works without storage. */}},[preferenceKey,ready,pinned]);
   useEffect(()=>setOpen(false),[pathname,search]);
   // Task execution already owns its full-screen shell and view catalogue.
-  if(isSharedTaskWorkspace(pathname,search) || (module==="pms" && /^\/pms\/tasks(?:\/|$)/.test(pathname)))return <>{children}</>;
+  if(isSharedTaskWorkspace(pathname,search) || (module==="pms" && (pathname==="/pms" || /^\/pms\/tasks(?:\/|$)/.test(pathname))))return <>{children}</>;
   const all=module==="crm"?crm:pms;
   const active=all.filter(view=>pathname===view.href||pathname.startsWith(`${view.href}/`)).sort((a,b)=>b.href!.length-a.href!.length)[0]?.id || (pathname===`/${module}`?module==="crm"?"dashboard":"projects":pathname.split("/")[2]);
   const views=all.filter(view=>canAccessRoute(view.href!,user?.role,user?.is_superuser));

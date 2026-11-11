@@ -6,6 +6,11 @@
 .writing-action-buttons>button:disabled { opacity:.5; cursor:default; }
 .writing-action-buttons svg { color:hsl(var(--primary)); flex-shrink:0; }
 .writing-actions-compact { margin:6px 8px; }
+.writing-menu-trigger { display:inline-flex; align-items:center; gap:5px; min-height:32px; padding:5px 9px; border:1px solid hsl(var(--border)); border-radius:6px; background:hsl(var(--background)); font-size:12px; }
+.writing-menu-content { z-index:90; max-width:calc(100vw - 24px); max-height:var(--radix-dropdown-menu-content-available-height); overflow:auto; min-width:210px; padding:4px; border:1px solid hsl(var(--border)); border-radius:8px; background:hsl(var(--popover)); color:hsl(var(--popover-foreground)); }
+.writing-menu-item { padding:10px 12px; font-size:13px; cursor:pointer; border-radius:4px; outline:none; }
+.writing-menu-item[data-highlighted] { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
+.writing-menu-trigger:focus-visible { outline:2px solid hsl(var(--primary)); outline-offset:2px; }
 .writing-draft-dialog { max-width:760px; gap:12px; }
 .writing-draft-dialog h2 { display:flex; align-items:center; gap:8px; padding-right:32px; font-weight:600; }
 .writing-draft-dialog label { display:flex; flex-direction:column; gap:4px; min-width:0; font-size:12px; }

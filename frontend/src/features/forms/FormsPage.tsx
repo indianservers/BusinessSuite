@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { api } from "@/services/api";
 import FormBuilder from "./FormBuilder";
+import { formTemplates, createFormTemplate } from "./formTemplates";
 import FormResponse from "./FormResponse";
 import FormAppearance from "./FormAppearance";
 import {
@@ -157,7 +158,7 @@ export default function FormsPage() {
           if (active) setError(message(e));
         });
     } else if (page === "new") {
-      const d = fresh();
+      const d = createFormTemplate(new URLSearchParams(location.search).get("template") || "default");
       setDraft(d);
       setSelected(d.fields[0].id);
       setDirty(true);
@@ -166,7 +167,7 @@ export default function FormsPage() {
     return () => {
       active = false;
     };
-  }, [formId, page, moduleKey]);
+  }, [formId, page, moduleKey, location.search]);
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -1083,6 +1084,15 @@ export default function FormsPage() {
         </section>
       ) : (
         <>
+          {page === "list" && <section className="forms-template-gallery" aria-label="Form templates">
+            <span className="forms-template-eyebrow">A little inspiration to get started</span>
+            <h2>Create a new form</h2>
+            <p>Start with a template, then make it yours in the visual editor.</p>
+            <div className="forms-template-grid">{formTemplates.map(t => <Link key={t.id} to={`${base}/new?template=${t.id}`} className="forms-template-card" style={{ "--template-color": t.color } as CSSProperties}>
+              <span className="forms-template-symbol" aria-hidden="true">{t.icon}</span>
+              <strong>{t.name}</strong><span>{t.description}</span><small>{t.id === "blank" ? "Open blank canvas" : "Use template"} →</small>
+            </Link>)}</div>
+          </section>}
           <div className="forms-list-toolbar">
             <label>
               Search forms

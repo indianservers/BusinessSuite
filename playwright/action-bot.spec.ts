@@ -12,8 +12,16 @@ test('unified workspace manages skills finds cited file excerpts and shows activ
  await page.getByRole('tab',{name:'Tools',exact:true}).click();await page.getByRole('textbox',{name:'Search workspace tools',exact:true}).fill('CRM task');await expect(page.getByText('Create a CRM task after review.',{exact:true})).toBeVisible();
  await page.getByRole('tab',{name:'Connections',exact:true}).click();await expect(page.getByText('No authorized connections in this environment.',{exact:true})).toBeVisible();
  await page.getByRole('tab',{name:'Files (0)',exact:true}).click();await page.getByLabel('Upload bot files',{exact:true}).setInputFiles({name:'delivery.csv',mimeType:'text/csv',buffer:Buffer.from('Policy,Escalation\nDelivery,Review stalled commitments')});await expect(page.getByLabel('files',{exact:true}).getByText('delivery.csv',{exact:true})).toBeVisible();
- await page.getByRole('tab',{name:'Knowledge',exact:true}).click();await page.getByRole('textbox',{name:'Knowledge file query',exact:true}).fill('Escalation');await page.getByRole('button',{name:'Search authorized files',exact:true}).click();await expect(page.getByText('Characters 0–',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Open source file',exact:true}).click();await expect(page.getByRole('tab',{name:'Files (1)',exact:true})).toHaveAttribute('aria-selected','true');
+ await page.getByRole('tab',{name:'Knowledge',exact:true}).click();await page.getByRole('textbox',{name:'Knowledge file query',exact:true}).fill('Escalation');await page.getByRole('button',{name:'Search authorized knowledge',exact:true}).click();await expect(page.getByText('Characters 0–',{exact:false})).toBeVisible();await page.getByRole('button',{name:'Open source file',exact:true}).click();await expect(page.getByRole('tab',{name:'Files (1)',exact:true})).toHaveAttribute('aria-selected','true');
  await page.getByRole('tab',{name:'Activity',exact:true}).click();await expect(page.getByRole('heading',{name:'Activity',exact:true})).toBeVisible();
+ await page.getByRole('tab',{name:'Knowledge',exact:true}).click();
+ await page.getByRole('combobox',{name:'Knowledge sources',exact:true}).selectOption('CRM');
+ await page.getByRole('combobox',{name:'Knowledge matching',exact:true}).selectOption('lexical');
+ await page.getByRole('textbox',{name:'Knowledge file query',exact:true}).fill('stalled commitments');
+ await page.getByRole('button',{name:'Search authorized knowledge',exact:true}).click();
+ await expect(page.getByRole('link',{name:'Open source record',exact:true})).toHaveAttribute('href','/crm/tasks');
+ const searches=await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/workspace/search')));
+ expect(searches.at(-1).body.tools).toEqual(['crm.leads','crm.deals','crm.tasks']);expect(searches.at(-1).body.mode).toBe('lexical');
  expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
 });
 

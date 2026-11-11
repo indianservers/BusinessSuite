@@ -17,6 +17,11 @@ try{
  user.role=session.role;
  const access=await page.request.get(base+'/api/v1/access/me',{headers:{Authorization:'Bearer '+session.access_token}});if(access.ok())user.access=await access.json();
  await page.addInitScript(({session,user})=>sessionStorage.setItem('hrms-auth',JSON.stringify({state:{accessToken:session.access_token,refreshToken:session.refresh_token,user,isAuthenticated:true},version:0})),{session,user});
+ async function openPageWriting(label){
+  await page.getByRole('button',{name:'AI writing',exact:true}).waitFor({timeout:45000});
+  await page.getByRole('button',{name:'AI writing',exact:true}).click();
+  await page.getByRole('menuitem',{name:label,exact:true}).click();
+ }
  const matrix=[
   ['/crm/leads','Draft client email'],['/crm/contacts','Draft follow-up'],['/crm/deals','Draft proposal'],['/crm/emails','Draft reply'],['/crm/whatsapp','Draft WhatsApp message'],
   ['/crm/meetings','Summarize meeting'],['/crm/calls','Extract action items'],['/crm/tickets','Draft support reply'],['/crm/templates','Extract key details'],
@@ -27,8 +32,8 @@ try{
  ];
  for(const [path,label] of matrix.slice(start)){
   console.log('CHECK',path,label);
-  await page.goto(base+path);await page.waitForLoadState('networkidle');await page.getByRole('button',{name:label,exact:true}).first().waitFor({timeout:45000});
-  const [response]=await Promise.all([page.waitForResponse(r=>r.url().endsWith('/writing/draft')&&r.request().method()==='POST'),page.getByRole('button',{name:label,exact:true}).first().click()]);
+  await page.goto(base+path);await page.waitForLoadState('networkidle');await page.getByRole('button',{name:'AI writing',exact:true}).waitFor({timeout:45000});
+  const [response]=await Promise.all([page.waitForResponse(r=>r.url().endsWith('/writing/draft')&&r.request().method()==='POST'),openPageWriting(label)]);
   if(!response.ok())throw Error(path+': '+await response.text());
   const dialog=page.locator('[data-ai-writing][role="dialog"]');
   await dialog.getByRole('textbox',{name:'AI generated draft',exact:true}).waitFor();
@@ -89,7 +94,7 @@ try{
  results.push({flow:'Note editor insertion without saving',passed:true});
  // Mobile layout and direct action.
  await page.setViewportSize({width:390,height:844});await page.goto(base+'/crm/leads');
- await page.getByRole('button',{name:'Draft client email',exact:true}).first().click();
+ await openPageWriting('Draft client email');
  dialog=page.locator('[data-ai-writing][role="dialog"]');await dialog.getByRole('textbox',{name:'AI generated draft',exact:true}).waitFor();
  const box=await dialog.boundingBox();if(!box||box.x<0||box.x+box.width>391)throw Error('Mobile draft dialog overflows viewport');
  await page.screenshot({path:out+'/mobile.png'});results.push({flow:'Mobile direct draft',passed:true});

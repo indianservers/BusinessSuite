@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Check, Copy, Loader2, Sparkles } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { api } from '@/services/api';
@@ -10,10 +11,10 @@ import { documentActions, pageWritingContext, pageWritingPath, visibleWritingSou
 import './writing-actions.css';
 
 type Draft = {text:string;subject:string;missing_details:string[];engine:string;method:string};
-type Props = { actions?: WritingAction[]; source?: ()=>WritingSource; onApply?: (text:string,subject?:string)=>boolean|void; module?:BotModule; compact?:boolean; disabled?:boolean };
+type Props = { actions?: WritingAction[]; source?: ()=>WritingSource; onApply?: (text:string,subject?:string)=>boolean|void; module?:BotModule; compact?:boolean; disabled?:boolean; presentation?:'buttons'|'menu' };
 
 /** Direct action buttons; deliberately independent of chatbot conversations. */
-export default function WritingActions({actions: supplied,source,onApply,module: suppliedModule,compact=false,disabled=false}:Props) {
+export default function WritingActions({actions: supplied,source,onApply,module: suppliedModule,compact=false,disabled=false,presentation='buttons'}:Props) {
   const location=useLocation(),user=useAuthStore(s=>s.user);
   const pagePath=pageWritingPath(location.pathname,location.search);
   const context=pageWritingContext(pagePath),module=suppliedModule||context?.module;
@@ -22,6 +23,7 @@ export default function WritingActions({actions: supplied,source,onApply,module:
   const [draft,setDraft]=useState<Draft|null>(null),[text,setText]=useState(''),[subject,setSubject]=useState('');
   const [input,setInput]=useState<WritingSource>({text:'',title:''}),[tone,setTone]=useState('professional'),[language,setLanguage]=useState('Hindi');
   const [sourceOpen,setSourceOpen]=useState(false);
+  const menuTrigger=useRef<HTMLButtonElement>(null);
   const controller=useRef<AbortController|null>(null),serial=useRef(0),textarea=useRef<HTMLTextAreaElement|null>(null),original=useRef('');
   const parameters=new URLSearchParams(location.search);
   const recordScope=['workspace','workspace_id','project','projectId','project_id','task','taskId','recordId','recordType','id','lead','contact','company','deal'].map(key=>parameters.get(key)||'').join(':');
@@ -74,8 +76,8 @@ export default function WritingActions({actions: supplied,source,onApply,module:
     setNotice('Inserted into the editor. Review before saving or sending.');
   }
   return <div data-ai-writing className={`writing-actions ${compact?'writing-actions-compact':''}`}>
-    <div className="writing-action-buttons" role="group" aria-label="AI writing actions">{actions.map(item=><button key={item.id} type="button" disabled={disabled} onClick={()=>start(item)}><Sparkles size={13}/>{item.label}</button>)}</div>
-    <Dialog open={!!action} onOpenChange={open=>{if(!open)reset();}}><DialogContent data-ai-writing className="writing-draft-dialog" onOpenAutoFocus={event=>event.preventDefault()}>
+    {presentation==='menu' ? <DropdownMenu.Root modal={false}><DropdownMenu.Trigger asChild><button type="button" ref={menuTrigger} className="writing-menu-trigger" disabled={disabled}><Sparkles size={13} aria-hidden="true"/>AI writing</button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content data-ai-writing className="writing-menu-content" align="end" sideOffset={6} collisionPadding={12} aria-label="AI writing actions" onCloseAutoFocus={event=>{if(action)event.preventDefault();}}>{actions.map(item=><DropdownMenu.Item key={item.id} className="writing-menu-item" onSelect={()=>start(item)}>{item.label}</DropdownMenu.Item>)}</DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root> : <div className="writing-action-buttons" role="group" aria-label="AI writing actions">{actions.map(item=><button key={item.id} type="button" disabled={disabled} onClick={()=>start(item)}><Sparkles size={13}/>{item.label}</button>)}</div>}
+    <Dialog open={!!action} onOpenChange={open=>{if(!open)reset();}}><DialogContent data-ai-writing className="writing-draft-dialog" onCloseAutoFocus={event=>{if(presentation==='menu'){event.preventDefault();menuTrigger.current?.focus();}}}>
       <DialogTitle><Sparkles size={18}/>{action?.label}</DialogTitle>
       <p className="writing-help">Uses the local agent. Review the draft before inserting, saving or sending.</p>
       <details open={sourceOpen}><summary onClick={e=>{e.preventDefault();setSourceOpen(value=>!value);}}>Source details</summary><label>Topic / record<input aria-label="AI draft topic" value={input.title} maxLength={200} onChange={e=>setInput({...input,title:e.target.value})}/></label><label>Recipient<input aria-label="AI draft recipient" value={input.recipient||''} maxLength={120} onChange={e=>setInput({...input,recipient:e.target.value})}/></label><label>Notes or selected record details<textarea aria-label="AI source details" value={input.text} maxLength={16000} onChange={e=>setInput({...input,text:e.target.value})}/></label></details>

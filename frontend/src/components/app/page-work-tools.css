@@ -1,4 +1,5 @@
-.page-work-tools { display:flex; justify-content:flex-end; margin-bottom:8px; font-size:12px; }
+.page-work-tools { display:flex; align-items:center; gap:8px; justify-content:flex-end; margin-bottom:8px; font-size:12px; }
+.page-work-tools > .writing-actions { margin:0; }
 .page-work-tools > button { border:1px solid hsl(var(--border)); border-radius:6px; min-height:36px; padding:6px 12px; }
 .page-actions-dialog { max-height:85dvh; overflow:auto; }
 .page-actions-list { display:flex; flex-direction:column; gap:4px; max-height:32dvh; overflow:auto; }

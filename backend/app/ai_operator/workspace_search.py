@@ -15,9 +15,18 @@ from app.ai_operator import suite_uploads as uploads
 
 router=APIRouter(prefix='/suite/workspace',tags=['Agent workspace knowledge'])
 
+BUSINESS_TERMS={'vacation':'leave','vacations':'leave','holiday':'leave','holidays':'leave',
+    'bill':'invoice','bills':'invoice','supplies':'inventory','stock':'inventory',
+    'vendor':'supplier','vendors':'supplier','suppliers':'supplier',
+    'onboarding':'orientation','joiner':'employee','joiners':'employee',
+    'reimbursements':'reimbursement','trip':'travel','trips':'travel',
+    'client':'customer','clients':'customer','customers':'customer',
+    'prerequisites':'prerequisite','dependencies':'dependency','credentials':'credential'}
+
 
 def document_features(text):
     words=[SYNONYMS.get(word,word) for word in re.findall(r'[^\W_]+',text.casefold()) if word not in STOP]
+    words=[BUSINESS_TERMS.get(word,word) for word in words]
     return Counter([*words,*(' '.join(pair) for pair in zip(words,words[1:]))])
 
 
@@ -143,9 +152,15 @@ async def knowledge_search(data:KnowledgeSearch,request:Request,db:Session=Depen
             if not groups[key]:del groups[key]
             if len(bounded)>=200:break
     ranked,engine=await run_in_threadpool(rank_chunks,bounded,data.query,data.mode)
-    return {'items':ranked[:data.limit],**engine,'files_searched':len(files),'records':coverage,'candidates_searched':len(bounded),
+    response={'items':ranked[:data.limit],**engine,'files_searched':len(files),'records':coverage,'candidates_searched':len(bounded),
         'candidates_available':len(chunks),'retrieved_at':retrieved_at,
         'coverage':'Bounded current authorized API snapshots and parsed conversation uploads. Scores rank relevance, not factual confidence. No external accounts or full ERP index searched.'}
+    cap=limits(db,company(user))['max_result_bytes']
+    limited=False
+    while response['items'] and len(json.dumps(response,ensure_ascii=False).encode())>cap:
+        response['items'].pop();limited=True
+    response['disclosure_limited']=limited
+    return response
 
 
 @router.post('/file-search')

@@ -19,7 +19,7 @@ def chat(client,h,workspace_id=None):
 def test_search_uses_native_records_and_never_changes_them(client,db):
     h,_,_,_=setup_suite(client,db);conversation=chat(client,h)
     r=client.post('/api/v1/crm/tasks',headers=h,json={'title':'Escalate overdue onboarding commitments','description':'Private note not in the minimized knowledge response'})
-    assert r.status_code==200,r.text
+    assert r.status_code==201,r.text
     ident=r.json()['id']
     spec={'conversation_id':conversation,'query':'overdue onboarding','mode':'lexical','tools':['crm.tasks'],'include_uploads':False}
     found=client.post(ROOT+'/workspace/search',headers=h,json=spec)
@@ -47,8 +47,11 @@ def test_search_reauthorizes_conversation_and_module_before_embedding(client,db,
 
 
 def test_search_project_must_match_conversation_workspace(client,db):
-    from app.apps.project_management.models import PMSProject
-    h,_,project,_=setup_suite(client,db);conversation=chat(client,h)
+    from app.apps.project_management.models import PMSProject,PMSWorkspace,PMSWorkspaceMember
+    h,user,project,_=setup_suite(client,db);conversation=chat(client,h)
+    workspace=PMSWorkspace(name='Knowledge project scope');db.add(workspace);db.flush()
+    db.add(PMSWorkspaceMember(workspace_id=workspace.id,user_id=user.id,role='Owner'))
+    db.get(PMSProject,project).workspace_id=workspace.id;db.commit()
     r=client.post(ROOT+'/workspace/search',headers=h,json={'conversation_id':conversation,'query':'Review','tools':['pms.tasks'],'project_id':project,'mode':'lexical'})
     assert r.status_code==422,r.text
     workspace=db.get(PMSProject,project).workspace_id
