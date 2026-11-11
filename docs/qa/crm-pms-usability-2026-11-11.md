@@ -26,8 +26,8 @@ The complete seven-phase improvement goal remains active. The batches below redu
 
 ## Remaining acceptance checklist
 
-1. Phase 1: three visible records at 1280×720 and 1440×900; compact phone workflow; remaining navigation duplication.
-2. Phase 2: one coherent collection search/filter state; clear-all across contributing filters; consistent results across views; understandable personal/shared saved configuration and preserved preferences.
+1. Phase 1: normal-state three-record layout measured for live PMS and the real CRM shell with eight disposable records (see Batch 4). Continue failure-notice layouts and complete phone workflows; screenshots alone do not close this phase.
+2. Phase 2: PMS has one task search, shared filter state and Saved views entry point. Continue CRM saved-configuration consolidation, preference isolation/legacy acceptance and coherent quick/advanced filter entry points across modules.
 3. Phase 3: predictable title opening and cell editing; aligned preview/full task and CRM behavior; focus/scroll/selection preservation; deep links and Back; labels, monetary/date formatting and consolidated row actions.
 4. Phase 4: complete deal summary and next-action queues; log call and schedule follow-up journey; matching queue counts and access scope.
 5. Phase 5: contextual capture defaults, progressive fields, drafts and custom-field validation; role-specific setup and templates.
@@ -80,3 +80,28 @@ Authenticated local QA branch, two existing deals, no deliberate deal writes or 
 - Shared grid unit regression passed after statistics relocation. The production build and subsequent TypeScript no-emit check passed. Final inline-heading text/CSS changes were checked live, including a pointer hit-test proving Explore pages remains accessible beside Page actions. Existing Vite warnings remain; no performance benchmark or deployed acceptance was run.
 
 This batch does not prove record opening/focus/scroll recovery, task/deal mutations, stale-edit recovery, workflow approvals, access-role isolation or later phases. Those journeys remain required.
+
+## Batch 4 — PMS saved configurations and representative CRM layout
+
+### Implemented
+
+- One **Saved views** control is available in List, Board, Calendar and Workload. It uses the existing shared grid manager and preference key, moved into the workspace filter bar through an optional host. The grid stays mounted while switching task presentations so the same manager, layout and selection state are retained; it is hidden outside List, not duplicated.
+- Named views include search, project, assignee, priority, status, task type, attention queue, advanced conditions, table layout and task presentation. Loading a Board view from Calendar restores its Board presentation and filters together. Scope IDs are checked against currently available project/member choices.
+- **Last filter snapshot** remains inside this menu, using the original `pms-board-view-{user}-{company}-{workspace}` key. Saving failures are caught with a message that current filters are unchanged. Older named layouts without collection context preserve the current workspace filters. This compatibility branch has source review but still needs an older-format fixture exercise.
+- Labels identify saved configurations as personal/browser-local. No sharing or backend preference engine was added. Existing shared-grid keys retain user/company/workspace isolation, and the task collection remount key includes user/company as well as workspace. Fresh multi-user isolation acceptance remains open.
+- A real-shell CRM fixture (`frontend/crm-usability-qa.html`, `frontend/scripts/fixtures/crm-usability.tsx`) contains eight clearly labeled disposable opportunities. It uses AppLayout, module navigation and the actual Deals components with the same global collection styles. All suite API calls are served by a local Axios adapter; writes are rejected. It is gated to development on loopback and does not contact business APIs/providers.
+- The larger fixture exposed a grid virtualizer render loop: derived layout objects changed identity without changing column geometry, causing repeated measurement/state updates. Column measurement now depends on the serialized geometry values. Cold-load fixture inspection after the fix produced no fresh render-loop errors. An unrelated concurrent main-entry HMR change also caused a duplicate-root error in the live preview; a cold reload recovered it, and saved-view restoration was repeated afterward.
+
+### Verification and artifacts
+
+- Frontend no-emit check and production build passed for the saved-view integration. A second production build passed after the virtualizer correction. Additional TypeScript checking of source plus the new fixture passed. The first temporary external config lacked the frontend ambient type roots and failed on unrelated existing `Array.at`/DOM types; correcting its type roots to match the frontend resolved those configuration errors. The equivalent reproducible config is `frontend/scripts/fixtures/tsconfig.crm-usability.json`.
+- Focus queue test passed. Shared-grid unit checks passed after the final grid change (paging, access-preserving records, sorting, nested conditions, grouping and export escaping); pending-search checks passed all 12 assertions.
+- Live workspace: saved **QA usability High board 20261111** while searching High and focusing Unscheduled. Clear → Calendar showed four tasks; loading the named view restored Board, the High search and Unscheduled · 1. Reload retained the named entry; loading it again restored the same context. A filter snapshot saved from that context restored one matching Calendar task while keeping Calendar selected.
+- Empty names leave Save current view disabled. Escape returns focus to Saved views. At an actual 390×844 viewport the menu occupied x0–310 and y374–773, document width 390; loading the named view restored Board and Escape returned focus. An earlier screenshot attempt targeted the other active tab; its viewport measurement caught that mistake, and `pms-saved-views-390.png` was overwritten only after confirming the correct tab was 390px wide.
+- PMS at 1280×720 still shows three full task rows at y491–555, y555–619 and y619–683. Artifact: `.local/crm-pms-usability/pms-saved-views-1280.png`.
+- CRM fixture at 1280×720 and 1440×900, main scroll zero: group header y489.5–523.5; records y523.5–587.5, y587.5–651.5, y651.5–715.5. Title, permitted-opportunity scope and Create deal are visible above the records. This proves normal-state layout for the fixture, not API correctness, financial aggregation or production acceptance.
+- CRM fixture at 390×844: document width 390 and the existing mobile record-card presentation remains available. Artifacts: `.local/crm-pms-usability/crm-fixture-1280.png`, `crm-fixture-1440.png`, `crm-fixture-390.png`; Saved views artifact: `pms-saved-views-390.png`. Temporary viewport overrides were reset and the disposable fixture tab was closed.
+
+The local QA named view/filter snapshot remains available for review. No task/deal business record or provider configuration was changed. Full access isolation, failed-write/stale-edit recovery and the phase 3–7 journeys remain open; CRM's separate legacy Board saved configuration also needs consolidation.
+
+To repeat the CRM layout fixture, run `npx vite --host 127.0.0.1 --port 5199 --strictPort` from `frontend`, then open `http://127.0.0.1:5199/crm-usability-qa.html` in the in-app browser. Use a separate loopback port from the authenticated application. Type-check it with `npx tsc --noEmit -p scripts/fixtures/tsconfig.crm-usability.json`.

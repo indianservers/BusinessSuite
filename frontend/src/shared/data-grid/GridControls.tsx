@@ -1,6 +1,6 @@
 import { NativeSelect } from "@/components/ui/native-select";
 import { ColumnHeadingIcon } from "./column-presentation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as Context from "@radix-ui/react-context-menu";
 import {
@@ -206,12 +206,14 @@ export function SavedViewsManager({
   save,
   load,
   remove,
+  extra,
 }: {
   views: GridSavedView[];
   label?: string;
   save: (name: string) => void;
   load: (view: GridSavedView) => void;
   remove: (id: string) => void;
+  extra?: ReactNode;
 }) {
   const [name, setName] = useState("");
   return (
@@ -264,6 +266,8 @@ export function SavedViewsManager({
           <small>
             Includes columns, pinning, density, sorting, filters and grouping.
           </small>
+          <small>Personal · saved in this browser for your account and workspace.</small>
+          {extra}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

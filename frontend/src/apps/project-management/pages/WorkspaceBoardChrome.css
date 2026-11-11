@@ -80,3 +80,7 @@
 .wb-reference .wb-overview { margin-bottom:4px; }
 .wb-reference .ws-viewbar { margin-bottom:8px; padding-bottom:5px; }
 .wb-reference .ws-viewbar [role=tab].active:after { bottom:-6px; }
+.wb-saved-views:empty{display:none}
+.wb-filter-snapshot{border-top:1px solid hsl(var(--border));padding-top:10px;margin-top:8px;font-size:12px}
+.wb-filter-snapshot p{color:hsl(var(--muted-foreground));margin:6px 0;line-height:1.5}
+.wb-filter-snapshot button{margin:4px 6px 0 0}

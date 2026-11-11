@@ -15,6 +15,7 @@ import {useRecordAutosave} from "@/hooks/use-record-autosave";
 import {moduleActionAllowed} from "@/hooks/use-module-action";
 import { mergePendingGridSearch } from "./pendingSearch";
 import RecordViewBar from "./RecordViewBar";
+import { createPortal } from "react-dom";
 import { columnIcon, columnValue } from "./column-presentation";
 import { useRecordPreferences } from "./record-preferences";
 import { localGridSource } from "./local-source";
@@ -948,9 +949,12 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
   useEffect(() => {
     rowVirtual.measure();
   }, [effectiveRowHeight, layout.rowHeights, mobile, modelRows.length, query.grouping.join("|")]);
+  // Derived layout arrays can have new identities without changing any geometry.
+  // Measuring those again updates the virtualizer and can sustain a render loop.
+  const columnGeometry = JSON.stringify([effectiveSizes, layout.order, layout.visibility, effectivePinning]);
   useEffect(() => {
     columnVirtual.measure();
-  }, [effectiveSizes, layout.order, layout.visibility, effectivePinning]);
+  }, [columnGeometry]);
   const virtualColumns = columnVirtual.getVirtualItems(),
     virtualRows = rowVirtual.getVirtualItems();
   const horizontal = center.length > 24;
@@ -1712,6 +1716,42 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               ))}
             </div>
           );
+  const savedViewControls = <SavedViewsManager
+          label={props.savedViewsLabel || (props.compactControls ? "Table layouts" : undefined)}
+          extra={props.savedViewsExtra}
+          views={views}
+          save={(name) =>
+            setViews((v) =>
+              [
+                ...v.filter((view) => view.name !== name),
+                {
+                  id: crypto.randomUUID(),
+                  name,
+                  layout: structuredClone(layout),
+                  query: structuredClone(query),
+                  context: props.viewContext
+                    ? structuredClone(props.viewContext)
+                    : undefined,
+                },
+              ].slice(-50),
+            )
+          }
+          load={(view) => {
+            updateLayout(view.layout);
+            const restoredQuery = { ...view.query, path: [], page: 1 };
+            if (props.onRestoreView) restoredViewQuery.current = JSON.stringify(restoredQuery);
+            changeQuery(restoredQuery, true);
+            // Restoring context can remount the adapter before the persistence effect runs.
+            try {
+              localStorage.setItem(preferenceKey, JSON.stringify({ layout: sanitizeLayout(view.layout, columns), query: restoredQuery, views, businessGrouping: true }));
+            } catch {
+              setNotice("Layout could not be saved in this browser.");
+            }
+            if (props.onRestoreView) props.onRestoreView({ ...view, query: restoredQuery });
+            else props.onViewContextChange?.(view.context || {});
+          }}
+          remove={(id) => setViews((v) => v.filter((view) => view.id !== id))}
+        />;
   return (
     <section
       className="udg"
@@ -1759,41 +1799,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
           update={updateLayout}
           autoFit={autoFit}
         />
-        <SavedViewsManager
-          label={props.compactControls ? "Table layouts" : undefined}
-          views={views}
-          save={(name) =>
-            setViews((v) =>
-              [
-                ...v.filter((view) => view.name !== name),
-                {
-                  id: crypto.randomUUID(),
-                  name,
-                  layout: structuredClone(layout),
-                  query: structuredClone(query),
-                  context: props.viewContext
-                    ? structuredClone(props.viewContext)
-                    : undefined,
-                },
-              ].slice(-50),
-            )
-          }
-          load={(view) => {
-            updateLayout(view.layout);
-            const restoredQuery = { ...view.query, path: [], page: 1 };
-            if (props.onRestoreView) restoredViewQuery.current = JSON.stringify(restoredQuery);
-            changeQuery(restoredQuery, true);
-            // Restoring context can remount the adapter before the persistence effect runs.
-            try {
-              localStorage.setItem(preferenceKey, JSON.stringify({ layout: sanitizeLayout(view.layout, columns), query: restoredQuery, views, businessGrouping: true }));
-            } catch {
-              setNotice("Layout could not be saved in this browser.");
-            }
-            if (props.onRestoreView) props.onRestoreView({ ...view, query: restoredQuery });
-            else props.onViewContextChange?.(view.context || {});
-          }}
-          remove={(id) => setViews((v) => v.filter((view) => view.id !== id))}
-        />
+        {props.savedViewsHost ? createPortal(savedViewControls, props.savedViewsHost) : savedViewControls}
         <GridExportMenu
           formats={props.exportFormats}
           selectedCount={selection.length}
