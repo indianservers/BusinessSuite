@@ -66,7 +66,9 @@ export default function Deal360Page() {
   const related: Row = record?.related || {}, timeline: Row[] = feed;
   const rows = (key: string): Row[] => Array.isArray(related[key]) ? related[key] : [];
   const money = (value: unknown) => dealMoney(value, record?.currency);
-  const summaryFields = record ? {Company: related.account?.name || (record.company_id ? `#${record.company_id}` : "Not linked"), "Deal value": money(record.amount), "Weighted value": money(Number(record.amount || 0) * Number(record.probability || 0) / 100), Stage: insights?.stage_name || `#${record.stage_id}`, Pipeline: insights?.pipeline_name || `#${record.pipeline_id}`, Owner: insights?.owner_name || record.ownerId || record.owner_user_id || "Unassigned", Probability: `${record.probability}%`, "Expected close": record.expected_close_date || "Unscheduled", "Next follow-up": record.next_follow_up_at || "No next action", Priority: record.priority || "Medium"} : {};
+  const ownerId = record?.owner_user_id ?? record?.ownerId;
+  const ownerName = record?.owner_name || assignees.find(person=>String(person.id)===String(ownerId))?.name || insights?.owner_name;
+  const summaryFields: Record<string,string|number|null> = record ? {Company: related.account?.name || (record.company_id ? `Company #${record.company_id}` : "Not linked"), "Deal value": money(record.amount), "Weighted value": money(Number(record.amount || 0) * Number(record.probability || 0) / 100), Stage: insights?.stage_name || (record.stage_id ? `Stage #${record.stage_id}` : "Not set"), Pipeline: insights?.pipeline_name || (record.pipeline_id ? `Pipeline #${record.pipeline_id}` : "Not set"), Owner: ownerName || (ownerId ? `User #${ownerId}` : "Unassigned"), Probability: `${record.probability ?? 0}%`, "Expected close": record.expected_close_date ? new Date(`${String(record.expected_close_date).slice(0,10)}T12:00:00`).toLocaleDateString() : "Unscheduled", "Next follow-up": record.next_follow_up_at ? new Date(record.next_follow_up_at).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"}) : "No next action", Priority: record.priority || "Medium"} : {};
   if (loading && !record) return <main className="ed-workspace"><LoadingState label="Loading Deal Details" variant="form"/></main>;
   return <main className="ed-workspace">
     {record?.company_id && <><Link className="text-primary underline" to={`/crm/follow-ups?new=1&customer=${record.company_id}&deal=${ident}`}>Schedule deal follow-up</Link></>}
@@ -84,7 +86,7 @@ export default function Deal360Page() {
           {id:"archive",kind:"delete" as const,label:"Archive deal",tooltip:"Archive this deal and retain its history",danger:true,disabled:busy||!canDelete,confirm:{title:"Archive this deal?",description:"The deal will be removed from active views. Its history is retained.",label:"Archive deal"},onSelect:async()=>{setBusy(true);try{await crmApi.delete("deals",ident);window.dispatchEvent(new CustomEvent("crm:records-changed"));navigate("/crm/deals");}catch(e){setError(dealError(e));}finally{setBusy(false);}}},
         ] : []),
       ]}/></header>
-      <Record360Workspace key={ident} kind="deal" id={ident} onAction={setAction}/>
+      <Record360Workspace key={ident} kind="deal" id={ident} heading="Activity & related records" summaryFields={summaryFields} onAction={setAction}/>
       <details><summary className="my-4 cursor-pointer font-semibold">Deal details & commercial workflow</summary>
       <RecordSectionNav value={tab} onChange={name => {setParams({tab:name});setEventPage(1);setFeed([]);}} label="Deal information" groups={[
         {label:"Overview",sections:[{value:"Overview",label:"Opportunity"},{value:"Insights",label:"Insights"}]},
