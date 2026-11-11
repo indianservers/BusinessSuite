@@ -33,6 +33,10 @@ if __name__ == "__main__":
         # Explicitly activated agent schedules only prepare scoped conversations.
         # They cannot approve or enqueue their proposed business changes.
         from app.ai_operator.agent_schedules import dispatch as schedule_agents
+        from app.ai_operator.agent_events import dispatch as event_agents
+        with SessionLocal() as db:
+            event_count=asyncio.run(event_agents(db,app,limit=5))
+        if event_count['processed']:print({'agent_event_occurrences':event_count['processed']},flush=True)
         with SessionLocal() as db:
             scheduled=asyncio.run(schedule_agents(db,app,limit=5))
         if scheduled['processed']:print({'agent_schedules_prepared':scheduled['processed']},flush=True)

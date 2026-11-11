@@ -12,13 +12,16 @@ useAuthStore.setState({isAuthenticated:true,isHydrated:true,user:{id:7,email:'ro
 let run:any=null,seq=0,failed=false;const requests:any[]=[];(window as any).__botRequests=requests;
 let chats:any[]=[],chatSeq=0;const chatRuns=new Map<number,any[]>();
 let memories:any[]=[];let memorySeq=0;
+let organizationMemories:any[]=[];
 const artifactVersions:any[]=[];
 let savedAgents:any[]=[];
 let agentSchedules:any[]=[];
+let agentEvents:any[]=[];
 let agentWorkflows:any[]=[];
 let builder:any=null;const builderMessages:any[]=[];
 let coordinator:any=null;const coordinatorMessages:any[]=[];
 let librarySkills:any[]=[];const libraryVersions=new Map<number,any[]>();
+let skillImport:any=null;
 let publications:any[]=[];
 const chatFiles=new Map<number,any[]>();let fileSeq=0;
 window.addEventListener('suite:branch-changed',()=>{chats=[];chatRuns.clear()});
@@ -38,8 +41,9 @@ api.defaults.adapter=async config=>{
  else if(path.endsWith('/coordinator/82/apply')){const flow={id:301,name:coordinator.draft.name,status:'preview',spec:{nodes:coordinator.draft.nodes},agents:coordinator.agents,nodes:[{step:1,state:'pending'}],preview_hash:'b'.repeat(64)};agentWorkflows.push(flow);coordinator={...coordinator,workflow_id:301};data={...coordinator,workflow_preview:flow}}
  else if(path.endsWith('/coordinator/82'))data={...coordinator,messages:coordinatorMessages};
  else if(path.endsWith('/workflows/301/results'))data={workflow_id:301,name:agentWorkflows[0].name,status:'waiting',complete:false,summary:'0/1 specialist steps completed. The remaining step needs review.',aggregation:'Server-authorized specialist answers and confirmed receipts.',items:[{step:1,agent_name:'Delivery coordinator',status:'awaiting_approval',summary:'Review this exact task before execution.',citations:[],receipts:[]}]};
- else if(path.endsWith('/agents/builder'))data={items:builder?[builder]:[]};
- else if(path.endsWith('/builder/messages')){const name=body.text.startsWith('Call it ')?body.text.slice(8):'Delivery coordinator';builder={context_id:81,revision:(builder?.revision||0)+1,config:{name,instructions:'Prepare reviewed customer followups.',modules:['CRM'],tools:['crm.create_task'],memory:[],provider:'preferred'},draft:{name},provider:'local',question:null,preview_hash:'c'.repeat(64),knowledge:[],schedule:null};builderMessages.push({text:body.text,proposal:{question:null}});data=builder}
+ else if(path.endsWith('/agents/builder'))data={items:builder&&(builder.asset_type||'agent')===(config.params?.asset_type||'agent')?[builder]:[]};
+ else if(path.endsWith('/builder/messages')){const name=body.text.startsWith('Call it ')?body.text.slice(8):builder?.config?.name||'Delivery coordinator';builder={context_id:81,asset_type:body.asset_type||'agent',revision:(builder?.revision||0)+1,config:{name,instructions:body.text.startsWith('Procedure: ')?body.text.slice(11):builder?.config?.instructions||'Prepare reviewed customer followups.',modules:['CRM'],tools:['crm.create_task'],memory:[],provider:'preferred'},draft:{name},provider:'local',question:null,preview_hash:'c'.repeat(64),knowledge:[],schedule:null};builderMessages.push({text:body.text,proposal:{question:null}});data=builder}
+ else if(path.endsWith('/builder/81/apply')&&builder.asset_type==='skill'){const skill={id:13,name:builder.config.name,instructions:builder.config.instructions,tools:builder.config.tools,revision:1};librarySkills.push(skill);libraryVersions.set(13,[skill]);builder={...builder,skill_id:13};data={...builder,skill}}
  else if(path.endsWith('/builder/81/apply')){const agent={id:71,...builder.config,revision:1,skill_ids:[],connection_ids:[],mcp_ids:[]};savedAgents.push(agent);builder={...builder,agent_id:71};data={...builder,agent,schedule_preview:null}}
  else if(path.endsWith('/builder/81'))data={...builder,messages:builderMessages};
  else if(path.endsWith('/agents')){if(config.method==='post'){data={id:71,...body,revision:1};savedAgents.push(data)}else data={items:savedAgents,tools:[{name:'crm.create_task',module:'CRM',write:true}]}}
@@ -48,11 +52,18 @@ api.defaults.adapter=async config=>{
  else if(path.endsWith('/agents/workflows/301/start')){agentWorkflows[0].status='waiting';agentWorkflows[0].nodes[0].state='review';data=agentWorkflows[0]}
  else if(path.endsWith('/agents/workflows/301/stop')){agentWorkflows[0].status='cancelled';data={...agentWorkflows[0],cancel_errors:[]}}
  else if(path.endsWith('/agents/schedules'))data={items:agentSchedules};
+ else if(path.endsWith('/agents/events/catalog'))data={items:[{id:'crm.deal_stage',module:'CRM',label:'Deal entered a pipeline stage'}]};
+ else if(path.endsWith('/agents/events'))data={items:agentEvents};
+ else if(path.endsWith('/agents/events/preview')){data={id:401,state:'preview',revision:1,spec:body,agent_name:savedAgents[0]?.name||'Agent',agent_revision:1,preview_hash:'a'.repeat(64),deliveries:[],controls:[]};agentEvents=[data]}
+ else if(/\/agents\/events\/401\/(activate|pause|resume|cancel)$/.test(path)){const action=path.split('/').at(-1)!;agentEvents[0].state={activate:'active',pause:'paused',resume:'active',cancel:'cancelled'}[action];agentEvents[0].revision++;agentEvents[0].controls.push({action,at:new Date().toISOString()});data=agentEvents[0]}
  else if(path.endsWith('/agents/schedules/preview')){data={id:91,status:'preview',spec:body,agent_name:'Delivery coordinator',agent_revision:1,preview_hash:'a'.repeat(64),occurrences:[]};agentSchedules.push(data)}
  else if(path.endsWith('/agents/schedules/91/activate')){agentSchedules[0].status='active';data=agentSchedules[0]}
  else if(path.endsWith('/agents/schedules/91/pause')){agentSchedules[0]={...agentSchedules[0],status:'paused',next_at:null,paused_at:new Date().toISOString(),controls:[{action:'paused',at:new Date().toISOString()}]};data=agentSchedules[0]}
  else if(path.endsWith('/agents/schedules/91/resume')){agentSchedules[0]={...agentSchedules[0],status:'active',paused_at:null,controls:[...agentSchedules[0].controls,{action:'resumed',at:new Date().toISOString()}]};data=agentSchedules[0]}
  else if(path.endsWith('/agents/schedules/91/cancel')){agentSchedules[0].status='cancelled';data=agentSchedules[0]}
+ else if(path.endsWith('/catalog/skill-imports/preview')){skillImport={id:601,package:body.package,workspace_id:body.workspace_id,preview_hash:'e'.repeat(64),expires_at:'2027-01-01T12:00:00Z',tools:body.package.tools.map((name:string)=>({name,module:'CRM',reviewed_action:name==='crm.create_task'}))};data=skillImport}
+ else if(path.endsWith('/catalog/skill-imports/601/confirm')){const {format,...definition}=skillImport.package;data={skill:{id:12,...definition,workspace_id:skillImport.workspace_id,revision:1},import_id:601};librarySkills.push(data.skill);libraryVersions.set(12,[data.skill])}
+ else if(/\/catalog\/skills\/\d+\/export$/.test(path)){const skill=librarySkills.find(s=>s.id===Number(path.split('/').at(-2)));data={format:'businesssuite-agent-skill-v1',name:skill.name,instructions:skill.instructions,tools:skill.tools}}
  else if(path.endsWith('/catalog/skills')){if(config.method==='post'){data={id:11,...body,revision:1};librarySkills.push(data);libraryVersions.set(11,[{...data}])}else data={items:librarySkills}}
  else if(path.endsWith('/catalog/skills/11/versions'))data={items:[...(libraryVersions.get(11)||[])].reverse(),current_revision:librarySkills[0]?.revision};
  else if(path.endsWith('/catalog/skills/11')){if(config.method==='delete'){librarySkills=[];data={archived:true}}else{data={...librarySkills[0],...body,revision:librarySkills[0].revision+1};librarySkills[0]=data;libraryVersions.get(11)?.push({...data})}}
@@ -66,7 +77,13 @@ api.defaults.adapter=async config=>{
  else if(path.endsWith('/artifacts'))data={items:artifactVersions.length?[artifactVersions.at(-1)]:[]};
  else if(/\/artifacts\/501\/versions$/.test(path))data={items:[...artifactVersions].reverse(),current_revision:artifactVersions.length};
  else if(/\/artifacts\/501$/.test(path))data={...(config.params?.revision?artifactVersions[Number(config.params.revision)-1]:artifactVersions.at(-1)),current_revision:artifactVersions.length};
- else if(path.endsWith('/memory')){if(config.method==='post'){data={...body,id:++memorySeq,key:`module:${memorySeq}`,revision:1};memories.push(data)}else data={items:memories}}
+ else if(path.endsWith('/organization-memory'))data={items:organizationMemories,can_publish:true};
+ else if(path.endsWith('/organization-memory/preview')){data={id:702,revision:1,status:'draft',definition:null,audience:body.audience,can_manage:true,pending:{definition:body.definition,audience:body.audience,preview_hash:'a'.repeat(64),proposed_revision:1}};organizationMemories=[data]}
+ else if(path.endsWith('/organization-memory/702/publish')){const p=organizationMemories[0];Object.assign(p,{status:'active',definition:p.pending.definition,audience:p.pending.audience,pending:null});data=p}
+ else if(path.endsWith('/organization-memory/702/versions'))data={items:[{revision:organizationMemories[0].revision,definition:organizationMemories[0].definition}]};
+ else if(path.endsWith('/organization-memory/702/revoke')){Object.assign(organizationMemories[0],{status:'revoked',revision:2,pending:null});data=organizationMemories[0]}
+ else if(path.endsWith('/organization-memory/702/forget')){Object.assign(organizationMemories[0],{status:'forgotten',revision:3,pending:null,definition:null});data=organizationMemories[0]}
+ else if(path.endsWith('/memory')){if(config.method==='post'){data={...body,id:++memorySeq,key:`module:${memorySeq}`,revision:1};memories.push(data)}else data={items:[...memories,...organizationMemories.filter(p=>p.status==='active').map(p=>({...p.definition,id:p.id,key:`organization:${p.id}`,level:'organization',revision:p.revision}))]}}
  else if(/\/memory\/module\/\d+$/.test(path)){const id=Number(path.split('/').at(-1));if(config.method==='delete'){memories=memories.filter(m=>m.id!==id);data={forgotten:true}}else{const old=memories.find(m=>m.id===id);Object.assign(old,body,{revision:old.revision+1});data=old}}
  else if(path.endsWith('/intelligence'))data={preference:body?.provider||'preferred',selected_provider:body?.provider==='local'?'local':'gemini',model:'fixture-model',items:[{provider:'gemini',model:'fixture-model',connectivity:{status:'success'},planning:{status:'success'}}]};
  else if(path.endsWith('/providers'))data={items:[{provider:'gemini',enabled:true,data_sharing_allowed:true}]};

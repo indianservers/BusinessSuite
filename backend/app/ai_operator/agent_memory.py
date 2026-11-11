@@ -60,9 +60,11 @@ def collect(db,user,workspace_id=None,module=None,project_id=None,*,bounded=True
         from app.ai_operator.workbench import _project_memory_context
         result.extend({**r,'key':f'project:{r["id"]}','level':'project','module':'PMS','project_id':project_id,
                        'workspace_id':workspace_id,'source':'project-store'} for r in _project_memory_context(db,user,project_id,20 if bounded else 250))
+    from app.ai_operator.organization_memory import collect as organization_context
+    result.extend(organization_context(db,user,workspace_id,module))
     # Project-specific decisions take precedence; original source and scope stay
     # visible. Contradictions at the same level require a user follow-up.
-    rank={'project':0,'module':1,'user':2}
+    rank={'organization':0,'project':1,'module':2,'user':3}
     result.sort(key=lambda r:rank[r['level']])
     if not bounded:return result
     total=0; bounded=[]
@@ -77,7 +79,7 @@ def collect(db,user,workspace_id=None,module=None,project_id=None,*,bounded=True
 @router.get('')
 def listing(workspace_id:int|None=None,module:store.Module|None=None,project_id:int|None=None,
             db:Session=Depends(get_db),user:User=Depends(get_current_user)):
-    return {'items':collect(db,user,workspace_id,module,project_id,bounded=False),'policy':'Project > module > user. Current explicit requests override preferences. Memory never authorizes actions.'}
+    return {'items':collect(db,user,workspace_id,module,project_id,bounded=False),'policy':'Approved organization policies remain separate from private preferences. Project > module > user for preferences. Ask about policy conflicts; memory never authorizes actions.'}
 
 
 @router.post('')

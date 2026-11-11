@@ -11,6 +11,7 @@ from uuid import UUID,uuid5,NAMESPACE_URL
 from fastapi import APIRouter,Depends,HTTPException,Request
 from pydantic import Field,model_validator
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.core.deps import get_db,get_current_user
 from app.models.user import User
 from app.ai_operator.assistant_models import AssistantConversation,AssistantMessage
@@ -52,11 +53,13 @@ class Message(Strict):
     provider:Provider='preferred'
     execution_provider:Provider|None=None
     timezone:str='Asia/Kolkata'
+    asset_type:Literal['agent','skill']='agent'
 
     @model_validator(mode='after')
     def valid(self):
         from app.ai_operator.suite_memory import MemoryText
         MemoryText.safe_text(self.text)
+        if self.asset_type=='skill' and self.project_id is not None:raise ValueError('Skills use workspace scope; select a project when running an agent')
         if re.search(r'\b(?:AIza[A-Za-z0-9_-]{20,}|AQ\.[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b',self.text):raise ValueError('Configure credentials in the server connection vault, not agent instructions')
         try:ZoneInfo(self.timezone)
         except (ValueError,KeyError):raise ValueError('Choose an IANA timezone') from None
@@ -70,7 +73,7 @@ class Apply(Strict):
 def owned(db,user,ident,lock=False):
     from app.ai_operator.suite import authorize
     q=db.query(AssistantConversation).filter_by(id=ident,user_id=user.id,organization_id=company(user),deleted_at=None)
-    row=(q.with_for_update() if lock else q).first()
+    row=(q.with_for_update().populate_existing() if lock else q).first()
     if not row or not row.references.get('agent_builder'):raise HTTPException(404,'Agent builder conversation not found')
     verify(db,user,row.security_context,history=True)
     if authorize(db,user,row.workspace_id)!=row.references['scope_key']:raise HTTPException(403,'Builder workspace changed')
@@ -80,12 +83,12 @@ def owned(db,user,ident,lock=False):
 def local_draft(text,previous,module,prediction=None):
     lower=text.casefold();items=templates();key=None
     choices=[('invoice-followup',r'invoice|collection'),('finance',r'finance|accounting|voucher'),
-        ('recruitment',r'recruit|interview|hiring'),('performance',r'performance|productivity'),
-        ('lead-qualification',r'qualif'),('customer-followup',r'customer follow|follow.up agent'),
-        ('delivery',r'delivery|customer commitment'),('project',r'project coordinator|project manager|project agent'),
+        ('recruitment',r'recruit|interview|hiring'),('crm-sales',r'sales performance'),('performance',r'performance|productivity'),
+        ('lead-qualification',r'qualif'),('customer-followup',r'customer follow|follow.up agent|customer onboarding'),
+        ('delivery',r'delivery|customer commitment'),('project',r'project coordinator|project manager|project agent|project risk|project skill'),
         ('management-reporting',r'management|weekly report|monthly report'),('business-intelligence',r'business intelligence|analytics agent'),
-        ('marketing',r'marketing|campaign'),('support',r'customer support'),('hr',r'\bhr\b|hrms|onboarding'),('crm-sales',r'\bcrm\b|sales assistant|sales agent')]
-    configuration_only=bool(previous and re.match(r'(?i)^\s*(?:at\b|only\b|read.only\b|remember\b|call it\b|name it\b|use (?:local|gemini)\b|no schedule\b|manual only\b)',text))
+        ('marketing',r'marketing|campaign'),('support',r'customer support'),('hr',r'\bhr\b|hrms|onboarding|\bleave\b|\battendance\b|\bpayroll\b'),('crm-sales',r'\bcrm\b|sales assistant|sales agent')]
+    configuration_only=bool(previous and re.match(r'(?i)^\s*(?:procedure\s*:|instructions\s*:|steps\s*:|add (?:a )?step\s*:|at\b|only\b|read.only\b|remember\b|call it\b|name it\b|use (?:local|gemini)\b|no schedule\b|manual only\b)',text))
     if not configuration_only:
         for name,pattern in choices:
             if re.search(pattern,lower):key=name;break
@@ -186,9 +189,10 @@ def public(row):
     return {'context_id':row.id,'revision':refs['revision'],'draft':refs.get('draft'),'config':refs.get('config'),
         'preview_hash':refs.get('preview_hash'),'schedule':refs.get('schedule'),'question':refs.get('question'),
         'agent_id':refs.get('applied_agent_id'),'schedule_id':refs.get('applied_schedule_id'),'provider':refs.get('provider'),
+        'asset_type':refs.get('asset_type','agent'),'skill_id':refs.get('applied_skill_id'),
         'local_prediction':refs.get('local_prediction'),
         'constraints':refs.get('constraints',{}),
-        'knowledge':refs.get('knowledge',[]),'execution':'Saving creates a private profile and optional schedule preview. Activation and business actions require separate review.'}
+        'knowledge':refs.get('knowledge',[]),'execution':'Saving creates a private reusable skill only.' if refs.get('asset_type')=='skill' else 'Saving creates a private profile and optional schedule preview. Activation and business actions require separate review.'}
 
 
 @router.get('/model-status')
@@ -209,11 +213,12 @@ def get(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_user)
 
 
 @router.get('')
-def listing(workspace_id:int|None=None,db:Session=Depends(get_db),user:User=Depends(get_current_user)):
+def listing(workspace_id:int|None=None,asset_type:Literal['agent','skill']='agent',db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     from app.ai_operator.suite import authorize
     scope=authorize(db,user,workspace_id)
     rows=db.query(AssistantConversation).filter_by(user_id=user.id,organization_id=company(user),workspace_id=workspace_id,deleted_at=None).filter(
-        AssistantConversation.references['agent_builder'].as_boolean()==True,AssistantConversation.references['scope_key'].as_string()==scope).order_by(AssistantConversation.id.desc()).limit(30)
+        AssistantConversation.references['agent_builder'].as_boolean()==True,AssistantConversation.references['scope_key'].as_string()==scope,
+        or_(AssistantConversation.references['asset_type'].as_string()==asset_type,AssistantConversation.references['asset_type'].as_string().is_(None)) if asset_type=='agent' else AssistantConversation.references['asset_type'].as_string()=='skill').order_by(AssistantConversation.id.desc()).limit(30)
     items=[]
     for row in rows:
         try:items.append(public(owned(db,user,row.id)))
@@ -239,14 +244,15 @@ def message(data:Message,request:Request,db:Session=Depends(get_db),user:User=De
         initial=db.query(AssistantConversation.id).filter_by(user_id=user.id,organization_id=company(user),deleted_at=None).filter(AssistantConversation.references['agent_builder'].as_boolean()==True,AssistantConversation.references['initial_request_key'].as_string()==str(data.request_key)).first()
     else:initial=None
     row=owned(db,user,data.context_id or (initial[0] if initial else None),True) if data.context_id or initial else None
+    if row and row.references.get('asset_type','agent')!=data.asset_type:raise HTTPException(409,'Continue in the original agent or skill design')
     if row and (row.workspace_id!=data.workspace_id or row.references['project_id']!=data.project_id):raise HTTPException(409,'Continue in the original builder workspace/project')
-    hashed=digest(data.model_dump(mode='json',exclude={'request_key'}))
+    hashed=digest(data.model_dump(mode='json',exclude={'request_key','asset_type'} if data.asset_type=='agent' else {'request_key'}))
     if row:
         previous=db.query(AssistantMessage).filter_by(conversation_id=row.id,request_key=str(data.request_key),tool='agent.builder').first()
         if previous:
             if previous.request_hash!=hashed:raise HTTPException(409,'Request key belongs to a different builder message')
             verify(db,user,previous.security_context,history=True);return previous.result
-        if row.references.get('applied_agent_id'):raise HTTPException(409,'This proposal was saved. Start a new builder or edit the saved agent.')
+        if row.references.get('applied_agent_id') or row.references.get('applied_skill_id'):raise HTTPException(409,'This proposal was saved. Start a new design or edit the saved definition.')
         if data.revision!=row.references['revision']:raise HTTPException(409,'Builder changed; reload the latest proposal')
         if row.references['revision']>=20:raise HTTPException(422,'Start a new builder after twenty follow-ups')
     _require_ai_rate_limit(db,request,user,bucket='agent_builder')
@@ -271,11 +277,21 @@ def message(data:Message,request:Request,db:Session=Depends(get_db),user:User=De
         tools=[{'name':t,'module':v.module,'description':v.description} for t,v in TOOLS.items() if t in SUITE]
         outbound={'task':'Author a private non-executable agent configuration. Retain unchanged prior choices. Ask a question when necessary. Select only listed tool names. Do not invent IDs, configure connections, execute actions or activate schedules. Schedule options: daily, weekly, monthly, once or custom. Custom recurrence requires interval 1..365 and interval_unit hours/days/weeks/months; all other frequencies require both interval fields null. Use 24-hour time, weekday 0=Monday, expiry 1..365 days. Required business rights are checked separately by the application.',
             'request':data.text,'previous_draft':previous_draft,'templates':templates(),'tools':tools,'timezone':data.timezone}
+        if data.asset_type=='skill':outbound['task']='Author a reusable private business skill: name, procedure instructions and listed tool names. Retain prior choices and refine through follow-ups. Do not configure an executing agent. Memory must be empty, schedule null. Ask for clarification when necessary. Never execute work, invent tools or grant permissions.'
         prompt=AiDataRedactionService().redact_text(json.dumps(outbound))
         draft=Draft.model_validate(generate_json(db,user,config,prompt=prompt,schema=Draft.model_json_schema(),purpose='agent_builder',output_type=Draft,usage_scope=scope,module='CROSS'))
     selected_provider=data.execution_provider or ((row.references.get('config') or {}).get('provider') if row else None) or 'preferred'
     if re.search(r'(?i)\buse\s+(?:the\s+)?local\b',data.text):selected_provider='local'
     elif re.search(r'(?i)\buse\s+gemini\b',data.text):selected_provider='gemini'
+    if data.asset_type=='skill':
+        selected_provider='preferred'
+        if draft.memory or draft.schedule:
+            draft.question='Skills contain procedures and tool selections. Memory and schedules belong to agents. Should this be a reusable procedure only?'
+            draft.memory=[];draft.schedule=None
+        procedure=re.match(r'(?is)^\s*(?:procedure|instructions|steps)\s*:\s*(.+)',data.text)
+        addition=re.match(r'(?is)^\s*add (?:a )?step\s*:\s*(.+)',data.text)
+        if procedure:draft.instructions=procedure[1].strip()
+        elif addition:draft.instructions+='\n'+addition[1].strip()
     constraints=constraints_for(data.text,(row.references if row else {}).get('constraints'))
     if constraints.get('tools'):draft.tools=constraints['tools']
     if constraints.get('read_only'):draft.tools=[t for t in draft.tools if t in TOOLS and TOOLS[t].method=='GET']
@@ -298,6 +314,7 @@ def message(data:Message,request:Request,db:Session=Depends(get_db),user:User=De
     schedule=schedule_spec(draft.schedule,data.timezone)
     if schedule:schedule['prompt']=draft.run_prompt
     value={'config':proposal.model_dump() if proposal else None,'schedule':schedule,'revision':revision,'branch_id':getattr(branch,'branch_id',None)}
+    if data.asset_type=='skill':value['asset_type']='skill'
     preview_hash=digest(value)
     row.references={**row.references,**value,'draft':draft.model_dump(mode='json'),'constraints':constraints,'provider':provider,'local_prediction':prediction,'question':draft.question,
         'preview_hash':preview_hash,'draft_grant':seal(db,user,preview_hash),'knowledge':[{'tool':t,'description':TOOLS[t].description} for t in draft.tools if t in TOOLS and TOOLS[t].method=='GET']}
@@ -313,9 +330,16 @@ def apply(ident:int,data:Apply,db:Session=Depends(get_db),user:User=Depends(get_
     row=owned(db,user,ident,True);refs=row.references
     if data.preview_hash!=refs.get('preview_hash') or refs.get('question') or not refs.get('config'):raise HTTPException(409,'Review the latest complete agent proposal')
     value={k:refs[k] for k in ('config','schedule','revision','branch_id')}
+    if refs.get('asset_type')=='skill':value['asset_type']='skill'
     if digest(value)!=data.preview_hash:raise HTTPException(409,'Agent proposal changed')
-    verify(db,user,refs['draft_grant'],payload=data.preview_hash,confirmation=not bool(refs.get('applied_agent_id')))
+    verify(db,user,refs['draft_grant'],payload=data.preview_hash,confirmation=not bool(refs.get('applied_agent_id') or refs.get('applied_skill_id')))
     config=Config.model_validate(refs['config']);access(db,user,config)
+    if refs.get('asset_type')=='skill':
+        from app.ai_operator.saved_agents import Skill,owned_skill,store_skill,public_skill
+        if refs.get('schedule') or config.memory:raise HTTPException(409,'Review a reusable procedure without agent memory or schedules')
+        skill=owned_skill(db,user,refs['applied_skill_id']) if refs.get('applied_skill_id') else store_skill(db,user,Skill(name=config.name,instructions=config.instructions,tools=config.tools,workspace_id=config.workspace_id))
+        row.references={**row.references,'applied_skill_id':skill.id};db.commit()
+        return {**public(row),'skill':public_skill(skill)}
     profile=profile_owned(db,user,refs['applied_agent_id']) if refs.get('applied_agent_id') else store(db,user,config)
     row.references={**row.references,'applied_agent_id':profile.id}
     scheduled=None

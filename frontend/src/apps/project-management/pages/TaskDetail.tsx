@@ -57,7 +57,7 @@ import TaskCustomFields from "../components/TaskCustomFields";
 import AskAiButton from "@/components/ai-agents/AskAiButton";
 import { cn, formatDate, formatDateTime, statusColor } from "@/lib/utils";
 import { commentsAPI, filesAPI, planningAPI, projectsAPI, tagsAPI, tasksAPI, timeLogsAPI, sprintsAPI, pmsUsersAPI } from "../services/api";
-import { taskAssignees } from "./workspaceTypes";
+import { taskAssignees, workspaceError } from "./workspaceTypes";
 import { usePMSRealtime } from "../realtime";
 import type {
   PMSActivity,
@@ -275,7 +275,7 @@ export default function TaskDetail() {
   const canNavigateBoard = hasProjectRoute && Boolean(effectiveProjectId);
 
   if (initialLoading) return <div className="skeleton h-96 rounded-lg" />;
-  if (error) return <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>;
+  if (error && !task) return <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}<Button type="button" variant="outline" onClick={()=>loadTaskData(true)}>Retry loading task</Button></div>;
   if (!task) return <div className="rounded-lg border p-8 text-center text-muted-foreground">Task not found.</div>;
 
   const refreshActivity = () => tasksAPI.listActivity(task.id).then(setActivity).catch(() => undefined);
@@ -285,9 +285,10 @@ export default function TaskDetail() {
     try {
       const updated = await tasksAPI.update(task.id, data as any);
       setTask(updated);
+      setError(null);
       refreshActivity();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Unable to save task.");
+      setError(workspaceError(err));
     } finally {
       setSaving(false);
     }
@@ -709,6 +710,7 @@ export default function TaskDetail() {
 
   return (
     <div className="space-y-6">
+      {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p>{error}</p><p>Your current task fields are still available below. Review the error before retrying.</p><Button type="button" variant="outline" onClick={()=>setError(null)}>Dismiss error</Button></div>}
       <div className="flex flex-wrap items-center gap-3"><ConversationLauncher module="PMS" context={{type:"task",id:numericTaskId}}/><TaskConversationSource taskId={numericTaskId}/></div>
       <Button variant="ghost" onClick={() => navigate(canNavigateBoard ? `/pms/projects/${effectiveProjectId}/board` : "/pms/tasks")}>
         <ArrowLeft className="h-4 w-4" />{canNavigateBoard ? "Back to board" : "Back to tasks"}
@@ -726,6 +728,7 @@ export default function TaskDetail() {
                 {selectedEpic ? <Badge variant="secondary">{selectedEpic.epic_key}</Badge> : null}
               </div>
               <Input
+                aria-label="Task title"
                 value={task.title}
                 onChange={(event) => setTask({ ...task, title: event.target.value })}
                 onBlur={() => updateTask({ title: task.title })}

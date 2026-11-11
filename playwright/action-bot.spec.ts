@@ -1,6 +1,59 @@
 import {test,expect} from '../frontend/node_modules/playwright/test';
 import {mkdir} from 'node:fs/promises';
 
+test('event-driven agents require exact activation and reviewed intake resume',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Agents',exact:true}).click();
+ await page.getByRole('textbox',{name:'Agent name',exact:true}).fill('Event review agent');await page.getByRole('textbox',{name:'Agent instructions',exact:true}).fill('Prepare reviewed customer followups.');await page.getByRole('checkbox',{name:'crm.create_task · reviewed action',exact:true}).check();await page.getByRole('button',{name:'Save agent',exact:true}).click();await page.getByRole('tab',{name:'Schedules',exact:true}).click();
+ const area=page.getByRole('region',{name:'Event-driven agents',exact:true});await area.getByRole('combobox',{name:'Event trigger agent',exact:true}).selectOption('71');await area.getByRole('combobox',{name:'Event trigger source',exact:true}).selectOption('crm.deal_stage');await area.getByRole('textbox',{name:'Event trigger instructions',exact:true}).fill('Review the opportunity and prepare followups.');await area.getByLabel('Event trigger expiry',{exact:true}).fill('2027-01-01T09:00');await area.getByRole('button',{name:'Preview event trigger',exact:true}).click();
+ const preview=page.getByRole('article',{name:'Event trigger preview',exact:true});await expect(preview).toContainText('Deal entered a pipeline stage');await expect(preview).toContainText('5 preparations per UTC day');expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/401/activate')).length)).toBe(0);
+ await preview.getByRole('button',{name:'Activate this exact event trigger',exact:true}).click();const trigger=page.getByRole('article',{name:'Event trigger 401',exact:true});await expect(trigger).toContainText('active');await trigger.getByRole('button',{name:'Pause event intake #401',exact:true}).click();await expect(trigger).toContainText('paused');await trigger.getByRole('button',{name:'Review event resume #401',exact:true}).click();await expect(page.getByRole('region',{name:'Event intake resume review',exact:true})).toContainText('skip events received while paused');expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/401/resume')).length)).toBe(0);
+ await page.getByRole('button',{name:'Resume this exact event intake',exact:true}).click();await trigger.getByRole('button',{name:'Cancel event intake #401',exact:true}).click();await expect(trigger).toContainText('cancelled');expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')||r.path.endsWith('/approve')).length)).toBe(0);
+});
+
+test('organization policies require exact audience review and stay separate from private memory',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Knowledge',exact:true}).click();
+ const area=page.getByRole('region',{name:'Organization memory',exact:true});const text='Delivery commitments require owner review.';
+ await area.getByRole('textbox',{name:'Organization memory title',exact:true}).fill('Delivery review policy');await area.getByRole('textbox',{name:'Organization memory text',exact:true}).fill(text);await area.getByRole('combobox',{name:'Organization memory module',exact:true}).selectOption('CRM');await area.getByRole('combobox',{name:'Organization memory audience',exact:true}).selectOption('members');await area.getByRole('checkbox',{name:'Policy member robot-fixture@example.com',exact:true}).check();await area.getByRole('button',{name:'Preview organization memory',exact:true}).click();
+ const review=page.getByRole('article',{name:'Organization memory publication preview',exact:true});await expect(review).toContainText(text);await expect(review).toContainText('robot-fixture@example.com');expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/702/publish')).length)).toBe(0);
+ await review.getByRole('button',{name:'Publish this exact organization memory',exact:true}).click();await expect(area).toContainText('active · revision 1');
+ await area.getByRole('button',{name:'Policy versions #702',exact:true}).click();await expect(page.getByRole('region',{name:'Organization memory versions',exact:true})).toContainText(text);
+ const knowledge=page.getByLabel('knowledge',{exact:true});await knowledge.getByText('Private agent memory',{exact:true}).click();await expect(knowledge.getByText('No active memories in this context.',{exact:true})).toBeVisible();
+ await area.getByRole('button',{name:'Revoke policy #702',exact:true}).click();await expect(area).toContainText('revoked · revision 2');await area.getByText('Forget stored policy text',{exact:true}).click();await area.getByRole('button',{name:'Forget policy #702',exact:true}).click();await expect(area).toContainText('forgotten · revision 3');await expect(area).not.toContainText(text);
+});
+
+test('saved skills can prepare a test conversation without approving writes',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Skills',exact:true}).click();
+ await page.getByRole('textbox',{name:'Library skill name',exact:true}).fill('Delivery test');await page.getByRole('textbox',{name:'Library skill instructions',exact:true}).fill('Prepare delivery followup drafts.');await page.getByRole('checkbox',{name:'CRM · create task · Reviewed action',exact:true}).check();await page.getByRole('button',{name:'Save library skill',exact:true}).click();
+ await page.getByRole('button',{name:'Test skill #11',exact:true}).click();const panel=page.getByRole('region',{name:'Skill testing',exact:true});await expect(panel).toContainText('cannot be approved');
+ await panel.getByRole('textbox',{name:'Skill test message',exact:true}).fill('Create CRM task called Delivery test');await panel.getByRole('button',{name:'Prepare skill test',exact:true}).click();await expect(page.getByRole('article',{name:'Skill test result',exact:true})).toContainText('awaiting_approval');
+ await expect(panel.getByRole('link',{name:'Open test conversation and follow up',exact:true})).toHaveAttribute('href',/bot_conversation=1/);
+ const commands=await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')));expect(commands).toHaveLength(1);expect(commands[0].body.test_skill_id).toBe(11);expect(commands[0].body.test_skill_revision).toBe(1);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/approve')).length)).toBe(0);
+});
+
+test('skill builder refines a procedure through conversation and saves only after review',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Skills',exact:true}).click();
+ await page.getByRole('combobox',{name:'Skill builder intelligence',exact:true}).selectOption('local');
+ await page.getByRole('textbox',{name:'Skill builder message',exact:true}).fill('Create a CRM delivery skill');await page.getByRole('button',{name:'Prepare skill configuration',exact:true}).click();
+ await page.getByRole('textbox',{name:'Skill builder message',exact:true}).fill('Procedure: Check delivery dates and responsible owners.');await page.getByRole('button',{name:'Prepare skill configuration',exact:true}).click();
+ const review=page.getByRole('article',{name:'Skill configuration preview',exact:true});await review.getByText('Instructions',{exact:true}).click();await expect(review).toContainText('Check delivery dates and responsible owners.');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/apply')).length)).toBe(0);
+ await page.getByRole('button',{name:'Save this reviewed skill',exact:true}).click();await expect(page.getByRole('status')).toContainText('Skill saved.');await expect(page.getByRole('button',{name:'Edit skill #13',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')||r.path.endsWith('/activate')).length)).toBe(0);
+});
+
+test('skill JSON uses a server review before saving and server export before downloading',async({page})=>{
+ await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();await page.getByRole('tab',{name:'Skills',exact:true}).click();
+ const value={format:'businesssuite-agent-skill-v1',name:'Imported delivery checks',instructions:'Review delivery dates before preparing tasks.',tools:['crm.create_task']};
+ await page.getByLabel('Import agent skill',{exact:true}).setInputFiles({name:'procedure.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(value))});
+ const review=page.getByRole('article',{name:'Skill import review',exact:true});await expect(review).toContainText(value.instructions);await expect(review).toContainText('crm.create_task');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/confirm')).length)).toBe(0);
+ await review.getByRole('button',{name:'Import this exact skill',exact:true}).click();await expect(page.getByRole('status')).toContainText('Private skill #12 imported');
+ const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'Export skill #12',exact:true}).click();expect((await downloaded).suggestedFilename()).toBe('agent-skill-12.json');
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/skills/12/export')).length)).toBe(1);
+ expect(await page.evaluate(()=>(window as any).__botRequests.filter((r:any)=>r.path.endsWith('/commands')||r.path.endsWith('/approve')).length)).toBe(0);
+});
+
 test('organization library requires publication and install reviews without starting an agent',async({page})=>{
  await page.goto('/action-bot-qa.html');await page.getByRole('button',{name:'Open action bot',exact:true}).click();await page.getByRole('button',{name:'Expand bot workspace'}).click();
  await page.getByRole('tab',{name:'Agents',exact:true}).click();

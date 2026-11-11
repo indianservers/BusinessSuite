@@ -20,6 +20,7 @@ class MemoryText(Strict):
     @classmethod
     def safe_text(cls,value):
         value=value.strip()
+        if re.search(r'\b(?:AIza[A-Za-z0-9_-]{20,}|AQ\.[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b',value):raise ValueError('Keep credentials in the server connection vault')
         if not value or re.search(r'(?i)(?:api[ _-]?key|password|secret|access[ _-]?token)(?:\s*[:=]|\s+is\b)|-----BEGIN .*PRIVATE KEY|\bBearer\s+\S+|\b(?:salary|bank account|aadhaar|social security)\b[^\n]{0,25}\d{3,}',value):
             raise ValueError('Store preferences and decisions, not credentials or sensitive personal records')
         return value

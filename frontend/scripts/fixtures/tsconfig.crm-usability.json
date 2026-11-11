@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": { "typeRoots": ["../../node_modules/@types"] },
-  "include": ["../../src", "./crm-usability.tsx", "./preference-isolation.tsx"]
+  "include": ["../../src", "./crm-usability.tsx", "./preference-isolation.tsx", "./task-detail.tsx"]
 }

@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {api} from '@/services/api';
 import {recurrenceLabel} from './schedule-label';
+import AgentEventTriggers from './AgentEventTriggers';
 export default function AgentSchedules({workspaceId,onOpenConversation}:{workspaceId?:number;onOpenConversation:(id:number)=>void}){
  const [items,setItems]=useState<any[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState(false),[resumeReview,setResumeReview]=useState<number|null>(null);
  const [agents,setAgents]=useState<any[]>([]),[scheduled,setScheduled]=useState<any[]>([]),[agent,setAgent]=useState(''),[prompt,setPrompt]=useState(''),[first,setFirst]=useState(''),[expiry,setExpiry]=useState(''),[frequency,setFrequency]=useState('daily'),[zone,setZone]=useState(Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Kolkata'),[preview,setPreview]=useState<any>(null);
@@ -16,7 +17,7 @@ export default function AgentSchedules({workspaceId,onOpenConversation}:{workspa
  async function cancelAgent(id:number){setBusy(true);setError('');try{await api.post(`${ROOT}/${id}/cancel`);await load()}catch(e){fail(e)}finally{setBusy(false)}}
  async function pauseAgent(id:number){setBusy(true);setError('');try{await api.post(`${ROOT}/${id}/pause`);setResumeReview(null);await load()}catch(e){fail(e)}finally{setBusy(false)}}
  async function resumeAgent(item:any){setBusy(true);setError('');try{await api.post(`${ROOT}/${item.id}/resume`,{preview_hash:item.preview_hash});setResumeReview(null);await load()}catch(e){fail(e)}finally{setBusy(false)}}
- return <><h3>Your schedules</h3><p>Agents run on the server and prepare private answers or action drafts. Proposed changes wait for your review. One occurrence runs at a time; unfinished reviews pause the next occurrence. Your original sign-in session and current permissions must remain valid.</p>
+ return <><AgentEventTriggers key={`events-${workspaceId||0}`} workspaceId={workspaceId}/><h3>Your schedules</h3><p>Agents run on the server and prepare private answers or action drafts. Proposed changes wait for your review. One occurrence runs at a time; unfinished reviews pause the next occurrence. Your original sign-in session and current permissions must remain valid.</p>
  <fieldset className="bot-draft-step" disabled={busy}><legend>Schedule an agent</legend>
  <label>Saved agent<select aria-label="Scheduled agent" value={agent} onChange={e=>{setAgent(e.target.value);change()}}><option value="">Choose an agent</option>{agents.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
  <label>Work to prepare<textarea aria-label="Scheduled agent instructions" rows={3} maxLength={6000} value={prompt} onChange={e=>{setPrompt(e.target.value);change()}} placeholder="Review today's delivery risks and prepare follow-up tasks"/></label>

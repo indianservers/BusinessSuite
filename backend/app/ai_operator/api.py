@@ -26,6 +26,8 @@ from app.ai_operator.intelligence import router as intelligence_router
 router.include_router(intelligence_router)
 from app.ai_operator.agent_memory import router as memory_router
 router.include_router(memory_router)
+from app.ai_operator.organization_memory import router as organization_memory_router
+router.include_router(organization_memory_router)
 from app.ai_operator.artifacts import router as artifact_router
 router.include_router(artifact_router)
 from app.ai_operator.saved_agents import router as saved_agents_router
@@ -40,6 +42,8 @@ from app.ai_operator.agent_mcp import router as agent_mcp_router
 router.include_router(agent_mcp_router)
 from app.ai_operator.agent_schedules import router as agent_schedules_router
 router.include_router(agent_schedules_router)
+from app.ai_operator.agent_events import router as agent_events_router
+router.include_router(agent_events_router)
 from app.ai_operator.agent_workflows import router as agent_workflows_router
 router.include_router(agent_workflows_router)
 from app.ai_operator.agent_templates import router as agent_templates_router

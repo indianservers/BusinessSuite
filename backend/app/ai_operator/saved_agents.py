@@ -141,6 +141,9 @@ def activity(ident:int,db:Session=Depends(get_db),user:User=Depends(get_current_
 
 
 def context(db,user,data,parent):
+    from app.ai_operator.skill_testing import context as skill_test_context
+    tested=skill_test_context(db,user,data,parent)
+    if tested:return tested
     pending=(parent.result or {}).get('request',{}).get('agent_id') if parent and parent.status in ('needs_clarification','awaiting_approval') else None
     if pending and data.agent_id and pending!=data.agent_id:
         raise HTTPException(409,'Finish or cancel the pending draft before switching agents, or start a new chat')
@@ -261,6 +264,10 @@ def archive_skill(ident:int,db:Session=Depends(get_db),user:User=Depends(get_cur
 
 
 def enforce(db,user,run,steps):
+    from app.ai_operator.organization_memory import revalidate as revalidate_policies
+    revalidate_policies(db,user,run)
+    from app.ai_operator.skill_testing import enforce as enforce_skill_test
+    if enforce_skill_test(db,user,run,steps):return
     ident=(run.result or {}).get('request',{}).get('agent_id')
     if not ident:return
     row=owned(db,user,ident);runtime_access(db,user,row);profile=public(row)

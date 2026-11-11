@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {api} from '@/services/api';
 import AgentMemory from './AgentMemory';
+import OrganizationMemory from './OrganizationMemory';
 const ROOT='/ai-operator/suite';
 const title=(value:string)=>value.split('.').slice(1).join(' ').replace(/_/g,' ');
 
@@ -36,7 +37,7 @@ export function WorkspaceKnowledge({conversationId,module,workspaceId,projectId,
  {scope==='PMS'&&!projectId&&<p>Select a project in the bot to include its tasks. This search currently includes accessible project summaries.</p>}
  <label>Search authorized knowledge<input aria-label="Knowledge file query" value={query} maxLength={500} onChange={e=>setQuery(e.target.value)} placeholder="Which customer commitments need attention?"/></label><button type="button" disabled={busy||!conversationId||!query.trim()} onClick={()=>void search()}>{busy?'Searching server sources…':'Search authorized knowledge'}</button>{!conversationId&&<p>Create a conversation before searching its authorized sources.</p>}
  {result&&<><p>{result.files_searched} files · {result.candidates_searched} candidate excerpts · {result.semantic_used?'Local semantic model used':'Lexical matching'} · {result.coverage}</p>{result.notice&&<p role="status">{result.notice}</p>}{result.records?.map((r:any)=><p key={r.tool}>{r.tool}: {r.records_searched} sampled records{r.complete?' · complete API page':' · bounded API sample'}</p>)}</>}
- {result?.items?.map((s:any)=><article className="bot-result-card" key={s.id}><small>{s.kind==='record'?'Business record':'Uploaded source'}</small><h4>{s.label}</h4><p className="bot-artifact-content">{s.excerpt}</p><small>{s.file_id?`Characters ${s.start}–${s.end} · `:''}source {s.id}</small>{s.file_id?<button type="button" onClick={()=>onShowFiles(s.file_id)}>Open source file</button>:<Link to={s.href}>Open source record</Link>}</article>)}{result&&!result.items?.length&&<p>No matching excerpts. Try another term or select another source.</p>}<AgentMemory module={module} workspaceId={workspaceId} projectId={projectId}/>{error&&<p role="alert">{error}</p>}</>
+ {result?.items?.map((s:any)=><article className="bot-result-card" key={s.id}><small>{s.kind==='record'?'Business record':'Uploaded source'}</small><h4>{s.label}</h4><p className="bot-artifact-content">{s.excerpt}</p><small>{s.file_id?`Characters ${s.start}–${s.end} · `:''}source {s.id}</small>{s.file_id?<button type="button" onClick={()=>onShowFiles(s.file_id)}>Open source file</button>:<Link to={s.href}>Open source record</Link>}</article>)}{result&&!result.items?.length&&<p>No matching excerpts. Try another term or select another source.</p>}<OrganizationMemory key={`organization-memory-${module||0}-${workspaceId||0}`} module={module} workspaceId={workspaceId}/><AgentMemory module={module} workspaceId={workspaceId} projectId={projectId}/>{error&&<p role="alert">{error}</p>}</>
 }
 
 export function WorkspaceActivity({workspaceId,onOpen}:{workspaceId?:number;onOpen:(id:number)=>void}){

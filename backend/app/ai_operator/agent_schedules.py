@@ -82,6 +82,7 @@ def public(row):
         'next_at':utc(row.run_at) if row.run_at and row.status!='agent_paused' else None,'preview_hash':data['preview_hash'],'error':row.last_error,
         'occurrences':data.get('occurrences',[]),'pending':data.get('pending'),
         'paused_at':data.get('paused_at'),'controls':data.get('controls',[]),
+        'event_source':{k:data['event_source'][k] for k in ('subscription_id','event','eligible')} if data.get('event_source') else None,
         'execution':'Read and prepare only; every proposed change requires review.'}
 
 
@@ -120,6 +121,7 @@ def preview(data:Schedule,db:Session=Depends(get_db),user:User=Depends(get_curre
 def grant(db,user,row,confirmation=False):
     data=row.payload_json
     value={k:data[k] for k in ('spec','snapshot','branch_id')}
+    if data.get('event_source'):value['event_source']=data['event_source']
     if not hmac.compare_digest(digest(value),data['preview_hash']):raise HTTPException(409,'Agent schedule changed')
     verify(db,user,data['security_context'],payload=data['preview_hash'],confirmation=confirmation)
     if snapshot(db,user,data['spec']['agent_id'])!=data['snapshot']:raise HTTPException(409,'Agent, skill or connection changed; prepare a new schedule')
@@ -291,6 +293,9 @@ async def dispatch(db,app,instant=None,limit=5):
                     claimed=db.query(Job).filter_by(id=row.id,status='agent_active',run_at=row.run_at).update({'status':'agent_preparing','run_at':instant+timedelta(minutes=5)},synchronize_session=False)
                     if not claimed:db.rollback();continue
                     conversation=chats.create(db,actor,chats.ConversationInput(title=f"Scheduled: {data['snapshot']['name']}"[:160],workspace_id=data['snapshot']['workspace_id']),commit=False)
+                    if data.get('event_source'):
+                        from app.ai_operator.assistant_models import AssistantConversation
+                        chat=db.get(AssistantConversation,conversation['id']);chat.references={**chat.references,'agent_event_schedule_id':row.id}
                     pending={'occurrence':occurrence,'conversation_id':conversation['id'],'lease':str(uuid4()),
                         'request_key':str(uuid5(NAMESPACE_URL,f'businesssuite:{row.organization_id}:{row.id}:{occurrence}')),'claimed_at':instant.isoformat()}
                     row.status='agent_preparing';row.run_at=instant+timedelta(minutes=5);row.payload_json={**data,'pending':pending};db.commit()
@@ -299,11 +304,14 @@ async def dispatch(db,app,instant=None,limit=5):
                     claimed=db.query(Job).filter_by(id=row.id,status='agent_preparing',run_at=row.run_at).update({'run_at':instant+timedelta(minutes=5),'payload_json':{**data,'pending':pending}},synchronize_session=False)
                     if not claimed:db.rollback();continue
                     row.run_at=instant+timedelta(minutes=5);row.payload_json={**data,'pending':pending};db.commit()
+                if data.get('event_source'):
+                    from app.ai_operator.agent_events import recheck_delivery
+                    await recheck_delivery(app,db,actor,row)
                 claimed_lease=pending['lease']
                 prepared=await prepare_agent(app,actor.id,data['security_context']['session_id'],row.organization_id,data['branch_id'],{
                         'request_key':pending['request_key'],'text':data['spec']['prompt'],'agent_id':data['spec']['agent_id'],
                         'provider':'preferred','timezone':data['spec']['timezone'],'workspace_id':data['snapshot']['workspace_id'],
-                        'project_id':data['snapshot']['project_id'],'conversation_id':pending['conversation_id']})
+                        'project_id':data['snapshot']['project_id'] or (data.get('event_source') or {}).get('project_id'),'conversation_id':pending['conversation_id']})
                 db.expire_all();row=db.query(Job).filter_by(id=ident,job_type=KIND).with_for_update().one()
                 if row.status!='agent_preparing' or (row.payload_json.get('pending') or {}).get('lease')!=claimed_lease:
                     db.rollback();continue  # Paused, cancelled or a newer recovery owns this occurrence.
