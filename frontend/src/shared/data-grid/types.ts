@@ -202,6 +202,8 @@ export type SharedDataGridProps<T> = {
   onViewContextChange?: (context: Record<string, unknown>) => void;
   onRestoreView?: (view: GridSavedView) => void;
   onResult?: (result: GridResult<T>) => void;
+  /** Loaded records in the current expanded row order; excludes group headers. */
+  onVisibleRecordsChange?: (records: T[]) => void;
   onOpen?: (row: T) => void;
   onSelectRecord?: (row: T) => void;
   onOpenPopup?: (row: T) => void;

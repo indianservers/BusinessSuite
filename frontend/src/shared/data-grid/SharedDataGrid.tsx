@@ -522,7 +522,7 @@ function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
       viewMode={enabled?(mode==="cards"||mode==="category"||mode==="tags"?"cards":mode==="list"?"list":"grid"):props.viewMode}
       collectionGroup={mode==="category"?category?.id:mode==="tags"?tags?.id:undefined}
       rowProps={row=>{const original=props.rowProps?.(row)||{};return {...original,onClickCapture:event=>{original.onClickCapture?.(event);const target=event.target as HTMLElement;if(target.closest("button,a,[data-record-open]")&&!target.closest("[data-record-personal]"))track(row);}};}}
-      onResult={result => {setPreviewRows(result.rows);props.onResult?.(result);}}
+      onVisibleRecordsChange={records => {setPreviewRows(records);props.onVisibleRecordsChange?.(records);}}
       onSelectRecord={props.onSelectRecord || (canPreview ? preview : undefined)}
       onOpen={props.onOpen ? row=>{track(row);props.onOpen!(row);} : (canPreview ? preview : undefined)}
       rowActions={[...(canPreview ? [{ id: "suite-preview", label: "Preview record", icon: Eye, quick: true, run: preview }] : []),...(enabled?[{id:"suite-favorite",label:"Toggle favorite",icon:Star,run:(row:T)=>personal.toggle(props.getRowId(row))},{id:"suite-copy-name",label:"Copy record name",icon:Copy,run:(row:T)=>writeClipboard(titleFor(row))}]:[]),...(props.rowActions || []).map(action=>({...action,run:(row:T)=>{track(row);return action.run(row);}}))]}
@@ -927,8 +927,9 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       })),
   });
   const modelRows = table.getRowModel().rows,
-    recordNodes = modelRows.filter((row) => row.original.record),
-    visibleRecords = recordNodes.map((row) => row.original.record!);
+    recordNodes = modelRows.filter((row) => row.original.record);
+  const visibleRecords = useMemo(() => modelRows.flatMap(row => row.original.record ? [row.original.record] : []), [modelRows]);
+  useEffect(() => { props.onVisibleRecordsChange?.(visibleRecords); }, [visibleRecords]);
   const summaryRecords = dataSource.summaryRows?.(query) ?? [...new Map([
     ...(result?.rows || []),
     ...Object.values(children).flatMap(branch => branch.flatMap(node => node.record ? [node.record] : [])),
