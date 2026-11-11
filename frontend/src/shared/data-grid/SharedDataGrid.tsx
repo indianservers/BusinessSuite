@@ -1008,7 +1008,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
               table.getLeftTotalSize()),
         )
       : 0;
-  const actionWidth = rowActions.length ? Math.min(props.quickActionLimit ?? 4, rowActions.filter(action => action.quick).length) * 34 + 40 : 0;
+  const actionWidth = rowActions.length ? props.renderRowActions ? 96 : Math.min(props.quickActionLimit ?? 4, rowActions.filter(action => action.quick).length) * 34 + 40 : 0;
   const selectionWidth = props.selectionEnabled === false ? 0 : 40;
   const totalWidth = table.getTotalSize() + selectionWidth + actionWidth;
   function style(
@@ -1266,6 +1266,9 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       setActionError(errorText(e));
     } finally { actionInFlight.current = false; setBusyAction(undefined); }
   }
+  function domainRowActions(record:T) {
+    return props.renderRowActions?.(record,rowActions.filter(action=>!action.visible||action.visible(record)).map(action=>({...action,run:(row:T)=>runAction(action,row)})));
+  }
   const rowGroupColumn = columns.find(column => query.grouping.includes(column.id) && !/priority/i.test(column.title)) || businessGroupColumn(columns, `${collectionLocation.pathname}:${gridId}`);
   const categoryColors = new Map<string,Map<string,string>>();
   function collectGroupLabels(items:Node<T>[], labels:Map<string,Set<string>>) {
@@ -1315,7 +1318,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
       {props.renderCard?.(record)||<div className="udg-record-fields">{fields.slice(0, mobile && !more ? 4 : 7).map(column=><div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record,column)}</div>)}{mobile && more && fields.slice(7).map(column => <div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record,column)}</div>)}</div>}
       {mobile && !props.renderCard && fields.length > 4 && <button type="button" className="udg-card-details" aria-expanded={more} onClick={() => setExpandedCards(ids => more ? ids.filter(id => id !== getRowId(record)) : [...ids, getRowId(record)])}>{more ? "Show less" : "More details"}</button>}
       {!!actionFields.length && (mobile ? <details className="udg-card-native-actions"><summary>More actions</summary><div>{actionFields.map(column => <div key={column.id}>{displayFor(record, column)}</div>)}</div></details> : actionFields.map(column => <div className="udg-record-field" key={column.id}><small>{column.title}</small>{displayFor(record, column)}</div>))}
-      <div className="udg-card-actions">{quick.slice(0,mobile ? 1 : 4).map(action=><button type="button" key={action.id} title={action.label} aria-label={action.label} aria-busy={busyAction === getRowId(record) || undefined} disabled={!!busyAction || action.disabled?.(record)} onClick={()=>void runAction(action,record)}>{action.icon&&<action.icon size={15}/>} {mobile && action.label}</button>)}{mobile && !quick.length && onOpen && <button type="button" onClick={() => onOpen(record)}><Eye size={16} />Open record</button>}{actions.length>0&&<Dropdown.Root modal={false}><Dropdown.Trigger aria-label="Record quick actions" title="Record quick actions"><MoreHorizontal size={16}/></Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="udg-menu" align="end" collisionPadding={10}>{actions.map(action=><Dropdown.Item key={action.id} disabled={!!busyAction || action.disabled?.(record)} onSelect={()=>void runAction(action,record)}>{action.icon&&<action.icon size={14}/>} {action.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}</div>
+      <div className="udg-card-actions">{props.renderRowActions ? domainRowActions(record) : <>{quick.slice(0,mobile ? 1 : 4).map(action=><button type="button" key={action.id} title={action.label} aria-label={action.label} aria-busy={busyAction === getRowId(record) || undefined} disabled={!!busyAction || action.disabled?.(record)} onClick={()=>void runAction(action,record)}>{action.icon&&<action.icon size={15}/>} {mobile && action.label}</button>)}{mobile && !quick.length && onOpen && <button type="button" onClick={() => onOpen(record)}><Eye size={16} />Open record</button>}{actions.length>0&&<Dropdown.Root modal={false}><Dropdown.Trigger aria-label="Record quick actions" title="Record quick actions"><MoreHorizontal size={16}/></Dropdown.Trigger><Dropdown.Portal><Dropdown.Content className="udg-menu" align="end" collisionPadding={10}>{actions.map(action=><Dropdown.Item key={action.id} disabled={!!busyAction || action.disabled?.(record)} onSelect={()=>void runAction(action,record)}>{action.icon&&<action.icon size={14}/>} {action.label}</Dropdown.Item>)}</Dropdown.Content></Dropdown.Portal></Dropdown.Root>}</>}</div>
     </article>;
   }
   function rowMenu(row: T) {
@@ -2272,7 +2275,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                   minWidth: actionWidth,
                                 }}
                               >
-                                {rowActions
+                                {props.renderRowActions ? domainRowActions(record) : <>{rowActions
                                   .filter(
                                     (a) =>
                                       a.quick &&
@@ -2334,7 +2337,7 @@ function GridEngine<T>(props: SharedDataGridProps<T>) {
                                         ))}
                                     </Dropdown.Content>
                                   </Dropdown.Portal>
-                                </Dropdown.Root>}
+                                </Dropdown.Root>}</>}
                               </div>
                             )}
                           </div>

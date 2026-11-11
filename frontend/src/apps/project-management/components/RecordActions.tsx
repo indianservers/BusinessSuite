@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {useModuleAction} from "@/hooks/use-module-action";
 import { IconActionButton } from "@/components/actions";
+import { useMobile } from "@/components/mobile/useMobile";
 import { savedWithUndo } from "@/components/actions/undo-feedback";
 import { recordPreviewProps } from "@/components/RecordQuickPreview";
 import { api } from "@/services/api";
@@ -53,6 +54,7 @@ type Action = {
   run?: () => void;
   danger?: boolean;
   selected?: boolean;
+  disabled?: boolean;
   children?: Action[];
 };
 type Props = {
@@ -146,6 +148,7 @@ export default function RecordActions({
 }: Props) {
   const allowEdit=useModuleAction("edit"),allowCreate=useModuleAction("create"),allowDelete=useModuleAction("delete");
   const navigate = useNavigate();
+  const mobileSheet = useMobile(640);
   const [menuOpen, setMenuOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const [contextGeneration, setContextGeneration] = useState(0);
@@ -403,22 +406,22 @@ export default function RecordActions({
     return list.map((action, index) =>
       action.children ? (
         <M.Sub key={action.label}>
-          <M.SubTrigger className="pms-record-item" disabled={busy||!parentAllowed||!actionAllowed(action.label)}>
+          <M.SubTrigger className="pms-record-item" disabled={busy||action.disabled||!parentAllowed||!actionAllowed(action.label)}>
             {action.label}
             <ChevronRight size={14} />
           </M.SubTrigger>
           <M.Portal>
             <M.SubContent className="pms-record-menu">
-              {items(mode, action.children,parentAllowed&&actionAllowed(action.label))}
+              {items(mode, action.children,parentAllowed&&!action.disabled&&actionAllowed(action.label))}
             </M.SubContent>
           </M.Portal>
         </M.Sub>
       ) : (
         <span key={action.label} className="contents">{action.danger && <M.Separator className="my-1 border-t"/>}<M.Item
-          disabled={busy||!parentAllowed||!actionAllowed(action.label)}
+          disabled={busy||action.disabled||!parentAllowed||!actionAllowed(action.label)}
           className={`pms-record-item ${action.danger ? "danger" : ""}`}
           onSelect={() => {
-            if(parentAllowed&&actionAllowed(action.label))action.run?.();
+            if(parentAllowed&&!action.disabled&&actionAllowed(action.label))action.run?.();
           }}
         >
           <span className="pms-record-item-icon">
@@ -450,9 +453,9 @@ export default function RecordActions({
           tooltip="Open record actions"
           aria-label={`${kind === "task" ? "Task" : "Project"} actions for ${record.title}`}
           disabled={busy}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); if(mobileSheet&&e.detail>0)setMenuOpen(value=>!value); }}
           onDoubleClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => { e.stopPropagation(); if(mobileSheet)e.preventDefault(); }}
         >
         </IconActionButton>
       </Dropdown.Trigger>

@@ -209,6 +209,8 @@ export type SharedDataGridProps<T> = {
   onOpenPopup?: (row: T) => void;
   onEdit?: (row: T, column: string, value: string) => Promise<void>;
   rowActions?: GridAction<T>[];
+  /** Reuse a domain menu in the canonical action cell. Supplied runs keep grid error/busy handling. */
+  renderRowActions?: (row: T, actions: GridAction<T>[]) => ReactNode;
   quickActionLimit?: number;
   toolbarExtra?: ReactNode;
   renderCard?: (row: T) => ReactNode;
