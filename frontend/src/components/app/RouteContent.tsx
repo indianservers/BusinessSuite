@@ -44,6 +44,9 @@ export default function RouteContent({ children }: { children: ReactNode }) {
         : undefined;
     let pending = !!restore,
       frame = 0;
+    // Route children can shrink the scroll container before layout-effect cleanup.
+    // Retain the last observed position rather than saving that clamped DOM value.
+    let position = { top: restore?.scrollTop || 0, left: restore?.scrollLeft || 0 };
     const apply = () => {
       if (!pending) return;
       scroll.scrollTo({
@@ -51,19 +54,26 @@ export default function RouteContent({ children }: { children: ReactNode }) {
         left: restore!.scrollLeft,
         behavior: "instant",
       });
-      if (scroll.scrollHeight - scroll.clientHeight >= restore!.scrollTop)
-        pending = false;
+      // Cached rows can briefly provide enough height before responsive/query
+      // reconciliation shrinks them again. Keep restoring through layout changes
+      // until the user takes control of this surface.
     };
-    const save = () => {
+    const persist = () => {
       if (!form && !pending && navigationViews.isScope(scope))
         navigationViews.save(key, {
           search: location.search,
-          scrollTop: scroll.scrollTop,
-          scrollLeft: scroll.scrollLeft,
+          scrollTop: position.top,
+          scrollLeft: position.left,
         });
+    };
+    const save = () => {
+      if (pending) return;
+      position = { top: scroll.scrollTop, left: scroll.scrollLeft };
+      persist();
     };
     const interact = () => {
       pending = false;
+      save();
     };
     scroll.scrollTo({
       top: restore?.scrollTop || 0,
@@ -80,15 +90,17 @@ export default function RouteContent({ children }: { children: ReactNode }) {
     scroll.addEventListener("wheel", interact, { passive: true });
     scroll.addEventListener("touchstart", interact, { passive: true });
     scroll.addEventListener("pointerdown", interact, { passive: true });
+    scroll.addEventListener("keydown", interact);
     // Leave focus on the clicked navigation control. Keyboard users can use the existing skip link.
     return () => {
-      save();
+      persist();
       observer.disconnect();
       cancelAnimationFrame(frame);
       scroll.removeEventListener("scroll", save);
       scroll.removeEventListener("wheel", interact);
       scroll.removeEventListener("touchstart", interact);
       scroll.removeEventListener("pointerdown", interact);
+      scroll.removeEventListener("keydown", interact);
     };
   }, [
     scope,
