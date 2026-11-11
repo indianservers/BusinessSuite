@@ -18,6 +18,7 @@ import RecordViewBar from "./RecordViewBar";
 import { createPortal } from "react-dom";
 import { columnIcon, columnValue } from "./column-presentation";
 import { useRecordPreferences } from "./record-preferences";
+import { personalQuery, personalRows } from "./personal-filter";
 import { localGridSource } from "./local-source";
 import { Star } from "lucide-react";
 import GroupLabel from "./GroupLabel";
@@ -474,18 +475,18 @@ export default function SharedDataGrid<T>(props: SharedDataGridProps<T>) {
   const ranked = Object.entries(personal.activity).sort((a,b)=>b[1].count-a[1].count||b[1].last-a[1].last).map(([id])=>id);
   const ids = mode === "favorites" ? personal.favorites : mode === "frequent" ? ranked : undefined;
   const personalSignature = JSON.stringify([mode,ids]);
+  const personalKind=mode==="favorites"||mode==="frequent"?mode:null;
+  useEffect(()=>{props.onPersonalFilterChange?.({kind:personalKind,ids,apply:kind=>personal.setView(kind||"table")});},[personal.key,personalSignature]);
   const source = useMemo(() => {
     const base = props.dataSource;
     if (!enabled || ids === undefined) return base;
     const key = `${base.key}:personal:${personalSignature}`;
     if (base.localRows) {
-      const rank = new Map(ids.map((id,index)=>[id,index]));
-      const records = base.localRows.filter(row=>rank.has(props.getRowId(row)));
-      if (mode === "frequent") records.sort((a,b)=>rank.get(props.getRowId(a))!-rank.get(props.getRowId(b))!);
+      const records = personalRows(base.localRows,{kind:personalKind,ids},props.getRowId);
       const filtered = localGridSource(key,records,props.columns,props.getRowId);
       return {...filtered,load:async(query:GridQuery,signal?:AbortSignal)=>{const [result,original]=await Promise.all([filtered.load(mode==="frequent"?{...query,sorting:[]}:query,signal),base.load(query,signal)]);return {...result,permissions:original.permissions};}, export:base.export?filtered.export:undefined};
     }
-    const adapt = (query:GridQuery):GridQuery => base.personalIdentity ? {...query,recordIds:ids,recordOrder:mode==="frequent",recordIdentity:base.personalIdentity,sorting:mode==="frequent"?[]:query.sorting} : {...query,grouping:[],path:[]};
+    const adapt = (query:GridQuery):GridQuery => base.personalIdentity ? personalQuery(query,{kind:personalKind,ids},base.personalIdentity) : {...query,grouping:[],path:[]};
     return {...base,key,load:async(query:GridQuery,signal?:AbortSignal)=>{
       const result=await base.load(adapt(query),signal);
       if(base.personalIdentity)return result;

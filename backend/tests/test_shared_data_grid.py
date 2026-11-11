@@ -44,6 +44,8 @@ def test_personal_record_filter_precedes_pagination_and_preserves_scope(client,d
     response=query(client,headers,{"recordIds":[*ids,str(foreign.id)],"recordOrder":True,"pageSize":1})
     assert response.status_code==200,response.text
     assert response.json()["total"]==2
+    assert response.json()["context"]["summary"]["counts"]["open"]==2
+    assert sum(row["count"] for row in response.json()["aggregates"])==2
     assert str(response.json()["rows"][0]["id"])==ids[0]
     second=query(client,headers,{"recordIds":ids,"recordOrder":True,"pageSize":1,"page":2}).json()
     assert str(second["rows"][0]["id"])==ids[1]

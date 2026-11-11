@@ -25,6 +25,7 @@ import type {
 import { emptyQuery } from "@/shared/data-grid/types";
 import { dealMoney, label } from "./deal-utils";
 
+import type { GridPersonalFilter } from "@/shared/data-grid/personal-filter";
 type Deal = Record<string, any>;
 export function dealGridSource(
   base: Record<string, unknown>,
@@ -92,6 +93,8 @@ export default function DealsDataGrid({
   savedViewsHost,
   savedViewsExtra,
   active = true,
+  onPersonalFilterChange,
+  savedViewContext,
 }: {
   base: Record<string, unknown>;
   refreshKey: number;
@@ -112,6 +115,8 @@ export default function DealsDataGrid({
   savedViewsHost?: HTMLElement | null;
   savedViewsExtra?: ReactNode;
   active?: boolean;
+  onPersonalFilterChange?:(filter:GridPersonalFilter)=>void;
+  savedViewContext?:Record<string,unknown>;
 }) {
   const navigate = useNavigate(),
     [searchParams] = useSearchParams();
@@ -351,6 +356,7 @@ export default function DealsDataGrid({
       savedViewsLabel="Saved views"
       savedViewsTitle="Personal table views"
       hideViewControls={!active}
+      onPersonalFilterChange={onPersonalFilterChange}
       workspaceId={
         searchParams.get("workspaceId") ||
         searchParams.get("workspace_id") ||
@@ -378,7 +384,7 @@ export default function DealsDataGrid({
         rowHeight: 42,
       }}
       refreshKey={refreshKey}
-      viewContext={base}
+      viewContext={savedViewContext || base}
       onViewContextChange={loadFilters}
       onClearFilters={clearFilters}
       externalFilters={Object.entries(base)

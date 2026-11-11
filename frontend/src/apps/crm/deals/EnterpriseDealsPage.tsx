@@ -13,6 +13,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import CRMDataTransfer from "../CRMDataTransfer";
 import { useCreateIntent } from "@/hooks/use-create-intent";
 import DealsDataGrid, { dealGridSource } from "./DealsDataGrid";
+import { personalQuery, type GridPersonalFilter } from "@/shared/data-grid/personal-filter";
 import {
   emptyQuery,
   type GridQuery,
@@ -144,6 +145,8 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
     sorting: [{ id: "updated_at", desc: true }],
   }));
   const [gridReady, setGridReady] = useState(false);
+  const [personalFilter,setPersonalFilter]=useState<GridPersonalFilter>();
+  const collectionQuery=personalQuery(gridQuery,personalFilter);
   const [savedViewsHost,setSavedViewsHost]=useState<HTMLDivElement|null>(null);
   const [boardSettingsOpen,setBoardSettingsOpen]=useState(false);
   const [selectedRecords, setSelectedRecords] = useState<Row[]>([]);
@@ -300,7 +303,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
     void dealGridSource(params)
       .load(
         {
-          ...gridQuery,
+          ...collectionQuery,
           search: filters.search,
           grouping: [],
           path: [],
@@ -337,10 +340,12 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
     sort,
     direction,
     reload,
+    JSON.stringify(collectionQuery.recordIds),
+    collectionQuery.recordOrder,
     JSON.stringify(gridQuery.filters),
     JSON.stringify(gridQuery.sorting),
   ]);
-  useRecordView<GridResult<Row>>("/crm/deal-workspace/grid/query", { state: JSON.stringify({ ...gridQuery, search: filters.search, grouping: [], path: [], page, pageSize: mode === "kanban" ? 100 : 25 }), base: JSON.stringify(params) }, result => {
+  useRecordView<GridResult<Row>>("/crm/deal-workspace/grid/query", { state: JSON.stringify({ ...collectionQuery, search: filters.search, grouping: [], path: [], page, pageSize: mode === "kanban" ? 100 : 25 }), base: JSON.stringify(params) }, result => {
     if (mode !== "grid") {
       setData({ items: result.rows, total: result.total, page: result.page, pages: Math.ceil(result.pageTotal / result.pageSize), can_manage: result.permissions?.edit, can_export: result.permissions?.export, can_archive: result.permissions?.archive, can_assign: result.permissions?.assign });
       setSummary(result.context?.summary as Row);
@@ -361,11 +366,12 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
   const change = (name: keyof Filters, value: string | boolean) =>
     setFilters((current) => ({ ...current, [name]: value }));
   const clearDealFilters = () => {
+    personalFilter?.apply(null);
     setFilters(empty);
     setSearch("");
     setGridQuery(current => ({ ...current, search: "", filters: { logic: "and", rules: [] }, page: 1 }));
   };
-  const activeFilterCount = Object.entries(filters).filter(([key, value]) => key !== "search" && value !== "" && value !== false).length;
+  const activeFilterCount = (personalFilter?.kind?1:0) + Object.entries(filters).filter(([key, value]) => key !== "search" && value !== "" && value !== false).length;
   const advancedFilterCount = Object.entries(filters).filter(([key, value]) => !["search", "pipeline_id", "stage_id", "owner_id"].includes(key) && value !== "" && value !== false).length;
   async function exportDeals(format: string) {
     try {
@@ -376,7 +382,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
         columns,
         includeGroups: false,
         includeSummaries: true,
-        query: { ...gridQuery, search: filters.search },
+        query: { ...collectionQuery, search: filters.search },
       });
       const url = URL.createObjectURL(response as Blob);
       const a = document.createElement("a");
@@ -696,6 +702,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
         </section>
       </details>
       </details>}
+      {personalFilter?.kind&&<p role="status" className="text-xs text-muted-foreground">{personalFilter.kind==="favorites"?"Favorites":"Frequent"} applies across deal views. <button type="button" className="underline" onClick={()=>personalFilter.apply(null)}>Show all matching deals</button></p>}
       <WorkspaceViewBar scope="crm-deals" label="Deal views" active={mode} views={dealViews} onChange={setMode} primary={["grid","kanban","forecast"]}/>
       <section className="ed-controls">
         <div className="ed-toolbar">
@@ -1003,6 +1010,8 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
           {<div hidden={mode!=="grid"} style={mode!=="grid"?{display:"none"}:undefined}>
             <DealsDataGrid
               active={mode==="grid"}
+              onPersonalFilterChange={setPersonalFilter}
+              savedViewContext={{...params,personalKind:personalFilter?.kind||null}}
               savedViewsHost={savedViewsHost}
               savedViewsExtra={<section className="ed-saved-board-views"><h3>Board views</h3><p>Personal and team views stored by the existing Board service. Team sharing remains subject to board access.</p><Popover.Close asChild><button type="button" className="udg-control" onClick={()=>{setMode("kanban");setBoardSettingsOpen(true);}}>Open Board views and sharing</button></Popover.Close></section>}
               base={params}
@@ -1067,6 +1076,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
                 setFilters(restored);
                 setSearch(restored.search);
                 setMode("grid");
+                if("personalKind" in context)personalFilter?.apply(context.personalKind==="favorites"||context.personalKind==="frequent"?context.personalKind:null);
               }}
             />
           </div>}
@@ -1075,7 +1085,7 @@ function EnterpriseDealsPage({ initialView = "grid" }: { initialView?: "grid" | 
             <div className="ed-shared-cards">{rows.map(card)}</div>
           )}
           {mode === "kanban" && <PipelineBoard compactOverview settingsReturnFocus={savedViewsHost?.querySelector("button")} settingsOpen={boardSettingsOpen} onSettingsOpenChange={setBoardSettingsOpen}
-            title={String(options.pipelines?.find(p=>String(p.id)===filters.pipeline_id)?.name||(filters.pipeline_id?"Selected pipeline":"All permitted pipelines"))} description="Build relationships, track every opportunity and keep the next conversation moving." label="Sales pipeline" viewState={filters} onApplyView={saved=>{const restored=Object.fromEntries(Object.keys(empty).map(key=>[key,key==="no_next"?!!saved[key]:String(saved[key]||"")])) as Filters;setFilters(restored);setSearch(restored.search);}} context={{module:"crm",scope:`pipeline:${filters.pipeline_id||"all"}`,kind:"deal"}} renderDetails={record=><PipelineDomainDetails module="crm" id={record.id}/>} onAdd={canCreate?stageId=>{setCaptureStage(Number(stageId));setCreate(true);}:undefined} reorder={false} disabled={loading}
+            title={String(options.pipelines?.find(p=>String(p.id)===filters.pipeline_id)?.name||(filters.pipeline_id?"Selected pipeline":"All permitted pipelines"))} description="Build relationships, track every opportunity and keep the next conversation moving." label="Sales pipeline" viewState={{...filters,personalKind:personalFilter?.kind||""}} onApplyView={saved=>{const restored=Object.fromEntries(Object.keys(empty).map(key=>[key,key==="no_next"?!!saved[key]:String(saved[key]||"")])) as Filters;setFilters(restored);setSearch(restored.search);if("personalKind" in saved)personalFilter?.apply(saved.personalKind==="favorites"||saved.personalKind==="frequent"?saved.personalKind:null);}} context={{module:"crm",scope:`pipeline:${filters.pipeline_id||"all"}`,kind:"deal"}} renderDetails={record=><PipelineDomainDetails module="crm" id={record.id}/>} onAdd={canCreate?stageId=>{setCaptureStage(Number(stageId));setCreate(true);}:undefined} reorder={false} disabled={loading}
             loading={loading && !data}
             notice={`Showing ${rows.length} of ${data?.total ?? rows.length} deals · page ${page}. Stage totals cover all matching deals.`}
             toolbar={<><PipelineSearch value={search} onChange={setSearch} placeholder="Search deals"/><div className="pipeline-toolbar-end"><select aria-label="Sort deals" value={`${gridQuery.sorting[0]?.id||"updated_at"}:${gridQuery.sorting[0]?.desc?"desc":"asc"}`} onChange={e=>{const [field,order]=e.target.value.split(":");setGridQuery(q=>({...q,sorting:[{id:field,desc:order==="desc"}]}));}}><option value="updated_at:desc">Sort: Recently updated</option><option value="next_follow_up_at:asc">Sort: Next activity</option><option value="amount:desc">Sort: Highest value</option><option value="name:asc">Sort: Name</option></select><button type="button" className="ed-link-button" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}>Filter</button></div></>}

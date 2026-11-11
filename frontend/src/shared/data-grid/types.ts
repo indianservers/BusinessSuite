@@ -1,5 +1,6 @@
 import type { ReactNode, ComponentType, HTMLAttributes } from "react";
 import type { LucideProps } from "lucide-react";
+import type { GridPersonalFilter } from "./personal-filter";
 import type {
   SortingState,
   ColumnPinningState,
@@ -173,6 +174,7 @@ export type SharedDataGridProps<T> = {
   savedViewsLabel?: string;
   savedViewsTitle?: string;
   hideViewControls?: boolean;
+  onPersonalFilterChange?: (filter:GridPersonalFilter)=>void;
   personalViews?: boolean;
   personalScope?: string;
   viewMode?: GridLayout["view"];
