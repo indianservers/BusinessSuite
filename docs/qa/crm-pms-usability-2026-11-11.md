@@ -35,3 +35,25 @@ The complete seven-phase improvement goal remains active. This first batch reduc
 7. Phase 7: assess and implement appropriate document page/discussion extensions and cross-project capacity reservations; verify revision/conflict protection and avoid unsupported collaboration claims.
 
 For each phase, retain desktop/phone/keyboard evidence, focused regression results and negative-case coverage. The full goal also requires before/after artifacts, updated comparison/backlog and an evidence-backed final report.
+
+## Batch 2 — PMS collection controls and first-screen acceptance
+
+Committed source: `82b8ecaa`. This batch removes the extra task search from the workspace header and uses the collection search for List, Board, Calendar and Workload. Global search remains separate. The mounted collection owns quick filters, advanced grid conditions and attention queues, and passes the same matching tasks to planning views. Activity remains a different data source and does not imply task-filter coverage.
+
+Status/priority/type filters are under More filters. Summary and alternate grid presentations are compact disclosures; their content, status distribution, catalog and preferences remain available. Save filters retains the existing per-user/company/workspace key. Table layouts names the existing grid configuration separately. This distinction improves labeling but does not yet satisfy the goal's single saved-configuration entry point.
+
+Advanced conditions use the existing grid filter engine, remain visible as an active count when switching views, and are cleared by the collection's Clear filters action. Legacy persisted grid search is transferred into the visible task search. Custom-field read failures expose Retry fields; that retry button has not yet been exercised against an injected failure.
+
+The shared filter dialog now describes its loaded-record scope. During live pointer testing, floating record-sync notices covered Apply filters. Modal-time CSS now hides both floating sync notices and the generic toast viewport while a modal owns interaction. Notices return after closing; existing drafts and sync entries are retained. Keyboard and pointer application of a Task contains condition were checked. The grouping prompt's invalid encoding was corrected.
+
+### Evidence and limits
+
+- Authenticated local workspace 7 contains four existing QA tasks. At 1280×720, scrollY 0, task rows occupy y491–555, y555–619 and y619–683: three complete rows, with title/scope/Create above them. At 1440×900 the four rows occupy y485–741. CRM first-screen acceptance is still outstanding.
+- Current screenshots: `.local/crm-pms-usability/pms-1280.png`, `pms-1440.png`, `pms-calendar-390.png`, and `pms-filter-modal-390.png`. These are ignored local artifacts. A comparable saved before screenshot is still missing; earlier observed bounds are not a substitute for that deliverable.
+- At 390×844 the document width is 390px. Searching High and switching List → Calendar retains exactly one matching task. An impossible query shows Tasks · 0; Clear filters restores Tasks · 4. No task dates/statuses or business records were intentionally changed. Viewport overrides were reset.
+- Earlier in the batch: priority High retained one task across List/Board/Calendar; a Task contains Low advanced condition retained one task across Board/Calendar and reload. Clear filters restored four. Pointer Apply was repeated successfully after fixing the notice overlay, including on the phone modal.
+- Focus queue checks passed. Grid unit checks passed for bounded server paging/access-preserving records, local search, numeric sorting, nested filters, grouping, selected exports and spreadsheet formula escaping. Pending-search tests passed all 12 assertions. These do not prove the later task-save, stale-edit, approval or role-isolation journeys.
+- Follow-up source inspection found that the read-only custom-field batch POST was classified as a save by the API client. Both task/project lookup callers now set the existing `readOnlyPreview` flag. The backend endpoint only returns permission-checked field data; this prevents new lookup-triggered mutation events/sync entries. Existing browser-saved entries were not deleted or resubmitted. Their individual origins have not been established.
+- Final frontend TypeScript no-emit check and production build passed after the read-only lookup fix. Existing Vite dependency annotation, mixed-import and large-chunk warnings remain.
+
+The full goal remains active. PMS collection layout and filter continuity have stronger evidence now; CRM layout, unified saved configuration and the phase 3–7 business journeys remain open.

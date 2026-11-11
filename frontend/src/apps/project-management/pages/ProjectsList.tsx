@@ -775,6 +775,7 @@ function ProjectsList() {
               entity: "project",
               ids: data.slice(offset, offset + 100).map((p) => p.id),
             },
+            { readOnlyPreview: true },
           );
 
           Object.assign(values, response.data.records);

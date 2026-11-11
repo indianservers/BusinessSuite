@@ -64,7 +64,7 @@ export function useCustomFieldRecords(entity:"task"|"project",ids:number[]) {
     try {
       const result:Record<string,FieldRecord>={};
       for(let offset=0;offset<ids.length;offset+=100){
-        const {data}=await api.post<{records:Record<string,FieldRecord>}>("/project-management/custom-fields/records",{entity,ids:ids.slice(offset,offset+100)});
+        const {data}=await api.post<{records:Record<string,FieldRecord>}>("/project-management/custom-fields/records",{entity,ids:ids.slice(offset,offset+100)},{readOnlyPreview:true});
         Object.assign(result,data.records);
       }
       if(request.current===cycle)setRecords(result);
