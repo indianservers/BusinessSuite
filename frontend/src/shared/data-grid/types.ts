@@ -127,6 +127,8 @@ export type GridColumn<T> = {
   align?: "left" | "right" | "center";
   accessor?: (row: T) => unknown;
   render?: (row: T) => ReactNode;
+  /** Readable, noninteractive text shared by preview and Copy details. */
+  previewValue?: (row: T) => string;
   exportValue?: (row: T) => string;
   sortable?: boolean;
   filterable?: boolean;

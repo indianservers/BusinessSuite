@@ -168,6 +168,7 @@ export default function DealsDataGrid({
             ? "Enter a nonnegative amount."
             : undefined,
         render: (r) => dealMoney(r.amount, r.currency),
+        previewValue: (r) => dealMoney(r.amount, r.currency),
         exportValue: (r) => `${r.currency} ${Number(r.amount || 0).toFixed(2)}`,
       },
       { id: "currency", title: "Currency", type: "category", width: 100 },
@@ -201,6 +202,7 @@ export default function DealsDataGrid({
       },
       {
         id: "probability",
+        previewValue: (r) => `${r.probability || 0}%`,
         title: "Probability",
         icon: Gauge,
         type: "number",
@@ -226,6 +228,7 @@ export default function DealsDataGrid({
         width: 155,
         groupable: false,
         render: (r) => dealMoney(r.weighted, r.currency),
+        previewValue: (r) => dealMoney(r.weighted, r.currency),
       },
       {
         id: "owner_user_id",
@@ -250,6 +253,7 @@ export default function DealsDataGrid({
       },
       {
         id: "expected_close_date",
+        previewValue: (r) => r.expected_close_date ? new Date(`${String(r.expected_close_date).slice(0,10)}T12:00:00`).toLocaleDateString() : "Unscheduled",
         title: "Expected close",
         icon: CalendarDays,
         type: "date",
@@ -308,6 +312,7 @@ export default function DealsDataGrid({
       },
       {
         id: "next_follow_up_at",
+        previewValue: (r) => r.next_follow_up_at ? new Date(r.next_follow_up_at).toLocaleString(undefined, {dateStyle:"medium",timeStyle:"short"}) : "Not scheduled",
         title: "Next action",
         icon: CalendarDays,
         type: "datetime",
@@ -325,6 +330,7 @@ export default function DealsDataGrid({
       },
       {
         id: "created_at",
+        previewValue: (r) => r.created_at ? new Date(r.created_at).toLocaleDateString() : "—",
         title: "Created",
         type: "datetime",
         width: 160,
@@ -334,6 +340,7 @@ export default function DealsDataGrid({
       },
       {
         id: "updated_at",
+        previewValue: (r) => r.updated_at ? new Date(r.updated_at).toLocaleDateString() : "—",
         title: "Updated",
         type: "datetime",
         width: 160,

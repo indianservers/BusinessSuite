@@ -531,10 +531,10 @@ function ScopedDataGrid<T>(props: SharedDataGridProps<T>) {
       <div className="flex flex-wrap gap-2 pb-3" role="group" aria-label="Record preview navigation">
         <button type="button" disabled={previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))<=0} onClick={()=>setFocused(previewRows[previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))-1])}>Previous record</button>
         <button type="button" disabled={previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))<0 || previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))>=previewRows.length-1} onClick={()=>setFocused(previewRows[previewRows.findIndex(row=>props.getRowId(row)===props.getRowId(focused))+1])}>Next record</button>
-        <button type="button" onClick={()=>{const text=props.columns.filter(c=>c.id!=="actions").map(c=>`${c.title}: ${String(c.accessor?c.accessor(focused):(focused as Record<string,unknown>)[c.id]??"")}`).join("\n");void writeClipboard(text).then(()=>setPreviewNotice("Record details copied"),()=>setPreviewNotice("Could not copy record details"));}}>Copy details</button>
+        <button type="button" onClick={()=>{const text=props.columns.filter(c=>c.id!=="actions").map(c=>`${c.title}: ${c.previewValue ? c.previewValue(focused) : String(c.accessor?c.accessor(focused):(focused as Record<string,unknown>)[c.id]??"")}`).join("\n");void writeClipboard(text).then(()=>setPreviewNotice("Record details copied"),()=>setPreviewNotice("Could not copy record details"));}}>Copy details</button>
       </div>{previewNotice && <p role="status" className="text-xs">{previewNotice}</p>}
       {props.renderDetails ? props.renderDetails(focused) : <dl className="udg-details-fields">{props.columns.filter(c => c.id !== "actions").map(column => {
-        const value = column.accessor ? column.accessor(focused) : (focused as Record<string, unknown>)[column.id];
+        const value = column.previewValue ? column.previewValue(focused) : column.accessor ? column.accessor(focused) : (focused as Record<string, unknown>)[column.id];
         return <div key={column.id}><dt>{column.title}</dt><dd>{value == null || value === "" ? "—" : String(value)}</dd></div>;
       })}</dl>}
     </GridRecordPane>}

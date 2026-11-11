@@ -162,3 +162,15 @@ Older-format configuration fixtures, multi-user browser preference isolation, fa
 - Shared-grid unit regression and the source-plus-fixture TypeScript check passed. The final production TypeScript/Vite build passed; existing dependency annotation and chunk-size warnings remain.
 
 Remaining: failure-notice first-screen acceptance, complete phase 3 task/CRM interaction and formatting work, phases 4–7 business journeys, updated comparison/backlog and the full requirement audit. The goal remains active.
+
+## Batch 9 — CRM preview formatting
+
+- Reproduced on the authenticated local Srikrishna deal: collection displayed ₹0.00, 15% and a localized next-action date; preview displayed 0, 15 and a raw ISO timestamp. Added optional `GridColumn.previewValue` for readable, noninteractive preview text. CRM supplies money, probability, expected-close and timestamp formatting matching its existing collection renderers. Copy details uses the same optional text formatter. Existing accessors, filters, sorting, exports, APIs and write rules are unchanged.
+- Desktop preview now displays ₹0.00/15%, localized Created/Next action and Unscheduled where appropriate. The other live QA deal displays ₹1.00, weighted ₹0.15 and Not scheduled. The phone dialog uses the same formatted text; at 390×844 document width is 390px. No business writes were made.
+- Copy details reports success in the UI. Browser clipboard readback returned empty, so this is **not** clipboard-content acceptance. Source confirms both paths call the same formatter; actual clipboard interoperability remains unverified.
+- The viewport-resize journey (opening desktop preview, then resizing to phone) dismissed on Escape but returned focus to the document body. Normal phone-open focus recovery was proven for PMS in Batch 8; cross-breakpoint CRM focus recovery remains a defect to address. The copied-status notice also persists when another record is previewed. Grouped collection previews have disabled Previous/Next despite multiple visible records; investigate the grouped result scope before changing navigation.
+- Enter on the CRM title link opened `/crm/deals/259`; browser Back returned to the two-record collection. No speed claim is made, and this does not prove filtered selection/scroll recovery.
+- Reproduced full-record defects for the next batch: duplicate deal title at h1/h2 and Summary showing `owner user id: 1` despite the collection resolving Platform Admin. These are **still open**. Screenshot: `.local/crm-pms-usability/crm-full-duplicate-summary-before.png`.
+- Formatting artifacts: `.local/crm-pms-usability/crm-preview-raw-before.png`, `crm-preview-formatted-desktop.png`, `crm-preview-formatted-390.png`. Shared-grid unit regression and all 12 pending-search checks passed. The production TypeScript/Vite build passed, with existing dependency annotation and chunk warnings.
+
+This batch improves deal previews only. Other CRM entities, full-detail formatting, multi-currency preview fixtures, mutations, workflow/access checks and phases 4–7 remain outstanding.
