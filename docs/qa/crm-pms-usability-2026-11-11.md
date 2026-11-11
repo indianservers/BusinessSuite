@@ -145,3 +145,20 @@ Remaining collection acceptance includes older-format saved-view fixtures, multi
 - Recovered normal PMS view: four tasks, no favorite stars, first three complete rows y491–555, y555–619 and y619–683 at 1280×720. Viewport override was reset. Artifacts: `.local/crm-pms-usability/pms-favorites-calendar-390.png`, `pms-frequent-calendar-390.png`, `pms-personal-subset-cleared-1280.png`.
 
 Older-format configuration fixtures, multi-user browser preference isolation, failure-notice layout acceptance and the phase 3–7 complete business journeys remain open. The full goal is not complete.
+
+## Batch 7 — Preference identity boundaries and legacy recovery
+
+- The disposable `preference-isolation-qa.html` fixture exercises the actual SharedDataGrid and, with `?pms=1`, WorkspaceWork. It is gated to loopback development, uses fake identities and rejects business writes. Run on isolated port 5199, separately from the authenticated application. F8 switches identity while a saved-view menu is open; a layout-effect audit checks the committed DOM before passive reset effects can hide an exposure.
+- Before the fix, that audit observed Account A's private saved name once during the Account B commit. The shared grid now remounts synchronously at its identity/access/collection boundary, retaining the original preference keys. Repeating the transition recorded zero exposures. Account A and B each retained only their own named views; switching identity closed an open preview. PMS favorites also remained specific to each fixture account.
+- Seeded original-format named layouts without collection context: loading one retained the current High search. Seeded the original PMS filter snapshot without newer fields: restoring it selected Low and one matching record. A malformed snapshot displayed an actionable restore error while retaining High. Reseeding valid older data recovered successfully.
+- At 390×844, Escape returned focus to Saved views and the damaged/recovered states had no horizontal overflow. Artifacts: `.local/crm-pms-usability/preference-isolation-account-a.png`, `preference-damaged-390.png`, `preference-legacy-restored-390.png`.
+- The preference batch production build passed. Source-plus-fixture TypeScript and grid/personal-filter/pending-search checks passed during implementation. These fixture identity checks establish browser-preference behavior, not comprehensive backend role enforcement or deployed acceptance.
+
+## Batch 8 — Phone preview can open the existing record experience
+
+- Reproduced in authenticated local PMS at 390×844: a task preview showed navigation/copy/close but no full-record action. Desktop had the action. GridRecordPane now renders the supplied expansion action on phones as a labeled button, reusing the same caller callback and permission behavior; callers without expansion still omit it.
+- Opened High task preview → Open full record → existing task dialog. Status, assignees, priority, dates, description and conversation were present. Closing the task returned to the preview; Escape dismissed the preview and focused the original Preview record button. Document width remained 390px. No task edits or external messages were submitted.
+- Screenshot: `.local/crm-pms-usability/pms-preview-full-action-390.png`. This is a preview-to-existing-detail check, not proof of direct URL, browser Back, filtered selection/scroll restoration, mutation recovery, or all CRM entry points. Those remain required. Desktop expansion markup and behavior are unchanged.
+- Shared-grid unit regression and the source-plus-fixture TypeScript check passed. The final production TypeScript/Vite build passed; existing dependency annotation and chunk-size warnings remain.
+
+Remaining: failure-notice first-screen acceptance, complete phase 3 task/CRM interaction and formatting work, phases 4–7 business journeys, updated comparison/backlog and the full requirement audit. The goal remains active.
